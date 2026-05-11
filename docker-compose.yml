@@ -1,0 +1,48 @@
+services:
+
+  postgres:
+    image: postgres:16                          # image officielle PostgreSQL version 16
+    restart: unless-stopped                     # redémarre automatiquement sauf si arrêté manuellement
+    env_file: .env                              # charge les variables depuis le fichier .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}               # nom de la base de données
+      POSTGRES_USER: ${POSTGRES_USER}           # utilisateur PostgreSQL
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}   # mot de passe PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # persiste les données même si le conteneur est supprimé
+    ports:
+      - "5432:5432"                             # expose le port PostgreSQL sur la machine hôte
+
+  redis:
+    image: redis:7-alpine                       # image Redis légère (alpine = image minimale)
+    restart: unless-stopped
+    ports:
+      - "6379:6379"                             # expose le port Redis sur la machine hôte
+
+  backend:
+    build: ./apps/backend                       # construit l'image depuis le Dockerfile du backend
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./apps/backend:/app                     # monte le code local dans le conteneur (hot reload)
+    ports:
+      - "8000:8000"                             # expose l'API Django sur le port 8000
+    depends_on:
+      - postgres                                # attend que postgres démarre avant de lancer le backend
+      - redis
+    command: python manage.py runserver 0.0.0.0:8000  # commande de démarrage en développement
+
+  frontend:
+    build: ./apps/frontend                      # construit l'image depuis le Dockerfile du frontend
+    restart: unless-stopped
+    user: "1000:1000"                           # correspond à l'utilisateur hôte (houd) pour éviter les conflits de permissions
+    volumes:
+      - ./apps/frontend:/app                    # monte le code local dans le conteneur (hot reload)
+      - /app/node_modules                       # empêche le volume hôte d'écraser les node_modules du conteneur
+    ports:
+      - "3000:3000"                             # expose Next.js sur le port 3000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:                                # volume nommé géré par Docker pour persister les données PostgreSQL
