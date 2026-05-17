@@ -20,7 +20,7 @@ services:
       - "6379:6379"                             # expose le port Redis sur la machine hôte
 
   backend:
-    build: ./apps/backend                       # construit l'image depuis le Dockerfile du backend
+    build: ./apps/backend                       # construit l'image du backend à partir du Dockerfile situé dans ./apps/backend
     restart: unless-stopped
     env_file: .env
     volumes:

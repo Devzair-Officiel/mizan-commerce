@@ -9,8 +9,8 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : _à compléter_
-**Version actuelle en développement** : Phase 0 (Setup)
+**Dernière mise à jour** : 2026-05-11
+**Version actuelle en développement** : Phase V1 — Authentification & Boutique
 
 ---
 
@@ -74,20 +74,20 @@
 
 ### Authentification & compte (URS-001 à URS-003)
 
-- [ ] Modèle `User` (Django custom user model)
-- [ ] Endpoint inscription email + mot de passe
-- [ ] Endpoint connexion (JWT ou session) + persistance mobile
+- [x] Modèle `User` (Django custom user model)
+- [x] Endpoint inscription email + mot de passe
+- [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
 - [ ] Endpoint mot de passe oublié + email de reset
 - [ ] Validation email à l'inscription
 - [ ] Pages frontend : inscription, connexion, mot de passe oublié
-- [ ] Tests unitaires + multi-tenant
+- [x] Tests unitaires + multi-tenant
 
 ### Boutique / espace commerçant (URS-004, URS-005)
 
-- [ ] Modèle `Shop` (nom, devise, pays)
-- [ ] Modèle `ShopMember` (rôle : owner / membre futur)
-- [ ] Création automatique de boutique à l'inscription
-- [ ] Endpoints CRUD `Shop` (filtré par membership)
+- [x] Modèle `Shop` (nom, devise, pays)
+- [x] Modèle `ShopMember` (rôle : owner / membre futur)
+- [x] Création automatique de boutique à l'inscription
+- [x] Endpoints CRUD `Shop` (filtré par membership)
 - [ ] Page paramètres boutique (modifier nom, devise, pays)
 
 ### Tableau de bord (URS-006, URS-007)
