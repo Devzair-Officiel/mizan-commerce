@@ -82,6 +82,11 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - **Fichiers** : uploads dans bucket privé par défaut. URL signées pour la lecture. Vérifier `mime_type` et taille avant stockage.
 - **Logs et erreurs** : ne jamais logger de mot de passe, token, ou contenu de fichier. Stack traces uniquement côté serveur, jamais renvoyées au client en production.
 - **CORS** strict, **CSRF** activé, cookies `Secure` + `HttpOnly` + `SameSite=Lax` minimum.
+- **Tokens JWT** : ne jamais stocker un token dans `localStorage` ou `sessionStorage` (vulnérable XSS). Utiliser exclusivement des cookies `HttpOnly` posés par un route handler Next.js côté serveur. Le JS client ne doit jamais lire ni écrire un token.
+- **Route handlers Next.js** : tout appel authentifié au backend Django passe par `/app/api/*` (proxy server-side). Le cookie est lu par le serveur Next.js, le header `Authorization` est ajouté côté serveur, jamais exposé au client.
+- **Inputs** : toujours sanitiser et valider côté serveur (DRF serializers). Côté client (Zod) = confort UX uniquement, pas une ligne de défense.
+- **Dépendances** : ne pas introduire un package npm ou PyPI sans vérifier qu'il est maintenu et sans faille connue critique. Préférer les packages avec >1M téléchargements/semaine et maintenance active.
+- **Erreurs API** : ne jamais renvoyer de stack trace, de chemin de fichier, ou de détail interne au client en production. Les messages d'erreur exposés sont génériques côté client, détaillés uniquement dans les logs serveur.
 
 ## Workflow
 
@@ -102,5 +107,13 @@ Avant de produire la réponse finale, relire mentalement :
 3. Est-ce que je duplique du code qui existe déjà ailleurs dans le repo ?
 4. Le typage est-il complet (Python type hints, TS strict sans `any`) ?
 5. Si j'ai fait un choix non évident, l'ai-je expliqué en une phrase ?
+6. **Sécurité — checklist rapide** :
+   - Les tokens JWT sont-ils dans des cookies `HttpOnly` uniquement ? (jamais `localStorage`)
+   - Les route handlers Next.js proxifient-ils correctement sans exposer le token au client ?
+   - Les inputs sont-ils validés côté serveur, pas seulement côté client ?
+   - Les erreurs renvoyées au client sont-elles génériques (pas de stack trace, pas de chemin) ?
+   - Les querysets Django sont-ils tous scopés au `shop_id` du membre courant ?
+   - Les fichiers uploadés sont-ils dans un bucket privé avec URL signées ?
+   - Y a-t-il un risque XSS, injection SQL, IDOR, ou CSRF dans ce code ?
 
-Si l'un des points pose problème, corriger avant de répondre.
+Si l'un des points pose problème, **corriger avant de répondre**.

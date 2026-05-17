@@ -39,6 +39,8 @@ services:
     volumes:
       - ./apps/frontend:/app                    # monte le code local dans le conteneur (hot reload)
       - /app/node_modules                       # empêche le volume hôte d'écraser les node_modules du conteneur
+    environment:
+      - API_URL=http://backend:8000/api          # serveur→serveur (réseau Docker interne)
     ports:
       - "3000:3000"                             # expose Next.js sur le port 3000
     depends_on:

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiFetch, setTokens } from '@/lib/api-client';
+import { ApiError } from '@/lib/api-client';
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -29,11 +29,12 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginForm) {
     try {
-      const res = await apiFetch<{ access: string; refresh: string }>('/auth/login/', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      setTokens(res.access, res.refresh);
+      if (!res.ok) throw new ApiError(res.status, null, '');
       router.replace('/dashboard');
     } catch {
       setError('root', { message: 'Email ou mot de passe incorrect.' });
