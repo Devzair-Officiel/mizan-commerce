@@ -10,7 +10,7 @@
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
 **Dernière mise à jour** : 2026-05-17
-**Version actuelle en développement** : Phase V1 — Notes & Rappels
+**Version actuelle en développement** : Phase V1 — Dashboard
 
 ---
 
@@ -140,22 +140,22 @@
 
 ### Notes & rappels (URS-032 à URS-035)
 
-- [ ] Modèle `Note` (lié à client / commande / libre)
-- [ ] Modèle `Reminder` (titre, date, statut)
-- [ ] Endpoints CRUD notes et rappels
+- [x] Modèle `Note` (lié à client / commande / libre)
+- [x] Modèle `Reminder` (titre, date, statut)
+- [x] Endpoints CRUD notes et rappels
 - [ ] Affichage des rappels du jour sur dashboard
-- [ ] Marquer un rappel comme terminé
+- [x] Marquer un rappel comme terminé
 
 ### Zakat commerciale (URS-036 à URS-041)
 
-- [ ] Modèle `ZakatCalculation`
+- [x] Modèle `ZakatCalculation`
 - [ ] Champ date annuelle de zakat sur boutique ou utilisateur
-- [ ] Calcul automatique de la valeur du stock zakatable (somme produits actifs × prix d'achat)
-- [ ] Saisie liquidités, créances, dettes court terme
-- [ ] Calcul à 2,5 % avec mention "estimation indicative" en évidence
+- [x] Calcul automatique de la valeur du stock zakatable (somme produits actifs × prix d'achat)
+- [x] Saisie liquidités, créances, dettes court terme
+- [x] Calcul à 2,5 % avec mention "estimation indicative" en évidence
 - [ ] Rappel automatique avant la date annuelle
-- [ ] Possibilité de corriger chaque montant manuellement
-- [ ] Sauvegarde du calcul dans l'historique
+- [x] Possibilité de corriger chaque montant manuellement
+- [x] Sauvegarde du calcul dans l'historique
 
 ### Sécurité & droits (URS-061 à URS-063)
 
