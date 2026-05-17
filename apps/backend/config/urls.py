@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/orders/', include('apps.orders.urls')),
     path('api/', include('apps.notes.urls')),
     path('api/', include('apps.zakat.urls')),
+    path('api/', include('apps.core.urls')),
 ]
