@@ -23,6 +23,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        from decimal import Decimal
         from apps.accounts.factories import UserFactory
         from apps.shops.factories import ShopFactory, ShopMemberFactory
         from apps.products.factories import ProductFactory
@@ -34,7 +35,11 @@ class Command(BaseCommand):
         from apps.stock.models import StockMovement
         from apps.customers.models import Customer
 
+        from apps.orders.models import Order, OrderItem
+
         if options["reset"]:
+            OrderItem.objects.all().delete()
+            Order.objects.all().delete()
             StockMovement.objects.all().delete()
             Product.objects.all().delete()
             Customer.objects.all().delete()
@@ -127,6 +132,27 @@ class Command(BaseCommand):
 
         self.stdout.write(f"    → {len(products_fr)} produits, {len(customers_fr)} clients")
 
+        # Commandes boutique FR
+        from apps.orders import services as order_services
+        if not Order.objects.filter(shop=shop_fr).exists():
+            karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
+            o1 = order_services.create_order(shop_fr, youssef, customer=karima, shipping=Decimal('5.00'))
+            order_services.add_item(o1, products_fr[0], 2)
+            order_services.add_item(o1, products_fr[3], 1)
+            order_services.transition_status(o1, 'to_prepare', youssef)
+            order_services.update_payment(o1, o1.total_amount)
+
+            o2 = order_services.create_order(shop_fr, youssef, notes='Livraison urgente')
+            order_services.add_item(o2, products_fr[1], 1)
+            order_services.add_item(o2, products_fr[2], 1)
+
+            o3 = order_services.create_order(shop_fr, youssef, customer=karima)
+            order_services.add_item(o3, products_fr[4], 3)
+            order_services.transition_status(o3, 'to_prepare', youssef)
+            order_services.transition_status(o3, 'prepared', youssef)
+            order_services.update_payment(o3, Decimal('50.00'))
+            self.stdout.write(f"    → 3 commandes créées")
+
         # ── Boutique 2 — Amira (Maroc / MAD) ────────────────────────
         amira = UserFactory(
             email="amira@example.ma",
@@ -182,6 +208,14 @@ class Command(BaseCommand):
             CustomerFactory(shop=shop_ma, name=name, phone=phone, city=city, country="MA", notes=notes)
 
         self.stdout.write(f"    → {len(products_ma)} produits, {len(customers_ma)} clients")
+
+        if not Order.objects.filter(shop=shop_ma).exists():
+            zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
+            o4 = order_services.create_order(shop_ma, amira, customer=zineb)
+            order_services.add_item(o4, products_ma[0], 1)
+            order_services.transition_status(o4, 'to_prepare', amira)
+            order_services.update_payment(o4, Decimal('200.00'))
+            self.stdout.write(f"    → 1 commande créée")
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
         self.stdout.write("  youssef@example.com / Mizan1234!")
