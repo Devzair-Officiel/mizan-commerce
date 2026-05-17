@@ -89,7 +89,7 @@ export function useTransitionOrder(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (status: string) =>
-      apiFetch<Order>(`/orders/${id}/transition/`, { method: 'POST', body: JSON.stringify({ status }) }),
+      apiFetch<Order>(`/orders/${id}/status/`, { method: 'POST', body: JSON.stringify({ status }) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });

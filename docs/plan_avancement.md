@@ -136,8 +136,8 @@
 - [x] Réservation stock automatique au passage en `to_prepare` (création d'un `StockMovement`)
 - [x] Restauration stock à l'annulation
 - [x] Impossibilité de supprimer une commande (uniquement annuler)
-- [ ] Page liste commandes avec filtres par statut
-- [ ] Page détail commande
+- [x] Page liste commandes avec filtres par statut
+- [x] Page détail commande
 
 ### Notes & rappels (URS-032 à URS-035)
 
