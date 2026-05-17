@@ -29,7 +29,7 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginForm) {
     try {
-      const res = await apiFetch<{ access: string; refresh: string }>('/auth/token/', {
+      const res = await apiFetch<{ access: string; refresh: string }>('/auth/login/', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -41,10 +41,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-zinc-50 px-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Connexion</CardTitle>
+    <div className="flex min-h-dvh items-center justify-center bg-zinc-100 px-4">
+      <div className="w-full max-w-sm">
+        <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-zinc-900">Mizan</h1>
+      <Card className="w-full shadow-md border border-zinc-200 bg-white">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Connexion</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -76,6 +78,7 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

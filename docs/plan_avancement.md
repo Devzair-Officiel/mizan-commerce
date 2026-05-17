@@ -18,28 +18,28 @@
 
 ### Dépôt & organisation
 
-- [ ] Créer le dépôt Git (monorepo `saas-commerce/`)
-- [ ] Initialiser l'arborescence : `apps/frontend`, `apps/backend`, `apps/ai-service`, `infra/`, `docs/`
-- [ ] Ajouter `.gitignore` adapté Python + Node
-- [ ] Ajouter `README.md` racine
-- [ ] Copier les 3 documents de contexte dans `docs/` (URS, fiche technique, instructions)
+- [x] Créer le dépôt Git (monorepo `saas-commerce/`)
+- [x] Initialiser l'arborescence : `apps/frontend`, `apps/backend`, `apps/ai-service`, `infra/`, `docs/`
+- [x] Ajouter `.gitignore` adapté Python + Node
+- [x] Ajouter `README.md` racine
+- [x] Copier les 3 documents de contexte dans `docs/` (URS, fiche technique, instructions)
 - [ ] Créer la branche `main` protégée + branche `develop`
 
 ### Environnement local
 
-- [ ] Créer `docker-compose.yml` avec services : `postgres`, `redis`, `backend`, `frontend`, `ai-service`, `nginx`
-- [ ] Créer `.env.example` (sans secrets)
-- [ ] Documenter le démarrage local dans `README.md`
-- [ ] Tester `docker compose up` jusqu'à avoir tous les services qui démarrent
+- [x] Créer `docker-compose.yml` avec services : `postgres`, `redis`, `backend`, `frontend`, `ai-service`, `nginx`
+- [x] Créer `.env.example` (sans secrets)
+- [x] Documenter le démarrage local dans `README.md`
+- [x] Tester `docker compose up` jusqu'à avoir tous les services qui démarrent
 
 ### Backend Django de base
 
-- [ ] Initialiser projet Django + Django REST Framework
-- [ ] Configurer la base PostgreSQL (locale via Docker)
-- [ ] Configurer les settings (`base.py`, `local.py`, `production.py`)
-- [ ] Mettre `DEBUG=False` par défaut, activer uniquement en local
-- [ ] Configurer CORS, CSRF, cookies sécurisés
-- [ ] Configurer Celery + Celery Beat avec Redis
+- [x] Initialiser projet Django + Django REST Framework
+- [x] Configurer la base PostgreSQL (locale via Docker)
+- [x] Configurer les settings (`base.py`, `local.py`, `production.py`)
+- [x] Mettre `DEBUG=False` par défaut, activer uniquement en local
+- [x] Configurer CORS, CSRF, cookies sécurisés
+- [x] Configurer Celery + Celery Beat avec Redis
 - [ ] Mettre en place Sentry (DSN en env var, désactivé en local)
 
 ### Frontend Next.js de base
@@ -79,7 +79,8 @@
 - [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
 - [x] Endpoint mot de passe oublié + email de reset
 - [ ] Validation email à l'inscription
-- [ ] Pages frontend : inscription, connexion, mot de passe oublié
+- [x] Pages frontend : inscription, connexion
+- [ ] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
 
 ### Boutique / espace commerçant (URS-004, URS-005)

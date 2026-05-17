@@ -43,10 +43,12 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-zinc-50 px-4 py-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Créer un compte</CardTitle>
+    <div className="flex min-h-dvh items-center justify-center bg-zinc-100 px-4 py-8">
+      <div className="w-full max-w-sm">
+        <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-zinc-900">Mizan</h1>
+      <Card className="w-full shadow-md border border-zinc-200 bg-white">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Créer un compte</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -83,6 +85,7 @@ export default function RegisterPage() {
           </p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
