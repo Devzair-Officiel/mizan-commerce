@@ -77,7 +77,7 @@
 - [x] Modèle `User` (Django custom user model)
 - [x] Endpoint inscription email + mot de passe
 - [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
-- [ ] Endpoint mot de passe oublié + email de reset
+- [x] Endpoint mot de passe oublié + email de reset
 - [ ] Validation email à l'inscription
 - [ ] Pages frontend : inscription, connexion, mot de passe oublié
 - [x] Tests unitaires + multi-tenant
@@ -98,29 +98,29 @@
 
 ### Produits (URS-008 à URS-012)
 
-- [ ] Modèles `Product`, `ProductImage`
-- [ ] Endpoints CRUD produits (filtrés `shop_id`)
+- [x] Modèles `Product`, `ProductImage`
+- [x] Endpoints CRUD produits (filtrés `shop_id`)
 - [ ] Upload photo produit vers Object Storage
 - [ ] Page liste produits avec recherche par nom/référence
 - [ ] Formulaire ajout/modification produit
-- [ ] Désactivation produit (soft delete via `is_active`)
-- [ ] Filtre "produits actifs uniquement" par défaut
+- [x] Désactivation produit (soft delete via `is_active`)
+- [x] Filtre "produits actifs uniquement" par défaut
 
 ### Stock (URS-013 à URS-017)
 
-- [ ] Modèle `StockMovement` (entrées, sorties, ajustements)
-- [ ] Règle : la quantité produit dérive **toujours** de la somme des mouvements
-- [ ] Endpoint historique des mouvements
-- [ ] Endpoint ajout entrée stock (réassort)
-- [ ] Endpoint ajout sortie stock (perte/casse) avec raison obligatoire
-- [ ] Champ seuil d'alerte sur produit
-- [ ] Affichage "stock faible" sur dashboard et fiche produit
-- [ ] Affichage "rupture" sur la liste produits
+- [x] Modèle `StockMovement` (entrées, sorties, ajustements)
+- [x] Règle : la quantité produit dérive **toujours** de la somme des mouvements
+- [x] Endpoint historique des mouvements
+- [x] Endpoint ajout entrée stock (réassort)
+- [x] Endpoint ajout sortie stock (perte/casse) avec raison obligatoire
+- [x] Champ seuil d'alerte sur produit
+- [x] Affichage "stock faible" sur dashboard et fiche produit (propriétés calculées)
+- [x] Affichage "rupture" sur la liste produits (propriété calculée)
 
 ### Clients (URS-018 à URS-021)
 
-- [ ] Modèle `Customer` (nom, téléphone, adresse, note)
-- [ ] Endpoints CRUD clients
+- [x] Modèle `Customer` (nom, téléphone, adresse, note)
+- [x] Endpoints CRUD clients
 - [ ] Page liste clients avec recherche
 - [ ] Fiche client : historique commandes, montants, paiements en attente, dernière commande
 - [ ] Bouton "marquer à relancer" → crée un `Reminder` lié

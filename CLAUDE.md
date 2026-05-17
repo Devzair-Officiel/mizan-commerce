@@ -90,6 +90,9 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - Toute nouvelle fonctionnalité doit pouvoir se rattacher à un URS (URS-XXX). Si rien ne couvre, le signaler.
 - Après modification du modèle Django : générer la migration et la mentionner explicitement.
 - À la fin d'une tâche, indiquer la ligne du `docs/plan_avancement.md` à cocher.
+- **À chaque création ou modification d'endpoint** : utiliser les outils MCP Postman pour ajouter ou mettre à jour l'endpoint dans le workspace en ligne. Un dossier Postman = une app Django. Chaque requête doit inclure : une description courte, les headers nécessaires, un body d'exemple réaliste, et un script de test qui stocke les IDs retournés dans les variables d'environnement (ex: `pm.environment.set('product_id', json.id)`). Pour les méthodes POST/PUT/PATCH, ajouter les variables correspondantes à l'environnement `mizan-local`.
+- **Pour synchroniser Postman** après une session de développement, envoyer dans la session Postman dédiée : `"Scanne les urls.py du backend et mets à jour la collection Mizan dans Postman"`
+- **À chaque nouvelle app Django** : créer `apps/backend/apps/<app>/factories.py` avec des factories `factory_boy` + `faker` pour tous les modèles de l'app. Ajouter le seeding correspondant dans `apps/core/management/commands/seed_data.py`. Tester avec : `docker compose exec backend python manage.py seed_data`.
 
 ## Self-check before responding
 

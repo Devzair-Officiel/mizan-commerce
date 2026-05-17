@@ -1,0 +1,387 @@
+{
+  "info": {
+    "name": "Mizan Commerce — API",
+    "description": "Collection complète de l'API Mizan Commerce. Importer avec l'environnement mizan-local.postman_environment.json.\n\nAprès le login, copier le token access dans la variable d'environnement `access_token`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Inscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access) { pm.environment.set('access_token', json.access); }",
+                  "if (json.refresh) { pm.environment.set('refresh_token', json.refresh); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"commercant@example.com\",\n  \"password\": \"Mizan1234!\",\n  \"full_name\": \"Youssef Benali\",\n  \"phone\": \"+33601020304\",\n  \"shop_name\": \"La Boutique de Youssef\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register/", "host": ["{{base_url}}"], "path": ["api", "auth", "register", ""] }
+          }
+        },
+        {
+          "name": "Connexion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access) { pm.environment.set('access_token', json.access); }",
+                  "if (json.refresh) { pm.environment.set('refresh_token', json.refresh); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"commercant@example.com\",\n  \"password\": \"Mizan1234!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login/", "host": ["{{base_url}}"], "path": ["api", "auth", "login", ""] }
+          }
+        },
+        {
+          "name": "Rafraîchir le token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access) { pm.environment.set('access_token', json.access); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/token/refresh/", "host": ["{{base_url}}"], "path": ["api", "auth", "token", "refresh", ""] }
+          }
+        },
+        {
+          "name": "Mon profil (GET)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/auth/me/", "host": ["{{base_url}}"], "path": ["api", "auth", "me", ""] }
+          }
+        },
+        {
+          "name": "Modifier mon profil (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Youssef Benali Modifié\",\n  \"phone\": \"+33699999999\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/me/", "host": ["{{base_url}}"], "path": ["api", "auth", "me", ""] }
+          }
+        },
+        {
+          "name": "Changer le mot de passe",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"Mizan1234!\",\n  \"new_password\": \"NouveauMizan5678!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/change-password/", "host": ["{{base_url}}"], "path": ["api", "auth", "change-password", ""] }
+          }
+        },
+        {
+          "name": "Mot de passe oublié — demande",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"commercant@example.com\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/password-reset/", "host": ["{{base_url}}"], "path": ["api", "auth", "password-reset", ""] }
+          }
+        },
+        {
+          "name": "Mot de passe oublié — confirmation",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"<uid_base64>\",\n  \"token\": \"<token>\",\n  \"new_password\": \"NouveauMizan5678!\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/auth/password-reset/confirm/", "host": ["{{base_url}}"], "path": ["api", "auth", "password-reset", "confirm", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shop",
+      "item": [
+        {
+          "name": "Ma boutique (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.environment.set('shop_id', json.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shop/", "host": ["{{base_url}}"], "path": ["api", "shop", ""] }
+          }
+        },
+        {
+          "name": "Modifier ma boutique (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Boutique Benali\",\n  \"currency\": \"EUR\",\n  \"country\": \"FR\",\n  \"timezone\": \"Europe/Paris\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/shop/", "host": ["{{base_url}}"], "path": ["api", "shop", ""] }
+          }
+        },
+        {
+          "name": "Membres de ma boutique",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shop/members/", "host": ["{{base_url}}"], "path": ["api", "shop", "members", ""] }
+          }
+        },
+        {
+          "name": "[Admin] Toutes les boutiques",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/shop/admin/all/", "host": ["{{base_url}}"], "path": ["api", "shop", "admin", "all", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Produits",
+      "item": [
+        {
+          "name": "Liste des produits",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/?search=&all=0&low_stock=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""],
+              "query": [
+                { "key": "search", "value": "", "description": "Recherche par nom ou référence" },
+                { "key": "all", "value": "0", "description": "1 = inclure les produits inactifs" },
+                { "key": "low_stock", "value": "0", "description": "1 = uniquement les produits en stock faible" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Créer un produit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.environment.set('product_id', json.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chemise en lin blanc\",\n  \"reference\": \"CHE-LIN-001\",\n  \"description\": \"Chemise en lin naturel, coupe droite.\",\n  \"purchase_price\": \"12.50\",\n  \"selling_price\": \"29.99\",\n  \"low_stock_threshold\": 3\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/products/", "host": ["{{base_url}}"], "path": ["api", "products", ""] }
+          }
+        },
+        {
+          "name": "Détail d'un produit",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/products/{{product_id}}/", "host": ["{{base_url}}"], "path": ["api", "products", "{{product_id}}", ""] }
+          }
+        },
+        {
+          "name": "Modifier un produit (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"selling_price\": \"34.99\",\n  \"low_stock_threshold\": 5\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/products/{{product_id}}/", "host": ["{{base_url}}"], "path": ["api", "products", "{{product_id}}", ""] }
+          }
+        },
+        {
+          "name": "Désactiver un produit",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/products/{{product_id}}/deactivate/", "host": ["{{base_url}}"], "path": ["api", "products", "{{product_id}}", "deactivate", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock",
+      "item": [
+        {
+          "name": "Historique des mouvements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stock/movements/?product={{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "stock", "movements", ""],
+              "query": [{ "key": "product", "value": "{{product_id}}", "description": "Filtrer par produit (optionnel)" }]
+            }
+          }
+        },
+        {
+          "name": "Entrée stock (réassort)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"{{product_id}}\",\n  \"quantity\": 20,\n  \"reason\": \"Réassort fournisseur juillet\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/stock/in/", "host": ["{{base_url}}"], "path": ["api", "stock", "in", ""] }
+          }
+        },
+        {
+          "name": "Sortie stock (perte / casse)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product\": \"{{product_id}}\",\n  \"quantity\": 2,\n  \"reason\": \"Produit abîmé lors du transport\",\n  \"movement_type\": \"loss\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/stock/out/", "host": ["{{base_url}}"], "path": ["api", "stock", "out", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "Liste des clients",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/customers/?search=&all=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", ""],
+              "query": [
+                { "key": "search", "value": "", "description": "Recherche par nom, téléphone, email, ville" },
+                { "key": "all", "value": "0", "description": "1 = inclure les clients archivés" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Créer un client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.environment.set('customer_id', json.id); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fatima Zahra El Mansouri\",\n  \"phone\": \"+212661234567\",\n  \"email\": \"fatima@example.ma\",\n  \"address_line\": \"12 rue des Orangers\",\n  \"city\": \"Casablanca\",\n  \"postal_code\": \"20000\",\n  \"country\": \"MA\",\n  \"notes\": \"Cliente régulière, préfère être contactée par WhatsApp.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/customers/", "host": ["{{base_url}}"], "path": ["api", "customers", ""] }
+          }
+        },
+        {
+          "name": "Détail d'un client",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", ""] }
+          }
+        },
+        {
+          "name": "Modifier un client (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+212699999999\",\n  \"notes\": \"A déménagé à Rabat.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", ""] }
+          }
+        },
+        {
+          "name": "Archiver un client (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/api/customers/{{customer_id}}/", "host": ["{{base_url}}"], "path": ["api", "customers", "{{customer_id}}", ""] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" }
+  ]
+}
