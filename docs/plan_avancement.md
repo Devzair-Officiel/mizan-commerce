@@ -102,8 +102,8 @@
 - [x] Modèles `Product`, `ProductImage`
 - [x] Endpoints CRUD produits (filtrés `shop_id`)
 - [ ] Upload photo produit vers Object Storage
-- [ ] Page liste produits avec recherche par nom/référence
-- [ ] Formulaire ajout/modification produit
+- [x] Page liste produits avec recherche par nom/référence
+- [x] Formulaire ajout/modification produit
 - [x] Désactivation produit (soft delete via `is_active`)
 - [x] Filtre "produits actifs uniquement" par défaut
 
