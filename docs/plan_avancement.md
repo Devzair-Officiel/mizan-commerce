@@ -89,7 +89,7 @@
 - [x] Modèle `ShopMember` (rôle : owner / membre futur)
 - [x] Création automatique de boutique à l'inscription
 - [x] Endpoints CRUD `Shop` (filtré par membership)
-- [ ] Page paramètres boutique (modifier nom, devise, pays)
+- [x] Page paramètres boutique (modifier nom, devise, pays)
 
 ### Tableau de bord (URS-006, URS-007)
 
