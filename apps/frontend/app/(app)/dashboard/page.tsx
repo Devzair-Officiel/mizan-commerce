@@ -6,7 +6,7 @@ import { useDashboard } from '@/lib/hooks/useDashboard';
 import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
-  const { data, isLoading, isError } = useDashboard();
+  const { data, isLoading, isError, error } = useDashboard();
 
   return (
     <>
@@ -35,7 +35,16 @@ export default function DashboardPage() {
         </div>
 
         {isLoading && <p className="text-sm text-zinc-500 text-center py-8">Chargement…</p>}
-        {isError && <p className="text-sm text-red-500 text-center py-4">Erreur de chargement.</p>}
+        {isError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p className="font-medium">Erreur de chargement</p>
+            <p className="mt-1 text-xs text-red-500">
+              {(error as { status?: number })?.status === 403
+                ? 'Aucune boutique associée à ce compte. Créez-en une ou utilisez un autre compte.'
+                : 'Impossible de contacter le serveur. Vérifiez votre connexion.'}
+            </p>
+          </div>
+        )}
 
         {data && (
           <>
