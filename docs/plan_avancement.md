@@ -10,7 +10,7 @@
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
 **Dernière mise à jour** : 2026-05-17
-**Version actuelle en développement** : Phase V1 — Frontend
+**Version actuelle en développement** : Phase V1 — Pages produits/commandes/clients
 
 ---
 
@@ -44,12 +44,12 @@
 
 ### Frontend Next.js de base
 
-- [ ] Initialiser projet Next.js + TypeScript
-- [ ] Installer Tailwind CSS + shadcn/ui
-- [ ] Installer React Hook Form + Zod
-- [ ] Installer TanStack Query
-- [ ] Mettre en place le client API avec gestion du token d'auth
-- [ ] Créer le layout mobile-first de base (header + bottom nav)
+- [x] Initialiser projet Next.js + TypeScript
+- [x] Installer Tailwind CSS + shadcn/ui
+- [x] Installer React Hook Form + Zod
+- [x] Installer TanStack Query
+- [x] Mettre en place le client API avec gestion du token d'auth
+- [x] Créer le layout mobile-first de base (header + bottom nav)
 
 ### Infrastructure OVH (peut être différé)
 
@@ -93,8 +93,8 @@
 ### Tableau de bord (URS-006, URS-007)
 
 - [x] Endpoint `/api/dashboard/today` agrégeant : commandes à préparer, paiements en attente, produits stock faible, rappels du jour
-- [ ] Page dashboard mobile-first
-- [ ] Boutons accès rapide : Nouvelle vente, Ajouter produit, Ajouter client
+- [x] Page dashboard mobile-first
+- [x] Boutons accès rapide : Nouvelle vente, Ajouter produit, Ajouter client
 
 ### Produits (URS-008 à URS-012)
 
