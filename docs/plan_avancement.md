@@ -114,6 +114,7 @@
 - [x] Endpoint historique des mouvements
 - [x] Endpoint ajout entrée stock (réassort)
 - [x] Endpoint ajout sortie stock (perte/casse) avec raison obligatoire
+- [x] Pages frontend entrée/sortie stock
 - [x] Champ seuil d'alerte sur produit
 - [x] Affichage "stock faible" sur dashboard et fiche produit (propriétés calculées)
 - [x] Affichage "rupture" sur la liste produits (propriété calculée)

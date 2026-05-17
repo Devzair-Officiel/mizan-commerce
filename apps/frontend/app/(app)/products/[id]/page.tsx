@@ -79,7 +79,10 @@ export default function ProductDetailPage() {
         {/* Actions */}
         <div className="flex flex-col gap-2">
           <Link href={`/stock/add?product=${id}`}>
-            <Button variant="outline" className="w-full">Entrée stock</Button>
+            <Button variant="outline" className="w-full">+ Entrée stock</Button>
+          </Link>
+          <Link href={`/stock/out?product=${id}`}>
+            <Button variant="outline" className="w-full text-amber-600 border-amber-200">− Sortie stock</Button>
           </Link>
           {product.is_active && (
             <Button
