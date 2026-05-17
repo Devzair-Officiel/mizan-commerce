@@ -122,8 +122,8 @@
 
 - [x] Modèle `Customer` (nom, téléphone, adresse, note)
 - [x] Endpoints CRUD clients
-- [ ] Page liste clients avec recherche
-- [ ] Fiche client : historique commandes, montants, paiements en attente, dernière commande
+- [x] Page liste clients avec recherche
+- [x] Fiche client : historique commandes, montants, paiements en attente, dernière commande
 - [ ] Bouton "marquer à relancer" → crée un `Reminder` lié
 
 ### Commandes (URS-022 à URS-027)
