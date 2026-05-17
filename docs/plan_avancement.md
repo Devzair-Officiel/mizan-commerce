@@ -9,8 +9,8 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-05-11
-**Version actuelle en développement** : Phase V1 — Authentification & Boutique
+**Dernière mise à jour** : 2026-05-17
+**Version actuelle en développement** : Phase V1 — Notes & Rappels
 
 ---
 
@@ -127,14 +127,14 @@
 
 ### Commandes (URS-022 à URS-027)
 
-- [ ] Modèles `Order`, `OrderItem`
-- [ ] Statuts paiement : `unpaid`, `partial`, `paid`
-- [ ] Statuts préparation : `draft`, `to_prepare`, `prepared`, `shipped`, `cancelled`
-- [ ] Calcul automatique du total (lignes + livraison − remise)
-- [ ] Création commande avec ou sans client
-- [ ] Réservation stock automatique au passage en `to_prepare` (création d'un `StockMovement`)
-- [ ] Restauration stock à l'annulation
-- [ ] Impossibilité de supprimer une commande (uniquement annuler)
+- [x] Modèles `Order`, `OrderItem`
+- [x] Statuts paiement : `unpaid`, `partial`, `paid`
+- [x] Statuts préparation : `draft`, `to_prepare`, `prepared`, `shipped`, `cancelled`
+- [x] Calcul automatique du total (lignes + livraison − remise)
+- [x] Création commande avec ou sans client
+- [x] Réservation stock automatique au passage en `to_prepare` (création d'un `StockMovement`)
+- [x] Restauration stock à l'annulation
+- [x] Impossibilité de supprimer une commande (uniquement annuler)
 - [ ] Page liste commandes avec filtres par statut
 - [ ] Page détail commande
 
