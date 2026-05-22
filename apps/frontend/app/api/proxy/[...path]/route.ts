@@ -4,7 +4,9 @@ const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
 
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   const accessToken = req.cookies.get('access_token')?.value;
-  const endpoint = `${API_BASE}/${path.join('/')}`;
+  // Next.js strip le slash final des segments [..path] — on le réajoute pour Django APPEND_SLASH
+  const pathStr = path.join('/');
+  const endpoint = `${API_BASE}/${pathStr}/`;
   const url = new URL(endpoint);
 
   // Forward query params
@@ -12,12 +14,22 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     url.searchParams.set(key, value);
   });
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const isMultipart = req.headers.get('content-type')?.startsWith('multipart/form-data');
+
+  const headers: Record<string, string> = {};
+  if (!isMultipart) headers['Content-Type'] = 'application/json';
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
-  const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await req.text();
+  // Pour multipart, on forward les headers d'origine (inclut le boundary)
+  if (isMultipart) {
+    const ct = req.headers.get('content-type');
+    if (ct) headers['Content-Type'] = ct;
+  }
+
+  let body: BodyInit | undefined;
+  if (!['GET', 'HEAD'].includes(req.method)) {
+    body = isMultipart ? await req.arrayBuffer() : await req.text();
+  }
 
   const res = await fetch(url.toString(), {
     method: req.method,
@@ -47,7 +59,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
     const { access: newAccess } = await refreshRes.json();
 
-    // Retry with new token
+    // Retry with new token (body already consumed above — safe for non-multipart)
     const retryRes = await fetch(url.toString(), {
       method: req.method,
       headers: { ...headers, Authorization: `Bearer ${newAccess}` },

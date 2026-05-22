@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -22,13 +29,6 @@ export interface ProductDetail extends Product {
   created_at: string;
 }
 
-interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
-
 export interface ProductFormData {
   name: string;
   reference?: string;
@@ -38,11 +38,12 @@ export interface ProductFormData {
   low_stock_threshold?: number | null;
 }
 
-export function useProducts(search?: string) {
+export function useProducts(search?: string, all?: boolean) {
   const params = new URLSearchParams();
   if (search) params.set('search', search);
+  if (all) params.set('all', '1');
   return useQuery({
-    queryKey: ['products', search],
+    queryKey: ['products', search, all],
     queryFn: () => apiFetch<PaginatedResponse<Product>>(`/products/?${params}`),
   });
 }
@@ -79,5 +80,34 @@ export function useDeactivateProduct() {
     mutationFn: (id: string) =>
       apiFetch(`/products/${id}/deactivate/`, { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+  });
+}
+
+export function useReactivateProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/products/${id}/reactivate/`, { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+  });
+}
+
+export function useUploadProductImage(productId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch(`/api/proxy/products/${productId}/images/`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { detail?: string }).detail ?? 'Erreur upload');
+      }
+      return res.json() as Promise<{ id: string; object_key: string; url: string; is_primary: boolean }>;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['products', productId] }),
   });
 }

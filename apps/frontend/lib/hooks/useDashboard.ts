@@ -7,6 +7,7 @@ interface OrderSummary {
   total_amount: string;
   payment_status: string;
   created_at: string;
+  customer_name: string | null;
 }
 
 interface ProductSummary {

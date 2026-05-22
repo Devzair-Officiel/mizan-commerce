@@ -48,83 +48,159 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Fallback Menthe clair — écrasé par ColorThemeProvider via style.setProperty
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.98 0.004 168);
+  --foreground: oklch(0.14 0.055 170);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.14 0.055 170);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.14 0.055 170);
+  --primary: oklch(0.63 0.19 168);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.92 0.05 168);
+  --secondary-foreground: oklch(0.14 0.055 170);
+  --muted: oklch(0.94 0.02 168);
+  --muted-foreground: oklch(0.48 0.06 168);
+  --accent: oklch(0.78 0.15 155);
+  --accent-foreground: oklch(0.14 0.055 155);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.89 0.03 168);
+  --input: oklch(0.89 0.03 168);
+  --ring: oklch(0.63 0.19 168);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.95 0.02 168);
+  --sidebar-foreground: oklch(0.14 0.055 170);
+  --sidebar-primary: oklch(0.63 0.19 168);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.92 0.05 168);
+  --sidebar-accent-foreground: oklch(0.14 0.055 170);
+  --sidebar-border: oklch(0.89 0.03 168);
+  --sidebar-ring: oklch(0.63 0.19 168);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* ─────────────────────────────────────────────────────────────────────────
+   Gradients par thème — appliqués synchronement via data-color-theme
+   L'attribut est posé par le script inline dans <head> avant hydration
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Gradients subtils — très légère teinte en haut, fond vers le background */
+
+/* Dégradé subtil : légère teinte en haut → couleur de fond exacte en bas, sans coupure */
+
+/* Dégradé : clair en haut → légèrement plus foncé/teinté en bas */
+
+:root,
+[data-color-theme="menthe"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.99 0.002 168) 0%, oklch(0.955 0.012 168) 100%);
 }
 
+[data-color-theme="neutral"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(1 0 0) 0%, oklch(0.965 0 0) 100%);
+}
+
+[data-color-theme="electrique"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.995 0.002 260) 0%, oklch(0.96 0.010 262) 100%);
+}
+
+[data-color-theme="emerald"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.99 0.004 90) 0%, oklch(0.955 0.014 155) 100%);
+}
+
+[data-color-theme="rose"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.995 0.002 5) 0%, oklch(0.955 0.012 345) 100%);
+}
+
+.dark,
+.dark [data-color-theme="menthe"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.16 0.042 168) 0%, oklch(0.10 0.065 168) 100%);
+}
+
+.dark [data-color-theme="neutral"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.18 0 0) 0%, oklch(0.12 0 0) 100%);
+}
+
+.dark [data-color-theme="electrique"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.15 0.025 263) 0%, oklch(0.085 0.038 265) 100%);
+}
+
+.dark [data-color-theme="emerald"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.17 0.042 155) 0%, oklch(0.10 0.068 155) 100%);
+}
+
+.dark [data-color-theme="rose"] {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.17 0.036 345) 0%, oklch(0.10 0.058 345) 100%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    /* Fond solide de secours visible si le pseudo-élément ne charge pas encore */
+    background: var(--background);
+  }
+  /* Gradient fixe au viewport — ne se retile pas au scroll */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--bg-gradient, var(--background));
+    pointer-events: none;
+  }
+  body {
+    @apply text-foreground min-h-full;
+    background: transparent;
+  }
+  .dark {
+    color-scheme: dark;
   }
 }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Overrides dark mode pour les classes zinc hardcodées dans les pages
+   ───────────────────────────────────────────────────────────────────────── */
+.dark .bg-white { background-color: var(--card); }
+.dark .bg-zinc-50 { background-color: var(--background); }
+.dark .bg-zinc-100 { background-color: var(--muted); }
+.dark .border-zinc-200 { border-color: var(--border); }
+.dark .border-zinc-100 { border-color: var(--border); }
+.dark .text-zinc-900 { color: var(--foreground); }
+.dark .text-zinc-800 { color: var(--foreground); }
+.dark .text-zinc-600 { color: var(--muted-foreground); }
+.dark .text-zinc-500 { color: var(--muted-foreground); }
+.dark .text-zinc-400 { color: var(--muted-foreground); }
+.dark .hover\:bg-zinc-50:hover { background-color: var(--muted); }
+.dark .hover\:bg-zinc-100:hover { background-color: var(--accent); }
+.dark .active\:bg-zinc-100:active { background-color: var(--accent); }
+.dark .active\:bg-zinc-50:active { background-color: var(--muted); }
+.dark select { background-color: var(--card); color: var(--foreground); border-color: var(--border); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Overrides thèmes colorés pour les classes zinc hardcodées (light mode)
+   ───────────────────────────────────────────────────────────────────────── */
+.bg-white { background-color: var(--card); }
+.bg-zinc-50 { background-color: var(--background); }
+.bg-zinc-100 { background-color: var(--muted); }
+.border-zinc-200 { border-color: var(--border); }
+.border-zinc-100 { border-color: var(--border); }
+.text-zinc-900 { color: var(--foreground); }
+.text-zinc-800 { color: var(--foreground); }
+.text-zinc-600 { color: var(--muted-foreground); }
+.text-zinc-500 { color: var(--muted-foreground); }
+.text-zinc-400 { color: var(--muted-foreground); }
+.hover\:bg-zinc-50:hover { background-color: var(--muted); }
+.hover\:bg-zinc-100:hover { background-color: var(--secondary); }
+.active\:bg-zinc-100:active { background-color: var(--secondary); }
+.active\:bg-zinc-50:active { background-color: var(--muted); }
+select { background-color: var(--card); color: var(--foreground); border-color: var(--border); }

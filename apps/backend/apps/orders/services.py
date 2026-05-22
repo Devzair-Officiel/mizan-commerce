@@ -6,13 +6,13 @@ from apps.products.models import Product
 from apps.stock.models import StockMovement
 from .models import Order, OrderItem
 
-# Transitions de statut autorisées
+# Transitions de statut autorisées (avance + retour arrière)
 ALLOWED_TRANSITIONS = {
     'draft':      ['to_prepare', 'cancelled'],
-    'to_prepare': ['prepared', 'cancelled'],
-    'prepared':   ['shipped', 'cancelled'],
-    'shipped':    [],
-    'cancelled':  [],
+    'to_prepare': ['prepared', 'cancelled', 'draft'],
+    'prepared':   ['shipped', 'cancelled', 'to_prepare'],
+    'shipped':    ['prepared'],
+    'cancelled':  ['draft'],
 }
 
 
@@ -72,6 +72,16 @@ def add_item(order: Order, product: Product, quantity: int, unit_price: Decimal 
 
 
 @transaction.atomic
+def update_item_quantity(order: Order, item: OrderItem, quantity: int) -> OrderItem:
+    if order.status != 'draft':
+        raise ValueError("Impossible de modifier un article d'une commande qui n'est plus en brouillon.")
+    item.quantity = quantity
+    item.save(update_fields=['quantity'])
+    recalculate_totals(order)
+    return item
+
+
+@transaction.atomic
 def remove_item(order: Order, item: OrderItem) -> None:
     if order.status != 'draft':
         raise ValueError("Impossible de retirer un article d'une commande qui n'est plus en brouillon.")
@@ -88,9 +98,15 @@ def transition_status(order: Order, new_status: str, user) -> Order:
             f"Transitions possibles : {allowed or 'aucune'}."
         )
 
-    if new_status == 'to_prepare':
+    # Avance : draft → to_prepare → réserver le stock
+    if new_status == 'to_prepare' and order.status == 'draft':
         _reserve_stock(order, user)
 
+    # Retour arrière : to_prepare → draft → libérer la réservation
+    if new_status == 'draft' and order.status == 'to_prepare':
+        _release_stock(order, user)
+
+    # Annulation : libérer le stock réservé
     if new_status == 'cancelled':
         _release_stock(order, user)
         order.cancelled_at = timezone.now()

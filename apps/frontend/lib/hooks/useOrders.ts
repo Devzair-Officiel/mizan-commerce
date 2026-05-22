@@ -1,5 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
 
 export interface OrderSummary {
   id: string;
@@ -44,13 +51,6 @@ export interface OrderCreateData {
   items?: { product: string; quantity: number; unit_price?: string }[];
 }
 
-interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
-
 interface OrderFilters {
   status?: string;
   payment_status?: string;
@@ -68,6 +68,28 @@ export function useOrders(filters: OrderFilters = {}) {
   });
 }
 
+export function useCustomerOrdersInfinite(
+  customerId: string,
+  filters: { status?: string | null; payment_status?: string | null } = {},
+) {
+  return useInfiniteQuery({
+    queryKey: ['orders', 'customer', customerId, filters],
+    queryFn: ({ pageParam = 1 }) => {
+      const params = new URLSearchParams();
+      params.set('customer', customerId);
+      params.set('page', String(pageParam));
+      params.set('page_size', '10');
+      if (filters.status) params.set('status', filters.status);
+      if (filters.payment_status) params.set('payment_status', filters.payment_status);
+      return apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${params}`);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (last, _, lastPageParam) =>
+      last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: !!customerId,
+  });
+}
+
 export function useOrder(id: string) {
   return useQuery({
     queryKey: ['orders', id],
@@ -81,7 +103,11 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: (data: OrderCreateData) =>
       apiFetch<Order>('/orders/', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: (order) => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
+    },
   });
 }
 
@@ -90,9 +116,10 @@ export function useTransitionOrder(id: string) {
   return useMutation({
     mutationFn: (status: string) =>
       apiFetch<Order>(`/orders/${id}/status/`, { method: 'POST', body: JSON.stringify({ status }) }),
-    onSuccess: () => {
+    onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
     },
   });
 }
@@ -102,9 +129,56 @@ export function useUpdatePayment(id: string) {
   return useMutation({
     mutationFn: (amount_paid: string) =>
       apiFetch<Order>(`/orders/${id}/payment/`, { method: 'POST', body: JSON.stringify({ amount_paid }) }),
-    onSuccess: () => {
+    onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
     },
+  });
+}
+
+export interface OrderUpdateData {
+  customer?: string | null;
+  notes?: string;
+  discount_amount?: string;
+  shipping_amount?: string;
+}
+
+export function useUpdateOrder(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: OrderUpdateData) =>
+      apiFetch<Order>(`/orders/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    onSuccess: (order) => {
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
+    },
+  });
+}
+
+export function useAddOrderItem(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { product: string; quantity: number; unit_price?: string }) =>
+      apiFetch<OrderItem>(`/orders/${id}/items/`, { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', id] }),
+  });
+}
+
+export function useUpdateOrderItem(orderId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
+      apiFetch<OrderItem>(`/orders/${orderId}/items/${itemId}/`, { method: 'PATCH', body: JSON.stringify({ quantity }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', orderId] }),
+  });
+}
+
+export function useRemoveOrderItem(orderId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) =>
+      apiFetch<void>(`/orders/${orderId}/items/${itemId}/`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', orderId] }),
   });
 }

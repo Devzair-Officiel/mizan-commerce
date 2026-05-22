@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import generics, status
@@ -14,6 +15,7 @@ from .serializers import (
     RegisterSerializer, UserSerializer, ChangePasswordSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
+from .throttles import AuthRateThrottle
 
 User = get_user_model()
 
@@ -22,23 +24,33 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
+    throttle_classes = [AuthRateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        user = serializer.save(is_active=False)
 
         from apps.shops.models import Shop, ShopMember
         shop_name = request.data.get('shop_name') or f"Boutique de {user.full_name or user.email}"
         shop = Shop.objects.create(name=shop_name)
         ShopMember.objects.create(shop=shop, user=user, role='owner')
 
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'user': UserSerializer(user).data,
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-        }, status=status.HTTP_201_CREATED)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
+        send_mail(
+            subject='Confirmez votre email — Mizan',
+            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour activer votre compte :\n\n{verify_url}\n\nCe lien est valable 24 heures.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        return Response(
+            {'detail': 'Compte créé. Vérifiez votre email pour activer votre compte.'},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class MeView(generics.RetrieveUpdateAPIView):
@@ -65,6 +77,7 @@ class ChangePasswordView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = (AllowAny,)
+    throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -92,6 +105,7 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = (AllowAny,)
+    throttle_classes = [AuthRateThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
@@ -109,3 +123,25 @@ class PasswordResetConfirmView(APIView):
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response({'detail': 'Mot de passe réinitialisé.'})
+
+
+class EmailVerificationView(APIView):
+    permission_classes = (AllowAny,)
+
+    def get(self, request) -> Response:
+        uid_b64 = request.query_params.get('uid', '')
+        token = request.query_params.get('token', '')
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uid_b64))
+            user = User.objects.get(pk=uid, is_active=False)
+        except (User.DoesNotExist, ValueError, TypeError):
+            return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.is_active = True
+        user.email_verified_at = timezone.now()
+        user.save(update_fields=['is_active', 'email_verified_at'])
+        return Response({'detail': 'Email vérifié. Vous pouvez maintenant vous connecter.'})

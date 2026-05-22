@@ -1,10 +1,11 @@
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.shops.models import ShopMember
+from apps.customers.models import Customer
 from apps.orders.models import Order
 from apps.products.models import Product
 from apps.notes.models import Reminder
@@ -24,14 +25,15 @@ class DashboardTodayView(APIView):
     def get(self, request):
         shop = get_shop(request.user)
         now = timezone.now()
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
         orders_to_prepare = list(
             Order.objects.filter(shop=shop, status='to_prepare')
-            .values('id', 'order_number', 'total_amount', 'payment_status', 'created_at')
-            .order_by('created_at')
+            .select_related('customer')
+            .values('id', 'order_number', 'total_amount', 'payment_status', 'created_at', 'customer__name')
+            .order_by('created_at')[:10]
         )
+        for o in orders_to_prepare:
+            o['customer_name'] = o.pop('customer__name', None)
 
         unpaid_orders = list(
             Order.objects.filter(
@@ -39,11 +41,13 @@ class DashboardTodayView(APIView):
                 payment_status__in=('unpaid', 'partial'),
                 status__in=('to_prepare', 'prepared', 'shipped'),
             )
-            .values('id', 'order_number', 'total_amount', 'payment_status', 'created_at')
-            .order_by('created_at')
+            .select_related('customer')
+            .values('id', 'order_number', 'total_amount', 'payment_status', 'created_at', 'customer__name')
+            .order_by('created_at')[:10]
         )
+        for o in unpaid_orders:
+            o['customer_name'] = o.pop('customer__name', None)
 
-        from django.db.models import F
         low_stock_qs = Product.objects.filter(
             shop=shop, is_active=True
         ).filter(
@@ -79,4 +83,49 @@ class DashboardTodayView(APIView):
                 'count': len(today_reminders),
                 'items': today_reminders,
             },
+        })
+
+
+class GlobalSearchView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        q = request.query_params.get('q', '').strip()
+        if len(q) < 2:
+            return Response({'products': [], 'customers': [], 'orders': []})
+
+        shop = get_shop(request.user)
+        LIMIT = 5
+
+        products = list(
+            Product.objects.filter(
+                shop=shop, is_active=True,
+            ).filter(
+                Q(name__icontains=q) | Q(reference__icontains=q)
+            ).values('id', 'name', 'reference', 'stock_quantity')[:LIMIT]
+        )
+
+        customers = list(
+            Customer.objects.filter(
+                shop=shop, is_active=True,
+            ).filter(
+                Q(name__icontains=q) | Q(phone__icontains=q)
+            ).values('id', 'name', 'phone', 'city')[:LIMIT]
+        )
+
+        orders = list(
+            Order.objects.filter(
+                shop=shop,
+            ).filter(
+                Q(order_number__icontains=q) | Q(customer__name__icontains=q)
+            ).select_related('customer')
+            .values('id', 'order_number', 'status', 'total_amount', 'customer__name')[:LIMIT]
+        )
+        for o in orders:
+            o['customer_name'] = o.pop('customer__name', None)
+
+        return Response({
+            'products': products,
+            'customers': customers,
+            'orders': orders,
         })

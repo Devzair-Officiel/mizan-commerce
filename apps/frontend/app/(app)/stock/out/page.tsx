@@ -4,14 +4,13 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { apiFetch } from '@/lib/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProducts } from '@/lib/hooks/useProducts';
 
 const MOVEMENT_TYPES = [
-  { value: 'out', label: 'Sortie (vente manuelle)' },
+  { value: 'out',  label: 'Sortie (vente manuelle)' },
   { value: 'loss', label: 'Perte / casse' },
 ];
 
@@ -21,27 +20,23 @@ function StockOutForm() {
   const qc = useQueryClient();
   const { data: products } = useProducts();
 
-  const [productId, setProductId] = useState(searchParams.get('product') ?? '');
-  const [quantity, setQuantity] = useState('1');
-  const [reason, setReason] = useState('');
+  const [productId,    setProductId]    = useState(searchParams.get('product') ?? '');
+  const [quantity,     setQuantity]     = useState('1');
+  const [reason,       setReason]       = useState('');
   const [movementType, setMovementType] = useState('out');
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState('');
+  const [isPending,    setIsPending]    = useState(false);
+  const [error,        setError]        = useState('');
+
+  const selectedProduct = products?.results.find((p) => p.id === productId);
 
   async function handleSubmit() {
-    if (!productId) { setError('Sélectionnez un produit.'); return; }
+    if (!productId)     { setError('Sélectionnez un produit.'); return; }
     if (!reason.trim()) { setError('La raison est obligatoire.'); return; }
-    setIsPending(true);
-    setError('');
+    setIsPending(true); setError('');
     try {
       await apiFetch('/stock/out/', {
         method: 'POST',
-        body: JSON.stringify({
-          product: productId,
-          quantity: parseInt(quantity, 10),
-          reason,
-          movement_type: movementType,
-        }),
+        body: JSON.stringify({ product: productId, quantity: parseInt(quantity, 10), reason, movement_type: movementType }),
       });
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
@@ -53,74 +48,64 @@ function StockOutForm() {
     }
   }
 
-  const selectedProduct = products?.results.find((p) => p.id === productId);
-
   return (
-    <div className="flex flex-col gap-5 p-4">
-      <div className="flex flex-col gap-1.5">
-        <Label>Produit *</Label>
-        <select
-          value={productId}
-          onChange={(e) => setProductId(e.target.value)}
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-        >
-          <option value="">Sélectionner un produit…</option>
-          {products?.results.filter((p) => p.is_active).map((p) => (
-            <option key={p.id} value={p.id}>{p.name} (stock : {p.stock_quantity})</option>
-          ))}
-        </select>
-      </div>
+    <div className="flex flex-col gap-3 p-4 pb-8">
+
+      <FloatingSelect
+        id="product"
+        label="Produit *"
+        value={productId}
+        onChange={(e) => setProductId(e.target.value)}
+      >
+        <option value="">Sélectionner un produit…</option>
+        {products?.results.filter((p) => p.is_active).map((p) => (
+          <option key={p.id} value={p.id}>{p.name} (stock : {p.stock_quantity})</option>
+        ))}
+      </FloatingSelect>
 
       {selectedProduct && (
-        <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm text-zinc-600">
-          Stock actuel : <span className="font-semibold text-zinc-900">{selectedProduct.stock_quantity}</span>
+        <div className="rounded-2xl bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
+          Stock actuel : <span className="font-semibold text-foreground">{selectedProduct.stock_quantity}</span>
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Type de mouvement</Label>
-        <div className="flex gap-2">
-          {MOVEMENT_TYPES.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setMovementType(value)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                movementType === value
-                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                  : 'border-zinc-200 bg-white text-zinc-600'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      {/* Type de mouvement — boutons toggle, pas un select */}
+      <div className="flex gap-2">
+        {MOVEMENT_TYPES.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setMovementType(value)}
+            className={`flex-1 rounded-2xl border px-3 py-3 text-sm font-medium transition-colors ${
+              movementType === value
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card text-muted-foreground'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="quantity">Quantité *</Label>
-        <Input
-          id="quantity"
-          type="number"
-          min="1"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-        />
-      </div>
+      <FloatingInput
+        id="quantity"
+        label="Quantité *"
+        type="number"
+        min="1"
+        value={quantity}
+        onChange={(e) => setQuantity(e.target.value)}
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="reason">Raison *</Label>
-        <Input
-          id="reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Ex: Produit abîmé, vente directe…"
-        />
-      </div>
+      <FloatingInput
+        id="reason"
+        label="Raison *"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      />
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full">
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full mt-1">
         {isPending ? 'Enregistrement…' : 'Enregistrer la sortie'}
       </Button>
     </div>
@@ -131,9 +116,7 @@ export default function StockOutPage() {
   return (
     <>
       <TopBar title="Sortie stock" />
-      <Suspense>
-        <StockOutForm />
-      </Suspense>
+      <Suspense><StockOutForm /></Suspense>
     </>
   );
 }

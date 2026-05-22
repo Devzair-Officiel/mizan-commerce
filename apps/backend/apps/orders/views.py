@@ -11,7 +11,7 @@ from .models import Order, OrderItem
 from .serializers import (
     OrderSerializer, OrderListSerializer, OrderCreateSerializer,
     OrderItemSerializer, OrderItemCreateSerializer,
-    StatusTransitionSerializer, PaymentUpdateSerializer,
+    OrderItemQuantitySerializer, StatusTransitionSerializer, PaymentUpdateSerializer,
 )
 
 
@@ -37,10 +37,13 @@ class OrderListCreateView(generics.ListAPIView):
         qs = Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items')
         status_filter = self.request.query_params.get('status')
         payment_filter = self.request.query_params.get('payment_status')
+        customer_filter = self.request.query_params.get('customer')
         if status_filter:
             qs = qs.filter(status=status_filter)
         if payment_filter:
             qs = qs.filter(payment_status=payment_filter)
+        if customer_filter:
+            qs = qs.filter(customer_id=customer_filter)
         return qs
 
     def post(self, request, *args, **kwargs):
@@ -171,21 +174,37 @@ class OrderItemCreateView(APIView):
         return Response(OrderItemSerializer(item).data, status=status.HTTP_201_CREATED)
 
 
-class OrderItemDeleteView(APIView):
-    """Retire un article d'une commande en brouillon."""
+class OrderItemUpdateView(APIView):
+    """PATCH → met à jour la quantité / DELETE → retire l'article (commande en brouillon)."""
     permission_classes = (IsAuthenticated,)
 
-    def delete(self, request, pk, item_pk):
+    def _get_objects(self, request, pk, item_pk):
         shop = get_shop(request.user)
         try:
             order = Order.objects.get(pk=pk, shop=shop)
             item = OrderItem.objects.get(pk=item_pk, order=order)
         except (Order.DoesNotExist, OrderItem.DoesNotExist):
-            return Response({'detail': 'Introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return None, None
+        return order, item
 
+    def patch(self, request, pk, item_pk):
+        order, item = self._get_objects(request, pk, item_pk)
+        if order is None:
+            return Response({'detail': 'Introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = OrderItemQuantitySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            item = services.update_item_quantity(order, item, serializer.validated_data['quantity'])
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(OrderItemSerializer(item).data)
+
+    def delete(self, request, pk, item_pk):
+        order, item = self._get_objects(request, pk, item_pk)
+        if order is None:
+            return Response({'detail': 'Introuvable.'}, status=status.HTTP_404_NOT_FOUND)
         try:
             services.remove_item(order, item)
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         return Response(status=status.HTTP_204_NO_CONTENT)

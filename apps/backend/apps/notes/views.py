@@ -106,3 +106,19 @@ class ReminderDoneView(APIView):
         reminder.done_at = timezone.now()
         reminder.save(update_fields=['status', 'done_at', 'updated_at'])
         return Response(ReminderSerializer(reminder, context={'shop': shop}).data)
+
+
+class ReminderReopenView(APIView):
+    """Remet un rappel en attente."""
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        shop = get_shop(request.user)
+        try:
+            reminder = Reminder.objects.get(pk=pk, shop=shop)
+        except Reminder.DoesNotExist:
+            return Response({'detail': 'Rappel introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        reminder.status = 'pending'
+        reminder.done_at = None
+        reminder.save(update_fields=['status', 'done_at', 'updated_at'])
+        return Response(ReminderSerializer(reminder, context={'shop': shop}).data)

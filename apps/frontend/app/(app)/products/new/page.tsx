@@ -10,8 +10,8 @@ export default function NewProductPage() {
   const { mutateAsync, isPending } = useCreateProduct();
 
   async function handleSubmit(data: Parameters<typeof mutateAsync>[0]) {
-    await mutateAsync(data);
-    router.push('/products');
+    const product = await mutateAsync(data);
+    router.push(`/products/${product.id}`);
   }
 
   return (

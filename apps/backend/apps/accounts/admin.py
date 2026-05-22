@@ -10,7 +10,7 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'full_name', 'phone')
     ordering = ('-created_at',)
-    readonly_fields = ('id', 'created_at', 'updated_at')
+    readonly_fields = ('id', 'last_login', 'created_at', 'updated_at')
 
     fieldsets = (
         (None, {'fields': ('id', 'email', 'password')}),

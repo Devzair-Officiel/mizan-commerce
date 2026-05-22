@@ -1,13 +1,25 @@
 import { BottomNav } from '@/components/layout/BottomNav';
+import { BurgerMenuProvider, BurgerMenuDrawer } from '@/components/layout/BurgerMenu';
+import { ThemeDrawerProvider, ThemeDrawerPanel } from '@/components/layout/ThemeDrawer';
+import { SearchProvider } from '@/components/layout/SearchOverlay';
+import { AppContent } from '@/components/layout/AppContent';
 import { LegacyTokenCleaner } from '@/components/layout/LegacyTokenCleaner';
 import type { ReactNode } from 'react';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-50">
-      <LegacyTokenCleaner />
-      <main className="flex-1 pb-16">{children}</main>
-      <BottomNav />
-    </div>
+    <ThemeDrawerProvider>
+      <BurgerMenuProvider>
+        <SearchProvider>
+          <AppContent>
+            <LegacyTokenCleaner />
+            <main className="flex-1 pb-20">{children}</main>
+            <BottomNav />
+          </AppContent>
+          <BurgerMenuDrawer />
+        </SearchProvider>
+      </BurgerMenuProvider>
+      <ThemeDrawerPanel />
+    </ThemeDrawerProvider>
   );
 }

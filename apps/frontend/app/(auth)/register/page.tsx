@@ -1,15 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ApiError } from '@/lib/api-client';
 
 const registerSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -21,7 +20,7 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const [registered, setRegistered] = useState(false);
   const {
     register,
     handleSubmit,
@@ -30,17 +29,39 @@ export default function RegisterPage() {
   } = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
   async function onSubmit(data: RegisterForm) {
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new ApiError(res.status, null, '');
-      router.replace('/dashboard');
-    } catch {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
       setError('root', { message: 'Une erreur est survenue. Vérifiez vos informations.' });
+      return;
     }
+    setRegistered(true);
+  }
+
+  if (registered) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-zinc-100 px-4">
+        <div className="w-full max-w-sm">
+          <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-zinc-900">Mizan</h1>
+          <Card className="w-full shadow-md border border-zinc-200 bg-white">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Vérifiez votre email</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4 text-center">
+              <p className="text-sm text-zinc-600">
+                Un lien d'activation a été envoyé à votre adresse email. Cliquez sur ce lien pour activer votre compte.
+              </p>
+              <Link href="/login">
+                <Button variant="outline" className="w-full">Retour à la connexion</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (

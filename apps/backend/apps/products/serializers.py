@@ -14,6 +14,21 @@ class ProductSerializer(serializers.ModelSerializer):
     is_low_stock = serializers.BooleanField(read_only=True)
     is_out_of_stock = serializers.BooleanField(read_only=True)
 
+    def validate_name(self, value: str) -> str:
+        from apps.shops.models import ShopMember
+        request = self.context.get('request')
+        if not request:
+            return value
+        membership = ShopMember.objects.filter(user=request.user).select_related('shop').first()
+        if not membership:
+            return value
+        qs = Product.objects.filter(shop=membership.shop, name__iexact=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Un produit avec ce nom existe déjà.')
+        return value
+
     class Meta:
         model = Product
         fields = (

@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+import { ChevronDown, ShoppingCart, Clock, AlertTriangle, Bell } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useDashboard } from '@/lib/hooks/useDashboard';
 import { Button } from '@/components/ui/button';
@@ -11,7 +13,8 @@ export default function DashboardPage() {
   return (
     <>
       <TopBar title="Accueil" />
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-3 p-4">
+
         {/* Quick actions */}
         <div className="grid grid-cols-3 gap-2">
           <Link href="/orders/new">
@@ -34,132 +37,215 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {isLoading && <p className="text-sm text-zinc-500 text-center py-8">Chargement…</p>}
+        {isLoading && (
+          <div className="flex flex-col gap-2 mt-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-14 rounded-2xl bg-zinc-100 animate-pulse" />
+            ))}
+          </div>
+        )}
+
         {isError && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             <p className="font-medium">Erreur de chargement</p>
             <p className="mt-1 text-xs text-red-500">
               {(error as { status?: number })?.status === 403
-                ? 'Aucune boutique associée à ce compte. Créez-en une ou utilisez un autre compte.'
-                : 'Impossible de contacter le serveur. Vérifiez votre connexion.'}
+                ? 'Aucune boutique associée à ce compte.'
+                : 'Impossible de contacter le serveur.'}
             </p>
           </div>
         )}
 
         {data && (
-          <>
-            <DashboardBlock
+          <div className="flex flex-col gap-2">
+            <Section
+              icon={<ShoppingCart size={15} />}
               title="À préparer"
               count={data.orders_to_prepare.count}
               href="/orders?status=to_prepare"
               emptyLabel="Aucune commande à préparer"
-              color="blue"
+              accentClass="text-blue-600 bg-blue-50 border-blue-200"
+              headerBg="bg-blue-50/60"
+              defaultOpen={false}
             >
               {data.orders_to_prepare.items.map((o) => (
-                <Link key={o.id} href={`/orders/${o.id}`} className="flex justify-between text-sm py-1">
-                  <span className="font-medium">{o.order_number}</span>
-                  <span className="text-zinc-500">{o.total_amount} €</span>
-                </Link>
+                <OrderRow key={o.id} id={o.id} label={o.order_number} sub={o.customer_name} value={`${o.total_amount} €`} />
               ))}
-            </DashboardBlock>
+              {data.orders_to_prepare.count > 10 && (
+                <SeeAllRow href="/orders?status=to_prepare" count={data.orders_to_prepare.count} />
+              )}
+            </Section>
 
-            <DashboardBlock
+            <Section
+              icon={<Clock size={15} />}
               title="Paiements en attente"
               count={data.unpaid_orders.count}
               href="/orders?payment_status=unpaid"
               emptyLabel="Aucun paiement en attente"
-              color="amber"
+              accentClass="text-amber-600 bg-amber-50 border-amber-200"
+              headerBg="bg-amber-50/60"
+              defaultOpen={false}
             >
               {data.unpaid_orders.items.map((o) => (
-                <Link key={o.id} href={`/orders/${o.id}`} className="flex justify-between text-sm py-1">
-                  <span className="font-medium">{o.order_number}</span>
-                  <span className="text-zinc-500">{o.total_amount} €</span>
-                </Link>
+                <OrderRow key={o.id} id={o.id} label={o.order_number} sub={o.customer_name} value={`${o.total_amount} €`} />
               ))}
-            </DashboardBlock>
+              {data.unpaid_orders.count > 10 && (
+                <SeeAllRow href="/orders?payment_status=unpaid" count={data.unpaid_orders.count} />
+              )}
+            </Section>
 
-            <DashboardBlock
+            <Section
+              icon={<AlertTriangle size={15} />}
               title="Stock faible"
               count={data.low_stock_products.count}
               href="/products?filter=low_stock"
               emptyLabel="Tous les stocks sont OK"
-              color="red"
+              accentClass="text-red-600 bg-red-50 border-red-200"
+              headerBg="bg-red-50/60"
+              defaultOpen={false}
             >
               {data.low_stock_products.items.map((p) => (
-                <Link key={p.id} href={`/products/${p.id}`} className="flex justify-between text-sm py-1">
-                  <span className="font-medium">{p.name}</span>
-                  <span className={p.stock_quantity === 0 ? 'text-red-500' : 'text-amber-500'}>
-                    {p.stock_quantity === 0 ? 'Rupture' : `${p.stock_quantity} restants`}
-                  </span>
-                </Link>
+                <StockRow
+                  key={p.id}
+                  id={p.id}
+                  name={p.name}
+                  qty={p.stock_quantity}
+                />
               ))}
-            </DashboardBlock>
+              {data.low_stock_products.count > 3 && (
+                <SeeAllRow href="/products?filter=low_stock" count={data.low_stock_products.count} />
+              )}
+            </Section>
 
-            <DashboardBlock
+            <Section
+              icon={<Bell size={15} />}
               title="Rappels du jour"
               count={data.today_reminders.count}
               href="/reminders"
               emptyLabel="Aucun rappel aujourd'hui"
-              color="purple"
+              accentClass="text-purple-600 bg-purple-50 border-purple-200"
+              headerBg="bg-purple-50/60"
+              defaultOpen={false}
             >
               {data.today_reminders.items.map((r) => (
-                <div key={r.id} className="flex justify-between text-sm py-1">
-                  <span className="font-medium">{r.title}</span>
-                  <span className="text-zinc-500 text-xs">{new Date(r.due_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
+                <ReminderRow key={r.id} title={r.title} due_at={r.due_at} />
               ))}
-            </DashboardBlock>
-          </>
+              {data.today_reminders.count > 3 && (
+                <SeeAllRow href="/reminders" count={data.today_reminders.count} />
+              )}
+            </Section>
+          </div>
         )}
       </div>
     </>
   );
 }
 
-const COLOR_MAP = {
-  blue: 'bg-blue-50 border-blue-200 text-blue-700',
-  amber: 'bg-amber-50 border-amber-200 text-amber-700',
-  red: 'bg-red-50 border-red-200 text-red-700',
-  purple: 'bg-purple-50 border-purple-200 text-purple-700',
-} as const;
-
-function DashboardBlock({
+function Section({
+  icon,
   title,
   count,
-  href,
   emptyLabel,
-  color,
+  accentClass,
+  headerBg,
+  defaultOpen,
   children,
 }: {
+  icon: React.ReactNode;
   title: string;
   count: number;
   href: string;
   emptyLabel: string;
-  color: keyof typeof COLOR_MAP;
+  accentClass: string;
+  headerBg: string;
+  defaultOpen: boolean;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-zinc-900 text-sm">{title}</h2>
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center gap-3 px-4 py-3.5 transition-colors ${headerBg}`}
+      >
+        <span className={`flex items-center justify-center w-7 h-7 rounded-full border text-xs shrink-0 ${accentClass}`}>
+          {icon}
+        </span>
+        <span className="flex-1 text-left text-sm font-semibold text-foreground">{title}</span>
         {count > 0 && (
-          <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${COLOR_MAP[color]}`}>
+          <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold shrink-0 ${accentClass}`}>
             {count}
           </span>
         )}
-      </div>
-      {count === 0 ? (
-        <p className="text-sm text-zinc-400">{emptyLabel}</p>
-      ) : (
-        <div className="divide-y divide-zinc-100">
-          {children}
-          {count > 3 && (
-            <Link href={href} className="block pt-2 text-xs text-zinc-400 hover:text-zinc-600">
-              Voir tout ({count}) →
-            </Link>
+        <ChevronDown
+          size={16}
+          className={`text-muted-foreground shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <div className="border-t border-border">
+          {count === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted-foreground">{emptyLabel}</p>
+          ) : (
+            <div className="divide-y divide-border/60">
+              {children}
+            </div>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+function OrderRow({ id, label, sub, value }: { id: string; label: string; sub?: string | null; value: string }) {
+  return (
+    <Link
+      href={`/orders/${id}`}
+      className="flex items-center justify-between px-4 py-3 active:bg-muted/60 transition-colors"
+    >
+      <div className="flex flex-col gap-0.5">
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+      </div>
+      <span className="text-sm font-semibold text-foreground tabular-nums">{value}</span>
+    </Link>
+  );
+}
+
+function StockRow({ id, name, qty }: { id: string; name: string; qty: number }) {
+  return (
+    <Link
+      href={`/products/${id}`}
+      className="flex items-center justify-between px-4 py-3 active:bg-muted/60 transition-colors"
+    >
+      <span className="text-sm font-medium text-foreground flex-1 truncate pr-3">{name}</span>
+      <span className={`text-sm font-semibold tabular-nums shrink-0 ${qty === 0 ? 'text-red-500' : 'text-amber-500'}`}>
+        {qty === 0 ? 'Rupture' : `${qty} restants`}
+      </span>
+    </Link>
+  );
+}
+
+function ReminderRow({ title, due_at }: { title: string; due_at: string }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm font-medium text-foreground flex-1 truncate pr-3">{title}</span>
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+        {new Date(due_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+      </span>
+    </div>
+  );
+}
+
+function SeeAllRow({ href, count }: { href: string; count: number }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-center px-4 py-2.5 text-xs font-medium text-muted-foreground active:bg-muted/60 transition-colors"
+    >
+      Voir tout ({count}) →
+    </Link>
   );
 }

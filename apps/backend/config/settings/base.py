@@ -116,8 +116,17 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'apps.core.pagination.FlexiblePageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'auth': '10/minute',       # login, register, password reset
+    },
 }
 
 from datetime import timedelta
@@ -128,12 +137,34 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'UPDATE_LAST_LOGIN': True,
 }
 
 CORS_ALLOWED_ORIGINS = []
 CORS_ALLOW_CREDENTIALS = True
 
+# Object Storage (OVH S3-compatible — désactivé si les vars ne sont pas définies)
+AWS_ACCESS_KEY_ID = os.environ.get('OVH_S3_ACCESS_KEY', '')
+AWS_SECRET_ACCESS_KEY = os.environ.get('OVH_S3_SECRET_KEY', '')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('OVH_S3_BUCKET_PRIVATE', 'mizan-private')
+AWS_S3_ENDPOINT_URL = os.environ.get('OVH_S3_ENDPOINT_URL', '')
+AWS_S3_REGION_NAME = os.environ.get('OVH_S3_REGION', 'gra')
+AWS_DEFAULT_ACL = 'private'
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_EXPIRE = 3600  # URL signées valides 1h
+PRODUCT_IMAGE_MAX_SIZE_MB = 5
+PRODUCT_IMAGE_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+
 # Celery
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_TIMEZONE = 'UTC'
+
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    'zakat-reminders-daily': {
+        'task': 'apps.zakat.tasks.send_zakat_reminders',
+        'schedule': crontab(hour=6, minute=0),  # chaque jour à 6h UTC
+    },
+}

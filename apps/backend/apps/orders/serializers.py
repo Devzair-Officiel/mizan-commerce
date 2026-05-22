@@ -56,14 +56,23 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 class OrderCreateSerializer(serializers.Serializer):
     customer = serializers.UUIDField(required=False, allow_null=True)
-    notes = serializers.CharField(required=False, default='')
+    notes = serializers.CharField(required=False, default='', allow_blank=True)
     discount_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     shipping_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
-    items = OrderItemCreateSerializer(many=True, required=False, default=list)
+    items = OrderItemCreateSerializer(many=True, required=True)
+
+    def validate_items(self, value: list) -> list:
+        if not value:
+            raise serializers.ValidationError('La commande doit contenir au moins un article.')
+        return value
+
+
+class OrderItemQuantitySerializer(serializers.Serializer):
+    quantity = serializers.IntegerField(min_value=1)
 
 
 class StatusTransitionSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=['to_prepare', 'prepared', 'shipped', 'cancelled'])
+    status = serializers.ChoiceField(choices=['draft', 'to_prepare', 'prepared', 'shipped', 'cancelled'])
 
 
 class PaymentUpdateSerializer(serializers.Serializer):

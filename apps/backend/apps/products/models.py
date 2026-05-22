@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.db.models.functions import Lower
 from apps.shops.models import Shop
 
 
@@ -23,6 +24,9 @@ class Product(models.Model):
             models.Index(fields=['shop', 'is_active']),
             models.Index(fields=['shop', 'name']),
             models.Index(fields=['shop', 'reference']),
+        ]
+        constraints = [
+            models.UniqueConstraint(Lower('name'), 'shop', name='unique_product_name_per_shop'),
         ]
 
     def __str__(self):

@@ -78,9 +78,9 @@
 - [x] Endpoint inscription email + mot de passe
 - [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
 - [x] Endpoint mot de passe oublié + email de reset
-- [ ] Validation email à l'inscription
+- [x] Validation email à l'inscription
 - [x] Pages frontend : inscription, connexion
-- [ ] Page mot de passe oublié (frontend)
+- [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
 
 ### Boutique / espace commerçant (URS-004, URS-005)
@@ -101,7 +101,7 @@
 
 - [x] Modèles `Product`, `ProductImage`
 - [x] Endpoints CRUD produits (filtrés `shop_id`)
-- [ ] Upload photo produit vers Object Storage
+- [x] Upload photo produit vers Object Storage
 - [x] Page liste produits avec recherche par nom/référence
 - [x] Formulaire ajout/modification produit
 - [x] Désactivation produit (soft delete via `is_active`)
@@ -125,7 +125,7 @@
 - [x] Endpoints CRUD clients
 - [x] Page liste clients avec recherche
 - [x] Fiche client : historique commandes, montants, paiements en attente, dernière commande
-- [ ] Bouton "marquer à relancer" → crée un `Reminder` lié
+- [x] Bouton "marquer à relancer" → crée un `Reminder` lié
 
 ### Commandes (URS-022 à URS-027)
 
@@ -145,28 +145,28 @@
 - [x] Modèle `Note` (lié à client / commande / libre)
 - [x] Modèle `Reminder` (titre, date, statut)
 - [x] Endpoints CRUD notes et rappels
-- [ ] Affichage des rappels du jour sur dashboard
+- [x] Affichage des rappels du jour sur dashboard
 - [x] Marquer un rappel comme terminé
 
 ### Zakat commerciale (URS-036 à URS-041)
 
 - [x] Modèle `ZakatCalculation`
-- [ ] Champ date annuelle de zakat sur boutique ou utilisateur
+- [x] Champ date annuelle de zakat sur boutique ou utilisateur
 - [x] Calcul automatique de la valeur du stock zakatable (somme produits actifs × prix d'achat)
 - [x] Saisie liquidités, créances, dettes court terme
 - [x] Calcul à 2,5 % avec mention "estimation indicative" en évidence
-- [ ] Rappel automatique avant la date annuelle
+- [x] Rappel automatique avant la date annuelle
 - [x] Possibilité de corriger chaque montant manuellement
 - [x] Sauvegarde du calcul dans l'historique
 
 ### Sécurité & droits (URS-061 à URS-063)
 
-- [ ] Tous les querysets filtrés par `shop_id` du membre courant (middleware ou mixin)
-- [ ] Tests anti-fuite multi-tenant (boutique A ↔ boutique B) sur chaque endpoint sensible
-- [ ] Logs d'audit : modifications stock, suppressions, changements statut commande, exports
-- [ ] Mots de passe hashés (Django par défaut)
-- [ ] Rate limiting sur login, inscription, mot de passe oublié
-- [ ] Photos produits stockées dans bucket privé avec URL signées si pas page publique
+- [x] Tous les querysets filtrés par `shop_id` du membre courant (middleware ou mixin)
+- [x] Tests anti-fuite multi-tenant (boutique A ↔ boutique B) sur chaque endpoint sensible
+- [x] Logs d'audit : modifications stock, suppressions, changements statut commande, exports
+- [x] Mots de passe hashés (Django par défaut)
+- [x] Rate limiting sur login, inscription, mot de passe oublié
+- [x] Photos produits stockées dans bucket privé avec URL signées si pas page publique
 
 ---
 

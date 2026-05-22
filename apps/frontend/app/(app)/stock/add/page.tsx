@@ -4,8 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { apiFetch } from '@/lib/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProducts } from '@/lib/hooks/useProducts';
@@ -17,15 +16,16 @@ function StockAddForm() {
   const { data: products } = useProducts();
 
   const [productId, setProductId] = useState(searchParams.get('product') ?? '');
-  const [quantity, setQuantity] = useState('1');
-  const [reason, setReason] = useState('Réassort');
+  const [quantity,  setQuantity]  = useState('1');
+  const [reason,    setReason]    = useState('Réassort');
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState('');
+  const [error,     setError]     = useState('');
+
+  const selectedProduct = products?.results.find((p) => p.id === productId);
 
   async function handleSubmit() {
     if (!productId) { setError('Sélectionnez un produit.'); return; }
-    setIsPending(true);
-    setError('');
+    setIsPending(true); setError('');
     try {
       await apiFetch('/stock/in/', {
         method: 'POST',
@@ -35,60 +35,52 @@ function StockAddForm() {
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       router.back();
     } catch {
-      setError('Erreur lors de l\'ajout de stock.');
+      setError("Erreur lors de l'ajout de stock.");
     } finally {
       setIsPending(false);
     }
   }
 
-  const selectedProduct = products?.results.find((p) => p.id === productId);
-
   return (
-    <div className="flex flex-col gap-5 p-4">
-      <div className="flex flex-col gap-1.5">
-        <Label>Produit *</Label>
-        <select
-          value={productId}
-          onChange={(e) => setProductId(e.target.value)}
-          className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
-        >
-          <option value="">Sélectionner un produit…</option>
-          {products?.results.filter((p) => p.is_active).map((p) => (
-            <option key={p.id} value={p.id}>{p.name} (stock actuel : {p.stock_quantity})</option>
-          ))}
-        </select>
-      </div>
+    <div className="flex flex-col gap-3 p-4 pb-8">
+
+      <FloatingSelect
+        id="product"
+        label="Produit *"
+        value={productId}
+        onChange={(e) => setProductId(e.target.value)}
+      >
+        <option value="">Sélectionner un produit…</option>
+        {products?.results.filter((p) => p.is_active).map((p) => (
+          <option key={p.id} value={p.id}>{p.name} (stock actuel : {p.stock_quantity})</option>
+        ))}
+      </FloatingSelect>
 
       {selectedProduct && (
-        <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-sm text-zinc-600">
-          Stock actuel : <span className="font-semibold text-zinc-900">{selectedProduct.stock_quantity}</span>
+        <div className="rounded-2xl bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
+          Stock actuel : <span className="font-semibold text-foreground">{selectedProduct.stock_quantity}</span>
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="quantity">Quantité à ajouter *</Label>
-        <Input
-          id="quantity"
-          type="number"
-          min="1"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-        />
-      </div>
+      <FloatingInput
+        id="quantity"
+        label="Quantité à ajouter *"
+        type="number"
+        min="1"
+        value={quantity}
+        onChange={(e) => setQuantity(e.target.value)}
+      />
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="reason">Raison</Label>
-        <Input
-          id="reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Ex: Réassort fournisseur"
-        />
-      </div>
+      <FloatingInput
+        id="reason"
+        label="Raison (optionnel)"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      />
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
 
-      <Button onClick={handleSubmit} disabled={isPending} className="w-full">
+      <Button onClick={handleSubmit} disabled={isPending} className="w-full mt-1">
         {isPending ? 'Enregistrement…' : 'Ajouter au stock'}
       </Button>
     </div>
@@ -99,9 +91,7 @@ export default function StockAddPage() {
   return (
     <>
       <TopBar title="Entrée stock" />
-      <Suspense>
-        <StockAddForm />
-      </Suspense>
+      <Suspense><StockAddForm /></Suspense>
     </>
   );
 }

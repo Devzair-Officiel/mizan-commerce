@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
@@ -10,16 +10,15 @@ import { useProducts, useDeactivateProduct } from '@/lib/hooks/useProducts';
 export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const { data, isLoading } = useProducts(debouncedSearch);
+  const [showAll, setShowAll] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data, isLoading } = useProducts(debouncedSearch, showAll);
   const deactivate = useDeactivateProduct();
 
   function handleSearch(value: string) {
     setSearch(value);
-    clearTimeout((window as Window & { _searchTimeout?: ReturnType<typeof setTimeout> })._searchTimeout);
-    (window as Window & { _searchTimeout?: ReturnType<typeof setTimeout> })._searchTimeout = setTimeout(
-      () => setDebouncedSearch(value),
-      300,
-    );
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(value), 300);
   }
 
   return (
@@ -33,11 +32,20 @@ export default function ProductsPage() {
         }
       />
       <div className="flex flex-col gap-3 p-4">
-        <Input
-          placeholder="Rechercher un produit…"
-          value={search}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
+        <div className="flex gap-2">
+          <Input
+            placeholder="Rechercher un produit…"
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="flex-1"
+          />
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className={`shrink-0 rounded-lg border px-3 text-xs font-medium ${showAll ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 text-zinc-500'}`}
+          >
+            {showAll ? 'Tous' : 'Actifs'}
+          </button>
+        </div>
 
         {isLoading && <p className="text-sm text-zinc-400 text-center py-8">Chargement…</p>}
 
@@ -53,7 +61,7 @@ export default function ProductsPage() {
               className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4"
             >
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="font-medium text-sm text-zinc-900 truncate">{product.name}</span>
+                <span className="font-medium text-sm text-zinc-900 truncate capitalize">{product.name}</span>
                 {product.reference && (
                   <span className="text-xs text-zinc-400">{product.reference}</span>
                 )}

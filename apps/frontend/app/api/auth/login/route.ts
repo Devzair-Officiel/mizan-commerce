@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { detail: `Impossible de joindre le backend (${API_BASE}).` },
+      { detail: 'Impossible de joindre le backend.' },
       { status: 502 },
     );
   }

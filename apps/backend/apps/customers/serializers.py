@@ -4,21 +4,39 @@ from .models import Customer
 
 class CustomerSerializer(serializers.ModelSerializer):
     order_count = serializers.IntegerField(read_only=True, default=0)
-    pending_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
+    pending_amount = serializers.SerializerMethodField()
+    paid_amount = serializers.SerializerMethodField()
+
+    def get_pending_amount(self, obj) -> str:
+        val = getattr(obj, 'pending_amount', None)
+        from decimal import Decimal
+        return str(val if val is not None else Decimal('0.00'))
+
+    def get_paid_amount(self, obj) -> str:
+        val = getattr(obj, 'paid_amount', None)
+        from decimal import Decimal
+        return str(val if val is not None else Decimal('0.00'))
 
     class Meta:
         model = Customer
         fields = (
-            'id', 'name', 'phone', 'email',
+            'id', 'name', 'first_name', 'phone', 'email',
             'address_line', 'city', 'postal_code', 'country',
             'notes', 'is_active',
-            'order_count', 'pending_amount',
+            'order_count', 'pending_amount', 'paid_amount',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
 class CustomerListSerializer(serializers.ModelSerializer):
+    pending_amount = serializers.SerializerMethodField()
+
+    def get_pending_amount(self, obj) -> str:
+        from decimal import Decimal
+        val = getattr(obj, 'pending_amount', None)
+        return str(val if val is not None else Decimal('0.00'))
+
     class Meta:
         model = Customer
-        fields = ('id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at')
+        fields = ('id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at', 'pending_amount')

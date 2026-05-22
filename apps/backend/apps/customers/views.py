@@ -1,9 +1,31 @@
+from decimal import Decimal
+from django.db.models import Count, Sum, F, Q, ExpressionWrapper, DecimalField
 from rest_framework import generics, filters
 from rest_framework.permissions import IsAuthenticated
 
 from apps.shops.models import ShopMember
 from .models import Customer
 from .serializers import CustomerSerializer, CustomerListSerializer
+
+
+def _customer_qs_with_stats(shop):
+    return Customer.objects.filter(shop=shop).annotate(
+        order_count=Count('orders', filter=~Q(orders__status='cancelled'), distinct=True),
+        pending_amount=ExpressionWrapper(
+            Sum(
+                F('orders__total_amount') - F('orders__amount_paid'),
+                filter=Q(orders__payment_status__in=['unpaid', 'partial']) & ~Q(orders__status='cancelled'),
+            ),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        ),
+        paid_amount=ExpressionWrapper(
+            Sum(
+                'orders__amount_paid',
+                filter=~Q(orders__status='cancelled'),
+            ),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        ),
+    )
 
 
 def get_shop(user):
@@ -26,7 +48,7 @@ class CustomerListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = Customer.objects.filter(shop=shop)
+        qs = _customer_qs_with_stats(shop)
         if self.request.query_params.get('all') != '1':
             qs = qs.filter(is_active=True)
         return qs
@@ -40,7 +62,7 @@ class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CustomerSerializer
 
     def get_queryset(self):
-        return Customer.objects.filter(shop=get_shop(self.request.user))
+        return _customer_qs_with_stats(get_shop(self.request.user))
 
     def perform_destroy(self, instance):
         # Soft delete

@@ -1,9 +1,11 @@
 from rest_framework import generics, filters, status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.shops.models import ShopMember
-from .models import Product
+from .models import Product, ProductImage
 from .serializers import ProductSerializer, ProductListSerializer
 
 
@@ -86,3 +88,67 @@ class ProductDeactivateView(generics.GenericAPIView):
         product.is_active = False
         product.save(update_fields=['is_active', 'updated_at'])
         return Response({'detail': 'Produit désactivé.'})
+
+
+class ProductReactivateView(generics.GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        shop = get_shop(self.request.user)
+        return Product.objects.filter(shop=shop)
+
+    def post(self, request, *args, **kwargs):
+        product = self.get_object()
+        product.is_active = True
+        product.save(update_fields=['is_active', 'updated_at'])
+        return Response({'detail': 'Produit réactivé.'})
+
+
+class ProductImageUploadView(APIView):
+    """Upload d'une photo produit vers le bucket privé OVH."""
+    permission_classes = (IsAuthenticated,)
+    parser_classes = (MultiPartParser,)
+
+    def post(self, request, pk: str) -> Response:
+        from django.conf import settings
+        from .services import upload_product_image, get_signed_url
+
+        if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
+            return Response(
+                {'detail': "L'upload vers Object Storage n'est pas configuré sur cet environnement."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        shop = get_shop(request.user)
+        file = request.FILES.get('image')
+        if not file:
+            return Response({'detail': 'Champ « image » requis.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            image = upload_product_image(shop=shop, product_id=pk, file=file)
+        except Product.DoesNotExist:
+            return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        signed_url = get_signed_url(image.object_key)
+        return Response(
+            {'id': str(image.pk), 'object_key': image.object_key, 'url': signed_url, 'is_primary': image.is_primary},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ProductImageSignedUrlView(APIView):
+    """Génère une URL signée (1h) pour une image produit."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk: str, image_pk: str) -> Response:
+        from .services import get_signed_url
+
+        shop = get_shop(request.user)
+        try:
+            image = ProductImage.objects.get(pk=image_pk, product__pk=pk, shop=shop)
+        except ProductImage.DoesNotExist:
+            return Response({'detail': 'Image introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        signed_url = get_signed_url(image.object_key)
+        return Response({'url': signed_url})
