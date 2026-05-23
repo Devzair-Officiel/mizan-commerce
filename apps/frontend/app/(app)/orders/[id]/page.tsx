@@ -205,7 +205,7 @@ export default function OrderDetailPage() {
                         >+</button>
                       </div>
                       {isNeg && (
-                        <p className="text-[11px] text-red-500 px-1">
+                        <p className="text-xs text-red-500 px-1">
                           Le montant payé passera de {order.amount_paid} € à {Math.max(0, parseFloat(order.amount_paid) + val).toFixed(2)} €
                         </p>
                       )}

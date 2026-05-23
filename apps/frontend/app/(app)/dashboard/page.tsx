@@ -18,19 +18,19 @@ export default function DashboardPage() {
         {/* Quick actions */}
         <div className="grid grid-cols-3 gap-2">
           <Link href="/orders/new">
-            <Button variant="outline" className="w-full flex-col h-16 gap-1 text-xs">
+            <Button variant="outline" className="w-full flex-col h-16 gap-1 text-sm">
               <span className="text-lg">＋</span>
               Nouvelle vente
             </Button>
           </Link>
           <Link href="/products/new">
-            <Button variant="outline" className="w-full flex-col h-16 gap-1 text-xs">
+            <Button variant="outline" className="w-full flex-col h-16 gap-1 text-sm">
               <span className="text-lg">📦</span>
               Ajouter produit
             </Button>
           </Link>
           <Link href="/customers/new">
-            <Button variant="outline" className="w-full flex-col h-16 gap-1 text-xs">
+            <Button variant="outline" className="w-full flex-col h-16 gap-1 text-sm">
               <span className="text-lg">👤</span>
               Ajouter client
             </Button>
@@ -65,7 +65,7 @@ export default function DashboardPage() {
               href="/orders?status=to_prepare"
               emptyLabel="Aucune commande à préparer"
               accentClass="text-blue-600 bg-blue-50 border-blue-200"
-              headerBg="bg-blue-50/60"
+              headerBg="bg-blue-50/60 dark:bg-blue-950/50"
               defaultOpen={false}
             >
               {data.orders_to_prepare.items.map((o) => (
@@ -83,7 +83,7 @@ export default function DashboardPage() {
               href="/orders?payment_status=unpaid"
               emptyLabel="Aucun paiement en attente"
               accentClass="text-amber-600 bg-amber-50 border-amber-200"
-              headerBg="bg-amber-50/60"
+              headerBg="bg-amber-50/60 dark:bg-amber-950/50"
               defaultOpen={false}
             >
               {data.unpaid_orders.items.map((o) => (
@@ -101,7 +101,7 @@ export default function DashboardPage() {
               href="/products?filter=low_stock"
               emptyLabel="Tous les stocks sont OK"
               accentClass="text-red-600 bg-red-50 border-red-200"
-              headerBg="bg-red-50/60"
+              headerBg="bg-red-50/60 dark:bg-red-950/50"
               defaultOpen={false}
             >
               {data.low_stock_products.items.map((p) => (
@@ -124,7 +124,7 @@ export default function DashboardPage() {
               href="/reminders"
               emptyLabel="Aucun rappel aujourd'hui"
               accentClass="text-purple-600 bg-purple-50 border-purple-200"
-              headerBg="bg-purple-50/60"
+              headerBg="bg-purple-50/60 dark:bg-purple-950/50"
               defaultOpen={false}
             >
               {data.today_reminders.items.map((r) => (
@@ -206,10 +206,10 @@ function OrderRow({ id, label, sub, value }: { id: string; label: string; sub?: 
       className="flex items-center justify-between px-4 py-3 active:bg-muted/60 transition-colors"
     >
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        {sub && <span className="text-xs text-muted-foreground">{sub}</span>}
+        <span className="text-base font-medium text-foreground">{label}</span>
+        {sub && <span className="text-sm text-muted-foreground">{sub}</span>}
       </div>
-      <span className="text-sm font-semibold text-foreground tabular-nums">{value}</span>
+      <span className="text-base font-semibold text-foreground tabular-nums">{value}</span>
     </Link>
   );
 }
@@ -220,7 +220,7 @@ function StockRow({ id, name, qty }: { id: string; name: string; qty: number }) 
       href={`/products/${id}`}
       className="flex items-center justify-between px-4 py-3 active:bg-muted/60 transition-colors"
     >
-      <span className="text-sm font-medium text-foreground flex-1 truncate pr-3">{name}</span>
+      <span className="text-base font-medium text-foreground flex-1 truncate pr-3">{name}</span>
       <span className={`text-sm font-semibold tabular-nums shrink-0 ${qty === 0 ? 'text-red-500' : 'text-amber-500'}`}>
         {qty === 0 ? 'Rupture' : `${qty} restants`}
       </span>
@@ -231,7 +231,7 @@ function StockRow({ id, name, qty }: { id: string; name: string; qty: number }) 
 function ReminderRow({ title, due_at }: { title: string; due_at: string }) {
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-sm font-medium text-foreground flex-1 truncate pr-3">{title}</span>
+      <span className="text-base font-medium text-foreground flex-1 truncate pr-3">{title}</span>
       <span className="text-xs text-muted-foreground tabular-nums shrink-0">
         {new Date(due_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
       </span>
@@ -243,7 +243,7 @@ function SeeAllRow({ href, count }: { href: string; count: number }) {
   return (
     <Link
       href={href}
-      className="flex items-center justify-center px-4 py-2.5 text-xs font-medium text-muted-foreground active:bg-muted/60 transition-colors"
+      className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-muted-foreground active:bg-muted/60 transition-colors"
     >
       Voir tout ({count}) →
     </Link>

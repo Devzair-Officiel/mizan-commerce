@@ -72,19 +72,19 @@ function OrdersList() {
             className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4"
           >
             <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-sm text-zinc-900">{order.order_number}</span>
+              <span className="font-semibold text-base text-zinc-900">{order.order_number}</span>
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[order.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
                   {order.status_display}
                 </span>
               </div>
               {order.customer_name && (
-                <span className="text-xs text-zinc-400">{order.customer_name}</span>
+                <span className="text-sm text-zinc-400">{order.customer_name}</span>
               )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0 ml-3">
-              <span className="text-sm font-semibold text-zinc-900">{parseFloat(order.total_amount).toFixed(2)} €</span>
-              <span className={`text-xs font-medium ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
+              <span className="text-base font-semibold text-zinc-900">{parseFloat(order.total_amount).toFixed(2)} €</span>
+              <span className={`text-sm font-medium ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
                 {PAYMENT_LABEL[order.payment_status] ?? order.payment_status}
               </span>
             </div>

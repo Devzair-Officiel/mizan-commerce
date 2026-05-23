@@ -114,7 +114,7 @@ export default function CustomersPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">{showInactive ? 'Tous les clients' : 'Clients actifs'}</p>
+              <p className="text-sm text-muted-foreground">{showInactive ? 'Tous les clients' : 'Clients actifs'}</p>
               <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary/10">
                 <Users size={14} className="text-primary" />
               </div>
@@ -123,7 +123,7 @@ export default function CustomersPage() {
           </div>
           <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Total en attente</p>
+              <p className="text-sm text-muted-foreground">Total en attente</p>
               <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${totalPending > 0 ? 'bg-red-100' : 'bg-primary/10'}`}>
                 <CreditCard size={14} className={totalPending > 0 ? 'text-red-500' : 'text-primary'} />
               </div>
@@ -159,11 +159,11 @@ export default function CustomersPage() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground capitalize truncate">{customer.name}</span>
                   {!customer.is_active && (
-                    <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">Désactivé</span>
+                    <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-xs font-semibold text-red-500">Désactivé</span>
                   )}
                 </div>
                 {(customer.phone || customer.city) && (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <p className="text-sm text-muted-foreground mt-0.5 truncate">
                     {[customer.phone, customer.city].filter(Boolean).join(' · ')}
                   </p>
                 )}
@@ -172,7 +172,7 @@ export default function CustomersPage() {
               {/* Montant en attente + chevron */}
               <div className="flex items-center gap-2 shrink-0">
                 {parseFloat(customer.pending_amount) > 0 && (
-                  <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-500">
+                  <span className="rounded-full bg-red-50 px-2.5 py-1 text-sm font-semibold text-red-500">
                     {parseFloat(customer.pending_amount).toFixed(2)} €
                   </span>
                 )}
