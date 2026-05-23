@@ -79,6 +79,7 @@ export default function OrderDetailPage() {
   }
 
   async function handlePayment() {
+    if (!order) return;
     const val = parseFloat(paymentInput);
     if (!paymentInput || val === 0) return;
     const versement = parseFloat(paymentInput) || 0;
