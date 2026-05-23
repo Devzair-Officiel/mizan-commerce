@@ -6,7 +6,11 @@ services:
     env_file: .env.prod
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    # Pas de port exposé : accessible uniquement en réseau Docker interne
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -22,8 +26,10 @@ services:
     ports:
       - "127.0.0.1:8001:8000"   # localhost uniquement — pour SSH tunnel si besoin d'admin Django
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   celery:
     build:
@@ -33,8 +39,10 @@ services:
     env_file: .env.prod
     command: celery -A config worker --loglevel=info --concurrency=2
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   celery-beat:
     build:
@@ -44,8 +52,10 @@ services:
     env_file: .env.prod
     command: celery -A config beat --loglevel=info
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   frontend:
     build:
