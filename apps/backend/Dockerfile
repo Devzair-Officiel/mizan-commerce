@@ -1,22 +1,23 @@
-# Image Python minimale basée sur Debian slim
-FROM python:3.12-slim
-
-# Tout le code sera dans /app dans le conteneur
+# ── base ──────────────────────────────────────────────────────────────────────
+FROM python:3.12-slim AS base
 WORKDIR /app
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
 
-# libpq-dev et gcc sont requis pour compiler psycopg2
-RUN apt-get update && apt-get install -y \
-    libpq-dev gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copie les fichiers requirements avant le reste (cache Docker)
+# ── development ───────────────────────────────────────────────────────────────
+FROM base AS development
 COPY requirements/ requirements/
-
-# Installe les dépendances Python
 RUN pip install --no-cache-dir -r requirements/local.txt
-
-# Copie tout le code backend dans le conteneur
 COPY . .
-
-# Documente que le conteneur écoute sur le port 8000
 EXPOSE 8000
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+# ── production ────────────────────────────────────────────────────────────────
+FROM base AS production
+COPY requirements/ requirements/
+RUN pip install --no-cache-dir -r requirements/production.txt
+COPY . .
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+EXPOSE 8000
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "config.wsgi:application"]

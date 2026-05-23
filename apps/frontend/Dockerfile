@@ -1,35 +1,32 @@
-# Image Chainguard avec les outils de développement (npm inclus)
-FROM cgr.dev/chainguard/node:latest-dev
-
-# Passage en root pour la création du dossier de travail
-USER root
-
-# Dossier de travail dans le conteneur
+# ── base ──────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS base
 WORKDIR /app
-
-# Attribution des droits sur /app à l'utilisateur node
-RUN chown -R node:node /app
-
-# Retour à l'utilisateur non-root pour la sécurité
-USER node
-
-# Copie de package.json avec les droits corrects (optimise le cache Docker)
-COPY --chown=node:node package*.json ./
-
-# Installation des dépendances Node
-RUN npm install
-
-# Copie du code source avec les droits corrects
-COPY --chown=node:node . .
-
-# Désactive la télémétrie Next.js
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Port exposé par Next.js
+# ── development ───────────────────────────────────────────────────────────────
+FROM base AS development
+COPY package*.json ./
+RUN npm install
+COPY . .
 EXPOSE 3000
+CMD ["npm", "run", "dev"]
 
-# Remplacement de l'entrypoint par défaut de Chainguard
-ENTRYPOINT ["npm"]
+# ── builder (étape intermédiaire pour la prod) ────────────────────────────────
+FROM base AS builder
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# Démarrage du serveur de développement Next.js
-CMD ["run", "dev"]
+# ── production ────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS production
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]

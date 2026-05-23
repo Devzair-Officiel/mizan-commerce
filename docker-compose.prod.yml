@@ -1,0 +1,68 @@
+services:
+
+  postgres:
+    image: postgres:16
+    restart: always
+    env_file: .env.prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Pas de port exposé : accessible uniquement en réseau Docker interne
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # Pas de port exposé : accessible uniquement en réseau Docker interne
+
+  backend:
+    build:
+      context: ./apps/backend
+      target: production
+    restart: always
+    env_file: .env.prod
+    ports:
+      - "127.0.0.1:8001:8000"   # localhost uniquement — pour SSH tunnel si besoin d'admin Django
+    depends_on:
+      - postgres
+      - redis
+
+  celery:
+    build:
+      context: ./apps/backend
+      target: production
+    restart: always
+    env_file: .env.prod
+    command: celery -A config worker --loglevel=info --concurrency=2
+    depends_on:
+      - postgres
+      - redis
+
+  celery-beat:
+    build:
+      context: ./apps/backend
+      target: production
+    restart: always
+    env_file: .env.prod
+    command: celery -A config beat --loglevel=info
+    depends_on:
+      - postgres
+      - redis
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      target: production
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3000"   # Apache proxifie depuis le port 80/443 vers ici
+    environment:
+      - API_URL=http://backend:8000/api
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
