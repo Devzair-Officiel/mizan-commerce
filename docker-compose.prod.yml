@@ -67,6 +67,7 @@ services:
     environment:
       - API_URL=http://backend:8000/api
       - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
     depends_on:
       - backend
 
