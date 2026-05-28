@@ -69,6 +69,7 @@ services:
       - API_URL=http://backend:8000/api
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
     depends_on:
       - backend
 

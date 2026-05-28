@@ -69,10 +69,10 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     const retryData = retryRes.status === 204 ? null : await retryRes.json().catch(() => null);
     const response = NextResponse.json(retryData, { status: retryRes.status });
 
-    const IS_PROD = process.env.NODE_ENV === 'production';
+    const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
     response.cookies.set('access_token', newAccess, {
       httpOnly: true,
-      secure: IS_PROD,
+      secure: SECURE_COOKIES,
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60,

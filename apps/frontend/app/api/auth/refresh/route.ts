@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
-const IS_PROD = process.env.NODE_ENV === 'production';
+const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
 
 export async function POST(req: NextRequest) {
   const refresh = req.cookies.get('refresh_token')?.value;
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const response = NextResponse.json({ ok: true });
   response.cookies.set('access_token', access, {
     httpOnly: true,
-    secure: IS_PROD,
+    secure: SECURE_COOKIES,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60,
