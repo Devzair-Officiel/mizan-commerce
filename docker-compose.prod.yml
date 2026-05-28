@@ -63,7 +63,7 @@ services:
       target: production
     restart: always
     ports:
-      - "80:3000"   # port 80 direct — pas d'Apache sur ce serveur
+      - "3001:3000"   # port 3001 — 80 occupé par un autre conteneur
     environment:
       - API_URL=http://backend:8000/api
       - NODE_ENV=production
