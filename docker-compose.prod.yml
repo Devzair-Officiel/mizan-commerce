@@ -61,10 +61,11 @@ services:
     build:
       context: ./apps/frontend
       target: production
+    container_name: mizan-commerce-frontend
     restart: always
     networks:
       - default
-      - proxy
+      - web
     environment:
       - API_URL=http://backend:8000/api
       - NODE_ENV=production
@@ -74,7 +75,7 @@ services:
       - backend
 
 networks:
-  proxy:
+  web:
     external: true
 
 volumes:
