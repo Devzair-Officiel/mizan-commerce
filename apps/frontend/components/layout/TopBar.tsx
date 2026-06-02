@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, Home, ChevronRight } from 'lucide-react';
@@ -163,7 +163,10 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
           </button>
         </div>
       </div>
-      <Breadcrumb />
+      {/* Suspense requis : Breadcrumb utilise useSearchParams, sinon le build statique échoue */}
+      <Suspense fallback={null}>
+        <Breadcrumb />
+      </Suspense>
     </header>
   );
 }
