@@ -8,23 +8,18 @@ interface MapTilerContext {
   short_code?: string;
 }
 
+// MapTiler renvoie des Features GeoJSON avec une structure variable selon
+// place_type : pour un type 'address', `text` = rue, `address` = n° de rue.
+// Pour 'street', 'place', 'locality', etc., `text` est l'entité elle-même.
 interface MapTilerFeature {
   place_name?: string;
+  place_type?: string[];
   text?: string;
   address?: string;
   context?: MapTilerContext[];
-  properties?: {
-    street?: string;
-    housenumber?: string;
-    city?: string;
-    postcode?: string;
-    country?: string;
-    country_code?: string;
-  };
+  properties?: Record<string, unknown>;
 }
 
-// Sortie normalisée pour rester compatible avec le composant AddressAutocomplete
-// (qui s'attendait au format Photon — on garde la même shape).
 interface NormalizedFeature {
   properties: {
     housenumber?: string;
@@ -37,24 +32,48 @@ interface NormalizedFeature {
   };
 }
 
-function contextEntry(ctx: MapTilerContext[] | undefined, prefix: string): MapTilerContext | undefined {
-  return ctx?.find((c) => c.id?.startsWith(prefix));
+function ctxText(ctx: MapTilerContext[] | undefined, ...prefixes: string[]): string | undefined {
+  if (!ctx) return undefined;
+  for (const prefix of prefixes) {
+    const found = ctx.find((c) => c.id?.startsWith(prefix));
+    if (found) return found.text;
+  }
+  return undefined;
+}
+
+function ctxShortCode(ctx: MapTilerContext[] | undefined, prefix: string): string | undefined {
+  return ctx?.find((c) => c.id?.startsWith(prefix))?.short_code;
 }
 
 function normalize(f: MapTilerFeature): NormalizedFeature {
-  const p = f.properties ?? {};
-  const ctx = f.context;
+  const types = f.place_type ?? [];
+  const isAddress = types.includes('address');
+  const isStreet = types.includes('street');
+  const isPlace = types.some((t) => ['place', 'municipality', 'locality', 'neighbourhood'].includes(t));
 
-  const street = p.street;
-  const housenumber = p.housenumber ?? f.address;
-  const city = p.city ?? contextEntry(ctx, 'place')?.text ?? contextEntry(ctx, 'municipality')?.text;
-  const postcode = p.postcode ?? contextEntry(ctx, 'postal_code')?.text;
-  const countryCtx = contextEntry(ctx, 'country');
-  const country = p.country ?? countryCtx?.text;
-  const country_code = (p.country_code ?? countryCtx?.short_code ?? '').toUpperCase();
+  // Rue : pour un address ou street feature, `text` est le nom de la rue.
+  // Pour une place/poi, on n'a pas de rue.
+  let street: string | undefined;
+  let housenumber: string | undefined;
+  let name: string | undefined;
 
-  // Le nom affiché : on garde `text` (souvent le nom de rue) ou place_name en fallback
-  const name = !street ? (f.text ?? f.place_name) : undefined;
+  if (isAddress) {
+    street = f.text;
+    housenumber = f.address;
+  } else if (isStreet) {
+    street = f.text;
+  } else if (isPlace) {
+    name = f.text;
+  } else {
+    name = f.text ?? f.place_name;
+  }
+
+  const city = isPlace
+    ? f.text
+    : ctxText(f.context, 'municipality', 'place', 'locality');
+  const postcode = ctxText(f.context, 'postal_code');
+  const country = ctxText(f.context, 'country');
+  const country_code = (ctxShortCode(f.context, 'country') ?? '').toUpperCase();
 
   return {
     properties: { housenumber, street, name, city, postcode, country, country_code },
@@ -76,7 +95,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(q)}.json`);
   url.searchParams.set('key', MAPTILER_KEY);
   url.searchParams.set('language', 'fr');
-  url.searchParams.set('limit', '5');
+  url.searchParams.set('limit', '10');
+  url.searchParams.set('autocomplete', 'true');
+  url.searchParams.set('fuzzyMatch', 'true');
+  url.searchParams.set('types', 'address,street,place,postal_code,locality,municipality,neighbourhood,poi');
   if (country) url.searchParams.set('country', country);
 
   try {

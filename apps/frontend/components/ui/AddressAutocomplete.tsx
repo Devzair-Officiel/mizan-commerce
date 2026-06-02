@@ -148,9 +148,9 @@ export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: 
               Aucune adresse trouvée {countryName ? `en ${countryName}` : ''}. Essayez d'élargir la recherche ou changez de pays.
             </p>
           )}
-          {suggestions.map((item) => (
+          {suggestions.map((item, idx) => (
             <button
-              key={`${item.label}|${item.sub}`}
+              key={`${idx}|${item.label}|${item.sub}`}
               type="button"
               onClick={() => handleSelect(item)}
               className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors active:bg-muted hover:bg-muted/60 border-t border-border first:border-t-0"
