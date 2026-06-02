@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Loader2, X } from 'lucide-react';
+import { COUNTRIES } from './CountryPicker';
 
 export interface AddressResult {
   address_line: string;
@@ -10,29 +11,27 @@ export interface AddressResult {
   country_code: string;
 }
 
-interface PhotonFeature {
+// Format renvoyé par notre route handler `/api/geocode` (normalisé MapTiler).
+interface GeocodeFeature {
   properties: {
     name?: string;
     housenumber?: string;
     street?: string;
     city?: string;
-    town?: string;
-    village?: string;
     postcode?: string;
     country?: string;
     country_code?: string;
-    state?: string;
   };
 }
 
-function formatSuggestion(f: PhotonFeature): { label: string; sub: string; result: AddressResult } {
+function formatSuggestion(f: GeocodeFeature): { label: string; sub: string; result: AddressResult } {
   const p = f.properties;
   const parts: string[] = [];
   if (p.housenumber) parts.push(p.housenumber);
   if (p.street) parts.push(p.street);
   else if (p.name) parts.push(p.name);
   const address_line = parts.join(' ');
-  const city = p.city ?? p.town ?? p.village ?? '';
+  const city = p.city ?? '';
   const postal_code = p.postcode ?? '';
   const country_code = (p.country_code ?? '').toUpperCase();
   const label = address_line || city;
@@ -56,32 +55,32 @@ export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: 
   const containerRef = useRef<HTMLDivElement>(null);
 
   const normalizedCountry = countryCode?.trim().toUpperCase() || '';
+  const countryName = normalizedCountry
+    ? COUNTRIES.find(c => c.code === normalizedCountry)?.name ?? ''
+    : '';
+  const [emptyForCountry, setEmptyForCountry] = useState(false);
 
   useEffect(() => {
     if (selected) return;
-    if (value.length < 3) { setSuggestions([]); setOpen(false); return; }
+    if (value.length < 3) { setSuggestions([]); setOpen(false); setEmptyForCountry(false); return; }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        // Si un pays est sélectionné, on demande plus de résultats à Photon
-        // pour avoir une marge après filtrage client.
-        const limit = normalizedCountry ? 15 : 5;
-        const res = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=${limit}&lang=fr`,
-        );
+        // Proxy server-side : /api/geocode applique le filtre pays côté MapTiler.
+        const params = new URLSearchParams({ q: value });
+        if (normalizedCountry) params.set('country', normalizedCountry);
+        const res = await fetch(`/api/geocode?${params.toString()}`);
         const json = await res.json();
-        let items = (json.features as PhotonFeature[])
+        const items = (json.features as GeocodeFeature[])
           .map(formatSuggestion)
           .filter(s => s.label);
-        if (normalizedCountry) {
-          items = items.filter(s => s.result.country_code === normalizedCountry);
-        }
-        items = items.slice(0, 5);
         setSuggestions(items);
-        setOpen(items.length > 0);
+        setEmptyForCountry(Boolean(normalizedCountry) && items.length === 0);
+        setOpen(items.length > 0 || (Boolean(normalizedCountry) && items.length === 0));
       } catch {
         setSuggestions([]);
+        setEmptyForCountry(false);
       } finally {
         setLoading(false);
       }
@@ -142,8 +141,13 @@ export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: 
       </div>
 
       {/* Dropdown suggestions */}
-      {open && suggestions.length > 0 && (
+      {open && (suggestions.length > 0 || emptyForCountry) && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1.5 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+          {emptyForCountry && suggestions.length === 0 && (
+            <p className="px-4 py-3 text-xs text-muted-foreground">
+              Aucune adresse trouvée {countryName ? `en ${countryName}` : ''}. Essayez d'élargir la recherche ou changez de pays.
+            </p>
+          )}
           {suggestions.map((item) => (
             <button
               key={`${item.label}|${item.sub}`}
