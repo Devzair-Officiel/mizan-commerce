@@ -45,7 +45,17 @@ function ctxShortCode(ctx: MapTilerContext[] | undefined, prefix: string): strin
   return ctx?.find((c) => c.id?.startsWith(prefix))?.short_code;
 }
 
-function normalize(f: MapTilerFeature): NormalizedFeature {
+// MapTiler ne gère pas les suffixes français "bis/ter/quater". On les retire
+// avant la requête puis on les réinjecte dans le numéro affiché.
+const BIS_TER_RE = /(\d+)\s+(bis|ter|quater|quinquies)\b/i;
+
+function stripSuffix(q: string): { cleaned: string; suffix: string | null } {
+  const m = q.match(BIS_TER_RE);
+  if (!m) return { cleaned: q, suffix: null };
+  return { cleaned: q.replace(BIS_TER_RE, m[1]), suffix: m[2].toLowerCase() };
+}
+
+function normalize(f: MapTilerFeature, suffix: string | null): NormalizedFeature {
   const types = f.place_type ?? [];
   const isAddress = types.includes('address');
   const isStreet = types.includes('street');
@@ -59,7 +69,7 @@ function normalize(f: MapTilerFeature): NormalizedFeature {
 
   if (isAddress) {
     street = f.text;
-    housenumber = f.address;
+    housenumber = suffix && f.address ? `${f.address} ${suffix}` : f.address;
   } else if (isStreet) {
     street = f.text;
   } else if (isPlace) {
@@ -92,7 +102,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ features: [] });
   }
 
-  const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(q)}.json`);
+  const { cleaned, suffix } = stripSuffix(q);
+  const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(cleaned)}.json`);
   url.searchParams.set('key', MAPTILER_KEY);
   url.searchParams.set('language', 'fr');
   url.searchParams.set('limit', '10');
@@ -107,7 +118,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ features: [] }, { status: 502 });
     }
     const data = (await res.json()) as { features?: MapTilerFeature[] };
-    const features = (data.features ?? []).map(normalize);
+    const features = (data.features ?? []).map((f) => normalize(f, suffix));
     return NextResponse.json({ features });
   } catch {
     return NextResponse.json({ features: [] }, { status: 502 });

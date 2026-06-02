@@ -21,6 +21,15 @@ const SEGMENT_LABELS: Record<string, string> = {
   out:       'Sortie',
 };
 
+// Quand on arrive d'un autre contexte (?from=), Accueil > [from] > [resource]
+// > [action] devient trop long. On collapse les deux derniers crumbs en un
+// seul label contextuel.
+const CONTEXTUAL_ACTION_LABELS: Record<string, Record<string, string>> = {
+  orders:    { new: 'Nouvelle commande', edit: 'Modifier la commande' },
+  customers: { new: 'Nouveau client',    edit: 'Modifier le client'    },
+  products:  { new: 'Nouvel article',    edit: "Modifier l'article"    },
+};
+
 function isId(segment: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(segment)
     || /^\d+$/.test(segment);
@@ -79,8 +88,19 @@ function Breadcrumb() {
     }
   }
 
+  const currentSegments = pathname.split('/').filter(Boolean);
+  const lastSeg = currentSegments[currentSegments.length - 1];
+  const resourceSeg = currentSegments[0];
+  const contextualLabel = fromPath && (lastSeg === 'new' || lastSeg === 'edit')
+    ? CONTEXTUAL_ACTION_LABELS[resourceSeg]?.[lastSeg]
+    : undefined;
+
   if (fromPath) pushCategoryCrumbs(fromPath.split('/').filter(Boolean));
-  pushCategoryCrumbs(pathname.split('/').filter(Boolean));
+  if (contextualLabel) {
+    crumbs.push({ label: contextualLabel, href: pathname });
+  } else {
+    pushCategoryCrumbs(currentSegments);
+  }
 
   return (
     <div

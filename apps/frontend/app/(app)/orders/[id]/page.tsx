@@ -131,6 +131,41 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: 'Annulée',
 };
 
+const WA_STATUS_MSG: Record<string, string> = {
+  draft:      'Votre commande est bien enregistrée.',
+  to_prepare: 'Votre commande est en cours de préparation.',
+  prepared:   'Votre commande est prête.',
+  shipped:    'Votre commande a été expédiée.',
+  cancelled:  'Votre commande a été annulée.',
+};
+
+function buildWhatsAppMessage(order: Order): string {
+  const firstName = (order.customer_name ?? '').trim().split(/\s+/)[0] ?? '';
+  const total = parseFloat(order.total_amount);
+  const paid = parseFloat(order.amount_paid);
+  const remaining = Math.max(0, total - paid);
+  const date = DATE_FMT.format(new Date(order.created_at));
+
+  const paymentLine =
+    order.payment_status === 'paid'
+      ? 'Paiement : réglé. Merci !'
+      : order.payment_status === 'partial'
+        ? `Acompte versé : ${paid.toFixed(2)} € — Reste à régler : ${remaining.toFixed(2)} €`
+        : `Paiement : à régler (${total.toFixed(2)} €)`;
+
+  return [
+    firstName ? `Bonjour ${firstName},` : 'Bonjour,',
+    '',
+    WA_STATUS_MSG[order.status] ?? 'Mise à jour de votre commande.',
+    '',
+    `Commande n°${order.order_number} du ${date}`,
+    `Total : ${total.toFixed(2)} €`,
+    paymentLine,
+    '',
+    'À bientôt.',
+  ].join('\n');
+}
+
 const PAYMENT_LABEL: Record<string, string> = {
   unpaid: 'Non payé',
   partial: 'Partiel',
@@ -316,14 +351,13 @@ export default function OrderDetailPage() {
           <div className="flex w-full items-center gap-2">
             {waPhone && (
               <a
-                href={`https://wa.me/${waPhone}`}
+                href={`https://wa.me/${waPhone}?text=${encodeURIComponent(buildWhatsAppMessage(order))}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-2 h-11 rounded-full text-primary-foreground shadow-sm active:scale-95 transition-transform"
-                style={{ background: 'var(--primary)' }}
+                className="flex flex-1 items-center justify-center gap-2 h-11 rounded-full bg-primary/10 text-primary active:scale-95 transition-transform hover:bg-primary/15"
               >
-                <WhatsAppIcon />
-                <span className="text-sm font-semibold">WhatsApp</span>
+                <WhatsAppIcon size={16} />
+                <span className="text-sm font-semibold">Prévenir le client</span>
               </a>
             )}
             {order.customer_phone && (
