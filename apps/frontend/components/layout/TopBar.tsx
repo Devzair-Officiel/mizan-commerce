@@ -2,10 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, Home, ChevronRight } from 'lucide-react';
 import { BurgerButton } from './BurgerMenu';
-import { ThemeToggleButton } from '@/components/ui/ThemeToggle';
 import { useSearchOverlay } from './SearchOverlay';
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -29,6 +28,9 @@ function isId(segment: string) {
 
 function Breadcrumb() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const rawFrom = searchParams.get('from');
+  const fromPath = rawFrom && rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : null;
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,20 +57,30 @@ function Breadcrumb() {
 
   if (pathname === '/dashboard') return null;
 
-  const segments = pathname.split('/').filter(Boolean);
-
   const crumbs: { label: string; href: string }[] = [
     { label: 'Accueil', href: '/dashboard' },
   ];
 
-  let accumulated = '';
-  for (const seg of segments) {
-    accumulated += `/${seg}`;
-    crumbs.push({
-      label: isId(seg) ? '…' : (SEGMENT_LABELS[seg] ?? seg),
-      href: accumulated,
-    });
+  function pushCategoryCrumbs(segments: string[]) {
+    let acc = '';
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i];
+      acc += `/${seg}`;
+      if (isId(seg)) continue;
+      // Si le segment suivant est un ID, faire pointer la catégorie vers l'item
+      // précis (sauf si cet item est la page courante → pointer vers la liste).
+      let href = acc;
+      const nextSeg = i + 1 < segments.length ? segments[i + 1] : null;
+      if (nextSeg && isId(nextSeg)) {
+        const detailHref = `${acc}/${nextSeg}`;
+        if (detailHref !== pathname) href = detailHref;
+      }
+      crumbs.push({ label: SEGMENT_LABELS[seg] ?? seg, href });
+    }
   }
+
+  if (fromPath) pushCategoryCrumbs(fromPath.split('/').filter(Boolean));
+  pushCategoryCrumbs(pathname.split('/').filter(Boolean));
 
   return (
     <div
@@ -77,15 +89,15 @@ function Breadcrumb() {
       style={{ opacity: 1, maxHeight: '44px', paddingTop: '10px', paddingBottom: '10px' }}
     >
       {crumbs.map((crumb, i) => {
-        const isLast = i === crumbs.length - 1;
         const isHome = i === 0;
+        const isCurrent = crumb.href === pathname;
         const label = isHome
           ? <span className="flex items-center gap-1.5"><Home size={13} className="-mt-px" />Accueil</span>
           : crumb.label;
         return (
-          <div key={crumb.href} className="flex items-center gap-3 shrink-0">
+          <div key={`${crumb.href}-${i}`} className="flex items-center gap-3 shrink-0">
             {i > 0 && <ChevronRight size={16} className="text-muted-foreground/60 shrink-0" />}
-            {isLast ? (
+            {isCurrent ? (
               <span className="text-sm font-semibold tracking-[0.12em] text-foreground">{label}</span>
             ) : (
               <Link href={crumb.href} className="text-sm tracking-[0.12em] text-muted-foreground hover:text-foreground transition-colors">
@@ -116,12 +128,8 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
       className="sticky top-0 z-40 flex flex-col border-b border-border backdrop-blur-md"
       style={{ background: 'color-mix(in oklch, var(--card) 85%, transparent)' }}
     >
-      <div className="h-14 flex items-center px-4">
-        <h1 className={`absolute inset-x-0 text-center font-semibold text-foreground pointer-events-none capitalize ${titleClassName ?? 'text-2xl'}`}>
-          {title}
-        </h1>
-
-        <div className="relative z-10">
+      <div className="h-14 flex items-center px-4 gap-2">
+        <div className="shrink-0">
           {back ? (
             <button
               onClick={() => onBack ? onBack() : router.back()}
@@ -134,11 +142,17 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
               Retour
             </button>
           ) : (
-            <BurgerButton />
+            <span className="lg:hidden">
+              <BurgerButton />
+            </span>
           )}
         </div>
 
-        <div className="relative z-10 ml-auto flex items-center gap-1">
+        <h1 className={`flex-1 min-w-0 text-center font-semibold text-foreground pointer-events-none capitalize truncate ${titleClassName ?? 'text-2xl'}`}>
+          {title}
+        </h1>
+
+        <div className="shrink-0 flex items-center gap-1">
           {action && action}
           <button
             onClick={openSearch}
@@ -147,7 +161,6 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
           >
             <Search size={19} />
           </button>
-          <ThemeToggleButton />
         </div>
       </div>
       <Breadcrumb />

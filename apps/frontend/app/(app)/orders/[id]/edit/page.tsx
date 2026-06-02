@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
-import { FloatingInput, FloatingSelectBase, FloatingSelectItem, FloatingTextarea } from '@/components/ui/floating-fields';
+import { FloatingInput, FloatingSelectBase, FloatingSelectItem } from '@/components/ui/floating-fields';
 import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
 import {
   useOrder,
@@ -18,7 +18,7 @@ import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
 
 interface EditItem {
   id?: string;
-  product: string;
+  product: string | null;
   product_name: string;
   quantity: number;
   unit_price: string;
@@ -37,7 +37,6 @@ export default function EditOrderPage() {
   const removeItem   = useRemoveOrderItem(id);
 
   const [customerId,  setCustomerId]  = useState('');
-  const [notes,       setNotes]       = useState('');
   const [discount,    setDiscount]    = useState('');
   const [shipping,    setShipping]    = useState('');
   const [items,       setItems]       = useState<EditItem[]>([]);
@@ -46,7 +45,6 @@ export default function EditOrderPage() {
   useEffect(() => {
     if (!order) return;
     setCustomerId(order.customer ?? '');
-    setNotes(order.notes ?? '');
     setDiscount(order.discount_amount ?? '0');
     setShipping(order.shipping_amount ?? '0');
     const mapped = order.items.map((i) => ({
@@ -68,7 +66,7 @@ export default function EditOrderPage() {
     }
   }
 
-  function updateQty(product: string, qty: number) {
+  function updateQty(product: string | null, qty: number) {
     if (qty < 1) { setItems(items.filter((i) => i.product !== product)); return; }
     setItems(items.map((i) => i.product === product ? { ...i, quantity: qty } : i));
   }
@@ -81,7 +79,7 @@ export default function EditOrderPage() {
 
   async function handleSave() {
     await updateOrder.mutateAsync({
-      customer: customerId || null, notes,
+      customer: customerId || null,
       discount_amount: discount || '0', shipping_amount: shipping || '0',
     });
     const currentIds = new Set(items.filter((i) => i.id).map((i) => i.id as string));
@@ -90,7 +88,13 @@ export default function EditOrderPage() {
       if (!i.id) return false;
       return order?.items.find((o) => o.id === i.id)?.quantity !== i.quantity;
     }).map((i) => updateItem.mutateAsync({ itemId: i.id!, quantity: i.quantity })));
-    await Promise.all(items.filter((i) => !i.id).map((i) => addItem.mutateAsync({ product: i.product, quantity: i.quantity, unit_price: i.unit_price })));
+    await Promise.all(items.filter((i) => !i.id).map((i) =>
+      addItem.mutateAsync(
+        i.product
+          ? { product: i.product, quantity: i.quantity, unit_price: i.unit_price }
+          : { product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price },
+      ),
+    ));
     router.push(`/orders/${id}`);
   }
 
@@ -193,8 +197,6 @@ export default function EditOrderPage() {
           <FloatingInput id="discount" label="Remise (€, optionnel)" type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
           <FloatingInput id="shipping" label="Livraison (€, optionnel)" type="number" step="0.01" min="0" value={shipping} onChange={(e) => setShipping(e.target.value)} />
         </div>
-
-        <FloatingTextarea id="notes" label="Notes internes (optionnel)" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </div>
     </>
   );

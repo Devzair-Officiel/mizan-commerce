@@ -21,6 +21,7 @@ Documents de référence (à consulter selon le besoin, pas à charger systémat
 - `docs/schema_base_donnees.md` — schéma PostgreSQL canonique
 - `docs/plan_avancement.md` — phase et tâches en cours
 - `docs/fiche_technique_saas_commercants_ovh.md` — choix d'infra OVH
+- `docs/design_principles.md` — posture UX/UI + patterns canoniques (lire avant tout redesign d'écran)
 
 ## Commands
 

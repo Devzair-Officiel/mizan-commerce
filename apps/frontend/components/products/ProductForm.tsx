@@ -64,7 +64,7 @@ export function ProductForm({ defaultValues, onSubmit, isSubmitting }: ProductFo
   }
 
   return (
-    <form onSubmit={handleSubmit(handleValid)} className="flex flex-col gap-3 p-4 pb-8">
+    <form onSubmit={handleSubmit(handleValid)} className="flex flex-col gap-3 p-4 pb-8 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6">
 
       <div className="flex flex-col gap-0.5">
         <FloatingInput id="name" label="Nom du produit *" {...register('name')} />

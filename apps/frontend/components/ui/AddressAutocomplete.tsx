@@ -44,15 +44,18 @@ interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
   onSelect: (result: AddressResult) => void;
+  countryCode?: string;
 }
 
-export function AddressAutocomplete({ value, onChange, onSelect }: AddressAutocompleteProps) {
+export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<ReturnType<typeof formatSuggestion>[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const normalizedCountry = countryCode?.trim().toUpperCase() || '';
 
   useEffect(() => {
     if (selected) return;
@@ -61,13 +64,20 @@ export function AddressAutocomplete({ value, onChange, onSelect }: AddressAutoco
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
+        // Si un pays est sélectionné, on demande plus de résultats à Photon
+        // pour avoir une marge après filtrage client.
+        const limit = normalizedCountry ? 15 : 5;
         const res = await fetch(
-          `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=5&lang=fr`,
+          `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=${limit}&lang=fr`,
         );
         const json = await res.json();
-        const items = (json.features as PhotonFeature[])
+        let items = (json.features as PhotonFeature[])
           .map(formatSuggestion)
           .filter(s => s.label);
+        if (normalizedCountry) {
+          items = items.filter(s => s.result.country_code === normalizedCountry);
+        }
+        items = items.slice(0, 5);
         setSuggestions(items);
         setOpen(items.length > 0);
       } catch {
@@ -77,7 +87,7 @@ export function AddressAutocomplete({ value, onChange, onSelect }: AddressAutoco
       }
     }, 320);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [value, selected]);
+  }, [value, selected, normalizedCountry]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {

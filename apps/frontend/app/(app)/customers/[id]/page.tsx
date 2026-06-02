@@ -1,36 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Phone, Mail, MapPin, CreditCard, ShoppingBag,
-  Bell, PowerOff, UserPen, FileText, X, Copy, Navigation, ClipboardPlus,
+  Bell, PowerOff, UserPen, FileText, X, Copy, Navigation, ClipboardPlus, MoreHorizontal,
+  Truck, History, CheckCircle2,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useCustomer, useDeactivateCustomer, useReactivateCustomer } from '@/lib/hooks/useCustomers';
-import { useCustomerOrdersInfinite } from '@/lib/hooks/useOrders';
+import {
+  useCustomer, useDeactivateCustomer, useReactivateCustomer,
+  useCustomerActivityInfinite,
+  type ActivityEvent, type ActivityType,
+} from '@/lib/hooks/useCustomers';
 import { useCreateReminder } from '@/lib/hooks/useReminders';
-const STATUS_LABEL: Record<string, string> = {
-  draft:      'Brouillon',
-  to_prepare: 'À préparer',
-  prepared:   'Préparée',
-  shipped:    'Expédiée',
-  cancelled:  'Annulée',
+const PAYMENT_TITLE: Record<string, string> = {
+  unpaid:  'Paiement en attente',
+  partial: 'Paiement partiel',
+  paid:    'Paiement reçu',
 };
 
-const PAYMENT_LABEL: Record<string, string> = {
-  unpaid:  'Non payé',
-  partial: 'Partiel',
-  paid:    'Payé',
-};
-
-const PAYMENT_COLOR: Record<string, string> = {
-  unpaid:  'text-red-500',
-  partial: 'text-amber-500',
-  paid:    'text-green-600',
+const PAYMENT_TONE: Record<string, string> = {
+  unpaid:  'bg-red-500/10 text-red-500 dark:text-red-400',
+  partial: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  paid:    'bg-green-500/10 text-green-600 dark:text-green-400',
 };
 
 function getInitials(name: string): string {
@@ -59,17 +54,41 @@ export default function CustomerDetailPage() {
   const [flashVisible, setFlashVisible] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [paymentFilter, setPaymentFilter] = useState<string | null>(null);
-  const [showStatusPicker, setShowStatusPicker] = useState(false);
-  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<ActivityType | null>(null);
+  const [nowMs] = useState(() => Date.now());
+
+  const customerBadge = useMemo<{ label: string; classes: string } | null>(() => {
+    if (!customer) return null;
+    if (parseFloat(customer.pending_amount) > 0) {
+      return {
+        label: 'À relancer',
+        classes: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 border border-amber-400/20',
+      };
+    }
+    const daysSinceCreated = (nowMs - new Date(customer.created_at).getTime()) / 86_400_000;
+    if (daysSinceCreated < 30 && customer.order_count === 0) {
+      return {
+        label: 'Nouveau client',
+        classes: 'bg-primary/10 text-primary border border-primary/20',
+      };
+    }
+    if (customer.order_count >= 3) {
+      return {
+        label: 'Client régulier',
+        classes: 'bg-muted text-muted-foreground border border-border',
+      };
+    }
+    return null;
+  }, [customer, nowMs]);
   const {
-    data: ordersData,
+    data: activityData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useCustomerOrdersInfinite(id, { status: statusFilter, payment_status: paymentFilter });
+    isLoading: isActivityLoading,
+  } = useCustomerActivityInfinite(id, activityFilter);
 
   function handleCopyAddress() {
     const addr = [customer?.address_line, customer?.city, customer?.postal_code].filter(Boolean).join(', ');
@@ -140,73 +159,125 @@ export default function CustomerDetailPage() {
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-4 p-4">
+      {/* Bottom sheet — Actions client */}
+      <BottomSheet open={showMore} onClose={() => setShowMore(false)} title="Actions client">
+        <div className="flex flex-col gap-1.5">
+          {customer.email && (
+            <ActionRow
+              icon={<Mail size={18} />}
+              label="Email"
+              description={customer.email}
+              onClick={() => { setShowMore(false); window.location.href = `mailto:${customer.email}`; }}
+            />
+          )}
+          {customer.city && (
+            <ActionRow
+              icon={<MapPin size={18} />}
+              label="Adresse"
+              description={[customer.address_line, customer.city].filter(Boolean).join(', ')}
+              onClick={() => { setShowMore(false); setShowAddress(true); }}
+            />
+          )}
+          {customer.notes && (
+            <ActionRow
+              icon={<FileText size={18} />}
+              label="Notes"
+              onClick={() => { setShowMore(false); setShowNotes(true); }}
+            />
+          )}
+          <ActionRow
+            icon={<Bell size={18} />}
+            label={relanceCreated ? 'Rappel créé aujourd’hui' : 'Programmer un rappel'}
+            description={relanceCreated ? undefined : 'Demain à 9h00'}
+            onClick={async () => { await handleMarquerRelancer(); setShowMore(false); }}
+            disabled={createReminder.isPending || relanceCreated}
+            tone={relanceCreated ? 'success' : 'default'}
+          />
+          <ActionRow
+            icon={<UserPen size={18} />}
+            label="Modifier la fiche"
+            onClick={() => { setShowMore(false); router.push(`/customers/${id}/edit`); }}
+          />
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-border">
+          {customer.is_active ? (
+            <ActionRow
+              icon={<PowerOff size={18} />}
+              label="Désactiver le client"
+              description="Le client n’apparaîtra plus dans la liste"
+              onClick={async () => { setShowMore(false); await handleDeactivate(); }}
+              disabled={deactivate.isPending}
+              tone="danger"
+            />
+          ) : (
+            <ActionRow
+              icon={<PowerOff size={18} />}
+              label="Réactiver le client"
+              onClick={async () => { setShowMore(false); await reactivate.mutateAsync(id); }}
+              disabled={reactivate.isPending}
+              tone="success"
+            />
+          )}
+        </div>
+      </BottomSheet>
+
+      <div className="flex flex-col gap-5 p-4">
 
         {/* Hero card */}
         <div
-          className="relative rounded-3xl p-6 flex flex-col items-center gap-3"
-          style={{ background: 'color-mix(in oklch, var(--primary) 10%, transparent)' }}
+          className="rounded-3xl p-5 flex flex-col items-center gap-2"
+          style={{ background: 'color-mix(in oklch, var(--primary) 7%, transparent)' }}
         >
-          <button
-            onClick={handleMarquerRelancer}
-            disabled={createReminder.isPending || relanceCreated}
-            className="absolute top-4 left-4"
-          >
-            <div className={`flex h-11 w-11 items-center justify-center rounded-full active:scale-95 transition-transform ${relanceCreated ? 'bg-green-100 text-green-600' : 'bg-primary/15 text-primary'}`}>
-              <Bell size={21} />
-            </div>
-          </button>
-          <Link href={`/customers/${id}/edit`} className="absolute top-4 right-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform">
-              <UserPen size={21} />
-            </div>
-          </Link>
           {/* Avatar */}
           <div
-            className="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-bold text-primary-foreground shadow-lg ring-4 ring-background"
+            className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-primary-foreground shadow-md ring-2 ring-background"
             style={{ background: 'var(--primary)' }}
           >
             {getInitials(customer.name)}
           </div>
 
-          {/* Nom */}
-          <div className="text-center">
-            <p className="text-3xl font-bold text-foreground capitalize">{customer.name}</p>
+          {/* Nom + tag */}
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="text-2xl font-semibold text-foreground capitalize">{customer.name}</p>
+            {customerBadge && (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${customerBadge.classes}`}>
+                {customerBadge.label}
+              </span>
+            )}
           </div>
 
-          {/* Boutons contact rapide */}
-          <div className="flex w-full mt-1">
-            {customer.phone && (
-              <ContactButton href={`tel:${customer.phone}`} label="Appel">
-                <Phone size={20} />
-              </ContactButton>
-            )}
-            {customer.email && (
-              <ContactButton href={`mailto:${customer.email}`} label="Email">
-                <Mail size={20} />
-              </ContactButton>
-            )}
-            {customer.city && (
-              <button onClick={() => setShowAddress(true)} className="flex flex-1 flex-col items-center gap-1.5">
-                <div className="flex items-center justify-center rounded-full text-primary-foreground shadow-md active:scale-95 transition-transform" style={{ background: 'var(--primary)', width: 'clamp(40px, 11vw, 52px)', height: 'clamp(40px, 11vw, 52px)' }}>
-                  <MapPin size={20} />
-                </div>
-                <span className="text-xs text-muted-foreground">Adresse</span>
-              </button>
-            )}
+          {/* Barre d'actions — WhatsApp dominant + Appel + Plus */}
+          <div className="flex w-full items-center gap-2 mt-2">
             {waPhone && (
-              <ContactButton href={`https://wa.me/${waPhone}`} label="WhatsApp">
+              <a
+                href={`https://wa.me/${waPhone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-2 h-12 rounded-full text-primary-foreground shadow-md active:scale-95 transition-transform"
+                style={{ background: 'var(--primary)' }}
+              >
                 <WhatsAppIcon />
-              </ContactButton>
+                <span className="text-sm font-semibold">WhatsApp</span>
+              </a>
             )}
-            {customer.notes && (
-              <button onClick={() => setShowNotes(true)} className="flex flex-1 flex-col items-center gap-1.5">
-                <div className="flex items-center justify-center rounded-full text-primary-foreground shadow-md active:scale-95 transition-transform" style={{ background: 'var(--primary)', width: 'clamp(40px, 11vw, 52px)', height: 'clamp(40px, 11vw, 52px)' }}>
-                  <FileText size={20} />
-                </div>
-                <span className="text-xs text-muted-foreground">Notes</span>
-              </button>
+            {customer.phone && (
+              <a
+                href={`tel:${customer.phone}`}
+                aria-label="Appeler"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform"
+              >
+                <Phone size={20} />
+              </a>
             )}
+            <button
+              type="button"
+              onClick={() => setShowMore(true)}
+              aria-label="Plus d'actions"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform"
+            >
+              <MoreHorizontal size={22} />
+            </button>
           </div>
         </div>
 
@@ -241,169 +312,112 @@ export default function CustomerDetailPage() {
           </div>
         </BottomSheet>
 
-        {/* Stats */}
+        {/* Cartes métier */}
         <div className="grid grid-cols-2 gap-3">
+          {/* À encaisser — info */}
           <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">En attente</p>
-              <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${hasPending ? 'bg-red-100' : 'bg-primary/10'}`}>
-                <CreditCard size={14} className={hasPending ? 'text-red-500' : 'text-primary'} />
+              <p className="text-xs text-muted-foreground">À encaisser</p>
+              <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${
+                hasPending
+                  ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300'
+                  : 'bg-green-500/10 text-green-600 dark:text-green-400'
+              }`}>
+                {hasPending ? <CreditCard size={14} /> : <CheckCircle2 size={14} />}
               </div>
             </div>
-            <p className={`text-2xl font-bold ${hasPending ? 'text-red-500' : 'text-foreground'}`}>
+            <p className={`text-2xl font-bold ${
+              hasPending ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
+            }`}>
               {parseFloat(customer.pending_amount).toFixed(2)} €
             </p>
+            {!hasPending && (
+              <p className="text-xs font-medium text-green-600 dark:text-green-400">
+                À jour
+              </p>
+            )}
           </div>
 
+          {/* Nouvelle commande — CTA */}
           <Link
-            href={`/orders/new?customer=${id}`}
-            className="rounded-2xl border border-primary/30 bg-primary/10 p-4 flex flex-col gap-2 active:scale-95 transition-transform"
+            href={`/orders/new?customer=${id}&from=/customers/${id}`}
+            className="rounded-2xl bg-primary p-4 flex flex-col items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-transform"
           >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-primary">Nouvelle</p>
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow">
-                <ClipboardPlus size={14} />
-              </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/15 text-primary-foreground">
+              <ClipboardPlus size={20} />
             </div>
-            <p className="text-3xl font-bold text-primary">+</p>
+            <p className="text-sm font-semibold text-primary-foreground">Nouvelle commande</p>
           </Link>
         </div>
 
-        {/* Historique commandes */}
+        {/* Activité récente — timeline */}
         {(() => {
-          const allOrders = ordersData?.pages.flatMap(p => p.results) ?? [];
-          const totalCount = ordersData?.pages[0]?.count ?? 0;
-          const hasActiveFilter = statusFilter !== null || paymentFilter !== null;
+          const allItems = activityData?.pages.flatMap(p => p.results) ?? [];
+          const totalCount = activityData?.pages[0]?.count ?? 0;
+          const chips: { key: ActivityType | null; label: string }[] = [
+            { key: null,       label: 'Tout' },
+            { key: 'order',    label: 'Commandes' },
+            { key: 'payment',  label: 'Paiements' },
+            { key: 'shipment', label: 'Expéditions' },
+            { key: 'note',     label: 'Notes' },
+          ];
           return (
             <div className="rounded-2xl border border-border bg-card">
-
               {/* Header */}
-              <div className="flex items-center justify-between px-4 pt-4 pb-3">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag size={15} className="text-muted-foreground" />
-                  <h2 className="font-semibold text-sm text-foreground">Historique</h2>
+                  <History size={15} className="text-muted-foreground" />
+                  <h2 className="font-semibold text-sm text-foreground">Activité récente</h2>
                   {totalCount > 0 && (
                     <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                       {totalCount}
                     </span>
                   )}
                 </div>
-                {hasActiveFilter && (
-                  <button
-                    onClick={() => { setStatusFilter(null); setPaymentFilter(null); setShowStatusPicker(false); setShowPaymentPicker(false); }}
-                    className="flex items-center gap-1 text-xs text-primary font-medium"
-                  >
-                    <X size={12} />
-                    Effacer
-                  </button>
-                )}
               </div>
 
-              {/* Filtres */}
-              <div className="flex gap-2 px-4 pb-3">
-                {/* Statut picker */}
-                <div className="relative flex-1">
-                  <button
-                    onClick={() => { setShowStatusPicker(v => !v); setShowPaymentPicker(false); }}
-                    className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
-                      statusFilter ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    <span>{statusFilter ? (STATUS_LABEL[statusFilter] ?? statusFilter) : 'Statut'}</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`shrink-0 transition-transform ${showStatusPicker ? 'rotate-180' : ''}`}>
-                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {showStatusPicker && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowStatusPicker(false)} />
-                      <div className="absolute left-0 top-full mt-1 z-20 w-40 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
-                        {([
-                          { key: null,         label: 'Tous' },
-                          { key: 'draft',      label: 'Brouillon' },
-                          { key: 'to_prepare', label: 'À préparer' },
-                          { key: 'prepared',   label: 'Préparé' },
-                          { key: 'shipped',    label: 'Expédié' },
-                          { key: 'cancelled',  label: 'Annulé' },
-                        ] as { key: string | null; label: string }[]).map(({ key, label }) => (
-                          <button
-                            key={String(key)}
-                            onClick={() => { setStatusFilter(key); setShowStatusPicker(false); }}
-                            className={`flex w-full items-center justify-between px-3 py-2.5 text-xs transition-colors ${
-                              statusFilter === key ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'
-                            }`}
-                          >
-                            {label}
-                            {statusFilter === key && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Paiement picker */}
-                <div className="relative flex-1">
-                  <button
-                    onClick={() => { setShowPaymentPicker(v => !v); setShowStatusPicker(false); }}
-                    className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
-                      paymentFilter === 'unpaid'  ? 'border-red-200 bg-red-50 text-red-500' :
-                      paymentFilter === 'partial' ? 'border-amber-200 bg-amber-50 text-amber-600' :
-                      paymentFilter === 'paid'    ? 'border-green-200 bg-green-50 text-green-600' :
-                      'border-border bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    <span>{paymentFilter ? (PAYMENT_LABEL[paymentFilter] ?? paymentFilter) : 'Paiement'}</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`shrink-0 transition-transform ${showPaymentPicker ? 'rotate-180' : ''}`}>
-                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                  {showPaymentPicker && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowPaymentPicker(false)} />
-                      <div className="absolute right-0 top-full mt-1 z-20 w-36 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
-                        {([
-                          { key: null,      label: 'Tous',     dot: '' },
-                          { key: 'unpaid',  label: 'Non payé', dot: 'bg-red-500' },
-                          { key: 'partial', label: 'Partiel',  dot: 'bg-amber-500' },
-                          { key: 'paid',    label: 'Payé',     dot: 'bg-green-500' },
-                        ] as { key: string | null; label: string; dot: string }[]).map(({ key, label, dot }) => (
-                          <button
-                            key={String(key)}
-                            onClick={() => { setPaymentFilter(key); setShowPaymentPicker(false); }}
-                            className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-xs transition-colors ${
-                              paymentFilter === key ? 'bg-primary/10 font-semibold text-primary' : 'text-foreground hover:bg-muted'
-                            }`}
-                          >
-                            {dot && <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />}
-                            {!dot && <span className="h-2 w-2 shrink-0" />}
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+              {/* Chips de filtre */}
+              <div className="overflow-x-auto px-4 pb-3 -mx-px">
+                <div className="flex gap-2 w-max">
+                  {chips.map(({ key, label }) => {
+                    const active = activityFilter === key;
+                    return (
+                      <button
+                        key={String(key)}
+                        type="button"
+                        onClick={() => setActivityFilter(key)}
+                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.98] ${
+                          active
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground active:bg-muted/70'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="border-t border-border overflow-hidden rounded-b-2xl">
-                {!allOrders.length ? (
-                  <p className="text-sm text-muted-foreground px-4 py-4">Aucune commande.</p>
+                {isActivityLoading ? (
+                  <div className="flex flex-col divide-y divide-border">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <ActivitySkeletonRow key={i} />
+                    ))}
+                  </div>
+                ) : !allItems.length ? (
+                  <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                      <History size={20} />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Aucune activité</p>
+                    <p className="text-xs text-muted-foreground">L’activité du client apparaîtra ici.</p>
+                  </div>
                 ) : (
                   <div className="flex flex-col divide-y divide-border">
-                    {allOrders.map((order) => (
-                      <Link key={order.id} href={`/orders/${order.id}`} className="flex items-center justify-between px-4 py-3 active:bg-muted transition-colors">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm font-medium text-foreground">{order.order_number}</span>
-                          <span className="text-xs text-muted-foreground">{STATUS_LABEL[order.status] ?? order.status}</span>
-                        </div>
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span className="text-sm font-semibold text-foreground">{parseFloat(order.total_amount).toFixed(2)} €</span>
-                          <span className={`text-xs font-medium ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
-                            {PAYMENT_LABEL[order.payment_status] ?? order.payment_status}
-                          </span>
-                        </div>
-                      </Link>
+                    {allItems.map((item) => (
+                      <ActivityRow key={item.id} item={item} customerId={id} />
                     ))}
                     {hasNextPage && (
                       <button
@@ -411,7 +425,7 @@ export default function CustomerDetailPage() {
                         disabled={isFetchingNextPage}
                         className="w-full py-3 text-xs font-medium text-primary transition-colors active:bg-muted"
                       >
-                        {isFetchingNextPage ? 'Chargement…' : `Voir plus (${totalCount - allOrders.length} restantes)`}
+                        {isFetchingNextPage ? 'Chargement…' : `Voir plus (${totalCount - allItems.length} restantes)`}
                       </button>
                     )}
                   </div>
@@ -421,52 +435,186 @@ export default function CustomerDetailPage() {
           );
         })()}
 
-        {customer.is_active ? (
-          <Button
-            variant="outline"
-            className="w-full gap-2 text-red-500 border-red-200"
-            onClick={handleDeactivate}
-            disabled={deactivate.isPending}
-          >
-            <PowerOff size={18} />
-            {deactivate.isPending ? 'Désactivation…' : 'Désactiver le client'}
-          </Button>
-        ) : (
-          <Button
-            variant="outline"
-            className="w-full gap-2 text-green-600 border-green-200"
-            onClick={() => reactivate.mutateAsync(id)}
-            disabled={reactivate.isPending}
-          >
-            <PowerOff size={18} />
-            {reactivate.isPending ? 'Réactivation…' : 'Réactiver le client'}
-          </Button>
-        )}
-
       </div>
     </>
   );
 }
 
-function ContactButton({ href, label, children }: {
-  href: string;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      className="flex flex-1 flex-col items-center gap-1.5"
-      target={href.startsWith('http') ? '_blank' : undefined}
-      rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-    >
-      <div
-        className="flex items-center justify-center rounded-full text-primary-foreground shadow-md active:scale-95 transition-transform"
-        style={{ background: 'var(--primary)', width: 'clamp(40px, 11vw, 52px)', height: 'clamp(40px, 11vw, 52px)' }}
-      >
-        {children}
-      </div>
-      <span className="text-xs text-muted-foreground">{label}</span>
-    </a>
+const ACTIVITY_DATE_FMT = new Intl.DateTimeFormat('fr-FR', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+function formatEventDate(iso: string): string {
+  return ACTIVITY_DATE_FMT.format(new Date(iso));
+}
+
+function ActivityRow({ item, customerId }: { item: ActivityEvent; customerId: string }) {
+  const date = formatEventDate(item.occurred_at);
+  const fromQuery = `?from=/customers/${customerId}`;
+
+  if (item.type === 'order') {
+    return (
+      <EventLink href={`/orders/${item.data.order_id}${fromQuery}`}>
+        <EventIcon className="bg-primary/10 text-primary"><ShoppingBag size={16} /></EventIcon>
+        <EventBody
+          title="Commande créée"
+          subtitle={`Commande ${item.data.order_number} · ${parseFloat(item.data.total_amount).toFixed(2)} €`}
+          date={date}
+        />
+      </EventLink>
+    );
+  }
+
+  if (item.type === 'payment') {
+    const status = item.data.payment_status;
+    return (
+      <EventLink href={`/orders/${item.data.order_id}${fromQuery}`}>
+        <EventIcon className={PAYMENT_TONE[status] ?? ''}><CreditCard size={16} /></EventIcon>
+        <EventBody
+          title={PAYMENT_TITLE[status] ?? 'Paiement'}
+          subtitle={`${parseFloat(item.data.amount_paid).toFixed(2)} € · Commande ${item.data.order_number}`}
+          date={date}
+        />
+      </EventLink>
+    );
+  }
+
+  if (item.type === 'shipment') {
+    return (
+      <EventLink href={`/orders/${item.data.order_id}${fromQuery}`}>
+        <EventIcon className="bg-blue-500/10 text-blue-600 dark:text-blue-400"><Truck size={16} /></EventIcon>
+        <EventBody
+          title="Expédition mise à jour"
+          subtitle={`Commande ${item.data.order_number} · Expédiée`}
+          date={date}
+        />
+      </EventLink>
+    );
+  }
+
+  // note (exhaustive)
+  const noteHref = item.data.order_id ? `/orders/${item.data.order_id}${fromQuery}` : null;
+  const inner = (
+    <>
+      <EventIcon className="bg-muted text-muted-foreground"><FileText size={16} /></EventIcon>
+      <EventBody
+        title="Note ajoutée"
+        subtitle={item.data.content}
+        meta={item.data.author_name ?? undefined}
+        date={date}
+      />
+    </>
+  );
+  return noteHref ? (
+    <EventLink href={noteHref}>{inner}</EventLink>
+  ) : (
+    <div className="flex items-start gap-3 px-4 py-3">{inner}</div>
   );
 }
+
+function ActivitySkeletonRow() {
+  return (
+    <div className="flex items-start gap-3 px-4 py-3" aria-hidden>
+      <div className="h-9 w-9 shrink-0 rounded-xl bg-muted animate-pulse mt-0.5" />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="h-3.5 w-32 rounded bg-muted animate-pulse" />
+        <div className="h-3 w-44 rounded bg-muted animate-pulse" />
+      </div>
+      <div className="h-3 w-12 rounded bg-muted animate-pulse mt-1" />
+    </div>
+  );
+}
+
+function EventLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="flex items-start gap-3 px-4 py-3 active:bg-muted transition-colors">
+      {children}
+    </Link>
+  );
+}
+
+function EventIcon({ className, children }: { className: string; children: React.ReactNode }) {
+  return (
+    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl mt-0.5 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function EventBody({
+  title,
+  subtitle,
+  meta,
+  date,
+}: {
+  title: string;
+  subtitle: string;
+  meta?: string;
+  date: string;
+}) {
+  return (
+    <>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="text-sm font-medium text-foreground">{title}</span>
+        <span className="line-clamp-2 text-xs text-muted-foreground">
+          {meta ? `${meta} · ` : ''}{subtitle}
+        </span>
+      </div>
+      <span className="text-xs font-medium text-foreground/60 dark:text-foreground/55 shrink-0 mt-0.5">{date}</span>
+    </>
+  );
+}
+
+type ActionRowTone = 'default' | 'success' | 'danger';
+
+function ActionRow({
+  icon,
+  label,
+  description,
+  onClick,
+  disabled,
+  tone = 'default',
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+  onClick: () => void | Promise<void>;
+  disabled?: boolean;
+  tone?: ActionRowTone;
+}) {
+  const iconClasses =
+    tone === 'danger'
+      ? 'bg-red-500/10 text-red-500 dark:bg-red-500/15 dark:text-red-400'
+      : tone === 'success'
+        ? 'bg-green-500/10 text-green-600 dark:bg-green-500/15 dark:text-green-400'
+        : 'bg-primary/10 text-primary';
+  const labelClasses =
+    tone === 'danger'
+      ? 'text-red-500 dark:text-red-400'
+      : tone === 'success'
+        ? 'text-green-600 dark:text-green-400'
+        : 'text-foreground';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors active:bg-muted disabled:opacity-60"
+    >
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClasses}`}>
+        {icon}
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className={`text-sm font-medium ${labelClasses}`}>{label}</span>
+        {description && (
+          <span className="truncate text-xs text-muted-foreground">{description}</span>
+        )}
+      </div>
+    </button>
+  );
+}
+

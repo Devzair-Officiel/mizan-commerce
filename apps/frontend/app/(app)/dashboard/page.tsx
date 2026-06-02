@@ -13,10 +13,10 @@ export default function DashboardPage() {
   return (
     <>
       <TopBar title="Accueil" />
-      <div className="flex flex-col gap-3 p-4">
+      <div className="p-4 lg:px-8 lg:py-6">
 
         {/* Quick actions */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 lg:gap-3 mb-4 lg:mb-6">
           <Link href="/orders/new">
             <Button variant="outline" className="w-full flex-col h-16 gap-1 text-sm">
               <span className="text-lg">＋</span>
@@ -57,83 +57,91 @@ export default function DashboardPage() {
         )}
 
         {data && (
-          <div className="flex flex-col gap-2">
-            <Section
-              icon={<ShoppingCart size={15} />}
-              title="À préparer"
-              count={data.orders_to_prepare.count}
-              href="/orders?status=to_prepare"
-              emptyLabel="Aucune commande à préparer"
-              accentClass="text-blue-600 bg-blue-50 border-blue-200"
-              headerBg="bg-blue-50/60 dark:bg-blue-950/50"
-              defaultOpen={false}
-            >
-              {data.orders_to_prepare.items.map((o) => (
-                <OrderRow key={o.id} id={o.id} label={o.order_number} sub={o.customer_name} value={`${o.total_amount} €`} />
-              ))}
-              {data.orders_to_prepare.count > 10 && (
-                <SeeAllRow href="/orders?status=to_prepare" count={data.orders_to_prepare.count} />
-              )}
-            </Section>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-            <Section
-              icon={<Clock size={15} />}
-              title="Paiements en attente"
-              count={data.unpaid_orders.count}
-              href="/orders?payment_status=unpaid"
-              emptyLabel="Aucun paiement en attente"
-              accentClass="text-amber-600 bg-amber-50 border-amber-200"
-              headerBg="bg-amber-50/60 dark:bg-amber-950/50"
-              defaultOpen={false}
-            >
-              {data.unpaid_orders.items.map((o) => (
-                <OrderRow key={o.id} id={o.id} label={o.order_number} sub={o.customer_name} value={`${o.total_amount} €`} />
-              ))}
-              {data.unpaid_orders.count > 10 && (
-                <SeeAllRow href="/orders?payment_status=unpaid" count={data.unpaid_orders.count} />
-              )}
-            </Section>
+            {/* Colonne principale — commandes */}
+            <div className="lg:col-span-3 flex flex-col gap-4">
+              <Section
+                icon={<ShoppingCart size={15} />}
+                title="À préparer"
+                count={data.orders_to_prepare.count}
+                href="/orders?status=to_prepare"
+                emptyLabel="Aucune commande à préparer"
+                accentClass="text-blue-600 bg-blue-50 border-blue-200"
+                headerBg="bg-blue-50/60 dark:bg-blue-950/50"
+                defaultOpen={false}
+              >
+                {data.orders_to_prepare.items.map((o) => (
+                  <OrderRow key={o.id} id={o.id} label={o.order_number} sub={o.customer_name} value={`${o.total_amount} €`} />
+                ))}
+                {data.orders_to_prepare.count > 10 && (
+                  <SeeAllRow href="/orders?status=to_prepare" count={data.orders_to_prepare.count} />
+                )}
+              </Section>
 
-            <Section
-              icon={<AlertTriangle size={15} />}
-              title="Stock faible"
-              count={data.low_stock_products.count}
-              href="/products?filter=low_stock"
-              emptyLabel="Tous les stocks sont OK"
-              accentClass="text-red-600 bg-red-50 border-red-200"
-              headerBg="bg-red-50/60 dark:bg-red-950/50"
-              defaultOpen={false}
-            >
-              {data.low_stock_products.items.map((p) => (
-                <StockRow
-                  key={p.id}
-                  id={p.id}
-                  name={p.name}
-                  qty={p.stock_quantity}
-                />
-              ))}
-              {data.low_stock_products.count > 3 && (
-                <SeeAllRow href="/products?filter=low_stock" count={data.low_stock_products.count} />
-              )}
-            </Section>
+              <Section
+                icon={<Clock size={15} />}
+                title="Paiements en attente"
+                count={data.unpaid_orders.count}
+                href="/orders?payment_status=unpaid"
+                emptyLabel="Aucun paiement en attente"
+                accentClass="text-amber-600 bg-amber-50 border-amber-200"
+                headerBg="bg-amber-50/60 dark:bg-amber-950/50"
+                defaultOpen={false}
+              >
+                {data.unpaid_orders.items.map((o) => (
+                  <OrderRow key={o.id} id={o.id} label={o.order_number} sub={o.customer_name} value={`${o.total_amount} €`} />
+                ))}
+                {data.unpaid_orders.count > 10 && (
+                  <SeeAllRow href="/orders?payment_status=unpaid" count={data.unpaid_orders.count} />
+                )}
+              </Section>
+            </div>
 
-            <Section
-              icon={<Bell size={15} />}
-              title="Rappels du jour"
-              count={data.today_reminders.count}
-              href="/reminders"
-              emptyLabel="Aucun rappel aujourd'hui"
-              accentClass="text-purple-600 bg-purple-50 border-purple-200"
-              headerBg="bg-purple-50/60 dark:bg-purple-950/50"
-              defaultOpen={false}
-            >
-              {data.today_reminders.items.map((r) => (
-                <ReminderRow key={r.id} title={r.title} due_at={r.due_at} />
-              ))}
-              {data.today_reminders.count > 3 && (
-                <SeeAllRow href="/reminders" count={data.today_reminders.count} />
-              )}
-            </Section>
+            {/* Colonne secondaire — stock & rappels */}
+            <div className="lg:col-span-2 flex flex-col gap-4">
+              <Section
+                icon={<AlertTriangle size={15} />}
+                title="Stock faible"
+                count={data.low_stock_products.count}
+                href="/products?filter=low_stock"
+                emptyLabel="Tous les stocks sont OK"
+                accentClass="text-red-600 bg-red-50 border-red-200"
+                headerBg="bg-red-50/60 dark:bg-red-950/50"
+                defaultOpen={false}
+              >
+                {data.low_stock_products.items.map((p) => (
+                  <StockRow
+                    key={p.id}
+                    id={p.id}
+                    name={p.name}
+                    qty={p.stock_quantity}
+                  />
+                ))}
+                {data.low_stock_products.count > 3 && (
+                  <SeeAllRow href="/products?filter=low_stock" count={data.low_stock_products.count} />
+                )}
+              </Section>
+
+              <Section
+                icon={<Bell size={15} />}
+                title="Rappels du jour"
+                count={data.today_reminders.count}
+                href="/reminders"
+                emptyLabel="Aucun rappel aujourd'hui"
+                accentClass="text-purple-600 bg-purple-50 border-purple-200"
+                headerBg="bg-purple-50/60 dark:bg-purple-950/50"
+                defaultOpen={false}
+              >
+                {data.today_reminders.items.map((r) => (
+                  <ReminderRow key={r.id} title={r.title} due_at={r.due_at} />
+                ))}
+                {data.today_reminders.count > 3 && (
+                  <SeeAllRow href="/reminders" count={data.today_reminders.count} />
+                )}
+              </Section>
+            </div>
+
           </div>
         )}
       </div>

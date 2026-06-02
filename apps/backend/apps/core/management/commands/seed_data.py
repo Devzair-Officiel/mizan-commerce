@@ -36,6 +36,7 @@ class Command(BaseCommand):
         from apps.customers.models import Customer
 
         from apps.orders.models import Order, OrderItem
+        from apps.notes.models import Note
 
         if options["reset"]:
             OrderItem.objects.all().delete()
@@ -142,9 +143,10 @@ class Command(BaseCommand):
             order_services.transition_status(o1, 'to_prepare', youssef)
             order_services.update_payment(o1, o1.total_amount)
 
-            o2 = order_services.create_order(shop_fr, youssef, notes='Livraison urgente')
+            o2 = order_services.create_order(shop_fr, youssef)
             order_services.add_item(o2, products_fr[1], 1)
             order_services.add_item(o2, products_fr[2], 1)
+            Note.objects.create(shop=shop_fr, order=o2, author=youssef, content='Livraison urgente')
 
             o3 = order_services.create_order(shop_fr, youssef, customer=karima)
             order_services.add_item(o3, products_fr[4], 3)

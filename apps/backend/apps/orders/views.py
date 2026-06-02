@@ -1,4 +1,8 @@
+from decimal import Decimal
+
+from django.db import transaction
 from rest_framework import generics, filters, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,6 +10,7 @@ from rest_framework.views import APIView
 from apps.shops.models import ShopMember
 from apps.customers.models import Customer
 from apps.products.models import Product
+from apps.notes.models import Note
 from . import services
 from .models import Order, OrderItem
 from .serializers import (
@@ -59,17 +64,49 @@ class OrderListCreateView(generics.ListAPIView):
             except Customer.DoesNotExist:
                 return Response({'customer': 'Client introuvable.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        order = services.create_order(
-            shop=shop, user=request.user, customer=customer,
-            notes=d['notes'], discount=d['discount_amount'], shipping=d['shipping_amount'],
-        )
+        with transaction.atomic():
+            order = services.create_order(
+                shop=shop, user=request.user, customer=customer,
+                discount=d['discount_amount'], shipping=d['shipping_amount'],
+            )
 
-        for item_data in d.get('items', []):
-            try:
-                product = Product.objects.get(pk=item_data['product'], shop=shop, is_active=True)
-            except Product.DoesNotExist:
-                return Response({'items': f"Produit {item_data['product']} introuvable."}, status=status.HTTP_400_BAD_REQUEST)
-            services.add_item(order, product, item_data['quantity'], item_data.get('unit_price'))
+            for item_data in d.get('items', []):
+                product = None
+                if item_data.get('product'):
+                    try:
+                        product = Product.objects.get(pk=item_data['product'], shop=shop, is_active=True)
+                    except Product.DoesNotExist:
+                        raise ValidationError({'items': f"Produit {item_data['product']} introuvable."})
+                services.add_item(
+                    order,
+                    product=product,
+                    quantity=item_data['quantity'],
+                    unit_price=item_data.get('unit_price'),
+                    product_name=item_data.get('product_name'),
+                )
+
+            order.refresh_from_db()
+
+            payment_status = d.get('payment_status', 'unpaid')
+            if payment_status == 'paid':
+                services.update_payment(order, order.total_amount, user=request.user)
+            elif payment_status == 'partial':
+                amount_paid = d.get('amount_paid', Decimal('0'))
+                if amount_paid > order.total_amount:
+                    raise ValidationError({
+                        'amount_paid': 'Le montant reçu ne peut pas dépasser le total.',
+                    })
+                services.update_payment(order, amount_paid, user=request.user)
+
+            target_status = d.get('status', 'draft')
+            if target_status == 'to_prepare':
+                services.transition_status(order, 'to_prepare', request.user)
+
+            initial_note = (d.get('notes') or '').strip()
+            if initial_note:
+                Note.objects.create(
+                    shop=shop, order=order, author=request.user, content=initial_note,
+                )
 
         order.refresh_from_db()
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
@@ -94,7 +131,7 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
                 {'detail': 'Seules les commandes en brouillon peuvent être modifiées.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        allowed_fields = {'notes', 'discount_amount', 'shipping_amount', 'customer'}
+        allowed_fields = {'discount_amount', 'shipping_amount', 'customer'}
         data = {k: v for k, v in request.data.items() if k in allowed_fields}
         serializer = self.get_serializer(order, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -142,8 +179,25 @@ class OrderPaymentView(APIView):
 
         serializer = PaymentUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        order = services.update_payment(order, serializer.validated_data['amount_paid'])
+        order = services.update_payment(
+            order, serializer.validated_data['amount_paid'], user=request.user,
+        )
         return Response(OrderSerializer(order).data)
+
+
+class OrderActivityView(APIView):
+    """Retourne la timeline d'activité d'une commande (création, statuts, paiements, notes)."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk):
+        shop = get_shop(request.user)
+        try:
+            order = Order.objects.get(pk=pk, shop=shop)
+        except Order.DoesNotExist:
+            return Response({'detail': 'Commande introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+
+        events = services.get_order_timeline(order)
+        return Response({'events': events})
 
 
 class OrderItemCreateView(APIView):
@@ -161,13 +215,21 @@ class OrderItemCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
-        try:
-            product = Product.objects.get(pk=d['product'], shop=shop, is_active=True)
-        except Product.DoesNotExist:
-            return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        product = None
+        if d.get('product'):
+            try:
+                product = Product.objects.get(pk=d['product'], shop=shop, is_active=True)
+            except Product.DoesNotExist:
+                return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            item = services.add_item(order, product, d['quantity'], d.get('unit_price'))
+            item = services.add_item(
+                order,
+                product=product,
+                quantity=d['quantity'],
+                unit_price=d.get('unit_price'),
+                product_name=d.get('product_name'),
+            )
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 
 interface PaginatedResponse<T> {
@@ -88,6 +88,68 @@ export function useReactivateCustomer() {
       qc.invalidateQueries({ queryKey: ['customers'] });
       qc.invalidateQueries({ queryKey: ['customers', id] });
     },
+  });
+}
+
+export type ActivityType = 'order' | 'payment' | 'shipment' | 'note';
+export type ActivityFilter = ActivityType | null;
+
+interface ActivityBase {
+  id: string;
+  occurred_at: string;
+}
+
+interface OrderEventData {
+  order_id: string;
+  order_number: string;
+  total_amount: string;
+  status: string;
+}
+
+interface PaymentEventData {
+  order_id: string;
+  order_number: string;
+  payment_status: string;
+  amount_paid: string;
+  total_amount: string;
+}
+
+interface ShipmentEventData {
+  order_id: string;
+  order_number: string;
+}
+
+interface NoteData {
+  content: string;
+  author_name: string | null;
+  order_id: string | null;
+}
+
+export type ActivityEvent =
+  | (ActivityBase & { type: 'order'; data: OrderEventData })
+  | (ActivityBase & { type: 'payment'; data: PaymentEventData })
+  | (ActivityBase & { type: 'shipment'; data: ShipmentEventData })
+  | (ActivityBase & { type: 'note'; data: NoteData });
+
+export function useCustomerActivityInfinite(
+  customerId: string,
+  filter: ActivityFilter = null,
+) {
+  return useInfiniteQuery({
+    queryKey: ['customers', customerId, 'activity', filter],
+    queryFn: ({ pageParam = 1 }) => {
+      const params = new URLSearchParams();
+      if (filter) params.set('types', filter);
+      params.set('page', String(pageParam));
+      params.set('page_size', '15');
+      return apiFetch<PaginatedResponse<ActivityEvent>>(
+        `/customers/${customerId}/activity/?${params}`,
+      );
+    },
+    initialPageParam: 1,
+    getNextPageParam: (last, _, lastPageParam) =>
+      last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: !!customerId,
   });
 }
 

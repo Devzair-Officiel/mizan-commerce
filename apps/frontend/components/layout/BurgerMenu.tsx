@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import Link from 'next/link';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { Sun, Moon } from 'lucide-react';
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -104,8 +105,9 @@ export function BurgerMenuDrawer() {
           </div>
         </nav>
 
-        {/* Déconnexion */}
-        <div className="p-3 pb-8">
+        {/* Thème + Déconnexion */}
+        <div className="p-3 pb-8 flex flex-col gap-0.5 border-t border-white/15">
+          <ThemeToggleRow />
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
@@ -116,6 +118,27 @@ export function BurgerMenuDrawer() {
         </div>
       </aside>
     </>
+  );
+}
+
+/* ── Bascule de thème (intégrée au drawer) ── */
+function ThemeToggleRow() {
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  const isDark = resolvedTheme === 'dark';
+
+  return (
+    <button
+      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
+    >
+      {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
+      Mode {isDark ? 'clair' : 'sombre'}
+    </button>
   );
 }
 

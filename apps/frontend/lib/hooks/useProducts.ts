@@ -8,9 +8,12 @@ interface PaginatedResponse<T> {
   results: T[];
 }
 
+export type ProductType = 'product' | 'service';
+
 export interface Product {
   id: string;
   name: string;
+  type: ProductType;
   reference: string;
   description: string;
   purchase_price: string;
@@ -31,6 +34,7 @@ export interface ProductDetail extends Product {
 
 export interface ProductFormData {
   name: string;
+  type?: ProductType;
   reference?: string;
   description?: string;
   purchase_price: string;

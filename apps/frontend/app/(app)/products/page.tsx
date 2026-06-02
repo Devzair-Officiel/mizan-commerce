@@ -31,7 +31,7 @@ export default function ProductsPage() {
           </Link>
         }
       />
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6">
         <div className="flex gap-2">
           <Input
             placeholder="Rechercher un produit…"
@@ -53,12 +53,12 @@ export default function ProductsPage() {
           <p className="text-sm text-zinc-400 text-center py-8">Aucun produit trouvé.</p>
         )}
 
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
           {data?.results.map((product) => (
             <Link
               key={product.id}
               href={`/products/${product.id}`}
-              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4"
+              className="flex items-center justify-between rounded-xl border border-border bg-card p-4 hover:bg-muted/40 transition-colors"
             >
               <div className="flex flex-col gap-0.5 min-w-0">
                 <span className="font-medium text-base text-zinc-900 truncate capitalize">{product.name}</span>

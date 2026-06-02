@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 
@@ -42,54 +42,6 @@ def log_stock_movement(sender, instance, created: bool, **kwargs) -> None:
             'reason': instance.reason,
         },
     )
-
-
-# ── Order status / payment changes ───────────────────────────────────────────
-
-@receiver(pre_save, sender='orders.Order')
-def cache_order_previous_state(sender, instance, **kwargs) -> None:
-    if instance.pk:
-        try:
-            previous = sender.objects.get(pk=instance.pk)
-            instance._prev_status = previous.status
-            instance._prev_payment_status = previous.payment_status
-        except sender.DoesNotExist:
-            instance._prev_status = None
-            instance._prev_payment_status = None
-    else:
-        instance._prev_status = None
-        instance._prev_payment_status = None
-
-
-@receiver(post_save, sender='orders.Order')
-def log_order_changes(sender, instance, created: bool, **kwargs) -> None:
-    if created:
-        return
-
-    prev_status = getattr(instance, '_prev_status', None)
-    prev_payment = getattr(instance, '_prev_payment_status', None)
-
-    if prev_status is not None and prev_status != instance.status:
-        _log(
-            shop_id=instance.shop_id,
-            user=None,
-            action='order_status_change',
-            model_name='Order',
-            obj_id=instance.pk,
-            obj_repr=str(instance),
-            changes={'from': prev_status, 'to': instance.status},
-        )
-
-    if prev_payment is not None and prev_payment != instance.payment_status:
-        _log(
-            shop_id=instance.shop_id,
-            user=None,
-            action='order_payment_change',
-            model_name='Order',
-            obj_id=instance.pk,
-            obj_repr=str(instance),
-            changes={'from': prev_payment, 'to': instance.payment_status},
-        )
 
 
 # ── Deletions ─────────────────────────────────────────────────────────────────

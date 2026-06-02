@@ -23,21 +23,33 @@ export interface OrderSummary {
   created_at: string;
 }
 
+export interface OrderActivityEvent {
+  id: string;
+  type: 'created' | 'status_change' | 'payment_change' | 'note';
+  occurred_at: string;
+  actor_name: string | null;
+  data: Record<string, string | null>;
+}
+
 export interface OrderItem {
   id: string;
-  product: string;
+  product: string | null;
   product_name: string;
   unit_price: string;
   quantity: number;
   line_total: string;
 }
 
+export type OrderItemPayload =
+  | { product: string; quantity: number; unit_price?: string }
+  | { product?: null; product_name: string; unit_price: string; quantity: number };
+
 export interface Order extends OrderSummary {
   items: OrderItem[];
+  customer_phone: string | null;
   subtotal: string;
   discount_amount: string;
   shipping_amount: string;
-  notes: string;
   stock_reserved: boolean;
   cancelled_at: string | null;
   updated_at: string;
@@ -48,7 +60,10 @@ export interface OrderCreateData {
   notes?: string;
   discount_amount?: string;
   shipping_amount?: string;
-  items?: { product: string; quantity: number; unit_price?: string }[];
+  items?: OrderItemPayload[];
+  status?: 'draft' | 'to_prepare' | 'prepared';
+  payment_status?: 'unpaid' | 'partial' | 'paid';
+  amount_paid?: string;
 }
 
 interface OrderFilters {
@@ -98,6 +113,14 @@ export function useOrder(id: string) {
   });
 }
 
+export function useOrderActivity(id: string) {
+  return useQuery({
+    queryKey: ['orders', id, 'activity'],
+    queryFn: () => apiFetch<{ events: OrderActivityEvent[] }>(`/orders/${id}/activity/`),
+    enabled: !!id,
+  });
+}
+
 export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
@@ -139,7 +162,6 @@ export function useUpdatePayment(id: string) {
 
 export interface OrderUpdateData {
   customer?: string | null;
-  notes?: string;
   discount_amount?: string;
   shipping_amount?: string;
 }
@@ -159,7 +181,7 @@ export function useUpdateOrder(id: string) {
 export function useAddOrderItem(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { product: string; quantity: number; unit_price?: string }) =>
+    mutationFn: (data: OrderItemPayload) =>
       apiFetch<OrderItem>(`/orders/${id}/items/`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', id] }),
   });

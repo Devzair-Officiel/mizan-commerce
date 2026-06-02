@@ -1,18 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog } from '@base-ui/react/dialog';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
 import { useCreateCustomer, type Customer } from '@/lib/hooks/useCustomers';
-import { useCreateProduct, type ProductDetail } from '@/lib/hooks/useProducts';
+import { useCreateProduct, type ProductDetail, type ProductType } from '@/lib/hooks/useProducts';
 import { ApiError } from '@/lib/api-client';
-
-/* ── styles partagés ── */
-const overlayClass = 'fixed inset-0 bg-black/40 z-40 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 transition-opacity duration-200';
-const popupClass = 'fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 bg-card rounded-2xl shadow-xl p-5 flex flex-col gap-4 data-[ending-style]:opacity-0 data-[ending-style]:scale-95 data-[starting-style]:opacity-0 data-[starting-style]:scale-95 transition-[opacity,transform] duration-200';
 
 function AddButton({ onClick }: { onClick: () => void }) {
   return (
@@ -27,22 +23,23 @@ function AddButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function DialogHeader({ title, onClose }: { title: string; onClose: () => void }) {
-  return (
-    <div className="flex items-center justify-between">
-      <Dialog.Title className="text-base font-semibold text-foreground">{title}</Dialog.Title>
-      <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-        <X size={18} />
-      </button>
-    </div>
-  );
-}
-
 /* ─────────────────────────────────
    Quick add — Client
 ───────────────────────────────── */
-export function QuickAddCustomer({ onCreated }: { onCreated: (customer: Customer) => void }) {
-  const [open, setOpen] = useState(false);
+export function QuickAddCustomer({
+  onCreated,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger,
+}: {
+  onCreated: (customer: Customer) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const { mutateAsync, isPending } = useCreateCustomer();
@@ -59,7 +56,6 @@ export function QuickAddCustomer({ onCreated }: { onCreated: (customer: Customer
     if (!name.trim()) { setError('Le nom est requis.'); return; }
     try {
       const customer = await mutateAsync({ name: name.trim() });
-      // Inject immediately into cache so the select shows the name right away
       qc.setQueriesData({ queryKey: ['customers'] }, (old: unknown) => {
         if (!old || typeof old !== 'object') return old;
         const paged = old as { results: Customer[] };
@@ -80,41 +76,48 @@ export function QuickAddCustomer({ onCreated }: { onCreated: (customer: Customer
 
   return (
     <>
-      <AddButton onClick={() => setOpen(true)} />
-      <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className={overlayClass} />
-          <Dialog.Popup className={popupClass}>
-            <DialogHeader title="Nouveau client" onClose={handleClose} />
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <div className="flex flex-col gap-0.5">
-                <FloatingInput
-                  id="qc-name"
-                  label="Nom du client *"
-                  value={name}
-                  onChange={(e) => { setName(e.target.value); setError(''); }}
-                  autoFocus
-                />
-                {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
-              </div>
-              <Button type="submit" disabled={isPending} className="w-full">
-                {isPending ? 'Création…' : 'Créer le client'}
-              </Button>
-            </form>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {!hideTrigger && <AddButton onClick={() => setOpen(true)} />}
+      <BottomSheet open={open} onClose={handleClose} title="Nouveau client">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-0.5">
+            <FloatingInput
+              id="qc-name"
+              label="Nom du client *"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setError(''); }}
+              autoFocus
+            />
+            {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
+          </div>
+          <Button type="submit" disabled={isPending} className="w-full">
+            {isPending ? 'Création…' : 'Créer le client'}
+          </Button>
+        </form>
+      </BottomSheet>
     </>
   );
 }
 
 /* ─────────────────────────────────
-   Quick add — Produit
+   Quick add — Article ou service
 ───────────────────────────────── */
-export function QuickAddProduct({ onCreated }: { onCreated: (product: ProductDetail) => void }) {
-  const [open, setOpen] = useState(false);
+export function QuickAddProduct({
+  onCreated,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger,
+}: {
+  onCreated: (product: ProductDetail) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [type, setType] = useState<ProductType>('product');
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
   const { mutateAsync, isPending } = useCreateProduct();
   const qc = useQueryClient();
@@ -123,6 +126,7 @@ export function QuickAddProduct({ onCreated }: { onCreated: (product: ProductDet
     setOpen(false);
     setName('');
     setPrice('');
+    setType('product');
     setErrors({});
   }
 
@@ -135,11 +139,11 @@ export function QuickAddProduct({ onCreated }: { onCreated: (product: ProductDet
     try {
       const product = await mutateAsync({
         name: name.trim(),
+        type,
         selling_price: price,
         purchase_price: '',
         low_stock_threshold: null,
       });
-      // Inject immediately into cache so the select shows the product right away
       qc.setQueriesData({ queryKey: ['products'] }, (old: unknown) => {
         if (!old || typeof old !== 'object') return old;
         const paged = old as { results: ProductDetail[] };
@@ -161,44 +165,64 @@ export function QuickAddProduct({ onCreated }: { onCreated: (product: ProductDet
     }
   }
 
+  const priceLabel = type === 'service' ? 'Prix de la prestation *' : 'Prix de vente *';
+
   return (
     <>
-      <AddButton onClick={() => setOpen(true)} />
-      <Dialog.Root open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-        <Dialog.Portal>
-          <Dialog.Backdrop className={overlayClass} />
-          <Dialog.Popup className={popupClass}>
-            <DialogHeader title="Nouveau produit" onClose={handleClose} />
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <div className="flex flex-col gap-0.5">
-                <FloatingInput
-                  id="qp-name"
-                  label="Nom du produit *"
-                  value={name}
-                  onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
-                  autoFocus
-                />
-                {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name}</p>}
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <FloatingInput
-                  id="qp-price"
-                  label="Prix de vente *"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={price}
-                  onChange={(e) => { setPrice(e.target.value); setErrors((p) => ({ ...p, price: undefined })); }}
-                />
-                {errors.price && <p className="text-[11px] text-destructive px-1">{errors.price}</p>}
-              </div>
-              <Button type="submit" disabled={isPending} className="w-full">
-                {isPending ? 'Création…' : 'Créer le produit'}
-              </Button>
-            </form>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {!hideTrigger && <AddButton onClick={() => setOpen(true)} />}
+      <BottomSheet open={open} onClose={handleClose} title="Nouvel article ou service">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground px-1">Type</span>
+            <div className="flex gap-2">
+              <TypeChip active={type === 'product'} onClick={() => setType('product')} label="Produit" />
+              <TypeChip active={type === 'service'} onClick={() => setType('service')} label="Service" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <FloatingInput
+              id="qp-name"
+              label="Nom de l'article ou service *"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
+              autoFocus
+            />
+            {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name}</p>}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <FloatingInput
+              id="qp-price"
+              label={priceLabel}
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => { setPrice(e.target.value); setErrors((p) => ({ ...p, price: undefined })); }}
+            />
+            {errors.price && <p className="text-[11px] text-destructive px-1">{errors.price}</p>}
+          </div>
+          <Button type="submit" disabled={isPending} className="w-full">
+            {isPending ? 'Création…' : 'Créer et ajouter'}
+          </Button>
+        </form>
+      </BottomSheet>
     </>
+  );
+}
+
+function TypeChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`flex-1 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98] ${
+        active
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-muted text-muted-foreground active:bg-muted/70'
+      }`}
+    >
+      {label}
+    </button>
   );
 }

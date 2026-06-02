@@ -8,6 +8,7 @@ class AuditLog(models.Model):
         ('stock_entry', 'Entrée stock'),
         ('stock_exit', 'Sortie stock'),
         ('stock_adjustment', 'Ajustement stock'),
+        ('order_created', 'Création commande'),
         ('order_status_change', 'Changement statut commande'),
         ('order_payment_change', 'Changement paiement commande'),
         ('customer_delete', 'Suppression client'),

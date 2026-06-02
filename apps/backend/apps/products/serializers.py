@@ -32,7 +32,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            'id', 'name', 'reference', 'description',
+            'id', 'name', 'type', 'reference', 'description',
             'purchase_price', 'selling_price',
             'stock_quantity', 'low_stock_threshold',
             'is_active', 'is_low_stock', 'is_out_of_stock',
@@ -50,7 +50,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = (
-            'id', 'name', 'reference', 'selling_price',
+            'id', 'name', 'type', 'reference', 'selling_price',
             'stock_quantity', 'low_stock_threshold',
             'is_active', 'is_low_stock', 'is_out_of_stock',
             'primary_image', 'updated_at',

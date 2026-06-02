@@ -5,9 +5,15 @@ from apps.shops.models import Shop
 
 
 class Product(models.Model):
+    TYPE_CHOICES = (
+        ('product', 'Produit'),
+        ('service', 'Service'),
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=200)
+    type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='product')
     reference = models.CharField(max_length=50, blank=True)
     description = models.TextField(blank=True)
     purchase_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)

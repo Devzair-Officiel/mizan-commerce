@@ -45,7 +45,7 @@ function OrdersList() {
   return (
     <>
       {/* Filtres statut */}
-      <div className="flex gap-2 overflow-x-auto pb-1 px-4 no-scrollbar">
+      <div className="flex gap-2 overflow-x-auto pb-1 px-4 lg:px-8 no-scrollbar">
         {STATUSES.map(({ value, label, active, inactive }) => (
           <button
             key={value}
@@ -59,37 +59,39 @@ function OrdersList() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 px-4">
-        {isLoading && <p className="text-sm text-zinc-400 text-center py-8">Chargement…</p>}
+      <div className="px-4 lg:px-8">
+        {isLoading && <p className="text-sm text-muted-foreground text-center py-8">Chargement…</p>}
         {data?.results.length === 0 && (
-          <p className="text-sm text-zinc-400 text-center py-8">Aucune commande.</p>
+          <p className="text-sm text-muted-foreground text-center py-8">Aucune commande.</p>
         )}
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {data?.results.map((order) => (
           <Link
             key={order.id}
             href={`/orders/${order.id}`}
-            className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4"
+            className="flex items-center justify-between rounded-xl border border-border bg-card p-4 hover:bg-muted/40 transition-colors"
           >
             <div className="flex flex-col gap-1.5">
-              <span className="font-semibold text-base text-zinc-900">{order.order_number}</span>
+              <span className="font-semibold text-base text-foreground">{order.order_number}</span>
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[order.status] ?? 'bg-zinc-100 text-zinc-600'}`}>
                   {order.status_display}
                 </span>
               </div>
               {order.customer_name && (
-                <span className="text-sm text-zinc-400">{order.customer_name}</span>
+                <span className="text-sm text-muted-foreground">{order.customer_name}</span>
               )}
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0 ml-3">
-              <span className="text-base font-semibold text-zinc-900">{parseFloat(order.total_amount).toFixed(2)} €</span>
+              <span className="text-base font-semibold text-foreground">{parseFloat(order.total_amount).toFixed(2)} €</span>
               <span className={`text-sm font-medium ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
                 {PAYMENT_LABEL[order.payment_status] ?? order.payment_status}
               </span>
             </div>
           </Link>
         ))}
+        </div>
       </div>
     </>
   );
@@ -106,7 +108,7 @@ export default function OrdersPage() {
           </Link>
         }
       />
-      <div className="flex flex-col gap-3 py-3">
+      <div className="flex flex-col gap-4 py-3 lg:py-6">
         <Suspense>
           <OrdersList />
         </Suspense>
