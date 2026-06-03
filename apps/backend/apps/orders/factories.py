@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from apps.shops.factories import ShopFactory
 from apps.customers.factories import CustomerFactory
-from apps.products.factories import ProductFactory
+from apps.products.factories import ProductVariantFactory
 from .models import Order, OrderItem
 
 
@@ -30,8 +30,12 @@ class OrderItemFactory(DjangoModelFactory):
 
     shop = factory.SelfAttribute('order.shop')
     order = factory.SubFactory(OrderFactory)
-    product = factory.SubFactory(ProductFactory, shop=factory.SelfAttribute('..shop'))
-    product_name = factory.SelfAttribute('product.name')
-    unit_price = factory.SelfAttribute('product.selling_price')
+    variant = factory.SubFactory(
+        ProductVariantFactory,
+        product__shop=factory.SelfAttribute('....shop'),
+    )
+    product_name = factory.SelfAttribute('variant.product.name')
+    variant_name = factory.SelfAttribute('variant.packaging_name')
+    unit_price = factory.SelfAttribute('variant.selling_price')
     quantity = factory.Faker('random_int', min=1, max=10)
     line_total = Decimal('0')

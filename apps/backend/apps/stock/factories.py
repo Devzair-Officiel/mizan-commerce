@@ -2,7 +2,7 @@ import factory
 from factory.django import DjangoModelFactory
 
 from apps.accounts.factories import UserFactory
-from apps.products.factories import ProductFactory
+from apps.products.factories import ProductVariantFactory
 from .models import StockMovement
 
 
@@ -10,8 +10,8 @@ class StockMovementFactory(DjangoModelFactory):
     class Meta:
         model = StockMovement
 
-    shop = factory.SelfAttribute("product.shop")
-    product = factory.SubFactory(ProductFactory)
+    shop = factory.SelfAttribute("variant.shop")
+    variant = factory.SubFactory(ProductVariantFactory)
     movement_type = "in"
     quantity = factory.Faker("random_int", min=1, max=50)
     reason = factory.Faker("sentence", nb_words=6, locale="fr_FR")

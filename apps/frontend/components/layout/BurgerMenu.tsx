@@ -1,10 +1,21 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode, type ComponentType } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Palette } from 'lucide-react';
+import {
+  Sun,
+  Moon,
+  Palette,
+  Bell,
+  StickyNote,
+  Coins,
+  User,
+  Settings,
+  LogOut,
+} from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
+import { useShop } from '@/lib/hooks/useShop';
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -31,14 +42,33 @@ export function BurgerButton() {
 }
 
 /* ── Drawer ── */
-const MENU_ITEMS = [
-  { href: '/stock/add',  label: 'Entrée stock',        icon: BoxInIcon },
-  { href: '/stock/out',  label: 'Sortie stock',         icon: BoxOutIcon },
-  { href: '/reminders',  label: 'Rappels',              icon: BellIcon },
-  { href: '/notes',      label: 'Notes',                icon: NoteIcon },
-  { href: '/zakat',      label: 'Zakat',                icon: ZakatIcon },
-  { href: '/profile',    label: 'Mon profil',           icon: ProfileIcon },
-  { href: '/settings',   label: 'Paramètres boutique',  icon: SettingsIcon },
+interface MenuItem {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+interface MenuSection {
+  title: string;
+  items: MenuItem[];
+}
+
+const MENU_SECTIONS: MenuSection[] = [
+  {
+    title: 'Activité',
+    items: [
+      { href: '/reminders', label: 'Rappels', icon: Bell },
+      { href: '/notes',     label: 'Notes',   icon: StickyNote },
+      { href: '/zakat',     label: 'Zakat',   icon: Coins },
+    ],
+  },
+  {
+    title: 'Compte',
+    items: [
+      { href: '/profile',  label: 'Mon profil',          icon: User },
+      { href: '/settings', label: 'Paramètres boutique', icon: Settings },
+    ],
+  },
 ];
 
 export function BurgerMenuDrawer() {
@@ -75,9 +105,9 @@ export function BurgerMenuDrawer() {
         style={{ background: 'color-mix(in oklch, var(--primary) 78%, transparent)' }}
       >
         {/* En-tête */}
-        <div className="flex h-16 items-center justify-between px-5 pt-2">
-          <span className="text-xl font-bold text-white">Mizan</span>
-          <button onClick={close} aria-label="Fermer" className="text-white/70 hover:text-white transition-colors">
+        <div className="flex h-16 items-center justify-between px-5 pt-2 gap-3">
+          <BurgerHeader />
+          <button onClick={close} aria-label="Fermer" className="text-white/70 hover:text-white transition-colors shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -85,26 +115,33 @@ export function BurgerMenuDrawer() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <div className="flex flex-col gap-0.5">
-            {MENU_ITEMS.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href || pathname.startsWith(href + '/');
-              return (
-                <button
-                  key={href}
-                  onClick={() => handleNav(href)}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-medium transition-all text-left ${
-                    active
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/80 hover:text-white hover:bg-white/15'
-                  }`}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="text-[19px]">{label}</span>
-                </button>
-              );
-            })}
-          </div>
+        <nav className="flex-1 overflow-y-auto py-2 px-3">
+          {MENU_SECTIONS.map((section, idx) => (
+            <div key={section.title} className={idx === 0 ? '' : 'mt-4'}>
+              <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/50">
+                {section.title}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {section.items.map(({ href, label, icon: Icon }) => {
+                  const active = pathname === href || pathname.startsWith(href + '/');
+                  return (
+                    <button
+                      key={href}
+                      onClick={() => handleNav(href)}
+                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all text-left ${
+                        active
+                          ? 'bg-white/20 text-white'
+                          : 'text-white/80 hover:text-white hover:bg-white/15'
+                      }`}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className="text-[17px]">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Thème + Déconnexion */}
@@ -115,12 +152,35 @@ export function BurgerMenuDrawer() {
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
           >
-            <LogoutIcon className="h-5 w-5 shrink-0" />
+            <LogOut className="h-5 w-5 shrink-0" />
             Se déconnecter
           </button>
         </div>
       </aside>
     </>
+  );
+}
+
+/* ── En-tête : logo + nom (fallback "Mizan Commerce") ── */
+function BurgerHeader() {
+  const { data: shop } = useShop();
+  const name = shop?.name?.trim();
+  const displayName = name || 'Mizan Commerce';
+
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      {shop?.logo_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={shop.logo_url}
+          alt={displayName}
+          className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/30 shrink-0"
+        />
+      )}
+      <span className="text-lg font-bold text-white truncate">
+        {displayName}
+      </span>
+    </div>
   );
 }
 
@@ -164,70 +224,3 @@ function ThemeToggleRow() {
   );
 }
 
-/* ── Icônes ── */
-function BoxInIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v4m0 0l-2-2m2 2l2-2" />
-    </svg>
-  );
-}
-
-function BoxOutIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-4m0 0l-2 2m2-2l2 2" />
-    </svg>
-  );
-}
-
-function BellIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-    </svg>
-  );
-}
-
-function NoteIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  );
-}
-
-function ZakatIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function ProfileIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
-
-function LogoutIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-    </svg>
-  );
-}

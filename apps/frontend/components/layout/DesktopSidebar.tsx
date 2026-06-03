@@ -10,7 +10,7 @@ const PRIMARY_NAV = [
   { href: '/dashboard',  label: 'Accueil',    icon: HomeIcon },
   { href: '/orders',     label: 'Commandes',  icon: ShoppingBagIcon },
   { href: '/customers',  label: 'Clients',    icon: UsersIcon },
-  { href: '/products',   label: 'Produits',   icon: PackageIcon },
+  { href: '/products',   label: 'Catalogues', icon: PackageIcon },
 ];
 
 const SECONDARY_NAV = [

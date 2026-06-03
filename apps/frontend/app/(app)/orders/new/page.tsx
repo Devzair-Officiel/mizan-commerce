@@ -9,15 +9,17 @@ import { Button } from '@/components/ui/button';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
 import { CustomerPicker } from '@/components/orders/CustomerPicker';
-import { ProductPicker, type FreeLine } from '@/components/orders/ProductPicker';
+import { ProductPicker, type FreeLine, type VariantPick } from '@/components/orders/ProductPicker';
 import { useCreateOrder, type OrderItemPayload } from '@/lib/hooks/useOrders';
 import { useCustomer, type Customer } from '@/lib/hooks/useCustomers';
-import { useProducts, type ProductDetail, type ProductType } from '@/lib/hooks/useProducts';
+import { apiFetch } from '@/lib/api-client';
+import type { ProductDetail, ProductType } from '@/lib/hooks/useProducts';
 
 type LineItem = {
   lineId: string;
-  product: string | null;
+  variant: string | null;
   product_name: string;
+  variant_name: string;
   product_type: ProductType | null;
   quantity: number;
   unit_price: string;
@@ -27,7 +29,6 @@ function NewOrderForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { mutateAsync, isPending } = useCreateOrder();
-  const { data: products } = useProducts();
 
   const [customerId, setCustomerId] = useState(searchParams.get('customer') ?? '');
   const [notes,      setNotes]      = useState('');
@@ -48,31 +49,45 @@ function NewOrderForm() {
   const { data: selectedCustomer } = useCustomer(customerId);
 
 
-  function addItem(productId: string) {
-    const product = products?.results.find((p) => p.id === productId);
-    if (!product) return;
+  function addItem(pick: VariantPick) {
     setItemsError(false);
-    const existing = items.find((i) => i.product === productId);
+    const existing = items.find((i) => i.variant === pick.variantId);
     if (existing) {
       setItems(items.map((i) => i.lineId === existing.lineId ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
       setItems([...items, {
         lineId: crypto.randomUUID(),
-        product: productId,
-        product_name: product.name,
-        product_type: product.type,
+        variant: pick.variantId,
+        product_name: pick.productName,
+        variant_name: pick.variantName,
+        product_type: pick.productType,
         quantity: 1,
-        unit_price: product.selling_price,
+        unit_price: pick.unitPrice,
       }]);
     }
+  }
+
+  async function addProductFromQuickAdd(productId: string) {
+    // QuickAddProduct ne crée pas encore de variante explicite ; charger le détail pour récupérer la variante par défaut.
+    const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
+    const first = detail.variants.find((v) => v.is_active);
+    if (!first) return;
+    addItem({
+      variantId: first.id,
+      productName: detail.name,
+      variantName: first.packaging_name,
+      productType: detail.type,
+      unitPrice: first.selling_price,
+    });
   }
 
   function addFreeLine(line: FreeLine) {
     setItemsError(false);
     setItems((prev) => [...prev, {
       lineId: crypto.randomUUID(),
-      product: null,
+      variant: null,
       product_name: line.product_name,
+      variant_name: '',
       product_type: null,
       quantity: line.quantity,
       unit_price: line.unit_price,
@@ -113,8 +128,8 @@ function NewOrderForm() {
       if (n > total)    { setPaymentError('Le montant reçu ne peut pas dépasser le total.'); return; }
     }
     const payloadItems: OrderItemPayload[] = items.map((i) =>
-      i.product
-        ? { product: i.product, quantity: i.quantity, unit_price: i.unit_price }
+      i.variant
+        ? { variant: i.variant, quantity: i.quantity, unit_price: i.unit_price }
         : { product_name: i.product_name, unit_price: i.unit_price, quantity: i.quantity },
     );
     const order = await mutateAsync({
@@ -169,7 +184,7 @@ function NewOrderForm() {
           hideTrigger
           open={createProductOpen}
           onOpenChange={setCreateProductOpen}
-          onCreated={(p: ProductDetail) => addItem(p.id)}
+          onCreated={(p: ProductDetail) => { void addProductFromQuickAdd(p.id); }}
         />
         {itemsError && (
           <p className="text-[11px] text-destructive px-1">Ajoutez au moins un article ou service.</p>
@@ -199,12 +214,15 @@ function NewOrderForm() {
                             Service
                           </span>
                         )}
-                        {item.product === null && (
+                        {item.variant === null && (
                           <span className="shrink-0 rounded-full bg-muted text-muted-foreground border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
                             Libre
                           </span>
                         )}
                       </div>
+                      {item.variant_name && item.variant_name !== 'Par défaut' && (
+                        <span className="text-[11px] text-muted-foreground truncate">{item.variant_name}</span>
+                      )}
                       <span className="text-xs text-muted-foreground tabular-nums">
                         {unitPrice.toFixed(2)} € / unité
                       </span>

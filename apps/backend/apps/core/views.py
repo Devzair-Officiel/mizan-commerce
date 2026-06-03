@@ -1,4 +1,8 @@
-from django.db.models import F, Q
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import F, Q, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,7 +11,7 @@ from rest_framework.views import APIView
 from apps.shops.models import ShopMember
 from apps.customers.models import Customer
 from apps.orders.models import Order
-from apps.products.models import Product
+from apps.products.models import Product, ProductVariant
 from apps.notes.models import Reminder
 
 
@@ -25,6 +29,44 @@ class DashboardTodayView(APIView):
     def get(self, request):
         shop = get_shop(request.user)
         now = timezone.now()
+        today = now.date()
+
+        yesterday = today - timedelta(days=1)
+        today_orders_qs = Order.objects.filter(
+            shop=shop,
+            created_at__date=today,
+        ).exclude(status__in=('draft', 'cancelled'))
+        today_revenue = today_orders_qs.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+        today_orders_count = today_orders_qs.count()
+
+        yesterday_revenue = Order.objects.filter(
+            shop=shop,
+            created_at__date=yesterday,
+        ).exclude(status__in=('draft', 'cancelled')).aggregate(
+            total=Sum('total_amount')
+        )['total'] or Decimal('0')
+
+        # CA jour par jour sur les 7 derniers jours (today inclus)
+        window_start = today - timedelta(days=6)
+        last7_rows = (
+            Order.objects.filter(
+                shop=shop,
+                created_at__date__gte=window_start,
+                created_at__date__lte=today,
+            )
+            .exclude(status__in=('draft', 'cancelled'))
+            .annotate(day=TruncDate('created_at'))
+            .values('day')
+            .annotate(total=Sum('total_amount'))
+        )
+        revenue_by_day = {row['day']: row['total'] or Decimal('0') for row in last7_rows}
+        last_7_days = [
+            {
+                'date': (window_start + timedelta(days=i)).isoformat(),
+                'revenue': str(revenue_by_day.get(window_start + timedelta(days=i), Decimal('0'))),
+            }
+            for i in range(7)
+        ]
 
         orders_to_prepare = list(
             Order.objects.filter(shop=shop, status='to_prepare')
@@ -48,13 +90,34 @@ class DashboardTodayView(APIView):
         for o in unpaid_orders:
             o['customer_name'] = o.pop('customer__name', None)
 
-        low_stock_qs = Product.objects.filter(
-            shop=shop, is_active=True
-        ).filter(
-            Q(stock_quantity=0) |
-            Q(low_stock_threshold__isnull=False, stock_quantity__lte=F('low_stock_threshold'))
-        ).values('id', 'name', 'stock_quantity', 'low_stock_threshold')
-        low_stock_list = list(low_stock_qs.order_by('stock_quantity'))
+        # On agrège au niveau variante : une ligne = une variante en rupture ou sous seuil.
+        low_stock_qs = (
+            ProductVariant.objects.filter(
+                shop=shop, is_active=True, product__is_active=True, product__type='product',
+            )
+            .filter(
+                Q(stock_quantity__lte=0) |
+                Q(low_stock_threshold__isnull=False, stock_quantity__lte=F('low_stock_threshold'))
+            )
+            .select_related('product')
+            .values(
+                'id', 'packaging_name', 'unit', 'stock_quantity', 'low_stock_threshold',
+                'product_id', 'product__name',
+            )
+            .order_by('stock_quantity')
+        )
+        low_stock_list = [
+            {
+                'id': row['product_id'],          # rétro-compat front : id du produit pour le lien
+                'variant_id': row['id'],
+                'name': row['product__name'],
+                'variant_name': row['packaging_name'],
+                'unit': row['unit'],
+                'stock_quantity': row['stock_quantity'],
+                'low_stock_threshold': row['low_stock_threshold'],
+            }
+            for row in low_stock_qs
+        ]
 
         today_reminders = list(
             Reminder.objects.filter(
@@ -67,6 +130,12 @@ class DashboardTodayView(APIView):
         )
 
         return Response({
+            'today': {
+                'revenue': str(today_revenue),
+                'revenue_yesterday': str(yesterday_revenue),
+                'orders_count': today_orders_count,
+            },
+            'revenue_last_7_days': last_7_days,
             'orders_to_prepare': {
                 'count': len(orders_to_prepare),
                 'items': orders_to_prepare,
@@ -97,13 +166,30 @@ class GlobalSearchView(APIView):
         shop = get_shop(request.user)
         LIMIT = 5
 
-        products = list(
+        # Recherche produits : nom OU SKU (sur la variante).
+        product_rows = list(
             Product.objects.filter(
                 shop=shop, is_active=True,
             ).filter(
-                Q(name__icontains=q) | Q(reference__icontains=q)
-            ).values('id', 'name', 'reference', 'stock_quantity')[:LIMIT]
+                Q(name__icontains=q) | Q(variants__sku__icontains=q)
+            ).distinct()
+            .prefetch_related('variants')[:LIMIT]
         )
+        products = []
+        for p in product_rows:
+            variants = [v for v in p.variants.all() if v.is_active]
+            total_stock = sum((v.stock_quantity for v in variants), Decimal('0'))
+            unit = variants[0].unit if variants else ''
+            first_sku = next((v.sku for v in variants if v.sku), '')
+            products.append({
+                'id': p.id,
+                'name': p.name,
+                'reference': first_sku,
+                'type': p.type,
+                'unit': unit,
+                'stock_quantity': total_stock,
+                'variant_count': len(variants),
+            })
 
         customers = list(
             Customer.objects.filter(

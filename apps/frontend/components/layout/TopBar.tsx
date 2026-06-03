@@ -8,7 +8,7 @@ import { BurgerButton } from './BurgerMenu';
 import { useSearchOverlay } from './SearchOverlay';
 
 const SEGMENT_LABELS: Record<string, string> = {
-  products:  'Produits',
+  products:  'Catalogues',
   customers: 'Clients',
   orders:    'Commandes',
   settings:  'Paramètres',

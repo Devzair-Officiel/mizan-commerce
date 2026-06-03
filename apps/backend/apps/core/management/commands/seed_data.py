@@ -26,22 +26,43 @@ class Command(BaseCommand):
         from decimal import Decimal
         from apps.accounts.factories import UserFactory
         from apps.shops.factories import ShopFactory, ShopMemberFactory
-        from apps.products.factories import ProductFactory
         from apps.stock.factories import StockMovementFactory
         from apps.customers.factories import CustomerFactory
         from apps.accounts.models import User
         from apps.shops.models import ShopMember
-        from apps.products.models import Product
+        from apps.products.models import Product, ProductVariant
         from apps.stock.models import StockMovement
         from apps.customers.models import Customer
+
+        def seed_product(*, shop, name, packaging_name='Par défaut', unit='piece',
+                         selling_price, purchase_price=None, low_stock_threshold=None, sku=''):
+            """Crée un Product + sa variante par défaut. Idempotent sur (shop, name)."""
+            product, _ = Product.objects.get_or_create(shop=shop, name=name)
+            ProductVariant.objects.get_or_create(
+                product=product, packaging_name=packaging_name,
+                defaults={
+                    'shop': shop,
+                    'unit': unit,
+                    'base_quantity': 1,
+                    'selling_price': selling_price,
+                    'purchase_price': purchase_price,
+                    'low_stock_threshold': low_stock_threshold,
+                    'sku': sku,
+                    'position': 0,
+                    'is_active': True,
+                },
+            )
+            return product
 
         from apps.orders.models import Order, OrderItem
         from apps.notes.models import Note
 
         if options["reset"]:
+            from apps.products.models import ProductVariant
             OrderItem.objects.all().delete()
             Order.objects.all().delete()
             StockMovement.objects.all().delete()
+            ProductVariant.objects.all().delete()
             Product.objects.all().delete()
             Customer.objects.all().delete()
             self.stdout.write(self.style.WARNING("  Tables métier vidées."))
@@ -72,52 +93,28 @@ class Command(BaseCommand):
         self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name}")
 
         products_fr = [
-            ProductFactory(
-                shop=shop_fr,
-                name="Chemise en lin blanc",
-                reference="CHE-LIN-001",
-                purchase_price="12.50",
-                selling_price="29.99",
-                low_stock_threshold=3,
-            ),
-            ProductFactory(
-                shop=shop_fr,
-                name="Pantalon chino beige",
-                reference="PAN-CHI-002",
-                purchase_price="18.00",
-                selling_price="44.99",
-                low_stock_threshold=2,
-            ),
-            ProductFactory(
-                shop=shop_fr,
-                name="Sandales cuir naturel",
-                reference="SAN-CUI-003",
-                purchase_price="22.00",
-                selling_price="59.90",
-                low_stock_threshold=2,
-            ),
-            ProductFactory(
-                shop=shop_fr,
-                name="Ceinture tressée marron",
-                reference="CEI-TRE-004",
-                purchase_price="8.00",
-                selling_price="19.99",
-                low_stock_threshold=5,
-            ),
-            ProductFactory(
-                shop=shop_fr,
-                name="Sac en toile naturelle",
-                reference="SAC-TOI-005",
-                purchase_price="14.00",
-                selling_price="35.00",
-                low_stock_threshold=3,
-            ),
+            seed_product(shop=shop_fr, name="Chemise en lin blanc",
+                         purchase_price="12.50", selling_price="29.99",
+                         low_stock_threshold=3, sku="CHE-LIN-001"),
+            seed_product(shop=shop_fr, name="Pantalon chino beige",
+                         purchase_price="18.00", selling_price="44.99",
+                         low_stock_threshold=2, sku="PAN-CHI-002"),
+            seed_product(shop=shop_fr, name="Sandales cuir naturel",
+                         purchase_price="22.00", selling_price="59.90",
+                         low_stock_threshold=2, sku="SAN-CUI-003"),
+            seed_product(shop=shop_fr, name="Ceinture tressée marron",
+                         purchase_price="8.00", selling_price="19.99",
+                         low_stock_threshold=5, sku="CEI-TRE-004"),
+            seed_product(shop=shop_fr, name="Sac en toile naturelle",
+                         purchase_price="14.00", selling_price="35.00",
+                         low_stock_threshold=3, sku="SAC-TOI-005"),
         ]
         stock_qtys_fr = [15, 8, 6, 20, 2]  # SAC-TOI-005 à 2 < seuil 3 → stock faible
         for product, qty in zip(products_fr, stock_qtys_fr):
-            if not product.stock_movements.exists():
+            variant = product.variants.first()
+            if variant and not variant.stock_movements.exists():
                 StockMovementFactory(
-                    shop=shop_fr, product=product,
+                    shop=shop_fr, variant=variant,
                     movement_type="in", quantity=qty,
                     reason="Stock initial — seeding",
                     created_by=youssef,
@@ -138,18 +135,18 @@ class Command(BaseCommand):
         if not Order.objects.filter(shop=shop_fr).exists():
             karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
             o1 = order_services.create_order(shop_fr, youssef, customer=karima, shipping=Decimal('5.00'))
-            order_services.add_item(o1, products_fr[0], 2)
-            order_services.add_item(o1, products_fr[3], 1)
+            order_services.add_item(o1, products_fr[0].variants.first(), 2)
+            order_services.add_item(o1, products_fr[3].variants.first(), 1)
             order_services.transition_status(o1, 'to_prepare', youssef)
             order_services.update_payment(o1, o1.total_amount)
 
             o2 = order_services.create_order(shop_fr, youssef)
-            order_services.add_item(o2, products_fr[1], 1)
-            order_services.add_item(o2, products_fr[2], 1)
+            order_services.add_item(o2, products_fr[1].variants.first(), 1)
+            order_services.add_item(o2, products_fr[2].variants.first(), 1)
             Note.objects.create(shop=shop_fr, order=o2, author=youssef, content='Livraison urgente')
 
             o3 = order_services.create_order(shop_fr, youssef, customer=karima)
-            order_services.add_item(o3, products_fr[4], 3)
+            order_services.add_item(o3, products_fr[4].variants.first(), 3)
             order_services.transition_status(o3, 'to_prepare', youssef)
             order_services.transition_status(o3, 'prepared', youssef)
             order_services.update_payment(o3, Decimal('50.00'))
@@ -167,36 +164,22 @@ class Command(BaseCommand):
         self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name}")
 
         products_ma = [
-            ProductFactory(
-                shop=shop_ma,
-                name="Caftan brodé bleu nuit",
-                reference="CAF-BRO-001",
-                purchase_price="180.00",
-                selling_price="450.00",
-                low_stock_threshold=1,
-            ),
-            ProductFactory(
-                shop=shop_ma,
-                name="Djellaba femme ivoire",
-                reference="DJE-FEM-002",
-                purchase_price="90.00",
-                selling_price="220.00",
-                low_stock_threshold=2,
-            ),
-            ProductFactory(
-                shop=shop_ma,
-                name="Babouche artisanale dorée",
-                reference="BAB-ART-003",
-                purchase_price="40.00",
-                selling_price="95.00",
-                low_stock_threshold=3,
-            ),
+            seed_product(shop=shop_ma, name="Caftan brodé bleu nuit",
+                         purchase_price="180.00", selling_price="450.00",
+                         low_stock_threshold=1, sku="CAF-BRO-001"),
+            seed_product(shop=shop_ma, name="Djellaba femme ivoire",
+                         purchase_price="90.00", selling_price="220.00",
+                         low_stock_threshold=2, sku="DJE-FEM-002"),
+            seed_product(shop=shop_ma, name="Babouche artisanale dorée",
+                         purchase_price="40.00", selling_price="95.00",
+                         low_stock_threshold=3, sku="BAB-ART-003"),
         ]
         stock_qtys_ma = [3, 5, 12]
         for product, qty in zip(products_ma, stock_qtys_ma):
-            if not product.stock_movements.exists():
+            variant = product.variants.first()
+            if variant and not variant.stock_movements.exists():
                 StockMovementFactory(
-                    shop=shop_ma, product=product,
+                    shop=shop_ma, variant=variant,
                     movement_type="in", quantity=qty,
                     reason="Stock initial — seeding",
                     created_by=amira,
@@ -214,7 +197,7 @@ class Command(BaseCommand):
         if not Order.objects.filter(shop=shop_ma).exists():
             zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
             o4 = order_services.create_order(shop_ma, amira, customer=zineb)
-            order_services.add_item(o4, products_ma[0], 1)
+            order_services.add_item(o4, products_ma[0].variants.first(), 1)
             order_services.transition_status(o4, 'to_prepare', amira)
             order_services.update_payment(o4, Decimal('200.00'))
             self.stdout.write(f"    → 1 commande créée")

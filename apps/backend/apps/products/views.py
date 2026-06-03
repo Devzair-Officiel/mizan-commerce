@@ -1,3 +1,4 @@
+from django.db.models import F, Exists, OuterRef, Q
 from rest_framework import generics, filters, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -5,8 +6,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.shops.models import ShopMember
-from .models import Product, ProductImage
-from .serializers import ProductSerializer, ProductListSerializer
+from .models import Product, ProductImage, ProductVariant
+from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer
 
 
 def get_shop(user):
@@ -20,8 +21,8 @@ def get_shop(user):
 class ProductListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('name', 'reference')
-    ordering_fields = ('name', 'selling_price', 'stock_quantity', 'created_at')
+    search_fields = ('name', 'variants__sku')
+    ordering_fields = ('name', 'created_at')
     ordering = ('-created_at',)
 
     def get_serializer_class(self):
@@ -31,20 +32,40 @@ class ProductListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = Product.objects.filter(shop=shop).prefetch_related('images')
+        qs = Product.objects.filter(shop=shop).prefetch_related('images', 'variants')
 
-        # Filtre actifs uniquement par défaut, sauf si ?all=1
-        if self.request.query_params.get('all') != '1':
+        # Filtres d'activation
+        # - `?inactive=1` : uniquement les inactifs
+        # - `?all=1`     : actifs + inactifs
+        # - défaut       : uniquement les actifs
+        if self.request.query_params.get('inactive') == '1':
+            qs = qs.filter(is_active=False)
+        elif self.request.query_params.get('all') != '1':
             qs = qs.filter(is_active=True)
 
-        # Filtre stock faible
+        # Filtre par type (product | service)
+        product_type = self.request.query_params.get('type')
+        if product_type in ('product', 'service'):
+            qs = qs.filter(type=product_type)
+
+        # Filtre rupture : toutes les variantes actives ont un stock <= 0 → produit en rupture.
+        # On exclut donc les produits qui possèdent au moins une variante active avec stock > 0.
+        if self.request.query_params.get('out_of_stock') == '1':
+            has_stock = ProductVariant.objects.filter(
+                product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
+            )
+            qs = qs.filter(type='product').annotate(_has_stock=Exists(has_stock)).filter(_has_stock=False)
+
+        # Filtre stock faible : au moins une variante active sous son seuil.
         if self.request.query_params.get('low_stock') == '1':
-            from django.db.models import Q, F
-            qs = qs.filter(
+            has_low = ProductVariant.objects.filter(
+                product=OuterRef('pk'),
+                is_active=True,
                 low_stock_threshold__isnull=False,
                 stock_quantity__lte=F('low_stock_threshold'),
                 stock_quantity__gt=0,
             )
+            qs = qs.filter(type='product').annotate(_has_low=Exists(has_low)).filter(_has_low=True)
 
         return qs
 
@@ -59,14 +80,13 @@ class ProductDetailView(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        return Product.objects.filter(shop=shop).prefetch_related('images')
+        return Product.objects.filter(shop=shop).prefetch_related('images', 'variants')
 
     def update(self, request, *args, **kwargs):
-        # stock_quantity est un cache dérivé des mouvements, non modifiable directement
         kwargs['partial'] = kwargs.get('partial', False)
         serializer = self.get_serializer(
             self.get_object(),
-            data={k: v for k, v in request.data.items() if k != 'stock_quantity'},
+            data=request.data,
             partial=kwargs['partial'],
         )
         serializer.is_valid(raise_exception=True)
@@ -135,6 +155,107 @@ class ProductImageUploadView(APIView):
             {'id': str(image.pk), 'object_key': image.object_key, 'url': signed_url, 'is_primary': image.is_primary},
             status=status.HTTP_201_CREATED,
         )
+
+
+class ProductSummaryView(APIView):
+    """Compteurs agrégés pour le bandeau de filtres du Catalogue."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request) -> Response:
+        shop = get_shop(request.user)
+        active_qs = Product.objects.filter(shop=shop, is_active=True)
+
+        has_stock = ProductVariant.objects.filter(
+            product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
+        )
+        has_low = ProductVariant.objects.filter(
+            product=OuterRef('pk'),
+            is_active=True,
+            low_stock_threshold__isnull=False,
+            stock_quantity__lte=F('low_stock_threshold'),
+            stock_quantity__gt=0,
+        )
+
+        out_of_stock = (
+            active_qs.filter(type='product')
+            .annotate(_has_stock=Exists(has_stock))
+            .filter(_has_stock=False)
+            .count()
+        )
+        low_stock = (
+            active_qs.filter(type='product')
+            .annotate(_has_low=Exists(has_low))
+            .filter(_has_low=True)
+            .count()
+        )
+        products_count = active_qs.filter(type='product').count()
+        services_count = active_qs.filter(type='service').count()
+        inactive_count = Product.objects.filter(shop=shop, is_active=False).count()
+
+        return Response({
+            'total': products_count + services_count,
+            'products': products_count,
+            'services': services_count,
+            'out_of_stock': out_of_stock,
+            'low_stock': low_stock,
+            'inactive': inactive_count,
+        })
+
+
+class ProductVariantListCreateView(generics.ListCreateAPIView):
+    """Liste/crée les variantes d'un produit donné."""
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ProductVariantSerializer
+
+    def _get_product(self) -> Product:
+        shop = get_shop(self.request.user)
+        return generics.get_object_or_404(Product.objects.filter(shop=shop), pk=self.kwargs['pk'])
+
+    def get_queryset(self):
+        product = self._get_product()
+        return product.variants.all()
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['product'] = self._get_product()
+        return ctx
+
+    def perform_create(self, serializer):
+        product = self._get_product()
+        serializer.save(shop=product.shop, product=product)
+
+
+class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Détail / mise à jour / suppression d'une variante."""
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ProductVariantSerializer
+    lookup_url_kwarg = 'variant_pk'
+
+    def get_queryset(self):
+        shop = get_shop(self.request.user)
+        return ProductVariant.objects.filter(shop=shop, product__pk=self.kwargs['pk'])
+
+    def update(self, request, *args, **kwargs):
+        # stock_quantity est un cache dérivé des mouvements, non modifiable directement
+        kwargs['partial'] = kwargs.get('partial', False)
+        serializer = self.get_serializer(
+            self.get_object(),
+            data={k: v for k, v in request.data.items() if k != 'stock_quantity'},
+            partial=kwargs['partial'],
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        variant = self.get_object()
+        # Garde-fou : on refuse de supprimer la dernière variante d'un produit.
+        if variant.product.variants.count() <= 1:
+            return Response(
+                {'detail': "Un produit doit conserver au moins une variante."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class ProductImageSignedUrlView(APIView):

@@ -10,16 +10,21 @@ class Product(models.Model):
         ('service', 'Service'),
     )
 
+    # Unités de vente : portées par chaque ProductVariant (pas par le Product).
+    UNIT_CHOICES = (
+        ('piece', 'Pièce'),
+        ('g',    'Gramme'),
+        ('kg',   'Kilogramme'),
+        ('mL',   'Millilitre'),
+        ('L',    'Litre'),
+        ('m',    'Mètre'),
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='product')
-    reference = models.CharField(max_length=50, blank=True)
     description = models.TextField(blank=True)
-    purchase_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    selling_price = models.DecimalField(max_digits=12, decimal_places=2)
-    stock_quantity = models.IntegerField(default=0)
-    low_stock_threshold = models.IntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -29,7 +34,6 @@ class Product(models.Model):
         indexes = [
             models.Index(fields=['shop', 'is_active']),
             models.Index(fields=['shop', 'name']),
-            models.Index(fields=['shop', 'reference']),
         ]
         constraints = [
             models.UniqueConstraint(Lower('name'), 'shop', name='unique_product_name_per_shop'),
@@ -38,17 +42,66 @@ class Product(models.Model):
     def __str__(self):
         return f'{self.name} ({self.shop})'
 
+
+class ProductVariant(models.Model):
+    """
+    Une variante = un packaging concret d'un produit (ex. "Pot 250g", "Seau 5kg").
+    Porte le prix, le stock, le sku/code-barres. Un produit a au moins une variante.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='product_variants')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
+    packaging_name = models.CharField(max_length=120)
+    unit = models.CharField(max_length=8, choices=Product.UNIT_CHOICES, default='piece')
+    base_quantity = models.DecimalField(max_digits=14, decimal_places=3, default=1)
+    selling_price = models.DecimalField(max_digits=12, decimal_places=2)
+    purchase_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    stock_quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    low_stock_threshold = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
+    sku = models.CharField(max_length=64, blank=True)
+    barcode = models.CharField(max_length=64, blank=True)
+    position = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'product_variants'
+        ordering = ['position', 'created_at']
+        indexes = [
+            models.Index(fields=['shop', 'product']),
+            models.Index(fields=['shop', 'sku']),
+            models.Index(fields=['shop', 'barcode']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'packaging_name'],
+                name='unique_variant_packaging_per_product',
+            ),
+            models.UniqueConstraint(
+                fields=['shop', 'sku'],
+                condition=~models.Q(sku=''),
+                name='unique_variant_sku_per_shop',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.product.name} — {self.packaging_name}'
+
     @property
     def is_low_stock(self):
+        from decimal import Decimal
         return (
             self.low_stock_threshold is not None
             and self.stock_quantity <= self.low_stock_threshold
-            and self.stock_quantity > 0
+            and self.stock_quantity > Decimal('0')
         )
 
     @property
     def is_out_of_stock(self):
-        return self.stock_quantity <= 0
+        from decimal import Decimal
+        return self.stock_quantity <= Decimal('0')
 
 
 class ProductImage(models.Model):

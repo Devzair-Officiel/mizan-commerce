@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 
 from apps.shops.models import ShopMember
 from apps.customers.models import Customer
-from apps.products.models import Product
+from apps.products.models import ProductVariant
 from apps.notes.models import Note
 from . import services
 from .models import Order, OrderItem
@@ -71,15 +71,19 @@ class OrderListCreateView(generics.ListAPIView):
             )
 
             for item_data in d.get('items', []):
-                product = None
-                if item_data.get('product'):
+                variant = None
+                if item_data.get('variant'):
                     try:
-                        product = Product.objects.get(pk=item_data['product'], shop=shop, is_active=True)
-                    except Product.DoesNotExist:
-                        raise ValidationError({'items': f"Produit {item_data['product']} introuvable."})
+                        variant = (
+                            ProductVariant.objects
+                            .select_related('product')
+                            .get(pk=item_data['variant'], shop=shop, is_active=True, product__is_active=True)
+                        )
+                    except ProductVariant.DoesNotExist:
+                        raise ValidationError({'items': f"Variante {item_data['variant']} introuvable."})
                 services.add_item(
                     order,
-                    product=product,
+                    variant=variant,
                     quantity=item_data['quantity'],
                     unit_price=item_data.get('unit_price'),
                     product_name=item_data.get('product_name'),
@@ -222,17 +226,21 @@ class OrderItemCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
-        product = None
-        if d.get('product'):
+        variant = None
+        if d.get('variant'):
             try:
-                product = Product.objects.get(pk=d['product'], shop=shop, is_active=True)
-            except Product.DoesNotExist:
-                return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+                variant = (
+                    ProductVariant.objects
+                    .select_related('product')
+                    .get(pk=d['variant'], shop=shop, is_active=True, product__is_active=True)
+                )
+            except ProductVariant.DoesNotExist:
+                return Response({'detail': 'Variante introuvable.'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             item = services.add_item(
                 order,
-                product=product,
+                variant=variant,
                 quantity=d['quantity'],
                 unit_price=d.get('unit_price'),
                 product_name=d.get('product_name'),

@@ -5,20 +5,26 @@ from .models import Order, OrderItem
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_id = serializers.UUIDField(source='variant.product_id', read_only=True)
+    unit = serializers.CharField(source='variant.unit', read_only=True, default='')
+
     class Meta:
         model = OrderItem
-        fields = ('id', 'product', 'product_name', 'unit_price', 'quantity', 'line_total', 'created_at')
-        read_only_fields = ('id', 'product_name', 'line_total', 'created_at')
+        fields = (
+            'id', 'variant', 'product_id', 'product_name', 'variant_name', 'unit',
+            'unit_price', 'quantity', 'line_total', 'created_at',
+        )
+        read_only_fields = ('id', 'product_name', 'variant_name', 'line_total', 'created_at')
 
 
 class OrderItemCreateSerializer(serializers.Serializer):
-    product = serializers.UUIDField(required=False, allow_null=True)
+    variant = serializers.UUIDField(required=False, allow_null=True)
     product_name = serializers.CharField(max_length=200, required=False, allow_blank=False)
     quantity = serializers.IntegerField(min_value=1)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
 
     def validate(self, attrs: dict) -> dict:
-        if not attrs.get('product'):
+        if not attrs.get('variant'):
             if not attrs.get('product_name'):
                 raise serializers.ValidationError({
                     'product_name': "Le nom est requis pour une ligne libre.",

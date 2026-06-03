@@ -6,7 +6,14 @@ import Link from 'next/link';
 import { Pencil, PackageMinus, PackagePlus, PowerOff, Power } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
-import { useProduct, useDeactivateProduct, useReactivateProduct, useUploadProductImage } from '@/lib/hooks/useProducts';
+import {
+  useProduct,
+  useDeactivateProduct,
+  useReactivateProduct,
+  useUploadProductImage,
+  formatPriceRange,
+} from '@/lib/hooks/useProducts';
+import { VariantsManager } from '@/components/products/VariantsManager';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -39,42 +46,42 @@ export default function ProductDetailPage() {
   if (isLoading) return <><TopBar title="Produit" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
   if (!product) return <><TopBar title="Produit" /><p className="p-4 text-sm text-red-500">Produit introuvable.</p></>;
 
+  const totalStock = parseFloat(product.total_stock ?? '0');
+  const priceRange = formatPriceRange(product.min_selling_price, product.max_selling_price);
+  const variantCount = product.variant_count ?? product.variants.length;
+  const stockUnitForDisplay = product.variants[0]?.unit ?? 'piece';
+
   return (
     <>
       <TopBar title={product.name} />
       <div className="flex flex-col gap-4 p-4">
-        {/* Stock */}
+        {/* Stock — masqué pour les services. Si une seule variante, affichage habituel ; sinon vue agrégée. */}
+        {product.type === 'product' && (
+          <div className="rounded-xl border border-zinc-200 bg-white p-4">
+            <p className="text-xs text-zinc-400 mb-1">
+              Stock total {variantCount > 1 ? `(${variantCount} conditionnements)` : ''}
+            </p>
+            <p className={`text-3xl font-bold ${product.is_out_of_stock ? 'text-red-500' : product.is_low_stock ? 'text-amber-500' : 'text-zinc-900'}`}>
+              {totalStock.toLocaleString('fr-FR')} {stockUnitForDisplay === 'piece' ? (totalStock <= 1 ? 'pièce' : 'pièces') : stockUnitForDisplay}
+            </p>
+            {product.is_out_of_stock && <p className="text-xs text-red-500 mt-1">Rupture de stock</p>}
+            {product.is_low_stock && !product.is_out_of_stock && (
+              <p className="text-xs text-amber-500 mt-1">Stock faible — voir les conditionnements en alerte ci-dessous.</p>
+            )}
+          </div>
+        )}
+
+        {/* Prix — fourchette si plusieurs variantes */}
         <div className="rounded-xl border border-zinc-200 bg-white p-4">
-          <p className="text-xs text-zinc-400 mb-1">Stock actuel</p>
-          <p className={`text-3xl font-bold ${product.is_out_of_stock ? 'text-red-500' : product.is_low_stock ? 'text-amber-500' : 'text-zinc-900'}`}>
-            {product.stock_quantity}
-          </p>
-          {product.is_out_of_stock && <p className="text-xs text-red-500 mt-1">Rupture de stock</p>}
-          {product.is_low_stock && !product.is_out_of_stock && (
-            <p className="text-xs text-amber-500 mt-1">Stock faible (seuil : {product.low_stock_threshold})</p>
-          )}
+          <p className="text-xs text-zinc-400">{variantCount > 1 ? 'Prix de vente (fourchette)' : 'Prix de vente'}</p>
+          <p className="text-lg font-semibold text-zinc-900 tabular-nums">{priceRange ?? product.variants[0]?.selling_price ?? '—'} €</p>
         </div>
 
-        {/* Prix */}
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-zinc-400">Prix de vente</p>
-            <p className="text-lg font-semibold text-zinc-900">{product.selling_price} €</p>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-400">Prix d'achat</p>
-            <p className="text-lg font-semibold text-zinc-900">{product.purchase_price} €</p>
-          </div>
-        </div>
+        {/* Conditionnements / variantes */}
+        <VariantsManager product={product} />
 
         {/* Infos */}
         <div className="rounded-xl border border-zinc-200 bg-white p-4 flex flex-col gap-3">
-          {product.reference && (
-            <div>
-              <p className="text-xs text-zinc-400">Référence</p>
-              <p className="text-sm text-zinc-900">{product.reference}</p>
-            </div>
-          )}
           {product.description && (
             <div>
               <p className="text-xs text-zinc-400">Description</p>
@@ -128,18 +135,22 @@ export default function ProductDetailPage() {
               Modifier le produit
             </Button>
           </Link>
-          <Link href={`/stock/add?product=${id}`}>
-            <Button variant="outline" className="w-full">
-              <PackagePlus size={18} />
-              Entrée stock
-            </Button>
-          </Link>
-          <Link href={`/stock/out?product=${id}`}>
-            <Button variant="outline" className="w-full text-amber-600 border-amber-200">
-              <PackageMinus size={18} />
-              Sortie stock
-            </Button>
-          </Link>
+          {product.type === 'product' && (
+            <>
+              <Link href={`/stock/add?product=${id}`}>
+                <Button variant="outline" className="w-full">
+                  <PackagePlus size={18} />
+                  Entrée stock
+                </Button>
+              </Link>
+              <Link href={`/stock/out?product=${id}`}>
+                <Button variant="outline" className="w-full text-amber-600 border-amber-200">
+                  <PackageMinus size={18} />
+                  Sortie stock
+                </Button>
+              </Link>
+            </>
+          )}
           {product.is_active ? (
             <Button
               variant="outline"

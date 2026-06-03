@@ -10,7 +10,7 @@ from django.utils import timezone
 from apps.core.audit import log_action
 from apps.core.models import AuditLog
 from apps.notes.models import Note
-from apps.products.models import Product
+from apps.products.models import ProductVariant
 from apps.stock.models import StockMovement
 from .models import Order, OrderItem
 
@@ -72,33 +72,36 @@ def create_order(shop, user, customer=None, discount=Decimal('0'), shipping=Deci
 @transaction.atomic
 def add_item(
     order: Order,
-    product: Product | None,
+    variant: ProductVariant | None,
     quantity: int,
     unit_price: Decimal | None = None,
     product_name: str | None = None,
 ) -> OrderItem:
     """
     Ajoute une ligne à la commande.
-    - Si product est fourni : nom et prix par défaut viennent du catalogue.
-    - Si product est None (ligne libre) : product_name et unit_price sont requis.
+    - Si variant est fourni : nom et prix par défaut viennent du catalogue.
+    - Si variant est None (ligne libre) : product_name et unit_price sont requis.
     """
     if order.status != 'draft':
         raise ValueError("Impossible d'ajouter un article à une commande qui n'est plus en brouillon.")
 
-    if product is None:
+    if variant is None:
         if not product_name or unit_price is None:
             raise ValueError("Ligne libre : nom et prix requis.")
         name = product_name
+        v_name = ''
         price = unit_price
     else:
-        name = product.name
-        price = unit_price if unit_price is not None else product.selling_price
+        name = variant.product.name
+        v_name = variant.packaging_name
+        price = unit_price if unit_price is not None else variant.selling_price
 
     item = OrderItem.objects.create(
         shop=order.shop,
         order=order,
-        product=product,
+        variant=variant,
         product_name=name,
+        variant_name=v_name,
         unit_price=price,
         quantity=quantity,
     )
@@ -164,14 +167,14 @@ def transition_status(order: Order, new_status: str, user) -> Order:
 
 
 def _reserve_stock(order: Order, user) -> None:
-    """Crée un mouvement 'reservation' pour chaque ligne produit (skip services)."""
+    """Crée un mouvement 'reservation' pour chaque ligne produit (skip services et lignes libres)."""
     if order.stock_reserved:
         return
-    for item in order.items.select_related('product').all():
-        if item.product and item.product.type == 'product':
+    for item in order.items.select_related('variant__product').all():
+        if item.variant and item.variant.product.type == 'product':
             StockMovement.objects.create(
                 shop=order.shop,
-                product=item.product,
+                variant=item.variant,
                 movement_type='reservation',
                 quantity=item.quantity,
                 reason=f'Réservation commande {order.order_number}',
@@ -183,14 +186,14 @@ def _reserve_stock(order: Order, user) -> None:
 
 
 def _release_stock(order: Order, user) -> None:
-    """Libère le stock réservé en cas d'annulation (skip services)."""
+    """Libère le stock réservé en cas d'annulation (skip services et lignes libres)."""
     if not order.stock_reserved:
         return
-    for item in order.items.select_related('product').all():
-        if item.product and item.product.type == 'product':
+    for item in order.items.select_related('variant__product').all():
+        if item.variant and item.variant.product.type == 'product':
             StockMovement.objects.create(
                 shop=order.shop,
-                product=item.product,
+                variant=item.variant,
                 movement_type='release',
                 quantity=item.quantity,
                 reason=f'Annulation commande {order.order_number}',

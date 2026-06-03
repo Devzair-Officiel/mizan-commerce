@@ -33,16 +33,19 @@ export interface OrderActivityEvent {
 
 export interface OrderItem {
   id: string;
-  product: string | null;
+  variant: string | null;
+  product_id: string | null;
   product_name: string;
+  variant_name: string;
+  unit: string;
   unit_price: string;
   quantity: number;
   line_total: string;
 }
 
 export type OrderItemPayload =
-  | { product: string; quantity: number; unit_price?: string }
-  | { product?: null; product_name: string; unit_price: string; quantity: number };
+  | { variant: string; quantity: number; unit_price?: string }
+  | { variant?: null; product_name: string; unit_price: string; quantity: number };
 
 export interface Order extends OrderSummary {
   items: OrderItem[];

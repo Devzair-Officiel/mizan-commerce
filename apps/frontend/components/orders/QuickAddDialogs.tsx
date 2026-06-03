@@ -7,8 +7,8 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
 import { useCreateCustomer, type Customer } from '@/lib/hooks/useCustomers';
-import { useCreateProduct, type ProductDetail, type ProductType } from '@/lib/hooks/useProducts';
-import { ApiError } from '@/lib/api-client';
+import { useCreateProduct, type ProductDetail, type ProductType, type ProductVariant } from '@/lib/hooks/useProducts';
+import { ApiError, apiFetch } from '@/lib/api-client';
 
 function AddButton({ onClick }: { onClick: () => void }) {
   return (
@@ -140,17 +140,22 @@ export function QuickAddProduct({
       const product = await mutateAsync({
         name: name.trim(),
         type,
-        selling_price: price,
-        purchase_price: '',
-        low_stock_threshold: null,
       });
-      qc.setQueriesData({ queryKey: ['products'] }, (old: unknown) => {
-        if (!old || typeof old !== 'object') return old;
-        const paged = old as { results: ProductDetail[] };
-        if (paged.results.some((p) => p.id === product.id)) return paged;
-        return { ...paged, results: [product, ...paged.results] };
+      // Crée la variante "Par défaut" qui porte le prix.
+      await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
+        method: 'POST',
+        body: JSON.stringify({
+          packaging_name: 'Par défaut',
+          unit: 'piece',
+          base_quantity: '1',
+          selling_price: price,
+        }),
       });
-      onCreated(product);
+      // On invalide pour refetch avec les agrégats variantes.
+      qc.invalidateQueries({ queryKey: ['products'] });
+      // Recharge le détail pour récupérer la variante créée.
+      const refreshed = await apiFetch<ProductDetail>(`/products/${product.id}/`);
+      onCreated(refreshed);
       handleClose();
     } catch (err) {
       if (err instanceof ApiError && typeof err.data === 'object' && err.data !== null) {

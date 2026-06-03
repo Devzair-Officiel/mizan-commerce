@@ -10,45 +10,136 @@ interface PaginatedResponse<T> {
 
 export type ProductType = 'product' | 'service';
 
+export type ProductUnit = 'piece' | 'g' | 'kg' | 'mL' | 'L' | 'm';
+
+export const UNIT_LABELS: Record<ProductUnit, string> = {
+  piece: 'pièce',
+  g: 'g',
+  kg: 'kg',
+  mL: 'mL',
+  L: 'L',
+  m: 'm',
+};
+
+/** Format un stock + unité pour l'affichage. Retire les zéros décimaux superflus. */
+export function formatStock(qty: string | number, unit: ProductUnit): string {
+  const num = typeof qty === 'string' ? parseFloat(qty) : qty;
+  const trimmed = Number.isInteger(num) ? num.toString() : num.toString().replace(/\.?0+$/, '');
+  if (unit === 'piece') {
+    return num <= 1 ? `${trimmed} pièce` : `${trimmed} pièces`;
+  }
+  return `${trimmed} ${unit}`;
+}
+
+/** Formate une fourchette de prix : si min==max, retourne juste le prix. */
+export function formatPriceRange(min: string | null, max: string | null): string | null {
+  if (!min || !max) return null;
+  if (min === max) return min;
+  return `${min} – ${max}`;
+}
+
+export interface ProductVariant {
+  id: string;
+  product: string;
+  packaging_name: string;
+  unit: ProductUnit;
+  base_quantity: string;
+  selling_price: string;
+  purchase_price: string | null;
+  stock_quantity: string;
+  low_stock_threshold: string | null;
+  sku: string;
+  barcode: string;
+  position: number;
+  is_active: boolean;
+  is_low_stock: boolean;
+  is_out_of_stock: boolean;
+  updated_at: string;
+}
+
+export interface ProductVariantFormData {
+  packaging_name: string;
+  unit: ProductUnit;
+  base_quantity: string;
+  selling_price: string;
+  purchase_price?: string | null;
+  low_stock_threshold?: string | null;
+  sku?: string;
+  barcode?: string;
+  position?: number;
+  is_active?: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
   type: ProductType;
-  reference: string;
   description: string;
-  purchase_price: string;
-  selling_price: string;
-  stock_quantity: number;
-  low_stock_threshold: number | null;
   is_active: boolean;
   is_low_stock: boolean;
   is_out_of_stock: boolean;
   primary_image: string | null;
   updated_at: string;
+  /** Agrégats calculés à partir des variantes actives. */
+  min_selling_price: string | null;
+  max_selling_price: string | null;
+  total_stock: string;
+  variant_count: number;
 }
 
 export interface ProductDetail extends Product {
   images: { id: string; object_key: string; is_primary: boolean; position: number }[];
+  variants: ProductVariant[];
   created_at: string;
 }
 
 export interface ProductFormData {
   name: string;
   type?: ProductType;
-  reference?: string;
   description?: string;
-  purchase_price: string;
-  selling_price: string;
-  low_stock_threshold?: number | null;
 }
 
-export function useProducts(search?: string, all?: boolean) {
+export type ProductOrdering = 'name' | '-name' | '-created_at';
+
+export interface ProductsQueryOptions {
+  search?: string;
+  all?: boolean;
+  inactive?: boolean;
+  type?: ProductType;
+  outOfStock?: boolean;
+  lowStock?: boolean;
+  ordering?: ProductOrdering;
+}
+
+export function useProducts(options: ProductsQueryOptions = {}) {
+  const { search, all, inactive, type, outOfStock, lowStock, ordering } = options;
   const params = new URLSearchParams();
   if (search) params.set('search', search);
   if (all) params.set('all', '1');
+  if (inactive) params.set('inactive', '1');
+  if (type) params.set('type', type);
+  if (outOfStock) params.set('out_of_stock', '1');
+  if (lowStock) params.set('low_stock', '1');
+  if (ordering) params.set('ordering', ordering);
   return useQuery({
-    queryKey: ['products', search, all],
+    queryKey: ['products', { search, all, inactive, type, outOfStock, lowStock, ordering }],
     queryFn: () => apiFetch<PaginatedResponse<Product>>(`/products/?${params}`),
+  });
+}
+
+export interface ProductsSummary {
+  total: number;
+  products: number;
+  services: number;
+  out_of_stock: number;
+  low_stock: number;
+  inactive: number;
+}
+
+export function useProductsSummary() {
+  return useQuery({
+    queryKey: ['products', 'summary'],
+    queryFn: () => apiFetch<ProductsSummary>('/products/summary/'),
   });
 }
 
@@ -113,5 +204,49 @@ export function useUploadProductImage(productId: string) {
       return res.json() as Promise<{ id: string; object_key: string; url: string; is_primary: boolean }>;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['products', productId] }),
+  });
+}
+
+// ── Variants ───────────────────────────────────────────────────────────────────
+
+export function useCreateProductVariant(productId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ProductVariantFormData) =>
+      apiFetch<ProductVariant>(`/products/${productId}/variants/`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products', productId] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+export function useUpdateProductVariant(productId: string, variantId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<ProductVariantFormData>) =>
+      apiFetch<ProductVariant>(`/products/${productId}/variants/${variantId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products', productId] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+export function useDeleteProductVariant(productId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (variantId: string) =>
+      apiFetch(`/products/${productId}/variants/${variantId}/`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products', productId] });
+      qc.invalidateQueries({ queryKey: ['products'] });
+    },
   });
 }

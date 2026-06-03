@@ -2,14 +2,20 @@ from decimal import Decimal
 from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 
 from apps.shops.models import Shop
-from apps.products.models import Product
+from apps.products.models import ProductVariant
 from .models import ZakatCalculation
 
 
 def compute_stock_value(shop: Shop) -> Decimal:
-    """Sum of (purchase_price * stock_quantity) for active products with positive stock."""
+    """Somme de (purchase_price × stock_quantity) sur toutes les variantes actives avec stock positif."""
     result = (
-        Product.objects.filter(shop=shop, is_active=True, stock_quantity__gt=0)
+        ProductVariant.objects.filter(
+            shop=shop,
+            is_active=True,
+            product__is_active=True,
+            stock_quantity__gt=0,
+            purchase_price__isnull=False,
+        )
         .annotate(
             line_value=ExpressionWrapper(
                 F('purchase_price') * F('stock_quantity'),

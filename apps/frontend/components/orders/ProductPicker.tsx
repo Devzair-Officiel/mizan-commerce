@@ -5,7 +5,12 @@ import { ChevronRight, Search, X, PackagePlus, FilePlus2, Plus, ArrowLeft } from
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
-import { useProducts, type Product } from '@/lib/hooks/useProducts';
+import {
+  useProducts,
+  useProduct,
+  type Product,
+  type ProductVariant,
+} from '@/lib/hooks/useProducts';
 
 export type FreeLine = {
   product_name: string;
@@ -13,8 +18,16 @@ export type FreeLine = {
   quantity: number;
 };
 
+export type VariantPick = {
+  variantId: string;
+  productName: string;
+  variantName: string;
+  productType: 'product' | 'service';
+  unitPrice: string;
+};
+
 interface ProductPickerProps {
-  onPick: (productId: string) => void;
+  onPick: (pick: VariantPick) => void;
   onFreeLine: (line: FreeLine) => void;
   onRequestCreate: () => void;
 }
@@ -22,12 +35,16 @@ interface ProductPickerProps {
 type Filter = 'all' | 'product' | 'service';
 type View = 'pick' | 'free';
 
+type Stage = 'list' | 'variants';
+
 export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPickerProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>('pick');
+  const [stage, setStage] = useState<Stage>('list');
+  const [pickedProductId, setPickedProductId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const { data } = useProducts(search);
+  const { data } = useProducts({ search });
 
   const products = (data?.results ?? []).filter((p) => p.is_active);
   const filtered = filter === 'all' ? products : products.filter((p) => p.type === filter);
@@ -37,10 +54,25 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
     setSearch('');
     setFilter('all');
     setView('pick');
+    setStage('list');
+    setPickedProductId(null);
   }
 
-  function handlePick(id: string) {
-    onPick(id);
+  function handlePickProduct(p: Product) {
+    // Si une seule variante, on l'envoie directement; sinon on ouvre le sous-écran de sélection.
+    if ((p.variant_count ?? 1) <= 1) {
+      // On a besoin de la variante par défaut : on passe par le sous-écran qui chargera le détail.
+      // Pour économiser un round-trip, on prendra la première via le détail produit.
+      setPickedProductId(p.id);
+      setStage('variants');
+      return;
+    }
+    setPickedProductId(p.id);
+    setStage('variants');
+  }
+
+  function handlePickVariant(pick: VariantPick) {
+    onPick(pick);
     close();
   }
 
@@ -70,23 +102,33 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
       <BottomSheet
         open={open}
         onClose={close}
-        title={view === 'pick' ? 'Ajouter un article ou service' : 'Ligne libre'}
+        title={
+          view === 'free' ? 'Ligne libre'
+          : stage === 'variants' ? 'Choisir un conditionnement'
+          : 'Ajouter un article ou service'
+        }
       >
-        {view === 'pick' ? (
+        {view === 'free' ? (
+          <FreeLineView
+            onCancel={() => setView('pick')}
+            onSubmit={(line) => { onFreeLine(line); close(); }}
+          />
+        ) : stage === 'variants' && pickedProductId ? (
+          <VariantView
+            productId={pickedProductId}
+            onBack={() => { setStage('list'); setPickedProductId(null); }}
+            onPick={handlePickVariant}
+          />
+        ) : (
           <PickView
             search={search}
             setSearch={setSearch}
             filter={filter}
             setFilter={setFilter}
             products={filtered}
-            onPick={handlePick}
+            onPick={handlePickProduct}
             onCreate={handleCreate}
             onFreeLine={() => setView('free')}
-          />
-        ) : (
-          <FreeLineView
-            onCancel={() => setView('pick')}
-            onSubmit={(line) => { onFreeLine(line); close(); }}
           />
         )}
       </BottomSheet>
@@ -109,7 +151,7 @@ function PickView({
   filter: Filter;
   setFilter: (f: Filter) => void;
   products: Product[];
-  onPick: (id: string) => void;
+  onPick: (p: Product) => void;
   onCreate: () => void;
   onFreeLine: () => void;
 }) {
@@ -195,27 +237,40 @@ function PickView({
             {search || filter !== 'all' ? 'Aucun résultat.' : 'Aucun article enregistré.'}
           </p>
         ) : (
-          products.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => onPick(p.id)}
-              className="flex items-center gap-3 px-1 py-3 text-left text-foreground transition-colors active:bg-muted"
-            >
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm font-medium truncate">{p.name}</span>
-                  {p.type === 'service' && (
-                    <span className="shrink-0 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-                      Service
-                    </span>
-                  )}
+          products.map((p) => {
+            const min = p.min_selling_price;
+            const max = p.max_selling_price;
+            const priceLabel = min && max
+              ? (min === max ? `${min} €` : `${min} – ${max} €`)
+              : '—';
+            const variantCount = p.variant_count ?? 1;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onPick(p)}
+                className="flex items-center gap-3 px-1 py-3 text-left text-foreground transition-colors active:bg-muted"
+              >
+                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium truncate">{p.name}</span>
+                    {p.type === 'service' && (
+                      <span className="shrink-0 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
+                        Service
+                      </span>
+                    )}
+                    {variantCount > 1 && (
+                      <span className="shrink-0 rounded-full bg-primary/10 text-primary border border-primary/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
+                        {variantCount} formats
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums">{priceLabel}</span>
                 </div>
-                <span className="text-xs text-muted-foreground tabular-nums">{p.selling_price} €</span>
-              </div>
-              <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
-            </button>
-          ))
+                <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+              </button>
+            );
+          })
         )}
       </div>
     </>
@@ -297,5 +352,99 @@ function FreeLineView({
 
       <Button type="submit" className="w-full">Ajouter à la commande</Button>
     </form>
+  );
+}
+
+function VariantView({
+  productId,
+  onBack,
+  onPick,
+}: {
+  productId: string;
+  onBack: () => void;
+  onPick: (pick: VariantPick) => void;
+}) {
+  const { data: product, isLoading } = useProduct(productId);
+
+  function handlePick(variant: ProductVariant) {
+    if (!product) return;
+    onPick({
+      variantId: variant.id,
+      productName: product.name,
+      variantName: variant.packaging_name,
+      productType: product.type,
+      unitPrice: variant.selling_price,
+    });
+  }
+
+  if (isLoading || !product) {
+    return (
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={14} />
+          <span>Retour</span>
+        </button>
+        <p className="py-6 text-center text-sm text-muted-foreground">Chargement…</p>
+      </div>
+    );
+  }
+
+  const activeVariants = product.variants.filter((v) => v.is_active);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={onBack}
+        className="self-start flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft size={14} />
+        <span>Retour au catalogue</span>
+      </button>
+
+      <div className="px-1">
+        <p className="text-sm font-semibold text-foreground truncate">{product.name}</p>
+        <p className="text-[11px] text-muted-foreground">{activeVariants.length} conditionnement{activeVariants.length > 1 ? 's' : ''}</p>
+      </div>
+
+      <div className="flex flex-col divide-y divide-border -mx-5 px-5">
+        {activeVariants.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Aucun conditionnement actif.</p>
+        ) : (
+          activeVariants.map((v) => {
+            const out = product.type === 'product' && parseFloat(v.stock_quantity) <= 0;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                disabled={out}
+                onClick={() => handlePick(v)}
+                className="flex items-center gap-3 px-1 py-3 text-left transition-colors active:bg-muted disabled:opacity-50"
+              >
+                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <span className="text-sm font-medium text-foreground truncate">{v.packaging_name}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {v.selling_price} €
+                    {product.type === 'product' && (
+                      <>
+                        {' · '}
+                        <span className={out ? 'text-destructive' : v.is_low_stock ? 'text-amber-600' : ''}>
+                          {out ? 'Rupture' : `Stock : ${v.stock_quantity}`}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }

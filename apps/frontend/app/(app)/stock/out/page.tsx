@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { apiFetch } from '@/lib/api-client';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProducts } from '@/lib/hooks/useProducts';
+import { useProducts, useProduct, formatStock, type ProductVariant } from '@/lib/hooks/useProducts';
 
 const MOVEMENT_TYPES = [
   { value: 'out',  label: 'Sortie (vente manuelle)' },
@@ -18,25 +18,43 @@ function StockOutForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qc = useQueryClient();
-  const { data: products } = useProducts();
+  const { data: products } = useProducts({ type: 'product' });
 
-  const [productId,    setProductId]    = useState(searchParams.get('product') ?? '');
+  const initialProduct = searchParams.get('product') ?? '';
+  const initialVariant = searchParams.get('variant') ?? '';
+
+  const [productId,    setProductId]    = useState(initialProduct);
+  const [variantId,    setVariantId]    = useState(initialVariant);
   const [quantity,     setQuantity]     = useState('1');
   const [reason,       setReason]       = useState('');
   const [movementType, setMovementType] = useState('out');
   const [isPending,    setIsPending]    = useState(false);
   const [error,        setError]        = useState('');
 
-  const selectedProduct = products?.results.find((p) => p.id === productId);
+  const { data: productDetail } = useProduct(productId);
+  const activeVariants: ProductVariant[] = useMemo(
+    () => productDetail?.variants.filter((v) => v.is_active) ?? [],
+    [productDetail],
+  );
+
+  useEffect(() => {
+    if (!variantId && activeVariants.length === 1) {
+      setVariantId(activeVariants[0].id);
+    }
+  }, [activeVariants, variantId]);
+
+  const selectedVariant = activeVariants.find((v) => v.id === variantId) ?? null;
 
   async function handleSubmit() {
-    if (!productId)     { setError('Sélectionnez un produit.'); return; }
+    if (!variantId)     { setError('Sélectionnez un conditionnement.'); return; }
     if (!reason.trim()) { setError('La raison est obligatoire.'); return; }
+    const qty = parseFloat(quantity);
+    if (!Number.isFinite(qty) || qty <= 0) { setError('Quantité invalide.'); return; }
     setIsPending(true); setError('');
     try {
       await apiFetch('/stock/out/', {
         method: 'POST',
-        body: JSON.stringify({ product: productId, quantity: parseInt(quantity, 10), reason, movement_type: movementType }),
+        body: JSON.stringify({ variant: variantId, quantity: quantity, reason, movement_type: movementType }),
       });
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
@@ -55,17 +73,36 @@ function StockOutForm() {
         id="product"
         label="Produit *"
         value={productId}
-        onChange={(e) => setProductId(e.target.value)}
+        onChange={(e) => { setProductId(e.target.value); setVariantId(''); }}
       >
         <option value="">Sélectionner un produit…</option>
         {products?.results.filter((p) => p.is_active).map((p) => (
-          <option key={p.id} value={p.id}>{p.name} (stock : {p.stock_quantity})</option>
+          <option key={p.id} value={p.id}>
+            {p.name}
+            {p.variant_count && p.variant_count > 1 ? ` (${p.variant_count} formats)` : ''}
+          </option>
         ))}
       </FloatingSelect>
 
-      {selectedProduct && (
+      {productId && activeVariants.length > 0 && (
+        <FloatingSelect
+          id="variant"
+          label="Conditionnement *"
+          value={variantId}
+          onChange={(e) => setVariantId(e.target.value)}
+        >
+          {activeVariants.length > 1 && <option value="">Sélectionner un conditionnement…</option>}
+          {activeVariants.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.packaging_name} (stock : {formatStock(v.stock_quantity, v.unit)})
+            </option>
+          ))}
+        </FloatingSelect>
+      )}
+
+      {selectedVariant && (
         <div className="rounded-2xl bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
-          Stock actuel : <span className="font-semibold text-foreground">{selectedProduct.stock_quantity}</span>
+          Stock actuel : <span className="font-semibold text-foreground">{formatStock(selectedVariant.stock_quantity, selectedVariant.unit)}</span>
         </div>
       )}
 
@@ -89,9 +126,11 @@ function StockOutForm() {
 
       <FloatingInput
         id="quantity"
-        label="Quantité *"
+        label={selectedVariant ? `Quantité (${selectedVariant.unit === 'piece' ? 'pièces' : selectedVariant.unit}) *` : 'Quantité *'}
         type="number"
-        min="1"
+        min="0"
+        step="any"
+        inputMode="decimal"
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
       />

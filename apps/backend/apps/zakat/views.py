@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.shops.models import ShopMember
-from apps.products.models import Product
+from apps.products.models import ProductVariant
 from . import services
 from .models import ZakatCalculation
 from .serializers import ZakatCalculationSerializer
@@ -26,7 +26,9 @@ class ZakatStockEstimateView(APIView):
     def get(self, request):
         shop = get_shop(request.user)
         estimated = services.compute_stock_value(shop)
-        count = Product.objects.filter(shop=shop, is_active=True, stock_quantity__gt=0).count()
+        count = ProductVariant.objects.filter(
+            shop=shop, is_active=True, product__is_active=True, stock_quantity__gt=0,
+        ).count()
         return Response({
             'stock_value_estimated': estimated,
             'currency': shop.currency,

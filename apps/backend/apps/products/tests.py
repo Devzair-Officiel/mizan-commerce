@@ -15,8 +15,14 @@ def setup_user_shop(email):
     return user, shop
 
 
-def make_product(shop, name='Produit test', price='10.00'):
-    return Product.objects.create(shop=shop, name=name, selling_price=price)
+def make_product(shop, name='Produit test'):
+    from apps.products.models import ProductVariant
+    product = Product.objects.create(shop=shop, name=name)
+    ProductVariant.objects.create(
+        shop=shop, product=product, packaging_name='Par défaut',
+        unit='piece', base_quantity=1, selling_price='10.00', position=0,
+    )
+    return product
 
 
 class ProductCRUDTest(TestCase):
@@ -27,7 +33,7 @@ class ProductCRUDTest(TestCase):
 
     def test_create_product(self):
         response = self.client.post(reverse('product-list'), {
-            'name': 'Chemise', 'selling_price': '29.99',
+            'name': 'Chemise',
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Product.objects.filter(shop=self.shop).count(), 1)
@@ -61,13 +67,15 @@ class ProductCRUDTest(TestCase):
         product.refresh_from_db()
         self.assertFalse(product.is_active)
 
-    def test_cannot_set_stock_directly(self):
+    def test_cannot_set_stock_directly_on_variant(self):
         product = make_product(self.shop)
-        self.client.patch(reverse('product-detail', kwargs={'pk': product.pk}), {
-            'stock_quantity': 999,
-        })
-        product.refresh_from_db()
-        self.assertEqual(product.stock_quantity, 0)
+        variant = product.variants.first()
+        self.client.patch(
+            reverse('product-variant-detail', kwargs={'pk': product.pk, 'variant_pk': variant.pk}),
+            {'stock_quantity': 999},
+        )
+        variant.refresh_from_db()
+        self.assertEqual(variant.stock_quantity, 0)
 
 
 class ProductMultiTenantTest(TestCase):

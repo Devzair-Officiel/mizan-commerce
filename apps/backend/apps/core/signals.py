@@ -37,7 +37,8 @@ def log_stock_movement(sender, instance, created: bool, **kwargs) -> None:
         obj_id=instance.pk,
         obj_repr=str(instance),
         changes={
-            'product_id': str(instance.product_id),
+            'variant_id': str(instance.variant_id) if instance.variant_id else None,
+            'product_id': str(instance.variant.product_id) if instance.variant_id else None,
             'quantity': str(instance.quantity),
             'reason': instance.reason,
         },

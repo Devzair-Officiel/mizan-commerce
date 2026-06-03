@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db import models
 from apps.shops.models import Shop
 from apps.customers.models import Customer
-from apps.products.models import Product
+from apps.products.models import ProductVariant
 
 
 class Order(models.Model):
@@ -61,11 +61,14 @@ class OrderItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='order_items')
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(
-        Product, on_delete=models.SET_NULL,
+    variant = models.ForeignKey(
+        ProductVariant, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='order_items'
     )
+    # Dénormalisé pour l'historique : si le produit ou la variante est supprimé,
+    # on garde une trace lisible de ce qui a été commandé.
     product_name = models.CharField(max_length=200)
+    variant_name = models.CharField(max_length=120, blank=True)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     quantity = models.IntegerField()
     line_total = models.DecimalField(max_digits=12, decimal_places=2)
@@ -76,7 +79,8 @@ class OrderItem(models.Model):
         indexes = [models.Index(fields=['order'])]
 
     def __str__(self):
-        return f'{self.quantity} × {self.product_name}'
+        suffix = f' ({self.variant_name})' if self.variant_name else ''
+        return f'{self.quantity} × {self.product_name}{suffix}'
 
     def save(self, *args, **kwargs):
         from decimal import Decimal

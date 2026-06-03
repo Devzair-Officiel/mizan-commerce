@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
-from apps.products.models import Product
+from apps.products.models import Product, ProductVariant
 from apps.stock.models import StockMovement
 from apps.orders.models import Order
 from apps.orders import services as order_services
@@ -52,17 +52,21 @@ class DashboardTodayTest(TestCase):
         self.assertEqual(response.data['unpaid_orders']['count'], 1)
 
     def test_low_stock_products_count(self):
-        p = Product.objects.create(
-            shop=self.shop, name='P', selling_price=Decimal('10'), purchase_price=Decimal('5'),
-            low_stock_threshold=5,
+        p = Product.objects.create(shop=self.shop, name='P')
+        v = ProductVariant.objects.create(
+            shop=self.shop, product=p, packaging_name='Par défaut',
+            unit='piece', base_quantity=1, selling_price=Decimal('10'),
+            purchase_price=Decimal('5'), low_stock_threshold=5,
         )
-        StockMovement.objects.create(shop=self.shop, product=p, movement_type='in', quantity=3)
+        StockMovement.objects.create(shop=self.shop, variant=v, movement_type='in', quantity=3)
         response = self.client.get(self._url())
         self.assertEqual(response.data['low_stock_products']['count'], 1)
 
     def test_out_of_stock_included(self):
-        Product.objects.create(
-            shop=self.shop, name='Rupture', selling_price=Decimal('10'), purchase_price=Decimal('5'),
+        p = Product.objects.create(shop=self.shop, name='Rupture')
+        ProductVariant.objects.create(
+            shop=self.shop, product=p, packaging_name='Par défaut',
+            unit='piece', base_quantity=1, selling_price=Decimal('10'),
         )
         response = self.client.get(self._url())
         self.assertEqual(response.data['low_stock_products']['count'], 1)

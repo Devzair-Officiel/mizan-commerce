@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import type { ProductUnit } from '@/lib/hooks/useProducts';
 
 interface OrderSummary {
   id: string;
@@ -13,8 +14,9 @@ interface OrderSummary {
 interface ProductSummary {
   id: string;
   name: string;
-  stock_quantity: number;
-  low_stock_threshold: number | null;
+  unit: ProductUnit;
+  stock_quantity: string;
+  low_stock_threshold: string | null;
   is_out_of_stock: boolean;
 }
 
@@ -30,7 +32,18 @@ interface DashboardBlock<T> {
   items: T[];
 }
 
+export interface RevenueDayPoint {
+  date: string;
+  revenue: string;
+}
+
 export interface DashboardData {
+  today: {
+    revenue: string;
+    revenue_yesterday: string;
+    orders_count: number;
+  };
+  revenue_last_7_days: RevenueDayPoint[];
   orders_to_prepare: DashboardBlock<OrderSummary>;
   unpaid_orders: DashboardBlock<OrderSummary>;
   low_stock_products: DashboardBlock<ProductSummary>;

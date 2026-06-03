@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
-import { ProductForm } from '@/components/products/ProductForm';
+import { ProductForm, type ProductFormSubmission } from '@/components/products/ProductForm';
 import { useProduct, useUpdateProduct } from '@/lib/hooks/useProducts';
 
 export default function EditProductPage() {
@@ -11,17 +11,23 @@ export default function EditProductPage() {
   const { data: product, isLoading } = useProduct(id);
   const { mutateAsync, isPending } = useUpdateProduct(id);
 
-  async function handleSubmit(data: Parameters<typeof mutateAsync>[0]) {
-    await mutateAsync(data);
+  async function handleSubmit(submission: ProductFormSubmission) {
+    await mutateAsync(submission.product);
     router.push(`/products/${id}`);
   }
 
-  if (isLoading) return <><TopBar title="Modifier" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
+  if (isLoading || !product) return <><TopBar title="Modifier" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
 
   return (
     <>
-      <TopBar title="Modifier le produit" />
-      <ProductForm defaultValues={product} onSubmit={handleSubmit} isSubmitting={isPending} />
+      <TopBar title={product.type === 'service' ? 'Modifier le service' : 'Modifier le produit'} />
+      <ProductForm
+        type={product.type}
+        defaultValues={product}
+        isEditing
+        onSubmit={handleSubmit}
+        isSubmitting={isPending}
+      />
     </>
   );
 }
