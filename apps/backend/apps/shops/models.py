@@ -17,6 +17,11 @@ class Shop(models.Model):
     class Meta:
         db_table = 'shops'
 
+    def save(self, *args, **kwargs):
+        from .services import timezone_for_country
+        self.timezone = timezone_for_country(self.country)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.name
 

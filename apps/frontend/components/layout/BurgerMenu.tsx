@@ -3,7 +3,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Palette } from 'lucide-react';
+import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -36,6 +37,7 @@ const MENU_ITEMS = [
   { href: '/reminders',  label: 'Rappels',              icon: BellIcon },
   { href: '/notes',      label: 'Notes',                icon: NoteIcon },
   { href: '/zakat',      label: 'Zakat',                icon: ZakatIcon },
+  { href: '/profile',    label: 'Mon profil',           icon: ProfileIcon },
   { href: '/settings',   label: 'Paramètres boutique',  icon: SettingsIcon },
 ];
 
@@ -107,6 +109,7 @@ export function BurgerMenuDrawer() {
 
         {/* Thème + Déconnexion */}
         <div className="p-3 pb-8 flex flex-col gap-0.5 border-t border-white/15">
+          <AppearanceRow />
           <ThemeToggleRow />
           <button
             onClick={handleLogout}
@@ -118,6 +121,25 @@ export function BurgerMenuDrawer() {
         </div>
       </aside>
     </>
+  );
+}
+
+/* ── Apparence (ouvre le ThemeDrawer) ── */
+function AppearanceRow() {
+  const { close } = useBurger();
+  const { toggle } = useThemeDrawer();
+  function handleClick() {
+    close();
+    toggle();
+  }
+  return (
+    <button
+      onClick={handleClick}
+      className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
+    >
+      <Palette className="h-5 w-5 shrink-0" />
+      Apparence
+    </button>
   );
 }
 
@@ -181,6 +203,14 @@ function ZakatIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ProfileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   );
 }

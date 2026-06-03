@@ -7,6 +7,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -91,7 +92,7 @@ export default function RegisterPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input id="password" type="password" autoComplete="new-password" {...register('password')} />
+              <PasswordInput id="password" autoComplete="new-password" {...register('password')} />
               {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
             </div>
             {errors.root && <p className="text-sm text-red-500">{errors.root.message}</p>}

@@ -9,7 +9,7 @@ import { useSearch } from '@/lib/hooks/useSearch';
 const STATUS_LABEL: Record<string, string> = {
   draft:      'Brouillon',
   to_prepare: 'À préparer',
-  prepared:   'Préparée',
+  prepared:   'Prête',
   shipped:    'Expédiée',
   cancelled:  'Annulée',
 };

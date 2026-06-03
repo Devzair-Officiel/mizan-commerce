@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, Search, X, UserPlus, Phone, MapPin, User, Ban } from 'lucide-react';
+import { ChevronRight, Search, X, UserPlus, Phone, MapPin, User } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
 
@@ -31,11 +31,6 @@ export function CustomerPicker({
 
   function handleSelect(id: string) {
     onChange(id);
-    close();
-  }
-
-  function handleNone() {
-    onChange('');
     close();
   }
 
@@ -112,7 +107,7 @@ export function CustomerPicker({
             </div>
             <div className="flex-1 min-w-0 flex flex-col gap-0.5">
               <span className="text-sm font-medium text-foreground">Sélectionner un client</span>
-              <span className="text-xs text-muted-foreground">Optionnel — vente comptoir possible</span>
+              <span className="text-xs text-muted-foreground">Choisis un client pour démarrer</span>
             </div>
             <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
           </>
@@ -152,26 +147,9 @@ export function CustomerPicker({
             </span>
             <span>Nouveau client</span>
           </button>
-          <button
-            type="button"
-            onClick={handleNone}
-            aria-pressed={!value}
-            className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-medium transition-colors active:bg-muted ${
-              !value
-                ? 'border-primary/40 bg-primary/5 text-primary'
-                : 'border-border bg-card text-muted-foreground'
-            }`}
-          >
-            <span className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
-              !value ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
-            }`}>
-              <Ban size={16} />
-            </span>
-            <span>Continuer sans client</span>
-          </button>
         </div>
 
-        <div className="flex flex-col divide-y divide-border overflow-y-auto max-h-[50vh] -mx-5 px-5">
+        <div className="flex flex-col divide-y divide-border -mx-5 px-5">
           {customers.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               {search ? 'Aucun client trouvé.' : 'Aucun client enregistré.'}

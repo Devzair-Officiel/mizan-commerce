@@ -1,16 +1,28 @@
 from rest_framework import serializers
 
+from apps.core.storage import get_signed_url, is_storage_configured
+
 from .models import Shop, ShopMember
 
 
 class ShopSerializer(serializers.ModelSerializer):
+    logo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Shop
         fields = (
             'id', 'name', 'currency', 'country', 'timezone',
-            'zakat_annual_date', 'logo_object_key', 'created_at', 'updated_at',
+            'zakat_annual_date', 'logo_object_key', 'logo_url',
+            'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = (
+            'id', 'timezone', 'logo_object_key', 'logo_url', 'created_at', 'updated_at',
+        )
+
+    def get_logo_url(self, obj: Shop) -> str | None:
+        if not obj.logo_object_key or not is_storage_configured():
+            return None
+        return get_signed_url(obj.logo_object_key)
 
 
 class ShopMemberSerializer(serializers.ModelSerializer):

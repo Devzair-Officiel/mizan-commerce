@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { Palette } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ui/ThemeToggle';
+import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 
 const PRIMARY_NAV = [
   { href: '/dashboard',  label: 'Accueil',    icon: HomeIcon },
@@ -17,12 +19,14 @@ const SECONDARY_NAV = [
   { href: '/reminders',  label: 'Rappels',               icon: BellIcon },
   { href: '/notes',      label: 'Notes',                 icon: NoteIcon },
   { href: '/zakat',      label: 'Zakat',                 icon: ZakatIcon },
+  { href: '/profile',    label: 'Mon profil',            icon: ProfileIcon },
   { href: '/settings',   label: 'Paramètres boutique',   icon: SettingsIcon },
 ];
 
 export function DesktopSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { toggle: toggleThemeDrawer } = useThemeDrawer();
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -93,8 +97,15 @@ export function DesktopSidebar() {
         ))}
       </nav>
 
-      {/* Déconnexion */}
-      <div className="p-3 border-t border-border">
+      {/* Apparence + Déconnexion */}
+      <div className="p-3 border-t border-border flex flex-col gap-0.5">
+        <button
+          onClick={toggleThemeDrawer}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Palette className="h-5 w-5 shrink-0" />
+          Apparence
+        </button>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -177,6 +188,14 @@ function ZakatIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function ProfileIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   );
 }

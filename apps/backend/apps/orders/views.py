@@ -99,8 +99,15 @@ class OrderListCreateView(generics.ListAPIView):
                 services.update_payment(order, amount_paid, user=request.user)
 
             target_status = d.get('status', 'draft')
-            if target_status == 'to_prepare':
-                services.transition_status(order, 'to_prepare', request.user)
+            # Chaîne les transitions pour atteindre le statut cible depuis 'draft'.
+            transition_path = {
+                'draft':      [],
+                'to_prepare': ['to_prepare'],
+                'prepared':   ['to_prepare', 'prepared'],
+                'shipped':    ['to_prepare', 'prepared', 'shipped'],
+            }
+            for step in transition_path.get(target_status, []):
+                services.transition_status(order, step, request.user)
 
             initial_note = (d.get('notes') or '').strip()
             if initial_note:

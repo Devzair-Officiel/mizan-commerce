@@ -44,7 +44,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     >
       <div
         ref={sheetRef}
-        className="flex flex-col rounded-t-3xl bg-card shadow-2xl"
+        className="flex flex-col rounded-t-3xl bg-card shadow-2xl max-h-[75vh]"
         style={{
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -52,17 +52,17 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="h-1 w-10 rounded-full bg-border" />
         </div>
 
         {title && (
-          <p className="px-5 pt-2 pb-3 font-semibold text-base text-foreground border-b border-border">
+          <p className="px-5 pt-2 pb-3 font-semibold text-base text-foreground border-b border-border shrink-0">
             {title}
           </p>
         )}
 
-        <div className="px-5 py-4 pb-safe">
+        <div className="px-5 py-4 pb-safe overflow-y-auto">
           {children}
         </div>
       </div>

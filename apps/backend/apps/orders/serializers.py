@@ -76,7 +76,9 @@ class OrderCreateSerializer(serializers.Serializer):
     discount_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     shipping_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     items = OrderItemCreateSerializer(many=True, required=True)
-    status = serializers.ChoiceField(choices=['draft', 'to_prepare'], required=False, default='draft')
+    status = serializers.ChoiceField(
+        choices=['draft', 'to_prepare', 'prepared', 'shipped'], required=False, default='draft',
+    )
     payment_status = serializers.ChoiceField(
         choices=['unpaid', 'partial', 'paid'], required=False, default='unpaid',
     )

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import {
   useOrder, useOrderActivity, useTransitionOrder, useUpdatePayment,
-  type OrderActivityEvent,
+  type Order, type OrderActivityEvent,
 } from '@/lib/hooks/useOrders';
 import { useOrderNotes, useCreateOrderNote, useDeleteNote } from '@/lib/hooks/useNotes';
 
@@ -64,9 +64,9 @@ const NEXT_STEP: Record<string, NextStep | null> = {
     btnClass: 'bg-blue-600 hover:bg-blue-700 text-white',
   },
   to_prepare: {
-    title: 'Marquer comme préparée',
+    title: 'Marquer comme prête',
     subtitle: 'Quand les articles sont prêts à être expédiés.',
-    cta: 'Marquer préparée',
+    cta: 'Marquer prête',
     next: 'prepared',
     icon: <PackageCheck size={18} />,
     accent: 'bg-amber-50 text-amber-700 border border-amber-100',
@@ -88,7 +88,7 @@ const NEXT_STEP: Record<string, NextStep | null> = {
 const REVERT_TRANSITION: Record<string, { status: string; label: string }> = {
   to_prepare: { status: 'draft',      label: 'Revenir en brouillon' },
   prepared:   { status: 'to_prepare', label: 'Revenir à « À préparer »' },
-  shipped:    { status: 'prepared',   label: 'Revenir à « Préparée »' },
+  shipped:    { status: 'prepared',   label: 'Revenir à « Prête »' },
   cancelled:  { status: 'draft',      label: 'Rouvrir en brouillon' },
 };
 
@@ -126,7 +126,7 @@ function relativeTime(iso: string): string {
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Brouillon',
   to_prepare: 'À préparer',
-  prepared: 'Préparée',
+  prepared: 'Prête',
   shipped: 'Expédiée',
   cancelled: 'Annulée',
 };

@@ -104,6 +104,7 @@ interface OrderEventData {
   order_number: string;
   total_amount: string;
   status: string;
+  payment_status: string;
 }
 
 interface PaymentEventData {
@@ -134,12 +135,14 @@ export type ActivityEvent =
 export function useCustomerActivityInfinite(
   customerId: string,
   filter: ActivityFilter = null,
+  pendingOnly: boolean = false,
 ) {
   return useInfiniteQuery({
-    queryKey: ['customers', customerId, 'activity', filter],
+    queryKey: ['customers', customerId, 'activity', filter, pendingOnly],
     queryFn: ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
       if (filter) params.set('types', filter);
+      if (pendingOnly) params.set('pending', 'true');
       params.set('page', String(pageParam));
       params.set('page_size', '15');
       return apiFetch<PaginatedResponse<ActivityEvent>>(

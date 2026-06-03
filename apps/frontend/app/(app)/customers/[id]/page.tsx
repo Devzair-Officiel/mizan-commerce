@@ -57,6 +57,7 @@ export default function CustomerDetailPage() {
   const [showMore, setShowMore] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activityFilter, setActivityFilter] = useState<ActivityType | null>(null);
+  const [pendingOnly, setPendingOnly] = useState(false);
   const [nowMs] = useState(() => Date.now());
 
   const customerBadge = useMemo<{ label: string; classes: string } | null>(() => {
@@ -88,7 +89,7 @@ export default function CustomerDetailPage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: isActivityLoading,
-  } = useCustomerActivityInfinite(id, activityFilter);
+  } = useCustomerActivityInfinite(id, activityFilter, pendingOnly);
 
   function handleCopyAddress() {
     const addr = [customer?.address_line, customer?.city, customer?.postal_code].filter(Boolean).join(', ');
@@ -314,29 +315,47 @@ export default function CustomerDetailPage() {
 
         {/* Cartes métier */}
         <div className="grid grid-cols-2 gap-3">
-          {/* À encaisser — info */}
-          <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">À encaisser</p>
-              <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${
-                hasPending
-                  ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300'
-                  : 'bg-green-500/10 text-green-600 dark:text-green-400'
-              }`}>
-                {hasPending ? <CreditCard size={14} /> : <CheckCircle2 size={14} />}
+          {/* À encaisser — info / filtre */}
+          {hasPending ? (
+            <button
+              type="button"
+              onClick={() => setPendingOnly((v) => !v)}
+              aria-pressed={pendingOnly}
+              className={`rounded-2xl border bg-card p-4 flex flex-col gap-2 text-left transition-all active:scale-[0.98] ${
+                pendingOnly
+                  ? 'border-amber-400/60 ring-2 ring-amber-400/30'
+                  : 'border-border'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">À encaisser</p>
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300">
+                  <CreditCard size={14} />
+                </div>
               </div>
-            </div>
-            <p className={`text-2xl font-bold ${
-              hasPending ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
-            }`}>
-              {parseFloat(customer.pending_amount).toFixed(2)} €
-            </p>
-            {!hasPending && (
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                {parseFloat(customer.pending_amount).toFixed(2)} €
+              </p>
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                {pendingOnly ? 'Filtre actif — re-touche pour tout voir' : 'Touche pour filtrer'}
+              </p>
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">À encaisser</p>
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-green-500/10 text-green-600 dark:text-green-400">
+                  <CheckCircle2 size={14} />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-foreground">
+                {parseFloat(customer.pending_amount).toFixed(2)} €
+              </p>
               <p className="text-xs font-medium text-green-600 dark:text-green-400">
                 À jour
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Nouvelle commande — CTA */}
           <Link

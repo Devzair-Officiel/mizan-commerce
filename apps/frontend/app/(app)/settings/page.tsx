@@ -1,43 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
-import { useShop, useUpdateShop } from '@/lib/hooks/useShop';
-import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
-
-function AppearanceRow() {
-  const { toggle } = useThemeDrawer();
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium text-foreground">Apparence</p>
-      <button
-        onClick={toggle}
-        className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3.5 text-left w-full active:bg-muted transition-colors"
-      >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-          <PaletteIcon className="h-6 w-6" />
-        </span>
-        <span>
-          <span className="block text-sm font-medium text-foreground">Personnaliser</span>
-          <span className="block text-xs text-muted-foreground">Couleurs, thème, arrière-plan</span>
-        </span>
-      </button>
-    </div>
-  );
-}
-
-function PaletteIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2a10 10 0 1 0 0 20 4 4 0 0 0 4-4v-.5a1.5 1.5 0 0 1 1.5-1.5H18a4 4 0 0 0 4-4 10 10 0 0 0-10-10zm-5.5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" />
-    </svg>
-  );
-}
+import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
+import { useShop, useUpdateShop, useUploadShopLogo, useDeleteShopLogo } from '@/lib/hooks/useShop';
 
 const CURRENCIES = ['EUR', 'MAD', 'TND', 'DZD', 'XOF', 'USD', 'GBP'];
 const COUNTRIES = [
@@ -55,7 +26,6 @@ const schema = z.object({
   name: z.string().min(1, 'Nom requis'),
   currency: z.string().min(1),
   country: z.string().optional(),
-  timezone: z.string().optional(),
   zakat_annual_date: z.string().optional(),
 });
 
@@ -64,6 +34,45 @@ type FormValues = z.infer<typeof schema>;
 export default function SettingsPage() {
   const { data: shop, isLoading } = useShop();
   const { mutateAsync, isPending, isSuccess } = useUpdateShop();
+  const uploadLogo = useUploadShopLogo();
+  const deleteLogo = useDeleteShopLogo();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  function handlePickFile() {
+    setLogoError(null);
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setLogoError('Formats acceptés : JPEG, PNG, WebP.');
+      return;
+    }
+    setPendingFile(file);
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    try {
+      await uploadLogo.mutateAsync(blob);
+      setPendingFile(null);
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : 'Erreur upload');
+    }
+  }
+
+  async function handleDeleteLogo() {
+    if (!confirm('Supprimer le logo de la boutique ?')) return;
+    try {
+      await deleteLogo.mutateAsync();
+    } catch {
+      setLogoError('Erreur lors de la suppression.');
+    }
+  }
 
   const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -75,7 +84,6 @@ export default function SettingsPage() {
         name: shop.name,
         currency: shop.currency,
         country: shop.country ?? '',
-        timezone: shop.timezone ?? '',
         zakat_annual_date: shop.zakat_annual_date ?? '',
       });
     }
@@ -91,43 +99,124 @@ export default function SettingsPage() {
   return (
     <>
       <TopBar title="Paramètres boutique" />
-      <div className="flex flex-col gap-5 p-4">
-        <AppearanceRow />
-        <div className="h-px bg-border" />
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 px-4 pb-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6 px-4 pt-4 pb-32">
 
-        <div className="flex flex-col gap-0.5">
-          <FloatingInput id="name" label="Nom de la boutique *" {...register('name')} />
-          {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name.message}</p>}
-        </div>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identité</h2>
 
-        <div className="grid grid-cols-2 gap-3">
-          <FloatingSelect id="currency" label="Devise" {...register('currency')}>
-            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </FloatingSelect>
-          <FloatingSelect id="country" label="Pays (optionnel)" {...register('country')}>
-            <option value="">—</option>
-            {COUNTRIES.map(({ code, label }) => <option key={code} value={code}>{label}</option>)}
-          </FloatingSelect>
-        </div>
+          <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-muted flex items-center justify-center">
+              {shop?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={shop.logo_url} alt="Logo" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-muted-foreground">
+                  {(shop?.name ?? '?').trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5 min-w-0">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePickFile}
+                disabled={uploadLogo.isPending}
+              >
+                {uploadLogo.isPending ? 'Envoi…' : shop?.logo_url ? 'Changer le logo' : 'Ajouter un logo'}
+              </Button>
+              {shop?.logo_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={handleDeleteLogo}
+                  disabled={deleteLogo.isPending}
+                >
+                  {deleteLogo.isPending ? 'Suppression…' : 'Supprimer'}
+                </Button>
+              )}
+            </div>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {logoError && <p className="text-[11px] text-destructive px-1">{logoError}</p>}
 
-        <FloatingInput id="timezone" label="Fuseau horaire (optionnel)" {...register('timezone')} />
+          <div className="flex flex-col gap-0.5">
+            <FloatingInput id="name" label="Nom de la boutique *" {...register('name')} />
+            {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name.message}</p>}
+          </div>
+        </section>
 
-        <div className="flex flex-col gap-0.5">
-          <FloatingInput id="zakat_annual_date" label="Date annuelle de Zakat (optionnel)" type="date" {...register('zakat_annual_date')} />
-          <p className="text-[11px] text-muted-foreground px-1">Un rappel sera généré avant cette date chaque année.</p>
-        </div>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Régional</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <FloatingSelect id="currency" label="Devise" {...register('currency')}>
+              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </FloatingSelect>
+            <FloatingSelect id="country" label="Pays (optionnel)" {...register('country')}>
+              <option value="">—</option>
+              {COUNTRIES.map(({ code, label }) => <option key={code} value={code}>{label}</option>)}
+            </FloatingSelect>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Zakat</h2>
+          <div className="flex flex-col gap-0.5">
+            <FloatingInput id="zakat_annual_date" label="Date annuelle (optionnel)" type="date" {...register('zakat_annual_date')} />
+            <p className="text-[11px] text-muted-foreground px-1">Un rappel sera généré avant cette date chaque année.</p>
+          </div>
+        </section>
 
         {isSuccess && !isDirty && (
           <p className="text-sm text-green-600 text-center">Modifications enregistrées ✓</p>
         )}
 
-        <Button type="submit" disabled={isPending || !isDirty} className="w-full mt-1">
-          {isPending ? 'Enregistrement…' : 'Enregistrer'}
-        </Button>
+        {/* Barre d'actions sticky — apparaît quand le formulaire est modifié */}
+        <div
+          aria-hidden={!isDirty}
+          className={`fixed left-0 right-0 z-40 px-4 pb-safe pointer-events-none transition-[transform,opacity] duration-200 bottom-16 lg:bottom-4 lg:left-60 ${
+            isDirty ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+          }`}
+        >
+          <div className={`mx-auto max-w-xl flex items-center gap-2 rounded-2xl border border-border bg-card/95 backdrop-blur px-3 py-2 shadow-lg ${isDirty ? 'pointer-events-auto' : ''}`}>
+            <p className="flex-1 text-xs font-medium text-muted-foreground px-1">
+              Modifications non enregistrées
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => shop && reset({
+                name: shop.name,
+                currency: shop.currency,
+                country: shop.country ?? '',
+                zakat_annual_date: shop.zakat_annual_date ?? '',
+              })}
+            >
+              Annuler
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? 'Enregistrement…' : 'Enregistrer'}
+            </Button>
+          </div>
+        </div>
       </form>
+
+      <ImageCropDialog
+        open={!!pendingFile}
+        file={pendingFile}
+        onClose={() => setPendingFile(null)}
+        onConfirm={handleCropConfirm}
+      />
     </>
   );
 }

@@ -177,16 +177,19 @@ function PickView({
         <button
           type="button"
           onClick={onFreeLine}
-          className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 px-3 py-3 text-sm font-medium text-foreground transition-colors active:bg-muted"
+          className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 px-3 py-3 text-sm transition-colors active:bg-muted"
         >
           <span className="shrink-0 w-9 h-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
             <FilePlus2 size={16} />
           </span>
-          <span className="text-left">Ajouter une ligne libre</span>
+          <span className="flex-1 min-w-0 flex flex-col gap-0.5 text-left">
+            <span className="font-medium text-foreground">Article ou service ponctuel</span>
+            <span className="text-xs text-muted-foreground">Sans enregistrer au catalogue</span>
+          </span>
         </button>
       </div>
 
-      <div className="flex flex-col divide-y divide-border overflow-y-auto max-h-[45vh] -mx-5 px-5">
+      <div className="flex flex-col divide-y divide-border -mx-5 px-5">
         {products.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
             {search || filter !== 'all' ? 'Aucun résultat.' : 'Aucun article enregistré.'}

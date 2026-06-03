@@ -27,6 +27,7 @@ class TimelineEvent(TypedDict):
 def get_customer_timeline(
     customer: Customer,
     types: Iterable[str] | None = None,
+    pending_only: bool = False,
 ) -> list[TimelineEvent]:
     """Return a mixed activity timeline for the customer.
 
@@ -40,6 +41,10 @@ def get_customer_timeline(
 
     Plus one ``note`` event per customer note.
 
+    When ``pending_only`` is True, restricts to orders with outstanding balance
+    (``payment_status`` in {unpaid, partial} and not cancelled). Customer-level
+    notes (notes without ``order_id``) are excluded in this mode.
+
     Results sorted by ``occurred_at`` descending.
     """
     selected = {t for t in (types or ALL_TYPES) if t in ALL_TYPES}
@@ -48,7 +53,7 @@ def get_customer_timeline(
 
     events: list[TimelineEvent] = []
     order_by_id: dict[str, Order] = {}
-    need_orders = bool({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT} & selected)
+    need_orders = bool({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT} & selected) or pending_only
 
     if need_orders:
         order_qs = Order.objects.filter(
@@ -58,6 +63,10 @@ def get_customer_timeline(
             'id', 'order_number', 'total_amount',
             'status', 'payment_status', 'amount_paid', 'created_at',
         )
+        if pending_only:
+            order_qs = order_qs.filter(
+                payment_status__in=['unpaid', 'partial'],
+            ).exclude(status='cancelled')
         order_by_id = {str(o.id): o for o in order_qs}
 
     # Fetch latest payment/shipment audit logs in a single query.
@@ -87,6 +96,7 @@ def get_customer_timeline(
                     'order_number': order.order_number,
                     'total_amount': str(order.total_amount),
                     'status': order.status,
+                    'payment_status': order.payment_status,
                 },
             ))
         if EVENT_PAYMENT in selected:
@@ -122,6 +132,10 @@ def get_customer_timeline(
             'id', 'content', 'order_id', 'created_at',
             'author__full_name', 'author__email',
         )
+        if pending_only:
+            # En mode "à encaisser", exclure les notes sans commande et celles
+            # liées à des commandes déjà payées / annulées.
+            note_qs = note_qs.filter(order_id__in=list(order_by_id.keys()))
         for note in note_qs:
             author_name: str | None = None
             if note.author_id is not None:

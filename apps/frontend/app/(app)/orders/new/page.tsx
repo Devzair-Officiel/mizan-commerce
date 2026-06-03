@@ -35,11 +35,14 @@ function NewOrderForm() {
   const [shipping,   setShipping]   = useState('');
   const [items, setItems] = useState<LineItem[]>([]);
   const [itemsError, setItemsError] = useState(false);
+  const [customerError, setCustomerError] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'partial' | 'paid'>('unpaid');
   const [amountPaid, setAmountPaid] = useState('');
-  const [orderStatus, setOrderStatus] = useState<'draft' | 'to_prepare'>('to_prepare');
+  const [orderStatus, setOrderStatus] = useState<'draft' | 'to_prepare' | 'shipped'>('to_prepare');
   const [paymentError, setPaymentError] = useState('');
   const [showNotes, setShowNotes] = useState(false);
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [showShipping, setShowShipping] = useState(false);
   const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const { data: selectedCustomer } = useCustomer(customerId);
@@ -100,7 +103,10 @@ function NewOrderForm() {
 
   async function handleSubmit() {
     setPaymentError('');
-    if (items.length === 0) { setItemsError(true); return; }
+    let invalid = false;
+    if (!customerId) { setCustomerError(true); invalid = true; }
+    if (items.length === 0) { setItemsError(true); invalid = true; }
+    if (invalid) return;
     if (paymentStatus === 'partial') {
       const n = parseFloat(amountPaid);
       if (!n || n <= 0) { setPaymentError('Saisis un montant reçu supérieur à 0.'); return; }
@@ -128,21 +134,32 @@ function NewOrderForm() {
     <div className="flex flex-col gap-5 p-4 pb-32">
 
       {/* Client */}
-      <CustomerPicker
-        value={customerId}
-        selectedCustomer={selectedCustomer}
-        onChange={setCustomerId}
-        onRequestCreate={() => setCreateCustomerOpen(true)}
-      />
-      <QuickAddCustomer
-        hideTrigger
-        open={createCustomerOpen}
-        onOpenChange={setCreateCustomerOpen}
-        onCreated={(c: Customer) => setCustomerId(c.id)}
-      />
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+          1 · Client
+        </span>
+        <CustomerPicker
+          value={customerId}
+          selectedCustomer={selectedCustomer}
+          onChange={(id) => { setCustomerId(id); if (id) setCustomerError(false); }}
+          onRequestCreate={() => setCreateCustomerOpen(true)}
+        />
+        <QuickAddCustomer
+          hideTrigger
+          open={createCustomerOpen}
+          onOpenChange={setCreateCustomerOpen}
+          onCreated={(c: Customer) => { setCustomerId(c.id); setCustomerError(false); }}
+        />
+        {customerError && (
+          <p className="text-[11px] text-destructive px-1">Sélectionnez un client pour continuer.</p>
+        )}
+      </div>
 
       {/* Sélecteur d'article ou service */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+          2 · Articles &amp; services
+        </span>
         <ProductPicker
           onPick={addItem}
           onFreeLine={addFreeLine}
@@ -238,20 +255,48 @@ function NewOrderForm() {
             <SummaryRow label="Sous-total">
               <span className="text-sm font-medium text-foreground tabular-nums">{subtotal.toFixed(2)} €</span>
             </SummaryRow>
-            <SummaryRow label="Remise">
-              <SummaryAmountInput
-                value={discount}
-                onChange={setDiscount}
-                ariaLabel="Remise"
-              />
-            </SummaryRow>
-            <SummaryRow label="Frais">
-              <SummaryAmountInput
-                value={shipping}
-                onChange={setShipping}
-                ariaLabel="Frais"
-              />
-            </SummaryRow>
+            {(showDiscount || discountN > 0) && (
+              <SummaryRow label="Remise">
+                <SummaryAmountInput
+                  value={discount}
+                  onChange={setDiscount}
+                  ariaLabel="Remise"
+                  onClear={() => { setDiscount(''); setShowDiscount(false); }}
+                />
+              </SummaryRow>
+            )}
+            {(showShipping || shippingN > 0) && (
+              <SummaryRow label="Frais">
+                <SummaryAmountInput
+                  value={shipping}
+                  onChange={setShipping}
+                  ariaLabel="Frais"
+                  onClear={() => { setShipping(''); setShowShipping(false); }}
+                />
+              </SummaryRow>
+            )}
+            {(!showDiscount && discountN === 0) || (!showShipping && shippingN === 0) ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 border-b border-border">
+                {!showDiscount && discountN === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDiscount(true)}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    + Ajouter une remise
+                  </button>
+                )}
+                {!showShipping && shippingN === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowShipping(true)}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    + Ajouter des frais
+                  </button>
+                )}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
               <span className="text-sm font-semibold text-foreground">Total</span>
               <span className="text-base font-bold text-foreground tabular-nums">{total.toFixed(2)} €</span>
@@ -297,15 +342,16 @@ function NewOrderForm() {
         )}
       </SectionChips>
 
-      {/* Créer comme */}
+      {/* Statut initial */}
       <SectionChips
-        title="Créer comme"
+        title="Statut initial"
         options={[
-          { value: 'draft',      label: 'Brouillon',   activeClass: 'bg-muted-foreground/80 text-background' },
-          { value: 'to_prepare', label: toPrepareLabel, activeClass: 'bg-primary text-primary-foreground' },
+          { value: 'draft',      label: 'Brouillon',    activeClass: 'bg-zinc-500 text-white' },
+          { value: 'to_prepare', label: toPrepareLabel, activeClass: 'bg-blue-600 text-white' },
+          { value: 'shipped',    label: 'Expédiée',     activeClass: 'bg-green-600 text-white' },
         ]}
         value={orderStatus}
-        onChange={(v) => setOrderStatus(v as 'draft' | 'to_prepare')}
+        onChange={(v) => setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
       />
 
       {/* Notes — repliable */}
@@ -424,25 +470,40 @@ function SummaryAmountInput({
   value,
   onChange,
   ariaLabel,
+  onClear,
 }: {
   value: string;
   onChange: (v: string) => void;
   ariaLabel: string;
+  onClear?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-lg border border-border bg-background focus-within:border-primary transition-colors">
-      <input
-        type="number"
-        inputMode="decimal"
-        step="0.01"
-        min="0"
-        placeholder="0,00"
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-20 bg-transparent text-right text-sm font-medium tabular-nums px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-      />
-      <span className="text-sm text-muted-foreground pr-2">€</span>
+    <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 rounded-lg border border-border bg-background focus-within:border-primary transition-colors">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min="0"
+          placeholder="0,00"
+          aria-label={ariaLabel}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          autoFocus={!value}
+          className="w-20 bg-transparent text-right text-sm font-medium tabular-nums px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <span className="text-sm text-muted-foreground pr-2">€</span>
+      </div>
+      {onClear && (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={`Retirer ${ariaLabel.toLowerCase()}`}
+          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+        >
+          <X size={14} />
+        </button>
+      )}
     </div>
   );
 }

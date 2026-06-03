@@ -97,7 +97,10 @@ class CustomerActivityView(APIView):
             types: list[str] | None = list(requested)
         else:
             types = None
-        items: list[dict] = list(get_customer_timeline(customer, types=types))
+        pending_only = request.query_params.get('pending') == 'true'
+        items: list[dict] = list(
+            get_customer_timeline(customer, types=types, pending_only=pending_only),
+        )
 
         paginator = FlexiblePageNumberPagination()
         page = paginator.paginate_queryset(items, request, view=self)

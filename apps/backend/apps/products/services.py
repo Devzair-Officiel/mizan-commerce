@@ -7,20 +7,14 @@ from django.conf import settings
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from rest_framework.exceptions import ValidationError
 
+from apps.core.storage import get_signed_url, upload_fileobj
+
 if TYPE_CHECKING:
     from apps.products.models import ProductImage
     from apps.shops.models import Shop
 
 
-def _get_s3_client():
-    import boto3
-    return boto3.client(
-        's3',
-        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME,
-    )
+__all__ = ('upload_product_image', 'get_signed_url')
 
 
 def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFile) -> 'ProductImage':
@@ -40,13 +34,7 @@ def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFi
     ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else 'jpg'
     object_key = f"products/{shop.pk}/{product_id}/{uuid.uuid4()}.{ext}"
 
-    s3 = _get_s3_client()
-    s3.upload_fileobj(
-        file,
-        settings.AWS_STORAGE_BUCKET_NAME,
-        object_key,
-        ExtraArgs={'ContentType': file.content_type, 'ACL': 'private'},
-    )
+    upload_fileobj(file, object_key, file.content_type)
 
     is_first = not ProductImage.objects.filter(product=product).exists()
     image = ProductImage.objects.create(
@@ -57,12 +45,3 @@ def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFi
         position=ProductImage.objects.filter(product=product).count(),
     )
     return image
-
-
-def get_signed_url(object_key: str, expires_in: int = 3600) -> str:
-    s3 = _get_s3_client()
-    return s3.generate_presigned_url(
-        'get_object',
-        Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': object_key},
-        ExpiresIn=expires_in,
-    )
