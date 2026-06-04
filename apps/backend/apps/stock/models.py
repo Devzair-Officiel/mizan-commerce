@@ -31,7 +31,8 @@ class StockMovement(models.Model):
         ProductVariant, on_delete=models.CASCADE, related_name='stock_movements'
     )
     movement_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    # quantity est toujours positif sauf pour 'adjustment' où elle peut être négative
+    # quantity = nombre de formats (bouteilles, sacs…), pas du contenu cumulé.
+    # Toujours positive sauf pour 'adjustment' où elle peut être négative.
     quantity = models.DecimalField(max_digits=14, decimal_places=3)
     reason = models.TextField(blank=True)
     order_id = models.UUIDField(null=True, blank=True)

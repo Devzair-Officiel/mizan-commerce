@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 
+export type NisabMethod = 'gold' | 'silver';
+
 export interface Shop {
   id: string;
   name: string;
@@ -8,6 +10,8 @@ export interface Shop {
   country: string;
   timezone: string;
   zakat_annual_date: string | null;
+  nisab_method: NisabMethod;
+  nisab_unit_price: string | null;
   logo_object_key: string;
   logo_url: string | null;
   created_at: string;
@@ -19,6 +23,8 @@ export interface ShopUpdateData {
   currency?: string;
   country?: string;
   zakat_annual_date?: string | null;
+  nisab_method?: NisabMethod;
+  nisab_unit_price?: string | null;
 }
 
 export function useShop() {

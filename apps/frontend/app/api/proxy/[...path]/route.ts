@@ -83,6 +83,18 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
   if (res.status === 204) return new NextResponse(null, { status: 204 });
 
+  // Réponses binaires (PDF, images, etc.) : on transmet le buffer tel quel en conservant
+  // content-type et content-disposition. Sinon on traite comme JSON.
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    const buffer = await res.arrayBuffer();
+    const headers = new Headers();
+    headers.set('content-type', contentType);
+    const disposition = res.headers.get('content-disposition');
+    if (disposition) headers.set('content-disposition', disposition);
+    return new NextResponse(buffer, { status: res.status, headers });
+  }
+
   const data = await res.json().catch(() => null);
   return NextResponse.json(data, { status: res.status });
 }

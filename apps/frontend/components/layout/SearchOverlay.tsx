@@ -5,7 +5,6 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, Package, Users, ShoppingBag } from 'lucide-react';
 import { useSearch } from '@/lib/hooks/useSearch';
-import { formatStock } from '@/lib/hooks/useProducts';
 
 const STATUS_LABEL: Record<string, string> = {
   draft:      'Brouillon',
@@ -141,7 +140,11 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
                     {p.reference && <p className="text-xs text-muted-foreground">{p.reference}</p>}
                   </div>
                   {p.type === 'product' && (
-                    <p className="text-xs text-muted-foreground shrink-0 ml-3">Stock : {formatStock(p.stock_quantity, p.unit)}</p>
+                    <p className={`text-xs shrink-0 ml-3 ${p.is_out_of_stock ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                      {p.is_out_of_stock
+                        ? 'Rupture'
+                        : `${p.variant_count} ${p.variant_count > 1 ? 'formats' : 'format'}`}
+                    </p>
                   )}
                 </button>
               ))}

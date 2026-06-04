@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
-import { ApiError } from '@/lib/api-client';
+import { ApiError, apiFetch } from '@/lib/api-client';
 import {
+  UNIT_LABELS,
   formatStock,
+  formatUnitPrice,
   useCreateProductVariant,
   useDeleteProductVariant,
   useUpdateProductVariant,
@@ -119,9 +122,15 @@ function VariantRow({
     }
   }
 
+  const stockTone = variant.is_out_of_stock
+    ? 'text-destructive'
+    : variant.is_low_stock
+      ? 'text-amber-600 dark:text-amber-400'
+      : 'text-muted-foreground';
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div className="flex-1 min-w-0">
+    <div className="flex items-start gap-3 px-4 py-3">
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
         <div className="flex items-center gap-2 min-w-0">
           <p className="text-sm font-medium text-foreground truncate">{variant.packaging_name}</p>
           {!variant.is_active && (
@@ -130,39 +139,56 @@ function VariantRow({
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {variant.selling_price} €
-          {isProduct && (
-            <>
-              {' · '}
-              <span className={variant.is_out_of_stock ? 'text-destructive' : variant.is_low_stock ? 'text-amber-600' : ''}>
-                {formatStock(variant.stock_quantity, variant.unit)}
+        {(isProduct || variant.sku) && (
+          <div className="flex items-center gap-1.5 text-xs">
+            {isProduct && (
+              <span className={`tabular-nums font-medium ${stockTone}`}>
+                {formatStock(variant.stock_quantity, variant.unit, {
+                  baseQuantity: variant.base_quantity,
+                  packagingName: variant.packaging_name,
+                })}
               </span>
-            </>
-          )}
-          {variant.sku && <> · SKU {variant.sku}</>}
-        </p>
+            )}
+            {isProduct && variant.sku && <span className="text-muted-foreground/60">·</span>}
+            {variant.sku && (
+              <span className="text-muted-foreground truncate">SKU {variant.sku}</span>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          type="button"
-          onClick={onEdit}
-          aria-label="Modifier"
-          className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Pencil size={14} />
-        </button>
-        {canDelete && (
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span className="text-sm font-semibold text-foreground tabular-nums">
+          {variant.selling_price} €
+        </span>
+        {(() => {
+          const unitPrice = formatUnitPrice(variant.selling_price, variant.base_quantity, variant.unit);
+          return unitPrice && (
+            <span className="text-[11px] text-muted-foreground tabular-nums">
+              {unitPrice}
+            </span>
+          );
+        })()}
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
-            onClick={handleDelete}
-            aria-label="Supprimer"
-            disabled={del.isPending}
-            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+            onClick={onEdit}
+            aria-label="Modifier"
+            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Trash2 size={14} />
+            <Pencil size={14} />
           </button>
-        )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              aria-label="Supprimer"
+              disabled={del.isPending}
+              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -181,6 +207,7 @@ function VariantEditor({
 }) {
   const create = useCreateProductVariant(productId);
   const update = useUpdateProductVariant(productId, variant?.id ?? '');
+  const qc = useQueryClient();
 
   const [packagingName, setPackagingName] = useState(variant?.packaging_name ?? '');
   const [unit, setUnit] = useState<ProductUnit>(variant?.unit ?? 'piece');
@@ -189,10 +216,24 @@ function VariantEditor({
   const [purchasePrice, setPurchasePrice] = useState(variant?.purchase_price ?? '');
   const [sku, setSku] = useState(variant?.sku ?? '');
   const [lowStockThreshold, setLowStockThreshold] = useState(variant?.low_stock_threshold ?? '');
+  const [initialStock, setInitialStock] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const isEditing = !!variant;
   const isPending = create.isPending || update.isPending;
+
+  const unitShort = UNIT_LABELS[unit];
+  const stockUnitLabel = unit === 'piece' ? 'pièces' : unitShort;
+  // Le stock se compte en FORMATS : nom du conditionnement si défini + composite, sinon unité brute.
+  const initialStockSuffix =
+    unit === 'piece'
+      ? 'pièces'
+      : parseFloat(baseQuantity || '1') === 1
+        ? unitShort
+        : packagingName.trim() || 'formats';
+  const unitPricePreview = isProduct
+    ? formatUnitPrice(sellingPrice, baseQuantity || '1', unit)
+    : null;
 
   async function handleSave() {
     setError(null);
@@ -213,7 +254,22 @@ function VariantEditor({
       if (isEditing) {
         await update.mutateAsync(payload);
       } else {
-        await create.mutateAsync(payload);
+        const created = await create.mutateAsync(payload);
+        const initialQty = parseFloat(initialStock);
+        if (Number.isFinite(initialQty) && initialQty > 0) {
+          await apiFetch('/stock/in/', {
+            method: 'POST',
+            body: JSON.stringify({
+              variant: created.id,
+              quantity: initialStock,
+              reason: 'Stock initial',
+            }),
+          });
+          qc.invalidateQueries({ queryKey: ['products', productId] });
+          qc.invalidateQueries({ queryKey: ['products'] });
+          qc.invalidateQueries({ queryKey: ['stock', 'movements'] });
+          qc.invalidateQueries({ queryKey: ['dashboard'] });
+        }
       }
       onDone();
     } catch (err) {
@@ -232,11 +288,12 @@ function VariantEditor({
   }
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-3">
+    <div className="flex flex-col gap-3 px-4 py-3">
+      {/* Identité : nom + SKU côte à côte (pas de suffixe → 2-col tient la route). */}
       <div className="grid grid-cols-2 gap-2">
         <FloatingInput
           id="v-name"
-          label="Nom *"
+          label={isProduct ? 'Nom du format *' : 'Nom *'}
           value={packagingName}
           onChange={(e) => setPackagingName(e.target.value)}
         />
@@ -247,11 +304,13 @@ function VariantEditor({
           onChange={(e) => setSku(e.target.value)}
         />
       </div>
+
+      {/* Unité + Quantité contenue — donne le référentiel pour le prix juste après. */}
       {isProduct && (
-        <div className="grid grid-cols-2 gap-2">
+        <>
           <FloatingSelect
             id="v-unit"
-            label="Unité"
+            label="Unité de mesure"
             value={unit}
             onChange={(e) => setUnit(e.target.value as ProductUnit)}
           >
@@ -261,17 +320,20 @@ function VariantEditor({
           </FloatingSelect>
           <FloatingInput
             id="v-base-qty"
-            label="Quantité de base"
+            label="Quantité contenue"
             type="number"
             step="any"
             min="0"
             inputMode="decimal"
+            suffix={stockUnitLabel}
             value={baseQuantity}
             onChange={(e) => setBaseQuantity(e.target.value)}
           />
-        </div>
+        </>
       )}
-      <div className="grid grid-cols-2 gap-2">
+
+      {/* Prix de vente — avec aperçu live du prix unitaire si pertinent. */}
+      <div className="flex flex-col gap-1">
         <FloatingInput
           id="v-selling-price"
           label="Prix de vente *"
@@ -279,30 +341,56 @@ function VariantEditor({
           step="0.01"
           min="0"
           inputMode="decimal"
+          suffix="€"
           value={sellingPrice}
           onChange={(e) => setSellingPrice(e.target.value)}
         />
-        <FloatingInput
-          id="v-purchase-price"
-          label="Prix d'achat (optionnel)"
-          type="number"
-          step="0.01"
-          min="0"
-          inputMode="decimal"
-          value={purchasePrice}
-          onChange={(e) => setPurchasePrice(e.target.value)}
-        />
+        {unitPricePreview && (
+          <p className="text-[11px] text-muted-foreground px-1 tabular-nums">
+            Soit {unitPricePreview}
+          </p>
+        )}
       </div>
+
+      <FloatingInput
+        id="v-purchase-price"
+        label="Prix d'achat (optionnel)"
+        type="number"
+        step="0.01"
+        min="0"
+        inputMode="decimal"
+        suffix="€"
+        value={purchasePrice}
+        onChange={(e) => setPurchasePrice(e.target.value)}
+      />
+
       {isProduct && (
         <FloatingInput
           id="v-threshold"
-          label="Seuil d'alerte stock (optionnel)"
+          label="Seuil d'alerte (optionnel)"
           type="number"
           step="any"
           min="0"
           inputMode="decimal"
+          suffix={stockUnitLabel}
           value={lowStockThreshold}
           onChange={(e) => setLowStockThreshold(e.target.value)}
+        />
+      )}
+
+      {/* Stock initial — visible uniquement en création. Pour modifier le stock d'un format
+          existant, on passe par /stock/add (mouvement avec raison explicite). */}
+      {isProduct && !isEditing && (
+        <FloatingInput
+          id="v-initial-stock"
+          label="Stock initial (optionnel)"
+          type="number"
+          step="any"
+          min="0"
+          inputMode="decimal"
+          suffix={initialStockSuffix}
+          value={initialStock}
+          onChange={(e) => setInitialStock(e.target.value)}
         />
       )}
       {error && <p className="text-[11px] text-destructive px-1">{error}</p>}

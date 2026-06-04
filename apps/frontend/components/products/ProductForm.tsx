@@ -8,12 +8,13 @@ import { AlertCircle, Camera, ChevronDown, FileText, Package, Sparkles, X } from
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
 import { ApiError } from '@/lib/api-client';
-import type {
-  ProductDetail,
-  ProductFormData,
-  ProductType,
-  ProductUnit,
-  ProductVariantFormData,
+import {
+  UNIT_LABELS,
+  type ProductDetail,
+  type ProductFormData,
+  type ProductType,
+  type ProductUnit,
+  type ProductVariantFormData,
 } from '@/lib/hooks/useProducts';
 
 const UNIT_OPTIONS: { value: ProductUnit; label: string }[] = [
@@ -92,6 +93,10 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
   const nameValue = watch('name');
   const sellingPriceValue = watch('selling_price') ?? '';
   const descriptionValue = watch('description') ?? '';
+  const unitValue: ProductUnit = watch('unit') ?? 'piece';
+  const unitShort = UNIT_LABELS[unitValue]; // "pièce", "kg", "g", "mL", "L", "m"
+  const stockUnitLabel = unitValue === 'piece' ? 'pièces' : unitShort;
+  const priceSuffix = `€/${unitShort}`;
   // En édition, on n'a plus besoin du prix dans la validation : il vit sur la variante.
   const canSubmit = nameValue.trim().length > 0
     && (isEditing || sellingPriceValue.trim().length > 0)
@@ -202,11 +207,39 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         )}
       </section>
 
-      {/* Prix — création seulement (en édition : passer par les conditionnements) */}
+      {/* Unité de vente — produits uniquement, création seulement.
+          Placée AVANT le prix pour ancrer le référentiel ("le prix de quoi ?"). */}
+      {isProduct && !isEditing && (
+        <section className="flex flex-col gap-2.5">
+          <SectionHeading>Unité de vente</SectionHeading>
+          <Controller
+            name="unit"
+            control={control}
+            render={({ field }) => (
+              <FloatingSelect
+                id="unit"
+                label="Comment vendez-vous ce produit ?"
+                value={field.value ?? 'piece'}
+                onChange={(e) => field.onChange(e.target.value)}
+              >
+                {UNIT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </FloatingSelect>
+            )}
+          />
+          <p className="text-[11px] text-muted-foreground px-1">
+            Définitif après création — tous les prix et stocks s&apos;exprimeront dans cette unité.
+          </p>
+        </section>
+      )}
+
+      {/* Prix — création seulement (en édition : passer par les conditionnements).
+          Champs en pleine largeur : labels + suffixes ne tiennent pas en 2 colonnes sur mobile. */}
       {!isEditing && (
       <section className="flex flex-col gap-2.5">
         <SectionHeading>Prix</SectionHeading>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-0.5">
             <FloatingInput
               id="selling_price"
@@ -216,6 +249,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
               step="0.01"
               min="0"
               inputMode="decimal"
+              suffix={isProduct ? priceSuffix : '€'}
               aria-invalid={errors.selling_price ? 'true' : 'false'}
               {...register('selling_price')}
             />
@@ -228,6 +262,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
             step="0.01"
             min="0"
             inputMode="decimal"
+            suffix={isProduct ? priceSuffix : '€'}
             {...register('purchase_price')}
           />
         </div>
@@ -241,53 +276,30 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
       {isProduct && !isEditing && (
         <section className="flex flex-col gap-2.5">
           <SectionHeading>Stock</SectionHeading>
-          <Controller
-            name="unit"
-            control={control}
-            render={({ field }) => (
-              <FloatingSelect
-                id="unit"
-                label="Unité de vente"
-                value={field.value ?? 'piece'}
-                onChange={(e) => field.onChange(e.target.value)}
-                disabled={isEditing}
-              >
-                {UNIT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </FloatingSelect>
-            )}
-          />
-          {!isEditing && (
-            <p className="text-[11px] text-muted-foreground px-1">
-              L&apos;unité ne peut pas être changée après création — elle détermine la cohérence des stocks et des prix.
-            </p>
-          )}
-
-          {/* Stock initial — création seulement */}
-          {!isEditing && (
-            <div className="flex flex-col gap-0.5">
-              <FloatingInput
-                id="initial_stock"
-                label="Stock initial (optionnel)"
-                type="number"
-                step="any"
-                min="0"
-                inputMode="decimal"
-                {...register('initial_stock')}
-              />
-              <p className="text-[11px] text-muted-foreground px-1">Enregistre une entrée stock « Stock initial » à la création.</p>
-            </div>
-          )}
 
           <div className="flex flex-col gap-0.5">
             <FloatingInput
-              id="low_stock_threshold"
-              label="Seuil d'alerte stock (optionnel)"
+              id="initial_stock"
+              label="Stock initial (optionnel)"
               type="number"
               step="any"
               min="0"
               inputMode="decimal"
+              suffix={stockUnitLabel}
+              {...register('initial_stock')}
+            />
+            <p className="text-[11px] text-muted-foreground px-1">Enregistre une entrée stock « Stock initial » à la création.</p>
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            <FloatingInput
+              id="low_stock_threshold"
+              label="Seuil d'alerte (optionnel)"
+              type="number"
+              step="any"
+              min="0"
+              inputMode="decimal"
+              suffix={stockUnitLabel}
               {...register('low_stock_threshold')}
             />
             <p className="text-[11px] text-muted-foreground px-1">Notifié quand le stock passe sous ce seuil. Laissez vide pour désactiver.</p>

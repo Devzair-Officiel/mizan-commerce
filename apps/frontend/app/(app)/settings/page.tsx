@@ -27,6 +27,8 @@ const schema = z.object({
   currency: z.string().min(1),
   country: z.string().optional(),
   zakat_annual_date: z.string().optional(),
+  nisab_method: z.enum(['gold', 'silver']),
+  nisab_unit_price: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -85,12 +87,20 @@ export default function SettingsPage() {
         currency: shop.currency,
         country: shop.country ?? '',
         zakat_annual_date: shop.zakat_annual_date ?? '',
+        nisab_method: shop.nisab_method ?? 'silver',
+        nisab_unit_price: shop.nisab_unit_price ?? '',
       });
     }
   }, [shop, reset]);
 
   async function onSubmit(values: FormValues) {
-    await mutateAsync({ ...values, zakat_annual_date: values.zakat_annual_date || null });
+    await mutateAsync({
+      ...values,
+      zakat_annual_date: values.zakat_annual_date || null,
+      nisab_unit_price: values.nisab_unit_price && parseFloat(values.nisab_unit_price) > 0
+        ? values.nisab_unit_price
+        : null,
+    });
     reset(values);
   }
 
@@ -174,6 +184,26 @@ export default function SettingsPage() {
             <FloatingInput id="zakat_annual_date" label="Date annuelle (optionnel)" type="date" {...register('zakat_annual_date')} />
             <p className="text-[11px] text-muted-foreground px-1">Un rappel sera généré avant cette date chaque année.</p>
           </div>
+
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <FloatingSelect id="nisab_method" label="Méthode du Nisab" {...register('nisab_method')}>
+              <option value="silver">Argent (595 g)</option>
+              <option value="gold">Or (85 g)</option>
+            </FloatingSelect>
+            <FloatingInput
+              id="nisab_unit_price"
+              label={`Prix au gramme (${shop?.currency ?? 'EUR'})`}
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              {...register('nisab_unit_price')}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground px-1">
+            Le cours évolue chaque jour. Vérifiez et mettez à jour le prix au gramme avant chaque
+            calcul. La méthode de l'argent est plus inclusive (seuil plus bas).
+          </p>
         </section>
 
         {isSuccess && !isDirty && (
@@ -200,6 +230,8 @@ export default function SettingsPage() {
                 currency: shop.currency,
                 country: shop.country ?? '',
                 zakat_annual_date: shop.zakat_annual_date ?? '',
+                nisab_method: shop.nisab_method ?? 'silver',
+                nisab_unit_price: shop.nisab_unit_price ?? '',
               })}
             >
               Annuler

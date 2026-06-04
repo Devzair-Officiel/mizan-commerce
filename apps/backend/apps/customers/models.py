@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.db.models.functions import Lower
 from apps.shops.models import Shop
 
 
@@ -24,6 +25,9 @@ class Customer(models.Model):
         indexes = [
             models.Index(fields=['shop', 'name']),
             models.Index(fields=['shop', 'phone']),
+        ]
+        constraints = [
+            models.UniqueConstraint(Lower('name'), 'shop', name='unique_customer_name_per_shop'),
         ]
         ordering = ['name']
 

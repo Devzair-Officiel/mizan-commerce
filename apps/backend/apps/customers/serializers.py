@@ -17,6 +17,21 @@ class CustomerSerializer(serializers.ModelSerializer):
         from decimal import Decimal
         return str(val if val is not None else Decimal('0.00'))
 
+    def validate_name(self, value: str) -> str:
+        from apps.shops.models import ShopMember
+        request = self.context.get('request')
+        if not request:
+            return value
+        membership = ShopMember.objects.filter(user=request.user).select_related('shop').first()
+        if not membership:
+            return value
+        qs = Customer.objects.filter(shop=membership.shop, name__iexact=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Un client avec ce nom existe déjà.')
+        return value
+
     class Meta:
         model = Customer
         fields = (

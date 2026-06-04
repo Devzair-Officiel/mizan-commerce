@@ -22,21 +22,25 @@ const labelFloated  = 'top-1.75 translate-y-0 text-[11px]';
 interface FloatingInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   required?: boolean;
+  /** Texte affiché en gris à droite du champ (ex: "€/kg", "kg"). */
+  suffix?: ReactNode;
 }
 
-export function FloatingInput({ label, id, required, className, ...props }: FloatingInputProps) {
+export function FloatingInput({ label, id, required, className, suffix, ...props }: FloatingInputProps) {
+  const hasSuffix = Boolean(suffix);
   return (
     <div className="relative">
       <input
         id={id}
         placeholder=" "
-        className={`${inputBase} ${className ?? ''}`}
+        className={`${inputBase} ${hasSuffix ? 'pr-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''} ${className ?? ''}`}
         {...props}
       />
       <label
         htmlFor={id}
         className={`
           ${labelBase} ${labelCentered}
+          ${hasSuffix ? 'right-20 truncate' : ''}
           peer-focus:top-1.75 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:text-primary
           peer-[:not(:placeholder-shown)]:top-1.75
           peer-[:not(:placeholder-shown)]:translate-y-0
@@ -45,6 +49,11 @@ export function FloatingInput({ label, id, required, className, ...props }: Floa
       >
         {label}{required && <span className="text-destructive ml-0.5">*</span>}
       </label>
+      {hasSuffix && (
+        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground tabular-nums">
+          {suffix}
+        </span>
+      )}
     </div>
   );
 }

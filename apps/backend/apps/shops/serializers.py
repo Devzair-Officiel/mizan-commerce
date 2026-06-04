@@ -12,7 +12,8 @@ class ShopSerializer(serializers.ModelSerializer):
         model = Shop
         fields = (
             'id', 'name', 'currency', 'country', 'timezone',
-            'zakat_annual_date', 'logo_object_key', 'logo_url',
+            'zakat_annual_date', 'nisab_method', 'nisab_unit_price',
+            'logo_object_key', 'logo_url',
             'created_at', 'updated_at',
         )
         read_only_fields = (

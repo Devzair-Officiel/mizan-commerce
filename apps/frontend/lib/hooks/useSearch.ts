@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
-import type { ProductType, ProductUnit } from '@/lib/hooks/useProducts';
+import type { ProductType } from '@/lib/hooks/useProducts';
 
 export interface SearchProduct {
   id: string;
   name: string;
   reference: string;
   type: ProductType;
-  unit: ProductUnit;
-  stock_quantity: string;
+  variant_count: number;
+  is_out_of_stock: boolean;
 }
 
 export interface SearchCustomer {

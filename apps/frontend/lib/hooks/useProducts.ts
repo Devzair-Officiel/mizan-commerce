@@ -21,14 +21,36 @@ export const UNIT_LABELS: Record<ProductUnit, string> = {
   m: 'm',
 };
 
-/** Format un stock + unité pour l'affichage. Retire les zéros décimaux superflus. */
-export function formatStock(qty: string | number, unit: ProductUnit): string {
+/**
+ * Format un stock pour l'affichage. Sémantique : qty = nombre de formats en stock.
+ *
+ * - Vrac (`base_quantity = 1`, unit ≠ piece) → "12,5 kg" (un format = une unité de contenu)
+ * - Pièce (`unit = piece`)                   → "13 pièces"
+ * - Format composé (`base_quantity > 1`)     → "50 en stock" (ambigu sans contexte ;
+ *                                                packagingName si fourni → "50 bouteilles")
+ */
+export function formatStock(
+  qty: string | number,
+  unit: ProductUnit,
+  options?: { baseQuantity?: string | number; packagingName?: string },
+): string {
   const num = typeof qty === 'string' ? parseFloat(qty) : qty;
   const trimmed = Number.isInteger(num) ? num.toString() : num.toString().replace(/\.?0+$/, '');
+  const baseQty = options?.baseQuantity != null
+    ? (typeof options.baseQuantity === 'string' ? parseFloat(options.baseQuantity) : options.baseQuantity)
+    : 1;
+
   if (unit === 'piece') {
     return num <= 1 ? `${trimmed} pièce` : `${trimmed} pièces`;
   }
-  return `${trimmed} ${unit}`;
+  if (baseQty === 1) {
+    return `${trimmed} ${unit}`;
+  }
+  // Format composé : on compte des conteneurs, pas du contenu.
+  if (options?.packagingName) {
+    return `${trimmed} ${options.packagingName}`;
+  }
+  return `${trimmed} en stock`;
 }
 
 /** Formate une fourchette de prix : si min==max, retourne juste le prix. */
@@ -36,6 +58,42 @@ export function formatPriceRange(min: string | null, max: string | null): string
   if (!min || !max) return null;
   if (min === max) return min;
   return `${min} – ${max}`;
+}
+
+/**
+ * Prix unitaire d'une variante : `prix / quantité de base`, formaté `XX,XX €/{unit}`.
+ * Retourne `null` pour les piéces vendues à l'unité (le prix EST déjà le prix unitaire).
+ *
+ * Conversion automatique vers l'unité commerciale standard : mL → L, g → kg.
+ * Les commerçants lisent les prix en €/L ou €/kg (rayons supermarché),
+ * jamais en €/mL ou €/g, même quand le conditionnement est plus petit.
+ */
+export function formatUnitPrice(
+  sellingPrice: string,
+  baseQuantity: string,
+  unit: ProductUnit,
+): string | null {
+  const price = parseFloat(sellingPrice);
+  const qty = parseFloat(baseQuantity);
+  if (!Number.isFinite(price) || !Number.isFinite(qty) || qty <= 0) return null;
+  if (unit === 'piece' && qty === 1) return null;
+
+  let unitPrice = price / qty;
+  let displayUnit: string = unit === 'piece' ? 'pièce' : unit;
+  if (unit === 'mL') {
+    unitPrice *= 1000;
+    displayUnit = 'L';
+  } else if (unit === 'g') {
+    unitPrice *= 1000;
+    displayUnit = 'kg';
+  }
+
+  const decimals = unitPrice < 1 ? 3 : 2;
+  const formatted = unitPrice.toLocaleString('fr-FR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+  return `${formatted} €/${displayUnit}`;
 }
 
 export interface ProductVariant {
@@ -83,7 +141,6 @@ export interface Product {
   /** Agrégats calculés à partir des variantes actives. */
   min_selling_price: string | null;
   max_selling_price: string | null;
-  total_stock: string;
   variant_count: number;
 }
 

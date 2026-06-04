@@ -1,5 +1,6 @@
-from decimal import Decimal, InvalidOperation
+from django.http import HttpResponse
 from rest_framework import generics, status
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,13 +9,13 @@ from apps.shops.models import ShopMember
 from apps.products.models import ProductVariant
 from . import services
 from .models import ZakatCalculation
+from .pdf import build_zakat_pdf
 from .serializers import ZakatCalculationSerializer
 
 
 def get_shop(user):
     membership = ShopMember.objects.filter(user=user).select_related('shop').first()
     if not membership:
-        from rest_framework.exceptions import PermissionDenied
         raise PermissionDenied('Aucune boutique associée.')
     return membership.shop
 
@@ -38,42 +39,134 @@ class ZakatStockEstimateView(APIView):
 
 
 class ZakatCalculationListCreateView(generics.ListCreateAPIView):
+    """Liste des calculs (drafts + finalisés) et création d'un nouveau brouillon."""
     permission_classes = (IsAuthenticated,)
     serializer_class = ZakatCalculationSerializer
 
     def get_queryset(self):
-        return ZakatCalculation.objects.filter(shop=get_shop(self.request.user))
+        qs = ZakatCalculation.objects.filter(shop=get_shop(self.request.user))
+        status_filter = self.request.query_params.get('status')
+        if status_filter in (ZakatCalculation.STATUS_DRAFT, ZakatCalculation.STATUS_FINALIZED):
+            qs = qs.filter(status=status_filter)
+        return qs
 
-    def create(self, request, *args, **kwargs):
-        shop = get_shop(request.user)
-        data = request.data
-
-        def to_decimal(key: str, default: str = '0') -> Decimal:
-            try:
-                return Decimal(str(data.get(key, default)))
-            except InvalidOperation:
-                return Decimal(default)
-
-        adjusted_raw = data.get('stock_value_adjusted')
-        adjusted = Decimal(str(adjusted_raw)) if adjusted_raw not in (None, '') else None
-
-        calc = services.calculate_zakat(
+    def perform_create(self, serializer):
+        shop = get_shop(self.request.user)
+        calc = serializer.save(
             shop=shop,
-            reference_date=data.get('reference_date'),
-            cash_amount=to_decimal('cash_amount'),
-            receivables_amount=to_decimal('receivables_amount'),
-            short_term_debts=to_decimal('short_term_debts'),
-            stock_value_adjusted=adjusted,
-            notes=data.get('notes', ''),
-            zakat_rate=to_decimal('zakat_rate', '0.0250'),
+            currency=shop.currency,
+            status=ZakatCalculation.STATUS_DRAFT,
         )
-        serializer = self.get_serializer(calc)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        services.recompute_draft_totals(calc)
+        calc.save()
 
 
-class ZakatCalculationDetailView(generics.RetrieveDestroyAPIView):
+class ZakatCalculationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Récupération, mise à jour (uniquement brouillons) et suppression."""
     permission_classes = (IsAuthenticated,)
     serializer_class = ZakatCalculationSerializer
+    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
     def get_queryset(self):
         return ZakatCalculation.objects.filter(shop=get_shop(self.request.user))
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        if instance.status == ZakatCalculation.STATUS_FINALIZED:
+            raise ValidationError({'detail': 'Un calcul finalisé n\'est plus modifiable.'})
+        calc = serializer.save()
+        services.recompute_draft_totals(calc)
+        calc.save()
+
+
+class ZakatDraftCurrentView(APIView):
+    """GET — renvoie le brouillon en cours de la boutique (le plus récent), ou 204 si aucun."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        shop = get_shop(request.user)
+        draft = (
+            ZakatCalculation.objects
+            .filter(shop=shop, status=ZakatCalculation.STATUS_DRAFT)
+            .order_by('-updated_at')
+            .first()
+        )
+        if draft is None:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(ZakatCalculationSerializer(draft).data)
+
+
+class ZakatCalculationFinalizeView(APIView):
+    """POST — fige le brouillon : recalcule la base + le montant, passe en `finalized`."""
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        shop = get_shop(request.user)
+        try:
+            calc = ZakatCalculation.objects.get(pk=pk, shop=shop)
+        except ZakatCalculation.DoesNotExist:
+            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        if calc.status == ZakatCalculation.STATUS_FINALIZED:
+            return Response({'detail': 'Calcul déjà finalisé.'}, status=status.HTTP_400_BAD_REQUEST)
+        services.finalize_calculation(calc)
+        return Response(ZakatCalculationSerializer(calc).data)
+
+
+class ZakatCalculationReopenView(APIView):
+    """POST — rouvre un calcul finalisé en brouillon pour correction.
+
+    Refuse si un autre brouillon est déjà actif (un seul brouillon vivant par boutique
+    — le commerçant doit le finaliser ou le supprimer avant de rouvrir un autre).
+    """
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, pk):
+        shop = get_shop(request.user)
+        try:
+            calc = ZakatCalculation.objects.get(pk=pk, shop=shop)
+        except ZakatCalculation.DoesNotExist:
+            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        if calc.status != ZakatCalculation.STATUS_FINALIZED:
+            return Response(
+                {'detail': 'Seul un calcul finalisé peut être rouvert.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        other_draft = ZakatCalculation.objects.filter(
+            shop=shop, status=ZakatCalculation.STATUS_DRAFT,
+        ).exclude(pk=calc.pk).exists()
+        if other_draft:
+            return Response(
+                {'detail': 'Un autre brouillon est déjà en cours. Finalisez-le ou supprimez-le d\'abord.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        calc.status = ZakatCalculation.STATUS_DRAFT
+        calc.finalized_at = None
+        calc.save(update_fields=['status', 'finalized_at', 'updated_at'])
+        return Response(ZakatCalculationSerializer(calc).data)
+
+
+class ZakatCalculationPdfView(APIView):
+    """GET — génère et renvoie le justificatif PDF d'un calcul finalisé.
+
+    Pas de cache disque pour l'instant : la génération est rapide (<100ms) et le volume
+    est faible (un calcul par boutique et par an). Si besoin plus tard, on stockera
+    dans le bucket via `pdf_object_key` et on renverra une URL signée.
+    """
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, pk):
+        shop = get_shop(request.user)
+        try:
+            calc = ZakatCalculation.objects.select_related('shop').get(pk=pk, shop=shop)
+        except ZakatCalculation.DoesNotExist:
+            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+        if calc.status != ZakatCalculation.STATUS_FINALIZED:
+            return Response(
+                {'detail': 'Le PDF n\'est disponible qu\'après finalisation.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        pdf_bytes = build_zakat_pdf(calc)
+        filename = f'zakat-{calc.reference_date.isoformat()}.pdf'
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response

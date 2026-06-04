@@ -101,8 +101,8 @@ class DashboardTodayView(APIView):
             )
             .select_related('product')
             .values(
-                'id', 'packaging_name', 'unit', 'stock_quantity', 'low_stock_threshold',
-                'product_id', 'product__name',
+                'id', 'packaging_name', 'unit', 'base_quantity', 'stock_quantity',
+                'low_stock_threshold', 'product_id', 'product__name',
             )
             .order_by('stock_quantity')
         )
@@ -113,6 +113,7 @@ class DashboardTodayView(APIView):
                 'name': row['product__name'],
                 'variant_name': row['packaging_name'],
                 'unit': row['unit'],
+                'base_quantity': row['base_quantity'],
                 'stock_quantity': row['stock_quantity'],
                 'low_stock_threshold': row['low_stock_threshold'],
             }
@@ -178,17 +179,14 @@ class GlobalSearchView(APIView):
         products = []
         for p in product_rows:
             variants = [v for v in p.variants.all() if v.is_active]
-            total_stock = sum((v.stock_quantity for v in variants), Decimal('0'))
-            unit = variants[0].unit if variants else ''
             first_sku = next((v.sku for v in variants if v.sku), '')
             products.append({
                 'id': p.id,
                 'name': p.name,
                 'reference': first_sku,
                 'type': p.type,
-                'unit': unit,
-                'stock_quantity': total_stock,
                 'variant_count': len(variants),
+                'is_out_of_stock': all(v.is_out_of_stock for v in variants) if variants else True,
             })
 
         customers = list(

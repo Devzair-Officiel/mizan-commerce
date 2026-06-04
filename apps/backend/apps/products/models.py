@@ -47,17 +47,31 @@ class ProductVariant(models.Model):
     """
     Une variante = un packaging concret d'un produit (ex. "Pot 250g", "Seau 5kg").
     Porte le prix, le stock, le sku/code-barres. Un produit a au moins une variante.
+
+    Sémantique stock : `stock_quantity` compte des FORMATS (nb de pots, de sacs, etc.),
+    pas le contenu cumulé. Pour le vrac, on modélise une variante de base_quantity = 1
+    en unité (kg, L, m) → le format vaut une unité, donc stock = quantité physique.
+    Le contenu total disponible est dérivé à la volée : `stock_quantity * base_quantity`.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='product_variants')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     packaging_name = models.CharField(max_length=120)
-    unit = models.CharField(max_length=8, choices=Product.UNIT_CHOICES, default='piece')
-    base_quantity = models.DecimalField(max_digits=14, decimal_places=3, default=1)
+    unit = models.CharField(
+        max_length=8, choices=Product.UNIT_CHOICES, default='piece',
+        help_text="Unité de mesure du contenu (g, kg, mL…). Descriptif uniquement, sert au prix au litre/kilo.",
+    )
+    base_quantity = models.DecimalField(
+        max_digits=14, decimal_places=3, default=1,
+        help_text='Quantité contenue par format (ex. 250 pour "Bouteille 250 mL").',
+    )
     selling_price = models.DecimalField(max_digits=12, decimal_places=2)
     purchase_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    stock_quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    stock_quantity = models.DecimalField(
+        max_digits=14, decimal_places=3, default=0,
+        help_text='Nombre de formats en stock (ex. 50 bouteilles), pas le contenu cumulé.',
+    )
     low_stock_threshold = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
     sku = models.CharField(max_length=64, blank=True)
     barcode = models.CharField(max_length=64, blank=True)

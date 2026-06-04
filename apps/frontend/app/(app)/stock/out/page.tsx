@@ -9,6 +9,19 @@ import { apiFetch } from '@/lib/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProducts, useProduct, formatStock, type ProductVariant } from '@/lib/hooks/useProducts';
 
+/**
+ * Libellé de l'unité de comptage pour les champs de mouvement de stock.
+ * On compte des FORMATS, donc :
+ *   - piece                                        → "pièces"
+ *   - vrac (base_quantity = 1, ex: 1 kg)           → unité brute ("kg")
+ *   - conteneurs (base_quantity > 1, ex: 250 mL)   → nom du conditionnement ("Bouteille")
+ */
+function quantityLabel(v: ProductVariant): string {
+  if (v.unit === 'piece') return 'pièces';
+  if (parseFloat(v.base_quantity) === 1) return v.unit;
+  return v.packaging_name;
+}
+
 const MOVEMENT_TYPES = [
   { value: 'out',  label: 'Sortie (vente manuelle)' },
   { value: 'loss', label: 'Perte / casse' },
@@ -44,6 +57,7 @@ function StockOutForm() {
   }, [activeVariants, variantId]);
 
   const selectedVariant = activeVariants.find((v) => v.id === variantId) ?? null;
+  const qtyUnitLabel = selectedVariant ? quantityLabel(selectedVariant) : null;
 
   async function handleSubmit() {
     if (!variantId)     { setError('Sélectionnez un conditionnement.'); return; }
@@ -94,7 +108,7 @@ function StockOutForm() {
           {activeVariants.length > 1 && <option value="">Sélectionner un conditionnement…</option>}
           {activeVariants.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.packaging_name} (stock : {formatStock(v.stock_quantity, v.unit)})
+              {v.packaging_name} (stock : {formatStock(v.stock_quantity, v.unit, { baseQuantity: v.base_quantity, packagingName: v.packaging_name })})
             </option>
           ))}
         </FloatingSelect>
@@ -102,7 +116,7 @@ function StockOutForm() {
 
       {selectedVariant && (
         <div className="rounded-2xl bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
-          Stock actuel : <span className="font-semibold text-foreground">{formatStock(selectedVariant.stock_quantity, selectedVariant.unit)}</span>
+          Stock actuel : <span className="font-semibold text-foreground">{formatStock(selectedVariant.stock_quantity, selectedVariant.unit, { baseQuantity: selectedVariant.base_quantity, packagingName: selectedVariant.packaging_name })}</span>
         </div>
       )}
 
@@ -126,11 +140,12 @@ function StockOutForm() {
 
       <FloatingInput
         id="quantity"
-        label={selectedVariant ? `Quantité (${selectedVariant.unit === 'piece' ? 'pièces' : selectedVariant.unit}) *` : 'Quantité *'}
+        label="Quantité *"
         type="number"
         min="0"
         step="any"
         inputMode="decimal"
+        suffix={qtyUnitLabel ?? undefined}
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
       />

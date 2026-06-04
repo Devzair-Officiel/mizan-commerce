@@ -12,7 +12,7 @@ const LEFT_ITEMS = [
 
 const RIGHT_ITEMS = [
   { href: '/orders', label: 'Commandes', icon: ShoppingBagIcon },
-  { href: '/products', label: 'Catalogues', icon: Package },
+  { href: '/products', label: 'Articles', icon: Package },
 ] as const;
 
 /* Positions en arc — icônes "+" intégrées naturellement dans le trait */

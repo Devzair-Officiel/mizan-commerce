@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AlertTriangle, PackageX, ChevronRight, Plus, PackagePlus, ArrowDownAZ,
-  SlidersHorizontal, Clock, Check, X,
-  Package, Sparkles, Eye,
+  SlidersHorizontal, Clock, Check, X, Search,
+  Package, Sparkles, Eye, Layers,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import {
@@ -22,6 +22,12 @@ type TypeFilter = 'all' | ProductType;
 type StockFilter = 'all' | 'out_of_stock' | 'low_stock';
 type Visibility = 'active' | 'inactive' | 'all';
 
+const TYPE_OPTIONS: { key: TypeFilter; label: string }[] = [
+  { key: 'all',     label: 'Produits + services' },
+  { key: 'product', label: 'Produits uniquement' },
+  { key: 'service', label: 'Services uniquement' },
+];
+
 const VISIBILITY_OPTIONS: { key: Visibility; label: string }[] = [
   { key: 'active',   label: 'Actifs uniquement' },
   { key: 'inactive', label: 'Inactifs uniquement' },
@@ -36,15 +42,23 @@ const SORT_OPTIONS: { key: ProductOrdering; label: string; icon: React.ReactNode
 
 export default function CatalogPage() {
   const router = useRouter();
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
   const [visibility, setVisibility] = useState<Visibility>('active');
   const [ordering, setOrdering] = useState<ProductOrdering>('name');
-  const [sortOpen, setSortOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: summary } = useProductsSummary();
   const { data, isLoading } = useProducts({
+    search: debouncedSearch || undefined,
     type: typeFilter === 'all' ? undefined : typeFilter,
     outOfStock: stockFilter === 'out_of_stock',
     lowStock: stockFilter === 'low_stock',
@@ -67,9 +81,31 @@ export default function CatalogPage() {
 
   return (
     <>
-      <TopBar title="Catalogues" titleClassName="text-3xl" />
+      <TopBar title="Mes articles" titleClassName="text-3xl" />
 
       <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
+        {/* Recherche persistante en évidence */}
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            inputMode="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un article…"
+            className="w-full h-12 rounded-2xl border border-border bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              aria-label="Effacer la recherche"
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+
         {/* Stats cliquables = filtres stock */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard
@@ -90,28 +126,17 @@ export default function CatalogPage() {
           />
         </div>
 
-        {/* Filtres type */}
-        <SegmentedFilter<TypeFilter>
-          options={[
-            { key: 'all',     label: 'Tous' },
-            { key: 'product', label: 'Produits' },
-            { key: 'service', label: 'Services' },
-          ]}
-          value={typeFilter}
-          onChange={setTypeFilter}
-        />
-
-        {/* CTA Ajouter + Filtrer / Trier — pattern Clients */}
+        {/* CTA Nouvel article + Options */}
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => setAddOpen(true)}
             className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
           >
             <PackagePlus size={16} strokeWidth={2.2} />
-            Ajouter
+            Nouvel article
           </button>
           <button
-            onClick={() => setSortOpen(true)}
+            onClick={() => setOptionsOpen(true)}
             className={`flex h-11 items-center gap-2 rounded-2xl border px-4 text-sm font-medium transition-colors active:scale-95 ${
               filterActive
                 ? 'border-primary/40 bg-primary/10 text-primary'
@@ -119,38 +144,42 @@ export default function CatalogPage() {
             }`}
           >
             <SlidersHorizontal size={16} />
-            Filtrer / Trier
+            Options
           </button>
         </div>
-
-        {/* Compteur */}
-        {!isLoading && (
-          <p className="text-sm text-muted-foreground">
-            {items.length} article{items.length > 1 ? 's' : ''}
-          </p>
-        )}
 
         {/* Liste */}
         {isLoading && <ProductListSkeleton />}
         {!isLoading && items.length === 0 && (
-          <EmptyState onAdd={() => setAddOpen(true)} />
+          <EmptyState
+            onAdd={() => setAddOpen(true)}
+            searchTerm={debouncedSearch}
+            onClearSearch={() => setSearch('')}
+          />
         )}
         {!isLoading && items.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            {items.map((p, i) => (
-              <ProductRow key={p.id} product={p} first={i === 0} />
-            ))}
-          </div>
+          <>
+            <p className="text-xs text-muted-foreground self-end -mb-1 tabular-nums">
+              {items.length} article{items.length > 1 ? 's' : ''}
+            </p>
+            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+              {items.map((p, i) => (
+                <ProductRow key={p.id} product={p} first={i === 0} />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
-      <SortSheet
-        open={sortOpen}
-        onClose={() => setSortOpen(false)}
+      <OptionsSheet
+        open={optionsOpen}
+        onClose={() => setOptionsOpen(false)}
         ordering={ordering}
         onOrderingChange={setOrdering}
         visibility={visibility}
         onVisibilityChange={setVisibility}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
       />
 
       <AddTypeSheet
@@ -201,35 +230,6 @@ function StatCard({
   );
 }
 
-function SegmentedFilter<T extends string>({
-  options, value, onChange,
-}: {
-  options: { key: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="flex-1 inline-flex items-center rounded-full border border-border bg-card p-1">
-      {options.map(({ key, label }) => {
-        const selected = value === key;
-        return (
-          <button
-            key={key}
-            onClick={() => onChange(key)}
-            className={`flex-1 inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-              selected
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 const THUMB_COLORS = [
   'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
   'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
@@ -250,10 +250,8 @@ function getInitial(name: string): string {
 }
 
 function ProductRow({ product, first }: { product: Product; first: boolean }) {
-  const isService = product.type === 'service';
   const range = formatPriceRange(product.min_selling_price, product.max_selling_price);
   const priceLabel = range ?? '—';
-  const variantCount = product.variant_count ?? 0;
   return (
     <Link
       href={`/products/${product.id}`}
@@ -266,16 +264,6 @@ function ProductRow({ product, first }: { product: Product; first: boolean }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-foreground capitalize truncate">{product.name}</span>
-          {isService && (
-            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-              Service
-            </span>
-          )}
-          {variantCount > 1 && (
-            <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {variantCount} formats
-            </span>
-          )}
           {!product.is_active && (
             <span className="shrink-0 rounded-full bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
               Inactif
@@ -342,7 +330,32 @@ function ProductListSkeleton() {
   );
 }
 
-function EmptyState({ onAdd }: { onAdd: () => void }) {
+function EmptyState({
+  onAdd, searchTerm, onClearSearch,
+}: {
+  onAdd: () => void;
+  searchTerm: string;
+  onClearSearch: () => void;
+}) {
+  if (searchTerm) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-12 px-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <Search size={26} />
+        </div>
+        <p className="text-base font-semibold text-foreground">Aucun résultat</p>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Rien ne correspond à <span className="font-medium text-foreground">« {searchTerm} »</span>.
+        </p>
+        <button
+          onClick={onClearSearch}
+          className="mt-1 flex h-10 items-center gap-2 rounded-2xl border border-border bg-card px-4 text-sm font-medium text-foreground active:scale-95 transition-transform"
+        >
+          Effacer la recherche
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-12 px-6 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -357,37 +370,47 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
         className="mt-1 flex h-10 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
       >
         <Plus size={16} strokeWidth={2.4} />
-        Ajouter
+        Nouvel article
       </button>
     </div>
   );
 }
 
 function StockLine({ product }: { product: Product }) {
+  const variantCount = product.variant_count ?? 0;
+  const formatsLabel = variantCount > 1
+    ? `${variantCount} formats`
+    : '1 format';
+
   if (product.type === 'service') {
     return <p className="text-xs text-muted-foreground mt-0.5">Service</p>;
   }
   if (product.is_out_of_stock) {
-    return <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">Rupture</p>;
+    return (
+      <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">
+        Rupture
+      </p>
+    );
   }
-  const total = parseFloat(product.total_stock ?? '0');
-  const formatted = `${total.toLocaleString('fr-FR')} ${total <= 1 ? 'unité' : 'unités'}`;
   if (product.is_low_stock) {
     return (
       <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-0.5">
-        Stock faible · <span className="tabular-nums">{formatted}</span>
+        Stock faible · <span className="tabular-nums">{formatsLabel}</span>
       </p>
     );
   }
   return (
     <p className="text-xs text-muted-foreground mt-0.5">
-      Stock · <span className="tabular-nums">{formatted}</span>
+      <span className="tabular-nums">{formatsLabel}</span> en stock
     </p>
   );
 }
 
-function SortSheet({
-  open, onClose, ordering, onOrderingChange, visibility, onVisibilityChange,
+function OptionsSheet({
+  open, onClose,
+  ordering, onOrderingChange,
+  visibility, onVisibilityChange,
+  typeFilter, onTypeFilterChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -395,6 +418,8 @@ function SortSheet({
   onOrderingChange: (v: ProductOrdering) => void;
   visibility: Visibility;
   onVisibilityChange: (v: Visibility) => void;
+  typeFilter: TypeFilter;
+  onTypeFilterChange: (v: TypeFilter) => void;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -414,14 +439,14 @@ function SortSheet({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Trier et afficher"
+        aria-label="Options"
         className={`fixed inset-x-0 bottom-0 z-80 rounded-t-3xl bg-card shadow-2xl transition-transform duration-300 ease-out ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="mx-auto mt-3 mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
         <div className="flex items-center justify-between px-5 pb-2">
-          <h2 className="text-lg font-semibold text-foreground">Trier</h2>
+          <h2 className="text-lg font-semibold text-foreground">Options</h2>
           <button
             onClick={onClose}
             aria-label="Fermer"
@@ -432,6 +457,28 @@ function SortSheet({
         </div>
 
         <div className="px-5 pb-6 pt-1 flex flex-col gap-5 max-h-[75vh] overflow-y-auto">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Type</p>
+            <div className="flex flex-col gap-1">
+              {TYPE_OPTIONS.map(({ key, label }) => {
+                const selected = typeFilter === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => onTypeFilterChange(key)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-left transition-colors ${
+                      selected ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    <Layers size={16} className="shrink-0" />
+                    <span className="flex-1">{label}</span>
+                    {selected && <Check size={16} className="shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Trier par</p>
             <div className="flex flex-col gap-1">

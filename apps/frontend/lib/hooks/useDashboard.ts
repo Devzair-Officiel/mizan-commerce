@@ -13,11 +13,13 @@ interface OrderSummary {
 
 interface ProductSummary {
   id: string;
+  variant_id: string;
   name: string;
+  variant_name: string;
   unit: ProductUnit;
+  base_quantity: string;
   stock_quantity: string;
   low_stock_threshold: string | null;
-  is_out_of_stock: boolean;
 }
 
 interface ReminderSummary {

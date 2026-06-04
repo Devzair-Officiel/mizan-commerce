@@ -191,7 +191,15 @@ export default function DashboardPage() {
                 defaultOpen={false}
               >
                 {data.low_stock_products.items.slice(0, 3).map((p) => (
-                  <StockRow key={p.id} id={p.id} name={p.name} qty={p.stock_quantity} unit={p.unit} />
+                  <StockRow
+                    key={p.variant_id}
+                    id={p.id}
+                    name={p.name}
+                    variantName={p.variant_name}
+                    qty={p.stock_quantity}
+                    unit={p.unit}
+                    baseQuantity={p.base_quantity}
+                  />
                 ))}
                 {data.low_stock_products.count > 3 && (
                   <SeeAllRow href="/products?filter=low_stock" count={data.low_stock_products.count} />
@@ -418,17 +426,29 @@ function OrderRow({ id, label, sub, value }: { id: string; label: string; sub?: 
   );
 }
 
-function StockRow({ id, name, qty, unit }: { id: string; name: string; qty: string; unit: ProductUnit }) {
+function StockRow({
+  id, name, variantName, qty, unit, baseQuantity,
+}: {
+  id: string;
+  name: string;
+  variantName: string;
+  qty: string;
+  unit: ProductUnit;
+  baseQuantity: string;
+}) {
   const num = parseFloat(qty);
   const isOut = num <= 0;
   return (
     <Link
       href={`/products/${id}`}
-      className="flex items-center justify-between px-4 py-3 active:bg-muted/60 transition-colors"
+      className="flex items-center justify-between px-4 py-3 active:bg-muted/60 transition-colors gap-3"
     >
-      <span className="text-base font-medium text-foreground flex-1 truncate pr-3">{name}</span>
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <span className="text-base font-medium text-foreground truncate">{name}</span>
+        <span className="text-xs text-muted-foreground truncate">{variantName}</span>
+      </div>
       <span className={`text-sm font-semibold tabular-nums shrink-0 ${isOut ? 'text-destructive' : 'text-amber-600 dark:text-amber-400'}`}>
-        {isOut ? 'Rupture' : `${formatStock(qty, unit)} restants`}
+        {isOut ? 'Rupture' : `${formatStock(qty, unit, { baseQuantity, packagingName: variantName })} restants`}
       </span>
     </Link>
   );

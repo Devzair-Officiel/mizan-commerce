@@ -51,14 +51,34 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         return value
 
 
+def _primary_image_url(product: Product) -> str | None:
+    """URL signée de l'image principale (ou première image disponible). None si pas d'image
+    ou si le bucket S3 n'est pas configuré."""
+    from django.conf import settings
+    from apps.core.storage import get_signed_url
+
+    img = next((i for i in product.images.all() if i.is_primary), None)
+    if img is None:
+        img = next(iter(product.images.all()), None)
+    if img is None:
+        return None
+    if not getattr(settings, 'AWS_S3_ENDPOINT_URL', None):
+        return None
+    return get_signed_url(img.object_key)
+
+
 def _variant_aggregates(product: Product) -> dict:
-    """Calcule les agrégats min/max/total/flags à partir des variantes actives."""
+    """Agrégats min/max/flags à partir des variantes actives.
+
+    Volontairement pas de `total_stock` : depuis que le stock est compté en formats,
+    sommer 50 bouteilles + 10 sacs n'a aucun sens commercial. Le front affiche
+    `variant_count` + le détail par variante (voir VariantsManager).
+    """
     variants = [v for v in product.variants.all() if v.is_active]
     if not variants:
         return {
             'min_selling_price': None,
             'max_selling_price': None,
-            'total_stock': Decimal('0'),
             'variant_count': 0,
             'is_low_stock_any': False,
             'is_out_of_stock_all': True,
@@ -67,7 +87,6 @@ def _variant_aggregates(product: Product) -> dict:
     return {
         'min_selling_price': min(prices),
         'max_selling_price': max(prices),
-        'total_stock': sum((v.stock_quantity for v in variants), Decimal('0')),
         'variant_count': len(variants),
         'is_low_stock_any': any(v.is_low_stock for v in variants),
         'is_out_of_stock_all': all(v.is_out_of_stock for v in variants),
@@ -80,10 +99,10 @@ class ProductSerializer(serializers.ModelSerializer):
     # Agrégats calculés à partir des variantes (source de vérité depuis la migration v2).
     min_selling_price = serializers.SerializerMethodField()
     max_selling_price = serializers.SerializerMethodField()
-    total_stock = serializers.SerializerMethodField()
     variant_count = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
+    primary_image = serializers.SerializerMethodField()
 
     def validate_name(self, value: str) -> str:
         from apps.shops.models import ShopMember
@@ -115,9 +134,6 @@ class ProductSerializer(serializers.ModelSerializer):
         v = self._agg(obj)['max_selling_price']
         return str(v) if v is not None else None
 
-    def get_total_stock(self, obj):
-        return str(self._agg(obj)['total_stock'])
-
     def get_variant_count(self, obj):
         return self._agg(obj)['variant_count']
 
@@ -127,13 +143,17 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_is_out_of_stock(self, obj):
         return self._agg(obj)['is_out_of_stock_all']
 
+    def get_primary_image(self, obj):
+        return _primary_image_url(obj)
+
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'type', 'description',
             'is_active', 'is_low_stock', 'is_out_of_stock',
-            'min_selling_price', 'max_selling_price', 'total_stock', 'variant_count',
-            'variants', 'images', 'created_at', 'updated_at',
+            'min_selling_price', 'max_selling_price', 'variant_count',
+            'variants', 'images', 'primary_image',
+            'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
@@ -143,7 +163,6 @@ class ProductListSerializer(serializers.ModelSerializer):
     primary_image = serializers.SerializerMethodField()
     min_selling_price = serializers.SerializerMethodField()
     max_selling_price = serializers.SerializerMethodField()
-    total_stock = serializers.SerializerMethodField()
     variant_count = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
@@ -153,7 +172,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'type',
             'is_active', 'is_low_stock', 'is_out_of_stock',
-            'min_selling_price', 'max_selling_price', 'total_stock', 'variant_count',
+            'min_selling_price', 'max_selling_price', 'variant_count',
             'primary_image', 'updated_at',
         )
 
@@ -172,9 +191,6 @@ class ProductListSerializer(serializers.ModelSerializer):
         v = self._agg(obj)['max_selling_price']
         return str(v) if v is not None else None
 
-    def get_total_stock(self, obj):
-        return str(self._agg(obj)['total_stock'])
-
     def get_variant_count(self, obj):
         return self._agg(obj)['variant_count']
 
@@ -185,14 +201,4 @@ class ProductListSerializer(serializers.ModelSerializer):
         return self._agg(obj)['is_out_of_stock_all']
 
     def get_primary_image(self, obj):
-        from django.conf import settings
-        from apps.core.storage import get_signed_url
-
-        img = next((i for i in obj.images.all() if i.is_primary), None)
-        if img is None:
-            img = next(iter(obj.images.all()), None)
-        if img is None:
-            return None
-        if not getattr(settings, 'AWS_S3_ENDPOINT_URL', None):
-            return None
-        return get_signed_url(img.object_key)
+        return _primary_image_url(obj)
