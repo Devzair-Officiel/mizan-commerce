@@ -36,12 +36,21 @@ class OrderItemCreateSerializer(serializers.Serializer):
         return attrs
 
 
+class OrderInvoiceSummarySerializer(serializers.Serializer):
+    """Résumé léger de la facture liée — exposé sur Order pour éviter un second roundtrip."""
+
+    id = serializers.UUIDField(read_only=True)
+    number = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     customer_name = serializers.CharField(source='customer.name', read_only=True)
     customer_phone = serializers.CharField(source='customer.phone', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
+    invoice = OrderInvoiceSummarySerializer(read_only=True)
 
     class Meta:
         model = Order
@@ -51,7 +60,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'customer', 'customer_name', 'customer_phone',
             'subtotal', 'discount_amount', 'shipping_amount', 'total_amount', 'amount_paid',
             'stock_reserved',
-            'items', 'created_at', 'updated_at', 'cancelled_at',
+            'items', 'invoice', 'created_at', 'updated_at', 'cancelled_at',
         )
         read_only_fields = (
             'id', 'order_number', 'subtotal', 'total_amount',

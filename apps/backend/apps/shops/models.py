@@ -27,6 +27,21 @@ class Shop(models.Model):
         max_digits=10, decimal_places=2, null=True, blank=True,
     )
     logo_object_key = models.CharField(max_length=500, blank=True)
+
+    # ── Facturation ─────────────────────────────────────────────────────────
+    # Champs libres : chaque commerçant remplit selon sa juridiction (FR/MA/TN/US…).
+    # `tax_id` accepte SIRET, n° TVA intracom, NIF, EIN, etc. — pas de format imposé.
+    # `legal_mentions` est imprimé en pied de facture, libre au commerçant d'y mettre
+    # ses mentions légales locales (auto-liquidation, franchise en base, n° RCS…).
+    legal_address = models.TextField(blank=True)
+    tax_id = models.CharField(max_length=64, blank=True)
+    legal_mentions = models.TextField(blank=True)
+    # Taux par défaut appliqué à la création d'une facture (0 si non assujetti).
+    default_tax_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+    )
+    default_payment_terms_days = models.PositiveSmallIntegerField(default=30)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

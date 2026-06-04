@@ -47,8 +47,15 @@ export type OrderItemPayload =
   | { variant: string; quantity: number; unit_price?: string }
   | { variant?: null; product_name: string; unit_price: string; quantity: number };
 
+export interface OrderInvoiceSummary {
+  id: string;
+  number: string;
+  status: 'issued' | 'paid' | 'cancelled';
+}
+
 export interface Order extends OrderSummary {
   items: OrderItem[];
+  invoice: OrderInvoiceSummary | null;
   customer_phone: string | null;
   subtotal: string;
   discount_amount: string;
@@ -145,6 +152,7 @@ export function useTransitionOrder(id: string) {
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
       if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
     },
   });
@@ -158,6 +166,7 @@ export function useUpdatePayment(id: string) {
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
       if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
     },
   });

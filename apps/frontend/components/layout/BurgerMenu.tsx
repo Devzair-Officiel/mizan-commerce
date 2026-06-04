@@ -13,6 +13,7 @@ import {
   User,
   Settings,
   LogOut,
+  Receipt,
 } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { useShop } from '@/lib/hooks/useShop';
@@ -57,9 +58,10 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Activité',
     items: [
-      { href: '/reminders', label: 'Rappels', icon: Bell },
-      { href: '/notes',     label: 'Notes',   icon: StickyNote },
-      { href: '/zakat',     label: 'Zakat',   icon: Coins },
+      { href: '/invoices',  label: 'Factures', icon: Receipt },
+      { href: '/reminders', label: 'Rappels',  icon: Bell },
+      { href: '/notes',     label: 'Notes',    icon: StickyNote },
+      { href: '/zakat',     label: 'Zakat',    icon: Coins },
     ],
   },
   {

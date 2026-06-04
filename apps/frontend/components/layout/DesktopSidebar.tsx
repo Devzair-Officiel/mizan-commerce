@@ -14,6 +14,7 @@ const PRIMARY_NAV = [
 ];
 
 const SECONDARY_NAV = [
+  { href: '/invoices',   label: 'Factures',              icon: ReceiptIcon },
   { href: '/stock/add',  label: 'Entrée stock',         icon: BoxInIcon },
   { href: '/stock/out',  label: 'Sortie stock',          icon: BoxOutIcon },
   { href: '/reminders',  label: 'Rappels',               icon: BellIcon },
@@ -146,6 +147,14 @@ function PackageIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+    </svg>
+  );
+}
+
+function ReceiptIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m-9 5l2-1.5L11 21l2-1.5L15 21l2-1.5L19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16z" />
     </svg>
   );
 }

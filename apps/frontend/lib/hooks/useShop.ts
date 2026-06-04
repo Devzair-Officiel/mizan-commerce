@@ -14,6 +14,11 @@ export interface Shop {
   nisab_unit_price: string | null;
   logo_object_key: string;
   logo_url: string | null;
+  legal_address: string;
+  tax_id: string;
+  legal_mentions: string;
+  default_tax_rate: string;
+  default_payment_terms_days: number;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +30,11 @@ export interface ShopUpdateData {
   zakat_annual_date?: string | null;
   nisab_method?: NisabMethod;
   nisab_unit_price?: string | null;
+  legal_address?: string;
+  tax_id?: string;
+  legal_mentions?: string;
+  default_tax_rate?: string;
+  default_payment_terms_days?: number;
 }
 
 export function useShop() {

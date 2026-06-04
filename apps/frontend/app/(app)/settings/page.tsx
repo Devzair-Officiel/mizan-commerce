@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Store, Globe, Coins, Receipt } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
-import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
+import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
 import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
 import { useShop, useUpdateShop, useUploadShopLogo, useDeleteShopLogo } from '@/lib/hooks/useShop';
 
@@ -29,6 +30,11 @@ const schema = z.object({
   zakat_annual_date: z.string().optional(),
   nisab_method: z.enum(['gold', 'silver']),
   nisab_unit_price: z.string().optional(),
+  legal_address: z.string().optional(),
+  tax_id: z.string().optional(),
+  legal_mentions: z.string().optional(),
+  default_tax_rate: z.string().optional(),
+  default_payment_terms_days: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -89,6 +95,11 @@ export default function SettingsPage() {
         zakat_annual_date: shop.zakat_annual_date ?? '',
         nisab_method: shop.nisab_method ?? 'silver',
         nisab_unit_price: shop.nisab_unit_price ?? '',
+        legal_address: shop.legal_address ?? '',
+        tax_id: shop.tax_id ?? '',
+        legal_mentions: shop.legal_mentions ?? '',
+        default_tax_rate: shop.default_tax_rate ?? '0',
+        default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
       });
     }
   }, [shop, reset]);
@@ -100,6 +111,8 @@ export default function SettingsPage() {
       nisab_unit_price: values.nisab_unit_price && parseFloat(values.nisab_unit_price) > 0
         ? values.nisab_unit_price
         : null,
+      default_tax_rate: values.default_tax_rate || '0',
+      default_payment_terms_days: Number(values.default_payment_terms_days || 30),
     });
     reset(values);
   }
@@ -110,12 +123,14 @@ export default function SettingsPage() {
     <>
       <TopBar title="Paramètres boutique" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6 px-4 pt-4 pb-32">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32">
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identité</h2>
-
-          <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+        <SettingsCard
+          icon={Store}
+          title="Identité"
+          description="Le visage de votre boutique sur les factures et reçus."
+        >
+          <div className="flex items-center gap-4">
             <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-muted flex items-center justify-center">
               {shop?.logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -163,10 +178,13 @@ export default function SettingsPage() {
             <FloatingInput id="name" label="Nom de la boutique *" {...register('name')} />
             {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name.message}</p>}
           </div>
-        </section>
+        </SettingsCard>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Régional</h2>
+        <SettingsCard
+          icon={Globe}
+          title="Régional"
+          description="Devise et pays utilisés dans toute l'application."
+        >
           <div className="grid grid-cols-2 gap-3">
             <FloatingSelect id="currency" label="Devise" {...register('currency')}>
               {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -176,16 +194,19 @@ export default function SettingsPage() {
               {COUNTRIES.map(({ code, label }) => <option key={code} value={code}>{label}</option>)}
             </FloatingSelect>
           </div>
-        </section>
+        </SettingsCard>
 
-        <section className="flex flex-col gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Zakat</h2>
+        <SettingsCard
+          icon={Coins}
+          title="Zakat"
+          description="Paramètres pour calculer le seuil de Nisab et générer le rappel annuel."
+        >
           <div className="flex flex-col gap-0.5">
             <FloatingInput id="zakat_annual_date" label="Date annuelle (optionnel)" type="date" {...register('zakat_annual_date')} />
             <p className="text-[11px] text-muted-foreground px-1">Un rappel sera généré avant cette date chaque année.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="grid grid-cols-2 gap-3">
             <FloatingSelect id="nisab_method" label="Méthode du Nisab" {...register('nisab_method')}>
               <option value="silver">Argent (595 g)</option>
               <option value="gold">Or (85 g)</option>
@@ -204,7 +225,63 @@ export default function SettingsPage() {
             Le cours évolue chaque jour. Vérifiez et mettez à jour le prix au gramme avant chaque
             calcul. La méthode de l'argent est plus inclusive (seuil plus bas).
           </p>
-        </section>
+        </SettingsCard>
+
+        <SettingsCard
+          icon={Receipt}
+          title="Facturation"
+          description="Ces champs apparaissent sur vos factures clients. Renseignez ce qui est exigé par la réglementation de votre pays."
+        >
+          <FloatingTextarea
+            id="legal_address"
+            label="Adresse légale (siège)"
+            rows={3}
+            {...register('legal_address')}
+          />
+
+          <FloatingInput
+            id="tax_id"
+            label="Identifiant fiscal (SIRET, TVA, NIF, EIN…)"
+            {...register('tax_id')}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <FloatingInput
+              id="default_tax_rate"
+              label="Taux TVA par défaut"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              inputMode="decimal"
+              suffix="%"
+              {...register('default_tax_rate')}
+            />
+            <FloatingInput
+              id="default_payment_terms_days"
+              label="Délai de paiement"
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              suffix="jours"
+              {...register('default_payment_terms_days')}
+            />
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            <FloatingTextarea
+              id="legal_mentions"
+              label="Mentions légales (pied de facture)"
+              rows={4}
+              {...register('legal_mentions')}
+            />
+            <p className="text-[11px] text-muted-foreground px-1">
+              Ex.&nbsp;: «&nbsp;TVA non applicable, art. 293 B du CGI&nbsp;», RCS, conditions de
+              pénalités, indemnité forfaitaire…
+            </p>
+          </div>
+        </SettingsCard>
 
         {isSuccess && !isDirty && (
           <p className="text-sm text-green-600 text-center">Modifications enregistrées ✓</p>
@@ -232,6 +309,11 @@ export default function SettingsPage() {
                 zakat_annual_date: shop.zakat_annual_date ?? '',
                 nisab_method: shop.nisab_method ?? 'silver',
                 nisab_unit_price: shop.nisab_unit_price ?? '',
+                legal_address: shop.legal_address ?? '',
+                tax_id: shop.tax_id ?? '',
+                legal_mentions: shop.legal_mentions ?? '',
+                default_tax_rate: shop.default_tax_rate ?? '0',
+                default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
               })}
             >
               Annuler
@@ -250,5 +332,36 @@ export default function SettingsPage() {
         onConfirm={handleCropConfirm}
       />
     </>
+  );
+}
+
+function SettingsCard({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="flex flex-col min-w-0 pt-0.5">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {description && (
+            <p className="text-xs text-muted-foreground leading-snug">{description}</p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        {children}
+      </div>
+    </section>
   );
 }

@@ -14,6 +14,8 @@ class ShopSerializer(serializers.ModelSerializer):
             'id', 'name', 'currency', 'country', 'timezone',
             'zakat_annual_date', 'nisab_method', 'nisab_unit_price',
             'logo_object_key', 'logo_url',
+            'legal_address', 'tax_id', 'legal_mentions',
+            'default_tax_rate', 'default_payment_terms_days',
             'created_at', 'updated_at',
         )
         read_only_fields = (

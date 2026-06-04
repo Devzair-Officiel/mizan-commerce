@@ -5,18 +5,21 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowRight, CheckCircle2, CreditCard, FileEdit, Flag, History, ListChecks,
-  PackageCheck, Phone, Plus, StickyNote, Trash2, Truck, User, Wallet, XCircle,
+  PackageCheck, Phone, Plus, Receipt, StickyNote, Trash2, Truck, User, Wallet, XCircle,
   Pencil,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
-import { FloatingTextarea } from '@/components/ui/floating-fields';
+import { FloatingInput, FloatingTextarea } from '@/components/ui/floating-fields';
 import {
   useOrder, useOrderActivity, useTransitionOrder, useUpdatePayment,
   type Order, type OrderActivityEvent,
 } from '@/lib/hooks/useOrders';
 import { useOrderNotes, useCreateOrderNote, useDeleteNote } from '@/lib/hooks/useNotes';
+import { useIssueInvoice } from '@/lib/hooks/useInvoices';
+import { useShop } from '@/lib/hooks/useShop';
+import { ApiError } from '@/lib/api-client';
 
 /* ── config par statut (icône + classes badge) ── */
 const STATUS_CONFIG: Record<string, {
@@ -228,15 +231,22 @@ export default function OrderDetailPage() {
   const { data: order, isLoading } = useOrder(id);
   const { data: activityData } = useOrderActivity(id);
   const { data: notesData } = useOrderNotes(id);
+  const { data: shop } = useShop();
   const transition = useTransitionOrder(id);
   const updatePayment = useUpdatePayment(id);
   const createNote = useCreateOrderNote(id);
   const deleteNote = useDeleteNote(id);
+  const issueInvoice = useIssueInvoice();
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [amountInput, setAmountInput] = useState('');
   const [editAmount, setEditAmount] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteInput, setNoteInput] = useState('');
+  const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
+  const [invoiceTaxRate, setInvoiceTaxRate] = useState('');
+  const [invoiceTermsDays, setInvoiceTermsDays] = useState('');
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
   if (isLoading) return <><TopBar title="Commande" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
   if (!order) return <><TopBar title="Commande" /><p className="p-4 text-sm text-red-500">Commande introuvable.</p></>;
@@ -292,6 +302,41 @@ export default function OrderDetailPage() {
   async function handleDeleteNote(noteId: string) {
     if (!confirm('Supprimer cette note ?')) return;
     await deleteNote.mutateAsync(noteId);
+  }
+
+  function openInvoiceSheet() {
+    setInvoiceTaxRate(shop?.default_tax_rate ?? '0');
+    setInvoiceTermsDays(String(shop?.default_payment_terms_days ?? 30));
+    setInvoiceNotes('');
+    setInvoiceError(null);
+    setShowInvoiceSheet(true);
+  }
+
+  async function handleIssueInvoice() {
+    if (!order) return;
+    setInvoiceError(null);
+    try {
+      const invoice = await issueInvoice.mutateAsync({
+        order_id: order.id,
+        tax_rate: invoiceTaxRate || undefined,
+        payment_terms_days: invoiceTermsDays ? Number(invoiceTermsDays) : undefined,
+        notes: invoiceNotes,
+      });
+      setShowInvoiceSheet(false);
+      router.push(`/invoices/${invoice.id}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        const existingId = (err.data as { existing_id?: string } | null)?.existing_id;
+        if (existingId) {
+          setShowInvoiceSheet(false);
+          router.push(`/invoices/${existingId}`);
+          return;
+        }
+      }
+      setInvoiceError(
+        err instanceof Error ? err.message : 'Erreur lors de l\'émission de la facture.',
+      );
+    }
   }
 
   return (
@@ -545,6 +590,46 @@ export default function OrderDetailPage() {
           )}
         </div>
 
+        {/* Facturation */}
+        {order.status !== 'cancelled' && order.items.length > 0 && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <Receipt size={14} />
+                Facturation
+              </h2>
+              {order.invoice && (
+                <span className="text-xs font-medium text-zinc-500">N° {order.invoice.number}</span>
+              )}
+            </div>
+
+            {order.invoice ? (
+              <Link
+                href={`/invoices/${order.invoice.id}`}
+                className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 hover:border-primary/40 transition-colors"
+              >
+                <CheckCircle2 className="text-green-600 shrink-0" size={18} />
+                <div className="flex flex-1 flex-col gap-0.5 min-w-0">
+                  <p className="text-sm font-medium text-zinc-900">
+                    Facture {order.invoice.status === 'paid' ? 'payée' : order.invoice.status === 'cancelled' ? 'annulée' : 'émise'}
+                  </p>
+                  <p className="text-xs text-zinc-500">Voir le détail et télécharger le PDF.</p>
+                </div>
+                <ArrowRight size={16} className="text-zinc-400 shrink-0" />
+              </Link>
+            ) : (
+              <Button
+                onClick={openInvoiceSheet}
+                disabled={issueInvoice.isPending}
+                className="w-full inline-flex items-center justify-center gap-2"
+              >
+                <Receipt size={16} />
+                Émettre une facture
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Notes */}
         <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
@@ -797,6 +882,66 @@ export default function OrderDetailPage() {
             </div>
           );
         })()}
+      </BottomSheet>
+
+      {/* BottomSheet émission facture */}
+      <BottomSheet
+        open={showInvoiceSheet}
+        onClose={() => setShowInvoiceSheet(false)}
+        title="Émettre une facture"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-zinc-500">
+            Les valeurs par défaut viennent des paramètres boutique. Ajustez-les si besoin pour
+            cette facture.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <FloatingInput
+              id="invoice-tax-rate"
+              label="Taux TVA"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              inputMode="decimal"
+              suffix="%"
+              value={invoiceTaxRate}
+              onChange={(e) => setInvoiceTaxRate(e.target.value)}
+            />
+            <FloatingInput
+              id="invoice-terms-days"
+              label="Délai de paiement"
+              type="number"
+              step="1"
+              min="0"
+              inputMode="numeric"
+              suffix="jours"
+              value={invoiceTermsDays}
+              onChange={(e) => setInvoiceTermsDays(e.target.value)}
+            />
+          </div>
+          <FloatingTextarea
+            id="invoice-notes"
+            label="Notes (optionnel)"
+            value={invoiceNotes}
+            onChange={(e) => setInvoiceNotes(e.target.value)}
+            rows={3}
+          />
+          {invoiceError && (
+            <p className="text-xs text-destructive">{invoiceError}</p>
+          )}
+          <Button
+            onClick={handleIssueInvoice}
+            disabled={issueInvoice.isPending}
+            className="w-full inline-flex items-center justify-center gap-2"
+          >
+            <Receipt size={16} />
+            {issueInvoice.isPending ? 'Émission…' : 'Émettre la facture'}
+          </Button>
+          <p className="text-[11px] text-zinc-400 text-center">
+            Une fois émise, la facture est immuable. Seul le statut peut être modifié.
+          </p>
+        </div>
       </BottomSheet>
     </>
   );

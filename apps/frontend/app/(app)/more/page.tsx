@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 const MENU_ITEMS = [
+  { href: '/invoices', label: 'Factures' },
   { href: '/stock/add', label: 'Entrée stock' },
   { href: '/stock/out', label: 'Sortie stock' },
   { href: '/reminders', label: 'Rappels' },
