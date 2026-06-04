@@ -108,7 +108,20 @@ class ZakatCalculationFinalizeView(APIView):
             return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)
         if calc.status == ZakatCalculation.STATUS_FINALIZED:
             return Response({'detail': 'Calcul déjà finalisé.'}, status=status.HTTP_400_BAD_REQUEST)
-        services.finalize_calculation(calc)
+        try:
+            services.finalize_calculation(calc)
+        except services.YearAlreadyFinalizedError as exc:
+            return Response(
+                {
+                    'detail': (
+                        f'Un calcul finalisé existe déjà pour {exc.year}. '
+                        'La zakat ne se finalise qu\'une fois par cycle annuel.'
+                    ),
+                    'existing_id': str(exc.existing_id),
+                    'year': exc.year,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
         return Response(ZakatCalculationSerializer(calc).data)
 
 

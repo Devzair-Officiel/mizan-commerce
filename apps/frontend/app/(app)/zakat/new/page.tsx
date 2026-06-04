@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { WizardLayout, TOTAL_STEPS } from '@/components/zakat/WizardLayout';
+import { WizardHub } from '@/components/zakat/WizardHub';
 import { Step0Liquidity } from '@/components/zakat/Step0Liquidity';
 import { Step1Receivables } from '@/components/zakat/Step1Receivables';
 import { Step2Stock } from '@/components/zakat/Step2Stock';
@@ -22,6 +23,7 @@ import {
   type StockBreakdownItem,
   type ZakatCalculation,
 } from '@/lib/hooks/useZakat';
+import { ApiError } from '@/lib/api-client';
 
 interface WizardState {
   referenceDate: string;
@@ -79,6 +81,11 @@ export default function NewZakatWizardPage() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [calc, setCalc] = useState<ZakatCalculation | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  // Mode hub : on liste les 6 étapes avec leurs valeurs et on édite à la carte.
+  // Activé quand on rouvre un calcul finalisé (toutes les étapes ont déjà des valeurs).
+  // En mode hub, sauvegarder une étape ramène au hub (au lieu d'enchaîner la suivante).
+  const [mode, setMode] = useState<'linear' | 'hub'>('linear');
+  const [editingFromHub, setEditingFromHub] = useState(false);
 
   const { data: draft, isLoading: draftLoading } = useZakatCurrentDraft();
   const { data: estimate, isLoading: estimateLoading } = useZakatStockEstimate();
@@ -99,6 +106,11 @@ export default function NewZakatWizardPage() {
       // current_step est l'index où l'utilisateur s'est arrêté — on l'y remet.
       const resumeAt = Math.min(Math.max(draft.current_step, 0), TOTAL_STEPS - 1);
       setStep(resumeAt);
+      // Si l'utilisateur a déjà parcouru toutes les étapes (récap atteint), on bascule
+      // automatiquement en mode hub — il vient probablement modifier un point précis.
+      if (draft.current_step >= TOTAL_STEPS - 1) {
+        setMode('hub');
+      }
     }
     setHydrated(true);
   }, [draft, draftLoading, hydrated]);
@@ -136,12 +148,39 @@ export default function NewZakatWizardPage() {
     setStep(nextStep);
   };
 
+  // Mode hub : on enregistre l'étape sans incrémenter `current_step`, puis on revient au hub.
+  const persistAndReturnToHub = async () => {
+    if (!draftId) return;
+    const updated = await updateDraft.mutateAsync(buildPayload(TOTAL_STEPS - 1));
+    setCalc(updated);
+    setEditingFromHub(false);
+  };
+
   const handleFinalize = async () => {
     if (!draftId) return;
     // S'assurer que les dernières infos de l'étape récap soient enregistrées avant finalisation.
     await updateDraft.mutateAsync(buildPayload(TOTAL_STEPS - 1));
-    const finalized = await finalize.mutateAsync(draftId);
-    router.push(`/zakat/${finalized.id}`);
+    try {
+      const finalized = await finalize.mutateAsync(draftId);
+      router.push(`/zakat/${finalized.id}`);
+    } catch (err) {
+      // Conflit d'unicité annuelle : un calcul finalisé existe déjà pour cette année.
+      // On redirige vers ce calcul existant après avoir prévenu le commerçant.
+      if (err instanceof ApiError && err.status === 409) {
+        const data = err.data as { detail?: string; existing_id?: string; year?: number };
+        window.alert(
+          data.detail ??
+            `Un calcul finalisé existe déjà pour ${data.year}. Vous allez être redirigé vers ce calcul.`,
+        );
+        if (data.existing_id) {
+          router.push(`/zakat/${data.existing_id}`);
+          return;
+        }
+        router.push('/zakat');
+        return;
+      }
+      throw err;
+    }
   };
 
   const handleDiscard = async () => {
@@ -177,16 +216,52 @@ export default function NewZakatWizardPage() {
     );
   }
 
+  // Vue hub : 6 cartes éditables + récap intégré. On y entre quand le brouillon a déjà
+  // atteint la dernière étape (rouverture d'un finalisé) et qu'aucune édition n'est en cours.
+  if (mode === 'hub' && !editingFromHub && calc) {
+    return (
+      <WizardHub
+        calc={calc}
+        state={state}
+        currency={currency}
+        onEditStep={(s) => {
+          setStep(s);
+          setEditingFromHub(true);
+        }}
+        onFinalize={handleFinalize}
+        onDiscard={handleDiscard}
+        isPending={isPending}
+      />
+    );
+  }
+
   const { title, subtitle } = STEP_TITLES[step];
+  // En édition depuis le hub, on n'enchaîne pas l'étape suivante : "Enregistrer" puis retour.
+  const isHubEdit = mode === 'hub' && editingFromHub;
+  const nextLabel = isHubEdit
+    ? 'Enregistrer'
+    : step === TOTAL_STEPS - 1
+      ? 'Finaliser la zakat'
+      : 'Suivant';
+  const onNext = isHubEdit
+    ? persistAndReturnToHub
+    : step === TOTAL_STEPS - 1
+      ? handleFinalize
+      : persistAndNext;
+  const onPrev = isHubEdit
+    ? () => setEditingFromHub(false)
+    : step > 0
+      ? () => setStep(step - 1)
+      : undefined;
 
   return (
     <WizardLayout
       step={step}
       title={title}
       subtitle={subtitle}
-      nextLabel={step === TOTAL_STEPS - 1 ? 'Finaliser la zakat' : 'Suivant'}
-      onNext={step === TOTAL_STEPS - 1 ? handleFinalize : persistAndNext}
-      onPrev={step > 0 ? () => setStep(step - 1) : undefined}
+      nextLabel={nextLabel}
+      onNext={onNext}
+      onPrev={onPrev}
       canGoNext={canGoNext}
       isPending={isPending}
     >

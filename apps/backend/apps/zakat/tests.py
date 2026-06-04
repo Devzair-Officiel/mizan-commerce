@@ -112,11 +112,12 @@ class ZakatServiceTest(TestCase):
         self.shop.save()
         _make_product(self.shop, 'P', Decimal('10'), Decimal('100.00'), 10)  # stock = 1000
         calc = services.calculate_zakat(
-            shop=self.shop, reference_date='2025-03-01',
+            shop=self.shop, reference_date='2024-03-01',
             cash_amount=Decimal('0'),
         )
         # calculate_zakat ne snapshote pas le nisab — c'est finalize_calculation qui le fait.
-        # On vérifie via une création + finalize explicite.
+        # On vérifie via une création + finalize explicite, sur une année différente
+        # pour respecter la contrainte d'unicité annuelle.
         draft = ZakatCalculation.objects.create(
             shop=self.shop, reference_date='2025-03-01', currency=self.shop.currency,
         )
@@ -136,6 +137,29 @@ class ZakatServiceTest(TestCase):
         )
         self.assertEqual(calc.zakat_base, Decimal('0'))
         self.assertEqual(calc.zakat_amount, Decimal('0.00'))
+
+    def test_finalize_refuses_second_calculation_same_year(self):
+        # Première finalisation : OK.
+        first = ZakatCalculation.objects.create(
+            shop=self.shop, reference_date='2025-03-01', currency=self.shop.currency,
+        )
+        services.finalize_calculation(first)
+
+        # Deuxième brouillon pour la même année (autre mois) → refus à la finalisation.
+        second = ZakatCalculation.objects.create(
+            shop=self.shop, reference_date='2025-09-15', currency=self.shop.currency,
+        )
+        with self.assertRaises(services.YearAlreadyFinalizedError) as ctx:
+            services.finalize_calculation(second)
+        self.assertEqual(ctx.exception.year, 2025)
+        self.assertEqual(ctx.exception.existing_id, first.pk)
+
+        # Une finalisation pour l'année suivante reste possible.
+        third = ZakatCalculation.objects.create(
+            shop=self.shop, reference_date='2026-03-01', currency=self.shop.currency,
+        )
+        services.finalize_calculation(third)
+        self.assertEqual(third.status, ZakatCalculation.STATUS_FINALIZED)
 
 
 class ZakatAPITest(TestCase):
@@ -198,6 +222,24 @@ class ZakatAPITest(TestCase):
         self.assertEqual(finalize.data['status'], 'finalized')
         self.assertEqual(Decimal(finalize.data['zakat_base']), Decimal('580.00'))
         self.assertEqual(Decimal(finalize.data['zakat_amount']), Decimal('14.50'))
+
+    def test_finalize_endpoint_refuses_second_calc_same_year(self):
+        # Premier calcul finalisé pour 2025.
+        first = self.client.post(reverse('zakat-calculation-list'), {
+            'reference_date': '2025-03-01',
+        }, format='json')
+        first_id = first.data['id']
+        self.client.post(reverse('zakat-calculation-finalize', kwargs={'pk': first_id}))
+
+        # Deuxième brouillon pour 2025 — la finalisation doit renvoyer 409.
+        second = self.client.post(reverse('zakat-calculation-list'), {
+            'reference_date': '2025-09-15',
+        }, format='json')
+        second_id = second.data['id']
+        finalize = self.client.post(reverse('zakat-calculation-finalize', kwargs={'pk': second_id}))
+        self.assertEqual(finalize.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(finalize.data['year'], 2025)
+        self.assertEqual(finalize.data['existing_id'], first_id)
 
     def test_patch_draft_with_receivables_breakdown_sums_recoverable_only(self):
         create = self.client.post(reverse('zakat-calculation-list'), {

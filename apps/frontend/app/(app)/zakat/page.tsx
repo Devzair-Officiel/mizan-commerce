@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, FileText, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileText, RefreshCw, Sparkles } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { HistoryChart } from '@/components/zakat/HistoryChart';
@@ -19,6 +19,13 @@ export default function ZakatPage() {
 
   const currency = estimate?.currency ?? 'EUR';
   const draftStepLabel = draft ? `Étape ${draft.current_step + 1} sur 6` : null;
+
+  // Un seul calcul finalisé par cycle annuel — si l'année en cours est déjà couverte,
+  // on remplace le CTA par un raccourci vers ce calcul plutôt que d'autoriser un doublon.
+  const currentYear = new Date().getFullYear();
+  const currentYearFinalized = (finalized?.results ?? []).find(
+    (c) => new Date(c.reference_date).getFullYear() === currentYear,
+  );
 
   return (
     <>
@@ -66,8 +73,28 @@ export default function ZakatPage() {
           </div>
         )}
 
-        {/* CTA principal — masqué quand un brouillon existe pour ne pas dédoubler avec la bannière. */}
-        {!draft && (
+        {/* Raccourci si la zakat de l'année est déjà figée — un hawl, un justificatif. */}
+        {!draft && currentYearFinalized && (
+          <Link
+            href={`/zakat/${currentYearFinalized.id}`}
+            className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 hover:bg-emerald-100/60 transition-colors"
+          >
+            <CheckCircle2 className="text-emerald-600 shrink-0" size={20} />
+            <div className="flex-1 flex flex-col">
+              <p className="text-sm font-medium text-emerald-900">
+                Zakat {currentYear} déjà bouclée
+              </p>
+              <p className="text-xs text-emerald-800 tabular-nums">
+                {formatMoney(currentYearFinalized.zakat_amount, currentYearFinalized.currency)} —
+                voir le justificatif
+              </p>
+            </div>
+            <ArrowRight className="text-emerald-700 shrink-0" size={18} />
+          </Link>
+        )}
+
+        {/* CTA principal — masqué quand un brouillon existe ou que l'année est déjà bouclée. */}
+        {!draft && !currentYearFinalized && (
           <Link href="/zakat/new" className="block">
             <Button className="w-full">
               <Sparkles size={16} className="mr-2" />

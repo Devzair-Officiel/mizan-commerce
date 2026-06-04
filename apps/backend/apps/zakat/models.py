@@ -1,6 +1,7 @@
 import uuid
 from decimal import Decimal
 from django.db import models
+from django.db.models.functions import ExtractYear
 from apps.shops.models import Shop
 
 
@@ -95,6 +96,17 @@ class ZakatCalculation(models.Model):
         ordering = ['-reference_date', '-created_at']
         indexes = [
             models.Index(fields=['shop', 'status']),
+        ]
+        constraints = [
+            # Un seul calcul finalisé par boutique et par année — un hawl, un justificatif.
+            # Le check applicatif côté service donne un message clair ; cet index est le filet
+            # de sécurité contre les courses concurrentes.
+            models.UniqueConstraint(
+                models.F('shop'),
+                ExtractYear('reference_date'),
+                condition=models.Q(status='finalized'),
+                name='unique_finalized_zakat_per_shop_year',
+            ),
         ]
 
     def __str__(self) -> str:

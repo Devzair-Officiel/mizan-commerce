@@ -9,6 +9,19 @@ from apps.products.models import ProductVariant
 from .models import ZakatCalculation
 
 
+class YearAlreadyFinalizedError(Exception):
+    """Levée si on tente de finaliser un calcul alors qu'un autre est déjà figé pour la même année.
+
+    La zakat est due une fois par hawl (cycle annuel) — autoriser plusieurs calculs
+    finalisés pour la même année créerait de l'ambiguïté sur le justificatif faisant foi.
+    """
+
+    def __init__(self, year: int, existing_id):
+        self.year = year
+        self.existing_id = existing_id
+        super().__init__(f'Un calcul finalisé existe déjà pour {year}.')
+
+
 # ── Nisab ─────────────────────────────────────────────────────────────────────
 # Quantités canoniques pour les deux méthodes de calcul du seuil.
 NISAB_GOLD_GRAMS = Decimal('85')
@@ -136,7 +149,31 @@ def recompute_draft_totals(calc: ZakatCalculation) -> ZakatCalculation:
 
 
 def finalize_calculation(calc: ZakatCalculation) -> ZakatCalculation:
-    """Fige le calcul : recalcule estimations, applique le taux, snapshot Nisab, marque comme `finalized`."""
+    """Fige le calcul : recalcule estimations, applique le taux, snapshot Nisab, marque comme `finalized`.
+
+    Refuse si un autre calcul finalisé existe déjà pour la même boutique et la même
+    année de référence (un hawl = un calcul faisant foi).
+    """
+    # `reference_date` peut être une `date` (cas normal) ou un str si l'instance n'a pas été
+    # rechargée depuis la DB (cas des tests qui passent la valeur en string brute).
+    ref = calc.reference_date
+    if isinstance(ref, str):
+        from datetime import date as _date
+        ref = _date.fromisoformat(ref)
+    year = ref.year
+    existing = (
+        ZakatCalculation.objects.filter(
+            shop=calc.shop,
+            status=ZakatCalculation.STATUS_FINALIZED,
+            reference_date__year=year,
+        )
+        .exclude(pk=calc.pk)
+        .values_list('pk', flat=True)
+        .first()
+    )
+    if existing is not None:
+        raise YearAlreadyFinalizedError(year=year, existing_id=existing)
+
     recompute_draft_totals(calc)
     base, amount = compute_zakat_amount(
         stock_for_base=calc.stock_value_for_base,
