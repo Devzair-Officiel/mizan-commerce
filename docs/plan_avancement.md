@@ -9,8 +9,8 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-05-17
-**Version actuelle en développement** : Phase V1 — Pages produits/commandes/clients
+**Dernière mise à jour** : 2026-06-04
+**Version actuelle en développement** : Phase V1 — Facturation client + variantes produits
 
 ---
 
@@ -167,6 +167,42 @@
 - [x] Mots de passe hashés (Django par défaut)
 - [x] Rate limiting sur login, inscription, mot de passe oublié
 - [x] Photos produits stockées dans bucket privé avec URL signées si pas page publique
+
+### Variantes produits (URS-089 à URS-092)
+
+- [x] Modèle `ProductVariant` (packaging, unité, base_quantity, prix vente/achat, stock, sku, code-barres)
+- [x] Au moins une variante active requise pour qu'un produit soit vendable
+- [x] Endpoints CRUD variantes (filtrés `shop_id`)
+- [x] UI gestion des variantes depuis la fiche produit (`VariantsManager`)
+- [x] Sélection de la variante dans la création de commande
+- [x] Stock et seuil d'alerte portés par la variante, plus par le produit
+- [x] SKU + code-barres en option par variante (préparation scan QR)
+- [x] Labellisation `Article` (produits + services) dans la navigation
+
+### Vue stock agrégée (URS-093)
+
+- [x] Page `/stock` regroupant compteurs (actifs, faible, rupture)
+- [x] Liste des derniers mouvements (entrée, sortie, réservation, perte, ajustement, libération)
+- [x] Actions rapides : entrée stock / sortie stock depuis la page
+
+### Facturation client (URS-094 à URS-099)
+
+- [x] Modèles `Invoice`, `InvoiceLine`, `InvoiceSequence`
+- [x] Snapshot complet vendeur (shop) et acheteur (customer/order) à l'émission
+- [x] Service `issue_invoice_from_order` atomique avec `select_for_update` sur la séquence
+- [x] Numérotation `fact-DDMMYY-NNNN`, compteur continu par boutique, jamais reset
+- [x] Calcul total : base TVA = subtotal HT − remise + frais de port (règle FR/UE)
+- [x] Synchronisation statut facture ↔ commande (`sync_invoice_from_order` après update paiement / annulation)
+- [x] Champ `amount_paid` snapshotté pour affichage paiement partiel sans dépendance commande
+- [x] Endpoints liste, détail, émission, changement de statut, téléchargement PDF
+- [x] Page liste `/invoices` avec filtres (toutes, émises, payées, annulées)
+- [x] Page détail avec pastille dérivée à 4 états (Non payée / Partiel — X € / Payée / Annulée)
+- [x] Zone totaux UI : lignes Remise et Frais de port conditionnelles, lignes Payé / Reste à payer pour les partiels
+- [x] PDF ReportLab : en-tête, vendeur/acheteur, lignes HT, totaux détaillés, mentions légales, statut paiement
+- [x] Mentions légales libres saisies sur la boutique, reprises dans le snapshot et le PDF
+- [x] Bouton « Émettre la facture » sur le détail commande quand aucune facture n'existe
+- [x] Bouton « Marquer comme payée » caché si la facture est liée à une commande (synchro auto)
+- [x] Immutabilité : seul le statut peut changer (vers paid/cancelled), montants et numéro figés
 
 ---
 

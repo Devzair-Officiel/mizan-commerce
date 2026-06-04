@@ -1067,6 +1067,190 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+# 20bis. URS — Variantes de produits (v1 — ajout)
+
+## Règle générale
+
+Un produit du catalogue est en fait un **article** (produit physique ou service). Chaque article possède au moins une **variante** qui porte le packaging concret, le prix de vente, le prix d'achat et le stock. Le commerçant pense en « pot de 250 g », « seau de 5 kg », « bouteille de 1 L » : c'est la variante. La quantité en stock compte des formats, pas le contenu cumulé.
+
+---
+
+## URS-089 — Ajouter une variante à un produit
+
+**En tant que** commerçant,
+**je veux** déclarer plusieurs conditionnements pour un même produit,
+**afin de** vendre le même article en plusieurs formats sans dupliquer la fiche.
+
+### Critères d'acceptation
+
+- Je peux ajouter une variante en saisissant un nom de packaging (ex. « Pot 250 g »), une unité, une quantité de base, un prix de vente et éventuellement un prix d'achat.
+- Un produit doit avoir au moins une variante active pour être vendable.
+- Les commandes et le stock sont rattachés à une variante précise, pas au produit générique.
+
+---
+
+## URS-090 — Gérer prix et stock par variante
+
+**En tant que** commerçant,
+**je veux** que chaque variante porte son propre prix et sa propre quantité en stock,
+**afin de** suivre indépendamment la rentabilité et la disponibilité de chaque format.
+
+### Critères d'acceptation
+
+- Le stock se compte en nombre de formats (ex. 50 bouteilles), pas en contenu total.
+- Le contenu disponible est déductible (`stock_quantity × base_quantity`) mais affiché à titre indicatif.
+- Le seuil d'alerte stock faible est configuré par variante.
+- L'historique des mouvements de stock référence la variante, pas le produit.
+
+---
+
+## URS-091 — Désactiver une variante
+
+**En tant que** commerçant,
+**je veux** désactiver une variante qui n'est plus vendue,
+**afin de** la masquer des sélections tout en gardant son historique.
+
+### Critères d'acceptation
+
+- Une variante désactivée n'apparaît plus dans les listes de sélection (création de commande).
+- L'historique des commandes passées reste lisible.
+- Tant qu'au moins une variante reste active, le produit reste vendable.
+
+---
+
+## URS-092 — Référencer un produit via son SKU ou code-barres
+
+**En tant que** commerçant,
+**je veux** pouvoir attribuer un SKU et/ou un code-barres à chaque variante,
+**afin de** la retrouver vite et préparer le scan futur (QR / code-barres).
+
+### Critères d'acceptation
+
+- Les champs SKU et code-barres sont optionnels par variante.
+- La recherche produit interroge aussi ces champs.
+- L'unicité du SKU au sein d'une boutique est vérifiée si renseigné.
+
+---
+
+# 20ter. URS — Vue de stock agrégée (v1 — ajout)
+
+## URS-093 — Consulter un tableau de bord stock
+
+**En tant que** commerçant,
+**je veux** une vue unique « Stock » regroupant les compteurs et les derniers mouvements,
+**afin de** voir d'un coup d'œil l'état du stock sans naviguer entre les fiches produits.
+
+### Critères d'acceptation
+
+- La page affiche : nombre d'articles actifs, nombre d'articles en stock faible, nombre d'articles en rupture.
+- La page affiche la liste des derniers mouvements (entrées, sorties, réservations, pertes, ajustements, libérations) avec date, type, variante et quantité.
+- Des actions rapides permettent de saisir une entrée ou une sortie de stock depuis cette page.
+
+---
+
+# 20quater. URS — Facturation client (v1 — ajout)
+
+## Règle générale
+
+À partir d'une commande, le commerçant peut **émettre une facture client définitive**. Une facture est un document à valeur légale : ses montants et son numéro sont **immuables** après émission. Toutes les informations du vendeur et de l'acheteur sont **snapshottées** au moment de l'émission. Seul le statut peut évoluer (payée, annulée). L'application doit respecter les exigences de continuité de numérotation (FR : art. 242 nonies A CGI, EU : Directive TVA).
+
+---
+
+## URS-094 — Émettre une facture depuis une commande
+
+**En tant que** commerçant,
+**je veux** générer une facture client à partir d'une commande validée,
+**afin de** disposer d'un document légal à remettre à mon client.
+
+### Critères d'acceptation
+
+- Le bouton « Émettre la facture » est disponible sur le détail de la commande quand aucune facture n'existe encore.
+- Une commande n'a qu'une seule facture (relation 1-1).
+- La facture est créée avec un snapshot complet des informations vendeur (nom, adresse, identifiant fiscal, mentions légales) et acheteur (nom, adresse, email, téléphone) au moment de l'émission.
+- Les lignes de la facture sont issues des items de la commande, en HT, libellées avec le nom du produit et celui de la variante.
+- Une commande sans items ne peut pas être facturée (refus explicite).
+
+---
+
+## URS-095 — Numéroter les factures de façon continue
+
+**En tant que** commerçant,
+**je veux** que mes factures soient numérotées de façon continue et non recyclée,
+**afin de** respecter les exigences légales de numérotation.
+
+### Critères d'acceptation
+
+- Le numéro suit le format `fact-DDMMYY-NNNN` (préfixe fixe, date d'émission comme marqueur, compteur sur 4 chiffres minimum).
+- Le compteur ne se remet jamais à zéro (ni à l'année, ni au mois).
+- Le compteur est indépendant par boutique.
+- L'émission concurrente de deux factures ne peut jamais produire deux fois le même numéro (verrou en transaction).
+- Une facture annulée garde son numéro (pas de recyclage).
+
+---
+
+## URS-096 — Synchroniser le statut facture avec la commande
+
+**En tant que** commerçant,
+**je veux** que le statut de paiement de ma facture suive automatiquement celui de la commande,
+**afin de** ne pas avoir à mettre à jour deux fois la même information.
+
+### Critères d'acceptation
+
+- Si la commande passe au statut « payé », la facture passe automatiquement à « payée ».
+- Si la commande est annulée, la facture passe à « annulée » (sauf si déjà annulée).
+- Si un paiement partiel est saisi sur la commande, le montant payé est synchronisé sur la facture (statut interne reste « émise »).
+- Une facture déjà annulée n'est jamais réactivée (état terminal).
+- Le bouton manuel « Marquer comme payée » n'apparaît que pour les factures sans commande liée (cas où la facture a été créée à part).
+
+---
+
+## URS-097 — Afficher l'état de paiement de façon granulaire
+
+**En tant que** commerçant,
+**je veux** voir clairement si la facture est non payée, partiellement payée, payée ou annulée,
+**afin de** savoir au premier coup d'œil ce qui reste à encaisser.
+
+### Critères d'acceptation
+
+- La pastille de statut affiche l'un de ces quatre libellés : « Non payée », « Partiel — X €  », « Payée », « Annulée ».
+- Le montant payé et le reste à payer sont affichés dans la zone des totaux quand un paiement partiel est enregistré.
+- Le PDF reprend cette information de façon cohérente (en-tête + ligne supplémentaire sous le Total TTC).
+- Le statut juridique stocké reste à trois valeurs (`issued`, `paid`, `cancelled`) — la 4ᵉ valeur (partiel) est dérivée à l'affichage.
+
+---
+
+## URS-098 — Calculer les totaux avec TVA, remise et frais de port
+
+**En tant que** commerçant,
+**je veux** que ma facture montre le détail sous-total HT, remise, frais de port, TVA et total TTC,
+**afin de** disposer d'une facture conforme aux usages comptables.
+
+### Critères d'acceptation
+
+- Le sous-total HT correspond à la somme des lignes de la facture.
+- La remise et les frais de port saisis sur la commande sont snapshottés sur la facture.
+- La base imposable TVA = sous-total HT − remise + frais de port (règle FR/UE).
+- Le taux de TVA appliqué est celui de la boutique au moment de l'émission (modifiable au cas par cas).
+- Le total TTC = base imposable + TVA.
+- Si une remise ou des frais de port sont à 0, les lignes correspondantes n'apparaissent pas dans le PDF ni dans l'UI.
+
+---
+
+## URS-099 — Garantir l'immutabilité d'une facture émise
+
+**En tant que** commerçant,
+**je veux** que les informations d'une facture émise ne puissent plus être modifiées,
+**afin de** respecter la valeur probante du document.
+
+### Critères d'acceptation
+
+- Les montants, le numéro, les snapshots vendeur et acheteur d'une facture émise sont en lecture seule via l'API.
+- Seul le statut peut évoluer (vers « payée » ou « annulée »).
+- Annuler une facture ne supprime ni le document ni son numéro : seul un drapeau de statut est posé.
+- Le PDF peut être régénéré à l'identique à tout moment, sans dépendance vis-à-vis de la commande ni du client liés.
+
+---
+
 # 21. URS — Messages WhatsApp préparés
 
 ## Règle générale
