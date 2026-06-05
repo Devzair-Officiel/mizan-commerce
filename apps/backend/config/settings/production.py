@@ -34,8 +34,9 @@ CORS_ALLOWED_ORIGINS = _required_env_list("CORS_ALLOWED_ORIGINS")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
-# HTTPS / HSTS
-SECURE_SSL_REDIRECT = True
+# HTTPS / HSTS — la redirection HTTP→HTTPS est gérée par Caddy au niveau du domaine public.
+# Activer SECURE_SSL_REDIRECT ici casserait le trafic interne Docker (frontend→backend en HTTP)
+# car Django ne reçoit pas X-Forwarded-Proto sur les appels inter-services.
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
