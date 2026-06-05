@@ -3,7 +3,7 @@
 import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { ClipboardPlus } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useOrders, type OrderSummary } from '@/lib/hooks/useOrders';
 import { StatusFilters } from '@/components/orders/list/StatusFilters';
@@ -55,7 +55,7 @@ function OrdersList() {
           href="/orders/new"
           className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform self-start"
         >
-          <Plus size={16} strokeWidth={2.4} />
+          <ClipboardPlus size={16} strokeWidth={2.4} />
           Nouvelle commande
         </Link>
       </div>

@@ -143,7 +143,7 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
           className="w-full rounded-full shadow-lg h-12 text-sm font-semibold"
           disabled={!canSubmit}
         >
-          {isSubmitting ? 'Enregistrement…' : 'Enregistrer'}
+          {isSubmitting ? 'Enregistrement…' : 'Enregistrer le client'}
         </Button>
       </div>
     </form>

@@ -332,7 +332,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
           className="w-full rounded-full shadow-lg h-12 text-sm font-semibold"
           disabled={!canSubmit}
         >
-          {isSubmitting ? 'Enregistrement…' : 'Enregistrer'}
+          {isSubmitting ? 'Enregistrement…' : isProduct ? 'Enregistrer le produit' : 'Enregistrer le service'}
         </Button>
       </div>
     </form>

@@ -118,7 +118,14 @@ export function CustomerPicker({
         <div className="relative mb-3">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
-            autoFocus
+            type="search"
+            inputMode="search"
+            enterKeyHint="search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            name="customer-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un client…"

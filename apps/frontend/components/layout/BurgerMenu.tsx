@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode, type ComponentType } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode, type ComponentType } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
@@ -80,6 +80,16 @@ export function BurgerMenuDrawer() {
   const router   = useRouter();
   const pathname = usePathname();
 
+  // Verrouille le scroll du body tant que le drawer est ouvert : évite que la
+  // barre URL de Chrome mobile se rétracte au scroll, ce qui créait un vide
+  // sous le panneau (l'aside ne s'agrandissait pas avec le viewport).
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [open]);
+
   async function handleLogout() {
     close();
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -101,9 +111,9 @@ export function BurgerMenuDrawer() {
         }`}
       />
 
-      {/* Panneau */}
+      {/* Panneau — h-dvh suit la barre URL mobile. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-80 flex w-72 flex-col shadow-2xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 z-80 flex h-dvh w-72 flex-col shadow-2xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ background: 'color-mix(in oklch, var(--primary) 78%, transparent)' }}

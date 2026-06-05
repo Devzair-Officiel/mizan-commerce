@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserPlus, ClipboardPlus, Package, PackagePlus } from 'lucide-react';
+import { UserPlus, ClipboardPlus, Package, PackagePlus, Users } from 'lucide-react';
 
 const LEFT_ITEMS = [
   { href: '/dashboard', label: 'Accueil', icon: HomeIcon },
-  { href: '/customers', label: 'Clients', icon: UsersIcon },
+  { href: '/customers', label: 'Clients', icon: Users },
 ] as const;
 
 const RIGHT_ITEMS = [
@@ -15,11 +15,11 @@ const RIGHT_ITEMS = [
   { href: '/products', label: 'Articles', icon: Package },
 ] as const;
 
-/* Positions en arc — icônes "+" intégrées naturellement dans le trait */
+/* Positions en arc autour du + — les icônes sortent de derrière le + */
 const QUICK_ACTIONS = [
-  { href: '/customers/new', label: 'Ajouter un client',  icon: UserPlus,      x: -90, y: -60 },
-  { href: '/orders/new',    label: 'Nouvelle commande',  icon: ClipboardPlus, x: 0,   y: -100 },
-  { href: '/products/new',  label: 'Ajouter au catalogue', icon: PackagePlus, x: 90,  y: -60 },
+  { href: '/customers/new', label: 'Client',   icon: UserPlus,      x: -88, y: -62 },
+  { href: '/orders/new',    label: 'Commande', icon: ClipboardPlus, x: 0,   y: -106 },
+  { href: '/products/new',  label: 'Article',  icon: PackagePlus,   x: 88,  y: -62 },
 ] as const;
 
 export function BottomNav() {
@@ -30,14 +30,19 @@ export function BottomNav() {
     return pathname === href || pathname.startsWith(href + '/');
   }
 
-  /* Fermeture sur Escape */
+  /* Fermeture sur Escape + verrouillage du scroll du body tant que le menu est ouvert */
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false);
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [menuOpen]);
 
   return (
@@ -53,7 +58,7 @@ export function BottomNav() {
       {/* Conteneur ancré au bouton + : actions en arc + bouton central */}
       <div className="lg:hidden fixed bottom-4 left-1/2 z-60 -translate-x-1/2">
         <div className="relative h-14.5 w-14.5">
-          {/* Actions en éventail autour du + — icônes seules, aria-label pour l'accessibilité */}
+          {/* Actions — glissent depuis derrière le + vers leur position en arc */}
           {QUICK_ACTIONS.map(({ href, label, icon: Icon, x, y }, i) => (
             <Link
               key={href}
@@ -62,21 +67,22 @@ export function BottomNav() {
               aria-label={label}
               aria-hidden={!menuOpen}
               tabIndex={menuOpen ? 0 : -1}
-              className={`absolute top-1/2 left-1/2 flex items-center justify-center h-12 w-12 rounded-full bg-card border border-border/70 active:scale-95 transition-transform ${
+              className={`absolute top-1/2 left-1/2 flex items-center justify-center h-14.5 w-14.5 rounded-full bg-card ring-1 ring-primary/15 active:scale-95 ${
                 menuOpen ? 'pointer-events-auto' : 'pointer-events-none'
               }`}
               style={{
                 transform: menuOpen
-                  ? `translate(-50%, -50%) translate(${x}px, ${y}px) scale(1)`
-                  : 'translate(-50%, -50%) scale(0.4)',
+                  ? `translate(-50%, -50%) translate(${x}px, ${y}px)`
+                  : 'translate(-50%, -50%)',
                 opacity: menuOpen ? 1 : 0,
-                boxShadow: '0 8px 20px -4px rgba(0,0,0,0.28), 0 2px 4px -1px rgba(0,0,0,0.12)',
-                transition: `transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1) ${
-                  menuOpen ? i * 50 : (QUICK_ACTIONS.length - 1 - i) * 30
-                }ms, opacity 220ms ease-out ${menuOpen ? i * 50 : 0}ms`,
+                boxShadow:
+                  '0 10px 24px -6px rgba(0,0,0,0.30), 0 4px 8px -2px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(255,255,255,0.04)',
+                transition: `transform 220ms cubic-bezier(0.22, 1, 0.36, 1) ${
+                  menuOpen ? i * 25 : (QUICK_ACTIONS.length - 1 - i) * 20
+                }ms, opacity 120ms ease-out ${menuOpen ? i * 25 : 0}ms`,
               }}
             >
-              <Icon className="h-6 w-6 text-primary" />
+              <Icon className="h-7 w-7 text-primary" strokeWidth={2} />
             </Link>
           ))}
 
@@ -129,22 +135,63 @@ export function BottomNav() {
   );
 }
 
-function NavItem({ href, label, icon: Icon, active }: {
+interface NavItemProps {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   active: boolean;
-}) {
+}
+
+function NavItem({ href, label, icon: Icon, active }: NavItemProps) {
+  // Effet : l'icône "tombe" hors de la barre quand l'item devient actif, le label apparaît
+  // à sa place ; un petit point indicateur sort en dessous.
   return (
     <Link
       href={href}
-      className={`flex flex-1 flex-col items-center gap-0.5 py-1 text-xs font-medium transition-opacity ${
-        active ? 'opacity-100' : 'opacity-55'
-      }`}
+      aria-current={active ? 'page' : undefined}
+      className="relative flex flex-1 flex-col items-center justify-center h-full overflow-visible"
       style={{ color: 'var(--primary-foreground)' }}
     >
-      <Icon className="h-5 w-5" />
-      {label}
+      {/* Icône — visible quand inactif, tombe vers le bas quand actif */}
+      <span
+        aria-hidden={active}
+        className="flex flex-col items-center"
+        style={{
+          transform: active ? 'translateY(28px)' : 'translateY(0)',
+          opacity: active ? 0 : 0.65,
+          transition:
+            'transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease-out',
+        }}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+
+      {/* Label — apparaît à la place de l'icône quand actif */}
+      <span
+        aria-hidden={!active}
+        className="absolute inset-0 flex flex-col items-center justify-center text-xs font-semibold"
+        style={{
+          transform: active ? 'translateY(0)' : 'translateY(-22px)',
+          opacity: active ? 1 : 0,
+          transition:
+            'transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 220ms ease-out',
+        }}
+      >
+        {label}
+      </span>
+
+      {/* Ligne indicatrice discrète sous l'item actif */}
+      <span
+        aria-hidden
+        className="absolute left-1/2 bottom-3 h-px rounded-full bg-current/70"
+        style={{
+          width: active ? 18 : 0,
+          opacity: active ? 1 : 0,
+          transform: 'translateX(-50%)',
+          transition:
+            'width 320ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms, opacity 220ms ease-out 80ms',
+        }}
+      />
     </Link>
   );
 }
@@ -165,10 +212,3 @@ function ShoppingBagIcon({ className }: { className?: string }) {
   );
 }
 
-function UsersIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-5M9 20H4v-2a4 4 0 015-5m6 0a4 4 0 11-8 0 4 4 0 018 0zm6-8a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}

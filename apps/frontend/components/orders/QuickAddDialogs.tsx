@@ -58,8 +58,11 @@ export function QuickAddCustomer({
     try {
       const customer = await mutateAsync({ name: name.trim() });
       qc.setQueriesData({ queryKey: qk.customers.all }, (old: unknown) => {
+        // Le préfixe `['customers']` matche aussi les détails (`['customers', id]`)
+        // et les activités (infinite). On ne met à jour que les listes paginées.
         if (!old || typeof old !== 'object') return old;
-        const paged = old as { results: Customer[] };
+        const paged = old as { results?: Customer[] };
+        if (!Array.isArray(paged.results)) return old;
         if (paged.results.some((c) => c.id === customer.id)) return paged;
         return { ...paged, results: [customer, ...paged.results] };
       });
@@ -90,7 +93,7 @@ export function QuickAddCustomer({
             />
             {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
           </div>
-          <Button type="submit" disabled={isPending} className="w-full">
+          <Button type="submit" disabled={isPending} className="w-full rounded-full">
             {isPending ? 'Création…' : 'Créer le client'}
           </Button>
         </form>
@@ -207,7 +210,7 @@ export function QuickAddProduct({
             />
             {errors.price && <p className="text-[11px] text-destructive px-1">{errors.price}</p>}
           </div>
-          <Button type="submit" disabled={isPending} className="w-full">
+          <Button type="submit" disabled={isPending} className="w-full rounded-full">
             {isPending ? 'Création…' : 'Créer et ajouter'}
           </Button>
         </form>
