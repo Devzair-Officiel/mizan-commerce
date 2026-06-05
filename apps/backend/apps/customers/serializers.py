@@ -18,14 +18,10 @@ class CustomerSerializer(serializers.ModelSerializer):
         return str(val if val is not None else Decimal('0.00'))
 
     def validate_name(self, value: str) -> str:
-        from apps.shops.models import ShopMember
-        request = self.context.get('request')
-        if not request:
+        shop = self.context.get('shop')
+        if shop is None:
             return value
-        membership = ShopMember.objects.filter(user=request.user).select_related('shop').first()
-        if not membership:
-            return value
-        qs = Customer.objects.filter(shop=membership.shop, name__iexact=value)
+        qs = Customer.objects.filter(shop=shop, name__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():

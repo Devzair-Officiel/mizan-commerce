@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 export type InvoiceStatus = 'issued' | 'paid' | 'cancelled';
 
@@ -66,14 +67,14 @@ export function useInvoices(status?: InvoiceStatus) {
   if (status) params.set('status', status);
   const qs = params.toString();
   return useQuery({
-    queryKey: ['invoices', { status: status ?? null }],
+    queryKey: qk.invoices.list(status ?? null),
     queryFn: () => apiFetch<PaginatedResponse<Invoice>>(`/invoices/${qs ? `?${qs}` : ''}`),
   });
 }
 
 export function useInvoice(id: string) {
   return useQuery({
-    queryKey: ['invoices', id],
+    queryKey: qk.invoices.detail(id),
     queryFn: () => apiFetch<Invoice>(`/invoices/${id}/`),
     enabled: !!id,
   });
@@ -85,8 +86,8 @@ export function useIssueInvoice() {
     mutationFn: (data: IssueInvoicePayload) =>
       apiFetch<Invoice>('/invoices/', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (invoice) => {
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      if (invoice?.order) qc.invalidateQueries({ queryKey: ['orders', invoice.order] });
+      qc.invalidateQueries({ queryKey: qk.invoices.all });
+      if (invoice?.order) qc.invalidateQueries({ queryKey: qk.orders.detail(invoice.order) });
     },
   });
 }
@@ -100,9 +101,9 @@ export function useUpdateInvoiceStatus(id: string) {
         body: JSON.stringify({ status }),
       }),
     onSuccess: (invoice) => {
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      qc.invalidateQueries({ queryKey: ['invoices', id] });
-      if (invoice?.order) qc.invalidateQueries({ queryKey: ['orders', invoice.order] });
+      qc.invalidateQueries({ queryKey: qk.invoices.all });
+      qc.invalidateQueries({ queryKey: qk.invoices.detail(id) });
+      if (invoice?.order) qc.invalidateQueries({ queryKey: qk.orders.detail(invoice.order) });
     },
   });
 }

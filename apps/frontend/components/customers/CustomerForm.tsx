@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronDown, MapPin, FileText } from 'lucide-react';
@@ -36,7 +36,7 @@ function hasAddress(v?: Partial<Customer>): boolean {
 }
 
 export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: CustomerFormProps) {
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: defaultValues?.name ?? '',
@@ -54,8 +54,8 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
   const [showAddress, setShowAddress] = useState(() => hasAddress(defaultValues));
   const [showNotes, setShowNotes] = useState(() => Boolean(defaultValues?.notes));
 
-  const nameValue = watch('name');
-  const countryValue = watch('country');
+  const nameValue = useWatch({ control, name: 'name' }) ?? '';
+  const countryValue = useWatch({ control, name: 'country' }) ?? '';
   const canSubmit = nameValue.trim().length > 0 && !isSubmitting;
 
   async function handleValid(values: FormValues) {

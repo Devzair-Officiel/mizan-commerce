@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
   useAddOrderItem,
   useUpdateOrderItem,
   useRemoveOrderItem,
+  type Order,
 } from '@/lib/hooks/useOrders';
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
 import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
@@ -28,41 +29,62 @@ interface EditItem {
 
 export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const { data: order, isLoading } = useOrder(id);
+
+  if (isLoading) {
+    return (
+      <>
+        <TopBar title="Modifier la commande" />
+        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+      </>
+    );
+  }
+  if (!order) {
+    return (
+      <>
+        <TopBar title="Modifier la commande" />
+        <p className="p-4 text-sm text-destructive">Commande introuvable.</p>
+      </>
+    );
+  }
+  if (order.status !== 'draft') {
+    return (
+      <>
+        <TopBar title="Modifier la commande" />
+        <p className="p-4 text-sm text-muted-foreground">Seules les commandes en brouillon peuvent être modifiées.</p>
+      </>
+    );
+  }
+
+  return <EditController order={order} />;
+}
+
+function EditController({ order }: { order: Order }) {
+  const router = useRouter();
   const { data: customers } = useCustomers();
   const { data: products }  = useProducts();
 
-  const updateOrder  = useUpdateOrder(id);
-  const addItem      = useAddOrderItem(id);
-  const updateItem   = useUpdateOrderItem(id);
-  const removeItem   = useRemoveOrderItem(id);
+  const updateOrder  = useUpdateOrder(order.id);
+  const addItem      = useAddOrderItem(order.id);
+  const updateItem   = useUpdateOrderItem(order.id);
+  const removeItem   = useRemoveOrderItem(order.id);
 
-  const [customerId,  setCustomerId]  = useState('');
-  const [discount,    setDiscount]    = useState('');
-  const [shipping,    setShipping]    = useState('');
-  const [items,       setItems]       = useState<EditItem[]>([]);
-  const [originalIds, setOriginalIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!order) return;
-    setCustomerId(order.customer ?? '');
-    setDiscount(order.discount_amount ?? '0');
-    setShipping(order.shipping_amount ?? '0');
-    const mapped = order.items.map((i) => ({
+  const [customerId,  setCustomerId]  = useState(order.customer ?? '');
+  const [discount,    setDiscount]    = useState(order.discount_amount ?? '0');
+  const [shipping,    setShipping]    = useState(order.shipping_amount ?? '0');
+  const [items,       setItems]       = useState<EditItem[]>(() =>
+    order.items.map((i) => ({
       id: i.id,
       variant: i.variant,
       product_name: i.product_name,
       variant_name: i.variant_name,
       quantity: i.quantity,
       unit_price: i.unit_price,
-    }));
-    setItems(mapped);
-    setOriginalIds(new Set(order.items.map((i) => i.id)));
-  }, [order]);
+    })),
+  );
+  const [originalIds] = useState<Set<string>>(() => new Set(order.items.map((i) => i.id)));
 
   async function addProductByDefaultVariant(productId: string) {
-    // Charge le détail produit pour récupérer sa première variante active.
     const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
     const first = detail.variants.find((v) => v.is_active);
     if (!first) return;
@@ -104,7 +126,7 @@ export default function EditOrderPage() {
     await Promise.all([...originalIds].filter((id) => !currentIds.has(id)).map((itemId) => removeItem.mutateAsync(itemId)));
     await Promise.all(items.filter((i) => {
       if (!i.id) return false;
-      return order?.items.find((o) => o.id === i.id)?.quantity !== i.quantity;
+      return order.items.find((o) => o.id === i.id)?.quantity !== i.quantity;
     }).map((i) => updateItem.mutateAsync({ itemId: i.id!, quantity: i.quantity })));
     await Promise.all(items.filter((i) => !i.id).map((i) =>
       addItem.mutateAsync(
@@ -113,17 +135,8 @@ export default function EditOrderPage() {
           : { product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price },
       ),
     ));
-    router.push(`/orders/${id}`);
+    router.push(`/orders/${order.id}`);
   }
-
-  if (isLoading) return <><TopBar title="Modifier la commande" /><p className="p-4 text-sm text-muted-foreground">Chargement…</p></>;
-  if (!order)    return <><TopBar title="Modifier la commande" /><p className="p-4 text-sm text-destructive">Commande introuvable.</p></>;
-  if (order.status !== 'draft') return (
-    <>
-      <TopBar title="Modifier la commande" />
-      <p className="p-4 text-sm text-muted-foreground">Seules les commandes en brouillon peuvent être modifiées.</p>
-    </>
-  );
 
   return (
     <>

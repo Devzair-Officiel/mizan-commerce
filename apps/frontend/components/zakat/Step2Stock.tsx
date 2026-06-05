@@ -59,7 +59,7 @@ export function Step2Stock({
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-foreground">Valeur de votre stock commercial</p>
           <p className="text-xs text-muted-foreground">
-            On a calculé une estimation à partir des prix d'achat saisis dans votre catalogue.
+            On a calculé une estimation à partir des prix d&apos;achat saisis dans votre catalogue.
             Vous pouvez la ventiler par catégorie si la réalité diffère.
           </p>
         </div>
@@ -120,7 +120,7 @@ export function Step2Stock({
             }}
             className="self-start text-xs text-muted-foreground hover:text-foreground underline"
           >
-            Revenir à l'estimation automatique
+            Revenir à l&apos;estimation automatique
           </button>
         </div>
       )}

@@ -1,18 +1,40 @@
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
-from typing import TypedDict
 
 from django.db import transaction
 from django.utils import timezone
 
 from apps.core.audit import log_action
-from apps.core.models import AuditLog
-from apps.notes.models import Note
 from apps.products.models import ProductVariant
 from apps.stock.models import StockMovement
 from .models import Order, OrderItem
+from .timeline import (  # ré-exports pour la rétro-compat des imports `services.*`
+    EVENT_CREATED,
+    EVENT_NOTE,
+    EVENT_PAYMENT_CHANGE,
+    EVENT_STATUS_CHANGE,
+    OrderTimelineEvent,
+    get_order_timeline,
+)
+
+__all__ = [
+    'ALLOWED_TRANSITIONS',
+    'EVENT_CREATED',
+    'EVENT_NOTE',
+    'EVENT_PAYMENT_CHANGE',
+    'EVENT_STATUS_CHANGE',
+    'OrderTimelineEvent',
+    'add_item',
+    'create_order',
+    'generate_order_number',
+    'get_order_timeline',
+    'recalculate_totals',
+    'remove_item',
+    'transition_status',
+    'update_item_quantity',
+    'update_payment',
+]
 
 # Transitions de statut autorisées (avance + retour arrière)
 ALLOWED_TRANSITIONS = {
@@ -152,7 +174,8 @@ def transition_status(order: Order, new_status: str, user) -> Order:
         order.cancelled_at = timezone.now()
 
     order.status = new_status
-    order.save(update_fields=['status', 'cancelled_at', 'updated_at'])
+    order.updated_by = user
+    order.save(update_fields=['status', 'cancelled_at', 'updated_by', 'updated_at'])
 
     # Lors d'une annulation, propager à la facture liée si elle existe.
     if new_status == 'cancelled':
@@ -220,7 +243,11 @@ def update_payment(order: Order, amount_paid: Decimal, user=None) -> Order:
         order.payment_status = 'partial'
     else:
         order.payment_status = 'paid'
-    order.save(update_fields=['amount_paid', 'payment_status', 'updated_at'])
+    if user is not None:
+        order.updated_by = user
+        order.save(update_fields=['amount_paid', 'payment_status', 'updated_by', 'updated_at'])
+    else:
+        order.save(update_fields=['amount_paid', 'payment_status', 'updated_at'])
 
     # Propager le statut de paiement à la facture liée (si elle existe et n'est pas annulée).
     from apps.invoices.services import sync_invoice_from_order
@@ -243,104 +270,3 @@ def update_payment(order: Order, amount_paid: Decimal, user=None) -> Order:
     return order
 
 
-# ── Timeline d'activité ──────────────────────────────────────────────────────
-
-EVENT_CREATED = 'created'
-EVENT_STATUS_CHANGE = 'status_change'
-EVENT_PAYMENT_CHANGE = 'payment_change'
-EVENT_NOTE = 'note'
-
-
-class OrderTimelineEvent(TypedDict):
-    id: str
-    type: str
-    occurred_at: datetime
-    actor_name: str | None
-    data: dict
-
-
-def get_order_timeline(order: Order) -> list[OrderTimelineEvent]:
-    """Retourne tous les événements significatifs d'une commande, du plus récent au plus ancien.
-
-    Combine les `AuditLog` (création, transitions de statut, changements de paiement) avec
-    les `Note` attachées à la commande.
-    """
-    events: list[OrderTimelineEvent] = []
-
-    log_qs = AuditLog.objects.filter(
-        shop_id=order.shop_id,
-        object_id=str(order.pk),
-        action__in=['order_created', 'order_status_change', 'order_payment_change'],
-    ).select_related('user').only(
-        'id', 'action', 'changes', 'created_at',
-        'user__full_name', 'user__email',
-    )
-    has_created_log = False
-    for log in log_qs:
-        actor_name: str | None = None
-        if log.user_id is not None:
-            actor_name = log.user.full_name or log.user.email
-
-        if log.action == 'order_created':
-            has_created_log = True
-            events.append(OrderTimelineEvent(
-                id=f'log-{log.id}',
-                type=EVENT_CREATED,
-                occurred_at=log.created_at,
-                actor_name=actor_name,
-                data={'order_number': log.changes.get('order_number', order.order_number)},
-            ))
-        elif log.action == 'order_status_change':
-            events.append(OrderTimelineEvent(
-                id=f'log-{log.id}',
-                type=EVENT_STATUS_CHANGE,
-                occurred_at=log.created_at,
-                actor_name=actor_name,
-                data={
-                    'from': log.changes.get('from'),
-                    'to': log.changes.get('to'),
-                },
-            ))
-        elif log.action == 'order_payment_change':
-            events.append(OrderTimelineEvent(
-                id=f'log-{log.id}',
-                type=EVENT_PAYMENT_CHANGE,
-                occurred_at=log.created_at,
-                actor_name=actor_name,
-                data={
-                    'from': log.changes.get('from'),
-                    'to': log.changes.get('to'),
-                    'amount_paid_before': log.changes.get('amount_paid_before'),
-                    'amount_paid_after': log.changes.get('amount_paid_after'),
-                },
-            ))
-
-    # Fallback : si aucun log de création n'existe (commandes pré-instrumentation),
-    # synthétiser un événement "créée" depuis order.created_at.
-    if not has_created_log:
-        events.append(OrderTimelineEvent(
-            id=f'order-{order.pk}',
-            type=EVENT_CREATED,
-            occurred_at=order.created_at,
-            actor_name=None,
-            data={'order_number': order.order_number},
-        ))
-
-    note_qs = Note.objects.filter(order=order, shop_id=order.shop_id).select_related('author').only(
-        'id', 'content', 'created_at',
-        'author__full_name', 'author__email',
-    )
-    for note in note_qs:
-        actor_name = None
-        if note.author_id is not None:
-            actor_name = note.author.full_name or note.author.email
-        events.append(OrderTimelineEvent(
-            id=f'note-{note.id}',
-            type=EVENT_NOTE,
-            occurred_at=note.created_at,
-            actor_name=actor_name,
-            data={'content': note.content, 'note_id': str(note.id)},
-        ))
-
-    events.sort(key=lambda e: e['occurred_at'], reverse=True)
-    return events

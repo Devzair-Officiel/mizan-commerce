@@ -40,7 +40,7 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
             Simulation
           </p>
           <p className="text-xs text-muted-foreground">
-            Et si votre stock évoluait l'année prochaine&nbsp;?
+            Et si votre stock évoluait l&apos;année prochaine&nbsp;?
           </p>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Cette projection ne modifie pas votre calcul archivé — elle vous aide à anticiper l'an
+        Cette projection ne modifie pas votre calcul archivé — elle vous aide à anticiper l&apos;an
         prochain.
       </p>
     </div>

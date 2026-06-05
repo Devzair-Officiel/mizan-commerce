@@ -136,9 +136,14 @@ export const DEFAULT_BG_ID = 'default';
 
 function clamp(v: number, lo: number, hi: number) { return Math.min(hi, Math.max(lo, v)); }
 
+// Toujours présent (head des constantes ci-dessus) — extrait pour aider l'inférence TS
+// sous `noUncheckedIndexedAccess`.
+const DEFAULT_PRIMARY: PrimaryColorDef = PRIMARY_COLORS[0]!;
+const DEFAULT_BG: BackgroundDef = BACKGROUNDS[0]!;
+
 function buildThemeVars(primaryId: string, bgId: string, isDark: boolean): ThemeVars {
-  const pc = PRIMARY_COLORS.find(c => c.id === primaryId) ?? PRIMARY_COLORS[0];
-  const bg = BACKGROUNDS.find(b => b.id === bgId) ?? BACKGROUNDS[0];
+  const pc = PRIMARY_COLORS.find(c => c.id === primaryId) ?? DEFAULT_PRIMARY;
+  const bg = BACKGROUNDS.find(b => b.id === bgId) ?? DEFAULT_BG;
 
   const h = pc.hue;
   const c = pc.chroma;
@@ -230,7 +235,7 @@ function buildThemeVars(primaryId: string, bgId: string, isDark: boolean): Theme
 
 export function applyThemeVars(primaryId: string, bgId: string, isDark: boolean): void {
   const vars = buildThemeVars(primaryId, bgId, isDark);
-  const bg = BACKGROUNDS.find(b => b.id === bgId) ?? BACKGROUNDS[0];
+  const bg = BACKGROUNDS.find(b => b.id === bgId) ?? DEFAULT_BG;
   const root = document.documentElement;
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(`--${key}`, value);

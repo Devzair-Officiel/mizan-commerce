@@ -47,7 +47,7 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
           <p className="text-sm font-medium text-foreground">Dettes à court terme</p>
           <p className="text-xs text-muted-foreground">
             Seules les dettes <strong className="font-medium text-foreground">exigibles immédiatement</strong>
-            {' '}sont déduites. Un emprunt sur 5 ans, par exemple, n'est exigible immédiatement que
+            {' '}sont déduites. Un emprunt sur 5 ans, par exemple, n&apos;est exigible immédiatement que
             pour les mensualités du mois.
           </p>
         </div>

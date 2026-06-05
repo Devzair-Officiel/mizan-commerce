@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -48,14 +49,14 @@ export function useCustomers(search?: string, showInactive?: boolean) {
   if (search) params.set('search', search);
   if (showInactive) params.set('all', '1');
   return useQuery({
-    queryKey: ['customers', search, showInactive],
+    queryKey: qk.customers.list(search, showInactive),
     queryFn: () => apiFetch<PaginatedResponse<CustomerSummary>>(`/customers/?${params}`),
   });
 }
 
 export function useCustomer(id: string) {
   return useQuery({
-    queryKey: ['customers', id],
+    queryKey: qk.customers.detail(id),
     queryFn: () => apiFetch<Customer>(`/customers/${id}/`),
     enabled: !!id,
   });
@@ -66,7 +67,7 @@ export function useCreateCustomer() {
   return useMutation({
     mutationFn: (data: CustomerFormData) =>
       apiFetch<Customer>('/customers/', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.customers.all }),
   });
 }
 
@@ -75,7 +76,7 @@ export function useDeactivateCustomer() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<void>(`/customers/${id}/`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['customers'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.customers.all }),
   });
 }
 
@@ -85,8 +86,8 @@ export function useReactivateCustomer() {
     mutationFn: (id: string) =>
       apiFetch<Customer>(`/customers/${id}/`, { method: 'PATCH', body: JSON.stringify({ is_active: true }) }),
     onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: ['customers'] });
-      qc.invalidateQueries({ queryKey: ['customers', id] });
+      qc.invalidateQueries({ queryKey: qk.customers.all });
+      qc.invalidateQueries({ queryKey: qk.customers.detail(id) });
     },
   });
 }
@@ -138,7 +139,7 @@ export function useCustomerActivityInfinite(
   pendingOnly: boolean = false,
 ) {
   return useInfiniteQuery({
-    queryKey: ['customers', customerId, 'activity', filter, pendingOnly],
+    queryKey: qk.customers.activity(customerId, filter, pendingOnly),
     queryFn: ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
       if (filter) params.set('types', filter);
@@ -162,8 +163,8 @@ export function useUpdateCustomer(id: string) {
     mutationFn: (data: Partial<CustomerFormData>) =>
       apiFetch<Customer>(`/customers/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['customers'] });
-      qc.invalidateQueries({ queryKey: ['customers', id] });
+      qc.invalidateQueries({ queryKey: qk.customers.all });
+      qc.invalidateQueries({ queryKey: qk.customers.detail(id) });
     },
   });
 }

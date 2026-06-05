@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import type { ProductUnit } from '@/lib/hooks/useProducts';
+import { qk } from '@/lib/query-keys';
 
 interface OrderSummary {
   id: string;
@@ -54,7 +55,7 @@ export interface DashboardData {
 
 export function useDashboard() {
   return useQuery({
-    queryKey: ['dashboard', 'today'],
+    queryKey: qk.dashboard.today,
     queryFn: () => apiFetch<DashboardData>('/dashboard/today/'),
   });
 }

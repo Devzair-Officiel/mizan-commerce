@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, useRef, useId, createContext, useContext, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X, Package, Users, ShoppingBag } from 'lucide-react';
 import { useSearch } from '@/lib/hooks/useSearch';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 const STATUS_LABEL: Record<string, string> = {
   draft:      'Brouillon',
@@ -42,10 +43,11 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState('');
   const [visible, setVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useFocusTrap<HTMLDivElement>(true);
   const router = useRouter();
   const { data, isFetching } = useSearch(q);
+  const titleId = useId();
 
-  // Trigger enter animation on next frame
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));
     return () => cancelAnimationFrame(id);
@@ -55,17 +57,16 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
     if (visible) inputRef.current?.focus();
   }, [visible]);
 
-  function handleClose() {
+  const handleClose = useCallback(() => {
     setVisible(false);
     setTimeout(onClose, 200);
-  }
+  }, [onClose]);
 
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [handleClose]);
 
   function navigate(href: string) {
     onClose();
@@ -79,32 +80,42 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 flex flex-col backdrop-blur-md transition-opacity duration-200"
+      ref={containerRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      className="fixed inset-0 z-100 flex flex-col backdrop-blur-md transition-opacity duration-200 outline-none"
       style={{
         background: 'color-mix(in oklch, var(--background) 72%, transparent)',
         opacity: visible ? 1 : 0,
       }}
     >
-      {/* Header */}
+      <h2 id={titleId} className="sr-only">Recherche</h2>
+
       <div
         className="flex items-center gap-3 border-b border-border px-4 h-14 shrink-0 transition-transform duration-200"
         style={{ transform: visible ? 'translateY(0)' : 'translateY(-8px)' }}
       >
-        <Search size={18} className="text-muted-foreground shrink-0" />
+        <Search size={18} className="text-muted-foreground shrink-0" aria-hidden="true" />
         <input
           ref={inputRef}
           value={q}
           onChange={e => setQ(e.target.value)}
           placeholder="Rechercher produit, client, commande…"
+          aria-label="Rechercher produit, client, commande"
           className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none"
         />
-        <button onClick={handleClose} className="text-muted-foreground p-1">
-          <X size={20} />
+        <button
+          type="button"
+          onClick={handleClose}
+          aria-label="Fermer la recherche"
+          className="text-muted-foreground p-1"
+        >
+          <X size={20} aria-hidden="true" />
         </button>
       </div>
 
-      {/* Results */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4" aria-live="polite" aria-busy={isFetching}>
 
         {q.trim().length < 2 && (
           <p className="text-sm text-muted-foreground text-center py-12">
@@ -123,15 +134,16 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
         )}
 
         {data && data.products.length > 0 && (
-          <section>
+          <section aria-label="Produits">
             <div className="flex items-center gap-2 mb-2">
-              <Package size={14} className="text-muted-foreground" />
+              <Package size={14} className="text-muted-foreground" aria-hidden="true" />
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Produits</p>
             </div>
             <div className="flex flex-col rounded-xl border border-border overflow-hidden">
               {data.products.map((p, i) => (
                 <button
                   key={p.id}
+                  type="button"
                   onClick={() => navigate(`/products/${p.id}`)}
                   className={`flex items-center justify-between px-4 py-3 text-left bg-card active:bg-muted transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
                 >
@@ -153,15 +165,16 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
         )}
 
         {data && data.customers.length > 0 && (
-          <section>
+          <section aria-label="Clients">
             <div className="flex items-center gap-2 mb-2">
-              <Users size={14} className="text-muted-foreground" />
+              <Users size={14} className="text-muted-foreground" aria-hidden="true" />
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Clients</p>
             </div>
             <div className="flex flex-col rounded-xl border border-border overflow-hidden">
               {data.customers.map((c, i) => (
                 <button
                   key={c.id}
+                  type="button"
                   onClick={() => navigate(`/customers/${c.id}`)}
                   className={`flex items-center justify-between px-4 py-3 text-left bg-card active:bg-muted transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
                 >
@@ -177,15 +190,16 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
         )}
 
         {data && data.orders.length > 0 && (
-          <section>
+          <section aria-label="Commandes">
             <div className="flex items-center gap-2 mb-2">
-              <ShoppingBag size={14} className="text-muted-foreground" />
+              <ShoppingBag size={14} className="text-muted-foreground" aria-hidden="true" />
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Commandes</p>
             </div>
             <div className="flex flex-col rounded-xl border border-border overflow-hidden">
               {data.orders.map((o, i) => (
                 <button
                   key={o.id}
+                  type="button"
                   onClick={() => navigate(`/orders/${o.id}`)}
                   className={`flex items-center justify-between px-4 py-3 text-left bg-card active:bg-muted transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
                 >

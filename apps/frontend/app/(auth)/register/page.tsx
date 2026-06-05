@@ -53,7 +53,7 @@ export default function RegisterPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4 text-center">
               <p className="text-sm text-zinc-600">
-                Un lien d'activation a été envoyé à votre adresse email. Cliquez sur ce lien pour activer votre compte.
+                Un lien d&apos;activation a été envoyé à votre adresse email. Cliquez sur ce lien pour activer votre compte.
               </p>
               <Link href="/login">
                 <Button variant="outline" className="w-full">Retour à la connexion</Button>

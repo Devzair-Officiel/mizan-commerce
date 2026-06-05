@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 // ── Types canoniques ─────────────────────────────────────────────────────────
 
@@ -132,7 +133,7 @@ export const EXCLUDED_ITEM_LABELS: Record<ExcludedItem, string> = {
 
 export function useZakatStockEstimate() {
   return useQuery({
-    queryKey: ['zakat', 'estimate'],
+    queryKey: qk.zakat.estimate,
     queryFn: () => apiFetch<StockEstimate>('/zakat/stock-estimate/'),
   });
 }
@@ -140,14 +141,14 @@ export function useZakatStockEstimate() {
 export function useZakatCalculations(statusFilter?: ZakatStatus) {
   const qs = statusFilter ? `?status=${statusFilter}` : '';
   return useQuery({
-    queryKey: ['zakat', 'list', statusFilter ?? 'all'],
+    queryKey: qk.zakat.list(statusFilter ?? 'all'),
     queryFn: () => apiFetch<PaginatedResponse<ZakatCalculation>>(`/zakat/calculations/${qs}`),
   });
 }
 
 export function useZakatCalculation(id: string | null | undefined) {
   return useQuery({
-    queryKey: ['zakat', 'detail', id],
+    queryKey: qk.zakat.detail(id),
     queryFn: () => apiFetch<ZakatCalculation>(`/zakat/calculations/${id}/`),
     enabled: !!id,
   });
@@ -156,7 +157,7 @@ export function useZakatCalculation(id: string | null | undefined) {
 /** Récupère le brouillon en cours (le plus récent). Renvoie `null` si aucun. */
 export function useZakatCurrentDraft() {
   return useQuery({
-    queryKey: ['zakat', 'draft'],
+    queryKey: qk.zakat.draft,
     queryFn: async () => {
       const data = await apiFetch<ZakatCalculation | undefined>('/zakat/calculations/draft/');
       return data ?? null;
@@ -173,7 +174,7 @@ export function useCreateZakatDraft() {
         body: JSON.stringify(payload),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['zakat'] });
+      qc.invalidateQueries({ queryKey: qk.zakat.all });
     },
   });
 }
@@ -187,9 +188,9 @@ export function useUpdateZakatDraft(id: string) {
         body: JSON.stringify(payload),
       }),
     onSuccess: (data) => {
-      qc.setQueryData(['zakat', 'detail', id], data);
-      qc.invalidateQueries({ queryKey: ['zakat', 'list'] });
-      qc.invalidateQueries({ queryKey: ['zakat', 'draft'] });
+      qc.setQueryData(qk.zakat.detail(id), data);
+      qc.invalidateQueries({ queryKey: qk.zakat.lists });
+      qc.invalidateQueries({ queryKey: qk.zakat.draft });
     },
   });
 }
@@ -202,7 +203,7 @@ export function useFinalizeZakat() {
         method: 'POST',
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['zakat'] });
+      qc.invalidateQueries({ queryKey: qk.zakat.all });
     },
   });
 }
@@ -215,7 +216,7 @@ export function useReopenZakat() {
         method: 'POST',
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['zakat'] });
+      qc.invalidateQueries({ queryKey: qk.zakat.all });
     },
   });
 }
@@ -226,7 +227,7 @@ export function useDeleteZakatCalculation() {
     mutationFn: (id: string) =>
       apiFetch<void>(`/zakat/calculations/${id}/`, { method: 'DELETE' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['zakat'] });
+      qc.invalidateQueries({ queryKey: qk.zakat.all });
     },
   });
 }

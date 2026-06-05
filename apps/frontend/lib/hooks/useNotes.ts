@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -21,7 +22,7 @@ export interface Note {
 
 export function useOrderNotes(orderId: string) {
   return useQuery({
-    queryKey: ['notes', 'order', orderId],
+    queryKey: qk.notes.byOrder(orderId),
     queryFn: () => apiFetch<PaginatedResponse<Note>>(`/notes/?order=${orderId}`),
     enabled: !!orderId,
   });
@@ -36,8 +37,8 @@ export function useCreateOrderNote(orderId: string) {
         body: JSON.stringify({ order: orderId, content }),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['notes', 'order', orderId] });
-      qc.invalidateQueries({ queryKey: ['orders', orderId, 'activity'] });
+      qc.invalidateQueries({ queryKey: qk.notes.byOrder(orderId) });
+      qc.invalidateQueries({ queryKey: qk.orders.activity(orderId) });
     },
   });
 }
@@ -48,8 +49,8 @@ export function useDeleteNote(orderId: string) {
     mutationFn: (noteId: string) =>
       apiFetch<void>(`/notes/${noteId}/`, { method: 'DELETE' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['notes', 'order', orderId] });
-      qc.invalidateQueries({ queryKey: ['orders', orderId, 'activity'] });
+      qc.invalidateQueries({ queryKey: qk.notes.byOrder(orderId) });
+      qc.invalidateQueries({ queryKey: qk.orders.activity(orderId) });
     },
   });
 }

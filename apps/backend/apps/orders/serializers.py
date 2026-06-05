@@ -51,6 +51,12 @@ class OrderSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
     invoice = OrderInvoiceSummarySerializer(read_only=True)
+    updated_by_name = serializers.SerializerMethodField()
+
+    def get_updated_by_name(self, obj: Order) -> str | None:
+        if obj.updated_by_id is None:
+            return None
+        return obj.updated_by.full_name or obj.updated_by.email
 
     class Meta:
         model = Order
@@ -59,12 +65,13 @@ class OrderSerializer(serializers.ModelSerializer):
             'payment_status', 'payment_status_display',
             'customer', 'customer_name', 'customer_phone',
             'subtotal', 'discount_amount', 'shipping_amount', 'total_amount', 'amount_paid',
-            'stock_reserved',
+            'stock_reserved', 'updated_by_name',
             'items', 'invoice', 'created_at', 'updated_at', 'cancelled_at',
         )
         read_only_fields = (
             'id', 'order_number', 'subtotal', 'total_amount',
-            'stock_reserved', 'created_at', 'updated_at', 'cancelled_at',
+            'stock_reserved', 'updated_by_name',
+            'created_at', 'updated_at', 'cancelled_at',
         )
 
 

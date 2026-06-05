@@ -53,7 +53,7 @@ export function WizardLayout({
           </button>
           <div className="flex-1 flex flex-col gap-1.5">
             <p className="text-xs font-medium text-muted-foreground tabular-nums">
-              Étape {step + 1} sur {TOTAL_STEPS} · {WIZARD_STEPS[step].label}
+              Étape {step + 1} sur {TOTAL_STEPS} · {WIZARD_STEPS[step]?.label ?? ''}
             </p>
             <div className="flex gap-1">
               {WIZARD_STEPS.map((_, i) => (

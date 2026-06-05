@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import type { ProductUnit } from '@/lib/hooks/useProducts';
+import { qk } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -48,7 +49,7 @@ export function useStockMovements(options: StockMovementsOptions = {}) {
   if (pageSize) params.set('page_size', String(pageSize));
   const qs = params.toString();
   return useQuery({
-    queryKey: ['stock', 'movements', { productId, variantId, pageSize }],
+    queryKey: qk.stock.movements({ productId, variantId, pageSize }),
     queryFn: () =>
       apiFetch<PaginatedResponse<StockMovement>>(`/stock/movements/${qs ? `?${qs}` : ''}`),
   });

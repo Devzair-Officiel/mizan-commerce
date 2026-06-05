@@ -126,8 +126,9 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
-        'auth': '10/minute',       # login, register, password reset
+        'auth': '10/minute',       # login, register, password reset, refresh
     },
+    'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }
 
 from datetime import timedelta

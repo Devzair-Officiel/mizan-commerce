@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.pagination import FlexiblePageNumberPagination
-from apps.shops.models import ShopMember
+from apps.core.permissions import get_shop
 from .models import Customer
 from .serializers import CustomerSerializer, CustomerListSerializer
 from .services import ALL_TYPES, get_customer_timeline
@@ -33,14 +33,6 @@ def _customer_qs_with_stats(shop):
     )
 
 
-def get_shop(user):
-    membership = ShopMember.objects.filter(user=user).select_related('shop').first()
-    if not membership:
-        from rest_framework.exceptions import PermissionDenied
-        raise PermissionDenied('Aucune boutique associée.')
-    return membership.shop
-
-
 class CustomerListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
@@ -50,6 +42,11 @@ class CustomerListCreateView(generics.ListCreateAPIView):
 
     def get_serializer_class(self):
         return CustomerListSerializer if self.request.method == 'GET' else CustomerSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['shop'] = get_shop(self.request.user)
+        return ctx
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
@@ -65,6 +62,11 @@ class CustomerListCreateView(generics.ListCreateAPIView):
 class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = CustomerSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['shop'] = get_shop(self.request.user)
+        return ctx
 
     def get_queryset(self):
         return _customer_qs_with_stats(get_shop(self.request.user))

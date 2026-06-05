@@ -11,6 +11,7 @@ import {
   type ProductType,
   type ProductVariant,
 } from '@/lib/hooks/useProducts';
+import { qk } from '@/lib/query-keys';
 
 function NewProductForm() {
   const router = useRouter();
@@ -51,7 +52,7 @@ function NewProductForm() {
           }),
         });
       }
-      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: qk.products.all });
     } finally {
       setIsProcessing(false);
     }

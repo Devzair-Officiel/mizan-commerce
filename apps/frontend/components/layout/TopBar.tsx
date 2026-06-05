@@ -74,6 +74,7 @@ function Breadcrumb() {
     let acc = '';
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i];
+      if (seg === undefined) continue;
       acc += `/${seg}`;
       if (isId(seg)) continue;
       // Si le segment suivant est un ID, faire pointer la catégorie vers l'item
@@ -91,7 +92,7 @@ function Breadcrumb() {
   const currentSegments = pathname.split('/').filter(Boolean);
   const lastSeg = currentSegments[currentSegments.length - 1];
   const resourceSeg = currentSegments[0];
-  const contextualLabel = fromPath && (lastSeg === 'new' || lastSeg === 'edit')
+  const contextualLabel = fromPath && resourceSeg && (lastSeg === 'new' || lastSeg === 'edit')
     ? CONTEXTUAL_ACTION_LABELS[resourceSeg]?.[lastSeg]
     : undefined;
 

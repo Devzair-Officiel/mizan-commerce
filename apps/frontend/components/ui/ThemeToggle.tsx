@@ -1,13 +1,12 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
 import { useColorTheme } from '@/components/providers/ColorThemeProvider';
+import { useIsClient } from '@/lib/hooks/useIsClient';
 
 export function ThemeToggleButton() {
   const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   if (!mounted) return <div className="h-8 w-8" />;
 
@@ -33,9 +32,7 @@ const BRIGHTNESS_OPTIONS = [
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const { primaryId, bgId, setPrimaryId, setBgId, primaryColors, backgrounds } = useColorTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   if (!mounted) {
     return <div className="h-48 rounded-xl bg-muted animate-pulse" />;
@@ -64,7 +61,7 @@ export function ThemeToggle() {
       {/* Couleur principale */}
       <div>
         <p className="text-sm font-semibold text-foreground mb-0.5">Couleur principale</p>
-        <p className="text-xs text-muted-foreground mb-3">Personnalisez la couleur d'accent</p>
+        <p className="text-xs text-muted-foreground mb-3">Personnalisez la couleur d&apos;accent</p>
         <div className="grid grid-cols-5 gap-3">
           {primaryColors.map((pc) => {
             const active = primaryId === pc.id;
@@ -90,7 +87,7 @@ export function ThemeToggle() {
       {/* Arrière-plan */}
       <div>
         <p className="text-sm font-semibold text-foreground mb-0.5">Arrière-plan</p>
-        <p className="text-xs text-muted-foreground mb-3">Couleur de fond de l'application</p>
+        <p className="text-xs text-muted-foreground mb-3">Couleur de fond de l&apos;application</p>
         <div className="grid grid-cols-4 gap-3">
           {backgrounds.map((bg) => {
             const active = bgId === bg.id;

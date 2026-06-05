@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -179,7 +180,7 @@ export function useProducts(options: ProductsQueryOptions = {}) {
   if (lowStock) params.set('low_stock', '1');
   if (ordering) params.set('ordering', ordering);
   return useQuery({
-    queryKey: ['products', { search, all, inactive, type, outOfStock, lowStock, ordering }],
+    queryKey: qk.products.list({ search, all, inactive, type, outOfStock, lowStock, ordering }),
     queryFn: () => apiFetch<PaginatedResponse<Product>>(`/products/?${params}`),
   });
 }
@@ -195,14 +196,14 @@ export interface ProductsSummary {
 
 export function useProductsSummary() {
   return useQuery({
-    queryKey: ['products', 'summary'],
+    queryKey: qk.products.summary,
     queryFn: () => apiFetch<ProductsSummary>('/products/summary/'),
   });
 }
 
 export function useProduct(id: string) {
   return useQuery({
-    queryKey: ['products', id],
+    queryKey: qk.products.detail(id),
     queryFn: () => apiFetch<ProductDetail>(`/products/${id}/`),
     enabled: !!id,
   });
@@ -213,7 +214,7 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (data: ProductFormData) =>
       apiFetch<ProductDetail>('/products/', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.all }),
   });
 }
 
@@ -222,7 +223,7 @@ export function useUpdateProduct(id: string) {
   return useMutation({
     mutationFn: (data: Partial<ProductFormData>) =>
       apiFetch<ProductDetail>(`/products/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.all }),
   });
 }
 
@@ -231,7 +232,7 @@ export function useDeactivateProduct() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/products/${id}/deactivate/`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.all }),
   });
 }
 
@@ -240,7 +241,7 @@ export function useReactivateProduct() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/products/${id}/reactivate/`, { method: 'POST' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.all }),
   });
 }
 
@@ -260,7 +261,7 @@ export function useUploadProductImage(productId: string) {
       }
       return res.json() as Promise<{ id: string; object_key: string; url: string; is_primary: boolean }>;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products', productId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.detail(productId) }),
   });
 }
 
@@ -275,8 +276,8 @@ export function useCreateProductVariant(productId: string) {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['products', productId] });
-      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: qk.products.detail(productId) });
+      qc.invalidateQueries({ queryKey: qk.products.all });
     },
   });
 }
@@ -290,8 +291,8 @@ export function useUpdateProductVariant(productId: string, variantId: string) {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['products', productId] });
-      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: qk.products.detail(productId) });
+      qc.invalidateQueries({ queryKey: qk.products.all });
     },
   });
 }
@@ -302,8 +303,8 @@ export function useDeleteProductVariant(productId: string) {
     mutationFn: (variantId: string) =>
       apiFetch(`/products/${productId}/variants/${variantId}/`, { method: 'DELETE' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['products', productId] });
-      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: qk.products.detail(productId) });
+      qc.invalidateQueries({ queryKey: qk.products.all });
     },
   });
 }

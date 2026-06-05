@@ -9,6 +9,7 @@ import { FloatingInput } from '@/components/ui/floating-fields';
 import { useCreateCustomer, type Customer } from '@/lib/hooks/useCustomers';
 import { useCreateProduct, type ProductDetail, type ProductType, type ProductVariant } from '@/lib/hooks/useProducts';
 import { ApiError, apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 function AddButton({ onClick }: { onClick: () => void }) {
   return (
@@ -56,7 +57,7 @@ export function QuickAddCustomer({
     if (!name.trim()) { setError('Le nom est requis.'); return; }
     try {
       const customer = await mutateAsync({ name: name.trim() });
-      qc.setQueriesData({ queryKey: ['customers'] }, (old: unknown) => {
+      qc.setQueriesData({ queryKey: qk.customers.all }, (old: unknown) => {
         if (!old || typeof old !== 'object') return old;
         const paged = old as { results: Customer[] };
         if (paged.results.some((c) => c.id === customer.id)) return paged;
@@ -152,7 +153,7 @@ export function QuickAddProduct({
         }),
       });
       // On invalide pour refetch avec les agrégats variantes.
-      qc.invalidateQueries({ queryKey: ['products'] });
+      qc.invalidateQueries({ queryKey: qk.products.all });
       // Recharge le détail pour récupérer la variante créée.
       const refreshed = await apiFetch<ProductDetail>(`/products/${product.id}/`);
       onCreated(refreshed);

@@ -5,17 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.shops.models import ShopMember
+from apps.core.permissions import get_shop
 from .models import Product, ProductImage, ProductVariant
 from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer
-
-
-def get_shop(user):
-    membership = ShopMember.objects.filter(user=user).select_related('shop').first()
-    if not membership:
-        from rest_framework.exceptions import PermissionDenied
-        raise PermissionDenied('Aucune boutique associée.')
-    return membership.shop
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
@@ -29,6 +21,11 @@ class ProductListCreateView(generics.ListCreateAPIView):
         if self.request.method == 'GET':
             return ProductListSerializer
         return ProductSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['shop'] = get_shop(self.request.user)
+        return ctx
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
@@ -77,6 +74,11 @@ class ProductListCreateView(generics.ListCreateAPIView):
 class ProductDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ProductSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['shop'] = get_shop(self.request.user)
+        return ctx
 
     def get_queryset(self):
         shop = get_shop(self.request.user)

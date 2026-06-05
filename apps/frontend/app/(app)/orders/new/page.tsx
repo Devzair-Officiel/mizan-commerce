@@ -1,29 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
-import { Trash2, StickyNote, X } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { Button } from '@/components/ui/button';
-import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
 import { CustomerPicker } from '@/components/orders/CustomerPicker';
 import { ProductPicker, type FreeLine, type VariantPick } from '@/components/orders/ProductPicker';
+import { OrderItemsList } from '@/components/orders/new/OrderItemsList';
+import { OrderSummary } from '@/components/orders/new/OrderSummary';
+import { SectionChips } from '@/components/orders/new/SectionChips';
+import { NotesSection } from '@/components/orders/new/NotesSection';
+import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
+import { SubmitCTA } from '@/components/orders/new/SubmitCTA';
+import type { LineItem } from '@/components/orders/new/types';
 import { useCreateOrder, type OrderItemPayload } from '@/lib/hooks/useOrders';
 import { useCustomer, type Customer } from '@/lib/hooks/useCustomers';
 import { apiFetch } from '@/lib/api-client';
-import type { ProductDetail, ProductType } from '@/lib/hooks/useProducts';
-
-type LineItem = {
-  lineId: string;
-  variant: string | null;
-  product_name: string;
-  variant_name: string;
-  product_type: ProductType | null;
-  quantity: number;
-  unit_price: string;
-};
+import type { ProductDetail } from '@/lib/hooks/useProducts';
 
 function NewOrderForm() {
   const router = useRouter();
@@ -48,7 +41,6 @@ function NewOrderForm() {
   const [createProductOpen, setCreateProductOpen] = useState(false);
   const { data: selectedCustomer } = useCustomer(customerId);
 
-
   function addItem(pick: VariantPick) {
     setItemsError(false);
     const existing = items.find((i) => i.variant === pick.variantId);
@@ -68,7 +60,6 @@ function NewOrderForm() {
   }
 
   async function addProductFromQuickAdd(productId: string) {
-    // QuickAddProduct ne crée pas encore de variante explicite ; charger le détail pour récupérer la variante par défaut.
     const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
     const first = detail.variants.find((v) => v.is_active);
     if (!first) return;
@@ -147,8 +138,6 @@ function NewOrderForm() {
 
   return (
     <div className="flex flex-col gap-5 p-4 pb-32">
-
-      {/* Client */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
           1 · Client
@@ -170,7 +159,6 @@ function NewOrderForm() {
         )}
       </div>
 
-      {/* Sélecteur d'article ou service */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
           2 · Articles &amp; services
@@ -191,139 +179,25 @@ function NewOrderForm() {
         )}
       </div>
 
-      {/* Lignes ajoutées */}
+      <OrderItemsList items={items} onUpdateQty={updateQty} onRemove={removeItem} />
+
       {items.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Articles &amp; services
-            </span>
-          </div>
-          <div className="divide-y divide-border">
-            {items.map((item) => {
-              const unitPrice = parseFloat(item.unit_price);
-              const lineTotal = unitPrice * item.quantity;
-              return (
-                <div key={item.lineId} className="flex flex-col gap-2 px-4 py-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-sm font-semibold text-foreground truncate">{item.product_name}</span>
-                        {item.product_type === 'service' && (
-                          <span className="shrink-0 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-                            Service
-                          </span>
-                        )}
-                        {item.variant === null && (
-                          <span className="shrink-0 rounded-full bg-muted text-muted-foreground border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-                            Libre
-                          </span>
-                        )}
-                      </div>
-                      {item.variant_name && item.variant_name !== 'Par défaut' && (
-                        <span className="text-[11px] text-muted-foreground truncate">{item.variant_name}</span>
-                      )}
-                      <span className="text-xs text-muted-foreground tabular-nums">
-                        {unitPrice.toFixed(2)} € / unité
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(item.lineId)}
-                      aria-label="Supprimer"
-                      className="text-muted-foreground hover:text-destructive transition-colors shrink-0 -mr-1 p-1"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => updateQty(item.lineId, item.quantity - 1)}
-                        aria-label="Diminuer"
-                        className="w-9 h-9 rounded-full border border-border text-foreground text-base flex items-center justify-center active:bg-muted active:scale-95 transition-all"
-                      >−</button>
-                      <span className="w-7 text-center text-sm font-semibold tabular-nums">{item.quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => updateQty(item.lineId, item.quantity + 1)}
-                        aria-label="Augmenter"
-                        className="w-9 h-9 rounded-full border border-border text-foreground text-base flex items-center justify-center active:bg-muted active:scale-95 transition-all"
-                      >+</button>
-                    </div>
-                    <span className="text-sm font-bold text-foreground tabular-nums">
-                      {lineTotal.toFixed(2)} €
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <OrderSummary
+          subtotal={subtotal}
+          total={total}
+          discount={discount}
+          shipping={shipping}
+          showDiscount={showDiscount}
+          showShipping={showShipping}
+          onDiscountChange={setDiscount}
+          onShippingChange={setShipping}
+          onShowDiscount={() => setShowDiscount(true)}
+          onShowShipping={() => setShowShipping(true)}
+          onClearDiscount={() => { setDiscount(''); setShowDiscount(false); }}
+          onClearShipping={() => { setShipping(''); setShowShipping(false); }}
+        />
       )}
 
-      {/* Résumé */}
-      {items.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Résumé</span>
-          </div>
-          <div className="flex flex-col">
-            <SummaryRow label="Sous-total">
-              <span className="text-sm font-medium text-foreground tabular-nums">{subtotal.toFixed(2)} €</span>
-            </SummaryRow>
-            {(showDiscount || discountN > 0) && (
-              <SummaryRow label="Remise">
-                <SummaryAmountInput
-                  value={discount}
-                  onChange={setDiscount}
-                  ariaLabel="Remise"
-                  onClear={() => { setDiscount(''); setShowDiscount(false); }}
-                />
-              </SummaryRow>
-            )}
-            {(showShipping || shippingN > 0) && (
-              <SummaryRow label="Frais">
-                <SummaryAmountInput
-                  value={shipping}
-                  onChange={setShipping}
-                  ariaLabel="Frais"
-                  onClear={() => { setShipping(''); setShowShipping(false); }}
-                />
-              </SummaryRow>
-            )}
-            {(!showDiscount && discountN === 0) || (!showShipping && shippingN === 0) ? (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 border-b border-border">
-                {!showDiscount && discountN === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDiscount(true)}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    + Ajouter une remise
-                  </button>
-                )}
-                {!showShipping && shippingN === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowShipping(true)}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    + Ajouter des frais
-                  </button>
-                )}
-              </div>
-            ) : null}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
-              <span className="text-sm font-semibold text-foreground">Total</span>
-              <span className="text-base font-bold text-foreground tabular-nums">{total.toFixed(2)} €</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Paiement */}
       <SectionChips
         title="Paiement"
         options={[
@@ -335,32 +209,14 @@ function NewOrderForm() {
         onChange={(v) => { setPaymentStatus(v as 'unpaid' | 'partial' | 'paid'); setPaymentError(''); }}
       >
         {paymentStatus === 'partial' && (
-          <div className="mt-3 flex flex-col gap-1">
-            <label htmlFor="amount-paid" className="text-xs font-medium text-muted-foreground">
-              Montant reçu
-            </label>
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-background focus-within:border-primary transition-colors w-fit">
-              <input
-                id="amount-paid"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                value={amountPaid}
-                onChange={(e) => { setAmountPaid(e.target.value); setPaymentError(''); }}
-                className="w-28 bg-transparent text-right text-sm font-medium tabular-nums px-2 py-1.5 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <span className="text-sm text-muted-foreground pr-2">€</span>
-            </div>
-            {paymentError && (
-              <p className="text-[11px] text-destructive px-1">{paymentError}</p>
-            )}
-          </div>
+          <PaymentPartialInput
+            amountPaid={amountPaid}
+            paymentError={paymentError}
+            onAmountPaidChange={(v) => { setAmountPaid(v); setPaymentError(''); }}
+          />
         )}
       </SectionChips>
 
-      {/* Statut initial */}
       <SectionChips
         title="Statut initial"
         options={[
@@ -372,156 +228,20 @@ function NewOrderForm() {
         onChange={(v) => setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
       />
 
-      {/* Notes — repliable */}
-      {showNotes || notes ? (
-        <div className="relative">
-          <FloatingTextarea
-            id="notes"
-            label="Notes internes (optionnel)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            autoFocus={showNotes && !notes}
-          />
-          {!notes && (
-            <button
-              type="button"
-              onClick={() => setShowNotes(false)}
-              aria-label="Masquer les notes"
-              className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowNotes(true)}
-          className="self-start flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 py-1"
-        >
-          <StickyNote size={16} />
-          <span>Ajouter une note interne</span>
-        </button>
-      )}
+      <NotesSection
+        notes={notes}
+        showNotes={showNotes}
+        onNotesChange={setNotes}
+        onShow={() => setShowNotes(true)}
+        onHide={() => setShowNotes(false)}
+      />
 
-      {/* CTA sticky en bas */}
-      <div className="fixed bottom-20 left-0 right-0 lg:left-60 lg:bottom-0 z-30 px-4 pt-4 pb-3 bg-linear-to-t from-background via-background/95 to-transparent pointer-events-none">
-        <Button
-          onClick={handleSubmit}
-          disabled={isPending}
-          className="w-full pointer-events-auto shadow-[0_8px_20px_-6px_rgba(0,0,0,0.22)]"
-        >
-          {isPending ? (
-            'Création…'
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <span>Créer la commande</span>
-              {items.length > 0 && (
-                <>
-                  <span className="opacity-60">·</span>
-                  <span className="tabular-nums font-semibold">{total.toFixed(2)} €</span>
-                </>
-              )}
-            </span>
-          )}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function SectionChips({
-  title,
-  options,
-  value,
-  onChange,
-  children,
-}: {
-  title: string;
-  options: { value: string; label: string; activeClass?: string }[];
-  value: string;
-  onChange: (v: string) => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-        {title}
-      </span>
-      <div className="flex flex-wrap gap-2">
-        {options.map(({ value: v, label, activeClass }) => {
-          const active = value === v;
-          const activeStyle = activeClass ?? 'bg-primary text-primary-foreground';
-          return (
-            <button
-              key={v}
-              type="button"
-              onClick={() => onChange(v)}
-              aria-pressed={active}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98] ${
-                active
-                  ? activeStyle
-                  : 'bg-muted text-muted-foreground active:bg-muted/70'
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between px-4 py-2.5 border-b border-border last:border-b-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function SummaryAmountInput({
-  value,
-  onChange,
-  ariaLabel,
-  onClear,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  ariaLabel: string;
-  onClear?: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-1">
-      <div className="flex items-center gap-1 rounded-lg border border-border bg-background focus-within:border-primary transition-colors">
-        <input
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          min="0"
-          placeholder="0,00"
-          aria-label={ariaLabel}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoFocus={!value}
-          className="w-20 bg-transparent text-right text-sm font-medium tabular-nums px-2 py-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        />
-        <span className="text-sm text-muted-foreground pr-2">€</span>
-      </div>
-      {onClear && (
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label={`Retirer ${ariaLabel.toLowerCase()}`}
-          className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-        >
-          <X size={14} />
-        </button>
-      )}
+      <SubmitCTA
+        isPending={isPending}
+        hasItems={items.length > 0}
+        total={total}
+        onClick={handleSubmit}
+      />
     </div>
   );
 }

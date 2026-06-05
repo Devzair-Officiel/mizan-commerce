@@ -1,110 +1,46 @@
 'use client';
 
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Store, Globe, Coins, Receipt } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { Button } from '@/components/ui/button';
-import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
-import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
-import { useShop, useUpdateShop, useUploadShopLogo, useDeleteShopLogo } from '@/lib/hooks/useShop';
+import { useShop, useUpdateShop, type Shop } from '@/lib/hooks/useShop';
+import { settingsSchema, type SettingsFormValues } from '@/components/settings/schema';
+import { IdentitySection } from '@/components/settings/IdentitySection';
+import { RegionalSection } from '@/components/settings/RegionalSection';
+import { ZakatSection } from '@/components/settings/ZakatSection';
+import { InvoicingSection } from '@/components/settings/InvoicingSection';
+import { StickyActionBar } from '@/components/settings/StickyActionBar';
 
-const CURRENCIES = ['EUR', 'MAD', 'TND', 'DZD', 'XOF', 'USD', 'GBP'];
-const COUNTRIES = [
-  { code: 'FR', label: 'France' },
-  { code: 'MA', label: 'Maroc' },
-  { code: 'TN', label: 'Tunisie' },
-  { code: 'DZ', label: 'Algérie' },
-  { code: 'SN', label: 'Sénégal' },
-  { code: 'CI', label: "Côte d'Ivoire" },
-  { code: 'BE', label: 'Belgique' },
-  { code: 'GB', label: 'Royaume-Uni' },
-];
-
-const schema = z.object({
-  name: z.string().min(1, 'Nom requis'),
-  currency: z.string().min(1),
-  country: z.string().optional(),
-  zakat_annual_date: z.string().optional(),
-  nisab_method: z.enum(['gold', 'silver']),
-  nisab_unit_price: z.string().optional(),
-  legal_address: z.string().optional(),
-  tax_id: z.string().optional(),
-  legal_mentions: z.string().optional(),
-  default_tax_rate: z.string().optional(),
-  default_payment_terms_days: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
+function defaultsFromShop(shop: Shop): SettingsFormValues {
+  return {
+    name: shop.name,
+    currency: shop.currency,
+    country: shop.country ?? '',
+    zakat_annual_date: shop.zakat_annual_date ?? '',
+    nisab_method: shop.nisab_method ?? 'silver',
+    nisab_unit_price: shop.nisab_unit_price ?? '',
+    legal_address: shop.legal_address ?? '',
+    tax_id: shop.tax_id ?? '',
+    legal_mentions: shop.legal_mentions ?? '',
+    default_tax_rate: shop.default_tax_rate ?? '0',
+    default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
+  };
+}
 
 export default function SettingsPage() {
   const { data: shop, isLoading } = useShop();
   const { mutateAsync, isPending, isSuccess } = useUpdateShop();
-  const uploadLogo = useUploadShopLogo();
-  const deleteLogo = useDeleteShopLogo();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [logoError, setLogoError] = useState<string | null>(null);
 
-  function handlePickFile() {
-    setLogoError(null);
-    fileInputRef.current?.click();
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    e.target.value = '';
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setLogoError('Formats acceptés : JPEG, PNG, WebP.');
-      return;
-    }
-    setPendingFile(file);
-  }
-
-  async function handleCropConfirm(blob: Blob) {
-    try {
-      await uploadLogo.mutateAsync(blob);
-      setPendingFile(null);
-    } catch (err) {
-      setLogoError(err instanceof Error ? err.message : 'Erreur upload');
-    }
-  }
-
-  async function handleDeleteLogo() {
-    if (!confirm('Supprimer le logo de la boutique ?')) return;
-    try {
-      await deleteLogo.mutateAsync();
-    } catch {
-      setLogoError('Erreur lors de la suppression.');
-    }
-  }
-
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
   });
 
   useEffect(() => {
-    if (shop) {
-      reset({
-        name: shop.name,
-        currency: shop.currency,
-        country: shop.country ?? '',
-        zakat_annual_date: shop.zakat_annual_date ?? '',
-        nisab_method: shop.nisab_method ?? 'silver',
-        nisab_unit_price: shop.nisab_unit_price ?? '',
-        legal_address: shop.legal_address ?? '',
-        tax_id: shop.tax_id ?? '',
-        legal_mentions: shop.legal_mentions ?? '',
-        default_tax_rate: shop.default_tax_rate ?? '0',
-        default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
-      });
-    }
+    if (shop) reset(defaultsFromShop(shop));
   }, [shop, reset]);
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: SettingsFormValues) {
     await mutateAsync({
       ...values,
       zakat_annual_date: values.zakat_annual_date || null,
@@ -117,251 +53,35 @@ export default function SettingsPage() {
     reset(values);
   }
 
-  if (isLoading) return <><TopBar title="Paramètres" /><p className="p-4 text-sm text-muted-foreground">Chargement…</p></>;
+  if (isLoading) {
+    return (
+      <>
+        <TopBar title="Paramètres" />
+        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+      </>
+    );
+  }
 
   return (
     <>
       <TopBar title="Paramètres boutique" />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32">
-
-        <SettingsCard
-          icon={Store}
-          title="Identité"
-          description="Le visage de votre boutique sur les factures et reçus."
-        >
-          <div className="flex items-center gap-4">
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-muted flex items-center justify-center">
-              {shop?.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={shop.logo_url} alt="Logo" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-2xl font-bold text-muted-foreground">
-                  {(shop?.name ?? '?').trim().charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-col gap-1.5 min-w-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handlePickFile}
-                disabled={uploadLogo.isPending}
-              >
-                {uploadLogo.isPending ? 'Envoi…' : shop?.logo_url ? 'Changer le logo' : 'Ajouter un logo'}
-              </Button>
-              {shop?.logo_url && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={handleDeleteLogo}
-                  disabled={deleteLogo.isPending}
-                >
-                  {deleteLogo.isPending ? 'Suppression…' : 'Supprimer'}
-                </Button>
-              )}
-            </div>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          {logoError && <p className="text-[11px] text-destructive px-1">{logoError}</p>}
-
-          <div className="flex flex-col gap-0.5">
-            <FloatingInput id="name" label="Nom de la boutique *" {...register('name')} />
-            {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name.message}</p>}
-          </div>
-        </SettingsCard>
-
-        <SettingsCard
-          icon={Globe}
-          title="Régional"
-          description="Devise et pays utilisés dans toute l'application."
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <FloatingSelect id="currency" label="Devise" {...register('currency')}>
-              {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </FloatingSelect>
-            <FloatingSelect id="country" label="Pays (optionnel)" {...register('country')}>
-              <option value="">—</option>
-              {COUNTRIES.map(({ code, label }) => <option key={code} value={code}>{label}</option>)}
-            </FloatingSelect>
-          </div>
-        </SettingsCard>
-
-        <SettingsCard
-          icon={Coins}
-          title="Zakat"
-          description="Paramètres pour calculer le seuil de Nisab et générer le rappel annuel."
-        >
-          <div className="flex flex-col gap-0.5">
-            <FloatingInput id="zakat_annual_date" label="Date annuelle (optionnel)" type="date" {...register('zakat_annual_date')} />
-            <p className="text-[11px] text-muted-foreground px-1">Un rappel sera généré avant cette date chaque année.</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <FloatingSelect id="nisab_method" label="Méthode du Nisab" {...register('nisab_method')}>
-              <option value="silver">Argent (595 g)</option>
-              <option value="gold">Or (85 g)</option>
-            </FloatingSelect>
-            <FloatingInput
-              id="nisab_unit_price"
-              label={`Prix au gramme (${shop?.currency ?? 'EUR'})`}
-              type="number"
-              step="0.01"
-              min="0"
-              inputMode="decimal"
-              {...register('nisab_unit_price')}
-            />
-          </div>
-          <p className="text-[11px] text-muted-foreground px-1">
-            Le cours évolue chaque jour. Vérifiez et mettez à jour le prix au gramme avant chaque
-            calcul. La méthode de l'argent est plus inclusive (seuil plus bas).
-          </p>
-        </SettingsCard>
-
-        <SettingsCard
-          icon={Receipt}
-          title="Facturation"
-          description="Ces champs apparaissent sur vos factures clients. Renseignez ce qui est exigé par la réglementation de votre pays."
-        >
-          <FloatingTextarea
-            id="legal_address"
-            label="Adresse légale (siège)"
-            rows={3}
-            {...register('legal_address')}
-          />
-
-          <FloatingInput
-            id="tax_id"
-            label="Identifiant fiscal (SIRET, TVA, NIF, EIN…)"
-            {...register('tax_id')}
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <FloatingInput
-              id="default_tax_rate"
-              label="Taux TVA par défaut"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              inputMode="decimal"
-              suffix="%"
-              {...register('default_tax_rate')}
-            />
-            <FloatingInput
-              id="default_payment_terms_days"
-              label="Délai de paiement"
-              type="number"
-              min="0"
-              step="1"
-              inputMode="numeric"
-              suffix="jours"
-              {...register('default_payment_terms_days')}
-            />
-          </div>
-
-          <div className="flex flex-col gap-0.5">
-            <FloatingTextarea
-              id="legal_mentions"
-              label="Mentions légales (pied de facture)"
-              rows={4}
-              {...register('legal_mentions')}
-            />
-            <p className="text-[11px] text-muted-foreground px-1">
-              Ex.&nbsp;: «&nbsp;TVA non applicable, art. 293 B du CGI&nbsp;», RCS, conditions de
-              pénalités, indemnité forfaitaire…
-            </p>
-          </div>
-        </SettingsCard>
+        <IdentitySection shop={shop} register={register} errors={errors} />
+        <RegionalSection register={register} />
+        <ZakatSection register={register} shop={shop} />
+        <InvoicingSection register={register} />
 
         {isSuccess && !isDirty && (
           <p className="text-sm text-green-600 text-center">Modifications enregistrées ✓</p>
         )}
 
-        {/* Barre d'actions sticky — apparaît quand le formulaire est modifié */}
-        <div
-          aria-hidden={!isDirty}
-          className={`fixed left-0 right-0 z-40 px-4 pb-safe pointer-events-none transition-[transform,opacity] duration-200 bottom-16 lg:bottom-4 lg:left-60 ${
-            isDirty ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-          }`}
-        >
-          <div className={`mx-auto max-w-xl flex items-center gap-2 rounded-2xl border border-border bg-card/95 backdrop-blur px-3 py-2 shadow-lg ${isDirty ? 'pointer-events-auto' : ''}`}>
-            <p className="flex-1 text-xs font-medium text-muted-foreground px-1">
-              Modifications non enregistrées
-            </p>
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isPending}
-              onClick={() => shop && reset({
-                name: shop.name,
-                currency: shop.currency,
-                country: shop.country ?? '',
-                zakat_annual_date: shop.zakat_annual_date ?? '',
-                nisab_method: shop.nisab_method ?? 'silver',
-                nisab_unit_price: shop.nisab_unit_price ?? '',
-                legal_address: shop.legal_address ?? '',
-                tax_id: shop.tax_id ?? '',
-                legal_mentions: shop.legal_mentions ?? '',
-                default_tax_rate: shop.default_tax_rate ?? '0',
-                default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
-              })}
-            >
-              Annuler
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? 'Enregistrement…' : 'Enregistrer'}
-            </Button>
-          </div>
-        </div>
+        <StickyActionBar
+          isDirty={isDirty}
+          isPending={isPending}
+          onReset={() => shop && reset(defaultsFromShop(shop))}
+        />
       </form>
-
-      <ImageCropDialog
-        open={!!pendingFile}
-        file={pendingFile}
-        onClose={() => setPendingFile(null)}
-        onConfirm={handleCropConfirm}
-      />
     </>
-  );
-}
-
-function SettingsCard({
-  icon: Icon,
-  title,
-  description,
-  children,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="flex flex-col min-w-0 pt-0.5">
-          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-          {description && (
-            <p className="text-xs text-muted-foreground leading-snug">{description}</p>
-          )}
-        </div>
-      </div>
-      <div className="flex flex-col gap-3">
-        {children}
-      </div>
-    </section>
   );
 }

@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode, type ComponentType } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode, type ComponentType } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import {
   Sun,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { useShop } from '@/lib/hooks/useShop';
+import { useIsClient } from '@/lib/hooks/useIsClient';
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -172,10 +174,12 @@ function BurgerHeader() {
   return (
     <div className="flex items-center gap-3 min-w-0">
       {shop?.logo_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={shop.logo_url}
           alt={displayName}
+          width={40}
+          height={40}
+          unoptimized
           className="h-10 w-10 rounded-xl object-cover ring-1 ring-white/30 shrink-0"
         />
       )}
@@ -208,8 +212,7 @@ function AppearanceRow() {
 /* ── Bascule de thème (intégrée au drawer) ── */
 function ThemeToggleRow() {
   const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   if (!mounted) return null;
 

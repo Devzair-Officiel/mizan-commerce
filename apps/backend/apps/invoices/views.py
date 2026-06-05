@@ -1,12 +1,11 @@
 from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.permissions import get_shop
 from apps.orders.models import Order
-from apps.shops.models import ShopMember
 
 from . import services
 from .models import Invoice
@@ -15,13 +14,6 @@ from .serializers import (
     InvoiceSerializer,
     InvoiceStatusUpdateSerializer,
 )
-
-
-def get_shop(user):
-    membership = ShopMember.objects.filter(user=user).select_related('shop').first()
-    if not membership:
-        raise PermissionDenied('Aucune boutique associée.')
-    return membership.shop
 
 
 class InvoiceListCreateView(generics.ListCreateAPIView):

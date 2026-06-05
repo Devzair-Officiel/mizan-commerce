@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
+import { qk } from '@/lib/query-keys';
 
 interface Note {
   id: string;
@@ -28,25 +29,25 @@ export default function NotesPage() {
   const [isNew, setIsNew] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notes'],
+    queryKey: qk.notes.all,
     queryFn: () => apiFetch<{ results: Note[] }>('/notes/'),
   });
 
   const create = useMutation({
     mutationFn: (payload: NotePayload) =>
       apiFetch<Note>('/notes/', { method: 'POST', body: JSON.stringify(payload) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notes'] }); resetForm(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: qk.notes.all }); resetForm(); },
   });
 
   const update = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: NotePayload }) =>
       apiFetch<Note>(`/notes/${id}/`, { method: 'PATCH', body: JSON.stringify(payload) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notes'] }); resetForm(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: qk.notes.all }); resetForm(); },
   });
 
   const remove = useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/notes/${id}/`, { method: 'DELETE' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notes'] }); resetForm(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: qk.notes.all }); resetForm(); },
   });
 
   function resetForm() {

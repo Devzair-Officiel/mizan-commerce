@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 export type NisabMethod = 'gold' | 'silver';
 
@@ -39,7 +40,7 @@ export interface ShopUpdateData {
 
 export function useShop() {
   return useQuery({
-    queryKey: ['shop'],
+    queryKey: qk.shop.all,
     queryFn: () => apiFetch<Shop>('/shop/'),
   });
 }
@@ -49,7 +50,7 @@ export function useUpdateShop() {
   return useMutation({
     mutationFn: (data: ShopUpdateData) =>
       apiFetch<Shop>('/shop/', { method: 'PATCH', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shop'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shop.all }),
   });
 }
 
@@ -69,7 +70,7 @@ export function useUploadShopLogo() {
       }
       return res.json() as Promise<Shop>;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shop'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shop.all }),
   });
 }
 
@@ -77,6 +78,6 @@ export function useDeleteShopLogo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<Shop>('/shop/logo/', { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shop'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shop.all }),
   });
 }

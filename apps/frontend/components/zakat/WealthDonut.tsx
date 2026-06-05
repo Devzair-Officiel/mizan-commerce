@@ -34,7 +34,9 @@ function buildSlices(calc: ZakatCalculation): Slice[] {
 
 function DonutTooltip({ active, payload, currency }: TooltipContentProps & { currency: string }) {
   if (!active || !payload || payload.length === 0) return null;
-  const slice = payload[0].payload as Slice;
+  const first = payload[0];
+  if (!first) return null;
+  const slice = first.payload as Slice;
   return (
     <div className="rounded-xl border border-border bg-card px-3 py-2 shadow-md">
       <p className="text-xs text-muted-foreground">{slice.label}</p>

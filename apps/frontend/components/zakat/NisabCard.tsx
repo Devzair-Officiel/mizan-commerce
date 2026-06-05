@@ -22,8 +22,8 @@ export function NisabCard({ calc }: NisabCardProps) {
         <div className="flex flex-col gap-1.5 flex-1">
           <p className="text-sm font-medium text-amber-900">Seuil de Nisab non configuré</p>
           <p className="text-xs text-amber-800">
-            Le Nisab est le seuil de richesse en dessous duquel la zakat n'est pas due. Configurez
-            la méthode (or ou argent) et le prix au gramme pour obtenir un verdict d'obligation.
+            Le Nisab est le seuil de richesse en dessous duquel la zakat n&apos;est pas due. Configurez
+            la méthode (or ou argent) et le prix au gramme pour obtenir un verdict d&apos;obligation.
           </p>
           <Link
             href="/settings"
@@ -90,7 +90,7 @@ export function NisabCard({ calc }: NisabCardProps) {
               </p>
               <p className="text-xs text-emerald-800">
                 Votre base ({formatMoney(calc.zakat_base, calc.currency)}) reste sous le seuil —
-                la zakat n'est pas obligatoire cette année.
+                la zakat n&apos;est pas obligatoire cette année.
               </p>
             </>
           )}

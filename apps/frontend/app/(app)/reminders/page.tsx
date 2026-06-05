@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api-client';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
+import { qk } from '@/lib/query-keys';
 
 interface Reminder {
   id: string;
@@ -50,21 +51,21 @@ export default function RemindersPage() {
   const [filter,      setFilter]      = useState<'pending' | 'done'>('pending');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['reminders', filter],
+    queryKey: qk.reminders.byFilter(filter),
     queryFn: () => apiFetch<{ results: Reminder[] }>(`/reminders/?status=${filter}`),
   });
 
   const { data: pendingData } = useQuery({
-    queryKey: ['reminders', 'pending'],
+    queryKey: qk.reminders.pending,
     queryFn: () => apiFetch<{ results: Reminder[] }>('/reminders/?status=pending'),
   });
 
   const { data: doneData } = useQuery({
-    queryKey: ['reminders', 'done'],
+    queryKey: qk.reminders.done,
     queryFn: () => apiFetch<{ results: Reminder[] }>('/reminders/?status=done'),
   });
 
-  function invalidateAll() { qc.invalidateQueries({ queryKey: ['reminders'] }); }
+  function invalidateAll() { qc.invalidateQueries({ queryKey: qk.reminders.all }); }
 
   const markDone = useMutation({
     mutationFn: (id: string) => apiFetch<Reminder>(`/reminders/${id}/done/`, { method: 'POST' }),

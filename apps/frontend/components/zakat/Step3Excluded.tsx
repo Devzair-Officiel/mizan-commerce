@@ -24,7 +24,7 @@ export function Step3Excluded({ acknowledged, onChange }: Step3Props) {
       <div className="flex gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
         <ShieldCheck className="text-primary shrink-0 mt-0.5" size={18} />
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-foreground">Ce qui n'entre PAS dans la zakat</p>
+          <p className="text-sm font-medium text-foreground">Ce qui n&apos;entre PAS dans la zakat</p>
           <p className="text-xs text-muted-foreground">
             Vos outils de travail ne sont pas concernés. Cochez ce que vous possédez pour confirmer
             que vous en avez pris connaissance — rien ne sera ajouté à votre base.

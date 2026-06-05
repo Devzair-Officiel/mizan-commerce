@@ -12,14 +12,10 @@ function VerifyEmailContent() {
   const params = useSearchParams();
   const uid = params.get('uid') ?? '';
   const token = params.get('token') ?? '';
-  const [status, setStatus] = useState<Status>('loading');
+  const [status, setStatus] = useState<Status>(uid && token ? 'loading' : 'error');
 
   useEffect(() => {
-    if (!uid || !token) {
-      setStatus('error');
-      return;
-    }
-
+    if (!uid || !token) return;
     fetch(`/api/auth/verify-email?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}`)
       .then((res) => setStatus(res.ok ? 'success' : 'error'))
       .catch(() => setStatus('error'));
@@ -31,7 +27,7 @@ function VerifyEmailContent() {
         <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-foreground">Mizan</h1>
         <Card className="w-full shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Vérification de l'email</CardTitle>
+            <CardTitle className="text-lg">Vérification de l&apos;email</CardTitle>
           </CardHeader>
           <CardContent>
             {status === 'loading' && (

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 
 interface BottomSheetProps {
   open: boolean;
@@ -12,23 +13,27 @@ interface BottomSheetProps {
 
 export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
   const [visible, setVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const [tracked, setTracked] = useState(open);
+  const titleId = useId();
+  const sheetRef = useFocusTrap<HTMLDivElement>(open);
+
+  if (tracked !== open) {
+    setTracked(open);
+    if (!open) setVisible(false);
+  }
 
   useEffect(() => {
-    if (open) {
-      const id = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(id);
-    } else {
-      setVisible(false);
-    }
+    if (!open) return;
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
   }, [open]);
 
-  // Close on Escape
   useEffect(() => {
+    if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -44,20 +49,26 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     >
       <div
         ref={sheetRef}
-        className="flex flex-col rounded-t-3xl bg-card shadow-2xl max-h-[75vh]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : 'Panneau'}
+        className="flex flex-col rounded-t-3xl bg-card shadow-2xl max-h-[75vh] outline-none"
         style={{
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="h-1 w-10 rounded-full bg-border" />
         </div>
 
         {title && (
-          <p className="px-5 pt-2 pb-3 font-semibold text-base text-foreground border-b border-border shrink-0">
+          <p
+            id={titleId}
+            className="px-5 pt-2 pb-3 font-semibold text-base text-foreground border-b border-border shrink-0"
+          >
             {title}
           </p>
         )}

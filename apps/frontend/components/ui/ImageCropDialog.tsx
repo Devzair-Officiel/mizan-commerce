@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { Button } from '@/components/ui/button';
@@ -22,30 +22,42 @@ export function ImageCropDialog({
   outputSize = 512,
   quality = 0.85,
 }: ImageCropDialogProps) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  if (!open || !file) return null;
+  return (
+    <CropEditor
+      key={`${file.name}-${file.size}-${file.lastModified}`}
+      file={file}
+      onClose={onClose}
+      onConfirm={onConfirm}
+      outputSize={outputSize}
+      quality={quality}
+    />
+  );
+}
+
+interface CropEditorProps {
+  file: File;
+  onClose: () => void;
+  onConfirm: (blob: Blob) => void | Promise<void>;
+  outputSize: number;
+  quality: number;
+}
+
+function CropEditor({ file, onClose, onConfirm, outputSize, quality }: CropEditorProps) {
+  const imageUrl = useMemo(() => URL.createObjectURL(file), [file]);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (!file) {
-      setImageUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setImageUrl(url);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
+  useEffect(() => () => URL.revokeObjectURL(imageUrl), [imageUrl]);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => {
     setCroppedArea(pixels);
   }, []);
 
   async function handleConfirm() {
-    if (!imageUrl || !croppedArea) return;
+    if (!croppedArea) return;
     setBusy(true);
     try {
       const blob = await renderCroppedBlob(imageUrl, croppedArea, outputSize, quality);
@@ -54,8 +66,6 @@ export function ImageCropDialog({
       setBusy(false);
     }
   }
-
-  if (!open || !file) return null;
 
   return (
     <div
@@ -67,19 +77,17 @@ export function ImageCropDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative flex-1 bg-black">
-          {imageUrl && (
-            <Cropper
-              image={imageUrl}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              cropShape="rect"
-              showGrid={false}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-            />
-          )}
+          <Cropper
+            image={imageUrl}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            cropShape="rect"
+            showGrid={false}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+          />
         </div>
 
         <div className="bg-card border-t border-border p-4 flex flex-col gap-3 pb-safe">

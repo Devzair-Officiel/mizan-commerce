@@ -105,14 +105,11 @@ class ProductSerializer(serializers.ModelSerializer):
     primary_image = serializers.SerializerMethodField()
 
     def validate_name(self, value: str) -> str:
-        from apps.shops.models import ShopMember
-        request = self.context.get('request')
-        if not request:
+        shop = self.context.get('shop')
+        if shop is None:
+            # Pas de scope (ex: introspection schema) → on n'a rien à valider.
             return value
-        membership = ShopMember.objects.filter(user=request.user).select_related('shop').first()
-        if not membership:
-            return value
-        qs = Product.objects.filter(shop=membership.shop, name__iexact=value)
+        qs = Product.objects.filter(shop=shop, name__iexact=value)
         if self.instance:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():

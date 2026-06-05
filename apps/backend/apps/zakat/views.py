@@ -1,23 +1,16 @@
 from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.shops.models import ShopMember
+from apps.core.permissions import get_shop
 from apps.products.models import ProductVariant
 from . import services
 from .models import ZakatCalculation
 from .pdf import build_zakat_pdf
 from .serializers import ZakatCalculationSerializer
-
-
-def get_shop(user):
-    membership = ShopMember.objects.filter(user=user).select_related('shop').first()
-    if not membership:
-        raise PermissionDenied('Aucune boutique associée.')
-    return membership.shop
 
 
 class ZakatStockEstimateView(APIView):

@@ -12,10 +12,14 @@ class ThrottledTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [AuthRateThrottle]
 
 
+class ThrottledTokenRefreshView(TokenRefreshView):
+    throttle_classes = [AuthRateThrottle]
+
+
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth-register'),
     path('login/', ThrottledTokenObtainPairView.as_view(), name='auth-login'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='auth-token-refresh'),
+    path('token/refresh/', ThrottledTokenRefreshView.as_view(), name='auth-token-refresh'),
     path('me/', MeView.as_view(), name='auth-me'),
     path('change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='auth-password-reset'),

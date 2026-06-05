@@ -18,9 +18,9 @@ export function Step0Liquidity({ referenceDate, cashAmount, currency, onChange }
       <div className="flex gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
         <Wallet className="text-primary shrink-0 mt-0.5" size={18} />
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-foreground">Argent disponible aujourd'hui</p>
+          <p className="text-sm font-medium text-foreground">Argent disponible aujourd&apos;hui</p>
           <p className="text-xs text-muted-foreground">
-            Comptez tout l'argent immédiatement disponible pour votre activité : caisse, compte
+            Comptez tout l&apos;argent immédiatement disponible pour votre activité : caisse, compte
             professionnel, espèces conservées au commerce.
           </p>
         </div>
@@ -47,7 +47,7 @@ export function Step0Liquidity({ referenceDate, cashAmount, currency, onChange }
       />
 
       <p className="text-xs text-muted-foreground px-1">
-        Pas besoin d'être au centime près — une estimation honnête suffit.
+        Pas besoin d&apos;être au centime près — une estimation honnête suffit.
       </p>
 
       <ReligiousNote rubric="cash" />

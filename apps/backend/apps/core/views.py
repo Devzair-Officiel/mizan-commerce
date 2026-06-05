@@ -8,19 +8,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.shops.models import ShopMember
 from apps.customers.models import Customer
 from apps.orders.models import Order
 from apps.products.models import Product, ProductVariant
 from apps.notes.models import Reminder
 
-
-def get_shop(user):
-    membership = ShopMember.objects.filter(user=user).select_related('shop').first()
-    if not membership:
-        from rest_framework.exceptions import PermissionDenied
-        raise PermissionDenied('Aucune boutique associée.')
-    return membership.shop
+from .permissions import get_shop
 
 
 class DashboardTodayView(APIView):

@@ -38,7 +38,7 @@ export function ThemeDrawerPanel() {
         <div className="flex h-16 items-center justify-between px-5 border-b border-border shrink-0">
           <div>
             <p className="font-bold text-base text-foreground">Personnaliser</p>
-            <p className="text-xs text-muted-foreground">Adaptez l'apparence de l'app</p>
+            <p className="text-xs text-muted-foreground">Adaptez l&apos;apparence de l&apos;app</p>
           </div>
           <button
             onClick={close}

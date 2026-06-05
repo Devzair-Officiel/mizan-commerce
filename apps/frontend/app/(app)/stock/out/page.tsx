@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, Suspense } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { apiFetch } from '@/lib/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProducts, useProduct, formatStock, type ProductVariant } from '@/lib/hooks/useProducts';
+import { qk } from '@/lib/query-keys';
 
 /**
  * Libellé de l'unité de comptage pour les champs de mouvement de stock.
@@ -50,17 +51,13 @@ function StockOutForm() {
     [productDetail],
   );
 
-  useEffect(() => {
-    if (!variantId && activeVariants.length === 1) {
-      setVariantId(activeVariants[0].id);
-    }
-  }, [activeVariants, variantId]);
-
-  const selectedVariant = activeVariants.find((v) => v.id === variantId) ?? null;
+  const onlyVariant = activeVariants.length === 1 ? activeVariants[0] : null;
+  const effectiveVariantId = variantId || onlyVariant?.id || '';
+  const selectedVariant = activeVariants.find((v) => v.id === effectiveVariantId) ?? null;
   const qtyUnitLabel = selectedVariant ? quantityLabel(selectedVariant) : null;
 
   async function handleSubmit() {
-    if (!variantId)     { setError('Sélectionnez un conditionnement.'); return; }
+    if (!effectiveVariantId) { setError('Sélectionnez un conditionnement.'); return; }
     if (!reason.trim()) { setError('La raison est obligatoire.'); return; }
     const qty = parseFloat(quantity);
     if (!Number.isFinite(qty) || qty <= 0) { setError('Quantité invalide.'); return; }
@@ -68,10 +65,10 @@ function StockOutForm() {
     try {
       await apiFetch('/stock/out/', {
         method: 'POST',
-        body: JSON.stringify({ variant: variantId, quantity: quantity, reason, movement_type: movementType }),
+        body: JSON.stringify({ variant: effectiveVariantId, quantity: quantity, reason, movement_type: movementType }),
       });
-      qc.invalidateQueries({ queryKey: ['products'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: qk.products.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.all });
       router.back();
     } catch {
       setError('Erreur lors de la sortie de stock.');
@@ -102,7 +99,7 @@ function StockOutForm() {
         <FloatingSelect
           id="variant"
           label="Conditionnement *"
-          value={variantId}
+          value={effectiveVariantId}
           onChange={(e) => setVariantId(e.target.value)}
         >
           {activeVariants.length > 1 && <option value="">Sélectionner un conditionnement…</option>}

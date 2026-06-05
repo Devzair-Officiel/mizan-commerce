@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 export interface Me {
   id: string;
@@ -22,7 +23,7 @@ export interface ChangePasswordData {
 
 export function useMe() {
   return useQuery({
-    queryKey: ['me'],
+    queryKey: qk.me.all,
     queryFn: () => apiFetch<Me>('/auth/me/'),
   });
 }
@@ -32,7 +33,7 @@ export function useUpdateMe() {
   return useMutation({
     mutationFn: (data: MeUpdateData) =>
       apiFetch<Me>('/auth/me/', { method: 'PATCH', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.me.all }),
   });
 }
 

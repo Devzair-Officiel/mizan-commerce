@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk, type OrdersListFilters, type OrdersCustomerFilters } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -76,29 +77,23 @@ export interface OrderCreateData {
   amount_paid?: string;
 }
 
-interface OrderFilters {
-  status?: string;
-  payment_status?: string;
-  customer?: string;
-}
-
-export function useOrders(filters: OrderFilters = {}) {
+export function useOrders(filters: OrdersListFilters = {}) {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
   if (filters.payment_status) params.set('payment_status', filters.payment_status);
   if (filters.customer) params.set('customer', filters.customer);
   return useQuery({
-    queryKey: ['orders', filters],
+    queryKey: qk.orders.list(filters),
     queryFn: () => apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${params}`),
   });
 }
 
 export function useCustomerOrdersInfinite(
   customerId: string,
-  filters: { status?: string | null; payment_status?: string | null } = {},
+  filters: OrdersCustomerFilters = {},
 ) {
   return useInfiniteQuery({
-    queryKey: ['orders', 'customer', customerId, filters],
+    queryKey: qk.orders.byCustomer(customerId, filters),
     queryFn: ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
       params.set('customer', customerId);
@@ -117,7 +112,7 @@ export function useCustomerOrdersInfinite(
 
 export function useOrder(id: string) {
   return useQuery({
-    queryKey: ['orders', id],
+    queryKey: qk.orders.detail(id),
     queryFn: () => apiFetch<Order>(`/orders/${id}/`),
     enabled: !!id,
   });
@@ -125,7 +120,7 @@ export function useOrder(id: string) {
 
 export function useOrderActivity(id: string) {
   return useQuery({
-    queryKey: ['orders', id, 'activity'],
+    queryKey: qk.orders.activity(id),
     queryFn: () => apiFetch<{ events: OrderActivityEvent[] }>(`/orders/${id}/activity/`),
     enabled: !!id,
   });
@@ -137,9 +132,9 @@ export function useCreateOrder() {
     mutationFn: (data: OrderCreateData) =>
       apiFetch<Order>('/orders/', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ['orders'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
+      qc.invalidateQueries({ queryKey: qk.orders.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
 }
@@ -150,10 +145,10 @@ export function useTransitionOrder(id: string) {
     mutationFn: (status: string) =>
       apiFetch<Order>(`/orders/${id}/status/`, { method: 'POST', body: JSON.stringify({ status }) }),
     onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ['orders'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
+      qc.invalidateQueries({ queryKey: qk.orders.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.invoices.all });
+      if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
 }
@@ -164,10 +159,10 @@ export function useUpdatePayment(id: string) {
     mutationFn: (amount_paid: string) =>
       apiFetch<Order>(`/orders/${id}/payment/`, { method: 'POST', body: JSON.stringify({ amount_paid }) }),
     onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ['orders'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
+      qc.invalidateQueries({ queryKey: qk.orders.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.invoices.all });
+      if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
 }
@@ -184,8 +179,8 @@ export function useUpdateOrder(id: string) {
     mutationFn: (data: OrderUpdateData) =>
       apiFetch<Order>(`/orders/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ['orders'] });
-      if (order?.customer) qc.invalidateQueries({ queryKey: ['customers', order.customer] });
+      qc.invalidateQueries({ queryKey: qk.orders.all });
+      if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
 }
@@ -195,7 +190,7 @@ export function useAddOrderItem(id: string) {
   return useMutation({
     mutationFn: (data: OrderItemPayload) =>
       apiFetch<OrderItem>(`/orders/${id}/items/`, { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.orders.detail(id) }),
   });
 }
 
@@ -204,7 +199,7 @@ export function useUpdateOrderItem(orderId: string) {
   return useMutation({
     mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
       apiFetch<OrderItem>(`/orders/${orderId}/items/${itemId}/`, { method: 'PATCH', body: JSON.stringify({ quantity }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', orderId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.orders.detail(orderId) }),
   });
 }
 
@@ -213,6 +208,6 @@ export function useRemoveOrderItem(orderId: string) {
   return useMutation({
     mutationFn: (itemId: string) =>
       apiFetch<void>(`/orders/${orderId}/items/${itemId}/`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders', orderId] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.orders.detail(orderId) }),
   });
 }

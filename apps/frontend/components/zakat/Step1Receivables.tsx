@@ -70,7 +70,7 @@ export function Step1Receivables({
 
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium text-foreground">
-          Vos clients vous doivent-ils de l'argent&nbsp;?
+          Vos clients vous doivent-ils de l&apos;argent&nbsp;?
         </p>
         <div className="grid grid-cols-2 gap-2">
           <button

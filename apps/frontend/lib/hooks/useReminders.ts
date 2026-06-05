@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
+import { qk } from '@/lib/query-keys';
 
 interface CreateReminderPayload {
   title: string;
@@ -16,8 +17,8 @@ export function useCreateReminder() {
     mutationFn: (payload: CreateReminderPayload) =>
       apiFetch<{ id: string }>('/reminders/', { method: 'POST', body: JSON.stringify(payload) }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reminders'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries({ queryKey: qk.reminders.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.all });
     },
   });
 }

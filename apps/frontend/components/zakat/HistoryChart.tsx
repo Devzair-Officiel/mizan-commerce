@@ -30,7 +30,9 @@ function buildSeries(calculations: ZakatCalculation[]): ChartDatum[] {
 
 function ChartTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload || payload.length === 0) return null;
-  const datum = payload[0].payload as ChartDatum;
+  const first = payload[0];
+  if (!first) return null;
+  const datum = first.payload as ChartDatum;
   const dateLabel = new Date(datum.date).toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: 'long',

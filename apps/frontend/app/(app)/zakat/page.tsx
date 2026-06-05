@@ -37,7 +37,7 @@ export default function ZakatPage() {
             Estimation indicative
           </p>
           <p className="text-xs text-amber-700">
-            Ce calcul est un outil d'aide à la décision. Consultez un érudit ou un spécialiste pour
+            Ce calcul est un outil d&apos;aide à la décision. Consultez un érudit ou un spécialiste pour
             validation finale.
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function ZakatPage() {
 
         {!isLoading && (finalized?.results ?? []).length === 0 && !draft && (
           <p className="text-sm text-muted-foreground text-center py-6">
-            Aucun calcul finalisé pour l'instant.
+            Aucun calcul finalisé pour l&apos;instant.
           </p>
         )}
 

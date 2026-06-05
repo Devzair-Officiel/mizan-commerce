@@ -51,8 +51,9 @@ const BIS_TER_RE = /(\d+)\s+(bis|ter|quater|quinquies)\b/i;
 
 function stripSuffix(q: string): { cleaned: string; suffix: string | null } {
   const m = q.match(BIS_TER_RE);
-  if (!m) return { cleaned: q, suffix: null };
-  return { cleaned: q.replace(BIS_TER_RE, m[1]), suffix: m[2].toLowerCase() };
+  if (!m || !m[1] || !m[2]) return { cleaned: q, suffix: null };
+  const number = m[1];
+  return { cleaned: q.replace(BIS_TER_RE, number), suffix: m[2].toLowerCase() };
 }
 
 function normalize(f: MapTilerFeature, suffix: string | null): NormalizedFeature {

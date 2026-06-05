@@ -3,18 +3,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.shops.models import ShopMember
+from apps.core.permissions import get_shop
 from apps.products.models import ProductVariant
 from .models import StockMovement
 from .serializers import StockMovementSerializer, StockInSerializer, StockOutSerializer
-
-
-def get_shop(user):
-    membership = ShopMember.objects.filter(user=user).select_related('shop').first()
-    if not membership:
-        from rest_framework.exceptions import PermissionDenied
-        raise PermissionDenied('Aucune boutique associée.')
-    return membership.shop
 
 
 class StockMovementListView(generics.ListAPIView):

@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertCircle, Camera, ChevronDown, FileText, Package, Sparkles, X } from 'lucide-react';
+import { AlertCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
 import { ApiError } from '@/lib/api-client';
@@ -16,6 +16,10 @@ import {
   type ProductUnit,
   type ProductVariantFormData,
 } from '@/lib/hooks/useProducts';
+import { PhotoPicker } from './form/PhotoPicker';
+import { FieldError, SectionHeading } from './form/FieldError';
+import { TypeHero } from './form/TypeHero';
+import { CollapsibleSection } from './form/CollapsibleSection';
 
 const UNIT_OPTIONS: { value: ProductUnit; label: string }[] = [
   { value: 'piece', label: 'Pièce' },
@@ -26,7 +30,6 @@ const UNIT_OPTIONS: { value: ProductUnit; label: string }[] = [
   { value: 'm',     label: 'Mètre (m)' },
 ];
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 const DESCRIPTION_MAX = 1000;
 
 const schema = z.object({
@@ -34,7 +37,6 @@ const schema = z.object({
   reference: z.string().optional(),
   description: z.string().max(DESCRIPTION_MAX, `${DESCRIPTION_MAX} caractères maximum`).optional(),
   purchase_price: z.string().optional(),
-  // En édition, le prix est sur la variante : non requis ici.
   selling_price: z.string().optional(),
   unit: z.enum(['piece', 'g', 'kg', 'mL', 'L', 'm']).optional(),
   low_stock_threshold: z.string().optional(),
@@ -50,14 +52,12 @@ export interface ProductFormExtras {
 
 export interface ProductFormSubmission {
   product: ProductFormData;
-  /** Données de la variante par défaut — null en édition (les variantes se gèrent ailleurs). */
   variant: ProductVariantFormData | null;
 }
 
 interface ProductFormProps {
   type: ProductType;
   defaultValues?: Partial<ProductDetail>;
-  /** Mode édition : unit déjà figé, on ne ré-affiche pas photo / stock initial. */
   isEditing?: boolean;
   onSubmit: (submission: ProductFormSubmission, extras: ProductFormExtras) => Promise<void>;
   isSubmitting: boolean;
@@ -68,7 +68,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
 
   const firstVariant = defaultValues?.variants?.[0];
 
-  const { register, handleSubmit, control, watch, setError, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: defaultValues?.name ?? '',
@@ -90,14 +90,13 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
   const [apiError, setApiError] = useState<string | null>(null);
   const apiErrorRef = useRef<HTMLDivElement>(null);
 
-  const nameValue = watch('name');
-  const sellingPriceValue = watch('selling_price') ?? '';
-  const descriptionValue = watch('description') ?? '';
-  const unitValue: ProductUnit = watch('unit') ?? 'piece';
-  const unitShort = UNIT_LABELS[unitValue]; // "pièce", "kg", "g", "mL", "L", "m"
+  const nameValue = useWatch({ control, name: 'name' }) ?? '';
+  const sellingPriceValue = useWatch({ control, name: 'selling_price' }) ?? '';
+  const descriptionValue = useWatch({ control, name: 'description' }) ?? '';
+  const unitValue: ProductUnit = useWatch({ control, name: 'unit' }) ?? 'piece';
+  const unitShort = UNIT_LABELS[unitValue];
   const stockUnitLabel = unitValue === 'piece' ? 'pièces' : unitShort;
   const priceSuffix = `€/${unitShort}`;
-  // En édition, on n'a plus besoin du prix dans la validation : il vit sur la variante.
   const canSubmit = nameValue.trim().length > 0
     && (isEditing || sellingPriceValue.trim().length > 0)
     && !isSubmitting;
@@ -159,7 +158,6 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
       onSubmit={handleSubmit(handleValid)}
       className="flex flex-col gap-4 p-4 pb-32 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6 lg:pb-8"
     >
-      {/* Bandeau d'erreur API */}
       {apiError && (
         <div
           ref={apiErrorRef}
@@ -171,10 +169,8 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </div>
       )}
 
-      {/* Hero : type indicator */}
       <TypeHero type={type} />
 
-      {/* Photo — uniquement à la création */}
       {!isEditing && (
         <section className="flex flex-col gap-2.5">
           <SectionHeading>Photo</SectionHeading>
@@ -189,7 +185,6 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </section>
       )}
 
-      {/* Identité */}
       <section className="flex flex-col gap-2.5">
         <SectionHeading>Identité</SectionHeading>
         <div className="flex flex-col gap-0.5">
@@ -207,8 +202,6 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         )}
       </section>
 
-      {/* Unité de vente — produits uniquement, création seulement.
-          Placée AVANT le prix pour ancrer le référentiel ("le prix de quoi ?"). */}
       {isProduct && !isEditing && (
         <section className="flex flex-col gap-2.5">
           <SectionHeading>Unité de vente</SectionHeading>
@@ -234,45 +227,42 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </section>
       )}
 
-      {/* Prix — création seulement (en édition : passer par les conditionnements).
-          Champs en pleine largeur : labels + suffixes ne tiennent pas en 2 colonnes sur mobile. */}
       {!isEditing && (
-      <section className="flex flex-col gap-2.5">
-        <SectionHeading>Prix</SectionHeading>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-0.5">
+        <section className="flex flex-col gap-2.5">
+          <SectionHeading>Prix</SectionHeading>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-0.5">
+              <FloatingInput
+                id="selling_price"
+                label="Prix de vente"
+                required
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                suffix={isProduct ? priceSuffix : '€'}
+                aria-invalid={errors.selling_price ? 'true' : 'false'}
+                {...register('selling_price')}
+              />
+              <FieldError message={errors.selling_price?.message} />
+            </div>
             <FloatingInput
-              id="selling_price"
-              label="Prix de vente"
-              required
+              id="purchase_price"
+              label="Prix d'achat (optionnel)"
               type="number"
               step="0.01"
               min="0"
               inputMode="decimal"
               suffix={isProduct ? priceSuffix : '€'}
-              aria-invalid={errors.selling_price ? 'true' : 'false'}
-              {...register('selling_price')}
+              {...register('purchase_price')}
             />
-            <FieldError message={errors.selling_price?.message} />
           </div>
-          <FloatingInput
-            id="purchase_price"
-            label="Prix d'achat (optionnel)"
-            type="number"
-            step="0.01"
-            min="0"
-            inputMode="decimal"
-            suffix={isProduct ? priceSuffix : '€'}
-            {...register('purchase_price')}
-          />
-        </div>
-        {isProduct && (
-          <p className="text-[11px] text-muted-foreground px-1">Le prix d&apos;achat sert au calcul de marge et à la zakât. Laissez vide s&apos;il varie.</p>
-        )}
-      </section>
+          {isProduct && (
+            <p className="text-[11px] text-muted-foreground px-1">Le prix d&apos;achat sert au calcul de marge et à la zakât. Laissez vide s&apos;il varie.</p>
+          )}
+        </section>
       )}
 
-      {/* Stock — produits uniquement, création seulement */}
       {isProduct && !isEditing && (
         <section className="flex flex-col gap-2.5">
           <SectionHeading>Stock</SectionHeading>
@@ -307,7 +297,6 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </section>
       )}
 
-      {/* Description — collapsible */}
       <CollapsibleSection
         title="Description"
         icon={<FileText size={15} />}
@@ -337,7 +326,6 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </div>
       </CollapsibleSection>
 
-      {/* Sticky submit */}
       <div className="sticky bottom-24 lg:bottom-2 -mx-4 lg:mx-0 px-4 lg:px-0 mt-2">
         <Button
           type="submit"
@@ -348,169 +336,5 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </Button>
       </div>
     </form>
-  );
-}
-
-function PhotoPicker({
-  file,
-  error,
-  onChange,
-}: {
-  file: File | null;
-  error: string | null;
-  onChange: (file: File | null, error: string | null) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-
-  function handleFiles(files: FileList | null) {
-    const next = files?.[0] ?? null;
-    if (!next) {
-      onChange(null, null);
-      return;
-    }
-    if (!next.type.startsWith('image/')) {
-      onChange(null, 'Format non supporté : choisissez une image.');
-      return;
-    }
-    if (next.size > MAX_IMAGE_SIZE) {
-      onChange(null, 'Image trop lourde (5 Mo max).');
-      return;
-    }
-    onChange(next, null);
-  }
-
-  function clear(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (inputRef.current) inputRef.current.value = '';
-    onChange(null, null);
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-2 pr-4 active:scale-[0.99] transition-transform text-left"
-      >
-        <span className="relative flex h-16 w-16 items-center justify-center rounded-xl bg-muted/40 overflow-hidden shrink-0">
-          {previewUrl ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewUrl} alt="Aperçu" className="h-full w-full object-cover" />
-              <span
-                onClick={clear}
-                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background border border-border shadow"
-                aria-label="Retirer la photo"
-              >
-                <X size={11} className="text-foreground" />
-              </span>
-            </>
-          ) : (
-            <Camera size={18} className="text-muted-foreground" />
-          )}
-        </span>
-        <span className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-sm font-medium text-foreground truncate">
-            {previewUrl ? 'Photo sélectionnée' : 'Ajouter une photo'}
-          </span>
-          {error
-            ? <span className="flex items-center gap-1 text-[11px] text-destructive"><AlertCircle size={11} /> {error}</span>
-            : <span className="text-[11px] text-muted-foreground">JPEG, PNG ou WebP — 5 Mo max</span>}
-        </span>
-      </button>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
-      />
-    </div>
-  );
-}
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p className="flex items-center gap-1 text-[11px] text-destructive px-1">
-      <AlertCircle size={11} className="shrink-0" />
-      {message}
-    </p>
-  );
-}
-
-function TypeHero({ type }: { type: ProductType }) {
-  const isProduct = type === 'product';
-  const Icon = isProduct ? Package : Sparkles;
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-        <Icon size={20} className="text-primary" />
-      </div>
-      <div className="flex flex-col">
-        <p className="text-sm font-semibold text-foreground">
-          {isProduct ? 'Produit physique' : 'Service'}
-        </p>
-        <p className="text-[11px] text-muted-foreground">
-          {isProduct
-            ? 'Stock suivi, unité de vente à définir.'
-            : 'Pas de stock — un prix et une description suffisent.'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
-      {children}
-    </h2>
-  );
-}
-
-function CollapsibleSection({
-  title,
-  icon,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-2.5">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex items-center justify-between px-1 py-1 active:scale-[0.99] transition-transform"
-      >
-        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <span className="text-muted-foreground/70">{icon}</span>
-          {title}
-        </span>
-        <ChevronDown
-          size={16}
-          className={`text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {open && <div className="flex flex-col gap-3">{children}</div>}
-    </section>
   );
 }
