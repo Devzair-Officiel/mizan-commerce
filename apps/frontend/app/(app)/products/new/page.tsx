@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ProductForm, type ProductFormExtras, type ProductFormSubmission } from '@/components/products/ProductForm';
 import { apiFetch } from '@/lib/api-client';
@@ -17,6 +18,8 @@ function NewProductForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qc = useQueryClient();
+  const tForm = useTranslations('articles.form');
+  const tDetail = useTranslations('articles.detail');
   const rawType = searchParams.get('type');
   const type: ProductType = rawType === 'service' ? 'service' : 'product';
 
@@ -28,7 +31,7 @@ function NewProductForm() {
 
     setIsProcessing(true);
     try {
-      if (!submission.variant) throw new Error('Variant par défaut manquant.');
+      if (!submission.variant) throw new Error(tDetail('no_default_variant'));
       const defaultVariant = await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
         method: 'POST',
         body: JSON.stringify(submission.variant),
@@ -48,7 +51,7 @@ function NewProductForm() {
           body: JSON.stringify({
             variant: defaultVariant.id,
             quantity: extras.initialStock,
-            reason: 'Stock initial',
+            reason: tDetail('initial_stock_reason'),
           }),
         });
       }
@@ -62,7 +65,7 @@ function NewProductForm() {
 
   return (
     <>
-      <TopBar title={type === 'service' ? 'Nouveau service' : 'Nouveau produit'} />
+      <TopBar title={type === 'service' ? tForm('topbar_new_service') : tForm('topbar_new_product')} />
       <ProductForm
         type={type}
         onSubmit={handleSubmit}

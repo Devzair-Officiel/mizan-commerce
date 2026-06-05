@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -11,22 +12,19 @@ import { useCreateProduct, type ProductDetail, type ProductType, type ProductVar
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 
-function AddButton({ onClick }: { onClick: () => void }) {
+function AddButton({ onClick, ariaLabel }: { onClick: () => void; ariaLabel: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="flex items-center justify-center w-11 h-11 rounded-2xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0 self-stretch"
-      aria-label="Ajouter"
+      aria-label={ariaLabel}
     >
       <Plus size={18} />
     </button>
   );
 }
 
-/* ─────────────────────────────────
-   Quick add — Client
-───────────────────────────────── */
 export function QuickAddCustomer({
   onCreated,
   open: controlledOpen,
@@ -38,6 +36,7 @@ export function QuickAddCustomer({
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
 }) {
+  const t = useTranslations('orders.quickAdd');
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const setOpen = controlledOnOpenChange ?? setInternalOpen;
@@ -54,12 +53,10 @@ export function QuickAddCustomer({
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
-    if (!name.trim()) { setError('Le nom est requis.'); return; }
+    if (!name.trim()) { setError(t('customer_required')); return; }
     try {
       const customer = await mutateAsync({ name: name.trim() });
       qc.setQueriesData({ queryKey: qk.customers.all }, (old: unknown) => {
-        // Le préfixe `['customers']` matche aussi les détails (`['customers', id]`)
-        // et les activités (infinite). On ne met à jour que les listes paginées.
         if (!old || typeof old !== 'object') return old;
         const paged = old as { results?: Customer[] };
         if (!Array.isArray(paged.results)) return old;
@@ -71,22 +68,22 @@ export function QuickAddCustomer({
     } catch (err) {
       if (err instanceof ApiError && typeof err.data === 'object' && err.data !== null) {
         const data = err.data as Record<string, string[]>;
-        setError(data.name?.[0] ?? 'Erreur lors de la création.');
+        setError(data.name?.[0] ?? t('customer_error'));
       } else {
-        setError('Erreur lors de la création.');
+        setError(t('customer_error'));
       }
     }
   }
 
   return (
     <>
-      {!hideTrigger && <AddButton onClick={() => setOpen(true)} />}
-      <BottomSheet open={open} onClose={handleClose} title="Nouveau client">
+      {!hideTrigger && <AddButton onClick={() => setOpen(true)} ariaLabel={t('trigger_aria')} />}
+      <BottomSheet open={open} onClose={handleClose} title={t('customer_title')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-0.5">
             <FloatingInput
               id="qc-name"
-              label="Nom du client *"
+              label={t('customer_label')}
               value={name}
               onChange={(e) => { setName(e.target.value); setError(''); }}
               autoFocus
@@ -94,7 +91,7 @@ export function QuickAddCustomer({
             {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
           </div>
           <Button type="submit" disabled={isPending} className="w-full rounded-full">
-            {isPending ? 'Création…' : 'Créer le client'}
+            {isPending ? t('customer_creating') : t('customer_submit')}
           </Button>
         </form>
       </BottomSheet>
@@ -102,9 +99,6 @@ export function QuickAddCustomer({
   );
 }
 
-/* ─────────────────────────────────
-   Quick add — Article ou service
-───────────────────────────────── */
 export function QuickAddProduct({
   onCreated,
   open: controlledOpen,
@@ -116,6 +110,7 @@ export function QuickAddProduct({
   onOpenChange?: (open: boolean) => void;
   hideTrigger?: boolean;
 }) {
+  const t = useTranslations('orders.quickAdd');
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const setOpen = controlledOnOpenChange ?? setInternalOpen;
@@ -137,15 +132,14 @@ export function QuickAddProduct({
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const errs: { name?: string; price?: string } = {};
-    if (!name.trim()) errs.name = 'Le nom est requis.';
-    if (!price || isNaN(parseFloat(price))) errs.price = 'Le prix de vente est requis.';
+    if (!name.trim()) errs.name = t('name_required');
+    if (!price || isNaN(parseFloat(price))) errs.price = t('price_required');
     if (Object.keys(errs).length) { setErrors(errs); return; }
     try {
       const product = await mutateAsync({
         name: name.trim(),
         type,
       });
-      // Crée la variante "Par défaut" qui porte le prix.
       await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
         method: 'POST',
         body: JSON.stringify({
@@ -155,9 +149,7 @@ export function QuickAddProduct({
           selling_price: price,
         }),
       });
-      // On invalide pour refetch avec les agrégats variantes.
       qc.invalidateQueries({ queryKey: qk.products.all });
-      // Recharge le détail pour récupérer la variante créée.
       const refreshed = await apiFetch<ProductDetail>(`/products/${product.id}/`);
       onCreated(refreshed);
       handleClose();
@@ -169,29 +161,29 @@ export function QuickAddProduct({
           price: data.selling_price?.[0],
         });
       } else {
-        setErrors({ name: 'Erreur lors de la création.' });
+        setErrors({ name: t('error') });
       }
     }
   }
 
-  const priceLabel = type === 'service' ? 'Prix de la prestation *' : 'Prix de vente *';
+  const priceLabel = type === 'service' ? t('price_service') : t('price_label');
 
   return (
     <>
-      {!hideTrigger && <AddButton onClick={() => setOpen(true)} />}
-      <BottomSheet open={open} onClose={handleClose} title="Nouvel article ou service">
+      {!hideTrigger && <AddButton onClick={() => setOpen(true)} ariaLabel={t('trigger_aria')} />}
+      <BottomSheet open={open} onClose={handleClose} title={t('product_title')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground px-1">Type</span>
+            <span className="text-xs font-medium text-muted-foreground px-1">{t('type_label')}</span>
             <div className="flex gap-2">
-              <TypeChip active={type === 'product'} onClick={() => setType('product')} label="Produit" />
-              <TypeChip active={type === 'service'} onClick={() => setType('service')} label="Service" />
+              <TypeChip active={type === 'product'} onClick={() => setType('product')} label={t('type_product')} />
+              <TypeChip active={type === 'service'} onClick={() => setType('service')} label={t('type_service')} />
             </div>
           </div>
           <div className="flex flex-col gap-0.5">
             <FloatingInput
               id="qp-name"
-              label="Nom de l'article ou service *"
+              label={t('name_label')}
               value={name}
               onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
               autoFocus
@@ -211,7 +203,7 @@ export function QuickAddProduct({
             {errors.price && <p className="text-[11px] text-destructive px-1">{errors.price}</p>}
           </div>
           <Button type="submit" disabled={isPending} className="w-full rounded-full">
-            {isPending ? 'Création…' : 'Créer et ajouter'}
+            {isPending ? t('submitting') : t('submit')}
           </Button>
         </form>
       </BottomSheet>

@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { AlertCircle, ChevronRight } from 'lucide-react';
 
 interface AlertBannerProps {
@@ -7,6 +10,7 @@ interface AlertBannerProps {
 }
 
 export function AlertBanner({ count, active, onToggle }: AlertBannerProps) {
+  const t = useTranslations('orders.alert');
   return (
     <button
       type="button"
@@ -23,10 +27,10 @@ export function AlertBanner({ count, active, onToggle }: AlertBannerProps) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-foreground">
-          {count} commande{count > 1 ? 's' : ''} {count > 1 ? 'nécessitent' : 'nécessite'} ton attention
+          {t('banner_title', { count })}
         </p>
         <p className="text-xs text-muted-foreground">
-          {active ? 'Filtre actif · clique pour tout voir' : 'Clique pour les afficher seules'}
+          {active ? t('banner_active') : t('banner_idle')}
         </p>
       </div>
       <ChevronRight size={16} className="text-muted-foreground shrink-0" />

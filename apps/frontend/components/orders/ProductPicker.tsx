@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronRight, Plus } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useProducts, type Product } from '@/lib/hooks/useProducts';
@@ -20,6 +21,7 @@ type View = 'pick' | 'free';
 type Stage = 'list' | 'variants';
 
 export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPickerProps) {
+  const t = useTranslations('orders.picker');
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>('pick');
   const [stage, setStage] = useState<Stage>('list');
@@ -56,10 +58,10 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
   }
 
   const title = view === 'free'
-    ? 'Ligne libre'
+    ? t('free_sheet_title')
     : stage === 'variants'
-      ? 'Choisir un conditionnement'
-      : 'Ajouter un article ou service';
+      ? t('variant_sheet_title')
+      : t('product_sheet_title');
 
   return (
     <>
@@ -73,8 +75,8 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
           <Plus size={18} />
         </div>
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-foreground">Ajouter un article ou service</span>
-          <span className="text-xs text-muted-foreground">Catalogue ou ligne libre</span>
+          <span className="text-sm font-semibold text-foreground">{t('product_trigger_title')}</span>
+          <span className="text-xs text-muted-foreground">{t('product_trigger_sub')}</span>
         </div>
         <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
       </button>

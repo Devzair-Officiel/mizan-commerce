@@ -2,7 +2,7 @@ import {
   ArrowRight, CreditCard, FileEdit, Flag, ListChecks, PackageCheck,
   StickyNote, Truck, XCircle,
 } from 'lucide-react';
-import type { Order, OrderActivityEvent } from '@/lib/hooks/useOrders';
+import type { OrderActivityEvent } from '@/lib/hooks/useOrders';
 
 export interface StatusConfig { icon: React.ReactNode; badge: string }
 
@@ -31,10 +31,10 @@ export const PAYMENT_PILL: Record<string, string> = {
   paid:    'bg-green-50 text-green-700 border border-green-100',
 };
 
+export type NextStepKey = 'draft' | 'to_prepare' | 'prepared';
+
 export interface NextStep {
-  title: string;
-  subtitle: string;
-  cta: string;
+  key: NextStepKey;
   next: string;
   icon: React.ReactNode;
   accent: string;
@@ -43,27 +43,21 @@ export interface NextStep {
 
 export const NEXT_STEP: Record<string, NextStep | null> = {
   draft: {
-    title: 'Confirmer la commande',
-    subtitle: 'Verrouille le stock et passe en préparation.',
-    cta: 'Confirmer la commande',
+    key: 'draft',
     next: 'to_prepare',
     icon: <ListChecks size={18} />,
     accent: 'bg-blue-50 text-blue-700 border border-blue-100',
     btnClass: 'bg-blue-600 hover:bg-blue-700 text-white',
   },
   to_prepare: {
-    title: 'Marquer comme prête',
-    subtitle: 'Quand les articles sont prêts à être expédiés.',
-    cta: 'Marquer prête',
+    key: 'to_prepare',
     next: 'prepared',
     icon: <PackageCheck size={18} />,
     accent: 'bg-amber-50 text-amber-700 border border-amber-100',
     btnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
   },
   prepared: {
-    title: 'Marquer comme expédiée',
-    subtitle: 'Quand la commande quitte la boutique.',
-    cta: 'Marquer expédiée',
+    key: 'prepared',
     next: 'shipped',
     icon: <Truck size={18} />,
     accent: 'bg-green-50 text-green-700 border border-green-100',
@@ -73,124 +67,52 @@ export const NEXT_STEP: Record<string, NextStep | null> = {
   cancelled: null,
 };
 
-export const REVERT_TRANSITION: Record<string, { status: string; label: string }> = {
-  to_prepare: { status: 'draft',      label: 'Revenir en brouillon' },
-  prepared:   { status: 'to_prepare', label: 'Revenir à « À préparer »' },
-  shipped:    { status: 'prepared',   label: 'Revenir à « Prête »' },
-  cancelled:  { status: 'draft',      label: 'Rouvrir en brouillon' },
+export type RevertKey = 'to_prepare' | 'prepared' | 'shipped' | 'cancelled';
+
+export const REVERT_TRANSITION: Record<string, { status: string; key: RevertKey }> = {
+  to_prepare: { status: 'draft',      key: 'to_prepare' },
+  prepared:   { status: 'to_prepare', key: 'prepared' },
+  shipped:    { status: 'prepared',   key: 'shipped' },
+  cancelled:  { status: 'draft',      key: 'cancelled' },
 };
 
 export const STATUS_ALLOWS_CANCEL = new Set(['draft', 'to_prepare', 'prepared']);
 
-export const STATUS_LABEL: Record<string, string> = {
-  draft: 'Brouillon',
-  to_prepare: 'À préparer',
-  prepared: 'Prête',
-  shipped: 'Expédiée',
-  cancelled: 'Annulée',
-};
-
-export const PAYMENT_LABEL: Record<string, string> = {
-  unpaid: 'Non payé',
-  partial: 'Partiel',
-  paid: 'Payé',
-};
-
-const WA_STATUS_MSG: Record<string, string> = {
-  draft:      'Votre commande est bien enregistrée.',
-  to_prepare: 'Votre commande est en cours de préparation.',
-  prepared:   'Votre commande est prête.',
-  shipped:    'Votre commande a été expédiée.',
-  cancelled:  'Votre commande a été annulée.',
-};
-
-export const DATE_FMT = new Intl.DateTimeFormat('fr-FR', {
-  day: 'numeric', month: 'short', year: 'numeric',
-});
-export const REL_FMT = new Intl.RelativeTimeFormat('fr-FR', { numeric: 'auto' });
-export const FULL_FMT = new Intl.DateTimeFormat('fr-FR', {
-  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-});
-
-export function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const sec = Math.round(diffMs / 1000);
-  if (sec < 60) return "à l'instant";
-  const min = Math.round(sec / 60);
-  if (min < 60) return REL_FMT.format(-min, 'minute');
-  const hr = Math.round(min / 60);
-  if (hr < 24) return REL_FMT.format(-hr, 'hour');
-  const day = Math.round(hr / 24);
-  if (day < 7) return REL_FMT.format(-day, 'day');
-  if (day < 30) return REL_FMT.format(-Math.round(day / 7), 'week');
-  if (day < 365) return REL_FMT.format(-Math.round(day / 30), 'month');
-  return REL_FMT.format(-Math.round(day / 365), 'year');
-}
-
-export function buildWhatsAppMessage(order: Order): string {
-  const firstName = (order.customer_name ?? '').trim().split(/\s+/)[0] ?? '';
-  const total = parseFloat(order.total_amount);
-  const paid = parseFloat(order.amount_paid);
-  const remaining = Math.max(0, total - paid);
-  const date = DATE_FMT.format(new Date(order.created_at));
-
-  const paymentLine =
-    order.payment_status === 'paid'
-      ? 'Paiement : réglé. Merci !'
-      : order.payment_status === 'partial'
-        ? `Acompte versé : ${paid.toFixed(2)} € — Reste à régler : ${remaining.toFixed(2)} €`
-        : `Paiement : à régler (${total.toFixed(2)} €)`;
-
-  return [
-    firstName ? `Bonjour ${firstName},` : 'Bonjour,',
-    '',
-    WA_STATUS_MSG[order.status] ?? 'Mise à jour de votre commande.',
-    '',
-    `Commande n°${order.order_number} du ${date}`,
-    `Total : ${total.toFixed(2)} €`,
-    paymentLine,
-    '',
-    'À bientôt.',
-  ].join('\n');
-}
-
-export interface EventDisplay {
+export type ActivityEventDisplay = {
   icon: React.ReactNode;
   iconBg: string;
-  title: string;
+  titleKey: 'event_created' | 'event_status' | 'event_payment' | 'event_note';
+  titleParams?: { from?: string; to?: string };
   body?: string;
-}
+};
 
-export function describeEvent(event: OrderActivityEvent): EventDisplay {
+export function describeEvent(event: OrderActivityEvent): ActivityEventDisplay {
   switch (event.type) {
     case 'created':
       return {
         icon: <Flag size={14} />,
         iconBg: 'bg-zinc-100 text-zinc-600',
-        title: 'Commande créée',
+        titleKey: 'event_created',
         body: event.data.order_number ? `#${event.data.order_number}` : undefined,
       };
-    case 'status_change': {
-      const from = event.data.from ? (STATUS_LABEL[event.data.from] ?? event.data.from) : '';
-      const to = event.data.to ? (STATUS_LABEL[event.data.to] ?? event.data.to) : '';
+    case 'status_change':
       return {
         icon: <ArrowRight size={14} />,
         iconBg: 'bg-blue-50 text-blue-600',
-        title: `Statut : ${from} → ${to}`,
+        titleKey: 'event_status',
+        titleParams: { from: event.data.from ?? '', to: event.data.to ?? '' },
       };
-    }
     case 'payment_change': {
-      const from = event.data.from ? (PAYMENT_LABEL[event.data.from] ?? event.data.from) : '';
-      const to = event.data.to ? (PAYMENT_LABEL[event.data.to] ?? event.data.to) : '';
       const before = event.data.amount_paid_before;
       const after = event.data.amount_paid_after;
       const amountStr = before !== undefined && after !== undefined
-        ? `${parseFloat(before ?? '0').toFixed(2)} € → ${parseFloat(after ?? '0').toFixed(2)} €`
+        ? `${parseFloat(before ?? '0').toFixed(2)} → ${parseFloat(after ?? '0').toFixed(2)}`
         : undefined;
       return {
         icon: <CreditCard size={14} />,
         iconBg: 'bg-green-50 text-green-600',
-        title: `Paiement : ${from} → ${to}`,
+        titleKey: 'event_payment',
+        titleParams: { from: event.data.from ?? '', to: event.data.to ?? '' },
         body: amountStr,
       };
     }
@@ -198,7 +120,7 @@ export function describeEvent(event: OrderActivityEvent): EventDisplay {
       return {
         icon: <StickyNote size={14} />,
         iconBg: 'bg-amber-50 text-amber-600',
-        title: 'Note ajoutée',
+        titleKey: 'event_note',
         body: typeof event.data.content === 'string' ? event.data.content : undefined,
       };
   }

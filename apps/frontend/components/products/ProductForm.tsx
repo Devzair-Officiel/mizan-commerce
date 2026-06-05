@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
@@ -16,34 +17,22 @@ import {
   type ProductUnit,
   type ProductVariantFormData,
 } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 import { PhotoPicker } from './form/PhotoPicker';
 import { FieldError, SectionHeading } from './form/FieldError';
 import { TypeHero } from './form/TypeHero';
 import { CollapsibleSection } from './form/CollapsibleSection';
 
-const UNIT_OPTIONS: { value: ProductUnit; label: string }[] = [
-  { value: 'piece', label: 'Pièce' },
-  { value: 'g',     label: 'Gramme (g)' },
-  { value: 'kg',    label: 'Kilogramme (kg)' },
-  { value: 'mL',    label: 'Millilitre (mL)' },
-  { value: 'L',     label: 'Litre (L)' },
-  { value: 'm',     label: 'Mètre (m)' },
+const UNIT_KEYS: { value: ProductUnit; tKey: 'piece' | 'gram' | 'kilogram' | 'milliliter' | 'liter' | 'meter' }[] = [
+  { value: 'piece', tKey: 'piece' },
+  { value: 'g',     tKey: 'gram' },
+  { value: 'kg',    tKey: 'kilogram' },
+  { value: 'mL',    tKey: 'milliliter' },
+  { value: 'L',     tKey: 'liter' },
+  { value: 'm',     tKey: 'meter' },
 ];
 
 const DESCRIPTION_MAX = 1000;
-
-const schema = z.object({
-  name: z.string().min(1, 'Nom requis'),
-  reference: z.string().optional(),
-  description: z.string().max(DESCRIPTION_MAX, `${DESCRIPTION_MAX} caractères maximum`).optional(),
-  purchase_price: z.string().optional(),
-  selling_price: z.string().optional(),
-  unit: z.enum(['piece', 'g', 'kg', 'mL', 'L', 'm']).optional(),
-  low_stock_threshold: z.string().optional(),
-  initial_stock: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 export interface ProductFormExtras {
   image?: File | null;
@@ -64,9 +53,26 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, isSubmitting }: ProductFormProps) {
+  const t = useTranslations('articles.form');
+  const tUnits = useTranslations('articles.units');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const currencySymbol = currency === 'EUR' ? '€' : currency;
   const isProduct = type === 'product';
 
   const firstVariant = defaultValues?.variants?.[0];
+
+  const schema = useMemo(() => z.object({
+    name: z.string().min(1, t('name_required')),
+    reference: z.string().optional(),
+    description: z.string().max(DESCRIPTION_MAX, t('description_max', { max: DESCRIPTION_MAX })).optional(),
+    purchase_price: z.string().optional(),
+    selling_price: z.string().optional(),
+    unit: z.enum(['piece', 'g', 'kg', 'mL', 'L', 'm']).optional(),
+    low_stock_threshold: z.string().optional(),
+    initial_stock: z.string().optional(),
+  }), [t]);
+  type FormValues = z.infer<typeof schema>;
 
   const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -95,8 +101,8 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
   const descriptionValue = useWatch({ control, name: 'description' }) ?? '';
   const unitValue: ProductUnit = useWatch({ control, name: 'unit' }) ?? 'piece';
   const unitShort = UNIT_LABELS[unitValue];
-  const stockUnitLabel = unitValue === 'piece' ? 'pièces' : unitShort;
-  const priceSuffix = `€/${unitShort}`;
+  const stockUnitLabel = unitShort;
+  const priceSuffix = `${currencySymbol}/${unitShort}`;
   const canSubmit = nameValue.trim().length > 0
     && (isEditing || sellingPriceValue.trim().length > 0)
     && !isSubmitting;
@@ -146,10 +152,10 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
           data.low_stock_threshold?.[0] ??
           data.unit?.[0] ??
           (typeof data.detail === 'string' ? data.detail : null);
-        setApiError(generic ?? 'Une erreur est survenue. Vérifiez les champs et réessayez.');
+        setApiError(generic ?? t('generic_error'));
         return;
       }
-      setApiError('Impossible de joindre le serveur. Réessayez dans un instant.');
+      setApiError(t('network_error'));
     }
   }
 
@@ -173,7 +179,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
 
       {!isEditing && (
         <section className="flex flex-col gap-2.5">
-          <SectionHeading>Photo</SectionHeading>
+          <SectionHeading>{t('section_photo')}</SectionHeading>
           <PhotoPicker
             file={image}
             error={imageError}
@@ -186,11 +192,11 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
       )}
 
       <section className="flex flex-col gap-2.5">
-        <SectionHeading>Identité</SectionHeading>
+        <SectionHeading>{t('section_identity')}</SectionHeading>
         <div className="flex flex-col gap-0.5">
           <FloatingInput
             id="name"
-            label={isProduct ? 'Nom du produit' : 'Nom du service'}
+            label={isProduct ? t('name_label_product') : t('name_label_service')}
             required
             aria-invalid={errors.name ? 'true' : 'false'}
             {...register('name')}
@@ -198,49 +204,49 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
           <FieldError message={errors.name?.message} />
         </div>
         {!isEditing && (
-          <FloatingInput id="reference" label="Référence / SKU (optionnel)" {...register('reference')} />
+          <FloatingInput id="reference" label={t('sku_label')} {...register('reference')} />
         )}
       </section>
 
       {isProduct && !isEditing && (
         <section className="flex flex-col gap-2.5">
-          <SectionHeading>Unité de vente</SectionHeading>
+          <SectionHeading>{t('section_unit')}</SectionHeading>
           <Controller
             name="unit"
             control={control}
             render={({ field }) => (
               <FloatingSelect
                 id="unit"
-                label="Comment vendez-vous ce produit ?"
+                label={t('unit_select_label')}
                 value={field.value ?? 'piece'}
                 onChange={(e) => field.onChange(e.target.value)}
               >
-                {UNIT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                {UNIT_KEYS.map((o) => (
+                  <option key={o.value} value={o.value}>{tUnits(o.tKey)}</option>
                 ))}
               </FloatingSelect>
             )}
           />
           <p className="text-[11px] text-muted-foreground px-1">
-            Définitif après création — tous les prix et stocks s&apos;exprimeront dans cette unité.
+            {t('unit_helper')}
           </p>
         </section>
       )}
 
       {!isEditing && (
         <section className="flex flex-col gap-2.5">
-          <SectionHeading>Prix</SectionHeading>
+          <SectionHeading>{t('section_price')}</SectionHeading>
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-0.5">
               <FloatingInput
                 id="selling_price"
-                label="Prix de vente"
+                label={t('sale_price')}
                 required
                 type="number"
                 step="0.01"
                 min="0"
                 inputMode="decimal"
-                suffix={isProduct ? priceSuffix : '€'}
+                suffix={isProduct ? priceSuffix : currencySymbol}
                 aria-invalid={errors.selling_price ? 'true' : 'false'}
                 {...register('selling_price')}
               />
@@ -248,29 +254,29 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
             </div>
             <FloatingInput
               id="purchase_price"
-              label="Prix d'achat (optionnel)"
+              label={t('purchase_price')}
               type="number"
               step="0.01"
               min="0"
               inputMode="decimal"
-              suffix={isProduct ? priceSuffix : '€'}
+              suffix={isProduct ? priceSuffix : currencySymbol}
               {...register('purchase_price')}
             />
           </div>
           {isProduct && (
-            <p className="text-[11px] text-muted-foreground px-1">Le prix d&apos;achat sert au calcul de marge et à la zakât. Laissez vide s&apos;il varie.</p>
+            <p className="text-[11px] text-muted-foreground px-1">{t('purchase_helper')}</p>
           )}
         </section>
       )}
 
       {isProduct && !isEditing && (
         <section className="flex flex-col gap-2.5">
-          <SectionHeading>Stock</SectionHeading>
+          <SectionHeading>{t('section_stock')}</SectionHeading>
 
           <div className="flex flex-col gap-0.5">
             <FloatingInput
               id="initial_stock"
-              label="Stock initial (optionnel)"
+              label={t('initial_stock')}
               type="number"
               step="any"
               min="0"
@@ -278,13 +284,13 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
               suffix={stockUnitLabel}
               {...register('initial_stock')}
             />
-            <p className="text-[11px] text-muted-foreground px-1">Enregistre une entrée stock « Stock initial » à la création.</p>
+            <p className="text-[11px] text-muted-foreground px-1">{t('initial_stock_helper')}</p>
           </div>
 
           <div className="flex flex-col gap-0.5">
             <FloatingInput
               id="low_stock_threshold"
-              label="Seuil d'alerte (optionnel)"
+              label={t('alert_threshold')}
               type="number"
               step="any"
               min="0"
@@ -292,13 +298,13 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
               suffix={stockUnitLabel}
               {...register('low_stock_threshold')}
             />
-            <p className="text-[11px] text-muted-foreground px-1">Notifié quand le stock passe sous ce seuil. Laissez vide pour désactiver.</p>
+            <p className="text-[11px] text-muted-foreground px-1">{t('alert_helper')}</p>
           </div>
         </section>
       )}
 
       <CollapsibleSection
-        title="Description"
+        title={t('section_description')}
         icon={<FileText size={15} />}
         open={showDescription}
         onToggle={() => setShowDescription((v) => !v)}
@@ -306,11 +312,11 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         <div className="flex flex-col gap-0.5">
           <FloatingTextarea
             id="description"
-            label={isProduct ? 'Description du produit' : 'Description du service'}
+            label={isProduct ? t('description_product') : t('description_service')}
             rows={5}
             placeholder={isProduct
-              ? "Composition, conseils d'utilisation, dimensions, matière…"
-              : 'Déroulé de la prestation, durée moyenne, conditions…'}
+              ? t('description_placeholder_product')
+              : t('description_placeholder_service')}
             maxLength={DESCRIPTION_MAX}
             aria-invalid={errors.description ? 'true' : 'false'}
             {...register('description')}
@@ -320,7 +326,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
             <span className={`text-[10px] tabular-nums ml-auto ${
               descriptionValue.length > DESCRIPTION_MAX * 0.9 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground/70'
             }`}>
-              {descriptionValue.length} / {DESCRIPTION_MAX}
+              {t('char_count', { count: descriptionValue.length, max: DESCRIPTION_MAX })}
             </span>
           </div>
         </div>
@@ -332,7 +338,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
           className="w-full rounded-full shadow-lg h-12 text-sm font-semibold"
           disabled={!canSubmit}
         >
-          {isSubmitting ? 'Enregistrement…' : isProduct ? 'Enregistrer le produit' : 'Enregistrer le service'}
+          {isSubmitting ? t('saving') : isProduct ? t('submit_product') : t('submit_service')}
         </Button>
       </div>
     </form>

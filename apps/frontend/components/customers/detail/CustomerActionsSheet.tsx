@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Bell, FileText, Mail, MapPin, PowerOff, UserPen } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import type { Customer } from '@/lib/hooks/useCustomers';
@@ -24,13 +27,14 @@ export function CustomerActionsSheet({
   createReminderPending, deactivatePending, reactivatePending,
   onShowNotes, onShowAddress, onSchedule, onEdit, onDeactivate, onReactivate,
 }: CustomerActionsSheetProps) {
+  const t = useTranslations('customers.actionsSheet');
   return (
-    <BottomSheet open={open} onClose={onClose} title="Actions client">
+    <BottomSheet open={open} onClose={onClose} title={t('title')}>
       <div className="flex flex-col gap-1.5">
         {customer.email && (
           <ActionRow
             icon={<Mail size={18} />}
-            label="Email"
+            label={t('email_label')}
             description={customer.email}
             onClick={() => { onClose(); window.location.href = `mailto:${customer.email}`; }}
           />
@@ -38,7 +42,7 @@ export function CustomerActionsSheet({
         {customer.city && (
           <ActionRow
             icon={<MapPin size={18} />}
-            label="Adresse"
+            label={t('address_label')}
             description={[customer.address_line, customer.city].filter(Boolean).join(', ')}
             onClick={() => { onClose(); onShowAddress(); }}
           />
@@ -46,21 +50,21 @@ export function CustomerActionsSheet({
         {customer.notes && (
           <ActionRow
             icon={<FileText size={18} />}
-            label="Notes"
+            label={t('notes_label')}
             onClick={() => { onClose(); onShowNotes(); }}
           />
         )}
         <ActionRow
           icon={<Bell size={18} />}
-          label={relanceCreated ? 'Rappel créé aujourd’hui' : 'Programmer un rappel'}
-          description={relanceCreated ? undefined : 'Demain à 9h00'}
+          label={relanceCreated ? t('reminder_created_today') : t('reminder_schedule')}
+          description={relanceCreated ? undefined : t('reminder_tomorrow_9')}
           onClick={async () => { await onSchedule(); onClose(); }}
           disabled={createReminderPending || relanceCreated}
           tone={relanceCreated ? 'success' : 'default'}
         />
         <ActionRow
           icon={<UserPen size={18} />}
-          label="Modifier la fiche"
+          label={t('edit_record')}
           onClick={() => { onClose(); onEdit(); }}
         />
       </div>
@@ -69,8 +73,8 @@ export function CustomerActionsSheet({
         {customer.is_active ? (
           <ActionRow
             icon={<PowerOff size={18} />}
-            label="Désactiver le client"
-            description="Le client n’apparaîtra plus dans la liste"
+            label={t('deactivate_label')}
+            description={t('deactivate_desc')}
             onClick={async () => { onClose(); await onDeactivate(); }}
             disabled={deactivatePending}
             tone="danger"
@@ -78,7 +82,7 @@ export function CustomerActionsSheet({
         ) : (
           <ActionRow
             icon={<PowerOff size={18} />}
-            label="Réactiver le client"
+            label={t('reactivate_label')}
             onClick={async () => { onClose(); await onReactivate(); }}
             disabled={reactivatePending}
             tone="success"

@@ -1,7 +1,11 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ArrowRight, Coins } from 'lucide-react';
 
 export function ZakatBanner({ daysUntil }: { daysUntil: number }) {
+  const t = useTranslations('dashboard.zakat_banner');
   return (
     <Link
       href="/zakat"
@@ -11,10 +15,8 @@ export function ZakatBanner({ daysUntil }: { daysUntil: number }) {
         <Coins size={18} />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground">
-          {daysUntil === 0 ? "Zakat aujourd'hui" : `Zakat dans ${daysUntil} jour${daysUntil > 1 ? 's' : ''}`}
-        </p>
-        <p className="text-xs text-muted-foreground">Préparer le calcul de la zakat annuelle.</p>
+        <p className="text-sm font-semibold text-foreground">{t('title', { days: daysUntil })}</p>
+        <p className="text-xs text-muted-foreground">{t('sub')}</p>
       </div>
       <ArrowRight size={16} className="text-muted-foreground shrink-0" />
     </Link>

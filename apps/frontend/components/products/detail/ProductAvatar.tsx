@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Camera, Package, Sparkles } from 'lucide-react';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 
@@ -9,6 +10,7 @@ interface ProductAvatarProps {
 }
 
 export function ProductAvatar({ product, onUpload, uploading }: ProductAvatarProps) {
+  const t = useTranslations('articles.photo');
   const isService = product.type === 'service';
 
   return (
@@ -16,7 +18,7 @@ export function ProductAvatar({ product, onUpload, uploading }: ProductAvatarPro
       type="button"
       onClick={onUpload}
       disabled={uploading}
-      aria-label={product.primary_image ? 'Remplacer la photo' : 'Ajouter une photo'}
+      aria-label={product.primary_image ? t('replace_aria') : t('add_aria')}
       className="relative flex h-20 w-20 items-center justify-center rounded-full overflow-hidden shadow-md ring-2 ring-background active:scale-95 transition-transform disabled:opacity-60"
       style={{ background: 'var(--primary)' }}
     >

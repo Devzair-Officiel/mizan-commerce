@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { ChevronRight, Sparkles } from 'lucide-react';
 import { formatPriceRange, type Product } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 
 const THUMB_COLORS = [
   'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
@@ -23,6 +25,10 @@ function getInitial(name: string): string {
 }
 
 export function ProductRow({ product, first }: { product: Product; first: boolean }) {
+  const t = useTranslations('articles.row');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const currencySymbol = currency === 'EUR' ? '€' : currency;
   const range = formatPriceRange(product.min_selling_price, product.max_selling_price);
   const priceLabel = range ?? '—';
   return (
@@ -39,7 +45,7 @@ export function ProductRow({ product, first }: { product: Product; first: boolea
           <span className="font-semibold text-foreground capitalize truncate">{product.name}</span>
           {!product.is_active && (
             <span className="shrink-0 rounded-full bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
-              Inactif
+              {t('inactive')}
             </span>
           )}
         </div>
@@ -47,7 +53,7 @@ export function ProductRow({ product, first }: { product: Product; first: boolea
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
-        <span className="text-sm font-semibold text-foreground tabular-nums">{priceLabel} €</span>
+        <span className="text-sm font-semibold text-foreground tabular-nums">{priceLabel} {currencySymbol}</span>
         <ChevronRight size={16} className="text-muted-foreground" />
       </div>
     </Link>
@@ -84,31 +90,30 @@ function ProductThumb({ product }: { product: Product }) {
 }
 
 function StockLine({ product }: { product: Product }) {
+  const t = useTranslations('articles.row');
   const variantCount = product.variant_count ?? 0;
-  const formatsLabel = variantCount > 1
-    ? `${variantCount} formats`
-    : '1 format';
+  const formatsLabel = t('formats', { count: Math.max(variantCount, 1) });
 
   if (product.type === 'service') {
-    return <p className="text-xs text-muted-foreground mt-0.5">Service</p>;
+    return <p className="text-xs text-muted-foreground mt-0.5">{t('service')}</p>;
   }
   if (product.is_out_of_stock) {
     return (
       <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">
-        Rupture
+        {t('out_of_stock')}
       </p>
     );
   }
   if (product.is_low_stock) {
     return (
-      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-0.5">
-        Stock faible · <span className="tabular-nums">{formatsLabel}</span>
+      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-0.5 tabular-nums">
+        {t('low_stock_with', { formats: formatsLabel })}
       </p>
     );
   }
   return (
-    <p className="text-xs text-muted-foreground mt-0.5">
-      <span className="tabular-nums">{formatsLabel}</span> en stock
+    <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+      {t('in_stock_with', { formats: formatsLabel })}
     </p>
   );
 }

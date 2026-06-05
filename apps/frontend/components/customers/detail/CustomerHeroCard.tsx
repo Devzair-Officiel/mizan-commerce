@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { MoreHorizontal, Phone } from 'lucide-react';
 import type { Customer } from '@/lib/hooks/useCustomers';
 import { getInitials, WhatsAppIcon } from './constants';
@@ -9,6 +12,7 @@ interface CustomerHeroCardProps {
 }
 
 export function CustomerHeroCard({ customer, badge, onOpenMore }: CustomerHeroCardProps) {
+  const t = useTranslations('customers.hero');
   const waPhone = customer.phone?.replace(/\D/g, '');
 
   return (
@@ -42,13 +46,13 @@ export function CustomerHeroCard({ customer, badge, onOpenMore }: CustomerHeroCa
             style={{ background: 'var(--primary)' }}
           >
             <WhatsAppIcon />
-            <span className="text-sm font-semibold">WhatsApp</span>
+            <span className="text-sm font-semibold">{t('whatsapp')}</span>
           </a>
         )}
         {customer.phone && (
           <a
             href={`tel:${customer.phone}`}
-            aria-label="Appeler"
+            aria-label={t('phone_aria')}
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform"
           >
             <Phone size={20} />
@@ -57,7 +61,7 @@ export function CustomerHeroCard({ customer, badge, onOpenMore }: CustomerHeroCa
         <button
           type="button"
           onClick={onOpenMore}
-          aria-label="Plus d'actions"
+          aria-label={t('more_aria')}
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform"
         >
           <MoreHorizontal size={22} />

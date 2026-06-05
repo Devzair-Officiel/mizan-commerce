@@ -11,7 +11,7 @@ const inputBase =
   'disabled:opacity-50';
 
 const labelBase =
-  'pointer-events-none absolute left-4 text-muted-foreground transition-all duration-200 select-none';
+  'pointer-events-none absolute inset-s-4 text-muted-foreground transition-all duration-200 select-none';
 
 const labelCentered = 'top-1/2 -translate-y-1/2 text-sm';
 const labelFloated  = 'top-1.75 translate-y-0 text-[11px]';
@@ -33,24 +33,24 @@ export function FloatingInput({ label, id, required, className, suffix, ...props
       <input
         id={id}
         placeholder=" "
-        className={`${inputBase} ${hasSuffix ? 'pr-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''} ${className ?? ''}`}
+        className={`${inputBase} ${hasSuffix ? 'pe-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''} ${className ?? ''}`}
         {...props}
       />
       <label
         htmlFor={id}
         className={`
           ${labelBase} ${labelCentered}
-          ${hasSuffix ? 'right-20 truncate' : ''}
+          ${hasSuffix ? 'inset-e-20 truncate' : ''}
           peer-focus:top-1.75 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:text-primary
           peer-[:not(:placeholder-shown)]:top-1.75
           peer-[:not(:placeholder-shown)]:translate-y-0
           peer-[:not(:placeholder-shown)]:text-[11px]
         `}
       >
-        {label}{required && <span className="text-destructive ml-0.5">*</span>}
+        {label}{required && <span className="text-destructive ms-0.5">*</span>}
       </label>
       {hasSuffix && (
-        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground tabular-nums">
+        <span className="pointer-events-none absolute inset-e-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground tabular-nums">
           {suffix}
         </span>
       )}
@@ -73,13 +73,13 @@ export function FloatingSelect({ label, id, children, className, ...props }: Flo
     <div className="relative">
       <select
         id={id}
-        className={`peer ${inputBase} appearance-none pr-8 ${className ?? ''}`}
+        className={`peer ${inputBase} appearance-none pe-8 ${className ?? ''}`}
         {...props}
       >
         {children}
       </select>
       {/* Chevron */}
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+      <span className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-muted-foreground">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -115,10 +115,10 @@ export function FloatingSelectBase({ label, id, value, onValueChange, placeholde
       <div className="relative">
         <Select.Trigger
           id={id}
-          className={`${inputBase} appearance-none pr-8 text-left w-full ${className ?? ''}`}
+          className={`${inputBase} appearance-none pe-8 text-start w-full ${className ?? ''}`}
         >
           <Select.Value placeholder={placeholder ?? '—'} />
-          <Select.Icon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          <Select.Icon className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-muted-foreground">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 9l6 6 6-6" />
             </svg>

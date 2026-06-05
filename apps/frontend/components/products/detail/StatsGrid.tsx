@@ -1,8 +1,14 @@
+import { useTranslations } from 'next-intl';
 import { AlertTriangle, Boxes, Tag } from 'lucide-react';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 import { formatPriceRange } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 
 export function StatsGrid({ product }: { product: ProductDetail }) {
+  const t = useTranslations('articles.statsGrid');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const currencySymbol = currency === 'EUR' ? '€' : currency;
   const isProduct = product.type === 'product';
   const priceRange = formatPriceRange(product.min_selling_price, product.max_selling_price);
   const variantCount = product.variant_count ?? product.variants.length;
@@ -19,9 +25,9 @@ export function StatsGrid({ product }: { product: ProductDetail }) {
       <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
         <div className="flex items-center gap-1.5">
           <Tag size={12} className="text-muted-foreground/80" />
-          <p className="text-xs text-muted-foreground">Prix de la prestation</p>
+          <p className="text-xs text-muted-foreground">{t('service_price')}</p>
         </div>
-        <p className="text-2xl font-bold tabular-nums text-foreground">{priceLabel} €</p>
+        <p className="text-2xl font-bold tabular-nums text-foreground">{priceLabel} {currencySymbol}</p>
       </div>
     );
   }
@@ -32,7 +38,7 @@ export function StatsGrid({ product }: { product: ProductDetail }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Boxes size={13} className="text-muted-foreground/80" />
-            <p className="text-xs text-muted-foreground">Formats actifs</p>
+            <p className="text-xs text-muted-foreground">{t('active_formats')}</p>
           </div>
           {(product.is_out_of_stock || product.is_low_stock) && (
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -41,16 +47,16 @@ export function StatsGrid({ product }: { product: ProductDetail }) {
           )}
         </div>
         <p className={`text-2xl font-bold tabular-nums ${stockTone}`}>{variantCount}</p>
-        <p className="text-[11px] text-muted-foreground/80">Détail par format ci-dessous</p>
+        <p className="text-[11px] text-muted-foreground/80">{t('formats_helper')}</p>
       </div>
       <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
         <div className="flex items-center gap-1.5">
           <Tag size={12} className="text-muted-foreground/80" />
-          <p className="text-xs text-muted-foreground">Prix de vente</p>
+          <p className="text-xs text-muted-foreground">{t('sale_price')}</p>
         </div>
-        <p className="text-2xl font-bold tabular-nums text-foreground">{priceLabel} €</p>
+        <p className="text-2xl font-bold tabular-nums text-foreground">{priceLabel} {currencySymbol}</p>
         {variantCount > 1 && (
-          <p className="text-[11px] text-muted-foreground/80">Selon le conditionnement</p>
+          <p className="text-[11px] text-muted-foreground/80">{t('according_to_packaging')}</p>
         )}
       </div>
     </div>

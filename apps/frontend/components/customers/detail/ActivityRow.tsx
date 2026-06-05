@@ -1,10 +1,20 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { CreditCard, FileText, ShoppingBag, Truck } from 'lucide-react';
 import type { ActivityEvent } from '@/lib/hooks/useCustomers';
-import { PAYMENT_TITLE, PAYMENT_TONE, formatEventDate } from './constants';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatDateTime, useFormatMoney } from '@/lib/hooks/useFormat';
+import { PAYMENT_TITLE_KEY, PAYMENT_TONE } from './constants';
 
 export function ActivityRow({ item, customerId }: { item: ActivityEvent; customerId: string }) {
-  const date = formatEventDate(item.occurred_at);
+  const t = useTranslations('customers.activity');
+  const { data: shop } = useShop();
+  const formatMoney = useFormatMoney();
+  const formatDateTime = useFormatDateTime();
+  const currency = shop?.currency ?? 'EUR';
+  const date = formatDateTime(item.occurred_at, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   const fromQuery = `?from=/customers/${customerId}`;
 
   if (item.type === 'order') {
@@ -12,8 +22,11 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
       <EventLink href={`/orders/${item.data.order_id}${fromQuery}`}>
         <EventIcon className="bg-primary/10 text-primary"><ShoppingBag size={16} /></EventIcon>
         <EventBody
-          title="Commande créée"
-          subtitle={`Commande ${item.data.order_number} · ${parseFloat(item.data.total_amount).toFixed(2)} €`}
+          title={t('order_created')}
+          subtitle={t('order_sub', {
+            number: item.data.order_number,
+            amount: formatMoney(item.data.total_amount, currency, { maximumFractionDigits: 2 }),
+          })}
           date={date}
         />
       </EventLink>
@@ -22,12 +35,16 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
 
   if (item.type === 'payment') {
     const status = item.data.payment_status;
+    const titleKey = PAYMENT_TITLE_KEY[status];
     return (
       <EventLink href={`/orders/${item.data.order_id}${fromQuery}`}>
         <EventIcon className={PAYMENT_TONE[status] ?? ''}><CreditCard size={16} /></EventIcon>
         <EventBody
-          title={PAYMENT_TITLE[status] ?? 'Paiement'}
-          subtitle={`${parseFloat(item.data.amount_paid).toFixed(2)} € · Commande ${item.data.order_number}`}
+          title={titleKey ? t(titleKey) : t('payment_fallback')}
+          subtitle={t('payment_sub', {
+            amount: formatMoney(item.data.amount_paid, currency, { maximumFractionDigits: 2 }),
+            number: item.data.order_number,
+          })}
           date={date}
         />
       </EventLink>
@@ -39,8 +56,8 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
       <EventLink href={`/orders/${item.data.order_id}${fromQuery}`}>
         <EventIcon className="bg-blue-500/10 text-blue-600 dark:text-blue-400"><Truck size={16} /></EventIcon>
         <EventBody
-          title="Expédition mise à jour"
-          subtitle={`Commande ${item.data.order_number} · Expédiée`}
+          title={t('shipment_title')}
+          subtitle={t('shipment_sub', { number: item.data.order_number })}
           date={date}
         />
       </EventLink>
@@ -52,7 +69,7 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
     <>
       <EventIcon className="bg-muted text-muted-foreground"><FileText size={16} /></EventIcon>
       <EventBody
-        title="Note ajoutée"
+        title={t('note_title')}
         subtitle={item.data.content}
         meta={item.data.author_name ?? undefined}
         date={date}

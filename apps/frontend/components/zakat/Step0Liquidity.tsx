@@ -46,10 +46,6 @@ export function Step0Liquidity({ referenceDate, cashAmount, currency, onChange }
         onChange={(e) => onChange({ cashAmount: e.target.value })}
       />
 
-      <p className="text-xs text-muted-foreground px-1">
-        Pas besoin d&apos;être au centime près — une estimation honnête suffit.
-      </p>
-
       <ReligiousNote rubric="cash" />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelectBase, FloatingSelectItem } from '@/components/ui/floating-fields';
@@ -16,6 +17,8 @@ import {
 } from '@/lib/hooks/useOrders';
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
 import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { apiFetch } from '@/lib/api-client';
 
 interface EditItem {
@@ -29,29 +32,30 @@ interface EditItem {
 
 export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useTranslations('orders.edit');
   const { data: order, isLoading } = useOrder(id);
 
   if (isLoading) {
     return (
       <>
-        <TopBar title="Modifier la commande" />
-        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+        <TopBar title={t('topbar')} />
+        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
       </>
     );
   }
   if (!order) {
     return (
       <>
-        <TopBar title="Modifier la commande" />
-        <p className="p-4 text-sm text-destructive">Commande introuvable.</p>
+        <TopBar title={t('topbar')} />
+        <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
       </>
     );
   }
   if (order.status !== 'draft') {
     return (
       <>
-        <TopBar title="Modifier la commande" />
-        <p className="p-4 text-sm text-muted-foreground">Seules les commandes en brouillon peuvent être modifiées.</p>
+        <TopBar title={t('topbar')} />
+        <p className="p-4 text-sm text-muted-foreground">{t('draft_only')}</p>
       </>
     );
   }
@@ -61,8 +65,13 @@ export default function EditOrderPage() {
 
 function EditController({ order }: { order: Order }) {
   const router = useRouter();
+  const t = useTranslations('orders.edit');
   const { data: customers } = useCustomers();
   const { data: products }  = useProducts();
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const formatMoney = useFormatMoney();
+  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
 
   const updateOrder  = useUpdateOrder(order.id);
   const addItem      = useAddOrderItem(order.id);
@@ -140,9 +149,9 @@ function EditController({ order }: { order: Order }) {
 
   return (
     <>
-      <TopBar title={`Modifier ${order.order_number}`} action={
+      <TopBar title={t('topbar_with_number', { number: order.order_number })} action={
         <Button size="sm" onClick={handleSave} disabled={isPending || items.length === 0}>
-          {isPending ? 'Enregistrement…' : 'Enregistrer'}
+          {isPending ? t('saving') : t('save')}
         </Button>
       } />
 
@@ -152,12 +161,12 @@ function EditController({ order }: { order: Order }) {
           <div className="flex-1">
             <FloatingSelectBase
               id="customer"
-              label="Client (optionnel)"
+              label={t('customer_label')}
               value={customerId}
               onValueChange={setCustomerId}
-              placeholder="— Sans client —"
+              placeholder={t('no_customer')}
             >
-              <FloatingSelectItem value="">— Sans client —</FloatingSelectItem>
+              <FloatingSelectItem value="">{t('no_customer')}</FloatingSelectItem>
               {customers?.results.map((c) => (
                 <FloatingSelectItem key={c.id} value={c.id}>{c.name}</FloatingSelectItem>
               ))}
@@ -170,15 +179,15 @@ function EditController({ order }: { order: Order }) {
           <div className="flex-1">
             <FloatingSelectBase
               id="product-picker"
-              label="Ajouter un article (1re variante)"
+              label={t('product_picker_label')}
               value=""
               onValueChange={(v) => { if (v) void addProductByDefaultVariant(v); }}
-              placeholder="Choisir un produit…"
+              placeholder={t('product_picker_placeholder')}
             >
               {products?.results.filter((p) => p.is_active).map((p) => {
-                const price = p.min_selling_price ?? '—';
+                const priceLabel = p.min_selling_price ? money(p.min_selling_price) : '—';
                 return (
-                  <FloatingSelectItem key={p.id} value={p.id}>{p.name} — {price} €</FloatingSelectItem>
+                  <FloatingSelectItem key={p.id} value={p.id}>{p.name} — {priceLabel}</FloatingSelectItem>
                 );
               })}
             </FloatingSelectBase>
@@ -189,7 +198,7 @@ function EditController({ order }: { order: Order }) {
         {items.length > 0 && (
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Articles</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('items_title')}</span>
             </div>
             <div className="divide-y divide-border">
               {items.map((item) => {
@@ -208,7 +217,7 @@ function EditController({ order }: { order: Order }) {
                       <button onClick={() => updateQty(k, item.quantity + 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center active:bg-muted">+</button>
                     </div>
                     <span className="text-sm font-semibold text-foreground w-16 text-right tabular-nums shrink-0">
-                      {(parseFloat(item.unit_price) * item.quantity).toFixed(2)} €
+                      {money(parseFloat(item.unit_price) * item.quantity)}
                     </span>
                   </div>
                 );
@@ -216,28 +225,28 @@ function EditController({ order }: { order: Order }) {
             </div>
             <div className="px-4 py-3 bg-muted/40 flex flex-col gap-1 border-t border-border">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Sous-total</span><span className="tabular-nums">{subtotal.toFixed(2)} €</span>
+                <span>{t('subtotal')}</span><span className="tabular-nums">{money(subtotal)}</span>
               </div>
               {discountN > 0 && (
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Remise</span><span className="tabular-nums">− {discountN.toFixed(2)} €</span>
+                  <span>{t('discount')}</span><span className="tabular-nums">− {money(discountN)}</span>
                 </div>
               )}
               {shippingN > 0 && (
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Livraison</span><span className="tabular-nums">+ {shippingN.toFixed(2)} €</span>
+                  <span>{t('shipping')}</span><span className="tabular-nums">+ {money(shippingN)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-bold text-foreground pt-1 border-t border-border mt-0.5">
-                <span>Total</span><span className="tabular-nums">{total.toFixed(2)} €</span>
+                <span>{t('total')}</span><span className="tabular-nums">{money(total)}</span>
               </div>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <FloatingInput id="discount" label="Remise (€, optionnel)" type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-          <FloatingInput id="shipping" label="Livraison (€, optionnel)" type="number" step="0.01" min="0" value={shipping} onChange={(e) => setShipping(e.target.value)} />
+          <FloatingInput id="discount" label={t('discount_field')} type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
+          <FloatingInput id="shipping" label={t('shipping_field')} type="number" step="0.01" min="0" value={shipping} onChange={(e) => setShipping(e.target.value)} />
         </div>
       </div>
     </>

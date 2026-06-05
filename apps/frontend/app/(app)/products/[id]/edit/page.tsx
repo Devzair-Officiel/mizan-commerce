@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ProductForm, type ProductFormSubmission } from '@/components/products/ProductForm';
 import { useProduct, useUpdateProduct } from '@/lib/hooks/useProducts';
@@ -8,6 +9,7 @@ import { useProduct, useUpdateProduct } from '@/lib/hooks/useProducts';
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('articles.form');
   const { data: product, isLoading } = useProduct(id);
   const { mutateAsync, isPending } = useUpdateProduct(id);
 
@@ -16,11 +18,18 @@ export default function EditProductPage() {
     router.push(`/products/${id}`);
   }
 
-  if (isLoading || !product) return <><TopBar title="Modifier" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
+  if (isLoading || !product) {
+    return (
+      <>
+        <TopBar title={t('topbar_edit')} />
+        <p className="p-4 text-sm text-zinc-400">{t('loading')}</p>
+      </>
+    );
+  }
 
   return (
     <>
-      <TopBar title={product.type === 'service' ? 'Modifier le service' : 'Modifier le produit'} />
+      <TopBar title={product.type === 'service' ? t('topbar_edit_service') : t('topbar_edit_product')} />
       <ProductForm
         type={product.type}
         defaultValues={product}

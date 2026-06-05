@@ -1,5 +1,10 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useProduct, type ProductVariant } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 
 export type VariantPick = {
   variantId: string;
@@ -16,7 +21,12 @@ interface VariantViewProps {
 }
 
 export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
+  const t = useTranslations('orders.picker');
   const { data: product, isLoading } = useProduct(productId);
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const formatMoney = useFormatMoney();
+  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
 
   function handlePick(variant: ProductVariant) {
     if (!product) return;
@@ -32,8 +42,8 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
   if (isLoading || !product) {
     return (
       <div className="flex flex-col gap-3">
-        <BackButton onBack={onBack} label="Retour" />
-        <p className="py-6 text-center text-sm text-muted-foreground">Chargement…</p>
+        <BackButton onBack={onBack} label={t('variant_back')} />
+        <p className="py-6 text-center text-sm text-muted-foreground">{t('loading')}</p>
       </div>
     );
   }
@@ -42,18 +52,18 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <BackButton onBack={onBack} label="Retour au catalogue" />
+      <BackButton onBack={onBack} label={t('variant_back')} />
 
       <div className="px-1">
         <p className="text-sm font-semibold text-foreground truncate">{product.name}</p>
         <p className="text-[11px] text-muted-foreground">
-          {activeVariants.length} conditionnement{activeVariants.length > 1 ? 's' : ''}
+          {t('variant_count', { count: activeVariants.length })}
         </p>
       </div>
 
       <div className="flex flex-col divide-y divide-border -mx-5 px-5">
         {activeVariants.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Aucun conditionnement actif.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">{t('no_variants')}</p>
         ) : (
           activeVariants.map((v) => {
             const out = product.type === 'product' && parseFloat(v.stock_quantity) <= 0;
@@ -68,12 +78,12 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                   <span className="text-sm font-medium text-foreground truncate">{v.packaging_name}</span>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {v.selling_price} €
+                    {money(v.selling_price)}
                     {product.type === 'product' && (
                       <>
                         {' · '}
                         <span className={out ? 'text-destructive' : v.is_low_stock ? 'text-amber-600' : ''}>
-                          {out ? 'Rupture' : `Stock : ${v.stock_quantity}`}
+                          {out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}
                         </span>
                       </>
                     )}

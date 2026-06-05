@@ -2,29 +2,43 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Palette } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ui/ThemeToggle';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 
-const PRIMARY_NAV = [
-  { href: '/dashboard',  label: 'Accueil',    icon: HomeIcon },
-  { href: '/orders',     label: 'Commandes',  icon: ShoppingBagIcon },
-  { href: '/customers',  label: 'Clients',    icon: UsersIcon },
-  { href: '/products',   label: 'Articles', icon: PackageIcon },
+type NavKey =
+  | 'dashboard' | 'orders' | 'customers' | 'products'
+  | 'invoices'  | 'stock_in' | 'stock_out' | 'reminders'
+  | 'notes'     | 'zakat'    | 'profile'   | 'settings';
+
+type NavEntry = {
+  href: string;
+  labelKey: NavKey;
+  icon: (props: { className?: string }) => React.JSX.Element;
+};
+
+const PRIMARY_NAV: readonly NavEntry[] = [
+  { href: '/dashboard',  labelKey: 'dashboard',  icon: HomeIcon },
+  { href: '/orders',     labelKey: 'orders',     icon: ShoppingBagIcon },
+  { href: '/customers',  labelKey: 'customers',  icon: UsersIcon },
+  { href: '/products',   labelKey: 'products',   icon: PackageIcon },
 ];
 
-const SECONDARY_NAV = [
-  { href: '/invoices',   label: 'Factures',              icon: ReceiptIcon },
-  { href: '/stock/add',  label: 'Entrée stock',         icon: BoxInIcon },
-  { href: '/stock/out',  label: 'Sortie stock',          icon: BoxOutIcon },
-  { href: '/reminders',  label: 'Rappels',               icon: BellIcon },
-  { href: '/notes',      label: 'Notes',                 icon: NoteIcon },
-  { href: '/zakat',      label: 'Zakat',                 icon: ZakatIcon },
-  { href: '/profile',    label: 'Mon profil',            icon: ProfileIcon },
-  { href: '/settings',   label: 'Paramètres boutique',   icon: SettingsIcon },
+const SECONDARY_NAV: readonly NavEntry[] = [
+  { href: '/invoices',   labelKey: 'invoices',  icon: ReceiptIcon },
+  { href: '/stock/add',  labelKey: 'stock_in',  icon: BoxInIcon },
+  { href: '/stock/out',  labelKey: 'stock_out', icon: BoxOutIcon },
+  { href: '/reminders',  labelKey: 'reminders', icon: BellIcon },
+  { href: '/notes',      labelKey: 'notes',     icon: NoteIcon },
+  { href: '/zakat',      labelKey: 'zakat',     icon: ZakatIcon },
+  { href: '/profile',    labelKey: 'profile',   icon: ProfileIcon },
+  { href: '/settings',   labelKey: 'settings',  icon: SettingsIcon },
 ];
 
 export function DesktopSidebar() {
+  const tNav = useTranslations('layout.nav');
+  const tc = useTranslations('layout.common');
   const pathname = usePathname();
   const router = useRouter();
   const { toggle: toggleThemeDrawer } = useThemeDrawer();
@@ -39,7 +53,7 @@ export function DesktopSidebar() {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 shrink-0 fixed inset-y-0 left-0 z-30 border-r border-border bg-card">
+    <aside className="hidden lg:flex flex-col w-60 shrink-0 fixed inset-y-0 inset-s-0 z-30 border-e border-border bg-card">
       {/* Header */}
       <div className="flex items-center justify-between px-5 h-16 border-b border-border shrink-0">
         <span className="text-xl font-bold text-primary tracking-tight">Mizan</span>
@@ -56,13 +70,13 @@ export function DesktopSidebar() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Nouvelle vente
+          {tNav('new_sale')}
         </Link>
       </div>
 
       {/* Navigation principale */}
       <nav className="flex flex-col gap-0.5 px-3 py-2">
-        {PRIMARY_NAV.map(({ href, label, icon: Icon }) => (
+        {PRIMARY_NAV.map(({ href, labelKey, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -73,7 +87,7 @@ export function DesktopSidebar() {
             }`}
           >
             <Icon className="h-5 w-5 shrink-0" />
-            {label}
+            {tNav(labelKey)}
           </Link>
         ))}
       </nav>
@@ -82,7 +96,7 @@ export function DesktopSidebar() {
 
       {/* Navigation secondaire */}
       <nav className="flex flex-col gap-0.5 px-3 py-2 flex-1 overflow-y-auto">
-        {SECONDARY_NAV.map(({ href, label, icon: Icon }) => (
+        {SECONDARY_NAV.map(({ href, labelKey, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -93,7 +107,7 @@ export function DesktopSidebar() {
             }`}
           >
             <Icon className="h-5 w-5 shrink-0" />
-            {label}
+            {tNav(labelKey)}
           </Link>
         ))}
       </nav>
@@ -105,14 +119,14 @@ export function DesktopSidebar() {
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <Palette className="h-5 w-5 shrink-0" />
-          Apparence
+          {tc('appearance')}
         </button>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <LogoutIcon className="h-5 w-5 shrink-0" />
-          Se déconnecter
+          {tc('logout')}
         </button>
       </div>
     </aside>

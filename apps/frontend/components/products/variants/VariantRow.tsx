@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Pencil, Trash2 } from 'lucide-react';
 import { ApiError } from '@/lib/api-client';
 import {
@@ -6,6 +7,7 @@ import {
   useDeleteProductVariant,
   type ProductVariant,
 } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 
 interface VariantRowProps {
   variant: ProductVariant;
@@ -16,16 +18,20 @@ interface VariantRowProps {
 }
 
 export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }: VariantRowProps) {
+  const t = useTranslations('articles.variants');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const currencySymbol = currency === 'EUR' ? '€' : currency;
   const del = useDeleteProductVariant(productId);
 
   async function handleDelete() {
-    if (!confirm(`Supprimer le conditionnement "${variant.packaging_name}" ?`)) return;
+    if (!confirm(t('confirm_remove', { name: variant.packaging_name }))) return;
     try {
       await del.mutateAsync(variant.id);
     } catch (err) {
       const msg = err instanceof ApiError && typeof err.data === 'object' && err.data !== null
-        ? (err.data as { detail?: string }).detail ?? 'Suppression impossible.'
-        : 'Suppression impossible.';
+        ? (err.data as { detail?: string }).detail ?? t('remove_failed')
+        : t('remove_failed');
       alert(msg);
     }
   }
@@ -45,7 +51,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
           <p className="text-sm font-medium text-foreground truncate">{variant.packaging_name}</p>
           {!variant.is_active && (
             <span className="shrink-0 rounded-full bg-muted text-muted-foreground border border-border px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-              Inactif
+              {t('inactive_badge')}
             </span>
           )}
         </div>
@@ -61,14 +67,14 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
             )}
             {isProduct && variant.sku && <span className="text-muted-foreground/60">·</span>}
             {variant.sku && (
-              <span className="text-muted-foreground truncate">SKU {variant.sku}</span>
+              <span className="text-muted-foreground truncate">{t('sku_with', { sku: variant.sku })}</span>
             )}
           </div>
         )}
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <span className="text-sm font-semibold text-foreground tabular-nums">
-          {variant.selling_price} €
+          {variant.selling_price} {currencySymbol}
         </span>
         {unitPrice && (
           <span className="text-[11px] text-muted-foreground tabular-nums">{unitPrice}</span>
@@ -77,7 +83,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
           <button
             type="button"
             onClick={onEdit}
-            aria-label="Modifier"
+            aria-label={t('edit_aria')}
             className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Pencil size={14} />
@@ -86,7 +92,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
             <button
               type="button"
               onClick={handleDelete}
-              aria-label="Supprimer"
+              aria-label={t('remove_aria')}
               disabled={del.isPending}
               className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
             >

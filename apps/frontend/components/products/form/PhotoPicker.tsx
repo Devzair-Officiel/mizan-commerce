@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Camera, X } from 'lucide-react';
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -11,6 +12,7 @@ interface PhotoPickerProps {
 }
 
 export function PhotoPicker({ file, error, onChange }: PhotoPickerProps) {
+  const t = useTranslations('articles.photo');
   const inputRef = useRef<HTMLInputElement>(null);
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
@@ -26,11 +28,11 @@ export function PhotoPicker({ file, error, onChange }: PhotoPickerProps) {
       return;
     }
     if (!next.type.startsWith('image/')) {
-      onChange(null, 'Format non supporté : choisissez une image.');
+      onChange(null, t('format_unsupported'));
       return;
     }
     if (next.size > MAX_IMAGE_SIZE) {
-      onChange(null, 'Image trop lourde (5 Mo max).');
+      onChange(null, t('too_heavy'));
       return;
     }
     onChange(next, null);
@@ -54,7 +56,7 @@ export function PhotoPicker({ file, error, onChange }: PhotoPickerProps) {
             <>
               <Image
                 src={previewUrl}
-                alt="Aperçu"
+                alt={t('preview_alt')}
                 width={64}
                 height={64}
                 unoptimized
@@ -63,7 +65,7 @@ export function PhotoPicker({ file, error, onChange }: PhotoPickerProps) {
               <span
                 onClick={clear}
                 className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background border border-border shadow"
-                aria-label="Retirer la photo"
+                aria-label={t('remove_aria')}
               >
                 <X size={11} className="text-foreground" />
               </span>
@@ -74,11 +76,11 @@ export function PhotoPicker({ file, error, onChange }: PhotoPickerProps) {
         </span>
         <span className="flex flex-col gap-0.5 min-w-0">
           <span className="text-sm font-medium text-foreground truncate">
-            {previewUrl ? 'Photo sélectionnée' : 'Ajouter une photo'}
+            {previewUrl ? t('selected') : t('add_label')}
           </span>
           {error
             ? <span className="flex items-center gap-1 text-[11px] text-destructive"><AlertCircle size={11} /> {error}</span>
-            : <span className="text-[11px] text-muted-foreground">JPEG, PNG ou WebP — 5 Mo max</span>}
+            : <span className="text-[11px] text-muted-foreground">{t('helper')}</span>}
         </span>
       </button>
       <input

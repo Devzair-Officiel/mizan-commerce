@@ -1,7 +1,12 @@
+'use client';
+
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Pencil } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 
 interface PaymentBottomSheetProps {
   open: boolean;
@@ -14,14 +19,10 @@ interface PaymentBottomSheetProps {
   onSubmit: (amountInput: string) => void | Promise<void>;
 }
 
-/**
- * Le contenu vit dans un composant interne monté uniquement quand `open` est vrai.
- * Cela garantit un état frais à chaque ouverture sans recourir à un `useEffect`
- * qui appellerait setState (anti-pattern React 19).
- */
 export function PaymentBottomSheet(props: PaymentBottomSheetProps) {
+  const t = useTranslations('orders.paymentSheet');
   return (
-    <BottomSheet open={props.open} onClose={props.onClose} title="Encaisser un paiement">
+    <BottomSheet open={props.open} onClose={props.onClose} title={t('title')}>
       {props.open && <PaymentForm {...props} />}
     </BottomSheet>
   );
@@ -30,6 +31,12 @@ export function PaymentBottomSheet(props: PaymentBottomSheetProps) {
 function PaymentForm({
   initialAmount, totalAmount, paidAmount, remaining, isPending, onSubmit,
 }: PaymentBottomSheetProps) {
+  const t = useTranslations('orders.paymentSheet');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const formatMoney = useFormatMoney();
+  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+
   const [amountInput, setAmountInput] = useState(initialAmount);
   const [editAmount, setEditAmount] = useState(false);
 
@@ -41,14 +48,14 @@ function PaymentForm({
 
   const chips: { label: string; sub?: string; value: number }[] = [];
   if (remainingNum > 0) {
-    chips.push({ label: 'Solde', sub: `${remainingNum.toFixed(2)} €`, value: remainingNum });
+    chips.push({ label: t('chip_balance'), sub: money(remainingNum), value: remainingNum });
     if (remainingNum > 1) {
       const half = Math.round((remainingNum / 2) * 100) / 100;
-      chips.push({ label: 'Moitié', sub: `${half.toFixed(2)} €`, value: half });
+      chips.push({ label: t('chip_half'), sub: money(half), value: half });
     }
   }
   for (const v of [10, 20, 50]) {
-    if (remainingNum <= 0 || v < remainingNum) chips.push({ label: `${v} €`, value: v });
+    if (remainingNum <= 0 || v < remainingNum) chips.push({ label: money(v), value: v });
   }
 
   return (
@@ -71,12 +78,12 @@ function PaymentForm({
             onClick={() => setEditAmount(true)}
             className={`text-5xl font-bold tabular-nums py-2 inline-flex items-center gap-2 ${isNeg ? 'text-red-500' : 'text-zinc-900'}`}
           >
-            {val.toFixed(2)} €
+            {money(val)}
             <Pencil size={16} className="text-zinc-400" />
           </button>
         )}
         <p className="text-xs text-zinc-500 tabular-nums">
-          Reste après : <span className="font-semibold text-zinc-700">{newRemaining.toFixed(2)} €</span>
+          {t('remaining_after', { amount: money(newRemaining) })}
         </p>
       </div>
 
@@ -113,15 +120,15 @@ function PaymentForm({
         disabled={isPending || val === 0 || Number.isNaN(val)}
       >
         {isPending
-          ? 'Enregistrement…'
+          ? t('submit_saving')
           : isNeg
-            ? `Corriger −${Math.abs(val).toFixed(2)} €`
-            : `Encaisser ${val.toFixed(2)} €`}
+            ? t('submit_correct', { amount: money(Math.abs(val)) })
+            : t('submit_charge', { amount: money(val) })}
       </Button>
 
       {remainingNum <= 0 && !isNeg && (
         <p className="text-xs text-zinc-400 text-center">
-          La commande est déjà soldée. Utilisez un montant négatif pour corriger un paiement reçu.
+          {t('settled_hint')}
         </p>
       )}
     </div>

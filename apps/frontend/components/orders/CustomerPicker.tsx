@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronRight, Search, X, UserPlus, Phone, MapPin, User } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
@@ -18,6 +19,7 @@ export function CustomerPicker({
   onChange,
   onRequestCreate,
 }: CustomerPickerProps) {
+  const t = useTranslations('orders.customerPicker');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { data } = useCustomers(search);
@@ -84,7 +86,7 @@ export function CustomerPicker({
                 {!selectedCustomer.phone && !selectedCustomer.city && (
                   <span className="flex items-center gap-1">
                     <User size={11} className="shrink-0" />
-                    <span>Client sélectionné</span>
+                    <span>{t('trigger_selected')}</span>
                   </span>
                 )}
               </div>
@@ -94,7 +96,7 @@ export function CustomerPicker({
               tabIndex={0}
               onClick={handleRemove}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRemove(e as unknown as React.MouseEvent); } }}
-              aria-label="Retirer le client"
+              aria-label={t('remove_aria')}
               className="shrink-0 w-9 h-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors flex items-center justify-center"
             >
               <X size={16} />
@@ -106,15 +108,15 @@ export function CustomerPicker({
               <User size={18} />
             </div>
             <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <span className="text-sm font-medium text-foreground">Sélectionner un client</span>
-              <span className="text-xs text-muted-foreground">Choisis un client pour démarrer</span>
+              <span className="text-sm font-medium text-foreground">{t('trigger_select')}</span>
+              <span className="text-xs text-muted-foreground">{t('trigger_select_sub')}</span>
             </div>
             <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
           </>
         )}
       </button>
 
-      <BottomSheet open={open} onClose={close} title="Sélectionner un client">
+      <BottomSheet open={open} onClose={close} title={t('sheet_title')}>
         <div className="relative mb-3">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -128,14 +130,14 @@ export function CustomerPicker({
             name="customer-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un client…"
+            placeholder={t('search_placeholder')}
             className="w-full rounded-xl border border-border bg-muted py-2.5 pl-9 pr-9 text-sm outline-none focus:border-primary"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch('')}
-              aria-label="Effacer la recherche"
+              aria-label={t('search_clear_aria')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
               <X size={13} />
@@ -152,14 +154,14 @@ export function CustomerPicker({
             <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
               <UserPlus size={16} />
             </span>
-            <span>Nouveau client</span>
+            <span>{t('create_cta')}</span>
           </button>
         </div>
 
         <div className="flex flex-col divide-y divide-border -mx-5 px-5">
           {customers.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              {search ? 'Aucun client trouvé.' : 'Aucun client enregistré.'}
+              {search ? t('no_results') : t('no_customers')}
             </p>
           ) : (
             customers.map((c) => {

@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { Bell, X } from 'lucide-react';
 
 interface CustomerFlashNotificationProps {
@@ -9,6 +12,7 @@ interface CustomerFlashNotificationProps {
 export function CustomerFlashNotification({
   visible, customerName, onDismiss,
 }: CustomerFlashNotificationProps) {
+  const t = useTranslations('customers.flash');
   return (
     <div
       className="fixed left-4 right-4 z-50 transition-all duration-300"
@@ -26,8 +30,8 @@ export function CustomerFlashNotification({
           <Bell size={16} className="text-primary-foreground" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-primary-foreground">Rappel créé</p>
-          <p className="text-xs text-primary-foreground/75">Demain à 9h00 — {customerName}</p>
+          <p className="text-sm font-semibold text-primary-foreground">{t('reminder_created')}</p>
+          <p className="text-xs text-primary-foreground/75">{t('sub', { name: customerName })}</p>
         </div>
         <button
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/20 text-primary-foreground"

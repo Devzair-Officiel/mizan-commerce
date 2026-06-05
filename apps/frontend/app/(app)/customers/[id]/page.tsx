@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import {
   useCustomer, useDeactivateCustomer, useReactivateCustomer,
@@ -17,6 +18,7 @@ import { CustomerNotesSheet } from '@/components/customers/detail/CustomerNotesS
 import { CustomerStatsGrid } from '@/components/customers/detail/CustomerStatsGrid';
 
 export default function CustomerDetailPage() {
+  const t = useTranslations('customers.detail');
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: customer, isLoading } = useCustomer(id);
@@ -40,28 +42,28 @@ export default function CustomerDetailPage() {
     if (!customer) return null;
     if (parseFloat(customer.pending_amount) > 0) {
       return {
-        label: 'À relancer',
+        label: t('badge_to_remind'),
         classes: 'bg-amber-400/10 text-amber-700 dark:text-amber-300 border border-amber-400/20',
       };
     }
     const daysSinceCreated = (nowMs - new Date(customer.created_at).getTime()) / 86_400_000;
     if (daysSinceCreated < 30 && customer.order_count === 0) {
       return {
-        label: 'Nouveau client',
+        label: t('badge_new'),
         classes: 'bg-primary/10 text-primary border border-primary/20',
       };
     }
     if (customer.order_count >= 3) {
       return {
-        label: 'Client régulier',
+        label: t('badge_regular'),
         classes: 'bg-muted text-muted-foreground border border-border',
       };
     }
     return null;
-  }, [customer, nowMs]);
+  }, [customer, nowMs, t]);
 
   async function handleDeactivate() {
-    if (!confirm('Désactiver ce client ? Il n\'apparaîtra plus dans la liste.')) return;
+    if (!confirm(t('deactivate_confirm'))) return;
     await deactivate.mutateAsync(id);
     router.push('/customers');
   }
@@ -71,7 +73,7 @@ export default function CustomerDetailPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(9, 0, 0, 0);
     await createReminder.mutateAsync({
-      title: `Relancer ${customer?.name ?? 'le client'}`,
+      title: t('reminder_title', { name: customer?.name ?? t('reminder_fallback_name') }),
       due_at: tomorrow.toISOString(),
       category: 'customer_followup',
       customer: id,
@@ -82,8 +84,8 @@ export default function CustomerDetailPage() {
     try { localStorage.setItem(todayKey, '1'); } catch { /* ignore */ }
   }
 
-  if (isLoading) return <><TopBar title="Client" /><p className="p-4 text-sm text-muted-foreground">Chargement…</p></>;
-  if (!customer) return <><TopBar title="Client" /><p className="p-4 text-sm text-red-500">Client introuvable.</p></>;
+  if (isLoading) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
+  if (!customer) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-red-500">{t('not_found')}</p></>;
 
   return (
     <>

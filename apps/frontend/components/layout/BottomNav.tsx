@@ -3,26 +3,47 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { UserPlus, ClipboardPlus, Package, PackagePlus, Users } from 'lucide-react';
 
-const LEFT_ITEMS = [
-  { href: '/dashboard', label: 'Accueil', icon: HomeIcon },
-  { href: '/customers', label: 'Clients', icon: Users },
-] as const;
+// Type d'icône suffisamment large pour accepter à la fois les SVG locaux
+// (className seul) et les composants lucide-react (qui prennent strokeWidth).
+type IconLike = React.ComponentType<{ className?: string; strokeWidth?: number }>;
 
-const RIGHT_ITEMS = [
-  { href: '/orders', label: 'Commandes', icon: ShoppingBagIcon },
-  { href: '/products', label: 'Articles', icon: Package },
-] as const;
+type NavItemDef = {
+  href: string;
+  labelKey: 'dashboard' | 'customers' | 'orders' | 'products';
+  icon: IconLike;
+};
+
+const LEFT_ITEMS: readonly NavItemDef[] = [
+  { href: '/dashboard', labelKey: 'dashboard', icon: HomeIcon },
+  { href: '/customers', labelKey: 'customers', icon: Users },
+];
+
+const RIGHT_ITEMS: readonly NavItemDef[] = [
+  { href: '/orders', labelKey: 'orders', icon: ShoppingBagIcon },
+  { href: '/products', labelKey: 'products', icon: Package },
+];
+
+type QuickActionKey = 'new_customer' | 'new_order' | 'new_product';
 
 /* Positions en arc autour du + — les icônes sortent de derrière le + */
-const QUICK_ACTIONS = [
-  { href: '/customers/new', label: 'Client',   icon: UserPlus,      x: -88, y: -62 },
-  { href: '/orders/new',    label: 'Commande', icon: ClipboardPlus, x: 0,   y: -106 },
-  { href: '/products/new',  label: 'Article',  icon: PackagePlus,   x: 88,  y: -62 },
-] as const;
+const QUICK_ACTIONS: ReadonlyArray<{
+  href: string;
+  labelKey: QuickActionKey;
+  icon: IconLike;
+  x: number;
+  y: number;
+}> = [
+  { href: '/customers/new', labelKey: 'new_customer', icon: UserPlus,      x: -88, y: -62 },
+  { href: '/orders/new',    labelKey: 'new_order',    icon: ClipboardPlus, x: 0,   y: -106 },
+  { href: '/products/new',  labelKey: 'new_product',  icon: PackagePlus,   x: 88,  y: -62 },
+];
 
 export function BottomNav() {
+  const tNav = useTranslations('layout.nav');
+  const tBottom = useTranslations('layout.bottomNav');
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -59,12 +80,12 @@ export function BottomNav() {
       <div className="lg:hidden fixed bottom-4 left-1/2 z-60 -translate-x-1/2">
         <div className="relative h-14.5 w-14.5">
           {/* Actions — glissent depuis derrière le + vers leur position en arc */}
-          {QUICK_ACTIONS.map(({ href, label, icon: Icon, x, y }, i) => (
+          {QUICK_ACTIONS.map(({ href, labelKey, icon: Icon, x, y }, i) => (
             <Link
               key={href}
               href={href}
               onClick={() => setMenuOpen(false)}
-              aria-label={label}
+              aria-label={tBottom(labelKey)}
               aria-hidden={!menuOpen}
               tabIndex={menuOpen ? 0 : -1}
               className={`absolute top-1/2 left-1/2 flex items-center justify-center h-14.5 w-14.5 rounded-full bg-card ring-1 ring-primary/15 active:scale-95 ${
@@ -93,7 +114,7 @@ export function BottomNav() {
             style={{
               background: 'linear-gradient(171deg, color-mix(in oklch, oklch(0.72 0.14 121.33) 65%, white 35%), color-mix(in oklch, var(--primary) 90%, #000000bf 10%))',
             }}
-            aria-label={menuOpen ? 'Fermer le menu' : 'Actions rapides'}
+            aria-label={menuOpen ? tBottom('close_menu') : tBottom('quick_actions')}
             aria-expanded={menuOpen}
           >
             <svg
@@ -119,15 +140,15 @@ export function BottomNav() {
         style={{ background: 'var(--primary)' }}
       >
         <div className="flex h-14 items-center justify-around px-2">
-          {LEFT_ITEMS.map(({ href, label, icon: Icon }) => (
-            <NavItem key={href} href={href} label={label} icon={Icon} active={isActive(href)} />
+          {LEFT_ITEMS.map(({ href, labelKey, icon: Icon }) => (
+            <NavItem key={href} href={href} label={tNav(labelKey)} icon={Icon} active={isActive(href)} />
           ))}
 
           {/* Espace pour le bouton central */}
           <div className="w-14.5 shrink-0" />
 
-          {RIGHT_ITEMS.map(({ href, label, icon: Icon }) => (
-            <NavItem key={href} href={href} label={label} icon={Icon} active={isActive(href)} />
+          {RIGHT_ITEMS.map(({ href, labelKey, icon: Icon }) => (
+            <NavItem key={href} href={href} label={tNav(labelKey)} icon={Icon} active={isActive(href)} />
           ))}
         </div>
       </nav>

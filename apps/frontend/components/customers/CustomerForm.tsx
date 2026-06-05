@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { ChevronDown, MapPin, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,20 +11,6 @@ import { FloatingInput, FloatingTextarea } from '@/components/ui/floating-fields
 import { CountryPicker } from '@/components/ui/CountryPicker';
 import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
 import type { Customer, CustomerFormData } from '@/lib/hooks/useCustomers';
-
-const schema = z.object({
-  name: z.string().min(1, 'Nom requis'),
-  first_name: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Email invalide').optional().or(z.literal('')),
-  address_line: z.string().optional(),
-  city: z.string().optional(),
-  postal_code: z.string().optional(),
-  country: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
 
 interface CustomerFormProps {
   defaultValues?: Partial<Customer>;
@@ -36,6 +23,26 @@ function hasAddress(v?: Partial<Customer>): boolean {
 }
 
 export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: CustomerFormProps) {
+  const t = useTranslations('customers.form');
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, t('name_required')),
+        first_name: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email(t('email_invalid')).optional().or(z.literal('')),
+        address_line: z.string().optional(),
+        city: z.string().optional(),
+        postal_code: z.string().optional(),
+        country: z.string().optional(),
+        notes: z.string().optional(),
+      }),
+    [t],
+  );
+
+  type FormValues = z.infer<typeof schema>;
+
   const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -67,31 +74,28 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
       onSubmit={handleSubmit(handleValid)}
       className="flex flex-col gap-4 p-4 pb-32 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6 lg:pb-8"
     >
-      {/* Identité */}
       <section className="flex flex-col gap-2.5">
-        <SectionHeading>Identité</SectionHeading>
+        <SectionHeading>{t('section_identity')}</SectionHeading>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-0.5">
-            <FloatingInput id="name" label="Nom" required {...register('name')} />
+            <FloatingInput id="name" label={t('name')} required {...register('name')} />
             {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name.message}</p>}
           </div>
-          <FloatingInput id="first_name" label="Prénom" {...register('first_name')} />
+          <FloatingInput id="first_name" label={t('first_name')} {...register('first_name')} />
         </div>
       </section>
 
-      {/* Contact */}
       <section className="flex flex-col gap-3">
-        <SectionHeading>Contact</SectionHeading>
-        <FloatingInput id="phone" label="Téléphone" type="tel" {...register('phone')} />
+        <SectionHeading>{t('section_contact')}</SectionHeading>
+        <FloatingInput id="phone" label={t('phone')} type="tel" {...register('phone')} />
         <div className="flex flex-col gap-0.5">
-          <FloatingInput id="email" label="Email" type="email" {...register('email')} />
+          <FloatingInput id="email" label={t('email')} type="email" {...register('email')} />
           {errors.email && <p className="text-[11px] text-destructive px-1">{errors.email.message}</p>}
         </div>
       </section>
 
-      {/* Adresse — collapsible */}
       <CollapsibleSection
-        title="Adresse"
+        title={t('section_address')}
         icon={<MapPin size={15} />}
         open={showAddress}
         onToggle={() => setShowAddress((v) => !v)}
@@ -121,29 +125,27 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
           )}
         />
         <div className="grid grid-cols-2 gap-3">
-          <FloatingInput id="city" label="Ville" {...register('city')} />
-          <FloatingInput id="postal_code" label="Code postal" {...register('postal_code')} />
+          <FloatingInput id="city" label={t('city')} {...register('city')} />
+          <FloatingInput id="postal_code" label={t('postal_code')} {...register('postal_code')} />
         </div>
       </CollapsibleSection>
 
-      {/* Notes — collapsible */}
       <CollapsibleSection
-        title="Notes internes"
+        title={t('section_notes_internal')}
         icon={<FileText size={15} />}
         open={showNotes}
         onToggle={() => setShowNotes((v) => !v)}
       >
-        <FloatingTextarea id="notes" label="Notes internes" rows={3} {...register('notes')} />
+        <FloatingTextarea id="notes" label={t('notes_placeholder')} rows={3} {...register('notes')} />
       </CollapsibleSection>
 
-      {/* Sticky submit */}
       <div className="sticky bottom-24 lg:bottom-2 -mx-4 lg:mx-0 px-4 lg:px-0 mt-2">
         <Button
           type="submit"
           className="w-full rounded-full shadow-lg h-12 text-sm font-semibold"
           disabled={!canSubmit}
         >
-          {isSubmitting ? 'Enregistrement…' : 'Enregistrer le client'}
+          {isSubmitting ? t('submitting') : t('submit')}
         </Button>
       </div>
     </form>

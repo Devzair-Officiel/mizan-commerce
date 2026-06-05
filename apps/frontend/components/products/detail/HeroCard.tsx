@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { MoreHorizontal, PackagePlus, Pencil } from 'lucide-react';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 import { ProductAvatar } from './ProductAvatar';
@@ -13,6 +14,8 @@ interface HeroCardProps {
 }
 
 export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadError }: HeroCardProps) {
+  const t = useTranslations('articles.hero');
+  const tBadges = useTranslations('articles.badges');
   const badge = getProductBadge(product);
   const isProduct = product.type === 'product';
   const id = product.id;
@@ -27,7 +30,7 @@ export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadEr
       <div className="flex flex-col items-center gap-1.5">
         <p className="text-2xl font-semibold text-foreground text-center">{product.name}</p>
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.classes}`}>
-          {badge.label}
+          {tBadges(badge.labelKey)}
         </span>
       </div>
 
@@ -38,7 +41,7 @@ export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadEr
             className="flex flex-1 items-center justify-center gap-2 h-12 rounded-full bg-primary text-primary-foreground shadow-md active:scale-95 transition-transform"
           >
             <PackagePlus size={18} />
-            <span className="text-sm font-semibold">Entrée stock</span>
+            <span className="text-sm font-semibold">{t('stock_in')}</span>
           </Link>
         ) : (
           <Link
@@ -46,13 +49,13 @@ export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadEr
             className="flex flex-1 items-center justify-center gap-2 h-12 rounded-full bg-primary text-primary-foreground shadow-md active:scale-95 transition-transform"
           >
             <Pencil size={18} />
-            <span className="text-sm font-semibold">Modifier</span>
+            <span className="text-sm font-semibold">{t('edit')}</span>
           </Link>
         )}
         {isProduct && (
           <Link
             href={`/products/${id}/edit`}
-            aria-label="Modifier"
+            aria-label={t('edit')}
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform"
           >
             <Pencil size={20} />
@@ -61,7 +64,7 @@ export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadEr
         <button
           type="button"
           onClick={onShowMore}
-          aria-label="Plus d'actions"
+          aria-label={t('more_actions')}
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary active:scale-95 transition-transform"
         >
           <MoreHorizontal size={22} />

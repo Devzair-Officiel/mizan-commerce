@@ -1,33 +1,25 @@
-export function formatRevenue(value: number, currency: string): string {
-  if (!Number.isFinite(value)) return `0 ${currency}`;
-  return `${value.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} ${currency}`;
-}
-
 export function formatCompactRevenue(value: number): string {
   if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}k`;
   return String(Math.round(value));
 }
 
-export function computeDelta(today: number, yesterday: number): { label: string; positive: boolean } | null {
+export function computeDelta(today: number, yesterday: number): { pct: number; positive: boolean } | null {
   if (yesterday <= 0) return null;
   const pct = ((today - yesterday) / yesterday) * 100;
   const rounded = Math.round(pct);
-  if (rounded === 0) return { label: '= hier', positive: true };
-  return {
-    label: `${rounded > 0 ? '+' : ''}${rounded}% vs hier`,
-    positive: rounded > 0,
-  };
+  return { pct: rounded, positive: rounded >= 0 };
 }
 
-export function formatRelative(timestamp: number): string {
+export type RelativeAge = { unit: 'just_now' | 'minutes' | 'hours' | 'days'; count: number };
+
+export function computeRelativeAge(timestamp: number): RelativeAge {
   const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (seconds < 60) return "à l'instant";
+  if (seconds < 60) return { unit: 'just_now', count: 0 };
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 60) return { unit: 'minutes', count: minutes };
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `il y a ${hours} h`;
-  const days = Math.floor(hours / 24);
-  return `il y a ${days} j`;
+  if (hours < 24) return { unit: 'hours', count: hours };
+  return { unit: 'days', count: Math.floor(hours / 24) };
 }
 
 export function computeZakatDays(annualDate: string | null): number | null {

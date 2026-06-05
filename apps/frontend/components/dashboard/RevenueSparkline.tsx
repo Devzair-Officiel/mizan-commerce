@@ -1,5 +1,9 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import type { RevenueDayPoint } from '@/lib/hooks/useDashboard';
-import { formatCompactRevenue, formatRevenue } from './utils';
+import { useFormat } from '@/lib/hooks/useFormat';
+import { formatCompactRevenue } from './utils';
 
 interface RevenueSparklineProps {
   points: RevenueDayPoint[];
@@ -7,6 +11,8 @@ interface RevenueSparklineProps {
 }
 
 export function RevenueSparkline({ points, currency }: RevenueSparklineProps) {
+  const t = useTranslations('dashboard.sparkline');
+  const fmt = useFormat();
   const values = points.map((p) => Number(p.revenue) || 0);
   const max = Math.max(...values, 1);
   const total = values.reduce((a, b) => a + b, 0);
@@ -15,10 +21,10 @@ export function RevenueSparkline({ points, currency }: RevenueSparklineProps) {
     <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          CA — 7 derniers jours
+          {t('title')}
         </div>
         <div className="text-xs font-semibold text-foreground tabular-nums">
-          {formatRevenue(total, currency)}
+          {fmt.money(total, currency, { maximumFractionDigits: 0 })}
         </div>
       </div>
       <div className="flex items-end gap-1.5">
@@ -38,7 +44,10 @@ export function RevenueSparkline({ points, currency }: RevenueSparklineProps) {
                 <div
                   className={`w-full rounded-t-md ${isToday ? 'bg-primary' : 'bg-muted-foreground/60'} transition-colors`}
                   style={{ height: `${Math.max(heightPct, 4)}%` }}
-                  title={`${formatRevenue(v, currency)} — ${date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`}
+                  title={t('bar_tooltip', {
+                    revenue: fmt.money(v, currency, { maximumFractionDigits: 0 }),
+                    date: fmt.date(date, { weekday: 'short', day: 'numeric', month: 'short' }),
+                  })}
                 />
               </div>
               <span className={`text-[10px] tabular-nums ${isToday ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>

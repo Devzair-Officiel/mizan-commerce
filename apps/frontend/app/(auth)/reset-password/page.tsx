@@ -1,34 +1,40 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const schema = z
-  .object({
-    new_password: z.string().min(8, '8 caractères minimum'),
-    confirm_password: z.string(),
-  })
-  .refine((d) => d.new_password === d.confirm_password, {
-    message: 'Les mots de passe ne correspondent pas.',
-    path: ['confirm_password'],
-  });
-
-type FormData = z.infer<typeof schema>;
+type FormData = { new_password: string; confirm_password: string };
 
 function ResetPasswordForm() {
+  const t = useTranslations('auth.resetPassword');
+  const tc = useTranslations('auth.common');
   const params = useSearchParams();
   const uid = params.get('uid') ?? '';
   const token = params.get('token') ?? '';
   const [done, setDone] = useState(false);
+
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          new_password: z.string().min(8, t('password_min')),
+          confirm_password: z.string(),
+        })
+        .refine((d) => d.new_password === d.confirm_password, {
+          message: t('mismatch'),
+          path: ['confirm_password'],
+        }),
+    [t],
+  );
 
   const {
     register,
@@ -45,7 +51,7 @@ function ResetPasswordForm() {
     });
 
     if (!res.ok) {
-      setError('root', { message: 'Lien invalide ou expiré.' });
+      setError('root', { message: tc('invalid_or_expired_link') });
       return;
     }
 
@@ -55,7 +61,7 @@ function ResetPasswordForm() {
   if (!uid || !token) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-        <p className="text-sm text-red-500">Lien invalide.</p>
+        <p className="text-sm text-red-500">{t('invalid_link')}</p>
       </div>
     );
   }
@@ -66,20 +72,20 @@ function ResetPasswordForm() {
         <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-foreground">Mizan</h1>
         <Card className="w-full shadow-md">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Nouveau mot de passe</CardTitle>
+            <CardTitle className="text-lg">{t('title')}</CardTitle>
           </CardHeader>
           <CardContent>
             {done ? (
               <div className="flex flex-col gap-4 text-center">
-                <p className="text-sm text-muted-foreground">Mot de passe réinitialisé avec succès.</p>
+                <p className="text-sm text-muted-foreground">{t('done')}</p>
                 <Link href="/login">
-                  <Button className="w-full">Se connecter</Button>
+                  <Button className="w-full">{t('signin_cta')}</Button>
                 </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="new_password">Nouveau mot de passe</Label>
+                  <Label htmlFor="new_password">{t('new_password')}</Label>
                   <PasswordInput
                     id="new_password"
                     autoComplete="new-password"
@@ -90,7 +96,7 @@ function ResetPasswordForm() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="confirm_password">Confirmer le mot de passe</Label>
+                  <Label htmlFor="confirm_password">{t('confirm_password')}</Label>
                   <PasswordInput
                     id="confirm_password"
                     autoComplete="new-password"
@@ -102,7 +108,7 @@ function ResetPasswordForm() {
                 </div>
                 {errors.root && <p className="text-sm text-red-500">{errors.root.message}</p>}
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Enregistrement…' : 'Réinitialiser'}
+                  {isSubmitting ? t('submitting') : t('submit')}
                 </Button>
               </form>
             )}

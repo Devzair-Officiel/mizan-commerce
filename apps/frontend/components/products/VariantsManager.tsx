@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus } from 'lucide-react';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 import { VariantEditor } from './variants/VariantEditor';
 import { VariantRow } from './variants/VariantRow';
 
 export function VariantsManager({ product }: { product: ProductDetail }) {
+  const t = useTranslations('articles.variants');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
 
@@ -20,7 +22,7 @@ export function VariantsManager({ product }: { product: ProductDetail }) {
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Conditionnements
+          {t('section_title')}
         </h2>
         {!showAdd && (
           <button
@@ -29,7 +31,7 @@ export function VariantsManager({ product }: { product: ProductDetail }) {
             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             <Plus size={13} />
-            Ajouter
+            {t('add')}
           </button>
         )}
       </div>
@@ -45,7 +47,7 @@ export function VariantsManager({ product }: { product: ProductDetail }) {
       )}
 
       {variants.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">Aucun conditionnement.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">{t('empty')}</p>
       ) : (
         <ul className="divide-y divide-border">
           {variants.map((v) => (

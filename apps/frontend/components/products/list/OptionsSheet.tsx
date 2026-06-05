@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   ArrowDownAZ, Check, Clock, Eye, Layers, X,
 } from 'lucide-react';
@@ -7,22 +8,22 @@ import type { ProductOrdering, ProductType } from '@/lib/hooks/useProducts';
 export type TypeFilter = 'all' | ProductType;
 export type Visibility = 'active' | 'inactive' | 'all';
 
-export const TYPE_OPTIONS: { key: TypeFilter; label: string }[] = [
-  { key: 'all',     label: 'Produits + services' },
-  { key: 'product', label: 'Produits uniquement' },
-  { key: 'service', label: 'Services uniquement' },
+const TYPE_KEYS: { key: TypeFilter; tKey: 'type_all' | 'type_products' | 'type_services' }[] = [
+  { key: 'all',     tKey: 'type_all' },
+  { key: 'product', tKey: 'type_products' },
+  { key: 'service', tKey: 'type_services' },
 ];
 
-export const VISIBILITY_OPTIONS: { key: Visibility; label: string }[] = [
-  { key: 'active',   label: 'Actifs uniquement' },
-  { key: 'inactive', label: 'Inactifs uniquement' },
-  { key: 'all',      label: 'Actifs + inactifs' },
+const VISIBILITY_KEYS: { key: Visibility; tKey: 'show_active' | 'show_inactive' | 'show_all' }[] = [
+  { key: 'active',   tKey: 'show_active' },
+  { key: 'inactive', tKey: 'show_inactive' },
+  { key: 'all',      tKey: 'show_all' },
 ];
 
-export const SORT_OPTIONS: { key: ProductOrdering; label: string; icon: React.ReactNode }[] = [
-  { key: 'name',        label: 'Nom A → Z',    icon: <ArrowDownAZ size={16} /> },
-  { key: '-name',       label: 'Nom Z → A',    icon: <ArrowDownAZ size={16} /> },
-  { key: '-created_at', label: 'Plus récents', icon: <Clock size={16} /> },
+const SORT_KEYS: { key: ProductOrdering; tKey: 'sort_name_asc' | 'sort_name_desc' | 'sort_recent'; icon: React.ReactNode }[] = [
+  { key: 'name',        tKey: 'sort_name_asc',  icon: <ArrowDownAZ size={16} /> },
+  { key: '-name',       tKey: 'sort_name_desc', icon: <ArrowDownAZ size={16} /> },
+  { key: '-created_at', tKey: 'sort_recent',    icon: <Clock size={16} /> },
 ];
 
 interface OptionsSheetProps {
@@ -42,6 +43,8 @@ export function OptionsSheet({
   visibility, onVisibilityChange,
   typeFilter, onTypeFilterChange,
 }: OptionsSheetProps) {
+  const t = useTranslations('articles.options');
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -60,17 +63,17 @@ export function OptionsSheet({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Options"
+        aria-label={t('title')}
         className={`fixed inset-x-0 bottom-0 z-80 rounded-t-3xl bg-card shadow-2xl transition-transform duration-300 ease-out ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
         <div className="mx-auto mt-3 mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
         <div className="flex items-center justify-between px-5 pb-2">
-          <h2 className="text-lg font-semibold text-foreground">Options</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('title')}</h2>
           <button
             onClick={onClose}
-            aria-label="Fermer"
+            aria-label={t('close')}
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
             <X size={18} />
@@ -78,36 +81,36 @@ export function OptionsSheet({
         </div>
 
         <div className="px-5 pb-6 pt-1 flex flex-col gap-5 max-h-[75vh] overflow-y-auto">
-          <OptionGroup label="Type">
-            {TYPE_OPTIONS.map(({ key, label }) => (
+          <OptionGroup label={t('type')}>
+            {TYPE_KEYS.map(({ key, tKey }) => (
               <OptionRow
                 key={key}
                 icon={<Layers size={16} className="shrink-0" />}
-                label={label}
+                label={t(tKey)}
                 selected={typeFilter === key}
                 onClick={() => onTypeFilterChange(key)}
               />
             ))}
           </OptionGroup>
 
-          <OptionGroup label="Trier par">
-            {SORT_OPTIONS.map(({ key, label, icon }) => (
+          <OptionGroup label={t('sort_by')}>
+            {SORT_KEYS.map(({ key, tKey, icon }) => (
               <OptionRow
                 key={key}
                 icon={<span className="shrink-0">{icon}</span>}
-                label={label}
+                label={t(tKey)}
                 selected={ordering === key}
                 onClick={() => onOrderingChange(key)}
               />
             ))}
           </OptionGroup>
 
-          <OptionGroup label="Afficher">
-            {VISIBILITY_OPTIONS.map(({ key, label }) => (
+          <OptionGroup label={t('show')}>
+            {VISIBILITY_KEYS.map(({ key, tKey }) => (
               <OptionRow
                 key={key}
                 icon={<Eye size={16} className="shrink-0" />}
-                label={label}
+                label={t(tKey)}
                 selected={visibility === key}
                 onClick={() => onVisibilityChange(key)}
               />

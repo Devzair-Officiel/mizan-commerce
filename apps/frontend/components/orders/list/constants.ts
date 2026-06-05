@@ -16,11 +16,7 @@ export const STATUS_TEXT: Record<string, string> = {
   cancelled:  'text-red-600 dark:text-red-400',
 };
 
-export const PAYMENT_LABEL: Record<string, string> = {
-  unpaid:  'Non payé',
-  partial: 'Partiel',
-  paid:    'Payé',
-};
+export type PaymentKey = 'unpaid' | 'partial' | 'paid';
 
 export const PAYMENT_COLOR: Record<string, string> = {
   unpaid:  'text-red-500 dark:text-red-400',
@@ -28,20 +24,15 @@ export const PAYMENT_COLOR: Record<string, string> = {
   paid:    'text-green-600 dark:text-green-400',
 };
 
-export const STATUSES: { value: string; label: string; dot: string | null; activeClass: string }[] = [
-  { value: '',           label: 'Toutes',     dot: null,           activeClass: 'bg-foreground text-background' },
-  { value: 'draft',      label: 'Brouillons', dot: 'bg-zinc-400',  activeClass: 'bg-zinc-500 text-white' },
-  { value: 'to_prepare', label: 'À préparer', dot: 'bg-blue-500',  activeClass: 'bg-blue-600 text-white' },
-  { value: 'prepared',   label: 'Prêtes',     dot: 'bg-amber-500', activeClass: 'bg-amber-500 text-white' },
-  { value: 'shipped',    label: 'Expédiées',  dot: 'bg-green-500', activeClass: 'bg-green-600 text-white' },
-  { value: 'cancelled',  label: 'Annulées',   dot: 'bg-red-500',   activeClass: 'bg-red-600 text-white' },
-];
+export type StatusFilterKey = '' | 'draft' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled';
 
-export const BUCKET_LABEL: Record<Bucket, string> = {
-  today:     "Aujourd'hui",
-  yesterday: 'Hier',
-  this_week: 'Cette semaine',
-  older:     'Plus ancien',
-};
+export const STATUSES: { value: StatusFilterKey; labelKey: 'all' | 'draft' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled'; dot: string | null; activeClass: string }[] = [
+  { value: '',           labelKey: 'all',        dot: null,           activeClass: 'bg-foreground text-background' },
+  { value: 'draft',      labelKey: 'draft',      dot: 'bg-zinc-400',  activeClass: 'bg-zinc-500 text-white' },
+  { value: 'to_prepare', labelKey: 'to_prepare', dot: 'bg-blue-500',  activeClass: 'bg-blue-600 text-white' },
+  { value: 'prepared',   labelKey: 'prepared',   dot: 'bg-amber-500', activeClass: 'bg-amber-500 text-white' },
+  { value: 'shipped',    labelKey: 'shipped',    dot: 'bg-green-500', activeClass: 'bg-green-600 text-white' },
+  { value: 'cancelled',  labelKey: 'cancelled',  dot: 'bg-red-500',   activeClass: 'bg-red-600 text-white' },
+];
 
 export const BUCKET_ORDER: Bucket[] = ['today', 'yesterday', 'this_week', 'older'];

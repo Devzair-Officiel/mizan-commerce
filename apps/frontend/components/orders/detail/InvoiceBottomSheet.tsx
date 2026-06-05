@@ -1,4 +1,7 @@
+'use client';
+
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Receipt } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
@@ -14,13 +17,10 @@ interface InvoiceBottomSheetProps {
   onSubmit: (params: { taxRate: string; termsDays: string; notes: string }) => void | Promise<void>;
 }
 
-/**
- * Le formulaire vit dans un composant interne monté uniquement quand `open` est vrai,
- * pour garantir un état frais à chaque ouverture sans `useEffect` (anti-pattern React 19).
- */
 export function InvoiceBottomSheet(props: InvoiceBottomSheetProps) {
+  const t = useTranslations('orders.invoiceSheet');
   return (
-    <BottomSheet open={props.open} onClose={props.onClose} title="Émettre une facture">
+    <BottomSheet open={props.open} onClose={props.onClose} title={t('title')}>
       {props.open && <InvoiceForm {...props} />}
     </BottomSheet>
   );
@@ -29,44 +29,42 @@ export function InvoiceBottomSheet(props: InvoiceBottomSheetProps) {
 function InvoiceForm({
   defaultTaxRate, defaultTermsDays, isPending, error, onSubmit,
 }: InvoiceBottomSheetProps) {
+  const t = useTranslations('orders.invoiceSheet');
   const [taxRate, setTaxRate] = useState(defaultTaxRate);
   const [termsDays, setTermsDays] = useState(defaultTermsDays);
   const [notes, setNotes] = useState('');
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-zinc-500">
-        Les valeurs par défaut viennent des paramètres boutique. Ajustez-les si besoin pour
-        cette facture.
-      </p>
+      <p className="text-xs text-zinc-500">{t('intro')}</p>
       <div className="grid grid-cols-2 gap-3">
         <FloatingInput
           id="invoice-tax-rate"
-          label="Taux TVA"
+          label={t('tax_rate')}
           type="number"
           step="0.01"
           min="0"
           max="100"
           inputMode="decimal"
-          suffix="%"
+          suffix={t('tax_suffix')}
           value={taxRate}
           onChange={(e) => setTaxRate(e.target.value)}
         />
         <FloatingInput
           id="invoice-terms-days"
-          label="Délai de paiement"
+          label={t('terms_days')}
           type="number"
           step="1"
           min="0"
           inputMode="numeric"
-          suffix="jours"
+          suffix={t('terms_suffix')}
           value={termsDays}
           onChange={(e) => setTermsDays(e.target.value)}
         />
       </div>
       <FloatingTextarea
         id="invoice-notes"
-        label="Notes (optionnel)"
+        label={t('notes')}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={3}
@@ -78,11 +76,9 @@ function InvoiceForm({
         className="w-full inline-flex items-center justify-center gap-2"
       >
         <Receipt size={16} />
-        {isPending ? 'Émission…' : 'Émettre la facture'}
+        {isPending ? t('issuing') : t('submit')}
       </Button>
-      <p className="text-[11px] text-zinc-400 text-center">
-        Une fois émise, la facture est immuable. Seul le statut peut être modifié.
-      </p>
+      <p className="text-[11px] text-zinc-400 text-center">{t('footnote')}</p>
     </div>
   );
 }

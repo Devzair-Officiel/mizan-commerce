@@ -1,3 +1,7 @@
+'use client';
+
+import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { History } from 'lucide-react';
 import { useCustomerActivityInfinite, type ActivityType } from '@/lib/hooks/useCustomers';
 import { ActivityRow, ActivitySkeletonRow } from './ActivityRow';
@@ -9,17 +13,10 @@ interface CustomerActivityTimelineProps {
   onFilterChange: (filter: ActivityType | null) => void;
 }
 
-const CHIPS: { key: ActivityType | null; label: string }[] = [
-  { key: null,       label: 'Tout' },
-  { key: 'order',    label: 'Commandes' },
-  { key: 'payment',  label: 'Paiements' },
-  { key: 'shipment', label: 'Expéditions' },
-  { key: 'note',     label: 'Notes' },
-];
-
 export function CustomerActivityTimeline({
   customerId, activityFilter, pendingOnly, onFilterChange,
 }: CustomerActivityTimelineProps) {
+  const t = useTranslations('customers.timeline');
   const {
     data,
     fetchNextPage,
@@ -27,6 +24,17 @@ export function CustomerActivityTimeline({
     isFetchingNextPage,
     isLoading,
   } = useCustomerActivityInfinite(customerId, activityFilter, pendingOnly);
+
+  const chips = useMemo<{ key: ActivityType | null; label: string }[]>(
+    () => [
+      { key: null,       label: t('chip_all') },
+      { key: 'order',    label: t('chip_orders') },
+      { key: 'payment',  label: t('chip_payments') },
+      { key: 'shipment', label: t('chip_shipments') },
+      { key: 'note',     label: t('chip_notes') },
+    ],
+    [t],
+  );
 
   const allItems = data?.pages.flatMap((p) => p.results) ?? [];
   const totalCount = data?.pages[0]?.count ?? 0;
@@ -36,7 +44,7 @@ export function CustomerActivityTimeline({
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <History size={15} className="text-muted-foreground" />
-          <h2 className="font-semibold text-sm text-foreground">Activité récente</h2>
+          <h2 className="font-semibold text-sm text-foreground">{t('title')}</h2>
           {totalCount > 0 && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
               {totalCount}
@@ -47,7 +55,7 @@ export function CustomerActivityTimeline({
 
       <div className="overflow-x-auto px-4 pb-3 -mx-px">
         <div className="flex gap-2 w-max">
-          {CHIPS.map(({ key, label }) => {
+          {chips.map(({ key, label }) => {
             const active = activityFilter === key;
             return (
               <button
@@ -79,8 +87,8 @@ export function CustomerActivityTimeline({
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <History size={20} />
             </div>
-            <p className="text-sm font-medium text-foreground">Aucune activité</p>
-            <p className="text-xs text-muted-foreground">L’activité du client apparaîtra ici.</p>
+            <p className="text-sm font-medium text-foreground">{t('empty_title')}</p>
+            <p className="text-xs text-muted-foreground">{t('empty_sub')}</p>
           </div>
         ) : (
           <div className="flex flex-col divide-y divide-border">
@@ -93,7 +101,7 @@ export function CustomerActivityTimeline({
                 disabled={isFetchingNextPage}
                 className="w-full py-3 text-xs font-medium text-primary transition-colors active:bg-muted"
               >
-                {isFetchingNextPage ? 'Chargement…' : `Voir plus (${totalCount - allItems.length} restantes)`}
+                {isFetchingNextPage ? t('loading') : t('load_more', { remaining: totalCount - allItems.length })}
               </button>
             )}
           </div>

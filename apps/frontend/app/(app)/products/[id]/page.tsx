@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PackageMinus, PowerOff, Power, Camera, FileText } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -20,6 +21,9 @@ import {
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('articles.detail');
+  const tActions = useTranslations('articles.actions');
+  const tHero = useTranslations('articles.hero');
   const { data: product, isLoading } = useProduct(id);
   const deactivate = useDeactivateProduct();
   const reactivate = useReactivateProduct();
@@ -35,19 +39,19 @@ export default function ProductDetailPage() {
     try {
       await uploadImage.mutateAsync(file);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Erreur lors de l'upload.");
+      setUploadError(err instanceof Error ? err.message : t('upload_error'));
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   async function handleDeactivate() {
-    if (!confirm('Désactiver ce produit ?')) return;
+    if (!confirm(t('confirm_deactivate'))) return;
     await deactivate.mutateAsync(id);
     router.push('/products');
   }
 
-  if (isLoading) return <><TopBar title="Produit" /><ProductDetailSkeleton /></>;
-  if (!product) return <><TopBar title="Produit" /><p className="p-4 text-sm text-destructive">Produit introuvable.</p></>;
+  if (isLoading) return <><TopBar title={t('title')} /><ProductDetailSkeleton /></>;
+  if (!product) return <><TopBar title={t('title')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   const isProduct = product.type === 'product';
 
@@ -55,19 +59,19 @@ export default function ProductDetailPage() {
     <>
       <TopBar title={product.name} />
 
-      <BottomSheet open={showMore} onClose={() => setShowMore(false)} title="Actions">
+      <BottomSheet open={showMore} onClose={() => setShowMore(false)} title={tHero('more_actions')}>
         <div className="flex flex-col gap-1.5">
           {isProduct && (
             <ActionRow
               icon={<PackageMinus size={18} />}
-              label="Sortie stock"
+              label={tActions('stock_out')}
               onClick={() => { setShowMore(false); router.push(`/stock/out?product=${id}`); }}
             />
           )}
           <ActionRow
             icon={<Camera size={18} />}
-            label={product.primary_image ? 'Remplacer la photo' : 'Ajouter une photo'}
-            description="JPEG, PNG ou WebP — 5 Mo max"
+            label={product.primary_image ? tActions('replace_photo') : tActions('add_photo')}
+            description={tActions('photo_helper')}
             onClick={() => { setShowMore(false); fileInputRef.current?.click(); }}
           />
         </div>
@@ -76,8 +80,8 @@ export default function ProductDetailPage() {
           {product.is_active ? (
             <ActionRow
               icon={<PowerOff size={18} />}
-              label="Désactiver le produit"
-              description="Le produit n'apparaîtra plus dans la liste"
+              label={tActions('deactivate')}
+              description={tActions('deactivate_helper')}
               onClick={async () => { setShowMore(false); await handleDeactivate(); }}
               disabled={deactivate.isPending}
               tone="danger"
@@ -85,7 +89,7 @@ export default function ProductDetailPage() {
           ) : (
             <ActionRow
               icon={<Power size={18} />}
-              label="Réactiver le produit"
+              label={tActions('reactivate')}
               onClick={async () => { setShowMore(false); await reactivate.mutateAsync(id); }}
               disabled={reactivate.isPending}
               tone="success"
@@ -120,7 +124,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-2">
               <FileText size={14} className="text-muted-foreground" />
               <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Description
+                {t('description_heading')}
               </h2>
             </div>
             <p className="text-sm text-foreground whitespace-pre-line">{product.description}</p>

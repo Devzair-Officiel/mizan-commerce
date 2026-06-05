@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ChevronRight } from 'lucide-react';
 import type { CustomerSummary } from '@/lib/hooks/useCustomers';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 
 const AVATAR_COLORS = [
   'bg-violet-100 text-violet-700',
@@ -20,10 +24,18 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[code % AVATAR_COLORS.length];
 }
 
-export function CustomerRow({ customer, first }: { customer: CustomerSummary; first: boolean }) {
+interface CustomerRowProps {
+  customer: CustomerSummary;
+  first: boolean;
+  currency: string;
+}
+
+export function CustomerRow({ customer, first, currency }: CustomerRowProps) {
+  const t = useTranslations('customers.list');
+  const formatMoney = useFormatMoney();
   const pending = parseFloat(customer.pending_amount);
   const hasPending = pending > 0;
-  const subtitle = customer.phone || 'Téléphone non renseigné';
+  const subtitle = customer.phone || t('phone_missing');
   const city = customer.city?.trim();
 
   return (
@@ -42,7 +54,7 @@ export function CustomerRow({ customer, first }: { customer: CustomerSummary; fi
           <span className="font-semibold text-foreground capitalize truncate">{customer.name}</span>
           {!customer.is_active && (
             <span className="shrink-0 rounded-full bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-red-600 dark:text-red-400">
-              Désactivé
+              {t('deactivated_badge')}
             </span>
           )}
         </div>
@@ -56,9 +68,9 @@ export function CustomerRow({ customer, first }: { customer: CustomerSummary; fi
         {hasPending && (
           <div className="flex flex-col items-end leading-tight">
             <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-              {pending.toFixed(2)} €
+              {formatMoney(pending, currency, { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-[11px] font-medium text-amber-600/80 dark:text-amber-400/80">à régler</span>
+            <span className="text-[11px] font-medium text-amber-600/80 dark:text-amber-400/80">{t('pending_to_collect')}</span>
           </div>
         )}
         <ChevronRight size={16} className="text-muted-foreground" />

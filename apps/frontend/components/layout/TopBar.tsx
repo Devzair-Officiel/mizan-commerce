@@ -3,32 +3,31 @@
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Search, Home, ChevronRight } from 'lucide-react';
 import { BurgerButton } from './BurgerMenu';
 import { useSearchOverlay } from './SearchOverlay';
 
-const SEGMENT_LABELS: Record<string, string> = {
-  products:  'Articles',
-  customers: 'Clients',
-  orders:    'Commandes',
-  settings:  'Paramètres',
-  stock:     'Stock',
-  notes:     'Notes',
-  reminders: 'Rappels',
-  new:       'Nouveau',
-  edit:      'Modifier',
-  add:       'Entrée',
-  out:       'Sortie',
-};
+// Clés statiques connues du catalogue : permet à TS de garder l'autocomplétion
+// next-intl tout en autorisant un fallback raw pour les segments inconnus.
+type BreadcrumbSegment =
+  | 'products' | 'customers' | 'orders' | 'settings' | 'stock'
+  | 'notes'    | 'reminders' | 'new'    | 'edit'     | 'add' | 'out';
 
-// Quand on arrive d'un autre contexte (?from=), Accueil > [from] > [resource]
-// > [action] devient trop long. On collapse les deux derniers crumbs en un
-// seul label contextuel.
-const CONTEXTUAL_ACTION_LABELS: Record<string, Record<string, string>> = {
-  orders:    { new: 'Nouvelle commande', edit: 'Modifier la commande' },
-  customers: { new: 'Nouveau client',    edit: 'Modifier le client'    },
-  products:  { new: 'Nouvel article',    edit: "Modifier l'article"    },
-};
+const KNOWN_SEGMENTS: ReadonlySet<string> = new Set([
+  'products', 'customers', 'orders', 'settings', 'stock',
+  'notes', 'reminders', 'new', 'edit', 'add', 'out',
+]);
+
+type ContextualResource = 'orders' | 'customers' | 'products';
+type ContextualAction   = 'new' | 'edit';
+
+function isContextualResource(seg: string): seg is ContextualResource {
+  return seg === 'orders' || seg === 'customers' || seg === 'products';
+}
+function isContextualAction(seg: string): seg is ContextualAction {
+  return seg === 'new' || seg === 'edit';
+}
 
 function isId(segment: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(segment)
@@ -36,11 +35,17 @@ function isId(segment: string) {
 }
 
 function Breadcrumb() {
+  const t = useTranslations('layout.breadcrumb');
+  const tc = useTranslations('layout.common');
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const rawFrom = searchParams.get('from');
   const fromPath = rawFrom && rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : null;
   const ref = useRef<HTMLDivElement>(null);
+
+  function segmentLabel(seg: string): string {
+    return KNOWN_SEGMENTS.has(seg) ? t(seg as BreadcrumbSegment) : seg;
+  }
 
   useEffect(() => {
     let rafId: number | null = null;
@@ -67,7 +72,7 @@ function Breadcrumb() {
   if (pathname === '/dashboard') return null;
 
   const crumbs: { label: string; href: string }[] = [
-    { label: 'Accueil', href: '/dashboard' },
+    { label: tc('home'), href: '/dashboard' },
   ];
 
   function pushCategoryCrumbs(segments: string[]) {
@@ -85,15 +90,16 @@ function Breadcrumb() {
         const detailHref = `${acc}/${nextSeg}`;
         if (detailHref !== pathname) href = detailHref;
       }
-      crumbs.push({ label: SEGMENT_LABELS[seg] ?? seg, href });
+      crumbs.push({ label: segmentLabel(seg), href });
     }
   }
 
   const currentSegments = pathname.split('/').filter(Boolean);
   const lastSeg = currentSegments[currentSegments.length - 1];
   const resourceSeg = currentSegments[0];
-  const contextualLabel = fromPath && resourceSeg && (lastSeg === 'new' || lastSeg === 'edit')
-    ? CONTEXTUAL_ACTION_LABELS[resourceSeg]?.[lastSeg]
+  const contextualLabel = fromPath && resourceSeg && lastSeg
+    && isContextualResource(resourceSeg) && isContextualAction(lastSeg)
+    ? t(`${resourceSeg}_${lastSeg}` as const)
     : undefined;
 
   if (fromPath) pushCategoryCrumbs(fromPath.split('/').filter(Boolean));
@@ -113,11 +119,11 @@ function Breadcrumb() {
         const isHome = i === 0;
         const isCurrent = crumb.href === pathname;
         const label = isHome
-          ? <span className="flex items-center gap-1.5"><Home size={13} className="-mt-px" />Accueil</span>
+          ? <span className="flex items-center gap-1.5"><Home size={13} className="-mt-px" />{tc('home')}</span>
           : crumb.label;
         return (
           <div key={`${crumb.href}-${i}`} className="flex items-center gap-3 shrink-0">
-            {i > 0 && <ChevronRight size={16} className="text-muted-foreground/60 shrink-0" />}
+            {i > 0 && <ChevronRight size={16} className="text-muted-foreground/60 shrink-0 rtl:rotate-180" />}
             {isCurrent ? (
               <span className="text-sm font-semibold tracking-[0.12em] text-foreground">{label}</span>
             ) : (
@@ -141,6 +147,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, action, back, onBack, titleClassName }: TopBarProps) {
+  const tc = useTranslations('layout.common');
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
 
@@ -155,12 +162,12 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
             <button
               onClick={() => onBack ? onBack() : router.back()}
               className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              aria-label="Retour"
+              aria-label={tc('back')}
             >
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
                 <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              Retour
+              {tc('back')}
             </button>
           ) : (
             <span className="lg:hidden">
@@ -178,7 +185,7 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
           <button
             onClick={openSearch}
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Rechercher"
+            aria-label={tc('search')}
           >
             <Search size={19} />
           </button>

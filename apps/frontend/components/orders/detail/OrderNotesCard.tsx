@@ -1,15 +1,22 @@
+'use client';
+
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Plus, StickyNote, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { useCreateOrderNote, useDeleteNote, useOrderNotes } from '@/lib/hooks/useNotes';
-import { FULL_FMT, relativeTime } from './constants';
+import { useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
 
 interface OrderNotesCardProps {
   orderId: string;
 }
 
 export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
+  const t = useTranslations('orders.notes');
+  const formatDateTime = useFormatDateTime();
+  const relativeTime = useRelativeTime();
+
   const { data: notesData } = useOrderNotes(orderId);
   const createNote = useCreateOrderNote(orderId);
   const deleteNote = useDeleteNote(orderId);
@@ -25,7 +32,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
   }
 
   async function handleDeleteNote(noteId: string) {
-    if (!confirm('Supprimer cette note ?')) return;
+    if (!confirm(t('delete_confirm'))) return;
     await deleteNote.mutateAsync(noteId);
   }
 
@@ -34,7 +41,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
         <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
           <StickyNote size={14} />
-          Notes
+          {t('title')}
           {notesData && notesData.count > 0 && (
             <span className="text-zinc-400 normal-case font-normal tracking-normal">
               ({notesData.count})
@@ -48,7 +55,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
             className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             <Plus size={13} />
-            Ajouter
+            {t('add_cta')}
           </button>
         )}
       </div>
@@ -57,7 +64,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
         <div className="p-3 border-b border-zinc-100 flex flex-col gap-2">
           <FloatingTextarea
             id="note-content"
-            label="Nouvelle note"
+            label={t('field_label')}
             value={noteInput}
             onChange={(e) => setNoteInput(e.target.value)}
             rows={3}
@@ -69,14 +76,14 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
               onClick={handleAddNote}
               disabled={createNote.isPending || !noteInput.trim()}
             >
-              {createNote.isPending ? 'Enregistrement…' : 'Enregistrer'}
+              {createNote.isPending ? t('saving') : t('save')}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => { setShowNoteForm(false); setNoteInput(''); }}
             >
-              Annuler
+              {t('cancel')}
             </Button>
           </div>
         </div>
@@ -84,30 +91,36 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
 
       {notesData?.results.length ? (
         <ul className="divide-y divide-zinc-100">
-          {notesData.results.map((note) => (
-            <li key={note.id} className="px-4 py-3 flex flex-col gap-1.5">
-              <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">
-                {note.content}
-              </p>
-              <div className="flex items-center justify-between text-xs text-zinc-400">
-                <span>
-                  {note.author_name ?? 'Anonyme'} · <span title={FULL_FMT.format(new Date(note.created_at))}>{relativeTime(note.created_at)}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteNote(note.id)}
-                  aria-label="Supprimer la note"
-                  className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </li>
-          ))}
+          {notesData.results.map((note) => {
+            const fullTimestamp = formatDateTime(note.created_at, {
+              day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+            });
+            return (
+              <li key={note.id} className="px-4 py-3 flex flex-col gap-1.5">
+                <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">
+                  {note.content}
+                </p>
+                <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <span>
+                    {note.author_name ?? t('anonymous')} ·{' '}
+                    <span title={fullTimestamp}>{relativeTime(note.created_at)}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteNote(note.id)}
+                    aria-label={t('delete_aria')}
+                    className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       ) : !showNoteForm && (
         <p className="px-4 py-6 text-center text-sm text-zinc-400">
-          Aucune note pour cette commande.
+          {t('empty')}
         </p>
       )}
     </div>

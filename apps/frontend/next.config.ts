@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// next-intl résout la locale dynamiquement via `i18n/request.ts` (cookie + Accept-Language),
+// pas via préfixe d'URL — l'app reste sur des routes sans `[locale]`.
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -55,4 +60,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

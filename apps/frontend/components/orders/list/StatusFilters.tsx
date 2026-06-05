@@ -1,15 +1,19 @@
-import { STATUSES } from './constants';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { STATUSES, type StatusFilterKey } from './constants';
 
 interface StatusFiltersProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: StatusFilterKey) => void;
 }
 
 export function StatusFilters({ value, onChange }: StatusFiltersProps) {
+  const t = useTranslations('orders.statusFilter');
   return (
     <div className="-mx-4 lg:-mx-8 px-4 lg:px-8 overflow-x-auto no-scrollbar">
       <div className="flex gap-2 pr-4">
-        {STATUSES.map(({ value: optionValue, label, dot, activeClass }) => {
+        {STATUSES.map(({ value: optionValue, labelKey, dot, activeClass }) => {
           const isActive = value === optionValue;
           return (
             <button
@@ -20,7 +24,7 @@ export function StatusFilters({ value, onChange }: StatusFiltersProps) {
               }`}
             >
               {!isActive && dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}

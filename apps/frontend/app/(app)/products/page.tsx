@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   AlertTriangle, PackageX, PackagePlus, SlidersHorizontal, Search, X,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ type StockFilter = 'all' | 'out_of_stock' | 'low_stock';
 
 export default function CatalogPage() {
   const router = useRouter();
+  const t = useTranslations('articles');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -62,7 +64,7 @@ export default function CatalogPage() {
 
   return (
     <>
-      <TopBar title="Mes articles" titleClassName="text-3xl" />
+      <TopBar title={t('topbar.title')} titleClassName="text-3xl" />
 
       <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
         <div className="relative">
@@ -72,13 +74,13 @@ export default function CatalogPage() {
             inputMode="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un article…"
+            placeholder={t('list.search_placeholder')}
             className="w-full h-12 rounded-2xl border border-border bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              aria-label="Effacer la recherche"
+              aria-label={t('list.clear_search')}
               className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <X size={16} />
@@ -88,7 +90,7 @@ export default function CatalogPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            label="En rupture"
+            label={t('stats.out_of_stock')}
             value={summary?.out_of_stock ?? '—'}
             icon={<PackageX size={14} />}
             tone="red"
@@ -96,7 +98,7 @@ export default function CatalogPage() {
             onClick={() => setStockFilter((s) => (s === 'out_of_stock' ? 'all' : 'out_of_stock'))}
           />
           <StatCard
-            label="Stock faible"
+            label={t('stats.low_stock')}
             value={summary?.low_stock ?? '—'}
             icon={<AlertTriangle size={14} />}
             tone="amber"
@@ -111,7 +113,7 @@ export default function CatalogPage() {
             className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
           >
             <PackagePlus size={16} strokeWidth={2.2} />
-            Nouvel article
+            {t('list.new_product')}
           </button>
           <button
             onClick={() => setOptionsOpen(true)}
@@ -122,7 +124,7 @@ export default function CatalogPage() {
             }`}
           >
             <SlidersHorizontal size={16} />
-            Options
+            {t('list.options')}
           </button>
         </div>
 
@@ -137,7 +139,7 @@ export default function CatalogPage() {
         {!isLoading && items.length > 0 && (
           <>
             <p className="text-xs text-muted-foreground self-end -mb-1 tabular-nums">
-              {items.length} article{items.length > 1 ? 's' : ''}
+              {t('list.count', { count: items.length })}
             </p>
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
               {items.map((p, i) => (

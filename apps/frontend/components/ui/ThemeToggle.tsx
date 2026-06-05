@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useColorTheme } from '@/components/providers/ColorThemeProvider';
 import { useIsClient } from '@/lib/hooks/useIsClient';
 
 export function ThemeToggleButton() {
+  const tc = useTranslations('layout.themeDrawer');
   const { setTheme, resolvedTheme } = useTheme();
   const mounted = useIsClient();
 
@@ -16,20 +18,27 @@ export function ThemeToggleButton() {
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-      aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+      aria-label={isDark ? tc('switch_to_light') : tc('switch_to_dark')}
     >
       {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
     </button>
   );
 }
 
-const BRIGHTNESS_OPTIONS = [
-  { value: 'light', label: 'Clair', icon: SunIcon },
-  { value: 'dark',  label: 'Sombre', icon: MoonIcon },
-  { value: 'system', label: 'Système', icon: SystemIcon },
-] as const;
+type BrightnessOption = {
+  value: 'light' | 'dark' | 'system';
+  labelKey: 'brightness_light' | 'brightness_dark' | 'brightness_system';
+  icon: (props: { className?: string }) => React.JSX.Element;
+};
+
+const BRIGHTNESS_OPTIONS: readonly BrightnessOption[] = [
+  { value: 'light',  labelKey: 'brightness_light',  icon: SunIcon },
+  { value: 'dark',   labelKey: 'brightness_dark',   icon: MoonIcon },
+  { value: 'system', labelKey: 'brightness_system', icon: SystemIcon },
+];
 
 export function ThemeToggle() {
+  const t = useTranslations('layout.themeDrawer');
   const { theme, setTheme } = useTheme();
   const { primaryId, bgId, setPrimaryId, setBgId, primaryColors, backgrounds } = useColorTheme();
   const mounted = useIsClient();
@@ -42,7 +51,7 @@ export function ThemeToggle() {
     <div className="flex flex-col gap-6">
       {/* Mode clair / sombre */}
       <div className="flex rounded-xl border border-border overflow-hidden text-sm font-medium">
-        {BRIGHTNESS_OPTIONS.map(({ value, label, icon: Icon }) => (
+        {BRIGHTNESS_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
           <button
             key={value}
             onClick={() => setTheme(value)}
@@ -53,15 +62,15 @@ export function ThemeToggle() {
             } ${value !== 'light' ? 'border-l border-border' : ''}`}
           >
             <Icon className="h-3.5 w-3.5" />
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
 
       {/* Couleur principale */}
       <div>
-        <p className="text-sm font-semibold text-foreground mb-0.5">Couleur principale</p>
-        <p className="text-xs text-muted-foreground mb-3">Personnalisez la couleur d&apos;accent</p>
+        <p className="text-sm font-semibold text-foreground mb-0.5">{t('primary_color')}</p>
+        <p className="text-xs text-muted-foreground mb-3">{t('primary_color_desc')}</p>
         <div className="grid grid-cols-5 gap-3">
           {primaryColors.map((pc) => {
             const active = primaryId === pc.id;
@@ -86,8 +95,8 @@ export function ThemeToggle() {
 
       {/* Arrière-plan */}
       <div>
-        <p className="text-sm font-semibold text-foreground mb-0.5">Arrière-plan</p>
-        <p className="text-xs text-muted-foreground mb-3">Couleur de fond de l&apos;application</p>
+        <p className="text-sm font-semibold text-foreground mb-0.5">{t('background')}</p>
+        <p className="text-xs text-muted-foreground mb-3">{t('background_desc')}</p>
         <div className="grid grid-cols-4 gap-3">
           {backgrounds.map((bg) => {
             const active = bgId === bg.id;

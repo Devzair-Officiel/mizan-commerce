@@ -1,3 +1,6 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { StickyNote, X } from 'lucide-react';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 
@@ -12,12 +15,13 @@ interface NotesSectionProps {
 export function NotesSection({
   notes, showNotes, onNotesChange, onShow, onHide,
 }: NotesSectionProps) {
+  const t = useTranslations('orders.new');
   if (showNotes || notes) {
     return (
       <div className="relative">
         <FloatingTextarea
           id="notes"
-          label="Notes internes (optionnel)"
+          label={t('notes_label')}
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           rows={3}
@@ -27,7 +31,7 @@ export function NotesSection({
           <button
             type="button"
             onClick={onHide}
-            aria-label="Masquer les notes"
+            aria-label={t('notes_hide_aria')}
             className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X size={16} />
@@ -43,7 +47,7 @@ export function NotesSection({
       className="self-start flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 py-1"
     >
       <StickyNote size={16} />
-      <span>Ajouter une note interne</span>
+      <span>{t('notes_show')}</span>
     </button>
   );
 }

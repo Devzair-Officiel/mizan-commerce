@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { UserPlus } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCreateCustomer } from '@/lib/hooks/useCustomers';
 
 export default function NewCustomerPage() {
+  const t = useTranslations('customers.new');
   const router = useRouter();
   const { mutateAsync, isPending } = useCreateCustomer();
 
@@ -17,9 +19,8 @@ export default function NewCustomerPage() {
 
   return (
     <>
-      <TopBar title="Nouveau client" />
+      <TopBar title={t('title')} />
 
-      {/* Hero — point d'ancrage pour la création */}
       <div className="px-4 pt-4 lg:max-w-2xl lg:mx-auto lg:px-8">
         <div
           className="rounded-3xl p-5 flex items-center gap-4"
@@ -32,10 +33,8 @@ export default function NewCustomerPage() {
             <UserPlus size={24} />
           </div>
           <div className="flex flex-col">
-            <p className="text-sm font-semibold text-foreground">Nouveau contact</p>
-            <p className="text-xs text-muted-foreground">
-              Renseignez au minimum le nom. Le reste pourra être complété plus tard.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{t('hero_title')}</p>
+            <p className="text-xs text-muted-foreground">{t('hero_sub')}</p>
           </div>
         </div>
       </div>

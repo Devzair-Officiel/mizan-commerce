@@ -1,5 +1,10 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { CreditCard, Pencil, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 import type { Order } from '@/lib/hooks/useOrders';
 import { PAYMENT_COLOR } from './constants';
 
@@ -15,6 +20,12 @@ interface OrderPaymentCardProps {
 export function OrderPaymentCard({
   order, totalAmount, paidAmount, remaining, isPending, onCollect,
 }: OrderPaymentCardProps) {
+  const t = useTranslations('orders.paymentCard');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const formatMoney = useFormatMoney();
+  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+
   const paymentProgress = totalAmount > 0
     ? Math.min(100, Math.round((paidAmount / totalAmount) * 100))
     : 0;
@@ -25,7 +36,7 @@ export function OrderPaymentCard({
       <div className="flex items-center justify-between">
         <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
           <Wallet size={14} />
-          Paiement
+          {t('title')}
         </h2>
         <span className={`text-sm font-semibold ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
           {order.payment_status_display}
@@ -36,10 +47,10 @@ export function OrderPaymentCard({
         <div className="flex items-end justify-between">
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-bold text-zinc-900 tabular-nums">
-              {paidAmount.toFixed(2)} €
+              {money(paidAmount)}
             </span>
             <span className="text-sm text-zinc-400 tabular-nums">
-              / {totalAmount.toFixed(2)} €
+              / {money(totalAmount)}
             </span>
           </div>
           <span className="text-xs font-medium text-zinc-500 tabular-nums">
@@ -58,7 +69,7 @@ export function OrderPaymentCard({
         </div>
         {remainingNum > 0 && (
           <p className="text-xs font-medium text-red-500 tabular-nums">
-            Reste à payer : {remaining} €
+            {t('remaining', { amount: money(remaining) })}
           </p>
         )}
       </div>
@@ -71,7 +82,7 @@ export function OrderPaymentCard({
             disabled={isPending}
           >
             <CreditCard size={16} />
-            Encaisser un paiement
+            {t('collect_cta')}
           </Button>
         ) : (
           <button
@@ -80,7 +91,7 @@ export function OrderPaymentCard({
             className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-700 py-1"
           >
             <Pencil size={12} />
-            Corriger un paiement reçu
+            {t('correct_cta')}
           </button>
         )
       )}

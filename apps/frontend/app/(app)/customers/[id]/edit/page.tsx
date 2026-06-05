@@ -1,11 +1,13 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomer, useUpdateCustomer } from '@/lib/hooks/useCustomers';
 
 export default function EditCustomerPage() {
+  const t = useTranslations('customers.edit');
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: customer, isLoading } = useCustomer(id);
@@ -16,11 +18,11 @@ export default function EditCustomerPage() {
     router.push(`/customers/${id}`);
   }
 
-  if (isLoading) return <><TopBar title="Modifier" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
+  if (isLoading) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
 
   return (
     <>
-      <TopBar title="Modifier le client" />
+      <TopBar title={t('title')} />
       <CustomerForm defaultValues={customer} onSubmit={handleSubmit} isSubmitting={isPending} />
     </>
   );

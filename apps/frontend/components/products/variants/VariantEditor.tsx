@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
@@ -12,15 +13,16 @@ import {
   type ProductUnit,
   type ProductVariant,
 } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 import { qk } from '@/lib/query-keys';
 
-const UNIT_OPTIONS: { value: ProductUnit; label: string }[] = [
-  { value: 'piece', label: 'Pièce' },
-  { value: 'g',     label: 'Gramme (g)' },
-  { value: 'kg',    label: 'Kilogramme (kg)' },
-  { value: 'mL',    label: 'Millilitre (mL)' },
-  { value: 'L',     label: 'Litre (L)' },
-  { value: 'm',     label: 'Mètre (m)' },
+const UNIT_KEYS: { value: ProductUnit; tKey: 'piece' | 'gram' | 'kilogram' | 'milliliter' | 'liter' | 'meter' }[] = [
+  { value: 'piece', tKey: 'piece' },
+  { value: 'g',     tKey: 'gram' },
+  { value: 'kg',    tKey: 'kilogram' },
+  { value: 'mL',    tKey: 'milliliter' },
+  { value: 'L',     tKey: 'liter' },
+  { value: 'm',     tKey: 'meter' },
 ];
 
 interface VariantEditorProps {
@@ -31,6 +33,12 @@ interface VariantEditorProps {
 }
 
 export function VariantEditor({ productId, variant, isProduct, onDone }: VariantEditorProps) {
+  const t = useTranslations('articles.variants');
+  const tUnits = useTranslations('articles.units');
+  const tDetail = useTranslations('articles.detail');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const currencySymbol = currency === 'EUR' ? '€' : currency;
   const create = useCreateProductVariant(productId);
   const update = useUpdateProductVariant(productId, variant?.id ?? '');
   const qc = useQueryClient();
@@ -49,21 +57,19 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
   const isPending = create.isPending || update.isPending;
 
   const unitShort = UNIT_LABELS[unit];
-  const stockUnitLabel = unit === 'piece' ? 'pièces' : unitShort;
+  const stockUnitLabel = unitShort;
   const initialStockSuffix =
-    unit === 'piece'
-      ? 'pièces'
-      : parseFloat(baseQuantity || '1') === 1
-        ? unitShort
-        : packagingName.trim() || 'formats';
+    parseFloat(baseQuantity || '1') === 1
+      ? unitShort
+      : packagingName.trim() || unitShort;
   const unitPricePreview = isProduct
     ? formatUnitPrice(sellingPrice, baseQuantity || '1', unit)
     : null;
 
   async function handleSave() {
     setError(null);
-    if (!packagingName.trim()) { setError('Nom du conditionnement requis.'); return; }
-    if (!sellingPrice.trim()) { setError('Prix de vente requis.'); return; }
+    if (!packagingName.trim()) { setError(t('name_required')); return; }
+    if (!sellingPrice.trim()) { setError(t('price_required')); return; }
 
     const payload = {
       packaging_name: packagingName.trim(),
@@ -87,7 +93,7 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
             body: JSON.stringify({
               variant: created.id,
               quantity: initialStock,
-              reason: 'Stock initial',
+              reason: tDetail('initial_stock_reason'),
             }),
           });
           qc.invalidateQueries({ queryKey: qk.products.detail(productId) });
@@ -105,9 +111,9 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
           data.base_quantity ?? data.sku ?? data.detail
         );
         const msg = Array.isArray(first) ? first[0] : (typeof first === 'string' ? first : null);
-        setError(msg ?? 'Une erreur est survenue.');
+        setError(msg ?? t('generic_error'));
       } else {
-        setError('Impossible d’enregistrer le conditionnement.');
+        setError(t('save_failed'));
       }
     }
   }
@@ -117,13 +123,13 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
       <div className="grid grid-cols-2 gap-2">
         <FloatingInput
           id="v-name"
-          label={isProduct ? 'Nom du format *' : 'Nom *'}
+          label={isProduct ? t('name_label_product') : t('name_label_service')}
           value={packagingName}
           onChange={(e) => setPackagingName(e.target.value)}
         />
         <FloatingInput
           id="v-sku"
-          label="SKU (optionnel)"
+          label={t('sku_label')}
           value={sku}
           onChange={(e) => setSku(e.target.value)}
         />
@@ -133,17 +139,17 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
         <>
           <FloatingSelect
             id="v-unit"
-            label="Unité de mesure"
+            label={t('unit_label')}
             value={unit}
             onChange={(e) => setUnit(e.target.value as ProductUnit)}
           >
-            {UNIT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+            {UNIT_KEYS.map((o) => (
+              <option key={o.value} value={o.value}>{tUnits(o.tKey)}</option>
             ))}
           </FloatingSelect>
           <FloatingInput
             id="v-base-qty"
-            label="Quantité contenue"
+            label={t('quantity_label')}
             type="number"
             step="any"
             min="0"
@@ -158,30 +164,30 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
       <div className="flex flex-col gap-1">
         <FloatingInput
           id="v-selling-price"
-          label="Prix de vente *"
+          label={t('sale_price_label')}
           type="number"
           step="0.01"
           min="0"
           inputMode="decimal"
-          suffix="€"
+          suffix={currencySymbol}
           value={sellingPrice}
           onChange={(e) => setSellingPrice(e.target.value)}
         />
         {unitPricePreview && (
           <p className="text-[11px] text-muted-foreground px-1 tabular-nums">
-            Soit {unitPricePreview}
+            {t('unit_price_preview', { price: unitPricePreview })}
           </p>
         )}
       </div>
 
       <FloatingInput
         id="v-purchase-price"
-        label="Prix d'achat (optionnel)"
+        label={t('purchase_label')}
         type="number"
         step="0.01"
         min="0"
         inputMode="decimal"
-        suffix="€"
+        suffix={currencySymbol}
         value={purchasePrice}
         onChange={(e) => setPurchasePrice(e.target.value)}
       />
@@ -189,7 +195,7 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
       {isProduct && (
         <FloatingInput
           id="v-threshold"
-          label="Seuil d'alerte (optionnel)"
+          label={t('alert_label')}
           type="number"
           step="any"
           min="0"
@@ -203,7 +209,7 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
       {isProduct && !isEditing && (
         <FloatingInput
           id="v-initial-stock"
-          label="Stock initial (optionnel)"
+          label={t('initial_stock_label')}
           type="number"
           step="any"
           min="0"
@@ -217,11 +223,11 @@ export function VariantEditor({ productId, variant, isProduct, onDone }: Variant
       <div className="flex gap-2 pt-1">
         <Button size="sm" onClick={handleSave} disabled={isPending} className="flex-1">
           <Check size={14} />
-          {isPending ? 'Enregistrement…' : (isEditing ? 'Mettre à jour' : 'Ajouter')}
+          {isPending ? t('saving') : (isEditing ? t('update') : t('add_button'))}
         </Button>
         <Button size="sm" variant="outline" onClick={onDone}>
           <X size={14} />
-          Annuler
+          {t('cancel')}
         </Button>
       </div>
     </div>

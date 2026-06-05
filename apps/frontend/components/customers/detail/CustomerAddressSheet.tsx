@@ -1,4 +1,7 @@
+'use client';
+
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Copy, Navigation } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import type { Customer } from '@/lib/hooks/useCustomers';
@@ -10,14 +13,16 @@ interface CustomerAddressSheetProps {
 }
 
 export function CustomerAddressSheet({ open, onClose, customer }: CustomerAddressSheetProps) {
+  const t = useTranslations('customers.addressSheet');
   return (
-    <BottomSheet open={open} onClose={onClose} title="Adresse">
+    <BottomSheet open={open} onClose={onClose} title={t('title')}>
       {open && <AddressBody customer={customer} onClose={onClose} />}
     </BottomSheet>
   );
 }
 
 function AddressBody({ customer, onClose }: { customer: Customer; onClose: () => void }) {
+  const t = useTranslations('customers.addressSheet');
   const [copied, setCopied] = useState(false);
   const fullAddress = [customer.address_line, customer.postal_code, customer.city].filter(Boolean).join(', ');
 
@@ -37,7 +42,7 @@ function AddressBody({ customer, onClose }: { customer: Customer; onClose: () =>
           className="flex items-center gap-3 w-full rounded-2xl border border-border bg-muted/50 px-4 py-3 text-sm font-medium text-foreground active:scale-95 transition-transform"
         >
           <Copy size={18} className="text-primary shrink-0" />
-          {copied ? 'Copié ✓' : 'Copier l\'adresse'}
+          {copied ? t('copied') : t('copy')}
         </button>
         <a
           href={`https://maps.google.com/?q=${encodeURIComponent(fullAddress)}`}
@@ -47,7 +52,7 @@ function AddressBody({ customer, onClose }: { customer: Customer; onClose: () =>
           className="flex items-center gap-3 w-full rounded-2xl border border-border bg-muted/50 px-4 py-3 text-sm font-medium text-foreground active:scale-95 transition-transform"
         >
           <Navigation size={18} className="text-primary shrink-0" />
-          Ouvrir dans Maps
+          {t('open_maps')}
         </a>
       </div>
     </>

@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import Script from 'next/script';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { getDirection, isLocale, DEFAULT_LOCALE } from '@/i18n/locales';
 import './globals.css';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
@@ -18,9 +21,21 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Locale résolue par `i18n/request.ts` (cookie NEXT_LOCALE > Accept-Language > fr).
+  // `getLocale()` retourne toujours une string ; on la borne pour le typage `dir`.
+  const rawLocale = await getLocale();
+  const locale = isLocale(rawLocale) ? rawLocale : DEFAULT_LOCALE;
+  const dir = getDirection(locale);
+  const messages = await getMessages();
+
   return (
-    <html lang="fr" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${geist.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         {/* Applique data-primary / data-bg avant hydration pour éviter le flash de couleur */}
         <Script
@@ -32,9 +47,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-full font-sans">
-        <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

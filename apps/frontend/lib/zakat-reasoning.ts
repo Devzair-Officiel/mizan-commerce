@@ -23,7 +23,10 @@ export interface RubricReasoning {
   fondement: string;
   /** Comment Mizan applique concrètement cette règle (1-2 phrases). */
   application: string;
-  /** Référence (hadith, école, sourate) — affichée discrètement. */
+  /**
+   * Référence (hadith, école, sourate) — affichée discrètement.
+   * Champ volontairement vide en attendant relecture par un référent religieux.
+   */
   source?: string;
 }
 
@@ -36,7 +39,6 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
     application:
       'Caisse, espèces du commerce et solde du compte bancaire professionnel. Les sommes ' +
       "physiquement bloquées (cautions, dépôts de garantie) ne sont pas comptées.",
-    source: 'Coran 9:103, Bukhari/Muslim',
   },
 
   receivables: {
@@ -48,7 +50,6 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
     application:
       'On distingue trois classes : certaines, probables et douteuses. Seules les certaines et ' +
       'probables entrent dans la base — les douteuses sont archivées pour mémoire uniquement.',
-    source: 'Position des Compagnons rapportée par Qatâda',
   },
 
   stock: {
@@ -60,7 +61,6 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
     application:
       "Mizan estime votre stock à partir des prix d'achat saisis dans le catalogue — c'est une " +
       'évaluation prudente. Vous pouvez la ventiler manuellement par catégorie comptable.',
-    source: 'Hadith de Samura ibn Jundub (Abu Dawud)',
   },
 
   excluded: {
@@ -79,12 +79,11 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
     fondement:
       'Les dettes exigibles immédiatement réduisent réellement votre patrimoine disponible et ' +
       "sont à ce titre déductibles avant calcul, selon l'avis majoritaire repris par la pratique " +
-      'contemporaine (AAOIFI).',
+      'contemporaine.',
     application:
       'Un emprunt à long terme ne réduit que les mensualités du mois en cours. Pour chaque ' +
       "dette, précisez si elle est exigible immédiatement — c'est ce critère qui détermine si " +
       'elle est déduite.',
-    source: 'Position Hanbali, AAOIFI Shariah Standard 35',
   },
 
   nisab: {
@@ -97,7 +96,6 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
       "Vous choisissez la méthode dans les paramètres. L'argent (seuil plus bas) est plus " +
       'inclusif et bénéficie davantage aux pauvres — recommandé par plusieurs savants ' +
       'contemporains pour la zakat commerciale.',
-    source: 'Bukhari 1447, Muslim 979',
   },
 
   hawl: {
@@ -108,7 +106,6 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
     application:
       "Choisissez une date annuelle dans les paramètres : c'est votre repère de calcul. Mizan " +
       'enverra un rappel avant chaque échéance.',
-    source: 'Hadith rapporté par Ibn Umar (Abu Dawud)',
   },
 
   rate: {

@@ -1,4 +1,9 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
 import { ChevronRight, Search, X, PackagePlus, FilePlus2 } from 'lucide-react';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 import type { Product } from '@/lib/hooks/useProducts';
 
 export type PickFilter = 'all' | 'product' | 'service';
@@ -14,15 +19,16 @@ interface PickViewProps {
   onFreeLine: () => void;
 }
 
-const FILTERS: { value: PickFilter; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'product', label: 'Produits' },
-  { value: 'service', label: 'Services' },
+const FILTER_KEYS: { value: PickFilter; key: 'filter_all' | 'filter_product' | 'filter_service' }[] = [
+  { value: 'all', key: 'filter_all' },
+  { value: 'product', key: 'filter_product' },
+  { value: 'service', key: 'filter_service' },
 ];
 
 export function PickView({
   search, setSearch, filter, setFilter, products, onPick, onCreate, onFreeLine,
 }: PickViewProps) {
+  const t = useTranslations('orders.picker');
   return (
     <>
       <div className="relative mb-3">
@@ -38,14 +44,14 @@ export function PickView({
           name="catalog-search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher dans le catalogue…"
+          placeholder={t('search_placeholder')}
           className="w-full rounded-xl border border-border bg-muted py-2.5 pl-9 pr-9 text-sm outline-none focus:border-primary"
         />
         {search && (
           <button
             type="button"
             onClick={() => setSearch('')}
-            aria-label="Effacer la recherche"
+            aria-label={t('search_clear_aria')}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           >
             <X size={13} />
@@ -54,7 +60,7 @@ export function PickView({
       </div>
 
       <div className="flex gap-2 mb-3">
-        {FILTERS.map((f) => {
+        {FILTER_KEYS.map((f) => {
           const active = f.value === filter;
           return (
             <button
@@ -68,7 +74,7 @@ export function PickView({
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {f.label}
+              {t(f.key)}
             </button>
           );
         })}
@@ -83,7 +89,7 @@ export function PickView({
           <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <PackagePlus size={16} />
           </span>
-          <span className="text-left">Créer un article ou service</span>
+          <span className="text-left">{t('create_product')}</span>
         </button>
         <button
           type="button"
@@ -94,8 +100,8 @@ export function PickView({
             <FilePlus2 size={16} />
           </span>
           <span className="flex-1 min-w-0 flex flex-col gap-0.5 text-left">
-            <span className="font-medium text-foreground">Article ou service ponctuel</span>
-            <span className="text-xs text-muted-foreground">Sans enregistrer au catalogue</span>
+            <span className="font-medium text-foreground">{t('free_line_title')}</span>
+            <span className="text-xs text-muted-foreground">{t('free_line_sub')}</span>
           </span>
         </button>
       </div>
@@ -103,7 +109,7 @@ export function PickView({
       <div className="flex flex-col divide-y divide-border -mx-5 px-5">
         {products.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {search || filter !== 'all' ? 'Aucun résultat.' : 'Aucun article enregistré.'}
+            {search || filter !== 'all' ? t('no_results') : t('no_products')}
           </p>
         ) : (
           products.map((p) => <ProductRow key={p.id} product={p} onPick={onPick} />)
@@ -114,10 +120,16 @@ export function PickView({
 }
 
 function ProductRow({ product, onPick }: { product: Product; onPick: (p: Product) => void }) {
+  const t = useTranslations('orders.picker');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const formatMoney = useFormatMoney();
+  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+
   const min = product.min_selling_price;
   const max = product.max_selling_price;
   const priceLabel = min && max
-    ? (min === max ? `${min} €` : `${min} – ${max} €`)
+    ? (min === max ? money(min) : `${money(min)} – ${money(max)}`)
     : '—';
   const variantCount = product.variant_count ?? 1;
 
@@ -132,12 +144,12 @@ function ProductRow({ product, onPick }: { product: Product; onPick: (p: Product
           <span className="text-sm font-medium truncate">{product.name}</span>
           {product.type === 'service' && (
             <span className="shrink-0 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-              Service
+              {t('service_badge')}
             </span>
           )}
           {variantCount > 1 && (
             <span className="shrink-0 rounded-full bg-primary/10 text-primary border border-primary/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-              {variantCount} formats
+              {t('variant_formats', { count: variantCount })}
             </span>
           )}
         </div>

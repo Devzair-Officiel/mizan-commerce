@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
 import { CustomerPicker } from '@/components/orders/CustomerPicker';
@@ -21,6 +22,8 @@ import type { ProductDetail } from '@/lib/hooks/useProducts';
 function NewOrderForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('orders.new');
+  const tPayment = useTranslations('orders.payment');
   const { mutateAsync, isPending } = useCreateOrder();
 
   const [customerId, setCustomerId] = useState(searchParams.get('customer') ?? '');
@@ -102,10 +105,10 @@ function NewOrderForm() {
   const hasProducts = items.some((i) => i.product_type === 'product');
   const hasNonProducts = items.some((i) => i.product_type !== 'product');
   const toPrepareLabel = hasProducts && hasNonProducts
-    ? 'À traiter'
+    ? t('status_to_process')
     : hasNonProducts && !hasProducts
-      ? 'Confirmée'
-      : 'À préparer';
+      ? t('status_confirmed')
+      : t('status_to_prepare');
 
   async function handleSubmit() {
     setPaymentError('');
@@ -115,8 +118,8 @@ function NewOrderForm() {
     if (invalid) return;
     if (paymentStatus === 'partial') {
       const n = parseFloat(amountPaid);
-      if (!n || n <= 0) { setPaymentError('Saisis un montant reçu supérieur à 0.'); return; }
-      if (n > total)    { setPaymentError('Le montant reçu ne peut pas dépasser le total.'); return; }
+      if (!n || n <= 0) { setPaymentError(t('payment_amount_required')); return; }
+      if (n > total)    { setPaymentError(t('payment_amount_exceeds')); return; }
     }
     const payloadItems: OrderItemPayload[] = items.map((i) =>
       i.variant
@@ -140,7 +143,7 @@ function NewOrderForm() {
     <div className="flex flex-col gap-5 p-4 pb-32">
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          1 · Client
+          {t('section_customer')}
         </span>
         <CustomerPicker
           value={customerId}
@@ -155,13 +158,13 @@ function NewOrderForm() {
           onCreated={(c: Customer) => { setCustomerId(c.id); setCustomerError(false); }}
         />
         {customerError && (
-          <p className="text-[11px] text-destructive px-1">Sélectionnez un client pour continuer.</p>
+          <p className="text-[11px] text-destructive px-1">{t('customer_required')}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          2 · Articles &amp; services
+          {t('section_items')}
         </span>
         <ProductPicker
           onPick={addItem}
@@ -175,7 +178,7 @@ function NewOrderForm() {
           onCreated={(p: ProductDetail) => { void addProductFromQuickAdd(p.id); }}
         />
         {itemsError && (
-          <p className="text-[11px] text-destructive px-1">Ajoutez au moins un article ou service.</p>
+          <p className="text-[11px] text-destructive px-1">{t('items_required')}</p>
         )}
       </div>
 
@@ -199,11 +202,11 @@ function NewOrderForm() {
       )}
 
       <SectionChips
-        title="Paiement"
+        title={t('payment_title')}
         options={[
-          { value: 'unpaid',  label: 'Non payé', activeClass: 'bg-red-500 text-white' },
-          { value: 'partial', label: 'Partiel',  activeClass: 'bg-amber-500 text-white' },
-          { value: 'paid',    label: 'Payé',     activeClass: 'bg-green-600 text-white' },
+          { value: 'unpaid',  label: tPayment('unpaid'), activeClass: 'bg-red-500 text-white' },
+          { value: 'partial', label: tPayment('partial'), activeClass: 'bg-amber-500 text-white' },
+          { value: 'paid',    label: tPayment('paid'),    activeClass: 'bg-green-600 text-white' },
         ]}
         value={paymentStatus}
         onChange={(v) => { setPaymentStatus(v as 'unpaid' | 'partial' | 'paid'); setPaymentError(''); }}
@@ -218,11 +221,11 @@ function NewOrderForm() {
       </SectionChips>
 
       <SectionChips
-        title="Statut initial"
+        title={t('status_title')}
         options={[
-          { value: 'draft',      label: 'Brouillon',    activeClass: 'bg-zinc-500 text-white' },
-          { value: 'to_prepare', label: toPrepareLabel, activeClass: 'bg-blue-600 text-white' },
-          { value: 'shipped',    label: 'Expédiée',     activeClass: 'bg-green-600 text-white' },
+          { value: 'draft',      label: t('status_draft'), activeClass: 'bg-zinc-500 text-white' },
+          { value: 'to_prepare', label: toPrepareLabel,    activeClass: 'bg-blue-600 text-white' },
+          { value: 'shipped',    label: t('status_shipped'), activeClass: 'bg-green-600 text-white' },
         ]}
         value={orderStatus}
         onChange={(v) => setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
@@ -247,9 +250,10 @@ function NewOrderForm() {
 }
 
 export default function NewOrderPage() {
+  const t = useTranslations('orders.new');
   return (
     <>
-      <TopBar title="Nouvelle commande" />
+      <TopBar title={t('topbar')} />
       <Suspense>
         <NewOrderForm />
       </Suspense>

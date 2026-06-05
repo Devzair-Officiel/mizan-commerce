@@ -2,16 +2,23 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { CreditCard, Users, SlidersHorizontal, UserPlus } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useCustomers } from '@/lib/hooks/useCustomers';
+import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { StatCard } from '@/components/customers/list/StatCard';
 import { CustomerRow } from '@/components/customers/list/CustomerRow';
 import { FilterSortSheet } from '@/components/customers/list/FilterSortSheet';
 import type { FilterKey, SortKey } from '@/components/customers/list/types';
 
 export default function CustomersPage() {
+  const t = useTranslations('customers.list');
   const { data, isLoading } = useCustomers(undefined, true);
+  const { data: shop } = useShop();
+  const formatMoney = useFormatMoney();
+  const currency = shop?.currency ?? 'EUR';
   const [sort, setSort]     = useState<SortKey>('name_asc');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [search, setSearch] = useState('');
@@ -51,20 +58,20 @@ export default function CustomersPage() {
 
   return (
     <>
-      <TopBar title="Clients" titleClassName="text-3xl" />
+      <TopBar title={t('title')} titleClassName="text-3xl" />
       <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
 
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            label="Clients actifs"
+            label={t('active_count')}
             value={isLoading ? '—' : activeCount}
             icon={<Users size={14} />}
             active={filter === 'active'}
             onClick={() => setFilter((f) => (f === 'active' ? 'all' : 'active'))}
           />
           <StatCard
-            label="Paiements en attente"
-            value={isLoading ? '—' : `${totalPending.toFixed(2)} €`}
+            label={t('pending_total')}
+            value={isLoading ? '—' : formatMoney(totalPending, currency, { maximumFractionDigits: 2 })}
             icon={<CreditCard size={14} />}
             active={filter === 'pending'}
             tone={totalPending > 0 ? 'amber' : 'neutral'}
@@ -75,10 +82,10 @@ export default function CustomersPage() {
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
             {isLoading
-              ? 'Chargement…'
+              ? t('loading')
               : filterActive
-                ? `${visible.length} client${visible.length > 1 ? 's' : ''} affiché${visible.length > 1 ? 's' : ''} · filtré`
-                : `${visible.length} client${visible.length > 1 ? 's' : ''} enregistré${visible.length > 1 ? 's' : ''}`}
+                ? t('count_filtered', { count: visible.length })
+                : t('count_registered', { count: visible.length })}
           </p>
           <div className="flex items-center justify-between gap-2">
             <Link
@@ -86,7 +93,7 @@ export default function CustomersPage() {
               className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
             >
               <UserPlus size={16} strokeWidth={2.2} />
-              Nouveau client
+              {t('new_cta')}
             </Link>
             <button
               onClick={() => setSheetOpen(true)}
@@ -97,18 +104,18 @@ export default function CustomersPage() {
               }`}
             >
               <SlidersHorizontal size={16} />
-              Filtrer / Trier
+              {t('filter_sort')}
             </button>
           </div>
         </div>
 
         {!isLoading && visible.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">Aucun client correspondant.</p>
+          <p className="text-sm text-muted-foreground text-center py-8">{t('empty_filtered')}</p>
         )}
         {!isLoading && visible.length > 0 && (
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             {visible.map((customer, i) => (
-              <CustomerRow key={customer.id} customer={customer} first={i === 0} />
+              <CustomerRow key={customer.id} customer={customer} first={i === 0} currency={currency} />
             ))}
           </div>
         )}

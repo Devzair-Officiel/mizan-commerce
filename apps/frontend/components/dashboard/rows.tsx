@@ -1,14 +1,20 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { formatStock, type ProductUnit } from '@/lib/hooks/useProducts';
+import { useFormat, useFormatMoney } from '@/lib/hooks/useFormat';
 
 export function OrderRow({
-  id, label, sub, value,
+  id, label, sub, amount, currency,
 }: {
   id: string;
   label: string;
   sub?: string | null;
-  value: string;
+  amount: string | number;
+  currency: string;
 }) {
+  const formatMoney = useFormatMoney();
   return (
     <Link
       href={`/orders/${id}`}
@@ -18,7 +24,9 @@ export function OrderRow({
         <span className="text-base font-medium text-foreground">{label}</span>
         {sub && <span className="text-sm text-muted-foreground">{sub}</span>}
       </div>
-      <span className="text-base font-semibold text-foreground tabular-nums">{value}</span>
+      <span className="text-base font-semibold text-foreground tabular-nums">
+        {formatMoney(amount, currency, { maximumFractionDigits: 2 })}
+      </span>
     </Link>
   );
 }
@@ -33,6 +41,7 @@ export function StockRow({
   unit: ProductUnit;
   baseQuantity: string;
 }) {
+  const t = useTranslations('dashboard.rows');
   const num = parseFloat(qty);
   const isOut = num <= 0;
   return (
@@ -45,30 +54,34 @@ export function StockRow({
         <span className="text-xs text-muted-foreground truncate">{variantName}</span>
       </div>
       <span className={`text-sm font-semibold tabular-nums shrink-0 ${isOut ? 'text-destructive' : 'text-amber-600 dark:text-amber-400'}`}>
-        {isOut ? 'Rupture' : `${formatStock(qty, unit, { baseQuantity, packagingName: variantName })} restants`}
+        {isOut
+          ? t('out_of_stock')
+          : t('remaining', { qty: formatStock(qty, unit, { baseQuantity, packagingName: variantName }) })}
       </span>
     </Link>
   );
 }
 
 export function ReminderRow({ title, due_at }: { title: string; due_at: string }) {
+  const fmt = useFormat();
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className="text-base font-medium text-foreground flex-1 truncate pr-3">{title}</span>
       <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-        {new Date(due_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+        {fmt.dateTime(due_at, { hour: '2-digit', minute: '2-digit' })}
       </span>
     </div>
   );
 }
 
 export function SeeAllRow({ href, count }: { href: string; count: number }) {
+  const t = useTranslations('dashboard.rows');
   return (
     <Link
       href={href}
       className="flex items-center justify-center px-4 py-2.5 text-sm font-medium text-muted-foreground active:bg-muted/60 transition-colors"
     >
-      Voir tout ({count}) →
+      {t('see_all', { count })}
     </Link>
   );
 }

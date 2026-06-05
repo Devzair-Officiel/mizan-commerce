@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import {
   Sun,
   Moon,
@@ -17,8 +18,11 @@ import {
   Receipt,
 } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsClient } from '@/lib/hooks/useIsClient';
+
+type NavKey = 'invoices' | 'reminders' | 'notes' | 'zakat' | 'profile' | 'settings';
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -34,9 +38,10 @@ export function BurgerMenuProvider({ children }: { children: ReactNode }) {
 
 /* ── Bouton burger (utilisé dans TopBar) ── */
 export function BurgerButton() {
+  const tc = useTranslations('layout.common');
   const { toggle } = useBurger();
   return (
-    <button onClick={toggle} aria-label="Menu" className="flex h-8 w-8 flex-col items-center justify-center gap-1.5">
+    <button onClick={toggle} aria-label={tc('menu')} className="flex h-8 w-8 flex-col items-center justify-center gap-1.5">
       <span className="h-0.5 w-5 rounded-full bg-foreground transition-all" />
       <span className="h-0.5 w-5 rounded-full bg-foreground transition-all" />
       <span className="h-0.5 w-3.5 rounded-full bg-foreground transition-all" />
@@ -47,35 +52,38 @@ export function BurgerButton() {
 /* ── Drawer ── */
 interface MenuItem {
   href: string;
-  label: string;
+  labelKey: NavKey;
   icon: ComponentType<{ className?: string }>;
 }
 
 interface MenuSection {
-  title: string;
+  titleKey: 'activity_section' | 'account_section';
   items: MenuItem[];
 }
 
 const MENU_SECTIONS: MenuSection[] = [
   {
-    title: 'Activité',
+    titleKey: 'activity_section',
     items: [
-      { href: '/invoices',  label: 'Factures', icon: Receipt },
-      { href: '/reminders', label: 'Rappels',  icon: Bell },
-      { href: '/notes',     label: 'Notes',    icon: StickyNote },
-      { href: '/zakat',     label: 'Zakat',    icon: Coins },
+      { href: '/invoices',  labelKey: 'invoices',  icon: Receipt },
+      { href: '/reminders', labelKey: 'reminders', icon: Bell },
+      { href: '/notes',     labelKey: 'notes',     icon: StickyNote },
+      { href: '/zakat',     labelKey: 'zakat',     icon: Coins },
     ],
   },
   {
-    title: 'Compte',
+    titleKey: 'account_section',
     items: [
-      { href: '/profile',  label: 'Mon profil',          icon: User },
-      { href: '/settings', label: 'Paramètres boutique', icon: Settings },
+      { href: '/profile',  labelKey: 'profile',  icon: User },
+      { href: '/settings', labelKey: 'settings', icon: Settings },
     ],
   },
 ];
 
 export function BurgerMenuDrawer() {
+  const tc = useTranslations('layout.common');
+  const tNav = useTranslations('layout.nav');
+  const tBurger = useTranslations('layout.burgerMenu');
   const { open, close } = useBurger();
   const router   = useRouter();
   const pathname = usePathname();
@@ -111,17 +119,18 @@ export function BurgerMenuDrawer() {
         }`}
       />
 
-      {/* Panneau — h-dvh suit la barre URL mobile. */}
+      {/* Panneau — h-dvh suit la barre URL mobile. En RTL, `start-0` ancre à droite
+          et le translate doit s'inverser (Tailwind ne flippe pas automatiquement translateX). */}
       <aside
-        className={`fixed top-0 left-0 z-80 flex h-dvh w-72 flex-col shadow-2xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
-          open ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 inset-s-0 z-80 flex h-dvh w-72 flex-col shadow-2xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
+          open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
         }`}
         style={{ background: 'color-mix(in oklch, var(--primary) 78%, transparent)' }}
       >
         {/* En-tête */}
         <div className="flex h-16 items-center justify-between px-5 pt-2 gap-3">
           <BurgerHeader />
-          <button onClick={close} aria-label="Fermer" className="text-white/70 hover:text-white transition-colors shrink-0">
+          <button onClick={close} aria-label={tc('close')} className="text-white/70 hover:text-white transition-colors shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -131,25 +140,25 @@ export function BurgerMenuDrawer() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2 px-3">
           {MENU_SECTIONS.map((section, idx) => (
-            <div key={section.title} className={idx === 0 ? '' : 'mt-4'}>
+            <div key={section.titleKey} className={idx === 0 ? '' : 'mt-4'}>
               <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/50">
-                {section.title}
+                {tBurger(section.titleKey)}
               </div>
               <div className="flex flex-col gap-0.5">
-                {section.items.map(({ href, label, icon: Icon }) => {
+                {section.items.map(({ href, labelKey, icon: Icon }) => {
                   const active = pathname === href || pathname.startsWith(href + '/');
                   return (
                     <button
                       key={href}
                       onClick={() => handleNav(href)}
-                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all text-left ${
+                      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all text-start ${
                         active
                           ? 'bg-white/20 text-white'
                           : 'text-white/80 hover:text-white hover:bg-white/15'
                       }`}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      <span className="text-[17px]">{label}</span>
+                      <span className="text-[17px]">{tNav(labelKey)}</span>
                     </button>
                   );
                 })}
@@ -158,8 +167,11 @@ export function BurgerMenuDrawer() {
           ))}
         </nav>
 
-        {/* Thème + Déconnexion */}
+        {/* Langue + Thème + Déconnexion */}
         <div className="p-3 pb-8 flex flex-col gap-0.5 border-t border-white/15">
+          <div className="px-1 pt-2 pb-1.5">
+            <LanguageSwitcher />
+          </div>
           <AppearanceRow />
           <ThemeToggleRow />
           <button
@@ -167,7 +179,7 @@ export function BurgerMenuDrawer() {
             className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
           >
             <LogOut className="h-5 w-5 shrink-0" />
-            Se déconnecter
+            {tc('logout')}
           </button>
         </div>
       </aside>
@@ -177,9 +189,10 @@ export function BurgerMenuDrawer() {
 
 /* ── En-tête : logo + nom (fallback "Mizan Commerce") ── */
 function BurgerHeader() {
+  const tc = useTranslations('layout.common');
   const { data: shop } = useShop();
   const name = shop?.name?.trim();
-  const displayName = name || 'Mizan Commerce';
+  const displayName = name || tc('shop_fallback');
 
   return (
     <div className="flex items-center gap-3 min-w-0">
@@ -202,6 +215,7 @@ function BurgerHeader() {
 
 /* ── Apparence (ouvre le ThemeDrawer) ── */
 function AppearanceRow() {
+  const tc = useTranslations('layout.common');
   const { close } = useBurger();
   const { toggle } = useThemeDrawer();
   function handleClick() {
@@ -214,13 +228,14 @@ function AppearanceRow() {
       className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
     >
       <Palette className="h-5 w-5 shrink-0" />
-      Apparence
+      {tc('appearance')}
     </button>
   );
 }
 
 /* ── Bascule de thème (intégrée au drawer) ── */
 function ThemeToggleRow() {
+  const tc = useTranslations('layout.common');
   const { setTheme, resolvedTheme } = useTheme();
   const mounted = useIsClient();
 
@@ -234,7 +249,7 @@ function ThemeToggleRow() {
       className="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-white/75 hover:text-white hover:bg-white/15 transition-all"
     >
       {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
-      Mode {isDark ? 'clair' : 'sombre'}
+      {isDark ? tc('light_mode') : tc('dark_mode')}
     </button>
   );
 }

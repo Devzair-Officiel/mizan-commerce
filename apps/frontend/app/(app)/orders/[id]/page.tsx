@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { XCircle } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,8 @@ import { REVERT_TRANSITION, STATUS_ALLOWS_CANCEL } from '@/components/orders/det
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const t = useTranslations('orders.detail');
+  const tRevert = useTranslations('orders.revert');
   const { data: order, isLoading } = useOrder(id);
   const { data: shop } = useShop();
   const transition = useTransitionOrder(id);
@@ -34,8 +37,8 @@ export default function OrderDetailPage() {
   const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
-  if (isLoading) return <><TopBar title="Commande" /><p className="p-4 text-sm text-zinc-400">Chargement…</p></>;
-  if (!order) return <><TopBar title="Commande" /><p className="p-4 text-sm text-red-500">Commande introuvable.</p></>;
+  if (isLoading) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-zinc-400">{t('loading')}</p></>;
+  if (!order) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-red-500">{t('not_found')}</p></>;
 
   const totalAmount = parseFloat(order.total_amount);
   const subtotalAmount = parseFloat(order.subtotal);
@@ -46,7 +49,7 @@ export default function OrderDetailPage() {
   const canCancel = STATUS_ALLOWS_CANCEL.has(order.status);
 
   async function handleTransition(status: string) {
-    if (status === 'cancelled' && !confirm('Annuler cette commande ?')) return;
+    if (status === 'cancelled' && !confirm(t('cancel_confirm'))) return;
     await transition.mutateAsync(status);
   }
 
@@ -90,7 +93,7 @@ export default function OrderDetailPage() {
           return;
         }
       }
-      setInvoiceError(err instanceof Error ? err.message : 'Erreur lors de l\'émission de la facture.');
+      setInvoiceError(err instanceof Error ? err.message : t('invoice_error_generic'));
     }
   }
 
@@ -103,7 +106,7 @@ export default function OrderDetailPage() {
         action={
           order.status === 'draft' && (
             <button onClick={() => router.push(`/orders/${id}/edit`)} className="text-sm font-medium text-primary">
-              Modifier
+              {t('edit')}
             </button>
           )
         }
@@ -150,14 +153,14 @@ export default function OrderDetailPage() {
             disabled={transition.isPending}
             className="text-xs text-muted-foreground underline underline-offset-2 text-center py-1 disabled:opacity-40"
           >
-            ↩ {revert.label}
+            ↩ {tRevert(revert.key)}
           </button>
         )}
 
         {canCancel && (
           <div className="mt-4 pt-4 border-t border-zinc-200 flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-              Zone sensible
+              {t('danger_zone')}
             </p>
             <Button
               variant="outline"
@@ -166,11 +169,9 @@ export default function OrderDetailPage() {
               disabled={transition.isPending}
             >
               <XCircle size={16} />
-              Annuler la commande
+              {t('cancel_cta')}
             </Button>
-            <p className="text-xs text-zinc-400 px-1">
-              Le stock réservé sera libéré. Cette action est réversible.
-            </p>
+            <p className="text-xs text-zinc-400 px-1">{t('cancel_sub')}</p>
           </div>
         )}
       </div>
