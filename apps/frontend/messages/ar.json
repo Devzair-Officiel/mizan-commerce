@@ -813,5 +813,24 @@
       "confirm_remove": "حذف التعبئة \"{name}\"؟",
       "remove_failed": "تعذر الحذف."
     }
+  },
+  "messages": {
+    "prepared": {
+      "title": "تحضير الرسالة",
+      "hint": "ستُرسل هذه الرسالة يدويًا عبر واتساب إلى {name}.",
+      "message_label": "الرسالة",
+      "send_cta": "فتح واتساب",
+      "sending": "جاري التحضير…",
+      "cancel": "إلغاء",
+      "error_generic": "تعذّر تحضير الرسالة.",
+      "greeting": "السلام عليكم،",
+      "greeting_named": "السلام عليكم {name}،"
+    },
+    "history": {
+      "title": "رسائل واتساب",
+      "loading": "جارٍ التحميل…",
+      "delete_confirm": "حذف هذه الرسالة؟",
+      "delete_aria": "حذف الرسالة"
+    }
   }
 }

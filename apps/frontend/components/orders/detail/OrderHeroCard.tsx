@@ -1,17 +1,28 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Phone, User } from 'lucide-react';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
+import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
+import type { PreparedMessageTemplate } from '@/lib/hooks/usePreparedMessages';
 import { PAYMENT_PILL, STATUS_CONFIG, STATUS_DRAFT, WhatsAppIcon } from './constants';
 import { buildWhatsAppMessage } from './whatsapp';
 
 interface OrderHeroCardProps {
   order: Order;
   remaining: string;
+}
+
+function templateForOrder(order: Order): PreparedMessageTemplate {
+  if (order.status === 'shipped') return 'tracking';
+  if (order.payment_status === 'unpaid' || order.payment_status === 'partial') {
+    return order.status === 'draft' ? 'order_confirmation' : 'unpaid_followup';
+  }
+  return 'order_confirmation';
 }
 
 export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
@@ -21,10 +32,12 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const formatDate = useFormatDate();
+  const [waOpen, setWaOpen] = useState(false);
 
   const cfg = STATUS_CONFIG[order.status] ?? STATUS_DRAFT;
   const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
   const waPhone = order.customer_phone?.replace(/\D/g, '') ?? '';
+  const initialMessage = buildWhatsAppMessage(order, { tWa, formatMoney, formatDate, currency });
 
   return (
     <>
@@ -73,15 +86,14 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
       {order.customer && (waPhone || order.customer_name) && (
         <div className="flex w-full items-center gap-2">
           {waPhone && (
-            <a
-              href={`https://wa.me/${waPhone}?text=${encodeURIComponent(buildWhatsAppMessage(order, { tWa, formatMoney, formatDate, currency }))}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => setWaOpen(true)}
               className="flex flex-1 items-center justify-center gap-2 h-11 rounded-full bg-primary/10 text-primary active:scale-95 transition-transform hover:bg-primary/15"
             >
               <WhatsAppIcon size={16} />
               <span className="text-sm font-semibold">{t('whatsapp_cta')}</span>
-            </a>
+            </button>
           )}
           {order.customer_phone && (
             <a
@@ -100,6 +112,20 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
             <User size={18} />
           </Link>
         </div>
+      )}
+
+      {order.customer && waPhone && (
+        <PreparedMessageDialog
+          open={waOpen}
+          onClose={() => setWaOpen(false)}
+          templateType={templateForOrder(order)}
+          contextType="order"
+          contextId={order.id}
+          customerId={order.customer}
+          recipientPhone={order.customer_phone ?? ''}
+          initialMessage={initialMessage}
+          WhatsAppIcon={WhatsAppIcon}
+        />
       )}
     </>
   );

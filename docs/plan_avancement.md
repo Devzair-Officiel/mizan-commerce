@@ -212,13 +212,13 @@
 
 ### WhatsApp préparé (URS-066, URS-067, URS-031)
 
-- [ ] Modèle `PreparedMessage`
-- [ ] Templates de messages : commande, suivi colis, relance impayé, promo
-- [ ] Endpoint génération message à partir d'un contexte (commande, client, produit)
-- [ ] Frontend : bouton copier + bouton "Ouvrir WhatsApp" (`https://wa.me/{phone}?text={encodedMsg}`)
-- [ ] Marquage manuel "envoyé" + date
-- [ ] Historique des messages préparés
-- [ ] **Vérifier qu'aucun envoi automatique n'est possible**
+- [x] Modèle `PreparedMessage`
+- [x] Templates de messages : commande, suivi colis, relance impayé, promo
+- [x] Endpoint génération message à partir d'un contexte (commande, client, produit)
+- [x] Frontend : édition du message + bouton "Ouvrir WhatsApp" (`https://wa.me/{phone}?text={encodedMsg}`)
+- [x] Marquage manuel "envoyé" + date
+- [x] Historique des messages préparés
+- [x] **Vérifier qu'aucun envoi automatique n'est possible**
 
 ### Telegram (URS-068, URS-069)
 

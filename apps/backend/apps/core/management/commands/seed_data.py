@@ -56,9 +56,11 @@ class Command(BaseCommand):
 
         from apps.orders.models import Order, OrderItem
         from apps.notes.models import Note
+        from apps.comms.models import PreparedMessage
 
         if options["reset"]:
             from apps.products.models import ProductVariant
+            PreparedMessage.objects.all().delete()
             OrderItem.objects.all().delete()
             Order.objects.all().delete()
             StockMovement.objects.all().delete()
@@ -152,6 +154,41 @@ class Command(BaseCommand):
             order_services.update_payment(o3, Decimal('50.00'))
             self.stdout.write(f"    → 3 commandes créées")
 
+        # Messages WhatsApp préparés boutique FR
+        if not PreparedMessage.objects.filter(shop=shop_fr).exists():
+            karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
+            hamza = Customer.objects.get(shop=shop_fr, name='Hamza Tazi')
+            PreparedMessage.objects.create(
+                shop=shop_fr,
+                customer=karima,
+                template_type=PreparedMessage.TemplateType.ORDER_CONFIRMATION,
+                context_type=PreparedMessage.ContextType.CUSTOMER,
+                context_id=karima.id,
+                recipient_name=karima.name,
+                recipient_phone=karima.phone,
+                message=(
+                    f"Bonjour {karima.name},\n\n"
+                    "Votre commande a bien été enregistrée. "
+                    "Nous vous tiendrons informée dès qu'elle sera prête.\n\n"
+                    "Merci pour votre confiance,\nLa Boutique de Youssef"
+                ),
+                status=PreparedMessage.Status.SENT_MANUALLY,
+            )
+            PreparedMessage.objects.create(
+                shop=shop_fr,
+                customer=hamza,
+                template_type=PreparedMessage.TemplateType.FREE,
+                context_type=PreparedMessage.ContextType.NONE,
+                recipient_name=hamza.name,
+                recipient_phone=hamza.phone,
+                message=(
+                    f"Bonjour {hamza.name}, nous venons de recevoir une nouvelle collection "
+                    "qui pourrait vous plaire. Passez quand vous voulez !"
+                ),
+                status=PreparedMessage.Status.PREPARED,
+            )
+            self.stdout.write(f"    → 2 messages WhatsApp préparés")
+
         # ── Boutique 2 — Amira (Maroc / MAD) ────────────────────────
         amira = UserFactory(
             email="amira@example.ma",
@@ -201,6 +238,25 @@ class Command(BaseCommand):
             order_services.transition_status(o4, 'to_prepare', amira)
             order_services.update_payment(o4, Decimal('200.00'))
             self.stdout.write(f"    → 1 commande créée")
+
+        # Messages WhatsApp préparés boutique MA
+        if not PreparedMessage.objects.filter(shop=shop_ma).exists():
+            sofia = Customer.objects.get(shop=shop_ma, name='Sofia Benali')
+            PreparedMessage.objects.create(
+                shop=shop_ma,
+                customer=sofia,
+                template_type=PreparedMessage.TemplateType.UNPAID_FOLLOWUP,
+                context_type=PreparedMessage.ContextType.CUSTOMER,
+                context_id=sofia.id,
+                recipient_name=sofia.name,
+                recipient_phone=sofia.phone,
+                message=(
+                    f"Bonjour {sofia.name}, un petit rappel concernant le solde restant "
+                    "sur votre dernière commande. Merci de nous tenir informés."
+                ),
+                status=PreparedMessage.Status.PREPARED,
+            )
+            self.stdout.write(f"    → 1 message WhatsApp préparé")
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
         self.stdout.write("  youssef@example.com / Mizan1234!")

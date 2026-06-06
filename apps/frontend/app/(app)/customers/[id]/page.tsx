@@ -16,6 +16,7 @@ import { CustomerFlashNotification } from '@/components/customers/detail/Custome
 import { CustomerHeroCard } from '@/components/customers/detail/CustomerHeroCard';
 import { CustomerNotesSheet } from '@/components/customers/detail/CustomerNotesSheet';
 import { CustomerStatsGrid } from '@/components/customers/detail/CustomerStatsGrid';
+import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
 
 export default function CustomerDetailPage() {
   const t = useTranslations('customers.detail');
@@ -137,6 +138,8 @@ export default function CustomerDetailPage() {
           pendingOnly={pendingOnly}
           onTogglePendingFilter={() => setPendingOnly((v) => !v)}
         />
+
+        <PreparedMessageHistory customerId={id} />
 
         <CustomerActivityTimeline
           customerId={id}

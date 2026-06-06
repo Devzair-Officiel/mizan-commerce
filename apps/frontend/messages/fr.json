@@ -813,5 +813,24 @@
       "confirm_remove": "Supprimer le conditionnement \"{name}\" ?",
       "remove_failed": "Suppression impossible."
     }
+  },
+  "messages": {
+    "prepared": {
+      "title": "Préparer le message",
+      "hint": "Le message sera envoyé manuellement via WhatsApp à {name}.",
+      "message_label": "Message",
+      "send_cta": "Ouvrir WhatsApp",
+      "sending": "Préparation…",
+      "cancel": "Annuler",
+      "error_generic": "Impossible de préparer le message.",
+      "greeting": "Bonjour,",
+      "greeting_named": "Bonjour {name},"
+    },
+    "history": {
+      "title": "Messages WhatsApp",
+      "loading": "Chargement…",
+      "delete_confirm": "Supprimer ce message ?",
+      "delete_aria": "Supprimer le message"
+    }
   }
 }

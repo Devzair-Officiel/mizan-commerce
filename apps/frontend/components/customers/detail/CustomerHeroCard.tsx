@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { MoreHorizontal, Phone } from 'lucide-react';
 import type { Customer } from '@/lib/hooks/useCustomers';
+import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
 import { getInitials, WhatsAppIcon } from './constants';
 
 interface CustomerHeroCardProps {
@@ -13,7 +15,14 @@ interface CustomerHeroCardProps {
 
 export function CustomerHeroCard({ customer, badge, onOpenMore }: CustomerHeroCardProps) {
   const t = useTranslations('customers.hero');
+  const tWa = useTranslations('messages.prepared');
   const waPhone = customer.phone?.replace(/\D/g, '');
+  const [waOpen, setWaOpen] = useState(false);
+
+  const firstName = customer.name.trim().split(/\s+/)[0] ?? '';
+  const initialMessage = firstName
+    ? tWa('greeting_named', { name: firstName })
+    : tWa('greeting');
 
   return (
     <div
@@ -38,16 +47,15 @@ export function CustomerHeroCard({ customer, badge, onOpenMore }: CustomerHeroCa
 
       <div className="flex w-full items-center gap-2 mt-2">
         {waPhone && (
-          <a
-            href={`https://wa.me/${waPhone}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setWaOpen(true)}
             className="flex flex-1 items-center justify-center gap-2 h-12 rounded-full text-primary-foreground shadow-md active:scale-95 transition-transform"
             style={{ background: 'var(--primary)' }}
           >
             <WhatsAppIcon />
             <span className="text-sm font-semibold">{t('whatsapp')}</span>
-          </a>
+          </button>
         )}
         {customer.phone && (
           <a
@@ -67,6 +75,20 @@ export function CustomerHeroCard({ customer, badge, onOpenMore }: CustomerHeroCa
           <MoreHorizontal size={22} />
         </button>
       </div>
+
+      {waPhone && (
+        <PreparedMessageDialog
+          open={waOpen}
+          onClose={() => setWaOpen(false)}
+          templateType="free"
+          contextType="customer"
+          contextId={customer.id}
+          customerId={customer.id}
+          recipientPhone={customer.phone ?? ''}
+          initialMessage={initialMessage}
+          WhatsAppIcon={WhatsAppIcon}
+        />
+      )}
     </div>
   );
 }

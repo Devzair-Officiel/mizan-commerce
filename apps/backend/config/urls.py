@@ -12,5 +12,6 @@ urlpatterns = [
     path('api/invoices/', include('apps.invoices.urls')),
     path('api/', include('apps.notes.urls')),
     path('api/', include('apps.zakat.urls')),
+    path('api/', include('apps.comms.urls')),
     path('api/', include('apps.core.urls')),
 ]

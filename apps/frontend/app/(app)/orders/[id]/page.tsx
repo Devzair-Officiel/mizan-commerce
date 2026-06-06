@@ -17,6 +17,7 @@ import { OrderPaymentCard } from '@/components/orders/detail/OrderPaymentCard';
 import { OrderInvoiceCard } from '@/components/orders/detail/OrderInvoiceCard';
 import { OrderNotesCard } from '@/components/orders/detail/OrderNotesCard';
 import { OrderActivityTimeline } from '@/components/orders/detail/OrderActivityTimeline';
+import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
 import { PaymentBottomSheet } from '@/components/orders/detail/PaymentBottomSheet';
 import { InvoiceBottomSheet } from '@/components/orders/detail/InvoiceBottomSheet';
 import { REVERT_TRANSITION, STATUS_ALLOWS_CANCEL } from '@/components/orders/detail/constants';
@@ -144,6 +145,8 @@ export default function OrderDetailPage() {
         />
 
         <OrderNotesCard orderId={id} />
+
+        <PreparedMessageHistory orderId={id} />
 
         <OrderActivityTimeline orderId={id} />
 

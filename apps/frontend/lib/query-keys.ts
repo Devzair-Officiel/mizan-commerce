@@ -126,4 +126,10 @@ export const qk = {
     query: (value: string, country: string) =>
       ['geocode', value, country] as const,
   },
+
+  preparedMessages: {
+    all: ['prepared-messages'] as const,
+    byOrder: (orderId: string) => ['prepared-messages', 'order', orderId] as const,
+    byCustomer: (customerId: string) => ['prepared-messages', 'customer', customerId] as const,
+  },
 } as const;

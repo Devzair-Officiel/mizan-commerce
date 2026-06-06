@@ -813,5 +813,24 @@
       "confirm_remove": "Remove packaging \"{name}\"?",
       "remove_failed": "Could not remove."
     }
+  },
+  "messages": {
+    "prepared": {
+      "title": "Prepare message",
+      "hint": "This message will be sent manually via WhatsApp to {name}.",
+      "message_label": "Message",
+      "send_cta": "Open WhatsApp",
+      "sending": "Preparing…",
+      "cancel": "Cancel",
+      "error_generic": "Could not prepare the message.",
+      "greeting": "Hello,",
+      "greeting_named": "Hello {name},"
+    },
+    "history": {
+      "title": "WhatsApp messages",
+      "loading": "Loading…",
+      "delete_confirm": "Delete this message?",
+      "delete_aria": "Delete message"
+    }
   }
 }
