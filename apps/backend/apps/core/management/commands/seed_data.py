@@ -94,6 +94,21 @@ class Command(BaseCommand):
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
         self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name}")
 
+        # Employé de la boutique FR — accès produits / commandes / clients / stock
+        sara = UserFactory(
+            email="sara@example.com",
+            full_name="Sara Naji",
+            phone="+33611223344",
+            password="Mizan1234!",
+        )
+        ShopMemberFactory(
+            shop=shop_fr,
+            user=sara,
+            role="staff",
+            permissions=["products", "orders", "customers", "stock"],
+        )
+        self.stdout.write(f"    + Staff : {sara.email} (4 modules)")
+
         products_fr = [
             seed_product(shop=shop_fr, name="Chemise en lin blanc",
                          purchase_price="12.50", selling_price="29.99",

@@ -151,6 +151,11 @@
       "background_desc": "لون خلفية التطبيق",
       "switch_to_light": "التبديل إلى الوضع الفاتح",
       "switch_to_dark": "التبديل إلى الوضع الداكن"
+    },
+    "guard": {
+      "forbidden_title": "تم رفض الوصول",
+      "forbidden_body": "لا تملك الصلاحيات اللازمة للوصول إلى هذه الصفحة. تواصل مع مدير المتجر إذا احتجت إلى ذلك.",
+      "back_home": "العودة إلى الرئيسية"
     }
   },
   "dashboard": {
@@ -831,6 +836,66 @@
       "loading": "جارٍ التحميل…",
       "delete_confirm": "حذف هذه الرسالة؟",
       "delete_aria": "حذف الرسالة"
+    }
+  },
+  "team": {
+    "title": "الفريق",
+    "back": "الإعدادات",
+    "subtitle": "أدر أعضاء متجرك وصلاحياتهم.",
+    "add_member": "إضافة عضو",
+    "no_members": "أنت العضو الوحيد في هذا المتجر حالياً.",
+    "loading": "جارٍ التحميل…",
+    "you_badge": "أنت",
+    "since": "منذ {date}",
+    "role": {
+      "owner": "المالك",
+      "admin": "مدير",
+      "staff": "موظف"
+    },
+    "modules": {
+      "products": "المنتجات",
+      "orders": "الطلبات",
+      "customers": "العملاء",
+      "payments": "المدفوعات",
+      "invoices": "الفواتير",
+      "stock": "المخزون",
+      "messages": "الرسائل",
+      "dashboard": "الرئيسية"
+    },
+    "admin_full_access": "وصول كامل إلى جميع الوحدات.",
+    "no_permissions": "لا توجد وحدات مفعّلة.",
+    "form": {
+      "create_title": "عضو جديد",
+      "edit_title": "تعديل الصلاحيات",
+      "edit_for": "تعديل {name}",
+      "email": "البريد الإلكتروني",
+      "full_name": "الاسم الكامل",
+      "phone": "الهاتف (اختياري)",
+      "password": "كلمة المرور",
+      "password_min": "ثمانية أحرف على الأقل",
+      "role_label": "الدور",
+      "permissions_title": "الوحدات المتاحة",
+      "permissions_help": "اختر الوحدات التي يستطيع هذا الموظف الوصول إليها.",
+      "admin_full_access_notice": "المسؤولون لديهم وصول إلى جميع الوحدات — لا حاجة للاختيار.",
+      "submit_create": "إنشاء العضو",
+      "submit_update": "حفظ",
+      "submitting": "جارٍ الحفظ…",
+      "cancel": "إلغاء",
+      "email_required": "البريد الإلكتروني مطلوب",
+      "name_required": "الاسم مطلوب"
+    },
+    "actions": {
+      "edit": "تعديل",
+      "delete": "إزالة",
+      "confirm_delete_title": "هل تريد إزالة هذا العضو؟",
+      "confirm_delete_body": "سيفقد {name} الوصول إلى المتجر فوراً. لا يمكن التراجع عن هذا الإجراء.",
+      "confirm_delete": "إزالة",
+      "cancel": "إلغاء"
+    },
+    "errors": {
+      "create_error": "تعذّر إنشاء هذا العضو. تأكد من البريد الإلكتروني وكلمة المرور.",
+      "update_error": "تعذّر حفظ هذه التغييرات.",
+      "delete_error": "تعذّر إزالة هذا العضو."
     }
   }
 }

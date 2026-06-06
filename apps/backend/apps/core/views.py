@@ -13,11 +13,13 @@ from apps.orders.models import Order
 from apps.products.models import Product, ProductVariant
 from apps.notes.models import Reminder
 
-from .permissions import get_shop
+from .permissions import HasModulePermission, get_shop
+
+HasDashboardModule = HasModulePermission.for_module('dashboard')
 
 
 class DashboardTodayView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasDashboardModule)
 
     def get(self, request):
         shop = get_shop(request.user)

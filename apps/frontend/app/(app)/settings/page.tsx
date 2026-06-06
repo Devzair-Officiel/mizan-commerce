@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslations } from 'next-intl';
+import { Users, ChevronRight } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useShop, useUpdateShop, type Shop } from '@/lib/hooks/useShop';
 import { settingsSchema, type SettingsFormValues } from '@/components/settings/schema';
@@ -29,6 +32,7 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
 }
 
 export default function SettingsPage() {
+  const tTeam = useTranslations('team');
   const { data: shop, isLoading } = useShop();
   const { mutateAsync, isPending, isSuccess } = useUpdateShop();
 
@@ -65,6 +69,22 @@ export default function SettingsPage() {
   return (
     <>
       <TopBar title="Paramètres boutique" />
+
+      <div className="px-4 pt-4">
+        <Link
+          href="/settings/team"
+          className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 hover:bg-muted transition-colors"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Users className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">{tTeam('title')}</p>
+            <p className="text-xs text-muted-foreground">{tTeam('subtitle')}</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground rtl:rotate-180 shrink-0" />
+        </Link>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32">
         <IdentitySection shop={shop} register={register} errors={errors} />

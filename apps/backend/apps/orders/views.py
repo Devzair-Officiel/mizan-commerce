@@ -7,7 +7,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import get_shop
+from apps.core.permissions import HasModulePermission, get_shop
+
+HasOrdersModule = HasModulePermission.for_module('orders')
 from apps.customers.models import Customer
 from apps.products.models import ProductVariant
 from apps.notes.models import Note
@@ -21,7 +23,7 @@ from .serializers import (
 
 
 class OrderListCreateView(generics.ListAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
     filter_backends = (filters.OrderingFilter,)
     ordering_fields = ('created_at', 'total_amount')
     ordering = ('-created_at',)
@@ -116,7 +118,7 @@ class OrderListCreateView(generics.ListAPIView):
 
 
 class OrderDetailView(generics.RetrieveUpdateAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
     serializer_class = OrderSerializer
 
     def get_queryset(self):
@@ -146,7 +148,7 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
 
 class OrderStatusView(APIView):
     """Change le statut d'une commande avec toutes les règles métier associées."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -168,7 +170,7 @@ class OrderStatusView(APIView):
 
 class OrderPaymentView(APIView):
     """Met à jour le montant payé et le statut de paiement."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -190,7 +192,7 @@ class OrderPaymentView(APIView):
 
 class OrderActivityView(APIView):
     """Retourne la timeline d'activité d'une commande (création, statuts, paiements, notes)."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
 
     def get(self, request, pk):
         shop = get_shop(request.user)
@@ -205,7 +207,7 @@ class OrderActivityView(APIView):
 
 class OrderItemCreateView(APIView):
     """Ajoute un article à une commande en brouillon."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -245,7 +247,7 @@ class OrderItemCreateView(APIView):
 
 class OrderItemUpdateView(APIView):
     """PATCH → met à jour la quantité / DELETE → retire l'article (commande en brouillon)."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasOrdersModule)
 
     def _get_objects(self, request, pk, item_pk):
         shop = get_shop(request.user)

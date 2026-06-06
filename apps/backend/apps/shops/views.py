@@ -5,10 +5,24 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.permissions import IsShopAdmin
+
 from .models import Shop, ShopMember
 from .permissions import IsShopMember
-from .serializers import ShopSerializer, ShopMemberSerializer, AdminShopSerializer
-from .services import delete_shop_logo, upload_shop_logo
+from .serializers import (
+    AdminShopSerializer,
+    ShopMemberCreateSerializer,
+    ShopMemberSerializer,
+    ShopMemberUpdateSerializer,
+    ShopSerializer,
+)
+from .services import (
+    create_staff_member,
+    delete_shop_logo,
+    remove_member,
+    update_member_permissions,
+    upload_shop_logo,
+)
 
 
 def get_user_shop(user):
@@ -19,27 +33,102 @@ def get_user_shop(user):
 
 
 class ShopDetailView(generics.RetrieveUpdateAPIView):
+    """GET ouvert à tous les membres (lecture devise / nom / …).
+    PATCH/PUT réservés aux admins (réglages boutique)."""
+
     serializer_class = ShopSerializer
-    permission_classes = (IsAuthenticated, IsShopMember)
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated(), IsShopMember()]
+        return [IsAuthenticated(), IsShopAdmin()]
 
     def get_object(self):
         shop = get_user_shop(self.request.user)
-        self.check_object_permissions(self.request, shop)
+        if self.request.method == 'GET':
+            self.check_object_permissions(self.request, shop)
         return shop
 
 
-class ShopMemberListView(generics.ListAPIView):
-    serializer_class = ShopMemberSerializer
-    permission_classes = (IsAuthenticated,)
+class ShopMemberListView(generics.ListCreateAPIView):
+    """GET liste les membres de la boutique courante.
+    POST crée un nouveau staff (admin only — création directe avec email/password)."""
+    permission_classes = (IsAuthenticated, IsShopAdmin)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ShopMemberCreateSerializer
+        return ShopMemberSerializer
 
     def get_queryset(self):
         shop = get_user_shop(self.request.user)
         return ShopMember.objects.filter(shop=shop).select_related('user').order_by('created_at')
 
+    def create(self, request, *args, **kwargs):
+        shop = get_user_shop(request.user)
+        serializer = ShopMemberCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        member = create_staff_member(
+            shop=shop,
+            email=data['email'],
+            full_name=data['full_name'],
+            phone=data.get('phone', ''),
+            password=data['password'],
+            permissions=data.get('permissions', []),
+        )
+        return Response(
+            ShopMemberSerializer(member).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ShopMemberDetailView(generics.GenericAPIView):
+    """PATCH met à jour rôle/permissions d'un membre.
+    DELETE retire le membre de la boutique. Admin only."""
+    permission_classes = (IsAuthenticated, IsShopAdmin)
+    serializer_class = ShopMemberUpdateSerializer
+
+    def get_object(self):
+        shop = get_user_shop(self.request.user)
+        try:
+            return ShopMember.objects.select_related('user').get(
+                pk=self.kwargs['pk'], shop=shop,
+            )
+        except ShopMember.DoesNotExist as exc:
+            raise PermissionDenied('Membre introuvable.') from exc
+
+    def patch(self, request, *args, **kwargs):
+        member = self.get_object()
+        # Un admin ne peut pas se retirer ses propres droits.
+        if member.user_id == request.user.id:
+            return Response(
+                {'detail': 'Vous ne pouvez pas modifier votre propre rôle ou vos permissions.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        member = update_member_permissions(
+            member=member,
+            role=serializer.validated_data.get('role'),
+            permissions=serializer.validated_data.get('permissions'),
+        )
+        return Response(ShopMemberSerializer(member).data)
+
+    def delete(self, request, *args, **kwargs):
+        member = self.get_object()
+        if member.user_id == request.user.id:
+            return Response(
+                {'detail': 'Vous ne pouvez pas vous retirer vous-même.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        remove_member(member)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class ShopLogoView(APIView):
-    """Upload (POST) ou suppression (DELETE) du logo de la boutique courante."""
-    permission_classes = (IsAuthenticated, IsShopMember)
+    """Upload (POST) ou suppression (DELETE) du logo de la boutique courante — admin uniquement."""
+    permission_classes = (IsAuthenticated, IsShopAdmin)
     parser_classes = (MultiPartParser,)
 
     def _get_shop(self) -> Shop:

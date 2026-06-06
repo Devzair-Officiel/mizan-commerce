@@ -9,8 +9,8 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-06-04
-**Version actuelle en développement** : Phase V1 — Facturation client + variantes produits
+**Dernière mise à jour** : 2026-06-06
+**Version actuelle en développement** : Phase V1 — RBAC (rôles & permissions par module)
 
 ---
 
@@ -86,10 +86,25 @@
 ### Boutique / espace commerçant (URS-004, URS-005)
 
 - [x] Modèle `Shop` (nom, devise, pays)
-- [x] Modèle `ShopMember` (rôle : owner / membre futur)
+- [x] Modèle `ShopMember` (rôles `owner` / `admin` / `staff` + `permissions` JSONField)
 - [x] Création automatique de boutique à l'inscription
 - [x] Endpoints CRUD `Shop` (filtré par membership)
 - [x] Page paramètres boutique (modifier nom, devise, pays)
+
+### Gestion d'équipe & RBAC (URS-005, URS-061)
+
+- [x] Modèle `ShopMember` : rôles `owner` (créateur, indélébile) / `admin` (accès complet) / `staff` (accès filtré par modules)
+- [x] Champ `permissions` JSONField sur `ShopMember` : liste de modules accessibles pour les `staff`
+- [x] Modules toggleables : `products`, `orders`, `customers`, `payments`, `invoices`, `stock`, `messages`, `dashboard`
+- [x] Modules admin-only (jamais délégables au staff) : `zakat`, `settings`
+- [x] Service `create_staff_member` : création directe par l'admin (email + mot de passe), pas d'email d'invitation
+- [x] Endpoint `/api/shop/members/` (liste, création, modification, suppression) avec permission `IsShopAdmin`
+- [x] Endpoint `/api/me/` enrichi avec `membership.role`, `membership.is_admin`, `membership.permissions`
+- [x] Hook frontend `useMe()` exposant la membership courante + constantes `TOGGLEABLE_MODULES`
+- [x] Composant `AccessGuard` (props `module` ou `adminOnly`) avec layouts Next.js par module
+- [x] Filtrage des entrées de navigation (`BurgerMenu`, `DesktopSidebar`, `BottomNav` + FAB) selon les permissions
+- [x] Page `/settings/team` : liste des membres, ajout, édition rôle/permissions, suppression (auto-protection + protection owner)
+- [x] Traductions complètes fr / en / ar pour la gestion d'équipe et les écrans 403
 
 ### Tableau de bord (URS-006, URS-007)
 

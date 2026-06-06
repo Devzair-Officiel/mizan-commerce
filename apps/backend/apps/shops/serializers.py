@@ -1,3 +1,4 @@
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from apps.core.storage import get_signed_url, is_storage_configured
@@ -31,11 +32,35 @@ class ShopSerializer(serializers.ModelSerializer):
 class ShopMemberSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     user_full_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_phone = serializers.CharField(source='user.phone', read_only=True)
 
     class Meta:
         model = ShopMember
-        fields = ('id', 'user', 'user_email', 'user_full_name', 'role', 'created_at')
+        fields = (
+            'id', 'user', 'user_email', 'user_full_name', 'user_phone',
+            'role', 'permissions', 'created_at',
+        )
         read_only_fields = ('id', 'created_at')
+
+
+class ShopMemberCreateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    full_name = serializers.CharField(max_length=120)
+    phone = serializers.CharField(max_length=30, allow_blank=True, default='')
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    permissions = serializers.ListField(
+        child=serializers.CharField(), allow_empty=True, default=list,
+    )
+
+
+class ShopMemberUpdateSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(
+        choices=[ShopMember.ROLE_ADMIN, ShopMember.ROLE_STAFF],
+        required=False,
+    )
+    permissions = serializers.ListField(
+        child=serializers.CharField(), required=False,
+    )
 
 
 class AdminShopMemberSerializer(serializers.ModelSerializer):

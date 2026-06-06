@@ -58,16 +58,20 @@ class Shop(models.Model):
 
 
 class ShopMember(models.Model):
+    ROLE_OWNER = 'owner'
+    ROLE_ADMIN = 'admin'
+    ROLE_STAFF = 'staff'
     ROLE_CHOICES = [
-        ('owner', 'Owner'),
-        ('manager', 'Manager'),
-        ('staff', 'Staff'),
+        (ROLE_OWNER, 'Owner'),
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_STAFF, 'Staff'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shop_memberships')
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='owner')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_OWNER)
+    permissions = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -76,3 +80,12 @@ class ShopMember(models.Model):
 
     def __str__(self):
         return f'{self.user} — {self.shop} ({self.role})'
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role in (self.ROLE_OWNER, self.ROLE_ADMIN)
+
+    def has_module(self, module: str) -> bool:
+        if self.is_admin:
+            return True
+        return module in (self.permissions or [])

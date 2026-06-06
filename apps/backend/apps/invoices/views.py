@@ -4,7 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import get_shop
+from apps.core.permissions import HasModulePermission, get_shop
+
+HasInvoicesModule = HasModulePermission.for_module('invoices')
 from apps.orders.models import Order
 
 from . import services
@@ -19,7 +21,7 @@ from .serializers import (
 class InvoiceListCreateView(generics.ListCreateAPIView):
     """GET — liste les factures de la boutique. POST — émet une facture depuis une commande."""
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasInvoicesModule)
     serializer_class = InvoiceSerializer
 
     def get_queryset(self):
@@ -70,7 +72,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
 class InvoiceDetailView(generics.RetrieveAPIView):
     """GET — détail d'une facture (lecture seule). Pas de DELETE : exigence légale."""
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasInvoicesModule)
     serializer_class = InvoiceSerializer
 
     def get_queryset(self):
@@ -80,7 +82,7 @@ class InvoiceDetailView(generics.RetrieveAPIView):
 class InvoiceStatusView(APIView):
     """PATCH — change le statut (`paid` ou `cancelled`). Pas de retour arrière vers `issued`."""
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasInvoicesModule)
 
     def patch(self, request, pk):
         shop = get_shop(request.user)
@@ -114,7 +116,7 @@ class InvoicePdfView(APIView):
     réserver l'URL et permettre au frontend de la câbler dès maintenant.
     """
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasInvoicesModule)
 
     def get(self, request, pk):
         shop = get_shop(request.user)

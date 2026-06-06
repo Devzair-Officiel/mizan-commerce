@@ -3,7 +3,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import get_shop
+from apps.core.permissions import HasModulePermission, get_shop
+
+HasStockModule = HasModulePermission.for_module('stock')
 from apps.products.models import ProductVariant
 from .models import StockMovement
 from .serializers import StockMovementSerializer, StockInSerializer, StockOutSerializer
@@ -12,7 +14,7 @@ from .serializers import StockMovementSerializer, StockInSerializer, StockOutSer
 class StockMovementListView(generics.ListAPIView):
     """Historique des mouvements de stock, filtrables par produit ou variante."""
     serializer_class = StockMovementSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasStockModule)
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
@@ -32,7 +34,7 @@ class StockMovementListView(generics.ListAPIView):
 
 class StockInView(APIView):
     """Entrée stock (réassort) sur une variante."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasStockModule)
 
     def post(self, request):
         shop = get_shop(request.user)
@@ -58,7 +60,7 @@ class StockInView(APIView):
 
 class StockOutView(APIView):
     """Sortie stock (perte ou casse) sur une variante."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasStockModule)
 
     def post(self, request):
         shop = get_shop(request.user)

@@ -6,35 +6,47 @@ import { useTranslations } from 'next-intl';
 import { Palette } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ui/ThemeToggle';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
+import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
 
 type NavKey =
   | 'dashboard' | 'orders' | 'customers' | 'products'
   | 'invoices'  | 'stock_in' | 'stock_out' | 'reminders'
   | 'notes'     | 'zakat'    | 'profile'   | 'settings';
 
+type Gate = { kind: 'module'; module: ModuleKey } | { kind: 'admin' };
+
 type NavEntry = {
   href: string;
   labelKey: NavKey;
   icon: (props: { className?: string }) => React.JSX.Element;
+  gate?: Gate;
 };
 
 const PRIMARY_NAV: readonly NavEntry[] = [
-  { href: '/dashboard',  labelKey: 'dashboard',  icon: HomeIcon },
-  { href: '/orders',     labelKey: 'orders',     icon: ShoppingBagIcon },
-  { href: '/customers',  labelKey: 'customers',  icon: UsersIcon },
-  { href: '/products',   labelKey: 'products',   icon: PackageIcon },
+  { href: '/dashboard',  labelKey: 'dashboard',  icon: HomeIcon,         gate: { kind: 'module', module: 'dashboard' } },
+  { href: '/orders',     labelKey: 'orders',     icon: ShoppingBagIcon,  gate: { kind: 'module', module: 'orders' } },
+  { href: '/customers',  labelKey: 'customers',  icon: UsersIcon,        gate: { kind: 'module', module: 'customers' } },
+  { href: '/products',   labelKey: 'products',   icon: PackageIcon,      gate: { kind: 'module', module: 'products' } },
 ];
 
 const SECONDARY_NAV: readonly NavEntry[] = [
-  { href: '/invoices',   labelKey: 'invoices',  icon: ReceiptIcon },
-  { href: '/stock/add',  labelKey: 'stock_in',  icon: BoxInIcon },
-  { href: '/stock/out',  labelKey: 'stock_out', icon: BoxOutIcon },
+  { href: '/invoices',   labelKey: 'invoices',  icon: ReceiptIcon,   gate: { kind: 'module', module: 'invoices' } },
+  { href: '/stock/add',  labelKey: 'stock_in',  icon: BoxInIcon,     gate: { kind: 'module', module: 'stock' } },
+  { href: '/stock/out',  labelKey: 'stock_out', icon: BoxOutIcon,    gate: { kind: 'module', module: 'stock' } },
   { href: '/reminders',  labelKey: 'reminders', icon: BellIcon },
   { href: '/notes',      labelKey: 'notes',     icon: NoteIcon },
-  { href: '/zakat',      labelKey: 'zakat',     icon: ZakatIcon },
+  { href: '/zakat',      labelKey: 'zakat',     icon: ZakatIcon,     gate: { kind: 'admin' } },
   { href: '/profile',    labelKey: 'profile',   icon: ProfileIcon },
-  { href: '/settings',   labelKey: 'settings',  icon: SettingsIcon },
+  { href: '/settings',   labelKey: 'settings',  icon: SettingsIcon,  gate: { kind: 'admin' } },
 ];
+
+function passesGate(gate: Gate | undefined, membership: { is_admin: boolean; permissions: ModuleKey[] } | null): boolean {
+  if (!gate) return true;
+  if (!membership) return false;
+  if (gate.kind === 'admin') return membership.is_admin;
+  if (membership.is_admin) return true;
+  return membership.permissions.includes(gate.module);
+}
 
 export function DesktopSidebar() {
   const tNav = useTranslations('layout.nav');
@@ -42,6 +54,12 @@ export function DesktopSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { toggle: toggleThemeDrawer } = useThemeDrawer();
+  const { data: me } = useMe();
+  const membership = me?.membership ?? null;
+
+  const primaryNav = PRIMARY_NAV.filter((e) => passesGate(e.gate, membership));
+  const secondaryNav = SECONDARY_NAV.filter((e) => passesGate(e.gate, membership));
+  const canCreateOrder = passesGate({ kind: 'module', module: 'orders' }, membership);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -61,22 +79,24 @@ export function DesktopSidebar() {
       </div>
 
       {/* Nouvelle vente */}
-      <div className="px-3 pt-4 pb-2">
-        <Link
-          href="/orders/new"
-          className="flex items-center gap-2.5 w-full rounded-xl px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-95"
-          style={{ background: 'var(--primary)' }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          {tNav('new_sale')}
-        </Link>
-      </div>
+      {canCreateOrder && (
+        <div className="px-3 pt-4 pb-2">
+          <Link
+            href="/orders/new"
+            className="flex items-center gap-2.5 w-full rounded-xl px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 active:scale-95"
+            style={{ background: 'var(--primary)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            {tNav('new_sale')}
+          </Link>
+        </div>
+      )}
 
       {/* Navigation principale */}
       <nav className="flex flex-col gap-0.5 px-3 py-2">
-        {PRIMARY_NAV.map(({ href, labelKey, icon: Icon }) => (
+        {primaryNav.map(({ href, labelKey, icon: Icon }) => (
           <Link
             key={href}
             href={href}
@@ -96,7 +116,7 @@ export function DesktopSidebar() {
 
       {/* Navigation secondaire */}
       <nav className="flex flex-col gap-0.5 px-3 py-2 flex-1 overflow-y-auto">
-        {SECONDARY_NAV.map(({ href, labelKey, icon: Icon }) => (
+        {secondaryNav.map(({ href, labelKey, icon: Icon }) => (
           <Link
             key={href}
             href={href}

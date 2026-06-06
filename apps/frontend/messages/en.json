@@ -151,6 +151,11 @@
       "background_desc": "App background color",
       "switch_to_light": "Switch to light mode",
       "switch_to_dark": "Switch to dark mode"
+    },
+    "guard": {
+      "forbidden_title": "Access denied",
+      "forbidden_body": "You don't have permission to access this page. Contact your shop administrator if you need access.",
+      "back_home": "Back to home"
     }
   },
   "dashboard": {
@@ -831,6 +836,66 @@
       "loading": "Loading…",
       "delete_confirm": "Delete this message?",
       "delete_aria": "Delete message"
+    }
+  },
+  "team": {
+    "title": "Team",
+    "back": "Settings",
+    "subtitle": "Manage your shop members and their access.",
+    "add_member": "Add a member",
+    "no_members": "You're the only one on this shop for now.",
+    "loading": "Loading…",
+    "you_badge": "You",
+    "since": "Since {date}",
+    "role": {
+      "owner": "Owner",
+      "admin": "Administrator",
+      "staff": "Employee"
+    },
+    "modules": {
+      "products": "Items",
+      "orders": "Orders",
+      "customers": "Customers",
+      "payments": "Payments",
+      "invoices": "Invoices",
+      "stock": "Stock",
+      "messages": "Messages",
+      "dashboard": "Home"
+    },
+    "admin_full_access": "Full access to every module.",
+    "no_permissions": "No module enabled.",
+    "form": {
+      "create_title": "New member",
+      "edit_title": "Edit access",
+      "edit_for": "Editing {name}",
+      "email": "Email",
+      "full_name": "Full name",
+      "phone": "Phone (optional)",
+      "password": "Password",
+      "password_min": "Minimum 8 characters",
+      "role_label": "Role",
+      "permissions_title": "Accessible modules",
+      "permissions_help": "Tick the modules this employee can access.",
+      "admin_full_access_notice": "Administrators have access to every module — no selection needed.",
+      "submit_create": "Create member",
+      "submit_update": "Save",
+      "submitting": "Saving…",
+      "cancel": "Cancel",
+      "email_required": "Email required",
+      "name_required": "Name required"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Remove",
+      "confirm_delete_title": "Remove this member?",
+      "confirm_delete_body": "{name} will immediately lose access to the shop. This action cannot be undone.",
+      "confirm_delete": "Remove",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "create_error": "Could not create this member. Check the email and password.",
+      "update_error": "Could not save these changes.",
+      "delete_error": "Could not remove this member."
     }
   }
 }

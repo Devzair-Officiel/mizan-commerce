@@ -151,6 +151,11 @@
       "background_desc": "Couleur de fond de l'application",
       "switch_to_light": "Passer en mode clair",
       "switch_to_dark": "Passer en mode sombre"
+    },
+    "guard": {
+      "forbidden_title": "Accès refusé",
+      "forbidden_body": "Vous n'avez pas les droits nécessaires pour accéder à cette page. Contactez l'administrateur de la boutique si besoin.",
+      "back_home": "Retour à l'accueil"
     }
   },
   "dashboard": {
@@ -831,6 +836,66 @@
       "loading": "Chargement…",
       "delete_confirm": "Supprimer ce message ?",
       "delete_aria": "Supprimer le message"
+    }
+  },
+  "team": {
+    "title": "Équipe",
+    "back": "Paramètres",
+    "subtitle": "Gérez les membres de votre boutique et leurs accès.",
+    "add_member": "Ajouter un membre",
+    "no_members": "Vous êtes seul·e sur cette boutique pour le moment.",
+    "loading": "Chargement…",
+    "you_badge": "Vous",
+    "since": "Depuis le {date}",
+    "role": {
+      "owner": "Propriétaire",
+      "admin": "Administrateur",
+      "staff": "Employé"
+    },
+    "modules": {
+      "products": "Articles",
+      "orders": "Commandes",
+      "customers": "Clients",
+      "payments": "Paiements",
+      "invoices": "Factures",
+      "stock": "Stock",
+      "messages": "Messages",
+      "dashboard": "Accueil"
+    },
+    "admin_full_access": "Accès complet à tous les modules.",
+    "no_permissions": "Aucun module autorisé.",
+    "form": {
+      "create_title": "Nouveau membre",
+      "edit_title": "Modifier les accès",
+      "edit_for": "Modification de {name}",
+      "email": "Email",
+      "full_name": "Nom complet",
+      "phone": "Téléphone (optionnel)",
+      "password": "Mot de passe",
+      "password_min": "8 caractères minimum",
+      "role_label": "Rôle",
+      "permissions_title": "Modules accessibles",
+      "permissions_help": "Cochez les modules auxquels cet employé peut accéder.",
+      "admin_full_access_notice": "Les administrateurs ont accès à tous les modules — aucune sélection nécessaire.",
+      "submit_create": "Créer le membre",
+      "submit_update": "Enregistrer",
+      "submitting": "Enregistrement…",
+      "cancel": "Annuler",
+      "email_required": "Email requis",
+      "name_required": "Nom requis"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Retirer",
+      "confirm_delete_title": "Retirer ce membre ?",
+      "confirm_delete_body": "{name} perdra immédiatement l'accès à la boutique. Cette action est irréversible.",
+      "confirm_delete": "Retirer",
+      "cancel": "Annuler"
+    },
+    "errors": {
+      "create_error": "Impossible de créer ce membre. Vérifiez l'email et le mot de passe.",
+      "update_error": "Impossible d'enregistrer ces changements.",
+      "delete_error": "Impossible de retirer ce membre."
     }
   }
 }

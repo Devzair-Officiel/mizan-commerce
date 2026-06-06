@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import (
-    RegisterSerializer, UserSerializer, ChangePasswordSerializer,
+    RegisterSerializer, UserSerializer, MeSerializer, ChangePasswordSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
 from .throttles import AuthRateThrottle
@@ -54,8 +54,14 @@ class RegisterView(generics.CreateAPIView):
 
 
 class MeView(generics.RetrieveUpdateAPIView):
-    serializer_class = UserSerializer
     permission_classes = (IsAuthenticated,)
+
+    def get_serializer_class(self):
+        # PATCH/PUT : UserSerializer (édition du profil uniquement)
+        # GET : MeSerializer (profil + appartenance boutique)
+        if self.request.method == 'GET':
+            return MeSerializer
+        return UserSerializer
 
     def get_object(self):
         return self.request.user

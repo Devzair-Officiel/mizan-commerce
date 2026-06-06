@@ -7,7 +7,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.pagination import FlexiblePageNumberPagination
-from apps.core.permissions import get_shop
+from apps.core.permissions import HasModulePermission, get_shop
+
+HasCustomersModule = HasModulePermission.for_module('customers')
 from .models import Customer
 from .serializers import CustomerSerializer, CustomerListSerializer
 from .services import ALL_TYPES, get_customer_timeline
@@ -34,7 +36,7 @@ def _customer_qs_with_stats(shop):
 
 
 class CustomerListCreateView(generics.ListCreateAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasCustomersModule)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('name', 'phone', 'email', 'city')
     ordering_fields = ('name', 'created_at')
@@ -60,7 +62,7 @@ class CustomerListCreateView(generics.ListCreateAPIView):
 
 
 class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasCustomersModule)
     serializer_class = CustomerSerializer
 
     def get_serializer_context(self):
@@ -78,7 +80,7 @@ class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CustomerActivityView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasCustomersModule)
 
     def get(self, request: Request, pk) -> Response:
         shop = get_shop(request.user)

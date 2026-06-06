@@ -21,8 +21,11 @@ import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsClient } from '@/lib/hooks/useIsClient';
+import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
 
 type NavKey = 'invoices' | 'reminders' | 'notes' | 'zakat' | 'profile' | 'settings';
+
+type Gate = { kind: 'module'; module: ModuleKey } | { kind: 'admin' };
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -54,6 +57,7 @@ interface MenuItem {
   href: string;
   labelKey: NavKey;
   icon: ComponentType<{ className?: string }>;
+  gate?: Gate;
 }
 
 interface MenuSection {
@@ -65,20 +69,28 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     titleKey: 'activity_section',
     items: [
-      { href: '/invoices',  labelKey: 'invoices',  icon: Receipt },
+      { href: '/invoices',  labelKey: 'invoices',  icon: Receipt,     gate: { kind: 'module', module: 'invoices' } },
       { href: '/reminders', labelKey: 'reminders', icon: Bell },
       { href: '/notes',     labelKey: 'notes',     icon: StickyNote },
-      { href: '/zakat',     labelKey: 'zakat',     icon: Coins },
+      { href: '/zakat',     labelKey: 'zakat',     icon: Coins,       gate: { kind: 'admin' } },
     ],
   },
   {
     titleKey: 'account_section',
     items: [
       { href: '/profile',  labelKey: 'profile',  icon: User },
-      { href: '/settings', labelKey: 'settings', icon: Settings },
+      { href: '/settings', labelKey: 'settings', icon: Settings, gate: { kind: 'admin' } },
     ],
   },
 ];
+
+function passesGate(gate: Gate | undefined, membership: { is_admin: boolean; permissions: ModuleKey[] } | null): boolean {
+  if (!gate) return true;
+  if (!membership) return false;
+  if (gate.kind === 'admin') return membership.is_admin;
+  if (membership.is_admin) return true;
+  return membership.permissions.includes(gate.module);
+}
 
 export function BurgerMenuDrawer() {
   const tc = useTranslations('layout.common');
@@ -87,6 +99,15 @@ export function BurgerMenuDrawer() {
   const { open, close } = useBurger();
   const router   = useRouter();
   const pathname = usePathname();
+  const { data: me } = useMe();
+  const membership = me?.membership ?? null;
+
+  const visibleSections = MENU_SECTIONS
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => passesGate(item.gate, membership)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   // Verrouille le scroll du body tant que le drawer est ouvert : évite que la
   // barre URL de Chrome mobile se rétracte au scroll, ce qui créait un vide
@@ -139,7 +160,7 @@ export function BurgerMenuDrawer() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2 px-3">
-          {MENU_SECTIONS.map((section, idx) => (
+          {visibleSections.map((section, idx) => (
             <div key={section.titleKey} className={idx === 0 ? '' : 'mt-4'}>
               <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-white/50">
                 {tBurger(section.titleKey)}

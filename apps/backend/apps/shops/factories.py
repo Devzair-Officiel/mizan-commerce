@@ -24,3 +24,4 @@ class ShopMemberFactory(DjangoModelFactory):
     shop = factory.SubFactory(ShopFactory)
     user = factory.SubFactory(UserFactory)
     role = "owner"
+    permissions = factory.LazyFunction(list)

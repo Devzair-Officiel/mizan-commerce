@@ -151,17 +151,23 @@ Boutique (entité racine du multi-tenant).
 
 ### `shop_members`
 
-Lien entre `users` et `shops` (un utilisateur peut être membre de plusieurs boutiques, et plus tard une boutique peut avoir plusieurs membres).
+Lien entre `users` et `shops` (un utilisateur peut être membre de plusieurs boutiques ; une boutique peut avoir plusieurs membres avec des rôles différents).
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
 | user_id | UUID | FK → users.id, NOT NULL | |
-| role | VARCHAR(20) | NOT NULL, DEFAULT 'owner' | `owner`, `manager`, `staff` |
+| role | VARCHAR(20) | NOT NULL, DEFAULT 'owner' | `owner` (créateur, indélébile), `admin` (accès complet), `staff` (accès limité) |
+| permissions | JSONB | NOT NULL, DEFAULT '[]' | Liste de modules autorisés pour `staff`. Ignoré pour `owner`/`admin` qui ont accès complet. Valeurs : `products`, `orders`, `customers`, `payments`, `invoices`, `stock`, `messages`, `dashboard` |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Contrainte** : `UNIQUE (shop_id, user_id)`.
+
+**Règles métier** :
+- Le `role = owner` est attribué automatiquement à la création de la boutique et ne peut être ni modifié ni supprimé.
+- Un `admin` peut créer/modifier/supprimer d'autres membres (sauf le `owner`), changer leurs rôles et leurs permissions.
+- Un `staff` ne voit que les modules listés dans `permissions`. Les modules `zakat` et `settings` restent admin-only et ne sont jamais ajoutables à `permissions`.
 
 ---
 
@@ -891,7 +897,7 @@ Le backend Django définirait `SET LOCAL app.current_shop_id = '...'` au début 
 
 - **Multi-devise par boutique** : ajouter une table `exchange_rates` et `currency` sur `orders`.
 - **Variantes produit** (taille, couleur) : table `product_variants` avec ses propres `stock_movements`.
-- **Plusieurs membres par boutique** : déjà couvert par `shop_members`, mais il faudra ajouter une UI d'invitation.
+- **Plusieurs membres par boutique** : couvert par `shop_members` avec rôles `owner` / `admin` / `staff` et permissions par module. UI de gestion via `/settings/team`. Création directe par l'admin (email + mot de passe), pas d'invitation par email pour l'instant.
 - **Notifications push** : table `push_devices` (token APNs / FCM).
 - **Avis clients** sur la page publique : table `public_reviews`.
 

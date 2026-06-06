@@ -6,8 +6,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import get_shop
+from apps.core.permissions import HasModulePermission, get_shop
 from apps.customers.models import Customer
+
+HasMessagesModule = HasModulePermission.for_module('messages')
 
 from .models import PreparedMessage
 from .serializers import (
@@ -21,7 +23,7 @@ from .services import prepare_message
 class PreparedMessageListCreateView(generics.ListCreateAPIView):
     """GET/POST /api/messages/prepared/."""
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasMessagesModule)
     serializer_class = PreparedMessageSerializer
     filter_backends = (filters.OrderingFilter,)
     ordering = ('-created_at',)
@@ -85,7 +87,7 @@ class PreparedMessageDetailView(generics.RetrieveUpdateDestroyAPIView):
     les endpoints dédiés.
     """
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasMessagesModule)
     http_method_names = ('get', 'patch', 'delete', 'head', 'options')
 
     def get_queryset(self):
@@ -112,7 +114,7 @@ class PreparedMessageDetailView(generics.RetrieveUpdateDestroyAPIView):
 class PreparedMessageMarkSentView(APIView):
     """POST /api/messages/prepared/<id>/mark-sent/ — marque le message comme envoyé manuellement."""
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasMessagesModule)
 
     def post(self, request, pk):
         shop = get_shop(request.user)

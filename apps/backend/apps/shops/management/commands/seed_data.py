@@ -83,9 +83,14 @@ class Command(BaseCommand):
                 self.style.SUCCESS(f"✓ {entry['user']['full_name']} → {shop.name}")
             )
 
-        # Employé de la première boutique
+        # Employé de la première boutique (accès produits + commandes + clients)
         staff_user = UserFactory(password="SeedPass123!", **STAFF_SEED)
-        ShopMemberFactory(shop=created_shops[0], user=staff_user, role="staff")
+        ShopMemberFactory(
+            shop=created_shops[0],
+            user=staff_user,
+            role="staff",
+            permissions=["products", "orders", "customers", "stock"],
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 f"✓ {STAFF_SEED['full_name']} (staff) → {created_shops[0].name}"

@@ -83,6 +83,10 @@ export const qk = {
     all: ['shop'] as const,
   },
 
+  shopMembers: {
+    all: ['shop-members'] as const,
+  },
+
   reminders: {
     all: ['reminders'] as const,
     byFilter: (filter: RemindersFilter) => ['reminders', filter] as const,

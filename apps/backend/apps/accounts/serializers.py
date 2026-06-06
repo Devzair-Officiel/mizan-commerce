@@ -23,6 +23,29 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'email_verified_at', 'created_at')
 
 
+class MeSerializer(UserSerializer):
+    """`/api/me/` — étend `UserSerializer` avec l'appartenance boutique (rôle + modules)."""
+
+    membership = serializers.SerializerMethodField()
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + ('membership',)
+
+    def get_membership(self, user):
+        from apps.shops.models import ShopMember
+
+        m = ShopMember.objects.filter(user=user).select_related('shop').first()
+        if m is None:
+            return None
+        return {
+            'shop_id': str(m.shop.id),
+            'shop_name': m.shop.name,
+            'role': m.role,
+            'is_admin': m.is_admin,
+            'permissions': list(m.permissions or []),
+        }
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, validators=[validate_password])

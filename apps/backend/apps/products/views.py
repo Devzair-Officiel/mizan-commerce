@@ -5,13 +5,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import get_shop
+from apps.core.permissions import HasModulePermission, get_shop
+
+HasProductsModule = HasModulePermission.for_module('products')
 from .models import Product, ProductImage, ProductVariant
 from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('name', 'variants__sku')
     ordering_fields = ('name', 'created_at')
@@ -72,7 +74,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
 
 
 class ProductDetailView(generics.RetrieveUpdateAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductSerializer
 
     def get_serializer_context(self):
@@ -98,7 +100,7 @@ class ProductDetailView(generics.RetrieveUpdateAPIView):
 
 class ProductDeactivateView(generics.GenericAPIView):
     """Soft delete : désactive le produit (is_active=False)."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductSerializer
 
     def get_queryset(self):
@@ -113,7 +115,7 @@ class ProductDeactivateView(generics.GenericAPIView):
 
 
 class ProductReactivateView(generics.GenericAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductSerializer
 
     def get_queryset(self):
@@ -129,7 +131,7 @@ class ProductReactivateView(generics.GenericAPIView):
 
 class ProductImageUploadView(APIView):
     """Upload d'une photo produit vers le bucket privé OVH."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     parser_classes = (MultiPartParser,)
 
     def post(self, request, pk: str) -> Response:
@@ -161,7 +163,7 @@ class ProductImageUploadView(APIView):
 
 class ProductSummaryView(APIView):
     """Compteurs agrégés pour le bandeau de filtres du Catalogue."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
 
     def get(self, request) -> Response:
         shop = get_shop(request.user)
@@ -206,7 +208,7 @@ class ProductSummaryView(APIView):
 
 class ProductVariantListCreateView(generics.ListCreateAPIView):
     """Liste/crée les variantes d'un produit donné."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductVariantSerializer
 
     def _get_product(self) -> Product:
@@ -229,7 +231,7 @@ class ProductVariantListCreateView(generics.ListCreateAPIView):
 
 class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Détail / mise à jour / suppression d'une variante."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductVariantSerializer
     lookup_url_kwarg = 'variant_pk'
 
@@ -262,7 +264,7 @@ class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ProductImageSignedUrlView(APIView):
     """Génère une URL signée (1h) pour une image produit."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasProductsModule)
 
     def get(self, request, pk: str, image_pk: str) -> Response:
         from .services import get_signed_url

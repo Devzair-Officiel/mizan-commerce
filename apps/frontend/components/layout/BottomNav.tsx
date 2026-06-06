@@ -5,47 +5,70 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { UserPlus, ClipboardPlus, Package, PackagePlus, Users } from 'lucide-react';
+import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
 
 // Type d'icône suffisamment large pour accepter à la fois les SVG locaux
 // (className seul) et les composants lucide-react (qui prennent strokeWidth).
 type IconLike = React.ComponentType<{ className?: string; strokeWidth?: number }>;
 
+type NavLabel = 'dashboard' | 'customers' | 'orders' | 'products';
+
 type NavItemDef = {
   href: string;
-  labelKey: 'dashboard' | 'customers' | 'orders' | 'products';
+  labelKey: NavLabel;
+  module: ModuleKey;
   icon: IconLike;
 };
 
 const LEFT_ITEMS: readonly NavItemDef[] = [
-  { href: '/dashboard', labelKey: 'dashboard', icon: HomeIcon },
-  { href: '/customers', labelKey: 'customers', icon: Users },
+  { href: '/dashboard', labelKey: 'dashboard', module: 'dashboard', icon: HomeIcon },
+  { href: '/customers', labelKey: 'customers', module: 'customers', icon: Users },
 ];
 
 const RIGHT_ITEMS: readonly NavItemDef[] = [
-  { href: '/orders', labelKey: 'orders', icon: ShoppingBagIcon },
-  { href: '/products', labelKey: 'products', icon: Package },
+  { href: '/orders',    labelKey: 'orders',    module: 'orders',    icon: ShoppingBagIcon },
+  { href: '/products',  labelKey: 'products',  module: 'products',  icon: Package },
 ];
 
 type QuickActionKey = 'new_customer' | 'new_order' | 'new_product';
 
 /* Positions en arc autour du + — les icônes sortent de derrière le + */
-const QUICK_ACTIONS: ReadonlyArray<{
+type QuickAction = {
   href: string;
   labelKey: QuickActionKey;
+  module: ModuleKey;
   icon: IconLike;
   x: number;
   y: number;
-}> = [
-  { href: '/customers/new', labelKey: 'new_customer', icon: UserPlus,      x: -88, y: -62 },
-  { href: '/orders/new',    labelKey: 'new_order',    icon: ClipboardPlus, x: 0,   y: -106 },
-  { href: '/products/new',  labelKey: 'new_product',  icon: PackagePlus,   x: 88,  y: -62 },
+};
+
+const QUICK_ACTIONS: readonly QuickAction[] = [
+  { href: '/customers/new', labelKey: 'new_customer', module: 'customers', icon: UserPlus,      x: -88, y: -62 },
+  { href: '/orders/new',    labelKey: 'new_order',    module: 'orders',    icon: ClipboardPlus, x: 0,   y: -106 },
+  { href: '/products/new',  labelKey: 'new_product',  module: 'products',  icon: PackagePlus,   x: 88,  y: -62 },
 ];
+
+function hasModuleAccess(
+  module: ModuleKey,
+  membership: { is_admin: boolean; permissions: ModuleKey[] } | null,
+): boolean {
+  if (!membership) return false;
+  if (membership.is_admin) return true;
+  return membership.permissions.includes(module);
+}
 
 export function BottomNav() {
   const tNav = useTranslations('layout.nav');
   const tBottom = useTranslations('layout.bottomNav');
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: me } = useMe();
+  const membership = me?.membership ?? null;
+
+  const leftItems = LEFT_ITEMS.filter((i) => hasModuleAccess(i.module, membership));
+  const rightItems = RIGHT_ITEMS.filter((i) => hasModuleAccess(i.module, membership));
+  const quickActions = QUICK_ACTIONS.filter((a) => hasModuleAccess(a.module, membership));
+  const showFab = quickActions.length > 0;
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -77,62 +100,64 @@ export function BottomNav() {
       />
 
       {/* Conteneur ancré au bouton + : actions en arc + bouton central */}
-      <div className="lg:hidden fixed bottom-4 left-1/2 z-60 -translate-x-1/2">
-        <div className="relative h-14.5 w-14.5">
-          {/* Actions — glissent depuis derrière le + vers leur position en arc */}
-          {QUICK_ACTIONS.map(({ href, labelKey, icon: Icon, x, y }, i) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setMenuOpen(false)}
-              aria-label={tBottom(labelKey)}
-              aria-hidden={!menuOpen}
-              tabIndex={menuOpen ? 0 : -1}
-              className={`absolute top-1/2 left-1/2 flex items-center justify-center h-14.5 w-14.5 rounded-full bg-card ring-1 ring-primary/15 active:scale-95 ${
-                menuOpen ? 'pointer-events-auto' : 'pointer-events-none'
-              }`}
-              style={{
-                transform: menuOpen
-                  ? `translate(-50%, -50%) translate(${x}px, ${y}px)`
-                  : 'translate(-50%, -50%)',
-                opacity: menuOpen ? 1 : 0,
-                boxShadow:
-                  '0 10px 24px -6px rgba(0,0,0,0.30), 0 4px 8px -2px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(255,255,255,0.04)',
-                transition: `transform 220ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                  menuOpen ? i * 25 : (QUICK_ACTIONS.length - 1 - i) * 20
-                }ms, opacity 120ms ease-out ${menuOpen ? i * 25 : 0}ms`,
-              }}
-            >
-              <Icon className="h-7 w-7 text-primary" strokeWidth={2} />
-            </Link>
-          ))}
+      {showFab && (
+        <div className="lg:hidden fixed bottom-4 left-1/2 z-60 -translate-x-1/2">
+          <div className="relative h-14.5 w-14.5">
+            {/* Actions — glissent depuis derrière le + vers leur position en arc */}
+            {quickActions.map(({ href, labelKey, icon: Icon, x, y }, i) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                aria-label={tBottom(labelKey)}
+                aria-hidden={!menuOpen}
+                tabIndex={menuOpen ? 0 : -1}
+                className={`absolute top-1/2 left-1/2 flex items-center justify-center h-14.5 w-14.5 rounded-full bg-card ring-1 ring-primary/15 active:scale-95 ${
+                  menuOpen ? 'pointer-events-auto' : 'pointer-events-none'
+                }`}
+                style={{
+                  transform: menuOpen
+                    ? `translate(-50%, -50%) translate(${x}px, ${y}px)`
+                    : 'translate(-50%, -50%)',
+                  opacity: menuOpen ? 1 : 0,
+                  boxShadow:
+                    '0 10px 24px -6px rgba(0,0,0,0.30), 0 4px 8px -2px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(255,255,255,0.04)',
+                  transition: `transform 220ms cubic-bezier(0.22, 1, 0.36, 1) ${
+                    menuOpen ? i * 25 : (quickActions.length - 1 - i) * 20
+                  }ms, opacity 120ms ease-out ${menuOpen ? i * 25 : 0}ms`,
+                }}
+              >
+                <Icon className="h-7 w-7 text-primary" strokeWidth={2} />
+              </Link>
+            ))}
 
-          {/* Bouton + central — toggle des actions rapides */}
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="absolute inset-0 flex items-center justify-center rounded-full shadow-xl active:scale-95 transition-transform overflow-hidden"
-            style={{
-              background: 'linear-gradient(171deg, color-mix(in oklch, oklch(0.72 0.14 121.33) 65%, white 35%), color-mix(in oklch, var(--primary) 90%, #000000bf 10%))',
-            }}
-            aria-label={menuOpen ? tBottom('close_menu') : tBottom('quick_actions')}
-            aria-expanded={menuOpen}
-          >
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              className="transition-transform duration-300"
-              style={{ transform: menuOpen ? 'rotate(135deg)' : 'rotate(0deg)' }}
+            {/* Bouton + central — toggle des actions rapides */}
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="absolute inset-0 flex items-center justify-center rounded-full shadow-xl active:scale-95 transition-transform overflow-hidden"
+              style={{
+                background: 'linear-gradient(171deg, color-mix(in oklch, oklch(0.72 0.14 121.33) 65%, white 35%), color-mix(in oklch, var(--primary) 90%, #000000bf 10%))',
+              }}
+              aria-label={menuOpen ? tBottom('close_menu') : tBottom('quick_actions')}
+              aria-expanded={menuOpen}
             >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                className="transition-transform duration-300"
+                style={{ transform: menuOpen ? 'rotate(135deg)' : 'rotate(0deg)' }}
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Barre de navigation */}
       <nav
@@ -140,14 +165,14 @@ export function BottomNav() {
         style={{ background: 'var(--primary)' }}
       >
         <div className="flex h-14 items-center justify-around px-2">
-          {LEFT_ITEMS.map(({ href, labelKey, icon: Icon }) => (
+          {leftItems.map(({ href, labelKey, icon: Icon }) => (
             <NavItem key={href} href={href} label={tNav(labelKey)} icon={Icon} active={isActive(href)} />
           ))}
 
-          {/* Espace pour le bouton central */}
-          <div className="w-14.5 shrink-0" />
+          {/* Espace pour le bouton central — uniquement si le FAB est visible */}
+          {showFab && <div className="w-14.5 shrink-0" />}
 
-          {RIGHT_ITEMS.map(({ href, labelKey, icon: Icon }) => (
+          {rightItems.map(({ href, labelKey, icon: Icon }) => (
             <NavItem key={href} href={href} label={tNav(labelKey)} icon={Icon} active={isActive(href)} />
           ))}
         </div>
