@@ -23,3 +23,6 @@ boto3==1.43.22
 
 # Génération PDF (factures)
 reportlab==4.5.1
+
+# Sécurité — rate-limit & blocage des tentatives de login
+django-axes==7.1.0
