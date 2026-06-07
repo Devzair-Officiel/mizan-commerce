@@ -203,3 +203,34 @@
 .active\:bg-zinc-100:active { background-color: var(--secondary); }
 .active\:bg-zinc-50:active { background-color: var(--muted); }
 select { background-color: var(--card); color: var(--foreground); border-color: var(--border); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Boutique publique — opt-out total du thème admin.
+   La vitrine vue par les clients reste claire et neutre quel que soit le
+   mode (dark / theme couleur) configuré dans l'admin du commerçant.
+   Doit rester en fin de fichier pour gagner en source-order sur les
+   overrides ci-dessus.
+   ───────────────────────────────────────────────────────────────────────── */
+[data-public-page] {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #18181b;
+}
+[data-public-page] .bg-white,
+.dark [data-public-page] .bg-white { background-color: #ffffff; }
+[data-public-page] .bg-zinc-50,
+.dark [data-public-page] .bg-zinc-50 { background-color: #fafafa; }
+[data-public-page] .bg-zinc-100,
+.dark [data-public-page] .bg-zinc-100 { background-color: #f4f4f5; }
+[data-public-page] .border-zinc-200,
+.dark [data-public-page] .border-zinc-200 { border-color: #e4e4e7; }
+[data-public-page] .border-zinc-100,
+.dark [data-public-page] .border-zinc-100 { border-color: #f4f4f5; }
+[data-public-page] .text-zinc-900,
+.dark [data-public-page] .text-zinc-900 { color: #18181b; }
+[data-public-page] .text-zinc-600,
+.dark [data-public-page] .text-zinc-600 { color: #52525b; }
+[data-public-page] .text-zinc-500,
+.dark [data-public-page] .text-zinc-500 { color: #71717a; }
+[data-public-page] .text-zinc-400,
+.dark [data-public-page] .text-zinc-400 { color: #a1a1aa; }

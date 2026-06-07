@@ -57,9 +57,19 @@ class Command(BaseCommand):
         from apps.orders.models import Order, OrderItem
         from apps.notes.models import Note
         from apps.comms.models import PreparedMessage
+        from apps.public_pages.models import (
+            ContactButton,
+            PublicCatalogVisibility,
+            PublicPage,
+            PublicPageSection,
+        )
 
         if options["reset"]:
             from apps.products.models import ProductVariant
+            ContactButton.objects.all().delete()
+            PublicCatalogVisibility.objects.all().delete()
+            PublicPageSection.objects.all().delete()
+            PublicPage.objects.all().delete()
             PreparedMessage.objects.all().delete()
             OrderItem.objects.all().delete()
             Order.objects.all().delete()
@@ -272,6 +282,71 @@ class Command(BaseCommand):
                 status=PreparedMessage.Status.PREPARED,
             )
             self.stdout.write(f"    → 1 message WhatsApp préparé")
+
+        # ── Pages publiques ─────────────────────────────────────────
+        # Boutique FR : page active et publiée, avec sections, contacts et catalogue.
+        page_fr, fr_created = PublicPage.objects.get_or_create(
+            shop=shop_fr,
+            defaults={
+                'slug': 'boutique-youssef',
+                'is_active': True,
+                'is_published': True,
+                'display_name': shop_fr.name,
+                'tagline': 'Mode artisanale, élégance simple.',
+                'description': (
+                    "Bienvenue dans la boutique de Youssef. Chemises en lin, "
+                    "pantalons chino, accessoires en cuir : des pièces choisies "
+                    "pour durer et bien tomber."
+                ),
+                'theme': PublicPage.THEME_CLASSIC,
+                'primary_color': '#0ea5e9',
+            },
+        )
+        if fr_created:
+            sections_fr = [
+                (PublicPageSection.Type.HEADER, 0, ''),
+                (PublicPageSection.Type.DESCRIPTION, 1, ''),
+                (PublicPageSection.Type.PRODUCTS, 2, ''),
+                (PublicPageSection.Type.SERVICES, 3, ''),
+                (PublicPageSection.Type.CONTACT, 4, ''),
+            ]
+            for section_type, position, content in sections_fr:
+                PublicPageSection.objects.create(
+                    page=page_fr, type=section_type, position=position, content=content,
+                )
+            for position, product in enumerate(products_fr[:4]):
+                PublicCatalogVisibility.objects.create(
+                    page=page_fr, product=product, position=position,
+                    badge_new=(position == 0),
+                )
+            ContactButton.objects.create(
+                page=page_fr, type=ContactButton.Type.WHATSAPP,
+                value=youssef.phone, is_primary=True, position=0,
+            )
+            ContactButton.objects.create(
+                page=page_fr, type=ContactButton.Type.PHONE,
+                value=youssef.phone, position=1,
+            )
+            self.stdout.write(f"  ✓ Page publique : /boutique/{page_fr.slug}")
+
+        # Boutique MA : page créée mais en brouillon (active mais non publiée).
+        page_ma, ma_created = PublicPage.objects.get_or_create(
+            shop=shop_ma,
+            defaults={
+                'slug': 'boutique-chraibi',
+                'is_active': True,
+                'is_published': False,
+                'display_name': shop_ma.name,
+                'tagline': 'L\'élégance marocaine, brodée main.',
+                'theme': PublicPage.THEME_MODERN,
+                'primary_color': '#b45309',
+            },
+        )
+        if ma_created:
+            PublicPageSection.objects.create(
+                page=page_ma, type=PublicPageSection.Type.HEADER, position=0,
+            )
+            self.stdout.write(f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}")
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
         self.stdout.write("  youssef@example.com / Mizan1234!")

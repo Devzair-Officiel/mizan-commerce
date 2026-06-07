@@ -87,6 +87,13 @@ export const qk = {
     all: ['shop-members'] as const,
   },
 
+  publicPage: {
+    all: ['public-page'] as const,
+    sections: ['public-page', 'sections'] as const,
+    catalog: ['public-page', 'catalog'] as const,
+    contacts: ['public-page', 'contacts'] as const,
+  },
+
   reminders: {
     all: ['reminders'] as const,
     byFilter: (filter: RemindersFilter) => ['reminders', filter] as const,

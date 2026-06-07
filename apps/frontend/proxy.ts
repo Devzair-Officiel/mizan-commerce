@@ -28,10 +28,18 @@ const PUBLIC_AUTH_PREFIXES = [
   '/verify-email',
 ];
 
+// Pages publiques sans auth (vitrines boutiques publiées).
+const PUBLIC_PAGE_PREFIXES = ['/boutique/'];
+
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hasSession = request.cookies.has('access_token');
   const onAuthPage = PUBLIC_AUTH_PREFIXES.some((p) => pathname.startsWith(p));
+  const onPublicPage = PUBLIC_PAGE_PREFIXES.some((p) => pathname.startsWith(p));
+
+  if (onPublicPage) {
+    return applyLocaleCookie(NextResponse.next(), request);
+  }
 
   // --- 1. Redirections d'auth ---------------------------------------------
   if (!hasSession && !onAuthPage) {

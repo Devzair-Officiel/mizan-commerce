@@ -7,23 +7,30 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const isProd = process.env.NODE_ENV === "production";
 
-const cspDirectives = [
-  "default-src 'self'",
-  // Next.js injecte du script inline pour l'hydratation. Sans nonce, 'unsafe-inline' est requis.
-  // À l'avenir : migrer vers nonce via middleware si on durcit encore.
-  "script-src 'self' 'unsafe-inline'",
-  // Tailwind/shadcn injectent du style — 'unsafe-inline' nécessaire pour les styled-jsx Next.
-  "style-src 'self' 'unsafe-inline'",
-  // Médias servis via bucket S3 privé OVH (URLs signées HTTPS) + data:/blob: pour previews uploads.
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  // Le client ne parle qu'à son propre origin (proxies /api/*). Aucune fetch directe vers Django.
-  "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-];
+function buildCspDirectives(frameAncestors: string) {
+  return [
+    "default-src 'self'",
+    // Next.js injecte du script inline pour l'hydratation. Sans nonce, 'unsafe-inline' est requis.
+    // À l'avenir : migrer vers nonce via middleware si on durcit encore.
+    "script-src 'self' 'unsafe-inline'",
+    // Tailwind/shadcn injectent du style — 'unsafe-inline' nécessaire pour les styled-jsx Next.
+    "style-src 'self' 'unsafe-inline'",
+    // Médias servis via bucket S3 privé OVH (URLs signées HTTPS) + data:/blob: pour previews uploads.
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    // Le client ne parle qu'à son propre origin (proxies /api/*). Aucune fetch directe vers Django.
+    "connect-src 'self'",
+    `frame-ancestors ${frameAncestors}`,
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ];
+}
+
+const cspDirectives = buildCspDirectives("'none'");
+// Les pages publiques /boutique/* peuvent être affichées en iframe par
+// l'aperçu de l'éditeur (même origine uniquement).
+const cspDirectivesBoutique = buildCspDirectives("'self'");
 
 const securityHeaders = [
   // HSTS — force HTTPS pour 2 ans, inclut sous-domaines, éligible preload list.
@@ -46,6 +53,19 @@ if (isProd) {
   });
 }
 
+// Headers spécifiques aux routes /boutique/* : autorise l'embedding same-origin
+// pour l'aperçu live dans l'éditeur de page.
+const boutiqueHeaders = securityHeaders
+  .filter((h) => h.key !== "X-Frame-Options" && h.key !== "Content-Security-Policy")
+  .concat({ key: "X-Frame-Options", value: "SAMEORIGIN" });
+
+if (isProd) {
+  boutiqueHeaders.push({
+    key: "Content-Security-Policy",
+    value: cspDirectivesBoutique.join("; "),
+  });
+}
+
 const nextConfig: NextConfig = {
   output: "standalone",
   // Masque l'en-tête `X-Powered-By: Next.js` (fingerprinting).
@@ -55,6 +75,12 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      // Plus spécifique en dernier : override les headers de frame pour autoriser
+      // l'iframe same-origin (utilisé par l'aperçu de l'éditeur de vitrine).
+      {
+        source: "/boutique/:path*",
+        headers: boutiqueHeaders,
       },
     ];
   },
