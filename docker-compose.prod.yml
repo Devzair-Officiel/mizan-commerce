@@ -23,13 +23,14 @@ services:
     build:
       context: ./apps/backend
       target: production
+    container_name: mizan-commerce-backend
     restart: always
     env_file: .env.prod
     ports:
-      - "127.0.0.1:8001:8000"   # localhost uniquement — pour SSH tunnel si besoin d'admin Django
-    networks:               # ← AJOUT
-      - default             # ← AJOUT (pour postgres/redis)
-      - web                 # ← AJOUT (pour Caddy)
+      - "127.0.0.1:8001:8000"   # localhost — pour SSH tunnel si besoin
+    networks:
+      - default                 # postgres, redis
+      - web                     # Caddy (admin.mizan-commerce.com)
     depends_on:
       postgres:
         condition: service_healthy
