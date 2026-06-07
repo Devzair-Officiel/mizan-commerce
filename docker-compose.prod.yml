@@ -27,6 +27,9 @@ services:
     env_file: .env.prod
     ports:
       - "127.0.0.1:8001:8000"   # localhost uniquement — pour SSH tunnel si besoin d'admin Django
+    networks:               # ← AJOUT
+      - default             # ← AJOUT (pour postgres/redis)
+      - web                 # ← AJOUT (pour Caddy)
     depends_on:
       postgres:
         condition: service_healthy
