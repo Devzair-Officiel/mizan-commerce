@@ -13,6 +13,10 @@ CMD ["npm", "run", "dev"]
 
 # ── builder (étape intermédiaire pour la prod) ────────────────────────────────
 FROM base AS builder
+# Les variables NEXT_PUBLIC_* sont inlinées dans le bundle client : elles doivent
+# être présentes au build, pas seulement au runtime.
+ARG NEXT_PUBLIC_RECAPTCHA_SITE_KEY=""
+ENV NEXT_PUBLIC_RECAPTCHA_SITE_KEY=$NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 COPY package*.json ./
 RUN npm ci
 COPY . .

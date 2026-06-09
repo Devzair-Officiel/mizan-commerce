@@ -6,6 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from 'react-google-recaptcha-v3';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
@@ -19,9 +23,25 @@ type RegisterForm = {
   password: string;
 };
 
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? '';
+
 export default function RegisterPage() {
+  // Sans clé publique (dev local), on rend le formulaire sans provider — le backend
+  // accepte un token vide quand RECAPTCHA_SECRET_KEY n'est pas configuré.
+  if (!RECAPTCHA_SITE_KEY) {
+    return <RegisterFormView />;
+  }
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
+      <RegisterFormView />
+    </GoogleReCaptchaProvider>
+  );
+}
+
+function RegisterFormView() {
   const t = useTranslations('auth.register');
   const tc = useTranslations('auth.common');
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const [registered, setRegistered] = useState(false);
 
   const schema = useMemo(
@@ -43,10 +63,24 @@ export default function RegisterPage() {
   } = useForm<RegisterForm>({ resolver: zodResolver(schema) });
 
   async function onSubmit(data: RegisterForm) {
+    let recaptcha_token = '';
+    if (RECAPTCHA_SITE_KEY) {
+      if (!executeRecaptcha) {
+        setError('root', { message: t('error_generic') });
+        return;
+      }
+      try {
+        recaptcha_token = await executeRecaptcha('register');
+      } catch {
+        setError('root', { message: t('error_generic') });
+        return;
+      }
+    }
+
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, recaptcha_token }),
     });
     if (!res.ok) {
       setError('root', { message: t('error_generic') });

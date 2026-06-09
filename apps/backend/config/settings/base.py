@@ -97,6 +97,10 @@ AXES_COOLOFF_TIME = 1  # heure(s) avant déblocage
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
 
+# reCAPTCHA v3 — désactivé si la clé secrète est vide (dev / tests).
+RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
+RECAPTCHA_MIN_SCORE = float(os.environ.get('RECAPTCHA_MIN_SCORE', '0.5'))
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
