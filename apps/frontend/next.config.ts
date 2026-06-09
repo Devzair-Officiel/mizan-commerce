@@ -12,14 +12,18 @@ function buildCspDirectives(frameAncestors: string) {
     "default-src 'self'",
     // Next.js injecte du script inline pour l'hydratation. Sans nonce, 'unsafe-inline' est requis.
     // À l'avenir : migrer vers nonce via middleware si on durcit encore.
-    "script-src 'self' 'unsafe-inline'",
+    // google.com + gstatic.com requis par reCAPTCHA v3 (badge + scoring).
+    "script-src 'self' 'unsafe-inline' https://www.google.com https://www.gstatic.com",
     // Tailwind/shadcn injectent du style — 'unsafe-inline' nécessaire pour les styled-jsx Next.
     "style-src 'self' 'unsafe-inline'",
     // Médias servis via bucket S3 privé OVH (URLs signées HTTPS) + data:/blob: pour previews uploads.
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     // Le client ne parle qu'à son propre origin (proxies /api/*). Aucune fetch directe vers Django.
-    "connect-src 'self'",
+    // google.com requis par reCAPTCHA pour le scoring XHR.
+    "connect-src 'self' https://www.google.com",
+    // reCAPTCHA charge son iframe depuis google.com (badge + challenge éventuel).
+    "frame-src https://www.google.com",
     `frame-ancestors ${frameAncestors}`,
     "base-uri 'self'",
     "form-action 'self'",
