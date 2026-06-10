@@ -36,8 +36,10 @@ export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has('access_token');
   const onAuthPage = PUBLIC_AUTH_PREFIXES.some((p) => pathname.startsWith(p));
   const onPublicPage = PUBLIC_PAGE_PREFIXES.some((p) => pathname.startsWith(p));
+  // Landing publique : `/` est la page vitrine, accessible sans session.
+  const onLanding = pathname === '/';
 
-  if (onPublicPage) {
+  if (onPublicPage || onLanding) {
     return applyLocaleCookie(NextResponse.next(), request);
   }
 
