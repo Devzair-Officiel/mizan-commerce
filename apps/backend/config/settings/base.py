@@ -38,6 +38,7 @@ LOCAL_APPS = [
     'apps.invoices',
     'apps.comms',
     'apps.public_pages',
+    'apps.subscriptions',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -187,5 +188,9 @@ CELERY_BEAT_SCHEDULE = {
     'zakat-reminders-daily': {
         'task': 'apps.zakat.tasks.send_zakat_reminders',
         'schedule': crontab(hour=6, minute=0),  # chaque jour à 6h UTC
+    },
+    'subscriptions-expire-trials-daily': {
+        'task': 'apps.subscriptions.tasks.expire_trials',
+        'schedule': crontab(hour=6, minute=30),  # juste après les rappels zakat
     },
 }

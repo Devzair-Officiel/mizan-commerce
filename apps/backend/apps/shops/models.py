@@ -56,6 +56,29 @@ class Shop(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def effective_plan(self):
+        """Renvoie le `SubscriptionPlan` réellement applicable maintenant.
+
+        Si l'essai 14j est dépassé mais que la tâche Celery `expire_trials` n'a
+        pas encore tourné, on rebascule sur Gratuit côté lecture pour gater
+        immédiatement les fonctionnalités. La DB sera réconciliée par le run
+        quotidien (et par `services.expire_trial()` au prochain accès écrivain).
+
+        Renvoie le plan Gratuit pour toute boutique sans souscription (cas
+        ancien stock, tests, ou migration en cours).
+        """
+        # Import local pour éviter la dépendance circulaire shops ↔ subscriptions
+        # (subscriptions référence shops via string-FK, shops lit subscriptions ici).
+        from apps.subscriptions.models import Subscription, SubscriptionPlan
+
+        sub = getattr(self, 'subscription', None)
+        if sub is None or sub.is_trial_expired:
+            return SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
+        if sub.status in (Subscription.STATUS_CANCELLED, Subscription.STATUS_PAUSED):
+            return SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
+        return sub.plan
+
 
 class ShopMember(models.Model):
     ROLE_OWNER = 'owner'

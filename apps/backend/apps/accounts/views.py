@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -32,9 +33,16 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save(is_active=False)
 
         from apps.shops.models import Shop, ShopMember
+        from apps.subscriptions.services import start_trial_or_default
+
+        # Shop + ShopMember + Subscription liés logiquement : si l'un échoue,
+        # rien n'est commité (sinon on se retrouve avec une boutique sans owner
+        # ou sans souscription, ce qui casserait le gating ensuite).
         shop_name = request.data.get('shop_name') or f"Boutique de {user.full_name or user.email}"
-        shop = Shop.objects.create(name=shop_name)
-        ShopMember.objects.create(shop=shop, user=user, role='owner')
+        with transaction.atomic():
+            shop = Shop.objects.create(name=shop_name)
+            ShopMember.objects.create(shop=shop, user=user, role='owner')
+            start_trial_or_default(shop, user)
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)

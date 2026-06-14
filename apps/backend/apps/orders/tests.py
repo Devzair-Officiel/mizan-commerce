@@ -14,9 +14,11 @@ from .models import Order, OrderItem
 
 
 def setup(email):
+    from apps.subscriptions.test_utils import attach_subscription
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}')
     ShopMember.objects.create(shop=shop, user=user, role='owner')
+    attach_subscription(shop)  # Plan Pro requis pour les endpoints orders.
     product = Product.objects.create(shop=shop, name='Article test')
     variant = ProductVariant.objects.create(
         shop=shop, product=product, packaging_name='Par défaut',

@@ -71,6 +71,8 @@ def recalculate_totals(order: Order) -> None:
 
 @transaction.atomic
 def create_order(shop, user, customer=None, discount=Decimal('0'), shipping=Decimal('0')) -> Order:
+    from apps.subscriptions.limits import enforce_orders_per_month_limit
+    enforce_orders_per_month_limit(shop)
     order = Order.objects.create(
         shop=shop,
         customer=customer,

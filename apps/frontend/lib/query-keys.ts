@@ -143,4 +143,9 @@ export const qk = {
     byOrder: (orderId: string) => ['prepared-messages', 'order', orderId] as const,
     byCustomer: (customerId: string) => ['prepared-messages', 'customer', customerId] as const,
   },
+
+  subscription: {
+    all: ['subscription'] as const,
+    current: ['subscription', 'current'] as const,
+  },
 } as const;

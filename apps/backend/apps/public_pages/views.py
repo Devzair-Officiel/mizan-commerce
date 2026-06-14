@@ -15,8 +15,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import IsShopAdmin, get_shop_from_request
+from apps.subscriptions.permissions import HasPlanForFeature
 
 from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection
+
+HasPublicPagesPlan = HasPlanForFeature.for_feature('public_pages')
 from .serializers import (
     ContactButtonSerializer,
     PublicCatalogVisibilitySerializer,
@@ -49,7 +52,7 @@ class _PublicPageMixin:
     un acte explicite, la page n'existe pas par défaut).
     """
 
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasPublicPagesPlan, IsShopAdmin)
 
     def _get_page(self) -> PublicPage:
         shop = get_shop_from_request(self.request)  # type: ignore[attr-defined]

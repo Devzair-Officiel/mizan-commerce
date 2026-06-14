@@ -7,6 +7,7 @@ import { Palette } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ui/ThemeToggle';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
+import { usePlanGating, type Feature } from '@/lib/hooks/usePlanGating';
 
 type NavKey =
   | 'dashboard' | 'orders' | 'customers' | 'products'
@@ -20,22 +21,23 @@ type NavEntry = {
   labelKey: NavKey;
   icon: (props: { className?: string }) => React.JSX.Element;
   gate?: Gate;
+  feature?: Feature;
 };
 
 const PRIMARY_NAV: readonly NavEntry[] = [
   { href: '/dashboard',  labelKey: 'dashboard',  icon: HomeIcon,         gate: { kind: 'module', module: 'dashboard' } },
-  { href: '/orders',     labelKey: 'orders',     icon: ShoppingBagIcon,  gate: { kind: 'module', module: 'orders' } },
+  { href: '/orders',     labelKey: 'orders',     icon: ShoppingBagIcon,  gate: { kind: 'module', module: 'orders' },    feature: 'orders' },
   { href: '/customers',  labelKey: 'customers',  icon: UsersIcon,        gate: { kind: 'module', module: 'customers' } },
-  { href: '/products',   labelKey: 'products',   icon: PackageIcon,      gate: { kind: 'module', module: 'products' } },
+  { href: '/products',   labelKey: 'products',   icon: PackageIcon,      gate: { kind: 'module', module: 'products' },  feature: 'products' },
 ];
 
 const SECONDARY_NAV: readonly NavEntry[] = [
-  { href: '/invoices',   labelKey: 'invoices',  icon: ReceiptIcon,   gate: { kind: 'module', module: 'invoices' } },
-  { href: '/stock/add',  labelKey: 'stock_in',  icon: BoxInIcon,     gate: { kind: 'module', module: 'stock' } },
-  { href: '/stock/out',  labelKey: 'stock_out', icon: BoxOutIcon,    gate: { kind: 'module', module: 'stock' } },
-  { href: '/reminders',  labelKey: 'reminders', icon: BellIcon },
-  { href: '/notes',      labelKey: 'notes',     icon: NoteIcon },
-  { href: '/zakat',      labelKey: 'zakat',     icon: ZakatIcon,     gate: { kind: 'admin' } },
+  { href: '/invoices',   labelKey: 'invoices',  icon: ReceiptIcon,   gate: { kind: 'module', module: 'invoices' }, feature: 'invoices' },
+  { href: '/stock/add',  labelKey: 'stock_in',  icon: BoxInIcon,     gate: { kind: 'module', module: 'stock' },    feature: 'stock' },
+  { href: '/stock/out',  labelKey: 'stock_out', icon: BoxOutIcon,    gate: { kind: 'module', module: 'stock' },    feature: 'stock' },
+  { href: '/reminders',  labelKey: 'reminders', icon: BellIcon,                                                    feature: 'reminders' },
+  { href: '/notes',      labelKey: 'notes',     icon: NoteIcon,                                                    feature: 'notes' },
+  { href: '/zakat',      labelKey: 'zakat',     icon: ZakatIcon,     gate: { kind: 'admin' },                      feature: 'zakat' },
   { href: '/profile',    labelKey: 'profile',   icon: ProfileIcon },
   { href: '/settings',   labelKey: 'settings',  icon: SettingsIcon,  gate: { kind: 'admin' } },
 ];
@@ -56,10 +58,14 @@ export function DesktopSidebar() {
   const { toggle: toggleThemeDrawer } = useThemeDrawer();
   const { data: me } = useMe();
   const membership = me?.membership ?? null;
+  const { can } = usePlanGating();
 
-  const primaryNav = PRIMARY_NAV.filter((e) => passesGate(e.gate, membership));
-  const secondaryNav = SECONDARY_NAV.filter((e) => passesGate(e.gate, membership));
-  const canCreateOrder = passesGate({ kind: 'module', module: 'orders' }, membership);
+  const allowed = (e: NavEntry) =>
+    passesGate(e.gate, membership) && (e.feature ? can(e.feature) : true);
+
+  const primaryNav = PRIMARY_NAV.filter(allowed);
+  const secondaryNav = SECONDARY_NAV.filter(allowed);
+  const canCreateOrder = passesGate({ kind: 'module', module: 'orders' }, membership) && can('orders');
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');

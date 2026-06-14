@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { UserPlus, ClipboardPlus, Package, PackagePlus, Users } from 'lucide-react';
 import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
+import { usePlanGating, type Feature } from '@/lib/hooks/usePlanGating';
 
 // Type d'icône suffisamment large pour accepter à la fois les SVG locaux
 // (className seul) et les composants lucide-react (qui prennent strokeWidth).
@@ -18,6 +19,7 @@ type NavItemDef = {
   labelKey: NavLabel;
   module: ModuleKey;
   icon: IconLike;
+  feature?: Feature;
 };
 
 const LEFT_ITEMS: readonly NavItemDef[] = [
@@ -26,8 +28,8 @@ const LEFT_ITEMS: readonly NavItemDef[] = [
 ];
 
 const RIGHT_ITEMS: readonly NavItemDef[] = [
-  { href: '/orders',    labelKey: 'orders',    module: 'orders',    icon: ShoppingBagIcon },
-  { href: '/products',  labelKey: 'products',  module: 'products',  icon: Package },
+  { href: '/orders',    labelKey: 'orders',    module: 'orders',    icon: ShoppingBagIcon, feature: 'orders' },
+  { href: '/products',  labelKey: 'products',  module: 'products',  icon: Package,         feature: 'products' },
 ];
 
 type QuickActionKey = 'new_customer' | 'new_order' | 'new_product';
@@ -38,14 +40,15 @@ type QuickAction = {
   labelKey: QuickActionKey;
   module: ModuleKey;
   icon: IconLike;
+  feature?: Feature;
   x: number;
   y: number;
 };
 
 const QUICK_ACTIONS: readonly QuickAction[] = [
   { href: '/customers/new', labelKey: 'new_customer', module: 'customers', icon: UserPlus,      x: -88, y: -62 },
-  { href: '/orders/new',    labelKey: 'new_order',    module: 'orders',    icon: ClipboardPlus, x: 0,   y: -106 },
-  { href: '/products/new',  labelKey: 'new_product',  module: 'products',  icon: PackagePlus,   x: 88,  y: -62 },
+  { href: '/orders/new',    labelKey: 'new_order',    module: 'orders',    icon: ClipboardPlus, feature: 'orders',   x: 0,   y: -106 },
+  { href: '/products/new',  labelKey: 'new_product',  module: 'products',  icon: PackagePlus,   feature: 'products', x: 88,  y: -62 },
 ];
 
 function hasModuleAccess(
@@ -64,10 +67,14 @@ export function BottomNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: me } = useMe();
   const membership = me?.membership ?? null;
+  const { can } = usePlanGating();
 
-  const leftItems = LEFT_ITEMS.filter((i) => hasModuleAccess(i.module, membership));
-  const rightItems = RIGHT_ITEMS.filter((i) => hasModuleAccess(i.module, membership));
-  const quickActions = QUICK_ACTIONS.filter((a) => hasModuleAccess(a.module, membership));
+  const allowed = <T extends { module: ModuleKey; feature?: Feature }>(i: T) =>
+    hasModuleAccess(i.module, membership) && (i.feature ? can(i.feature) : true);
+
+  const leftItems = LEFT_ITEMS.filter(allowed);
+  const rightItems = RIGHT_ITEMS.filter(allowed);
+  const quickActions = QUICK_ACTIONS.filter(allowed);
   const showFab = quickActions.length > 0;
 
   function isActive(href: string) {

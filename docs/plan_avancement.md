@@ -398,13 +398,17 @@
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
 
-### Abonnement SaaS (URS-064, URS-065)
+### Abonnement SaaS (URS-064, URS-065, URS-100)
 
-- [ ] Modèles `Subscription`, `SubscriptionPlan`
+- [x] Modèles `Subscription`, `SubscriptionPlan` + seed des 3 plans
+- [x] Essai 14j Boutique+ à l'inscription (URS-100) + tâche Celery d'expiration
+- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages
+- [x] Limites offre gratuite (nb produits, nb commandes/mois)
+- [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
+- [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
 - [ ] Intégration Stripe Billing
 - [ ] Webhook Stripe → mise à jour de l'abonnement local
-- [ ] Limites offre gratuite (nb produits, nb commandes/mois)
-- [ ] Page tarifs + page upgrade
+- [ ] Page tarifs publique + flow upgrade payant
 
 ### Monitoring
 

@@ -13,9 +13,11 @@ from . import services
 
 
 def setup(email: str, currency: str = 'EUR'):
+    from apps.subscriptions.test_utils import attach_subscription
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}', currency=currency)
     ShopMember.objects.create(shop=shop, user=user, role='owner')
+    attach_subscription(shop)  # Plan Pro requis pour les endpoints zakat.
     return user, shop
 
 

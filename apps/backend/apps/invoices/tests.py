@@ -31,6 +31,8 @@ def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, Pr
         default_payment_terms_days=30,
     )
     ShopMember.objects.create(shop=shop, user=user, role='owner')
+    from apps.subscriptions.test_utils import attach_subscription
+    attach_subscription(shop)  # Plan Pro requis pour les endpoints invoices.
 
     variant = None
     if with_variant:

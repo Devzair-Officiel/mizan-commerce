@@ -23,7 +23,9 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        from datetime import timedelta
         from decimal import Decimal
+        from django.utils import timezone
         from apps.accounts.factories import UserFactory
         from apps.shops.factories import ShopFactory, ShopMemberFactory
         from apps.stock.factories import StockMovementFactory
@@ -33,6 +35,21 @@ class Command(BaseCommand):
         from apps.products.models import Product, ProductVariant
         from apps.stock.models import StockMovement
         from apps.customers.models import Customer
+        from apps.subscriptions.models import Subscription, SubscriptionPlan
+
+        def seed_subscription(*, shop, plan_code, status, period_end=None):
+            """Pose un abonnement déterministe sur la boutique. Idempotent."""
+            plan = SubscriptionPlan.objects.get(code=plan_code)
+            now = timezone.now()
+            Subscription.objects.update_or_create(
+                shop=shop,
+                defaults={
+                    'plan': plan,
+                    'status': status,
+                    'current_period_start': now,
+                    'current_period_end': period_end,
+                },
+            )
 
         def seed_product(*, shop, name, packaging_name='Par défaut', unit='piece',
                          selling_price, purchase_price=None, low_stock_threshold=None, sku=''):
@@ -102,7 +119,13 @@ class Command(BaseCommand):
         )
         shop_fr = ShopFactory(name="La Boutique de Youssef", currency="EUR", country="FR")
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
-        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name}")
+        # Commerçant établi → Pro actif. Le trial a déjà été consommé.
+        seed_subscription(shop=shop_fr, plan_code=SubscriptionPlan.CODE_PRO,
+                          status=Subscription.STATUS_ACTIVE)
+        if youssef.trial_consumed_at is None:
+            youssef.trial_consumed_at = timezone.now()
+            youssef.save(update_fields=['trial_consumed_at', 'updated_at'])
+        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Pro)")
 
         # Employé de la boutique FR — accès produits / commandes / clients / stock
         sara = UserFactory(
@@ -223,7 +246,16 @@ class Command(BaseCommand):
         )
         shop_ma = ShopFactory(name="Boutique Chraibi — Casablanca", currency="MAD", country="MA")
         ShopMemberFactory(shop=shop_ma, user=amira, role="owner")
-        self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name}")
+        # Commerçante récente → en essai 14j Boutique+ (URS-100).
+        seed_subscription(
+            shop=shop_ma, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            status=Subscription.STATUS_TRIALING,
+            period_end=timezone.now() + timedelta(days=14),
+        )
+        if amira.trial_consumed_at is None:
+            amira.trial_consumed_at = timezone.now()
+            amira.save(update_fields=['trial_consumed_at', 'updated_at'])
+        self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name} (essai Boutique+ 14j)")
 
         products_ma = [
             seed_product(shop=shop_ma, name="Caftan brodé bleu nuit",

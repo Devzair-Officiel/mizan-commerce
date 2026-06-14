@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/', include('apps.zakat.urls')),
     path('api/', include('apps.comms.urls')),
     path('api/public-page/', include('apps.public_pages.urls')),
+    path('api/subscriptions/', include('apps.subscriptions.urls')),
     path('api/public/boutique/', include('apps.public_pages.public_urls')),
     path('api/', include('apps.core.urls')),
 ]

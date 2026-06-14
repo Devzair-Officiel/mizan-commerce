@@ -69,7 +69,9 @@ class ProductListCreateView(generics.ListCreateAPIView):
         return qs
 
     def perform_create(self, serializer):
+        from apps.subscriptions.limits import enforce_product_limit
         shop = get_shop(self.request.user)
+        enforce_product_limit(shop)
         serializer.save(shop=shop)
 
 

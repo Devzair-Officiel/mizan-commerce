@@ -32,7 +32,7 @@ export function Footer() {
           </div>
           <div className="foot-col">
             <h5>Contact</h5>
-            <a href="mailto:contact@mizan.app">contact@mizan.app</a>
+            <a href="mailto:contact@mizan-commerce.com">contact@mizan-commerce.com</a>
           </div>
         </div>
         <div className="foot-bottom">

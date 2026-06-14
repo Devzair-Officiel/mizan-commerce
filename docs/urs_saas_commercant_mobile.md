@@ -1067,6 +1067,24 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-100 — Bénéficier d'un essai gratuit de 14 jours sur Boutique+
+
+**En tant que** nouveau commerçant,
+**je veux** essayer gratuitement la formule Boutique+ pendant 14 jours,
+**afin de** découvrir l'ensemble des fonctionnalités avant de m'engager.
+
+### Critères d'acceptation
+
+- À la création d'un compte, une souscription en statut `trialing` sur le plan Boutique+ est automatiquement activée pour la boutique de l'utilisateur, avec une date de fin fixée à J+14.
+- Aucune carte bancaire n'est demandée au moment de l'inscription.
+- L'utilisateur peut voir, depuis ses réglages, la date de fin de son essai et la formule en cours.
+- À l'expiration des 14 jours, si l'utilisateur n'a pas choisi de formule payante, la souscription bascule automatiquement sur le plan Gratuit (`status='active'`, `plan='free'`).
+- L'utilisateur reçoit une notification (email + in-app) au moins une fois avant la fin de l'essai.
+- Une fois l'essai consommé pour un compte, la création d'une boutique supplémentaire ne déclenche pas un nouvel essai (le trial est lié au compte, pas à la boutique).
+- Aucun débit n'est effectué tant que l'utilisateur n'a pas explicitement souscrit à une formule payante.
+
+---
+
 # 20bis. URS — Variantes de produits (v1 — ajout)
 
 ## Règle générale

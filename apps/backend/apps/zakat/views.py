@@ -7,6 +7,9 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import IsShopAdmin, get_shop
 from apps.products.models import ProductVariant
+from apps.subscriptions.permissions import HasPlanForFeature
+
+HasZakatPlan = HasPlanForFeature.for_feature('zakat')
 from . import services
 from .models import ZakatCalculation
 from .pdf import build_zakat_pdf
@@ -15,7 +18,7 @@ from .serializers import ZakatCalculationSerializer
 
 class ZakatStockEstimateView(APIView):
     """GET — valeur estimée du stock zakatable (lecture seule, pas persistée)."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def get(self, request):
         shop = get_shop(request.user)
@@ -33,7 +36,7 @@ class ZakatStockEstimateView(APIView):
 
 class ZakatCalculationListCreateView(generics.ListCreateAPIView):
     """Liste des calculs (drafts + finalisés) et création d'un nouveau brouillon."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
     serializer_class = ZakatCalculationSerializer
 
     def get_queryset(self):
@@ -56,7 +59,7 @@ class ZakatCalculationListCreateView(generics.ListCreateAPIView):
 
 class ZakatCalculationDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Récupération, mise à jour (uniquement brouillons) et suppression."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
     serializer_class = ZakatCalculationSerializer
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
 
@@ -74,7 +77,7 @@ class ZakatCalculationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ZakatDraftCurrentView(APIView):
     """GET — renvoie le brouillon en cours de la boutique (le plus récent), ou 204 si aucun."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def get(self, request):
         shop = get_shop(request.user)
@@ -91,7 +94,7 @@ class ZakatDraftCurrentView(APIView):
 
 class ZakatCalculationFinalizeView(APIView):
     """POST — fige le brouillon : recalcule la base + le montant, passe en `finalized`."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -124,7 +127,7 @@ class ZakatCalculationReopenView(APIView):
     Refuse si un autre brouillon est déjà actif (un seul brouillon vivant par boutique
     — le commerçant doit le finaliser ou le supprimer avant de rouvrir un autre).
     """
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -158,7 +161,7 @@ class ZakatCalculationPdfView(APIView):
     est faible (un calcul par boutique et par an). Si besoin plus tard, on stockera
     dans le bucket via `pdf_object_key` et on renverra une URL signée.
     """
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def get(self, request, pk):
         shop = get_shop(request.user)
