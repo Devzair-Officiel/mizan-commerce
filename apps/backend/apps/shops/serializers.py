@@ -17,16 +17,25 @@ class ShopSerializer(serializers.ModelSerializer):
             'logo_object_key', 'logo_url',
             'legal_address', 'tax_id', 'legal_mentions',
             'default_tax_rate', 'default_payment_terms_days',
+            'catalog_kind', 'dashboard_mode', 'onboarding_completed_at',
             'created_at', 'updated_at',
         )
         read_only_fields = (
-            'id', 'timezone', 'logo_object_key', 'logo_url', 'created_at', 'updated_at',
+            'id', 'timezone', 'logo_object_key', 'logo_url',
+            'onboarding_completed_at', 'created_at', 'updated_at',
         )
 
     def get_logo_url(self, obj: Shop) -> str | None:
         if not obj.logo_object_key or not is_storage_configured():
             return None
         return get_signed_url(obj.logo_object_key)
+
+
+class OnboardingSerializer(serializers.Serializer):
+    """Payload du wizard 1er login — `Choices` validés par DRF directement."""
+
+    catalog_kind = serializers.ChoiceField(choices=Shop.CATALOG_KIND_CHOICES)
+    dashboard_mode = serializers.ChoiceField(choices=Shop.DASHBOARD_MODE_CHOICES)
 
 
 class ShopMemberSerializer(serializers.ModelSerializer):

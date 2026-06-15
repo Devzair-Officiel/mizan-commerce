@@ -147,6 +147,7 @@ REST_FRAMEWORK = {
         'anon': '100/hour',
         'user': '1000/hour',
         'auth': '10/minute',       # login, register, password reset, refresh
+        'resend_email': '3/hour',  # renvoi du lien de vérification email
     },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }

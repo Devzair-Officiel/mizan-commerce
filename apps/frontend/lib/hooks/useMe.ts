@@ -4,6 +4,9 @@ import { qk } from '@/lib/query-keys';
 
 export type ShopRole = 'owner' | 'admin' | 'staff';
 
+export type CatalogKind = 'products' | 'services' | 'both';
+export type DashboardMode = 'minimal' | 'complete';
+
 export type ModuleKey =
   | 'products'
   | 'orders'
@@ -25,6 +28,9 @@ export interface Membership {
   role: ShopRole;
   is_admin: boolean;
   permissions: ModuleKey[];
+  catalog_kind: CatalogKind;
+  dashboard_mode: DashboardMode;
+  onboarding_completed_at: string | null;
 }
 
 export interface Me {
@@ -90,5 +96,25 @@ export function useChangePassword() {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+  });
+}
+
+interface ResendEmailVerificationResult {
+  detail: string;
+  already_verified: boolean;
+}
+
+export function useResendEmailVerification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<ResendEmailVerificationResult>('/auth/verify-email/resend/', {
+        method: 'POST',
+      }),
+    onSuccess: (res) => {
+      // Si déjà vérifié, le cache `me` peut être en retard — on rafraîchit
+      // pour que le bandeau disparaisse sans rechargement manuel.
+      if (res.already_verified) qc.invalidateQueries({ queryKey: qk.me.all });
+    },
   });
 }

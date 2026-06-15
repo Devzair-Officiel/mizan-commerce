@@ -4,9 +4,9 @@
  * Bandeau global affiché aux comptes en essai 14j Boutique+.
  *
  * Trois états :
- * - Trial actif (>0 jours) → bandeau ambre cliquable vers /settings/subscription.
- * - Trial expiré ou pas de trial → rien (le gating se charge du blocage).
- * - Loading ou pas de souscription → rien (pas de flash UI).
+ * - Trial actif (>0 jours) → bandeau ambre, compteur jusqu'à expiration.
+ * - Trial expiré, pas encore upgradé → bandeau rouge "Essai terminé".
+ * - Trial absent / plan payant souscrit / loading → rien.
  *
  * Volontairement silencieux sur erreur : un user dont la subscription est
  * inaccessible (ex. 401 résiduel) ne doit pas voir un message d'erreur
@@ -14,13 +14,33 @@
  */
 
 import Link from 'next/link';
-import { Sparkles } from 'lucide-react';
+import { AlertCircle, Sparkles } from 'lucide-react';
 import { useSubscription } from '@/lib/hooks/useSubscription';
 
 export function TrialBanner() {
   const { data: subscription, isLoading } = useSubscription();
 
   if (isLoading || !subscription) return null;
+
+  if (subscription.is_trial_expired && subscription.effective_plan_code === 'free') {
+    return (
+      <Link
+        href="/settings/subscription"
+        className="block bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-900/50 px-4 py-2 text-sm text-red-900 dark:text-red-100 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors"
+      >
+        <div className="flex items-center gap-2 max-w-5xl mx-auto">
+          <AlertCircle size={16} className="shrink-0" />
+          <span className="flex-1 truncate">
+            Essai Boutique+ terminé. Passez à un plan payant pour retrouver toutes les fonctionnalités.
+          </span>
+          <span className="shrink-0 text-xs font-medium underline underline-offset-2">
+            Voir les formules
+          </span>
+        </div>
+      </Link>
+    );
+  }
+
   if (subscription.status !== 'trialing') return null;
   const days = subscription.days_remaining;
   if (days === null || days < 0) return null;
@@ -36,7 +56,7 @@ export function TrialBanner() {
       href="/settings/subscription"
       className="block bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/50 px-4 py-2 text-sm text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
     >
-      <div className="flex items-center gap-2 max-w-screen-lg mx-auto">
+      <div className="flex items-center gap-2 max-w-5xl mx-auto">
         <Sparkles size={16} className="shrink-0" />
         <span className="flex-1 truncate">{label}</span>
         <span className="shrink-0 text-xs font-medium underline underline-offset-2">

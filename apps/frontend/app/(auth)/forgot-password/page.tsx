@@ -6,10 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mail } from 'lucide-react';
 
 type FormData = { email: string };
 
@@ -46,44 +43,57 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  return (
-    <div className="flex min-h-dvh items-center justify-center bg-zinc-100 px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-zinc-900">Mizan</h1>
-        <Card className="w-full shadow-md border border-zinc-200 bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">{t('title')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {sent ? (
-              <div className="flex flex-col gap-4 text-center">
-                <p className="text-sm text-zinc-600">{t('sent')}</p>
-                <Link href="/login">
-                  <Button variant="outline" className="w-full">{tc('back_to_login')}</Button>
-                </Link>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <p className="text-sm text-zinc-500">{t('intro')}</p>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="email">{tc('email')}</Label>
-                  <Input id="email" type="email" autoComplete="email" {...register('email')} />
-                  {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
-                </div>
-                {errors.root && <p className="text-sm text-red-500">{errors.root.message}</p>}
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? t('submitting') : t('submit')}
-                </Button>
-                <p className="text-center text-sm">
-                  <Link href="/login" className="text-zinc-500 underline underline-offset-2">
-                    {tc('back_to_login')}
-                  </Link>
-                </p>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+  if (sent) {
+    return (
+      <div className="au-card au-confirm">
+        <div className="au-confirm-icon" aria-hidden>
+          <Mail size={28} strokeWidth={2.25} />
+        </div>
+        <h1 className="au-confirm-title">{t('sent_title')}</h1>
+        <p>{t('sent')}</p>
+        <div className="au-confirm-actions">
+          <Link href="/login" className="au-cta-ghost">
+            {tc('back_to_login')}
+          </Link>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="au-card">
+      <h1>
+        {t('headline_lead')}{' '}
+        <span className="serif-i">{t('headline_accent')}</span>
+      </h1>
+      <p className="au-sub">{t('subtitle')}</p>
+      <div className="au-divider" />
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="au-field">
+          <label htmlFor="email">{tc('email')}</label>
+          <input
+            id="email"
+            type="email"
+            className="au-input"
+            placeholder="vous@exemple.com"
+            autoComplete="email"
+            inputMode="email"
+            {...register('email')}
+          />
+          {errors.email && <p className="au-error">{errors.email.message}</p>}
+        </div>
+
+        {errors.root && <p className="au-root-error">{errors.root.message}</p>}
+
+        <button type="submit" className="au-cta" disabled={isSubmitting}>
+          {isSubmitting ? t('submitting') : t('submit')}
+        </button>
+      </form>
+
+      <p className="au-foot">
+        <Link href="/login">{tc('back_to_login')}</Link>
+      </p>
     </div>
   );
 }

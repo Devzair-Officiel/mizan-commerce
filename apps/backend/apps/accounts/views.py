@@ -16,7 +16,7 @@ from .serializers import (
     RegisterSerializer, UserSerializer, MeSerializer, ChangePasswordSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
-from .throttles import AuthRateThrottle
+from .throttles import AuthRateThrottle, ResendEmailVerificationThrottle
 
 User = get_user_model()
 
@@ -30,7 +30,11 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save(is_active=False)
+        # Le compte est immédiatement actif : l'utilisateur peut se connecter sans
+        # attendre la vérification d'email (URS onboarding sans friction). La
+        # vérification se fait depuis les réglages — `email_verified_at` reste
+        # null tant que le lien n'est pas cliqué.
+        user = serializer.save(is_active=True)
 
         from apps.shops.models import Shop, ShopMember
         from apps.subscriptions.services import start_trial_or_default
@@ -49,14 +53,19 @@ class RegisterView(generics.CreateAPIView):
         verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour activer votre compte :\n\n{verify_url}\n\nCe lien est valable 24 heures.",
+            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
         )
 
+        refresh = RefreshToken.for_user(user)
         return Response(
-            {'detail': 'Compte créé. Vérifiez votre email pour activer votre compte.'},
+            {
+                'detail': 'Compte créé.',
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+            },
             status=status.HTTP_201_CREATED,
         )
 
@@ -139,6 +148,32 @@ class PasswordResetConfirmView(APIView):
         return Response({'detail': 'Mot de passe réinitialisé.'})
 
 
+class ResendEmailVerificationView(APIView):
+    """Renvoie le lien de vérification d'email à l'utilisateur connecté.
+    Toujours 200 (idempotent côté UX), même si l'email est déjà vérifié — on
+    distingue les cas via le champ `already_verified` pour piloter l'affichage."""
+
+    permission_classes = (IsAuthenticated,)
+    throttle_classes = [ResendEmailVerificationThrottle]
+
+    def post(self, request):
+        user = request.user
+        if user.email_verified_at is not None:
+            return Response({'detail': 'Email déjà vérifié.', 'already_verified': True})
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
+        send_mail(
+            subject='Confirmez votre email — Mizan',
+            message=f"Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return Response({'detail': 'Lien renvoyé.', 'already_verified': False})
+
+
 class EmailVerificationView(APIView):
     permission_classes = (AllowAny,)
 
@@ -148,14 +183,14 @@ class EmailVerificationView(APIView):
 
         try:
             uid = force_str(urlsafe_base64_decode(uid_b64))
-            user = User.objects.get(pk=uid, is_active=False)
+            user = User.objects.get(pk=uid)
         except (User.DoesNotExist, ValueError, TypeError):
             return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not default_token_generator.check_token(user, token):
             return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user.is_active = True
-        user.email_verified_at = timezone.now()
-        user.save(update_fields=['is_active', 'email_verified_at'])
-        return Response({'detail': 'Email vérifié. Vous pouvez maintenant vous connecter.'})
+        if user.email_verified_at is None:
+            user.email_verified_at = timezone.now()
+            user.save(update_fields=['email_verified_at'])
+        return Response({'detail': 'Email vérifié.'})

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
+import type { CatalogKind, DashboardMode } from './useMe';
 
 export type NisabMethod = 'gold' | 'silver';
 
@@ -20,6 +21,9 @@ export interface Shop {
   legal_mentions: string;
   default_tax_rate: string;
   default_payment_terms_days: number;
+  catalog_kind: CatalogKind;
+  dashboard_mode: DashboardMode;
+  onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +40,13 @@ export interface ShopUpdateData {
   legal_mentions?: string;
   default_tax_rate?: string;
   default_payment_terms_days?: number;
+  catalog_kind?: CatalogKind;
+  dashboard_mode?: DashboardMode;
+}
+
+export interface OnboardingPayload {
+  catalog_kind: CatalogKind;
+  dashboard_mode: DashboardMode;
 }
 
 export function useShop() {
@@ -79,5 +90,22 @@ export function useDeleteShopLogo() {
   return useMutation({
     mutationFn: () => apiFetch<Shop>('/shop/logo/', { method: 'DELETE' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.shop.all }),
+  });
+}
+
+export function useCompleteOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: OnboardingPayload) =>
+      apiFetch<Shop>('/shop/onboarding/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      // `me.membership` contient onboarding_completed_at — il faut l'invalider
+      // pour que le gating dans (app)/layout débloque l'accès au dashboard.
+      qc.invalidateQueries({ queryKey: qk.shop.all });
+      qc.invalidateQueries({ queryKey: qk.me.all });
+    },
   });
 }

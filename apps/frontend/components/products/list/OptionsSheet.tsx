@@ -35,6 +35,7 @@ interface OptionsSheetProps {
   onVisibilityChange: (v: Visibility) => void;
   typeFilter: TypeFilter;
   onTypeFilterChange: (v: TypeFilter) => void;
+  showTypeFilter?: boolean;
 }
 
 export function OptionsSheet({
@@ -42,6 +43,7 @@ export function OptionsSheet({
   ordering, onOrderingChange,
   visibility, onVisibilityChange,
   typeFilter, onTypeFilterChange,
+  showTypeFilter = true,
 }: OptionsSheetProps) {
   const t = useTranslations('articles.options');
 
@@ -81,17 +83,19 @@ export function OptionsSheet({
         </div>
 
         <div className="px-5 pb-6 pt-1 flex flex-col gap-5 max-h-[75vh] overflow-y-auto">
-          <OptionGroup label={t('type')}>
-            {TYPE_KEYS.map(({ key, tKey }) => (
-              <OptionRow
-                key={key}
-                icon={<Layers size={16} className="shrink-0" />}
-                label={t(tKey)}
-                selected={typeFilter === key}
-                onClick={() => onTypeFilterChange(key)}
-              />
-            ))}
-          </OptionGroup>
+          {showTypeFilter && (
+            <OptionGroup label={t('type')}>
+              {TYPE_KEYS.map(({ key, tKey }) => (
+                <OptionRow
+                  key={key}
+                  icon={<Layers size={16} className="shrink-0" />}
+                  label={t(tKey)}
+                  selected={typeFilter === key}
+                  onClick={() => onTypeFilterChange(key)}
+                />
+              ))}
+            </OptionGroup>
+          )}
 
           <OptionGroup label={t('sort_by')}>
             {SORT_KEYS.map(({ key, tKey, icon }) => (

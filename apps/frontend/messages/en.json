@@ -9,6 +9,9 @@
     },
     "login": {
       "title": "Sign in",
+      "headline_lead": "Welcome",
+      "headline_accent": "back",
+      "subtitle": "Sign in to manage your shop.",
       "submit": "Sign in",
       "submitting": "Signing in…",
       "password_required": "Password required",
@@ -19,43 +22,62 @@
     },
     "register": {
       "title": "Create an account",
-      "submit": "Create my account",
+      "headline_lead": "Launch your shop in",
+      "headline_accent": "two minutes",
+      "subtitle": "14-day Boutique+ free trial. No credit card required.",
+      "submit": "Start for free",
       "submitting": "Creating…",
       "full_name": "Full name",
       "full_name_required": "Name required",
       "shop_name": "Shop name",
+      "shop_name_placeholder": "e.g. Al-Barakah Grocery",
       "shop_name_required": "Shop name required",
+      "password_placeholder": "At least 8 characters",
       "password_min": "Minimum 8 characters",
       "error_generic": "Something went wrong. Please check your details.",
-      "have_account": "Already have an account?",
+      "have_account": "Already registered?",
       "signin_link": "Sign in",
+      "trust_line": "No card required — cancel anytime",
       "check_email_title": "Check your email",
       "check_email_body": "An activation link has been sent to your email. Click it to activate your account."
     },
     "forgotPassword": {
       "title": "Forgot password",
+      "headline_lead": "Recover your",
+      "headline_accent": "access",
+      "subtitle": "Enter your email — we'll send you a reset link.",
       "intro": "Enter your email to receive a reset link.",
       "submit": "Send link",
       "submitting": "Sending…",
       "error_generic": "Something went wrong. Please try again.",
+      "sent_title": "Check your email",
       "sent": "If an account exists for this email, a reset link has been sent."
     },
     "resetPassword": {
       "title": "New password",
+      "headline_lead": "Choose a new",
+      "headline_accent": "password",
+      "subtitle": "Pick a password of at least 8 characters.",
       "new_password": "New password",
       "confirm_password": "Confirm password",
       "password_min": "Minimum 8 characters",
       "mismatch": "Passwords do not match.",
       "submit": "Reset",
       "submitting": "Saving…",
-      "done": "Password reset successfully.",
+      "done_title": "Password updated",
+      "done": "Your password has been reset successfully.",
       "signin_cta": "Sign in",
-      "invalid_link": "Invalid link."
+      "invalid_link_title": "Invalid link",
+      "invalid_link": "This reset link is invalid or has expired."
     },
     "verifyEmail": {
       "title": "Email verification",
+      "headline_lead": "Verifying your",
+      "headline_accent": "email",
       "loading": "Verifying…",
-      "success": "Your email has been verified. You can now sign in.",
+      "success_title": "Email verified",
+      "success": "Your email has been confirmed. You can now sign in.",
+      "error_title": "Invalid link",
       "signin_cta": "Sign in"
     }
   },
@@ -206,6 +228,12 @@
     "zakat_banner": {
       "title": "{days, plural, =0 {Zakat today} one {Zakat in # day} other {Zakat in # days}}",
       "sub": "Prepare the annual zakat calculation."
+    },
+    "shortcuts": {
+      "new_order": "New order",
+      "orders": "Orders",
+      "articles": "Articles",
+      "customers": "Customers"
     }
   },
   "customers": {

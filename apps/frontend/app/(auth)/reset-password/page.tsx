@@ -7,10 +7,7 @@ import { z } from 'zod';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
-import { PasswordInput } from '@/components/ui/password-input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 
 type FormData = { new_password: string; confirm_password: string };
 
@@ -21,6 +18,8 @@ function ResetPasswordForm() {
   const uid = params.get('uid') ?? '';
   const token = params.get('token') ?? '';
   const [done, setDone] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const schema = useMemo(
     () =>
@@ -60,61 +59,111 @@ function ResetPasswordForm() {
 
   if (!uid || !token) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-        <p className="text-sm text-red-500">{t('invalid_link')}</p>
+      <div className="au-card au-confirm">
+        <div className="au-confirm-icon is-error" aria-hidden>
+          <ShieldAlert size={28} strokeWidth={2.25} />
+        </div>
+        <h1 className="au-confirm-title">{t('invalid_link_title')}</h1>
+        <p>{t('invalid_link')}</p>
+        <div className="au-confirm-actions">
+          <Link href="/forgot-password" className="au-cta">
+            {t('signin_cta')}
+          </Link>
+          <Link href="/login" className="au-cta-ghost">
+            {tc('back_to_login')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (done) {
+    return (
+      <div className="au-card au-confirm">
+        <div className="au-confirm-icon" aria-hidden>
+          <Check size={28} strokeWidth={2.5} />
+        </div>
+        <h1 className="au-confirm-title">{t('done_title')}</h1>
+        <p>{t('done')}</p>
+        <div className="au-confirm-actions">
+          <Link href="/login" className="au-cta">
+            {t('signin_cta')}
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-6 text-center text-2xl font-bold tracking-tight text-foreground">Mizan</h1>
-        <Card className="w-full shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">{t('title')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {done ? (
-              <div className="flex flex-col gap-4 text-center">
-                <p className="text-sm text-muted-foreground">{t('done')}</p>
-                <Link href="/login">
-                  <Button className="w-full">{t('signin_cta')}</Button>
-                </Link>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="new_password">{t('new_password')}</Label>
-                  <PasswordInput
-                    id="new_password"
-                    autoComplete="new-password"
-                    {...register('new_password')}
-                  />
-                  {errors.new_password && (
-                    <p className="text-xs text-red-500">{errors.new_password.message}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="confirm_password">{t('confirm_password')}</Label>
-                  <PasswordInput
-                    id="confirm_password"
-                    autoComplete="new-password"
-                    {...register('confirm_password')}
-                  />
-                  {errors.confirm_password && (
-                    <p className="text-xs text-red-500">{errors.confirm_password.message}</p>
-                  )}
-                </div>
-                {errors.root && <p className="text-sm text-red-500">{errors.root.message}</p>}
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? t('submitting') : t('submit')}
-                </Button>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+    <div className="au-card">
+      <h1>
+        {t('headline_lead')}{' '}
+        <span className="serif-i">{t('headline_accent')}</span>
+      </h1>
+      <p className="au-sub">{t('subtitle')}</p>
+      <div className="au-divider" />
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="au-field">
+          <label htmlFor="new_password">{t('new_password')}</label>
+          <div className="au-pwd">
+            <input
+              id="new_password"
+              type={showPwd ? 'text' : 'password'}
+              className="au-input"
+              autoComplete="new-password"
+              {...register('new_password')}
+            />
+            <button
+              type="button"
+              className="au-pwd-toggle"
+              onClick={() => setShowPwd((v) => !v)}
+              aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              aria-pressed={showPwd}
+            >
+              {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {errors.new_password && (
+            <p className="au-error">{errors.new_password.message}</p>
+          )}
+        </div>
+
+        <div className="au-field">
+          <label htmlFor="confirm_password">{t('confirm_password')}</label>
+          <div className="au-pwd">
+            <input
+              id="confirm_password"
+              type={showConfirm ? 'text' : 'password'}
+              className="au-input"
+              autoComplete="new-password"
+              {...register('confirm_password')}
+            />
+            <button
+              type="button"
+              className="au-pwd-toggle"
+              onClick={() => setShowConfirm((v) => !v)}
+              aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              aria-pressed={showConfirm}
+            >
+              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          {errors.confirm_password && (
+            <p className="au-error">{errors.confirm_password.message}</p>
+          )}
+        </div>
+
+        {errors.root && <p className="au-root-error">{errors.root.message}</p>}
+
+        <button type="submit" className="au-cta" disabled={isSubmitting}>
+          {isSubmitting ? t('submitting') : t('submit')}
+        </button>
+      </form>
+
+      <p className="au-foot">
+        <Link href="/login">{tc('back_to_login')}</Link>
+      </p>
     </div>
   );
 }

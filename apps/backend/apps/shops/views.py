@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.parsers import MultiPartParser
@@ -11,6 +12,7 @@ from .models import Shop, ShopMember
 from .permissions import IsShopMember
 from .serializers import (
     AdminShopSerializer,
+    OnboardingSerializer,
     ShopMemberCreateSerializer,
     ShopMemberSerializer,
     ShopMemberUpdateSerializer,
@@ -147,6 +149,25 @@ class ShopLogoView(APIView):
     def delete(self, request) -> Response:
         shop = self._get_shop()
         delete_shop_logo(shop)
+        return Response(ShopSerializer(shop, context={'request': request}).data)
+
+
+class OnboardingView(APIView):
+    """Finalise le wizard 1er login pour la boutique courante. Admin only.
+    Idempotent : si l'onboarding a déjà été fait, l'appel met juste à jour les
+    préférences sans toucher à `onboarding_completed_at`."""
+
+    permission_classes = (IsAuthenticated, IsShopAdmin)
+
+    def post(self, request) -> Response:
+        shop = get_user_shop(request.user)
+        serializer = OnboardingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        shop.catalog_kind = serializer.validated_data['catalog_kind']
+        shop.dashboard_mode = serializer.validated_data['dashboard_mode']
+        if shop.onboarding_completed_at is None:
+            shop.onboarding_completed_at = timezone.now()
+        shop.save(update_fields=['catalog_kind', 'dashboard_mode', 'onboarding_completed_at', 'updated_at'])
         return Response(ShopSerializer(shop, context={'request': request}).data)
 
 

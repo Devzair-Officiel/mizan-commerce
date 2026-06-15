@@ -8,7 +8,12 @@ import { Eye, EyeOff } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
-import { useMe, useUpdateMe, useChangePassword } from '@/lib/hooks/useMe';
+import { EmailVerificationBanner } from '@/components/account/EmailVerificationBanner';
+import {
+  useMe,
+  useUpdateMe,
+  useChangePassword,
+} from '@/lib/hooks/useMe';
 import { ApiError } from '@/lib/api-client';
 
 type PasswordFieldProps = Omit<ComponentProps<typeof FloatingInput>, 'type'>;
@@ -168,6 +173,8 @@ export default function ProfilePage() {
     <>
       <TopBar title="Mon profil" />
       <div className="flex flex-col gap-8 px-4 pb-8 pt-4">
+        <EmailVerificationBanner />
+
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-foreground">Informations</h2>
           <ProfileForm />

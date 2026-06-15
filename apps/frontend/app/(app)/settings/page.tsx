@@ -12,6 +12,7 @@ import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { settingsSchema, type SettingsFormValues } from '@/components/settings/schema';
 import { IdentitySection } from '@/components/settings/IdentitySection';
 import { RegionalSection } from '@/components/settings/RegionalSection';
+import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { ZakatSection } from '@/components/settings/ZakatSection';
 import { InvoicingSection } from '@/components/settings/InvoicingSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
@@ -29,6 +30,8 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
     legal_mentions: shop.legal_mentions ?? '',
     default_tax_rate: shop.default_tax_rate ?? '0',
     default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
+    catalog_kind: shop.catalog_kind ?? 'both',
+    dashboard_mode: shop.dashboard_mode ?? 'complete',
   };
 }
 
@@ -125,6 +128,7 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32">
         <IdentitySection shop={shop} register={register} errors={errors} />
         <RegionalSection register={register} />
+        <PreferencesSection register={register} />
         <ZakatSection register={register} shop={shop} />
         <InvoicingSection register={register} />
 

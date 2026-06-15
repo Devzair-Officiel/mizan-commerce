@@ -1,5 +1,7 @@
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -72,4 +74,69 @@ class AuthFlowTest(TestCase):
             'old_password': 'wrong',
             'new_password': 'NewStrongPass456!',
         })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ResendEmailVerificationTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(email='unverified@example.com', password='StrongPass123!')
+        self.url = reverse('auth-verify-email-resend')
+
+    def test_requires_auth(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_sends_email_when_not_verified(self):
+        self.client.force_authenticate(user=self.user)
+        mail.outbox = []
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['already_verified'])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('verify-email', mail.outbox[0].body)
+
+    def test_skips_email_when_already_verified(self):
+        self.user.email_verified_at = timezone.now()
+        self.user.save(update_fields=['email_verified_at'])
+        self.client.force_authenticate(user=self.user)
+        mail.outbox = []
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['already_verified'])
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class EmailVerificationViewTest(TestCase):
+    """Vérifie le bon comportement après le passage à `is_active=True` à l'inscription."""
+
+    def setUp(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+
+        self.client = APIClient()
+        self.user = User.objects.create_user(email='verify@example.com', password='StrongPass123!')
+        self.uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        self.token = default_token_generator.make_token(self.user)
+        self.url = reverse('auth-verify-email')
+
+    def test_marks_email_verified(self):
+        response = self.client.get(self.url, {'uid': self.uid, 'token': self.token})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertIsNotNone(self.user.email_verified_at)
+
+    def test_idempotent_when_already_verified(self):
+        self.user.email_verified_at = timezone.now()
+        self.user.save(update_fields=['email_verified_at'])
+        previous = self.user.email_verified_at
+        response = self.client.get(self.url, {'uid': self.uid, 'token': self.token})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        # `email_verified_at` n'est pas re-écrit si déjà rempli
+        self.assertEqual(self.user.email_verified_at, previous)
+
+    def test_rejects_invalid_token(self):
+        response = self.client.get(self.url, {'uid': self.uid, 'token': 'invalid'})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

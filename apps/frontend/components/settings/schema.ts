@@ -25,6 +25,8 @@ export const settingsSchema = z.object({
   legal_mentions: z.string().optional(),
   default_tax_rate: z.string().optional(),
   default_payment_terms_days: z.string().optional(),
+  catalog_kind: z.enum(['products', 'services', 'both']),
+  dashboard_mode: z.enum(['minimal', 'complete']),
 });
 
 export type SettingsFormValues = z.infer<typeof settingsSchema>;

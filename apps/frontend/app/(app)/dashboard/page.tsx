@@ -4,12 +4,11 @@ import { useTranslations } from 'next-intl';
 import { ShoppingCart, Clock, AlertTriangle, Bell } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useDashboard } from '@/lib/hooks/useDashboard';
-import { useMe } from '@/lib/hooks/useMe';
 import { useShop } from '@/lib/hooks/useShop';
-import { useFormatDate } from '@/lib/hooks/useFormat';
-import { FreshIndicator } from '@/components/dashboard/FreshIndicator';
+import { EmailVerificationBanner } from '@/components/account/EmailVerificationBanner';
 import { ZakatBanner } from '@/components/dashboard/ZakatBanner';
 import { KpiCards } from '@/components/dashboard/KpiCards';
+import { QuickShortcuts } from '@/components/dashboard/QuickShortcuts';
 import { RevenueSparkline } from '@/components/dashboard/RevenueSparkline';
 import { Section } from '@/components/dashboard/Section';
 import { OrderRow, ReminderRow, SeeAllRow, StockRow } from '@/components/dashboard/rows';
@@ -19,17 +18,12 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const tNav = useTranslations('layout.nav');
   const tSections = useTranslations('dashboard.sections');
-  const formatDate = useFormatDate();
 
-  const { data, isLoading, isError, error, dataUpdatedAt, isFetching, refetch } = useDashboard();
-  const { data: me } = useMe();
+  const { data, isLoading, isError, error } = useDashboard();
   const { data: shop } = useShop();
 
-  const firstName = me?.full_name?.trim().split(/\s+/)[0] ?? '';
-  const today = formatDate(new Date(), {
-    weekday: 'long', day: 'numeric', month: 'long',
-  });
   const currency = shop?.currency ?? 'EUR';
+  const isMinimal = shop?.dashboard_mode === 'minimal';
 
   const revenueToday = Number(data?.today.revenue ?? 0);
   const revenueYesterday = Number(data?.today.revenue_yesterday ?? 0);
@@ -42,15 +36,7 @@ export default function DashboardPage() {
       <TopBar title={tNav('dashboard')} />
       <div className="p-4 lg:px-8 lg:py-6 flex flex-col gap-4">
 
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <h1 className="text-lg font-semibold text-foreground truncate">
-              {firstName ? t('greeting_named', { name: firstName }) : t('greeting')}
-            </h1>
-            <p className="text-xs text-muted-foreground capitalize">{today}</p>
-          </div>
-          <FreshIndicator updatedAt={dataUpdatedAt} isFetching={isFetching} onRefresh={() => refetch()} />
-        </div>
+        <EmailVerificationBanner />
 
         {zakatDays !== null && zakatDays <= 30 && <ZakatBanner daysUntil={zakatDays} />}
 
@@ -63,9 +49,11 @@ export default function DashboardPage() {
           currency={currency}
         />
 
-        {data && <RevenueSparkline points={data.revenue_last_7_days} currency={currency} />}
+        {data && !isMinimal && <RevenueSparkline points={data.revenue_last_7_days} currency={currency} />}
 
-        {isLoading && (
+        {isMinimal && <QuickShortcuts />}
+
+        {isLoading && !isMinimal && (
           <div className="flex flex-col gap-2 mt-2">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-14 rounded-2xl bg-muted animate-pulse" />
@@ -84,7 +72,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {data && (
+        {data && !isMinimal && (
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             <div className="lg:col-span-3 flex flex-col gap-4">
               <Section

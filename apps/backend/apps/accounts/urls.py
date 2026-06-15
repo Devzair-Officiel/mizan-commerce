@@ -5,6 +5,7 @@ from .throttles import AuthRateThrottle
 from .views import (
     RegisterView, MeView, ChangePasswordView,
     PasswordResetRequestView, PasswordResetConfirmView, EmailVerificationView,
+    ResendEmailVerificationView,
 )
 
 
@@ -25,4 +26,5 @@ urlpatterns = [
     path('password-reset/', PasswordResetRequestView.as_view(), name='auth-password-reset'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='auth-password-reset-confirm'),
     path('verify-email/', EmailVerificationView.as_view(), name='auth-verify-email'),
+    path('verify-email/resend/', ResendEmailVerificationView.as_view(), name='auth-verify-email-resend'),
 ]

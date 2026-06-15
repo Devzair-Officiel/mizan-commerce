@@ -7,6 +7,7 @@ import {
   AlertTriangle, PackageX, PackagePlus, SlidersHorizontal, Search, X,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
+import { useShop } from '@/lib/hooks/useShop';
 import {
   useProducts,
   useProductsSummary,
@@ -25,6 +26,10 @@ type StockFilter = 'all' | 'out_of_stock' | 'low_stock';
 export default function CatalogPage() {
   const router = useRouter();
   const t = useTranslations('articles');
+  const { data: shop } = useShop();
+  const catalogKind = shop?.catalog_kind ?? 'both';
+  const forcedType: ProductType | null =
+    catalogKind === 'products' ? 'product' : catalogKind === 'services' ? 'service' : null;
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
@@ -60,6 +65,14 @@ export default function CatalogPage() {
   function pickType(type: ProductType) {
     setAddOpen(false);
     router.push(`/products/new?type=${type}`);
+  }
+
+  function handleAdd() {
+    if (forcedType) {
+      router.push(`/products/new?type=${forcedType}`);
+      return;
+    }
+    setAddOpen(true);
   }
 
   return (
@@ -109,7 +122,7 @@ export default function CatalogPage() {
 
         <div className="flex items-center justify-between gap-2">
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={handleAdd}
             className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
           >
             <PackagePlus size={16} strokeWidth={2.2} />
@@ -131,7 +144,7 @@ export default function CatalogPage() {
         {isLoading && <ProductListSkeleton />}
         {!isLoading && items.length === 0 && (
           <EmptyState
-            onAdd={() => setAddOpen(true)}
+            onAdd={handleAdd}
             searchTerm={debouncedSearch}
             onClearSearch={() => setSearch('')}
           />
@@ -159,6 +172,7 @@ export default function CatalogPage() {
         onVisibilityChange={setVisibility}
         typeFilter={typeFilter}
         onTypeFilterChange={setTypeFilter}
+        showTypeFilter={!forcedType}
       />
 
       <AddTypeSheet

@@ -11,6 +11,22 @@ class Shop(models.Model):
         (NISAB_METHOD_SILVER, 'Argent (595 g)'),
     ]
 
+    CATALOG_PRODUCTS = 'products'
+    CATALOG_SERVICES = 'services'
+    CATALOG_BOTH = 'both'
+    CATALOG_KIND_CHOICES = [
+        (CATALOG_PRODUCTS, 'Produits'),
+        (CATALOG_SERVICES, 'Services'),
+        (CATALOG_BOTH, 'Les deux'),
+    ]
+
+    DASHBOARD_MINIMAL = 'minimal'
+    DASHBOARD_COMPLETE = 'complete'
+    DASHBOARD_MODE_CHOICES = [
+        (DASHBOARD_MINIMAL, 'Minimaliste'),
+        (DASHBOARD_COMPLETE, 'Complet'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=120)
     currency = models.CharField(max_length=3, default='EUR')
@@ -41,6 +57,17 @@ class Shop(models.Model):
         max_digits=5, decimal_places=2, default=0,
     )
     default_payment_terms_days = models.PositiveSmallIntegerField(default=30)
+
+    # ── Onboarding ──────────────────────────────────────────────────────────
+    # Choix saisis dans le wizard 1er login, modifiables ensuite depuis les
+    # réglages. `onboarding_completed_at` non null = wizard validé (ou skippé).
+    catalog_kind = models.CharField(
+        max_length=10, choices=CATALOG_KIND_CHOICES, default=CATALOG_BOTH,
+    )
+    dashboard_mode = models.CharField(
+        max_length=10, choices=DASHBOARD_MODE_CHOICES, default=DASHBOARD_COMPLETE,
+    )
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -9,6 +9,9 @@
     },
     "login": {
       "title": "Connexion",
+      "headline_lead": "Bon retour",
+      "headline_accent": "parmi nous",
+      "subtitle": "Connectez-vous pour gérer votre boutique.",
       "submit": "Se connecter",
       "submitting": "Connexion…",
       "password_required": "Mot de passe requis",
@@ -19,43 +22,62 @@
     },
     "register": {
       "title": "Créer un compte",
-      "submit": "Créer mon compte",
+      "headline_lead": "Créez votre boutique en",
+      "headline_accent": "deux minutes",
+      "subtitle": "14 jours d'essai Boutique+ offerts. Sans carte bancaire.",
+      "submit": "Commencer gratuitement",
       "submitting": "Création…",
       "full_name": "Nom complet",
       "full_name_required": "Nom requis",
       "shop_name": "Nom de la boutique",
+      "shop_name_placeholder": "Ex. Épicerie Al-Barakah",
       "shop_name_required": "Nom de boutique requis",
+      "password_placeholder": "Minimum 8 caractères",
       "password_min": "Minimum 8 caractères",
       "error_generic": "Une erreur est survenue. Vérifiez vos informations.",
-      "have_account": "Déjà un compte ?",
+      "have_account": "Déjà inscrit ?",
       "signin_link": "Se connecter",
+      "trust_line": "Aucune carte requise — résiliable à tout moment",
       "check_email_title": "Vérifiez votre email",
       "check_email_body": "Un lien d'activation a été envoyé à votre adresse email. Cliquez sur ce lien pour activer votre compte."
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",
+      "headline_lead": "Récupérez votre",
+      "headline_accent": "accès",
+      "subtitle": "Entrez votre email, nous vous envoyons un lien de réinitialisation.",
       "intro": "Entrez votre email pour recevoir un lien de réinitialisation.",
       "submit": "Envoyer le lien",
       "submitting": "Envoi…",
       "error_generic": "Une erreur est survenue. Veuillez réessayer.",
+      "sent_title": "Vérifiez votre email",
       "sent": "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé."
     },
     "resetPassword": {
       "title": "Nouveau mot de passe",
+      "headline_lead": "Choisissez un nouveau",
+      "headline_accent": "mot de passe",
+      "subtitle": "Saisissez un mot de passe d'au moins 8 caractères.",
       "new_password": "Nouveau mot de passe",
       "confirm_password": "Confirmer le mot de passe",
       "password_min": "8 caractères minimum",
       "mismatch": "Les mots de passe ne correspondent pas.",
       "submit": "Réinitialiser",
       "submitting": "Enregistrement…",
-      "done": "Mot de passe réinitialisé avec succès.",
+      "done_title": "Mot de passe mis à jour",
+      "done": "Votre mot de passe a bien été réinitialisé.",
       "signin_cta": "Se connecter",
-      "invalid_link": "Lien invalide."
+      "invalid_link_title": "Lien invalide",
+      "invalid_link": "Ce lien de réinitialisation est invalide ou a expiré."
     },
     "verifyEmail": {
       "title": "Vérification de l'email",
+      "headline_lead": "Vérification de votre",
+      "headline_accent": "email",
       "loading": "Vérification en cours…",
-      "success": "Votre email a été vérifié. Vous pouvez maintenant vous connecter.",
+      "success_title": "Email vérifié",
+      "success": "Votre email a été confirmé. Vous pouvez maintenant vous connecter.",
+      "error_title": "Lien invalide",
       "signin_cta": "Se connecter"
     }
   },
@@ -206,6 +228,12 @@
     "zakat_banner": {
       "title": "{days, plural, =0 {Zakat aujourd'hui} one {Zakat dans # jour} other {Zakat dans # jours}}",
       "sub": "Préparer le calcul de la zakat annuelle."
+    },
+    "shortcuts": {
+      "new_order": "Nouvelle commande",
+      "orders": "Commandes",
+      "articles": "Articles",
+      "customers": "Clients"
     }
   },
   "customers": {

@@ -55,6 +55,13 @@ class MeSerializer(UserSerializer):
             'role': m.role,
             'is_admin': m.is_admin,
             'permissions': list(m.permissions or []),
+            # Onboarding : `onboarding_completed_at` null = wizard à présenter.
+            'catalog_kind': m.shop.catalog_kind,
+            'dashboard_mode': m.shop.dashboard_mode,
+            'onboarding_completed_at': (
+                m.shop.onboarding_completed_at.isoformat()
+                if m.shop.onboarding_completed_at else None
+            ),
         }
 
 

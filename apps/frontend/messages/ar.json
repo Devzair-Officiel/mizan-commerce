@@ -206,6 +206,12 @@
     "zakat_banner": {
       "title": "{days, plural, =0 {الزكاة اليوم} one {الزكاة بعد # يوم} other {الزكاة بعد # أيام}}",
       "sub": "تحضير حساب الزكاة السنوية."
+    },
+    "shortcuts": {
+      "new_order": "طلب جديد",
+      "orders": "الطلبات",
+      "articles": "المقالات",
+      "customers": "العملاء"
     }
   },
   "customers": {
