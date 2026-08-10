@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { UserPlus, ClipboardPlus, Package, PackagePlus, Users } from 'lucide-react';
+import { ChevronRight, ClipboardPlus, Package, PackagePlus, UserPlus, Users, X } from 'lucide-react';
 import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
 import { usePlanGating, type Feature } from '@/lib/hooks/usePlanGating';
 
@@ -34,21 +34,18 @@ const RIGHT_ITEMS: readonly NavItemDef[] = [
 
 type QuickActionKey = 'new_customer' | 'new_order' | 'new_product';
 
-/* Positions en arc autour du + — les icônes sortent de derrière le + */
 type QuickAction = {
   href: string;
   labelKey: QuickActionKey;
   module: ModuleKey;
   icon: IconLike;
   feature?: Feature;
-  x: number;
-  y: number;
 };
 
 const QUICK_ACTIONS: readonly QuickAction[] = [
-  { href: '/customers/new', labelKey: 'new_customer', module: 'customers', icon: UserPlus,      x: -88, y: -62 },
-  { href: '/orders/new',    labelKey: 'new_order',    module: 'orders',    icon: ClipboardPlus, feature: 'orders',   x: 0,   y: -106 },
-  { href: '/products/new',  labelKey: 'new_product',  module: 'products',  icon: PackagePlus,   feature: 'products', x: 88,  y: -62 },
+  { href: '/orders/new',    labelKey: 'new_order',    module: 'orders',    icon: ClipboardPlus, feature: 'orders' },
+  { href: '/products/new',  labelKey: 'new_product',  module: 'products',  icon: PackagePlus,   feature: 'products' },
+  { href: '/customers/new', labelKey: 'new_customer', module: 'customers', icon: UserPlus },
 ];
 
 function hasModuleAccess(
@@ -60,11 +57,42 @@ function hasModuleAccess(
   return membership.permissions.includes(module);
 }
 
+/* Détecte tout dialog/sheet modal externe (hors menu interne du BottomNav,
+   marqué par `data-bottom-nav-sheet`) afin de masquer FAB + nav et éviter
+   le débordement par-dessus les feuilles ouvertes. */
+function useExternalDialogOpen() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const nodes = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      let hasExternal = false;
+      nodes.forEach((el) => {
+        if (!el.hasAttribute('data-bottom-nav-sheet')) hasExternal = true;
+      });
+      setOpen(hasExternal);
+    };
+
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['role', 'aria-modal', 'data-state'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return open;
+}
+
 export function BottomNav() {
   const tNav = useTranslations('layout.nav');
   const tBottom = useTranslations('layout.bottomNav');
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const externalDialogOpen = useExternalDialogOpen();
   const { data: me } = useMe();
   const membership = me?.membership ?? null;
   const { can } = usePlanGating();
@@ -96,73 +124,84 @@ export function BottomNav() {
     };
   }, [menuOpen]);
 
+  if (externalDialogOpen) return null;
+
   return (
     <>
-      {/* Overlay assombrissant le fond */}
+      {/* Overlay assombrissant le fond — bloque la nav + déclenche la fermeture */}
       <div
         onClick={() => setMenuOpen(false)}
-        className={`lg:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-200 ${
+        className={`lg:hidden fixed inset-0 z-70 bg-black/40 backdrop-blur-sm transition-opacity duration-200 ${
           menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       />
 
-      {/* Conteneur ancré au bouton + : actions en arc + bouton central */}
+      {/* Bottom sheet — liste explicite des actions rapides */}
       {showFab && (
-        <div className="lg:hidden fixed bottom-4 left-1/2 z-60 -translate-x-1/2">
-          <div className="relative h-14.5 w-14.5">
-            {/* Actions — glissent depuis derrière le + vers leur position en arc */}
-            {quickActions.map(({ href, labelKey, icon: Icon, x, y }, i) => (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={tBottom('quick_actions')}
+          aria-hidden={!menuOpen}
+          data-bottom-nav-sheet="true"
+          className={`lg:hidden fixed inset-x-0 bottom-0 z-80 rounded-t-[28px] bg-card shadow-[0_-20px_60px_rgba(0,0,0,0.18)] transition-transform duration-300 ease-out ${
+            menuOpen ? 'translate-y-0' : 'translate-y-full'
+          }`}
+        >
+          <div className="mx-auto mt-3 h-1.5 w-12 rounded-full bg-muted-foreground/25" />
+          <div className="px-6 pt-4">
+            <h2 className="text-base font-semibold text-foreground">{tBottom('quick_actions')}</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">{tBottom('quick_actions_sub')}</p>
+          </div>
+          <div className="px-4 pt-4 pb-28 flex flex-col gap-2">
+            {quickActions.map(({ href, labelKey, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setMenuOpen(false)}
-                aria-label={tBottom(labelKey)}
-                aria-hidden={!menuOpen}
                 tabIndex={menuOpen ? 0 : -1}
-                className={`absolute top-1/2 left-1/2 flex items-center justify-center h-14.5 w-14.5 rounded-full bg-card ring-1 ring-primary/15 active:scale-95 ${
-                  menuOpen ? 'pointer-events-auto' : 'pointer-events-none'
-                }`}
-                style={{
-                  transform: menuOpen
-                    ? `translate(-50%, -50%) translate(${x}px, ${y}px)`
-                    : 'translate(-50%, -50%)',
-                  opacity: menuOpen ? 1 : 0,
-                  boxShadow:
-                    '0 10px 24px -6px rgba(0,0,0,0.30), 0 4px 8px -2px rgba(0,0,0,0.14), inset 0 0 0 1px rgba(255,255,255,0.04)',
-                  transition: `transform 220ms cubic-bezier(0.22, 1, 0.36, 1) ${
-                    menuOpen ? i * 25 : (quickActions.length - 1 - i) * 20
-                  }ms, opacity 120ms ease-out ${menuOpen ? i * 25 : 0}ms`,
-                }}
+                className="group flex items-center gap-4 rounded-2xl bg-muted/40 px-4 py-3.5 text-left transition-colors hover:bg-muted active:scale-[0.99]"
               >
-                <Icon className="h-7 w-7 text-primary" strokeWidth={2} />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                  <Icon className="h-5 w-5" strokeWidth={2} />
+                </div>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className="text-[15px] font-semibold text-foreground leading-tight">{tBottom(labelKey)}</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">{tBottom(`${labelKey}_sub`)}</span>
+                </div>
+                <ChevronRight size={18} className="text-muted-foreground/60 rtl:rotate-180 shrink-0 transition-transform group-hover:translate-x-0.5" />
               </Link>
             ))}
-
-            {/* Bouton + central — toggle des actions rapides */}
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="absolute inset-0 flex items-center justify-center rounded-full shadow-xl active:scale-95 transition-transform overflow-hidden"
-              style={{
-                background: 'linear-gradient(171deg, color-mix(in oklch, oklch(0.72 0.14 121.33) 65%, white 35%), color-mix(in oklch, var(--primary) 90%, #000000bf 10%))',
-              }}
-              aria-label={menuOpen ? tBottom('close_menu') : tBottom('quick_actions')}
-              aria-expanded={menuOpen}
-            >
-              <svg
-                width="26"
-                height="26"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                className="transition-transform duration-300"
-                style={{ transform: menuOpen ? 'rotate(135deg)' : 'rotate(0deg)' }}
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
           </div>
+        </div>
+      )}
+
+      {/* Bouton + central — toggle de la sheet */}
+      {showFab && (
+        <div className="lg:hidden fixed bottom-4 left-1/2 z-90 -translate-x-1/2">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-14.5 w-14.5 items-center justify-center rounded-full shadow-xl active:scale-95 transition-transform overflow-hidden"
+            style={{
+              background: 'linear-gradient(171deg, color-mix(in oklch, oklch(0.72 0.14 121.33) 65%, white 35%), color-mix(in oklch, var(--primary) 90%, #000000bf 10%))',
+            }}
+            aria-label={menuOpen ? tBottom('close_menu') : tBottom('quick_actions')}
+            aria-expanded={menuOpen}
+          >
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              className="transition-transform duration-300"
+              style={{ transform: menuOpen ? 'rotate(135deg)' : 'rotate(0deg)' }}
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
         </div>
       )}
 

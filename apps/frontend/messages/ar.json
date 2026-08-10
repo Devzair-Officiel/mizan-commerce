@@ -109,10 +109,14 @@
     },
     "bottomNav": {
       "quick_actions": "إجراءات سريعة",
+      "quick_actions_sub": "اختر ما تريد إنشاءه",
       "close_menu": "إغلاق القائمة",
-      "new_customer": "عميل",
-      "new_order": "طلب",
-      "new_product": "منتج"
+      "new_customer": "عميل جديد",
+      "new_customer_sub": "تسجيل جهة اتصال",
+      "new_order": "طلب جديد",
+      "new_order_sub": "إنشاء عملية بيع",
+      "new_product": "منتج جديد",
+      "new_product_sub": "إضافة منتج أو خدمة"
     },
     "burgerMenu": {
       "activity_section": "النشاط",

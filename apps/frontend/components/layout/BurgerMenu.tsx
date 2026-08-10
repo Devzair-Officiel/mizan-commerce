@@ -143,6 +143,10 @@ export function BurgerMenuDrawer() {
       {/* Panneau — h-dvh suit la barre URL mobile. En RTL, `start-0` ancre à droite
           et le translate doit s'inverser (Tailwind ne flippe pas automatiquement translateX). */}
       <aside
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-hidden={!open}
+        aria-label={tc('menu')}
         className={`fixed top-0 inset-s-0 z-80 flex h-dvh w-72 flex-col shadow-2xl backdrop-blur-sm transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
         }`}

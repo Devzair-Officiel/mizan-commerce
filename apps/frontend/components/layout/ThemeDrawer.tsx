@@ -34,6 +34,10 @@ export function ThemeDrawerPanel() {
       {/* Panneau côté "end" (droite en LTR, gauche en RTL).
           Tailwind ne flippe pas translateX automatiquement → variant explicite. */}
       <aside
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-hidden={!open}
+        aria-label={t('title')}
         className={`fixed inset-y-0 inset-e-0 z-80 flex w-80 flex-col bg-card shadow-2xl transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : 'translate-x-full rtl:-translate-x-full'
         }`}
