@@ -39,6 +39,7 @@ LOCAL_APPS = [
     'apps.comms',
     'apps.public_pages',
     'apps.subscriptions',
+    'apps.ocr',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
