@@ -179,6 +179,11 @@ AWS_QUERYSTRING_EXPIRE = 3600  # URL signées valides 1h
 PRODUCT_IMAGE_MAX_SIZE_MB = 5
 PRODUCT_IMAGE_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
 
+# OCR — photo de facture fournisseur (URS-042). Volontairement distinct des
+# constantes PRODUCT_IMAGE_* : les deux domaines évoluent indépendamment.
+OCR_DOCUMENT_MAX_SIZE_MB = 10
+OCR_DOCUMENT_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+
 # Celery
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://redis:6379/0')

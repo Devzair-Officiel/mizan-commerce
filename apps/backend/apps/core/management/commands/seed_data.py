@@ -73,6 +73,7 @@ class Command(BaseCommand):
 
         from apps.orders.models import Order, OrderItem
         from apps.notes.models import Note
+        from apps.ocr.models import OcrResult, UploadedDocument
         from apps.comms.models import PreparedMessage
         from apps.public_pages.models import (
             ContactButton,
@@ -88,6 +89,8 @@ class Command(BaseCommand):
             PublicPageSection.objects.all().delete()
             PublicPage.objects.all().delete()
             PreparedMessage.objects.all().delete()
+            OcrResult.objects.all().delete()
+            UploadedDocument.objects.all().delete()
             OrderItem.objects.all().delete()
             Order.objects.all().delete()
             StockMovement.objects.all().delete()
@@ -379,6 +382,26 @@ class Command(BaseCommand):
                 page=page_ma, type=PublicPageSection.Type.HEADER, position=0,
             )
             self.stdout.write(f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}")
+
+        # ── OCR : facture fournisseur en attente (démo, pas de vrai upload S3) ──
+        # Le seeding ne pousse pas de binaire vers l'Object Storage : on utilise
+        # un object_key fictif, purement destiné à l'exploration de l'UI.
+        if not UploadedDocument.objects.filter(shop=shop_fr).exists():
+            demo_doc = UploadedDocument.objects.create(
+                shop=shop_fr,
+                uploaded_by_user=youssef,
+                document_type=UploadedDocument.DOCUMENT_TYPE_SUPPLIER_INVOICE,
+                object_key=f'ocr/{shop_fr.pk}/supplier-invoices/seed-demo.jpg',
+                original_filename='facture-fournisseur-demo.jpg',
+                mime_type='image/jpeg',
+                size_bytes=245_678,
+            )
+            OcrResult.objects.create(
+                shop=shop_fr,
+                uploaded_document=demo_doc,
+                status=OcrResult.STATUS_PENDING,
+            )
+            self.stdout.write("    → 1 document OCR (pending, object_key fictif)")
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
         self.stdout.write("  youssef@example.com / Mizan1234!")
