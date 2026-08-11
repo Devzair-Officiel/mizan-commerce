@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.files.uploadedfile import UploadedFile
 from rest_framework import serializers
 
 from .models import OcrResult, UploadedDocument
-from .services import validate_file_signature
+from .services import InvalidFileSignatureError, validate_file_signature
 
 
 class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
@@ -12,7 +13,7 @@ class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
 
     document = serializers.FileField()
 
-    def validate_document(self, file):
+    def validate_document(self, file: UploadedFile) -> UploadedFile:
         max_bytes = settings.OCR_DOCUMENT_MAX_SIZE_MB * 1024 * 1024
         allowed_types: set[str] = settings.OCR_DOCUMENT_ALLOWED_TYPES
 
@@ -28,7 +29,10 @@ class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
                 'Formats acceptés : JPEG, PNG, WebP.'
             )
         # Ne pas se fier uniquement au content_type : le client peut le forger.
-        validate_file_signature(file, file.content_type)
+        try:
+            validate_file_signature(file, file.content_type)
+        except InvalidFileSignatureError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         return file
 
 

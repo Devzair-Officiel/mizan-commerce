@@ -188,10 +188,8 @@ class SupplierInvoiceUploadViewTest(TestCase):
     # ── Permissions ─────────────────────────────────────────────────────
     def test_unauthenticated_denied(self) -> None:
         response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
-        self.assertIn(
-            response.status_code,
-            (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
-        )
+        # JWTAuthentication expose un WWW-Authenticate → DRF renvoie 401.
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_owner_can_upload(self) -> None:
         self.client.force_authenticate(user=self.owner)

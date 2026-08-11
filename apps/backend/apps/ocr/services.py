@@ -13,9 +13,7 @@ import logging
 import uuid
 from typing import TYPE_CHECKING, NamedTuple
 
-from django.conf import settings
 from django.db import transaction
-from rest_framework.exceptions import ValidationError
 
 from apps.core.storage import delete_object, upload_fileobj
 
@@ -34,8 +32,17 @@ logger = logging.getLogger(__name__)
 __all__ = (
     'create_supplier_invoice_upload',
     'validate_file_signature',
+    'InvalidFileSignatureError',
     'SupplierInvoiceUpload',
 )
+
+
+class InvalidFileSignatureError(ValueError):
+    """Le binaire du fichier ne correspond pas au MIME annoncé.
+
+    Exception domaine — laisse le service indépendant de DRF. Le serializer
+    l'attrape et la convertit en `serializers.ValidationError`.
+    """
 
 
 # Mapping MIME → extension utilisée pour construire l'object_key. On refuse
@@ -77,7 +84,7 @@ def validate_file_signature(file: 'UploadedFile', declared_mime: str) -> None:
         ok = False
 
     if not ok:
-        raise ValidationError(
+        raise InvalidFileSignatureError(
             'Le contenu du fichier ne correspond pas au type déclaré.'
         )
 
