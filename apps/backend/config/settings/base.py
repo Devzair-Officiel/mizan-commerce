@@ -189,6 +189,12 @@ CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_RESULT_BACKEND = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
 CELERY_TIMEZONE = 'UTC'
 
+# Les tâches OCR sont routées vers une queue dédiée pour isoler leur charge
+# du worker généraliste (voir docker-compose : service `celery-ocr`).
+CELERY_TASK_ROUTES = {
+    'apps.ocr.tasks.*': {'queue': 'ocr'},
+}
+
 from celery.schedules import crontab  # noqa: E402
 
 CELERY_BEAT_SCHEDULE = {

@@ -33,6 +33,19 @@ services:
       - postgres                                # attend que postgres démarre avant de lancer le backend
       - redis
 
+  celery-ocr:
+    build:
+      context: ./apps/backend
+      target: development                       # même image que backend pour partager le code monté
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./apps/backend:/app                     # hot reload : le code OCR est modifié en dev
+    command: celery -A config worker --loglevel=info --queues=ocr --concurrency=1
+    depends_on:
+      - postgres
+      - redis
+
   frontend:
     build:
       context: ./apps/frontend

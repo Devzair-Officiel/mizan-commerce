@@ -384,3 +384,240 @@ class SupplierInvoiceServiceCompensationTest(TestCase):
         self.assertEqual(uploaded_key, deleted_key)
         self.assertEqual(UploadedDocument.objects.count(), 0)
         self.assertEqual(OcrResult.objects.count(), 0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Infrastructure Celery — healthcheck + routage (étape 3)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class OcrWorkerHealthcheckTaskTest(TestCase):
+    """Contrat de la tâche `ocr_worker_healthcheck` — pas de broker requis."""
+
+    def test_healthcheck_returns_expected_contract(self) -> None:
+        from .tasks import ocr_worker_healthcheck
+
+        result = ocr_worker_healthcheck.run()
+        self.assertEqual(result['status'], 'ok')
+        self.assertEqual(result['worker'], 'ocr')
+        # Date ISO parseable — on n'exige pas de valeur exacte.
+        from datetime import datetime
+        datetime.fromisoformat(result['checked_at'])
+
+    def test_healthcheck_does_not_touch_business_models(self) -> None:
+        from .tasks import ocr_worker_healthcheck
+
+        before_docs = UploadedDocument.objects.count()
+        before_ocr = OcrResult.objects.count()
+        before_movements = StockMovement.objects.count()
+        ocr_worker_healthcheck.run()
+        self.assertEqual(UploadedDocument.objects.count(), before_docs)
+        self.assertEqual(OcrResult.objects.count(), before_ocr)
+        self.assertEqual(StockMovement.objects.count(), before_movements)
+
+    def test_task_registered_under_expected_name(self) -> None:
+        from .tasks import ocr_worker_healthcheck
+
+        self.assertEqual(
+            ocr_worker_healthcheck.name, 'apps.ocr.tasks.ocr_worker_healthcheck',
+        )
+
+    def test_task_routed_to_ocr_queue(self) -> None:
+        from django.conf import settings
+
+        self.assertIn('apps.ocr.tasks.*', settings.CELERY_TASK_ROUTES)
+        self.assertEqual(
+            settings.CELERY_TASK_ROUTES['apps.ocr.tasks.*'],
+            {'queue': 'ocr'},
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Transitions de statut OcrResult (étape 3)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class OcrTransitionsTest(TestCase):
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.user)
+
+    def _make_ocr(self, status: str = OcrResult.STATUS_PENDING) -> OcrResult:
+        return OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document, status=status,
+        )
+
+    # ── Chemin nominal ──────────────────────────────────────────────────
+    def test_pending_to_processing(self) -> None:
+        from .services import mark_ocr_processing
+
+        ocr = self._make_ocr()
+        result = mark_ocr_processing(ocr.pk)
+        self.assertEqual(result.status, OcrResult.STATUS_PROCESSING)
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_PROCESSING)
+
+    def test_processing_to_done_stores_full_payload(self) -> None:
+        from .services import mark_ocr_done
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        payload = {'supplier': 'ACME', 'total': '19.99'}
+        result = mark_ocr_done(
+            ocr.pk,
+            raw_text='Facture ACME 19.99',
+            structured_data=payload,
+            confidence_score=Decimal('0.912'),
+        )
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_DONE)
+        self.assertEqual(result.raw_text, 'Facture ACME 19.99')
+        self.assertEqual(result.structured_data, payload)
+        self.assertEqual(result.confidence_score, Decimal('0.912'))
+        self.assertEqual(result.error_message, '')
+
+    def test_processing_to_done_minimum_payload(self) -> None:
+        """`structured_data` et `confidence_score` sont optionnels."""
+        from .services import mark_ocr_done
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        result = mark_ocr_done(ocr.pk, raw_text='Texte brut')
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_DONE)
+        self.assertEqual(result.raw_text, 'Texte brut')
+        self.assertIsNone(result.structured_data)
+        self.assertIsNone(result.confidence_score)
+
+    def test_processing_to_failed_stores_error(self) -> None:
+        from .services import mark_ocr_failed
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        result = mark_ocr_failed(ocr.pk, error_message='Image illisible')
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_FAILED)
+        self.assertEqual(result.error_message, 'Image illisible')
+
+    # ── Transitions invalides ───────────────────────────────────────────
+    def test_pending_to_done_rejected(self) -> None:
+        from .services import InvalidOcrTransitionError, mark_ocr_done
+
+        ocr = self._make_ocr()
+        with self.assertRaises(InvalidOcrTransitionError):
+            mark_ocr_done(ocr.pk, raw_text='Texte')
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_PENDING)
+
+    def test_pending_to_failed_rejected(self) -> None:
+        from .services import InvalidOcrTransitionError, mark_ocr_failed
+
+        ocr = self._make_ocr()
+        with self.assertRaises(InvalidOcrTransitionError):
+            mark_ocr_failed(ocr.pk, error_message='Nope')
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_PENDING)
+
+    def test_done_to_processing_rejected(self) -> None:
+        from .services import InvalidOcrTransitionError, mark_ocr_processing
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_DONE)
+        with self.assertRaises(InvalidOcrTransitionError):
+            mark_ocr_processing(ocr.pk)
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_DONE)
+
+    def test_failed_to_processing_rejected(self) -> None:
+        from .services import InvalidOcrTransitionError, mark_ocr_processing
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_FAILED)
+        with self.assertRaises(InvalidOcrTransitionError):
+            mark_ocr_processing(ocr.pk)
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_FAILED)
+
+    def test_validated_cannot_be_touched(self) -> None:
+        """Un OCR validé humainement est verrouillé pour les tâches auto."""
+        from .services import (
+            InvalidOcrTransitionError,
+            mark_ocr_done,
+            mark_ocr_failed,
+            mark_ocr_processing,
+        )
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_VALIDATED)
+        for call in (
+            lambda: mark_ocr_processing(ocr.pk),
+            lambda: mark_ocr_done(ocr.pk, raw_text='x'),
+            lambda: mark_ocr_failed(ocr.pk, error_message='x'),
+        ):
+            with self.assertRaises(InvalidOcrTransitionError):
+                call()
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_VALIDATED)
+
+    # ── Effets secondaires interdits ────────────────────────────────────
+    def test_transitions_do_not_create_stock_movement(self) -> None:
+        from .services import mark_ocr_done, mark_ocr_failed, mark_ocr_processing
+
+        ocr = self._make_ocr()
+        before = StockMovement.objects.count()
+        mark_ocr_processing(ocr.pk)
+        mark_ocr_done(ocr.pk, raw_text='Texte')
+        self.assertEqual(StockMovement.objects.count(), before)
+
+        ocr2 = self._make_ocr()
+        mark_ocr_processing(ocr2.pk)
+        mark_ocr_failed(ocr2.pk, error_message='ko')
+        self.assertEqual(StockMovement.objects.count(), before)
+
+    def test_done_does_not_touch_validation_fields(self) -> None:
+        from .services import mark_ocr_done, mark_ocr_processing
+
+        ocr = self._make_ocr()
+        mark_ocr_processing(ocr.pk)
+        mark_ocr_done(ocr.pk, raw_text='Texte')
+        ocr.refresh_from_db()
+        self.assertIsNone(ocr.validated_by_user)
+        self.assertIsNone(ocr.validated_at)
+
+    def test_failed_clears_previous_error_on_reprocessing_attempt(self) -> None:
+        """`mark_ocr_processing` remet `error_message` à vide.
+
+        Utile si un jour on autorise `failed → processing` via une action
+        explicite : cette invariance doit rester exacte pour le chemin
+        `pending → processing` déjà supporté.
+        """
+        from .services import mark_ocr_processing
+
+        ocr = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_PENDING,
+            error_message='trace précédente',
+        )
+        result = mark_ocr_processing(ocr.pk)
+        self.assertEqual(result.error_message, '')
+
+    def test_shop_is_preserved_across_transitions(self) -> None:
+        from .services import mark_ocr_done, mark_ocr_processing
+
+        ocr = self._make_ocr()
+        mark_ocr_processing(ocr.pk)
+        mark_ocr_done(ocr.pk, raw_text='Texte')
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.shop, self.shop)
+        self.assertEqual(ocr.uploaded_document, self.document)
+
+    # ── Concurrence : deuxième transition perd la course ────────────────
+    def test_concurrent_processing_transition_rejects_second_caller(self) -> None:
+        """Simulation : deux workers lisent l'état, un seul commit.
+
+        On ne peut pas déclencher un vrai `select_for_update` verrou sans
+        threads + Postgres réel dans le test. On modélise le scénario en
+        appelant deux fois `mark_ocr_processing` : le second appel doit
+        échouer parce que le statut a déjà changé.
+        """
+        from .services import InvalidOcrTransitionError, mark_ocr_processing
+
+        ocr = self._make_ocr()
+        mark_ocr_processing(ocr.pk)
+        with self.assertRaises(InvalidOcrTransitionError):
+            mark_ocr_processing(ocr.pk)

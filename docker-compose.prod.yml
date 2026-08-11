@@ -50,6 +50,21 @@ services:
       redis:
         condition: service_started
 
+  celery-ocr:
+    build:
+      context: ./apps/backend
+      target: production
+    restart: always
+    env_file: .env.prod
+    # Worker dédié à la queue OCR : isolé du worker généraliste pour ne pas
+    # bloquer les tâches courtes derrière une reconnaissance longue.
+    command: celery -A config worker --loglevel=info --queues=ocr --concurrency=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   celery-beat:
     build:
       context: ./apps/backend

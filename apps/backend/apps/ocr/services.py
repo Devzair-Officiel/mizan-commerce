@@ -20,6 +20,9 @@ from apps.core.storage import delete_object, upload_fileobj
 from .models import OcrResult, UploadedDocument
 
 if TYPE_CHECKING:
+    from decimal import Decimal
+    from uuid import UUID
+
     from django.core.files.uploadedfile import UploadedFile
 
     from apps.accounts.models import User
@@ -33,7 +36,11 @@ __all__ = (
     'create_supplier_invoice_upload',
     'validate_file_signature',
     'InvalidFileSignatureError',
+    'InvalidOcrTransitionError',
     'SupplierInvoiceUpload',
+    'mark_ocr_processing',
+    'mark_ocr_done',
+    'mark_ocr_failed',
 )
 
 
@@ -42,6 +49,15 @@ class InvalidFileSignatureError(ValueError):
 
     Exception domaine — laisse le service indépendant de DRF. Le serializer
     l'attrape et la convertit en `serializers.ValidationError`.
+    """
+
+
+class InvalidOcrTransitionError(ValueError):
+    """Transition de statut non autorisée sur un `OcrResult`.
+
+    Exception domaine (subclass de `ValueError`) — permet aux futures tâches
+    Celery et endpoints de gérer les cas d'erreur sans coupler ce module à
+    DRF. Le message inclut la transition tentée pour faciliter le debug.
     """
 
 
@@ -142,3 +158,88 @@ def create_supplier_invoice_upload(
         raise
 
     return SupplierInvoiceUpload(document=document, ocr_result=ocr_result)
+
+
+# ─── Transitions de statut OcrResult ────────────────────────────────────────
+#
+# La machine à états est volontairement stricte : chaque transition n'accepte
+# qu'un statut source unique. Le statut `validated` est réservé à une action
+# métier explicite (relecture humaine) et n'est jamais posé par ces fonctions.
+#
+# Chaque transition est protégée par `select_for_update` : un second worker
+# qui tenterait la même transition en parallèle est bloqué jusqu'à la fin de
+# la transaction courante, puis lit l'état déjà mis à jour et lève
+# `InvalidOcrTransitionError` — pas de course silencieuse possible.
+
+
+def _raise_invalid_transition(current: str, target: str) -> None:
+    raise InvalidOcrTransitionError(
+        f"Transition OCR invalide : {current} → {target}."
+    )
+
+
+def mark_ocr_processing(ocr_result_id: 'UUID') -> OcrResult:
+    """Bascule un OcrResult de `pending` vers `processing`.
+
+    Appelée par la tâche Celery juste avant d'exécuter la reconnaissance :
+    évite qu'un second worker ne reprenne un travail déjà en cours.
+    """
+    with transaction.atomic():
+        result = OcrResult.objects.select_for_update().get(pk=ocr_result_id)
+        if result.status != OcrResult.STATUS_PENDING:
+            _raise_invalid_transition(result.status, OcrResult.STATUS_PROCESSING)
+        result.status = OcrResult.STATUS_PROCESSING
+        result.error_message = ''
+        result.save(update_fields=['status', 'error_message', 'updated_at'])
+    return result
+
+
+def mark_ocr_done(
+    ocr_result_id: 'UUID',
+    *,
+    raw_text: str,
+    structured_data: dict | None = None,
+    confidence_score: 'Decimal | None' = None,
+) -> OcrResult:
+    """Termine une reconnaissance : `processing` → `done`.
+
+    Stocke le texte brut et, si fournis, les données structurées et le score
+    de confiance. Ne touche pas aux champs de validation humaine
+    (`validated_by_user`, `validated_at`) — c'est un flux distinct.
+    """
+    with transaction.atomic():
+        result = OcrResult.objects.select_for_update().get(pk=ocr_result_id)
+        if result.status != OcrResult.STATUS_PROCESSING:
+            _raise_invalid_transition(result.status, OcrResult.STATUS_DONE)
+        result.status = OcrResult.STATUS_DONE
+        result.raw_text = raw_text
+        result.error_message = ''
+        update_fields = ['status', 'raw_text', 'error_message', 'updated_at']
+        if structured_data is not None:
+            result.structured_data = structured_data
+            update_fields.append('structured_data')
+        if confidence_score is not None:
+            result.confidence_score = confidence_score
+            update_fields.append('confidence_score')
+        result.save(update_fields=update_fields)
+    return result
+
+
+def mark_ocr_failed(
+    ocr_result_id: 'UUID',
+    *,
+    error_message: str,
+) -> OcrResult:
+    """Marque un OCR en échec : `processing` → `failed`.
+
+    Le message d'erreur doit rester safe pour affichage : ne pas y injecter
+    de stack trace ni de chemin serveur. Détails techniques → logs.
+    """
+    with transaction.atomic():
+        result = OcrResult.objects.select_for_update().get(pk=ocr_result_id)
+        if result.status != OcrResult.STATUS_PROCESSING:
+            _raise_invalid_transition(result.status, OcrResult.STATUS_FAILED)
+        result.status = OcrResult.STATUS_FAILED
+        result.error_message = error_message
+        result.save(update_fields=['status', 'error_message', 'updated_at'])
+    return result
