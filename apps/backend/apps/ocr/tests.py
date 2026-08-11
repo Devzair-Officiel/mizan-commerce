@@ -606,6 +606,55 @@ class OcrTransitionsTest(TestCase):
         self.assertEqual(ocr.shop, self.shop)
         self.assertEqual(ocr.uploaded_document, self.document)
 
+    # ── Validation du score de confiance ────────────────────────────────
+    def test_confidence_score_zero_accepted(self) -> None:
+        from .services import mark_ocr_done
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        result = mark_ocr_done(
+            ocr.pk, raw_text='Texte', confidence_score=Decimal('0.000'),
+        )
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_DONE)
+        self.assertEqual(result.confidence_score, Decimal('0.000'))
+
+    def test_confidence_score_one_accepted(self) -> None:
+        from .services import mark_ocr_done
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        result = mark_ocr_done(
+            ocr.pk, raw_text='Texte', confidence_score=Decimal('1.000'),
+        )
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_DONE)
+        self.assertEqual(result.confidence_score, Decimal('1.000'))
+
+    def test_confidence_score_below_zero_rejected(self) -> None:
+        from .services import InvalidConfidenceScoreError, mark_ocr_done
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        with self.assertRaises(InvalidConfidenceScoreError):
+            mark_ocr_done(
+                ocr.pk, raw_text='Texte', confidence_score=Decimal('-0.001'),
+            )
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_PROCESSING)
+        self.assertIsNone(ocr.confidence_score)
+        self.assertEqual(ocr.raw_text, '')
+
+    def test_confidence_score_above_one_rejected(self) -> None:
+        from .services import InvalidConfidenceScoreError, mark_ocr_done
+
+        ocr = self._make_ocr(status=OcrResult.STATUS_PROCESSING)
+        with self.assertRaises(InvalidConfidenceScoreError):
+            mark_ocr_done(
+                ocr.pk, raw_text='Texte', confidence_score=Decimal('1.001'),
+            )
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_PROCESSING)
+        self.assertIsNone(ocr.confidence_score)
+        self.assertEqual(ocr.raw_text, '')
+
     # ── Concurrence : deuxième transition perd la course ────────────────
     def test_concurrent_processing_transition_rejects_second_caller(self) -> None:
         """Simulation : deux workers lisent l'état, un seul commit.

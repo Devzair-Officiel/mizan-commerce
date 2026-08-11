@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from decimal import Decimal
 from typing import TYPE_CHECKING, NamedTuple
 
 from django.db import transaction
@@ -20,7 +21,6 @@ from apps.core.storage import delete_object, upload_fileobj
 from .models import OcrResult, UploadedDocument
 
 if TYPE_CHECKING:
-    from decimal import Decimal
     from uuid import UUID
 
     from django.core.files.uploadedfile import UploadedFile
@@ -37,11 +37,20 @@ __all__ = (
     'validate_file_signature',
     'InvalidFileSignatureError',
     'InvalidOcrTransitionError',
+    'InvalidConfidenceScoreError',
     'SupplierInvoiceUpload',
     'mark_ocr_processing',
     'mark_ocr_done',
     'mark_ocr_failed',
 )
+
+
+# Bornes du score de confiance retourné par la reconnaissance. Alignées sur
+# les validators du modèle (`OcrResult.confidence_score`), qui ne sont pas
+# exécutés automatiquement par `Model.save()` — on vérifie donc explicitement
+# ici pour ne jamais persister une valeur hors intervalle.
+_CONFIDENCE_MIN = Decimal('0.000')
+_CONFIDENCE_MAX = Decimal('1.000')
 
 
 class InvalidFileSignatureError(ValueError):
@@ -58,6 +67,16 @@ class InvalidOcrTransitionError(ValueError):
     Exception domaine (subclass de `ValueError`) — permet aux futures tâches
     Celery et endpoints de gérer les cas d'erreur sans coupler ce module à
     DRF. Le message inclut la transition tentée pour faciliter le debug.
+    """
+
+
+class InvalidConfidenceScoreError(ValueError):
+    """Score de confiance en dehors de l'intervalle attendu (0.000–1.000).
+
+    Exception domaine — pendant symétrique de `InvalidOcrTransitionError`
+    pour tout ce qui bloque la finalisation d'un OCR. Les validators du
+    modèle ne sont pas exécutés par `Model.save()` : on doit donc valider
+    explicitement au service avant persistance.
     """
 
 
@@ -199,14 +218,26 @@ def mark_ocr_done(
     *,
     raw_text: str,
     structured_data: dict | None = None,
-    confidence_score: 'Decimal | None' = None,
+    confidence_score: Decimal | None = None,
 ) -> OcrResult:
     """Termine une reconnaissance : `processing` → `done`.
 
     Stocke le texte brut et, si fournis, les données structurées et le score
     de confiance. Ne touche pas aux champs de validation humaine
     (`validated_by_user`, `validated_at`) — c'est un flux distinct.
+
+    Le score de confiance est validé avant l'ouverture de la transaction :
+    en cas de valeur hors bornes, aucun verrou n'est pris et le OcrResult
+    reste dans son statut courant (`processing`).
     """
+    if confidence_score is not None and not (
+        _CONFIDENCE_MIN <= confidence_score <= _CONFIDENCE_MAX
+    ):
+        raise InvalidConfidenceScoreError(
+            f'confidence_score doit être dans [{_CONFIDENCE_MIN}, {_CONFIDENCE_MAX}], '
+            f'reçu : {confidence_score}.'
+        )
+
     with transaction.atomic():
         result = OcrResult.objects.select_for_update().get(pk=ocr_result_id)
         if result.status != OcrResult.STATUS_PROCESSING:
