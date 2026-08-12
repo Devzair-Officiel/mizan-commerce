@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
+import type { ThemeMode } from '@/lib/themes';
 
 export type ShopRole = 'owner' | 'admin' | 'staff';
 
@@ -40,13 +41,24 @@ export interface Me {
   phone: string;
   email_verified_at: string | null;
   created_at: string;
+  theme_mode: ThemeMode | null;
+  primary_color: string | null;
+  background_theme: string | null;
   membership: Membership | null;
 }
 
 export interface MeUpdateData {
   full_name?: string;
   phone?: string;
+  theme_mode?: ThemeMode;
+  primary_color?: string;
+  background_theme?: string;
 }
+
+export type AppearancePreferencesUpdate = Pick<
+  MeUpdateData,
+  'theme_mode' | 'primary_color' | 'background_theme'
+>;
 
 export interface ChangePasswordData {
   old_password: string;
@@ -57,6 +69,9 @@ export function useMe() {
   return useQuery({
     queryKey: qk.me.all,
     queryFn: () => apiFetch<Me>('/auth/me/'),
+    // Une session peut changer de compte sans recharger le root layout. Dès
+    // que l'espace authentifié est démonté, oublier immédiatement son profil.
+    gcTime: 0,
   });
 }
 
@@ -86,6 +101,29 @@ export function useUpdateMe() {
     mutationFn: (data: MeUpdateData) =>
       apiFetch<Me>('/auth/me/', { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.me.all }),
+  });
+}
+
+export function useUpdateAppearancePreferences() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    // Les clics rapides sont envoyés dans l'ordre : la dernière sélection
+    // gagne aussi côté serveur, même si une requête précédente est plus lente.
+    scope: { id: 'appearance-preferences' },
+    mutationFn: (data: AppearancePreferencesUpdate) =>
+      apiFetch<Me>('/auth/me/', { method: 'PATCH', body: JSON.stringify(data) }),
+    onMutate: async (data) => {
+      await qc.cancelQueries({ queryKey: qk.me.all });
+      const previous = qc.getQueryData<Me>(qk.me.all);
+      qc.setQueryData<Me>(qk.me.all, (current) => (
+        current ? { ...current, ...data } : current
+      ));
+      return { previous };
+    },
+    onError: (_error, _data, context) => {
+      if (context?.previous) qc.setQueryData(qk.me.all, context.previous);
+    },
   });
 }
 

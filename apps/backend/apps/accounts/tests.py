@@ -57,6 +57,38 @@ class AuthFlowTest(TestCase):
         response = self.client.get(reverse('auth-me'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['email'], self.user.email)
+        self.assertEqual(response.data['theme_mode'], 'system')
+        self.assertEqual(response.data['primary_color'], 'mint')
+        self.assertEqual(response.data['background_theme'], 'default')
+
+    def test_me_persists_appearance_preferences(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(reverse('auth-me'), {
+            'theme_mode': 'dark',
+            'primary_color': 'purple',
+            'background_theme': 'lavender',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme_mode, 'dark')
+        self.assertEqual(self.user.primary_color, 'purple')
+        self.assertEqual(self.user.background_theme, 'lavender')
+
+        response = self.client.get(reverse('auth-me'))
+        self.assertEqual(response.data['theme_mode'], 'dark')
+        self.assertEqual(response.data['primary_color'], 'purple')
+        self.assertEqual(response.data['background_theme'], 'lavender')
+
+    def test_me_rejects_invalid_appearance_preferences(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            reverse('auth-me'), {'primary_color': 'unknown'}, format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.primary_color, 'mint')
 
     def test_change_password(self):
         self.client.force_authenticate(user=self.user)

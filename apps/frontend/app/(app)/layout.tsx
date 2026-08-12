@@ -7,6 +7,7 @@ import { DesktopSidebar } from '@/components/layout/DesktopSidebar';
 import { LegacyTokenCleaner } from '@/components/layout/LegacyTokenCleaner';
 import { OnboardingGate } from '@/components/layout/OnboardingGate';
 import { TrialBanner } from '@/components/layout/TrialBanner';
+import { AccountThemeSync } from '@/components/providers/AccountThemeSync';
 import type { ReactNode } from 'react';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -16,6 +17,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <SearchProvider>
           <DesktopSidebar />
           <AppContent>
+            <AccountThemeSync />
             <LegacyTokenCleaner />
             <OnboardingGate />
             <div className="flex flex-col flex-1 lg:ml-60">

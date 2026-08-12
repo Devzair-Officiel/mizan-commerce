@@ -3,11 +3,13 @@
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useColorTheme } from '@/components/providers/ColorThemeProvider';
+import { useAccountTheme } from '@/lib/hooks/useAccountTheme';
 import { useIsClient } from '@/lib/hooks/useIsClient';
 
 export function ThemeToggleButton() {
   const tc = useTranslations('layout.themeDrawer');
-  const { setTheme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
+  const { setThemeMode } = useAccountTheme();
   const mounted = useIsClient();
 
   if (!mounted) return <div className="h-8 w-8" />;
@@ -16,7 +18,7 @@ export function ThemeToggleButton() {
 
   return (
     <button
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      onClick={() => setThemeMode(isDark ? 'light' : 'dark')}
       className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
       aria-label={isDark ? tc('switch_to_light') : tc('switch_to_dark')}
     >
@@ -39,8 +41,9 @@ const BRIGHTNESS_OPTIONS: readonly BrightnessOption[] = [
 
 export function ThemeToggle() {
   const t = useTranslations('layout.themeDrawer');
-  const { theme, setTheme } = useTheme();
-  const { primaryId, bgId, setPrimaryId, setBgId, primaryColors, backgrounds } = useColorTheme();
+  const { theme } = useTheme();
+  const { primaryId, bgId, primaryColors, backgrounds } = useColorTheme();
+  const { setThemeMode, setPrimaryId, setBgId } = useAccountTheme();
   const mounted = useIsClient();
 
   if (!mounted) {
@@ -54,7 +57,7 @@ export function ThemeToggle() {
         {BRIGHTNESS_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
           <button
             key={value}
-            onClick={() => setTheme(value)}
+            onClick={() => setThemeMode(value)}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors ${
               theme === value
                 ? 'bg-primary text-primary-foreground'

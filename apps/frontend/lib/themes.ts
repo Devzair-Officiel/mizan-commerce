@@ -36,6 +36,12 @@ export interface BackgroundDef {
   darkGradient: string;
 }
 
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+export function isThemeMode(value: string | null | undefined): value is ThemeMode {
+  return value === 'light' || value === 'dark' || value === 'system';
+}
+
 export const PRIMARY_COLORS: PrimaryColorDef[] = [
   { id: 'default',  label: 'Défaut',    hue: null, chroma: 0,    swatch: '#94a3b8' },
   { id: 'blue',     label: 'Bleu',       hue: 250,  chroma: 0.26, swatch: '#3b82f6' },
@@ -133,6 +139,14 @@ export const PRIMARY_STORAGE_KEY = 'mizan-primary-color';
 export const BG_STORAGE_KEY = 'mizan-bg-color';
 export const DEFAULT_PRIMARY_ID = 'mint';
 export const DEFAULT_BG_ID = 'default';
+
+export function isPrimaryColorId(value: string | null | undefined): value is string {
+  return value != null && PRIMARY_COLORS.some((color) => color.id === value);
+}
+
+export function isBackgroundId(value: string | null | undefined): value is string {
+  return value != null && BACKGROUNDS.some((background) => background.id === value);
+}
 
 function clamp(v: number, lo: number, hi: number) { return Math.min(hi, Math.max(lo, v)); }
 
