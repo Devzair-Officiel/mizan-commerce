@@ -26,3 +26,8 @@ reportlab==4.5.1
 
 # Sécurité — rate-limit & blocage des tentatives de login
 django-axes==7.1.0
+
+# Client HTTP moderne (multipart pour le service IA — voir apps/ocr/ai_client.py).
+# `urllib.request` reste utilisé pour les sondes GET simples ; httpx s'ajoute
+# uniquement quand on doit POSTer un fichier binaire avec un timeout net.
+httpx==0.28.1

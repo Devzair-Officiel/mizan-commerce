@@ -33,15 +33,15 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = (
-    'create_supplier_invoice_upload',
-    'validate_file_signature',
+    'InvalidConfidenceScoreError',
     'InvalidFileSignatureError',
     'InvalidOcrTransitionError',
-    'InvalidConfidenceScoreError',
     'SupplierInvoiceUpload',
-    'mark_ocr_processing',
+    'create_supplier_invoice_upload',
     'mark_ocr_done',
     'mark_ocr_failed',
+    'mark_ocr_processing',
+    'validate_file_signature',
 )
 
 
@@ -94,7 +94,7 @@ class SupplierInvoiceUpload(NamedTuple):
     ocr_result: OcrResult
 
 
-def validate_file_signature(file: 'UploadedFile', declared_mime: str) -> None:
+def validate_file_signature(file: UploadedFile, declared_mime: str) -> None:
     """Vérifie que les premiers octets correspondent au MIME annoncé.
 
     Le `content_type` d'un `UploadedFile` provient de l'en-tête HTTP fourni
@@ -126,9 +126,9 @@ def validate_file_signature(file: 'UploadedFile', declared_mime: str) -> None:
 
 def create_supplier_invoice_upload(
     *,
-    shop: 'Shop',
-    user: 'User',
-    file: 'UploadedFile',
+    shop: Shop,
+    user: User,
+    file: UploadedFile,
 ) -> SupplierInvoiceUpload:
     """Ingère une photo de facture fournisseur.
 
@@ -197,7 +197,7 @@ def _raise_invalid_transition(current: str, target: str) -> None:
     )
 
 
-def mark_ocr_processing(ocr_result_id: 'UUID') -> OcrResult:
+def mark_ocr_processing(ocr_result_id: UUID) -> OcrResult:
     """Bascule un OcrResult de `pending` vers `processing`.
 
     Appelée par la tâche Celery juste avant d'exécuter la reconnaissance :
@@ -214,7 +214,7 @@ def mark_ocr_processing(ocr_result_id: 'UUID') -> OcrResult:
 
 
 def mark_ocr_done(
-    ocr_result_id: 'UUID',
+    ocr_result_id: UUID,
     *,
     raw_text: str,
     structured_data: dict | None = None,
@@ -257,7 +257,7 @@ def mark_ocr_done(
 
 
 def mark_ocr_failed(
-    ocr_result_id: 'UUID',
+    ocr_result_id: UUID,
     *,
     error_message: str,
 ) -> OcrResult:

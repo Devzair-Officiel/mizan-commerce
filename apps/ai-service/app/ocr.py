@@ -91,6 +91,51 @@ def _get_engine() -> 'PaddleOCR':
     return _engine
 
 
+def _coerce_bbox(raw_box: Any) -> list[int]:  # noqa: ANN401
+    """Normalise une bbox PaddleOCR vers `[x_min, y_min, x_max, y_max]`.
+
+    Deux formats possibles selon la version :
+    - rectangle direct : `[x_min, y_min, x_max, y_max]` (PP-OCRv6) ;
+    - polygone 4 points : `[[x, y], [x, y], [x, y], [x, y]]` (versions plus
+      anciennes) — on retombe sur le rectangle englobant.
+
+    Retourne `[]` (liste vide) plutôt que de lever si la forme n'est pas
+    reconnue : la bbox est un enrichissement, pas une exigence contractuelle.
+    """
+    if raw_box is None:
+        return []
+    # numpy.ndarray → list — on évite d'importer numpy pour un tolist().
+    if hasattr(raw_box, 'tolist'):
+        raw_box = raw_box.tolist()
+    if not isinstance(raw_box, (list, tuple)) or len(raw_box) == 0:
+        return []
+
+    first = raw_box[0]
+    # Rectangle direct : 4 scalaires numériques.
+    if isinstance(first, (int, float)):
+        if len(raw_box) != 4:
+            return []
+        try:
+            return [int(round(float(v))) for v in raw_box]
+        except (TypeError, ValueError):
+            return []
+
+    # Polygone : liste de points [x, y].
+    if isinstance(first, (list, tuple)):
+        try:
+            xs = [float(pt[0]) for pt in raw_box]
+            ys = [float(pt[1]) for pt in raw_box]
+        except (TypeError, ValueError, IndexError):
+            return []
+        if not xs or not ys:
+            return []
+        return [
+            int(round(min(xs))), int(round(min(ys))),
+            int(round(max(xs))), int(round(max(ys))),
+        ]
+    return []
+
+
 def _transform_result(raw: Any) -> OcrExtractionResult:  # noqa: ANN401
     """Convertit la sortie native PaddleOCR vers notre contrat interne.
 
@@ -98,25 +143,40 @@ def _transform_result(raw: Any) -> OcrExtractionResult:  # noqa: ANN401
     (une image = un document ici). Chaque `OCRResult` expose :
     - `rec_texts` : list[str]
     - `rec_scores` : list[float]
+    - `rec_boxes` : list[list[int]]  (optionnel selon versions)
 
-    Aucune donnée métier n'est produite : uniquement du texte brut et sa
-    confiance atomique.
+    Aucune donnée métier n'est produite : uniquement du texte brut, sa
+    confiance atomique et la géométrie brute (`bbox`).
     """
     if isinstance(raw, list) and raw:
         first = raw[0]
     else:
         first = raw
 
-    texts: list[str] = list(first.get('rec_texts') or []) if hasattr(first, 'get') else []
-    scores: list[float] = list(first.get('rec_scores') or []) if hasattr(first, 'get') else []
+    getter = first.get if hasattr(first, 'get') else lambda _k, default=None: default
+    texts: list[str] = list(getter('rec_texts') or [])
+    scores: list[float] = list(getter('rec_scores') or [])
+    boxes_raw: list[Any] = list(getter('rec_boxes') or [])
 
-    # Défensif : PaddleOCR devrait toujours renvoyer autant de scores que de
-    # textes, mais on ne veut pas planter si une version future dérive.
-    pairs = list(zip(texts, scores, strict=False))
+    # Défensif : les trois listes devraient toujours avoir la même longueur.
+    # `zip(..., strict=False)` s'arrête à la plus courte — on ne renvoie donc
+    # que ce que Paddle a réellement fourni pour chaque triplet cohérent.
+    triples = list(zip(
+        texts,
+        scores,
+        # Padding avec `None` pour tolérer l'absence de bboxes sans perdre
+        # les couples (texte, score) déjà valides.
+        boxes_raw + [None] * max(0, len(texts) - len(boxes_raw)),
+        strict=False,
+    ))
 
     lines = [
-        OcrLine(text=str(text), confidence=float(max(0.0, min(1.0, score))))
-        for text, score in pairs
+        OcrLine(
+            text=str(text),
+            confidence=float(max(0.0, min(1.0, score))),
+            bbox=_coerce_bbox(box),
+        )
+        for text, score, box in triples
     ]
     raw_text = '\n'.join(line.text for line in lines)
     confidence_score = (

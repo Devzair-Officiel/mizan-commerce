@@ -214,3 +214,7 @@ CELERY_BEAT_SCHEDULE = {
 AI_SERVICE_URL = os.environ.get('AI_SERVICE_URL', 'http://ai-service:8000')
 AI_SERVICE_API_KEY = os.environ.get('AI_SERVICE_API_KEY', '')
 AI_SERVICE_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_TIMEOUT_SECONDS', '5'))
+# Timeout dédié à l'inférence OCR — beaucoup plus large que les sondes health :
+# le premier appel dans un worker déclenche le chargement du pipeline PaddleOCR
+# (téléchargement + chargement modèles ~15 s) puis l'inférence proprement dite.
+AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SECONDS', '60'))

@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-06-06
+**Dernière mise à jour** : 2026-08-12
 **Version actuelle en développement** : Phase V1 — RBAC (rôles & permissions par module)
 
 ---
@@ -342,8 +342,8 @@
 
 ### OCR factures fournisseur (URS-042 à URS-045)
 
-- [ ] Intégration PaddleOCR ou Tesseract dans le service IA
-- [ ] Endpoint upload facture + extraction texte brut
+- [x] Intégration PaddleOCR ou Tesseract dans le service IA
+- [x] Endpoint upload facture + extraction texte brut
 - [x] Modèle `UploadedDocument`, `OcrResult`
 - [ ] Extraction structurée : produits, quantités, prix
 - [ ] Affichage frontend des lignes détectées avec confiance

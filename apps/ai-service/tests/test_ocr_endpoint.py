@@ -64,8 +64,8 @@ def _mock_extract(*_args, **_kwargs) -> OcrExtractionResult:
         raw_text='ligne 1\nligne 2',
         confidence_score=0.935,
         lines=[
-            OcrLine(text='ligne 1', confidence=0.98),
-            OcrLine(text='ligne 2', confidence=0.89),
+            OcrLine(text='ligne 1', confidence=0.98, bbox=[10, 20, 100, 40]),
+            OcrLine(text='ligne 2', confidence=0.89, bbox=[10, 50, 120, 70]),
         ],
     )
 
@@ -124,8 +124,8 @@ def test_extract_text_accepts_png_and_returns_contract() -> None:
     assert body['raw_text'] == 'ligne 1\nligne 2'
     assert body['confidence_score'] == 0.935
     assert body['lines'] == [
-        {'text': 'ligne 1', 'confidence': 0.98},
-        {'text': 'ligne 2', 'confidence': 0.89},
+        {'text': 'ligne 1', 'confidence': 0.98, 'bbox': [10, 20, 100, 40]},
+        {'text': 'ligne 2', 'confidence': 0.89, 'bbox': [10, 50, 120, 70]},
     ]
 
 

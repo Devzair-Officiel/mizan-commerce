@@ -48,6 +48,27 @@ def get_signed_url(object_key: str, expires_in: int = 3600) -> str:
     )
 
 
+def download_bytes(object_key: str) -> bytes:
+    """Télécharge intégralement un objet du bucket privé en mémoire.
+
+    Usage prévu : lecture d'un document uploadé (facture) pour le renvoyer au
+    service IA. Pour un POC single-image (< 10 Mo) tenir tout en RAM reste
+    largement préférable à un fichier temporaire supplémentaire.
+
+    Relève toute erreur boto3 telle quelle : le caller (tâche Celery) sait
+    quoi en faire (log + mark_ocr_failed). On close explicitement le stream
+    S3 même en cas d'exception via `try/finally` pour éviter de laisser une
+    connexion ouverte sur le pool botocore.
+    """
+    s3 = _get_s3_client()
+    response = s3.get_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=object_key)
+    body = response['Body']
+    try:
+        return body.read()
+    finally:
+        body.close()
+
+
 def delete_object(object_key: str) -> None:
     """Supprime un fichier du bucket. Log l'erreur mais ne lève pas — usage
     typique: cleanup d'un fichier remplacé, où on ne veut pas faire échouer

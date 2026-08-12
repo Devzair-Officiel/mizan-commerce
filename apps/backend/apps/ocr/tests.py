@@ -15,7 +15,6 @@ from apps.stock.models import StockMovement
 
 from .models import OcrResult, UploadedDocument
 
-
 # ─── Payloads binaires valides pour la validation de signature ─────────────
 # JPEG minimal : SOI + APP0 + EOI. Suffisant pour matcher \xff\xd8\xff.
 JPEG_BYTES = (
@@ -164,13 +163,19 @@ class OcrResultModelTest(TestCase):
     AWS_ACCESS_KEY_ID='fake-access-key',
 )
 class SupplierInvoiceUploadViewTest(TestCase):
-    """Tests API — patch systématique de upload_fileobj pour éviter tout S3."""
+    """Tests API — patch systématique de upload_fileobj pour éviter tout S3
+    et de `process_invoice_ocr.delay` pour ne rien envoyer au broker."""
 
     URL = '/api/ocr/invoices/'
 
     def setUp(self) -> None:
         self.client = APIClient()
         self.owner, self.shop = make_user_shop('owner@example.com')
+        # Patch centralisé : chaque test hérite d'un `.delay()` neutralisé.
+        # Les cas qui veulent auditer les appels utilisent `self.mock_delay`.
+        self.mock_delay = self.enterContext(
+            patch('apps.ocr.views.process_invoice_ocr.delay'),
+        )
 
     def _jpeg(self, name: str = 'facture.jpg') -> SimpleUploadedFile:
         return SimpleUploadedFile(name, JPEG_BYTES, content_type='image/jpeg')
@@ -371,10 +376,9 @@ class SupplierInvoiceServiceCompensationTest(TestCase):
             patch(
                 'apps.ocr.services.UploadedDocument.objects.create',
                 side_effect=RuntimeError('DB down'),
-            ),
+            ),self.assertRaises(RuntimeError)
         ):
-            with self.assertRaises(RuntimeError):
-                create_supplier_invoice_upload(shop=shop, user=user, file=file)
+            create_supplier_invoice_upload(shop=shop, user=user, file=file)
 
         mock_upload.assert_called_once()
         mock_delete.assert_called_once()
@@ -684,11 +688,9 @@ class OcrTransitionsTest(TestCase):
 import io
 import json as _json
 import logging as _logging
-import socket as _socket
 import urllib.error as _urllib_error
 
 from django.test import SimpleTestCase
-
 
 _TEST_AI_KEY = 'test-internal-ai-key-not-real'
 
@@ -809,10 +811,9 @@ class AiClientErrorHandlingTest(SimpleTestCase):
 
         with patch(
             'apps.ocr.ai_client.urllib.request.urlopen',
-            side_effect=_socket.timeout('too slow'),
-        ):
-            with self.assertRaises(AiServiceUnavailableError):
-                check_ai_service_health()
+            side_effect=TimeoutError('too slow'),
+        ), self.assertRaises(AiServiceUnavailableError):
+            check_ai_service_health()
 
     def test_connection_refused_raises_domain_error(self) -> None:
         from .ai_client import AiServiceUnavailableError, check_ai_service_health
@@ -820,9 +821,8 @@ class AiClientErrorHandlingTest(SimpleTestCase):
         with patch(
             'apps.ocr.ai_client.urllib.request.urlopen',
             side_effect=_urllib_error.URLError('Connection refused'),
-        ):
-            with self.assertRaises(AiServiceUnavailableError):
-                check_ai_service_health()
+        ), self.assertRaises(AiServiceUnavailableError):
+            check_ai_service_health()
 
     def test_http_500_raises_domain_error(self) -> None:
         from .ai_client import AiServiceUnavailableError, check_ai_service_health
@@ -836,9 +836,8 @@ class AiClientErrorHandlingTest(SimpleTestCase):
         )
         with patch(
             'apps.ocr.ai_client.urllib.request.urlopen', side_effect=http_error,
-        ):
-            with self.assertRaises(AiServiceUnavailableError):
-                check_ai_service_health()
+        ), self.assertRaises(AiServiceUnavailableError):
+            check_ai_service_health()
 
     def test_invalid_json_raises_domain_error(self) -> None:
         from .ai_client import AiServiceUnavailableError, check_ai_service_health
@@ -878,3 +877,505 @@ class AiClientErrorHandlingTest(SimpleTestCase):
         self.assertNotIn(_TEST_AI_KEY, cause_message)
         for entry in logs.output:
             self.assertNotIn(_TEST_AI_KEY, entry)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# extract_text_with_ai_service — POST multipart typé (étape 5B)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# On patche `httpx.post` : la surface HTTP est déjà couverte par les tests
+# d'intégration réels côté ai-service ; ici on ne vérifie que le contrat
+# (URL, headers, timeout, parsing, erreurs).
+
+
+import httpx as _httpx
+
+
+class _FakeHttpxResponse:
+    """Simulation minimale d'une `httpx.Response` pour les tests."""
+
+    def __init__(self, *, status_code: int = 200, payload: object | None = None, raw: bytes | None = None) -> None:
+        self.status_code = status_code
+        self._payload = payload
+        self._raw = raw
+
+    def json(self) -> object:
+        if self._raw is not None:
+            return _json.loads(self._raw.decode('utf-8'))
+        return self._payload
+
+
+@override_settings(
+    AI_SERVICE_URL='http://ai-service:8000',
+    AI_SERVICE_API_KEY=_TEST_AI_KEY,
+    AI_SERVICE_OCR_TIMEOUT_SECONDS=42.0,
+)
+class ExtractTextWithAiServiceTest(SimpleTestCase):
+    def _valid_payload(self) -> dict:
+        return {
+            'raw_text': 'ligne 1\nligne 2',
+            'confidence_score': 0.912,
+            'lines': [
+                {'text': 'ligne 1', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]},
+                {'text': 'ligne 2', 'confidence': 0.88, 'bbox': []},
+            ],
+        }
+
+    def test_nominal_returns_typed_extraction(self) -> None:
+        from .ai_client import extract_text_with_ai_service
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=self._valid_payload())
+            result = extract_text_with_ai_service(
+                content=b'\xff\xd8\xff...bytes...',
+                filename='facture.jpg',
+                mime_type='image/jpeg',
+            )
+        self.assertEqual(result.raw_text, 'ligne 1\nligne 2')
+        self.assertAlmostEqual(result.confidence_score, 0.912)
+        self.assertEqual(len(result.lines), 2)
+        self.assertEqual(result.lines[0].text, 'ligne 1')
+        self.assertEqual(result.lines[0].bbox, [1, 2, 3, 4])
+        self.assertEqual(result.lines[1].bbox, [])
+
+    def test_uses_expected_url_headers_timeout(self) -> None:
+        from .ai_client import INTERNAL_API_KEY_HEADER, extract_text_with_ai_service
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=self._valid_payload())
+            extract_text_with_ai_service(
+                content=b'\xff\xd8\xff', filename='f.jpg', mime_type='image/jpeg',
+            )
+
+        kwargs = mock_post.call_args.kwargs
+        self.assertEqual(mock_post.call_args.args[0], 'http://ai-service:8000/internal/ocr/extract-text')
+        self.assertEqual(kwargs['headers'], {INTERNAL_API_KEY_HEADER: _TEST_AI_KEY})
+        self.assertEqual(kwargs['timeout'], 42.0)
+        # Contenu envoyé sous forme `files={'document': (name, bytes, mime)}`.
+        files = kwargs['files']
+        self.assertIn('document', files)
+        name, payload, mime = files['document']
+        self.assertEqual(name, 'f.jpg')
+        self.assertEqual(payload, b'\xff\xd8\xff')
+        self.assertEqual(mime, 'image/jpeg')
+
+    def test_timeout_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
+
+        with patch(
+            'apps.ocr.ai_client.httpx.post',
+            side_effect=_httpx.ReadTimeout('too slow'),
+        ), self.assertRaises(AiServiceUnavailableError):
+            extract_text_with_ai_service(
+                content=b'x', filename='x.jpg', mime_type='image/jpeg',
+            )
+
+    def test_http_500_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(status_code=500, payload={'detail': 'boom'})
+            with self.assertRaises(AiServiceUnavailableError):
+                extract_text_with_ai_service(
+                    content=b'x', filename='x.jpg', mime_type='image/jpeg',
+                )
+
+    def test_http_400_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(status_code=400, payload={'detail': 'bad'})
+            with self.assertRaises(AiServiceUnavailableError):
+                extract_text_with_ai_service(
+                    content=b'x', filename='x.jpg', mime_type='image/jpeg',
+                )
+
+    def test_invalid_payload_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
+
+        for bad in ({'raw_text': None}, {'raw_text': 'x', 'confidence_score': 2.5, 'lines': []},
+                    {'raw_text': 'x', 'confidence_score': 0.5, 'lines': [{'text': 'a'}]}):
+            with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+                mock_post.return_value = _FakeHttpxResponse(payload=bad)
+                with self.assertRaises(AiServiceUnavailableError):
+                    extract_text_with_ai_service(
+                        content=b'x', filename='x.jpg', mime_type='image/jpeg',
+                    )
+
+    def test_never_leaks_api_key(self) -> None:
+        from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
+
+        with self.assertLogs('apps.ocr.ai_client', level=_logging.WARNING) as logs:
+            with patch(
+                'apps.ocr.ai_client.httpx.post',
+                side_effect=_httpx.ConnectError('refused'),
+            ):
+                try:
+                    extract_text_with_ai_service(
+                        content=b'x', filename='x.jpg', mime_type='image/jpeg',
+                    )
+                except AiServiceUnavailableError as exc:
+                    self.assertNotIn(_TEST_AI_KEY, str(exc))
+                    if exc.__cause__ is not None:
+                        self.assertNotIn(_TEST_AI_KEY, str(exc.__cause__))
+        for entry in logs.output:
+            self.assertNotIn(_TEST_AI_KEY, entry)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Tâche Celery process_invoice_ocr (étape 5B)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class _FakeExtraction:
+    """Objet-double compatible avec `AiOcrExtraction` (NamedTuple)."""
+
+    def __init__(self, raw_text: str = 'texte', confidence_score: float = 0.9, lines: list | None = None) -> None:
+        self.raw_text = raw_text
+        self.confidence_score = confidence_score
+        self.lines = lines if lines is not None else []
+
+
+class _FakeExtractionLine:
+    def __init__(self, text: str, confidence: float, bbox: list[int]) -> None:
+        self.text = text
+        self.confidence = confidence
+        self.bbox = bbox
+
+
+def _fake_extraction() -> _FakeExtraction:
+    return _FakeExtraction(
+        raw_text='ligne 1\nligne 2',
+        confidence_score=0.912,
+        lines=[
+            _FakeExtractionLine('ligne 1', 0.94, [1, 2, 3, 4]),
+            _FakeExtractionLine('ligne 2', 0.88, []),
+        ],
+    )
+
+
+class ProcessInvoiceOcrTaskTest(TestCase):
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.user)
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+        )
+
+    def _run(self) -> str:
+        from .tasks import process_invoice_ocr
+        return process_invoice_ocr.run(str(self.ocr.pk))
+
+    def test_nominal_end_to_end(self) -> None:
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...') as mock_download,
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                return_value=_fake_extraction(),
+            ) as mock_extract,
+        ):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'done')
+        mock_download.assert_called_once_with(self.document.object_key)
+        # Bytes + filename + mime doivent être transmis fidèlement.
+        kwargs = mock_extract.call_args.kwargs
+        self.assertEqual(kwargs['content'], b'\xff\xd8\xff...')
+        self.assertEqual(kwargs['mime_type'], self.document.mime_type)
+
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_DONE)
+        self.assertEqual(self.ocr.raw_text, 'ligne 1\nligne 2')
+        self.assertEqual(self.ocr.confidence_score, Decimal('0.912'))
+        # Namespace `ocr` isolé — laisse la place à `invoice` (étape 6).
+        self.assertIn('ocr', self.ocr.structured_data)
+        lines = self.ocr.structured_data['ocr']['lines']
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(lines[0], {'text': 'ligne 1', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]})
+        self.assertEqual(lines[1], {'text': 'ligne 2', 'confidence': 0.88, 'bbox': []})
+        self.assertEqual(self.ocr.error_message, '')
+
+    def test_missing_ocr_result_returns_not_found_without_raising(self) -> None:
+        import uuid as _uuid
+
+        from .tasks import process_invoice_ocr
+
+        outcome = process_invoice_ocr.run(str(_uuid.uuid4()))
+        self.assertEqual(outcome, 'not_found')
+
+    def test_already_processing_is_skipped(self) -> None:
+        from .services import mark_ocr_processing
+        mark_ocr_processing(self.ocr.pk)
+
+        outcome = self._run()
+        self.assertEqual(outcome, 'skipped')
+        self.ocr.refresh_from_db()
+        # Statut inchangé (le second worker n'écrase rien).
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_PROCESSING)
+
+    def test_storage_failure_marks_failed(self) -> None:
+        with patch('apps.ocr.tasks.download_bytes', side_effect=RuntimeError('S3 down')):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'failed_storage')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_FAILED)
+        self.assertIn('échoué', self.ocr.error_message.lower())
+        # Ne fuit ni chemin S3 ni détail technique.
+        self.assertNotIn('S3', self.ocr.error_message)
+        self.assertNotIn(self.document.object_key, self.ocr.error_message)
+
+    def test_ai_service_failure_marks_failed(self) -> None:
+        from .ai_client import AiServiceUnavailableError
+
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                side_effect=AiServiceUnavailableError('boom interne'),
+            ),
+        ):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'failed_ai_service')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_FAILED)
+        # Le message d'erreur exposé est générique, pas la cause.
+        self.assertNotIn('boom', self.ocr.error_message)
+
+    def test_unexpected_exception_marks_failed(self) -> None:
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                side_effect=TypeError('unexpected'),
+            ),
+        ):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'failed_unexpected')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_FAILED)
+
+    def test_confidence_score_quantized_to_three_decimals(self) -> None:
+        extraction = _FakeExtraction(
+            raw_text='x', confidence_score=0.123456789, lines=[],
+        )
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
+            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),
+        ):
+            self._run()
+
+        self.ocr.refresh_from_db()
+        # ROUND_HALF_UP à la 3e décimale.
+        self.assertEqual(self.ocr.confidence_score, Decimal('0.123'))
+
+    def test_out_of_range_confidence_is_clamped(self) -> None:
+        extraction = _FakeExtraction(raw_text='x', confidence_score=1.4, lines=[])
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
+            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),
+        ):
+            outcome = self._run()
+
+        # Le clamping évite `InvalidConfidenceScoreError` → done.
+        self.assertEqual(outcome, 'done')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.confidence_score, Decimal('1.000'))
+
+    def test_no_stock_movement_created(self) -> None:
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
+            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=_fake_extraction()),
+        ):
+            before = StockMovement.objects.count()
+            self._run()
+        self.assertEqual(StockMovement.objects.count(), before)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Vue upload : déclenchement Celery + broker indisponible (étape 5B)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@override_settings(
+    AWS_S3_ENDPOINT_URL='https://s3.example.com',
+    AWS_ACCESS_KEY_ID='fake-access-key',
+)
+class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
+    URL = '/api/ocr/invoices/'
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop('owner@example.com')
+        self.client.force_authenticate(user=self.owner)
+
+    def _jpeg(self) -> SimpleUploadedFile:
+        return SimpleUploadedFile('facture.jpg', JPEG_BYTES, content_type='image/jpeg')
+
+    def test_successful_upload_enqueues_task_once(self) -> None:
+        with (
+            patch('apps.ocr.services.upload_fileobj'),
+            patch('apps.ocr.views.process_invoice_ocr.delay') as mock_delay,
+        ):
+            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        mock_delay.assert_called_once()
+        # L'argument passé DOIT être l'UUID de l'OcrResult créé, en str
+        # (JSON-serializable pour Celery/Redis).
+        ocr = OcrResult.objects.get(pk=response.data['ocr_result_id'])
+        (arg,) = mock_delay.call_args.args
+        self.assertEqual(arg, str(ocr.pk))
+
+    def test_no_sync_ocr_call_during_upload(self) -> None:
+        """La vue ne doit *jamais* appeler l'IA en synchrone : mock d'assert."""
+        with (
+            patch('apps.ocr.services.upload_fileobj'),
+            patch('apps.ocr.views.process_invoice_ocr.delay'),
+            patch('apps.ocr.tasks.extract_text_with_ai_service') as mock_ai,
+            patch('apps.ocr.tasks.download_bytes') as mock_s3,
+        ):
+            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        mock_ai.assert_not_called()
+        mock_s3.assert_not_called()
+
+    def test_broker_unavailable_returns_503_but_keeps_records(self) -> None:
+        with (
+            patch('apps.ocr.services.upload_fileobj'),
+            patch(
+                'apps.ocr.views.process_invoice_ocr.delay',
+                side_effect=RuntimeError('broker down'),
+            ),
+        ):
+            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        # Les IDs sont exposés pour permettre une reprise manuelle par un op.
+        self.assertIn('document_id', response.data)
+        self.assertIn('ocr_result_id', response.data)
+        # Les enregistrements restent en base (le document est déjà uploadé).
+        self.assertTrue(UploadedDocument.objects.filter(pk=response.data['document_id']).exists())
+        self.assertTrue(OcrResult.objects.filter(pk=response.data['ocr_result_id'], status='pending').exists())
+        # Le message ne contient aucune trace technique.
+        self.assertNotIn('broker', response.data['detail'].lower())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# GET /api/ocr/results/<uuid>/ — lecture multi-tenant (étape 5B)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class OcrResultDetailViewTest(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.owner)
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_DONE,
+            raw_text='ligne 1\nligne 2',
+            confidence_score=Decimal('0.912'),
+            structured_data={
+                'ocr': {
+                    'lines': [
+                        {'text': 'ligne 1', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]},
+                        {'text': 'ligne 2', 'confidence': 0.88, 'bbox': []},
+                    ],
+                },
+                # Namespace hypothétique de l'étape 6 — NE doit PAS être exposé
+                # tant qu'aucun serializer ne le liste explicitement.
+                'invoice': {'total': '19.99'},
+            },
+        )
+
+    def _url(self, pk: object) -> str:
+        return f'/api/ocr/results/{pk}/'
+
+    def test_url_reverse(self) -> None:
+        self.assertEqual(
+            reverse('ocr-result-detail', kwargs={'ocr_result_id': str(self.ocr.pk)}),
+            self._url(self.ocr.pk),
+        )
+
+    def test_unauthenticated_denied(self) -> None:
+        response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_owner_reads_own_result(self) -> None:
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        data = response.data
+        self.assertEqual(data['ocr_result_id'], str(self.ocr.pk))
+        self.assertEqual(data['document_id'], str(self.document.pk))
+        self.assertEqual(data['status'], OcrResult.STATUS_DONE)
+        self.assertEqual(data['raw_text'], 'ligne 1\nligne 2')
+        self.assertEqual(len(data['lines']), 2)
+        self.assertEqual(data['lines'][0]['bbox'], [1, 2, 3, 4])
+
+    def test_staff_with_stock_module_can_read(self) -> None:
+        staff = User.objects.create_user(email='staff@example.com', password='Pass123!Strong')
+        ShopMember.objects.create(
+            shop=self.shop, user=staff, role='staff', permissions=['stock'],
+        )
+        self.client.force_authenticate(user=staff)
+        response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_staff_without_stock_module_denied(self) -> None:
+        staff = User.objects.create_user(email='staff-nostock@example.com', password='Pass123!Strong')
+        ShopMember.objects.create(
+            shop=self.shop, user=staff, role='staff', permissions=['products'],
+        )
+        self.client.force_authenticate(user=staff)
+        response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_other_shop_returns_404_not_403(self) -> None:
+        """Ne PAS confirmer l'existence d'une ressource d'une autre boutique."""
+        other_owner, _ = make_user_shop('other@example.com')
+        self.client.force_authenticate(user=other_owner)
+        response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_missing_uuid_returns_404(self) -> None:
+        import uuid as _uuid
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(_uuid.uuid4()))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_response_never_exposes_object_key(self) -> None:
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.content.decode('utf-8')
+        # Ni la clé, ni le nom du bucket, ni une URL S3 générique.
+        self.assertNotIn('object_key', body)
+        self.assertNotIn(self.document.object_key, body)
+        self.assertNotIn('amazonaws', body.lower())
+        self.assertNotIn('s3.', body.lower())
+
+    def test_response_does_not_expose_non_ocr_structured_namespaces(self) -> None:
+        """`structured_data.invoice` ne doit PAS fuiter par la lecture."""
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(self.ocr.pk))
+        body = response.content.decode('utf-8')
+        self.assertNotIn('invoice', body)
+        self.assertNotIn('19.99', body)
+
+    def test_pending_result_returns_status_only(self) -> None:
+        pending = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+        )
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(pending.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], OcrResult.STATUS_PENDING)
+        self.assertEqual(response.data['raw_text'], '')
+        self.assertEqual(response.data['lines'], [])
+        self.assertIsNone(response.data['confidence_score'])

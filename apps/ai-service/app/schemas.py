@@ -11,13 +11,27 @@ from pydantic import BaseModel, Field
 
 
 class OcrLine(BaseModel):
-    """Une ligne détectée par l'OCR : texte + confiance associée."""
+    """Une ligne détectée par l'OCR : texte + confiance + géométrie.
+
+    La `bbox` conserve la position pixel de la ligne dans l'image source,
+    format `[x_min, y_min, x_max, y_max]`. Utile côté backend pour deux
+    usages à venir :
+    - regrouper les lignes en tableaux (mêmes bandes horizontales) ;
+    - surligner la zone dans la relecture humaine.
+
+    Reste optionnel car certaines versions de PaddleOCR peuvent ne pas
+    renvoyer `rec_boxes` (fallback silencieux → `bbox = []`).
+    """
 
     text: str = Field(description='Texte reconnu sur la ligne.')
     confidence: float = Field(
         ge=0.0,
         le=1.0,
         description='Confiance du moteur OCR sur cette ligne, entre 0 et 1.',
+    )
+    bbox: list[int] = Field(
+        default_factory=list,
+        description='Boîte englobante `[x_min, y_min, x_max, y_max]` en pixels, ou liste vide.',
     )
 
 
