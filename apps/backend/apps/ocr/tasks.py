@@ -94,9 +94,12 @@ def process_invoice_ocr(ocr_result_id: str) -> str:
        En cas d'échec à n'importe quelle étape après le passage en
        `processing`, on bascule en `failed` avec un message générique.
 
-    La tâche ne relève jamais — Celery loggerait la trace en rouge et
-    marquerait la tâche en erreur, ce qui déclencherait un retry par la
-    politique par défaut du broker. Ici, on gère nous-mêmes l'échec en base.
+    La tâche ne relève jamais : la config Celery actuelle n'active
+    `autoretry_for` sur aucune tâche et `process_invoice_ocr` n'appelle
+    pas `self.retry()`. Un exception non capturée ferait donc uniquement
+    logger une trace côté worker et marquerait la tâche `FAILURE` dans le
+    result backend — sans relance. On préfère gérer nous-mêmes l'échec en
+    base pour rendre l'état visible au commerçant.
 
     Ne crée jamais de `StockMovement` : la conversion en mouvements de stock
     est explicitement réservée à une étape ultérieure (validation humaine).
@@ -121,6 +124,21 @@ def process_invoice_ocr(ocr_result_id: str) -> str:
     # À partir d'ici, tout échec doit marquer le OCR en `failed`.
     ocr = OcrResult.objects.select_related('uploaded_document').get(pk=ocr_result_id)
     document = ocr.uploaded_document
+
+    # Cohérence multi-tenant. Rien dans le schéma n'empêche techniquement
+    # `OcrResult.shop_id != UploadedDocument.shop_id` (deux FK indépendantes
+    # vers `shops`). Si l'invariant est violé, on refuse de lire le fichier
+    # d'une autre boutique — même si un attaquant est parvenu à créer un
+    # OcrResult qui pointe sur le document d'un tenant tiers, le worker ne
+    # doit jamais l'exfiltrer via l'appel au service IA.
+    if ocr.shop_id != document.shop_id:
+        logger.error(
+            'Incohérence de tenant détectée sur OCR %s '
+            '(ocr.shop_id=%s, document.shop_id=%s) — traitement refusé.',
+            ocr_result_id, ocr.shop_id, document.shop_id,
+        )
+        mark_ocr_failed(ocr_result_id, error_message=_GENERIC_FAILURE_MESSAGE)
+        return 'failed_tenant_mismatch'
 
     try:
         content = download_bytes(document.object_key)

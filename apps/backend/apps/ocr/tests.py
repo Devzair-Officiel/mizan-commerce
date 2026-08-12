@@ -1193,6 +1193,48 @@ class ProcessInvoiceOcrTaskTest(TestCase):
             self._run()
         self.assertEqual(StockMovement.objects.count(), before)
 
+    def test_tenant_mismatch_refuses_processing(self) -> None:
+        """OcrResult pointant sur un document d'un autre tenant : refus strict.
+
+        Le worker ne doit JAMAIS lire un document d'une autre boutique, même
+        si un OcrResult et un UploadedDocument avec `shop_id` divergents ont
+        pu être créés (invariant applicatif, pas contrainte SQL). Aucun
+        appel S3, aucun appel service IA, statut `failed`, message générique,
+        et bien sûr aucun `StockMovement`.
+        """
+        _other_user, other_shop = make_user_shop('tenant-b@example.com')
+        cross_document = make_document(other_shop, _other_user)
+        # OcrResult sur la boutique A, mais qui pointe sur un document de B.
+        cross_ocr = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=cross_document,
+        )
+        stock_movements_before = StockMovement.objects.count()
+
+        with (
+            patch('apps.ocr.tasks.download_bytes') as mock_download,
+            patch('apps.ocr.tasks.extract_text_with_ai_service') as mock_extract,
+        ):
+            from .tasks import process_invoice_ocr
+            outcome = process_invoice_ocr.run(str(cross_ocr.pk))
+
+        self.assertEqual(outcome, 'failed_tenant_mismatch')
+        mock_download.assert_not_called()
+        mock_extract.assert_not_called()
+
+        cross_ocr.refresh_from_db()
+        self.assertEqual(cross_ocr.status, OcrResult.STATUS_FAILED)
+        # Aucune donnée OCR de B n'a été persistée dans le OcrResult de A.
+        self.assertEqual(cross_ocr.raw_text, '')
+        self.assertIsNone(cross_ocr.structured_data)
+        self.assertIsNone(cross_ocr.confidence_score)
+        # Message générique — ni détail d'erreur ni fuite d'object_key.
+        self.assertNotIn(cross_document.object_key, cross_ocr.error_message)
+        self.assertNotIn('tenant', cross_ocr.error_message.lower())
+
+        # Aucun mouvement de stock (garantie de portée pour l'étape).
+        self.assertEqual(StockMovement.objects.count(), stock_movements_before)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Vue upload : déclenchement Celery + broker indisponible (étape 5B)
