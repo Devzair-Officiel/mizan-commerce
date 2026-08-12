@@ -54,7 +54,7 @@ services:
     volumes:
       - ./apps/ai-service:/app              # hot reload en dev (uvicorn --reload)
     ports:
-      - "8001:8000"                         # localhost uniquement pour tests manuels (curl)
+      - "127.0.0.1:8001:8000"               # localhost uniquement pour tests manuels (curl)
     # Aucune dépendance à postgres/redis : ce service ne touche pas à la DB.
 
   frontend:

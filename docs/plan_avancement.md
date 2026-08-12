@@ -336,15 +336,15 @@
 
 ### Service IA — base
 
-- [ ] Initialiser le service FastAPI séparé
-- [ ] Authentification interne entre Django et FastAPI (clé partagée)
-- [ ] Endpoint health-check
+- [x] Initialiser le service FastAPI séparé
+- [x] Authentification interne entre Django et FastAPI (clé partagée)
+- [x] Endpoint health-check
 
 ### OCR factures fournisseur (URS-042 à URS-045)
 
 - [ ] Intégration PaddleOCR ou Tesseract dans le service IA
 - [ ] Endpoint upload facture + extraction texte brut
-- [ ] Modèle `UploadedDocument`, `OcrResult`
+- [x] Modèle `UploadedDocument`, `OcrResult`
 - [ ] Extraction structurée : produits, quantités, prix
 - [ ] Affichage frontend des lignes détectées avec confiance
 - [ ] Validation humaine ligne par ligne
