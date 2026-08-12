@@ -15,6 +15,13 @@ python-multipart==0.0.20
 paddlepaddle==3.3.1
 paddleocr==3.7.0
 
+# Extraction structurée de facture (POC 6A) — Responses API + Structured Outputs.
+# `openai==2.54.0` supporte `client.responses.parse(text_format=<PydanticModel>)`
+# et retourne `response.output_parsed` typé. Version stable en date d'août 2026,
+# compatible Python 3.12. À réévaluer avant de passer à la branche 3.x qui
+# introduit des breaking changes non nécessaires pour ce POC.
+openai==2.54.0
+
 # Tests uniquement : `httpx` est requis par `TestClient` de FastAPI/Starlette.
 httpx==0.28.1
 pytest==8.4.2

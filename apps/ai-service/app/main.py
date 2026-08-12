@@ -5,10 +5,15 @@ Endpoints exposés :
 - `GET  /health`                        : sonde publique du processus.
 - `GET  /internal/health`               : sonde protégée (auth service-to-service).
 - `POST /internal/ocr/extract-text`     : OCR pur d'une image (protégé).
+- `POST /internal/invoice/structure`    : proposition structurée d'une
+  facture à partir d'une sortie OCR, via un LLM externe (protégé, POC 6A).
 
-Aucune interprétation métier n'est faite ici : `extract-text` renvoie du
-texte brut + confiances, c'est au backend Django (après revue humaine) de
-transformer ça en produits / prix / mouvements de stock.
+Interprétation métier :
+- `extract-text` reste OCR pur — texte brut + confiances + bboxes.
+- `invoice/structure` produit une *proposition* de structure de facture
+  (fournisseur, numéro, lignes, montants). Aucune écriture, aucun matching
+  produit, aucun mouvement de stock : la validation humaine reste requise
+  côté backend Mizan.
 """
 from __future__ import annotations
 
@@ -20,8 +25,14 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 
 from . import config
 from .file_validation import FileValidationError, validate_uploaded_document
+from .invoice_extraction import (
+    InvoiceExtractionError,
+    MissingProviderKeyError,
+    ProviderUnavailableError,
+    extract_invoice_structure,
+)
 from .ocr import OcrEngineError, extract_text_from_image
-from .schemas import OcrExtractionResult
+from .schemas import InvoiceExtraction, InvoiceStructureRequest, OcrExtractionResult
 from .security import require_internal_api_key
 
 logger = logging.getLogger(__name__)
@@ -119,3 +130,45 @@ async def extract_text(document: UploadFile = File(...)) -> OcrExtractionResult:
             os.unlink(tmp.name)
         except FileNotFoundError:
             pass
+
+
+@app.post(
+    '/internal/invoice/structure',
+    dependencies=[Depends(require_internal_api_key)],
+    response_model=InvoiceExtraction,
+)
+def structure_invoice(payload: InvoiceStructureRequest) -> InvoiceExtraction:
+    """Propose une structure de facture à partir d'une sortie OCR (POC 6A).
+
+    - Aucune image ni donnée métier Mizan n'est envoyée au provider LLM ;
+      uniquement `raw_text` + lignes OCR (texte, confiance, bbox).
+    - `MissingProviderKeyError` → 503 (config incomplète côté serveur).
+    - `ProviderUnavailableError` → 502 (timeout, panne, rate limit).
+    - `InvoiceExtractionError` → 400/502 selon origine (OCR vide → 400 ;
+      contrat provider violé → 502 générique).
+    - Aucun message ne relaie stacktrace, clé API ou prompt complet.
+    """
+    try:
+        return extract_invoice_structure(payload)
+    except MissingProviderKeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='Service d\'extraction structurée non configuré.',
+        ) from exc
+    except ProviderUnavailableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail='Fournisseur LLM indisponible.',
+        ) from exc
+    except InvoiceExtractionError as exc:
+        # OCR vide → 400, autre contrat violé → 502.
+        message = str(exc)
+        if message.startswith('OCR vide'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=message,
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail='Réponse invalide du fournisseur LLM.',
+        ) from exc
