@@ -53,6 +53,7 @@ services:
     env_file: .env                          # transmet AI_SERVICE_API_KEY (jamais commité)
     volumes:
       - ./apps/ai-service:/app              # hot reload en dev (uvicorn --reload)
+      - paddle_models:/root/.paddlex        # cache modèles PaddleOCR (évite un ~50 Mo de retéléchargement à chaque rebuild)
     ports:
       - "127.0.0.1:8001:8000"               # localhost uniquement pour tests manuels (curl)
     # Aucune dépendance à postgres/redis : ce service ne touche pas à la DB.
@@ -75,3 +76,4 @@ services:
 
 volumes:
   postgres_data:                                # volume nommé géré par Docker pour persister les données PostgreSQL
+  paddle_models:                                # cache modèles PaddleOCR (téléchargés au premier appel du pipeline)

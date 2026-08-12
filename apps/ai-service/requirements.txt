@@ -1,10 +1,19 @@
-# Versions épinglées — reproductibilité (dev/CI/prod). Étape 4 minimaliste :
-# aucun moteur OCR/LLM, aucun accès DB. Pour ajouter Paddle/Tesseract/YOLO
-# plus tard, créer un fichier `requirements-ml.txt` et ne pas polluer
-# l'image de base.
+# Versions épinglées — reproductibilité (dev/CI/prod).
+#
+# PaddlePaddle 3.3.1 + PaddleOCR 3.7.0 : combinaison validée sur Python 3.12
+# CPU en local. `enable_mkldnn=False` est indispensable (voir app/ocr.py) :
+# le chemin oneDNN de la PIR en 3.3.x lève `NotImplementedError` sur les
+# modèles PP-OCRv6. Downgrade non nécessaire une fois MKL-DNN désactivé.
+#
+# `python-multipart` est requis par FastAPI dès qu'un endpoint accepte du
+# `multipart/form-data` (upload de fichier via `UploadFile`).
 
 fastapi==0.121.2
 uvicorn[standard]==0.38.0
+python-multipart==0.0.20
+
+paddlepaddle==3.3.1
+paddleocr==3.7.0
 
 # Tests uniquement : `httpx` est requis par `TestClient` de FastAPI/Starlette.
 httpx==0.28.1

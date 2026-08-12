@@ -87,6 +87,8 @@ services:
     # atteindre ce service via http://ai-service:8000 sur le réseau Docker
     # interne. Pas de mapping vers `web` (Caddy) et pas de port host.
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - paddle_models:/root/.paddlex   # cache modèles PaddleOCR (persistant entre redéploiements)
     # Pas de dépendance à postgres/redis : ce service n'y touche pas.
 
   frontend:
@@ -115,3 +117,4 @@ networks:
 
 volumes:
   postgres_data:
+  paddle_models:
