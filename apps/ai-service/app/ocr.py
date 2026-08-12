@@ -91,6 +91,28 @@ def _get_engine() -> 'PaddleOCR':
     return _engine
 
 
+def _to_list(value: Any) -> list:  # noqa: ANN401
+    """Convertit une valeur PaddleOCR en liste Python simple, sans importer NumPy.
+
+    PaddleOCR 3.x expose `rec_texts`, `rec_scores` et `rec_boxes` tantôt en
+    `list`, tantôt en `numpy.ndarray` (dépend de la version et du backend
+    d'inférence). On ne peut donc PAS écrire `value or []` : sur un ndarray
+    multi-éléments, NumPy refuse l'évaluation booléenne implicite et lève
+    `ValueError: The truth value of an array with more than one element is
+    ambiguous`. Ce helper normalise :
+
+    - `None` → `[]` ;
+    - objet exposant `.tolist()` (ndarray, tensor…) → `.tolist()` ;
+    - sinon `list(value)` — cas d'une `list` Python déjà propre.
+    """
+    if value is None:
+        return []
+    tolist = getattr(value, 'tolist', None)
+    if callable(tolist):
+        return tolist()
+    return list(value)
+
+
 def _coerce_bbox(raw_box: Any) -> list[int]:  # noqa: ANN401
     """Normalise une bbox PaddleOCR vers `[x_min, y_min, x_max, y_max]`.
 
@@ -154,9 +176,9 @@ def _transform_result(raw: Any) -> OcrExtractionResult:  # noqa: ANN401
         first = raw
 
     getter = first.get if hasattr(first, 'get') else lambda _k, default=None: default
-    texts: list[str] = list(getter('rec_texts') or [])
-    scores: list[float] = list(getter('rec_scores') or [])
-    boxes_raw: list[Any] = list(getter('rec_boxes') or [])
+    texts: list[str] = _to_list(getter('rec_texts'))
+    scores: list[float] = _to_list(getter('rec_scores'))
+    boxes_raw: list[Any] = _to_list(getter('rec_boxes'))
 
     # Défensif : les trois listes devraient toujours avoir la même longueur.
     # `zip(..., strict=False)` s'arrête à la plus courte — on ne renvoie donc

@@ -2,14 +2,23 @@
 
 Ces tests n'ont *aucune* dépendance à PaddleOCR : on simule la structure de
 retour attendue (`get('rec_texts')`, `get('rec_scores')`) via un simple dict.
+`numpy` est disponible transitivement dans l'image (dépendance de Paddle) et
+sert à reproduire fidèlement le cas réel où `rec_boxes` est un `ndarray`.
 """
 from __future__ import annotations
 
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
-from app.ocr import OcrEngineError, _coerce_bbox, _transform_result, extract_text_from_image
+from app.ocr import (
+    OcrEngineError,
+    _coerce_bbox,
+    _to_list,
+    _transform_result,
+    extract_text_from_image,
+)
 
 
 class _FakeResult(dict):
@@ -127,3 +136,82 @@ def test_extract_text_wraps_engine_load_failure() -> None:
     # Le message reste générique, la cause d'origine est préservée pour les logs.
     assert str(exc_info.value) == 'Échec du moteur OCR.'
     assert exc_info.value.__cause__ is boom
+
+
+# ─── Régression : compatibilité numpy.ndarray (bug 6A manuel) ──────────────
+
+
+def test_to_list_handles_none() -> None:
+    assert _to_list(None) == []
+
+
+def test_to_list_handles_python_list() -> None:
+    src = ['a', 'b']
+    result = _to_list(src)
+    assert result == ['a', 'b']
+
+
+def test_to_list_handles_tuple() -> None:
+    assert _to_list(('a', 'b')) == ['a', 'b']
+
+
+def test_to_list_handles_numpy_ndarray_1d() -> None:
+    """`.tolist()` doit être appelé pour éviter la coercition booléenne ambiguë."""
+    arr = np.array([0.8, 0.9])
+    assert _to_list(arr) == [0.8, 0.9]
+
+
+def test_to_list_handles_numpy_ndarray_2d() -> None:
+    arr = np.array([[10, 20, 100, 40], [10, 50, 120, 70]])
+    assert _to_list(arr) == [[10, 20, 100, 40], [10, 50, 120, 70]]
+
+
+def test_transform_handles_numpy_rec_boxes_regression() -> None:
+    """Bug 6A : `rec_boxes` en `numpy.ndarray` provoquait
+    `ValueError: The truth value of an array with more than one element is ambiguous`
+    à l'évaluation implicite `array or []`. Ce test échoue sur l'ancien code.
+    """
+    raw = [_FakeResult(
+        rec_texts=['ligne 1', 'ligne 2'],
+        rec_scores=[0.8, 0.9],
+        rec_boxes=np.array([[10, 20, 100, 40], [10, 50, 120, 70]]),
+    )]
+    result = _transform_result(raw)
+    assert [line.text for line in result.lines] == ['ligne 1', 'ligne 2']
+    assert [line.bbox for line in result.lines] == [
+        [10, 20, 100, 40], [10, 50, 120, 70],
+    ]
+    assert result.confidence_score == pytest.approx(0.85)
+
+
+def test_transform_handles_none_rec_boxes() -> None:
+    """Tolère explicitement `rec_boxes = None` sans lever."""
+    raw = [_FakeResult(rec_texts=['a', 'b'], rec_scores=[0.8, 0.9], rec_boxes=None)]
+    result = _transform_result(raw)
+    assert [line.text for line in result.lines] == ['a', 'b']
+    assert [line.bbox for line in result.lines] == [[], []]
+
+
+def test_transform_handles_numpy_rec_scores() -> None:
+    """Même problème potentiel sur `rec_scores` : normalisation via `_to_list`."""
+    raw = [_FakeResult(
+        rec_texts=['a', 'b'],
+        rec_scores=np.array([0.8, 0.9]),
+        rec_boxes=np.array([[1, 2, 3, 4], [5, 6, 7, 8]]),
+    )]
+    result = _transform_result(raw)
+    assert [line.confidence for line in result.lines] == [
+        pytest.approx(0.8), pytest.approx(0.9),
+    ]
+    assert [line.bbox for line in result.lines] == [[1, 2, 3, 4], [5, 6, 7, 8]]
+
+
+def test_transform_handles_numpy_rec_texts() -> None:
+    """PaddleOCR peut aussi renvoyer `rec_texts` en ndarray de dtype `object`."""
+    raw = [_FakeResult(
+        rec_texts=np.array(['ligne 1', 'ligne 2'], dtype=object),
+        rec_scores=[0.8, 0.9],
+        rec_boxes=[[1, 2, 3, 4], [5, 6, 7, 8]],
+    )]
+    result = _transform_result(raw)
+    assert [line.text for line in result.lines] == ['ligne 1', 'ligne 2']
