@@ -5,9 +5,11 @@ retour attendue (`get('rec_texts')`, `get('rec_scores')`) via un simple dict.
 """
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
-from app.ocr import _transform_result
+from app.ocr import OcrEngineError, _transform_result, extract_text_from_image
 
 
 class _FakeResult(dict):
@@ -54,3 +56,20 @@ def test_transform_accepts_direct_dict_result() -> None:
     result = _transform_result(raw)
     assert result.raw_text == 'solo'
     assert result.confidence_score == pytest.approx(0.77)
+
+
+# ─── Chargement du pipeline : erreur native → OcrEngineError ───────────────
+
+
+def test_extract_text_wraps_engine_load_failure() -> None:
+    """Si `_get_engine` lève (téléchargement modèle KO, incompatibilité,
+    OSError disque plein…), on doit voir `OcrEngineError`, jamais
+    l'exception native — l'endpoint compte dessus pour son 500 générique.
+    """
+    boom = RuntimeError('paddle native load boom')
+    with patch('app.ocr._get_engine', side_effect=boom):
+        with pytest.raises(OcrEngineError) as exc_info:
+            extract_text_from_image('/tmp/unused.png')
+    # Le message reste générique, la cause d'origine est préservée pour les logs.
+    assert str(exc_info.value) == 'Échec du moteur OCR.'
+    assert exc_info.value.__cause__ is boom

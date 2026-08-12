@@ -211,6 +211,28 @@ def test_extract_text_cleans_tempfile_on_success(tmp_path, monkeypatch) -> None:
     assert remaining == [], f'tempfiles non nettoyés : {remaining}'
 
 
+def test_extract_text_returns_500_when_engine_init_fails() -> None:
+    """Si le chargement du pipeline PaddleOCR échoue (téléchargement modèle
+    KO, OSError…), l'exception native ne doit pas remonter au client :
+    on doit voir le même 500 générique que sur un échec d'inférence.
+    """
+    def _init_boom(*_a, **_k):
+        raise RuntimeError('paddle native load boom')
+
+    with patch('app.config.API_KEY', _TEST_API_KEY), \
+         patch('app.ocr._get_engine', side_effect=_init_boom):
+        response = client.post(
+            '/internal/ocr/extract-text',
+            headers={INTERNAL_API_KEY_HEADER: _TEST_API_KEY},
+            files={'document': ('a.png', _make_png_bytes(), 'image/png')},
+        )
+    assert response.status_code == 500
+    assert response.json()['detail'] == 'Erreur interne du moteur OCR.'
+    # Aucun détail de l'exception native ne doit fuiter.
+    assert 'paddle' not in response.text.lower()
+    assert 'boom' not in response.text
+
+
 def test_extract_text_cleans_tempfile_on_engine_error(tmp_path, monkeypatch) -> None:
     from app.ocr import OcrEngineError
 

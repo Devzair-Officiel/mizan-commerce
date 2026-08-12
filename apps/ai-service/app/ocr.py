@@ -132,11 +132,17 @@ def _transform_result(raw: Any) -> OcrExtractionResult:  # noqa: ANN401
 def extract_text_from_image(image_path: str) -> OcrExtractionResult:
     """Exécute l'OCR sur une image locale et retourne le contrat interne.
 
-    Toute exception native PaddleOCR est convertie en `OcrEngineError`
-    pour que l'endpoint puisse répondre 500 générique sans exposer la
-    trace ni la chaîne d'imports Paddle.
+    Toute exception native PaddleOCR — que ce soit lors du chargement /
+    téléchargement du pipeline (`_get_engine`) ou lors de l'inférence
+    (`engine.predict`) — est convertie en `OcrEngineError`. L'endpoint
+    peut ainsi répondre 500 générique sans exposer la trace ni la chaîne
+    d'imports Paddle.
     """
-    engine = _get_engine()
+    try:
+        engine = _get_engine()
+    except Exception as exc:  # noqa: BLE001 — on relance en type domaine
+        logger.exception('PaddleOCR pipeline initialization failed')
+        raise OcrEngineError('Échec du moteur OCR.') from exc
     try:
         raw = engine.predict(image_path)
     except Exception as exc:  # noqa: BLE001 — on relance en type domaine
