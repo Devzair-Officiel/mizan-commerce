@@ -670,3 +670,211 @@ class OcrTransitionsTest(TestCase):
         mark_ocr_processing(ocr.pk)
         with self.assertRaises(InvalidOcrTransitionError):
             mark_ocr_processing(ocr.pk)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Client HTTP vers le service IA FastAPI (étape 4)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# On mocke `urllib.request.urlopen` pour ne dépendre d'aucun vrai conteneur
+# FastAPI dans la suite unitaire. Les tests réseau réels sont documentés
+# dans le rapport (curl host + backend->ai-service via manage.py shell).
+
+
+import io
+import json as _json
+import logging as _logging
+import socket as _socket
+import urllib.error as _urllib_error
+
+from django.test import SimpleTestCase
+
+
+_TEST_AI_KEY = 'test-internal-ai-key-not-real'
+
+
+def _http_response(payload: dict, *, status_code: int = 200) -> object:
+    """Mini réponse compatible avec le context manager d'`urlopen`."""
+
+    class _Resp:
+        status = status_code
+
+        def __enter__(self_inner) -> object:
+            return self_inner
+
+        def __exit__(self_inner, *_exc) -> bool:
+            return False
+
+        def read(self_inner) -> bytes:
+            return _json.dumps(payload).encode('utf-8')
+
+    return _Resp()
+
+
+def _http_response_raw(raw: bytes, *, status_code: int = 200) -> object:
+    class _Resp:
+        status = status_code
+
+        def __enter__(self_inner) -> object:
+            return self_inner
+
+        def __exit__(self_inner, *_exc) -> bool:
+            return False
+
+        def read(self_inner) -> bytes:
+            return raw
+
+    return _Resp()
+
+
+@override_settings(
+    AI_SERVICE_URL='http://ai-service:8000',
+    AI_SERVICE_API_KEY=_TEST_AI_KEY,
+    AI_SERVICE_TIMEOUT_SECONDS=1.0,
+)
+class AiClientHealthTest(SimpleTestCase):
+    """Cas nominaux : /health public et /internal/health authentifié."""
+
+    def test_health_ok_returns_typed_result(self) -> None:
+        from .ai_client import check_ai_service_health
+
+        with patch('apps.ocr.ai_client.urllib.request.urlopen') as mock_open:
+            mock_open.return_value = _http_response(
+                {'status': 'ok', 'service': 'mizan-ai'},
+            )
+            result = check_ai_service_health()
+
+        self.assertEqual(result.status, 'ok')
+        self.assertEqual(result.service, 'mizan-ai')
+        self.assertFalse(result.authenticated)
+
+    def test_health_url_and_headers(self) -> None:
+        from .ai_client import check_ai_service_health
+
+        with patch('apps.ocr.ai_client.urllib.request.urlopen') as mock_open:
+            mock_open.return_value = _http_response(
+                {'status': 'ok', 'service': 'mizan-ai'},
+            )
+            check_ai_service_health()
+
+        request = mock_open.call_args.args[0]
+        self.assertEqual(request.full_url, 'http://ai-service:8000/health')
+        # Aucun header d'auth ne doit fuiter sur l'endpoint public.
+        self.assertNotIn('X-internal-api-key', {k.lower(): v for k, v in request.header_items()})
+
+    def test_authenticated_health_sends_expected_header(self) -> None:
+        from .ai_client import check_ai_service_authenticated_health
+
+        with patch('apps.ocr.ai_client.urllib.request.urlopen') as mock_open:
+            mock_open.return_value = _http_response(
+                {'status': 'ok', 'service': 'mizan-ai', 'authenticated': True},
+            )
+            result = check_ai_service_authenticated_health()
+
+        request = mock_open.call_args.args[0]
+        self.assertEqual(
+            request.full_url, 'http://ai-service:8000/internal/health',
+        )
+        # urllib stocke les headers avec une casse normalisée.
+        self.assertEqual(request.get_header('X-internal-api-key'), _TEST_AI_KEY)
+        self.assertTrue(result.authenticated)
+        self.assertEqual(result.status, 'ok')
+
+    def test_url_join_handles_base_without_trailing_slash(self) -> None:
+        from .ai_client import check_ai_service_health
+
+        with (
+            override_settings(AI_SERVICE_URL='http://ai-service:8000'),
+            patch('apps.ocr.ai_client.urllib.request.urlopen') as mock_open,
+        ):
+            mock_open.return_value = _http_response(
+                {'status': 'ok', 'service': 'mizan-ai'},
+            )
+            check_ai_service_health()
+
+        request = mock_open.call_args.args[0]
+        self.assertEqual(request.full_url, 'http://ai-service:8000/health')
+
+
+@override_settings(
+    AI_SERVICE_URL='http://ai-service:8000',
+    AI_SERVICE_API_KEY=_TEST_AI_KEY,
+    AI_SERVICE_TIMEOUT_SECONDS=0.5,
+)
+class AiClientErrorHandlingTest(SimpleTestCase):
+    """Toute erreur doit produire `AiServiceUnavailableError`, sans fuite."""
+
+    def test_timeout_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, check_ai_service_health
+
+        with patch(
+            'apps.ocr.ai_client.urllib.request.urlopen',
+            side_effect=_socket.timeout('too slow'),
+        ):
+            with self.assertRaises(AiServiceUnavailableError):
+                check_ai_service_health()
+
+    def test_connection_refused_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, check_ai_service_health
+
+        with patch(
+            'apps.ocr.ai_client.urllib.request.urlopen',
+            side_effect=_urllib_error.URLError('Connection refused'),
+        ):
+            with self.assertRaises(AiServiceUnavailableError):
+                check_ai_service_health()
+
+    def test_http_500_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, check_ai_service_health
+
+        http_error = _urllib_error.HTTPError(
+            url='http://ai-service:8000/health',
+            code=500,
+            msg='Internal Server Error',
+            hdrs=None,
+            fp=io.BytesIO(b'oops'),
+        )
+        with patch(
+            'apps.ocr.ai_client.urllib.request.urlopen', side_effect=http_error,
+        ):
+            with self.assertRaises(AiServiceUnavailableError):
+                check_ai_service_health()
+
+    def test_invalid_json_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, check_ai_service_health
+
+        with patch('apps.ocr.ai_client.urllib.request.urlopen') as mock_open:
+            mock_open.return_value = _http_response_raw(b'<html>oops</html>')
+            with self.assertRaises(AiServiceUnavailableError):
+                check_ai_service_health()
+
+    def test_non_dict_json_raises_domain_error(self) -> None:
+        from .ai_client import AiServiceUnavailableError, check_ai_service_health
+
+        with patch('apps.ocr.ai_client.urllib.request.urlopen') as mock_open:
+            mock_open.return_value = _http_response_raw(b'[1, 2, 3]')
+            with self.assertRaises(AiServiceUnavailableError):
+                check_ai_service_health()
+
+    def test_error_message_never_contains_api_key(self) -> None:
+        """Ni les messages d'exception ni les logs ne doivent contenir la clé."""
+        from .ai_client import (
+            AiServiceUnavailableError,
+            check_ai_service_authenticated_health,
+        )
+
+        with self.assertLogs('apps.ocr.ai_client', level=_logging.WARNING) as logs:
+            with patch(
+                'apps.ocr.ai_client.urllib.request.urlopen',
+                side_effect=_urllib_error.URLError('Connection refused'),
+            ):
+                try:
+                    check_ai_service_authenticated_health()
+                except AiServiceUnavailableError as exc:
+                    exception_message = str(exc)
+                    cause_message = str(exc.__cause__) if exc.__cause__ else ''
+
+        self.assertNotIn(_TEST_AI_KEY, exception_message)
+        self.assertNotIn(_TEST_AI_KEY, cause_message)
+        for entry in logs.output:
+            self.assertNotIn(_TEST_AI_KEY, entry)

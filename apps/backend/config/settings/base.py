@@ -207,3 +207,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=6, minute=30),  # juste après les rappels zakat
     },
 }
+
+# Service IA / OCR (FastAPI séparé — V6). Accessible uniquement en réseau
+# Docker interne ; jamais publié via Caddy. La clé ne doit avoir aucune
+# valeur par défaut : mieux vaut un 401 clair qu'un défaut faible en dur.
+AI_SERVICE_URL = os.environ.get('AI_SERVICE_URL', 'http://ai-service:8000')
+AI_SERVICE_API_KEY = os.environ.get('AI_SERVICE_API_KEY', '')
+AI_SERVICE_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_TIMEOUT_SECONDS', '5'))

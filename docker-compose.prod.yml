@@ -78,6 +78,17 @@ services:
       redis:
         condition: service_started
 
+  ai-service:
+    build:
+      context: ./apps/ai-service
+    restart: always
+    env_file: .env.prod
+    # Aucune exposition publique : seuls `backend` et `celery-ocr` doivent
+    # atteindre ce service via http://ai-service:8000 sur le réseau Docker
+    # interne. Pas de mapping vers `web` (Caddy) et pas de port host.
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    # Pas de dépendance à postgres/redis : ce service n'y touche pas.
+
   frontend:
     build:
       context: ./apps/frontend

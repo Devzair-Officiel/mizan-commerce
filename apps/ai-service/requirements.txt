@@ -1,0 +1,11 @@
+# Versions épinglées — reproductibilité (dev/CI/prod). Étape 4 minimaliste :
+# aucun moteur OCR/LLM, aucun accès DB. Pour ajouter Paddle/Tesseract/YOLO
+# plus tard, créer un fichier `requirements-ml.txt` et ne pas polluer
+# l'image de base.
+
+fastapi==0.121.2
+uvicorn[standard]==0.38.0
+
+# Tests uniquement : `httpx` est requis par `TestClient` de FastAPI/Starlette.
+httpx==0.28.1
+pytest==8.4.2
