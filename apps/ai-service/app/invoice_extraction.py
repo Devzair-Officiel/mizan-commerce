@@ -131,6 +131,12 @@ def _get_client() -> 'OpenAI':
     On garde l'import local pour ne pas charger la bibliothèque au démarrage
     du service (uvicorn boot + collecte pytest restent rapides même si le
     package OpenAI n'est pas installé sur l'image de test).
+
+    `max_retries=0` : le SDK OpenAI retry 2 fois par défaut, transformant un
+    timeout de 45 s en ~137 s observés sur une facture dense. On préfère
+    borner la latence et laisser la couche Mizan tracer l'échec — la retry
+    éventuelle doit être une décision explicite du POC, pas un side-effect
+    du SDK.
     """
     if not config.OPENAI_API_KEY:
         raise MissingProviderKeyError(
@@ -141,6 +147,7 @@ def _get_client() -> 'OpenAI':
     return OpenAI(
         api_key=config.OPENAI_API_KEY,
         timeout=config.OPENAI_INVOICE_TIMEOUT_SECONDS,
+        max_retries=0,
     )
 
 
@@ -166,6 +173,11 @@ def _call_provider(request: InvoiceStructureRequest) -> InvoiceExtraction:
 
     started = time.monotonic()
     try:
+        # `store=False` : on ne conserve pas l'état applicatif de la réponse
+        # dans le Responses API (aucun follow-up par response_id côté Mizan).
+        # `reasoning.effort=minimal` : tâche d'extraction structurée, pas de
+        # chaîne de raisonnement approfondie requise — à revalider
+        # manuellement sur factures réelles avant d'acter ce réglage.
         response = client.responses.parse(
             model=model,
             input=[
@@ -173,6 +185,8 @@ def _call_provider(request: InvoiceStructureRequest) -> InvoiceExtraction:
                 {'role': 'user', 'content': user_content},
             ],
             text_format=InvoiceExtraction,
+            store=False,
+            reasoning={'effort': 'minimal'},
         )
     except APITimeoutError as exc:
         logger.warning(

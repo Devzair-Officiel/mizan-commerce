@@ -485,6 +485,47 @@ def test_get_client_raises_missing_key_when_env_empty() -> None:
             _get_client()
 
 
+# ─── Durcissement latence / stockage (fix 6A manuel) ──────────────────────
+
+
+def test_get_client_disables_sdk_autoretry() -> None:
+    """`max_retries=0` évite qu'un timeout de 45 s devienne ~137 s (2 retries par défaut)."""
+    from app.invoice_extraction import _get_client
+    with (
+        patch('app.config.OPENAI_API_KEY', _TEST_OPENAI_KEY),
+        patch('openai.OpenAI') as mock_openai_cls,
+    ):
+        _get_client()
+    mock_openai_cls.assert_called_once()
+    kwargs = mock_openai_cls.call_args.kwargs
+    assert kwargs.get('max_retries') == 0
+    # On garde aussi le contrat timeout, sinon la borne saute.
+    assert kwargs.get('timeout') is not None
+
+
+def test_call_provider_disables_response_storage_and_sets_minimal_reasoning() -> None:
+    """`store=False` + `reasoning.effort=minimal` doivent être passés à chaque appel."""
+    from app.invoice_extraction import _call_provider
+
+    fake_response = MagicMock(output_parsed=_sample_extraction(), usage=None)
+    mock_client = MagicMock()
+    mock_client.responses.parse.return_value = fake_response
+
+    with (
+        patch('app.config.OPENAI_API_KEY', _TEST_OPENAI_KEY),
+        patch('app.invoice_extraction._get_client', return_value=mock_client),
+    ):
+        _call_provider(_minimal_request())
+
+    mock_client.responses.parse.assert_called_once()
+    kwargs = mock_client.responses.parse.call_args.kwargs
+    assert kwargs.get('store') is False
+    assert kwargs.get('reasoning') == {'effort': 'minimal'}
+    # Contrat existant préservé — on n'a pas déplacé les autres paramètres.
+    assert kwargs.get('text_format') is InvoiceExtraction
+    assert 'input' in kwargs and 'model' in kwargs
+
+
 # ─── Prompt injection ─────────────────────────────────────────────────────
 
 
