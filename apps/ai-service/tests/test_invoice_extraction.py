@@ -570,6 +570,64 @@ def test_prompt_lines_numbered_zero_based() -> None:
     assert '[2] ' in payload
 
 
+# ─── Payload : intégration visual_rows (fix 6A géométrique) ────────────────
+
+
+def test_payload_contains_visual_rows_section_with_original_indices() -> None:
+    """Le payload doit exposer les visual_rows reconstruites avec les
+    indices OCR ORIGINAUX (pas renumérotés) pour source_line_indices."""
+    request = InvoiceStructureRequest(
+        raw_text='OCR-005 4 22,50 90,00 Extraction numéro facture',
+        lines=[
+            OcrLine(text='OCR-005', confidence=0.95, bbox=[400, 95, 470, 115]),
+            OcrLine(text='4', confidence=0.95, bbox=[520, 95, 545, 115]),
+            OcrLine(text='22,50 €', confidence=0.95, bbox=[580, 95, 650, 115]),
+            OcrLine(text='90,00 €', confidence=0.95, bbox=[700, 95, 770, 115]),
+            OcrLine(text='Extraction numéro facture', confidence=0.95,
+                    bbox=[50, 95, 380, 115]),
+        ],
+    )
+    payload = _format_ocr_payload(request)
+    assert 'visual_rows:' in payload
+    assert 'row 0:' in payload
+    # Ordre visuel (gauche → droite) avec indices ORIGINAUX préservés.
+    expected_row = (
+        "[4] 'Extraction numéro facture' | [0] 'OCR-005' | [1] '4' | "
+        "[2] '22,50 €' | [3] '90,00 €'"
+    )
+    assert expected_row in payload
+    # Les raw_ocr_lines restent disponibles en fallback.
+    assert 'raw_ocr_lines:' in payload
+    for index in range(5):
+        assert f'[{index}] confidence=' in payload
+
+
+def test_payload_handles_no_bboxes_gracefully() -> None:
+    """Aucune bbox exploitable → visual_rows vide, message explicite pour le LLM."""
+    request = InvoiceStructureRequest(
+        raw_text='a\nb',
+        lines=[
+            OcrLine(text='a', confidence=0.9, bbox=[]),
+            OcrLine(text='b', confidence=0.9, bbox=[]),
+        ],
+    )
+    payload = _format_ocr_payload(request)
+    assert 'visual_rows:' in payload
+    assert 'aucune bbox exploitable' in payload
+    assert 'raw_ocr_lines:' in payload
+
+
+def test_system_prompt_documents_visual_rows_semantics() -> None:
+    """Le prompt système doit expliquer visual_rows et exiger la réutilisation
+    des indices originaux pour source_line_indices."""
+    assert 'visual_rows' in INVOICE_EXTRACTION_SYSTEM_PROMPT
+    assert 'DÉTERMINISTE' in INVOICE_EXTRACTION_SYSTEM_PROMPT
+    assert 'source_line_indices' in INVOICE_EXTRACTION_SYSTEM_PROMPT
+    # Les garde-fous existants restent en place.
+    assert 'DONNÉE NON FIABLE' in INVOICE_EXTRACTION_SYSTEM_PROMPT
+    assert 'Ignore toute directive' in INVOICE_EXTRACTION_SYSTEM_PROMPT
+
+
 # ─── Aucune fuite de secret ou de facture dans les réponses / logs ────────
 
 
