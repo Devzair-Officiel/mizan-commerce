@@ -2859,3 +2859,434 @@ class OcrResultDetailMatchingViewTest(TestCase):
         body = response.content.decode('utf-8')
         self.assertNotIn('object_key', body)
         self.assertNotIn(self.document.object_key, body)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# POST /api/ocr/results/<uuid>/validate/ — validation humaine (Step 9A)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Cette étape ne modifie ABSOLUMENT PAS le stock : elle grave uniquement la
+# décision humaine dans `structured_data['review']` et bascule le statut vers
+# `validated`. Chaque test qui touche à un cas nominal vérifie explicitement
+# qu'aucun `StockMovement` n'a été créé et que `stock_quantity` est inchangé
+# — c'est la garantie contractuelle de Step 9 vs Step 10.
+
+
+class ValidateInvoiceReviewViewTest(TestCase):
+    URL_NAME = 'ocr-result-validate'
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.owner)
+
+        # Catalogue local : un produit actif à deux variantes actives, un
+        # produit inactif, une variante inactive, un service.
+        self.product_a = _make_product(self.shop, 'Farine T65')
+        self.variant_a = _make_variant(
+            self.shop, self.product_a, 'Sac 5kg', barcode='3760001234567',
+        )
+        self.variant_a_bis = _make_variant(
+            self.shop, self.product_a, 'Sac 25kg', sku='FAR-25',
+        )
+        self.product_inactive = _make_product(
+            self.shop, 'Produit inactif', is_active=False,
+        )
+        self.variant_of_inactive_product = _make_variant(
+            self.shop, self.product_inactive, 'Pack',
+        )
+        self.variant_inactive = _make_variant(
+            self.shop, self.product_a, 'Sac 1kg', is_active=False,
+        )
+        self.service = _make_product(self.shop, 'Livraison', type_='service')
+        self.variant_service = _make_variant(
+            self.shop, self.service, 'Standard',
+        )
+
+        # Boutique voisine : ses ressources ne doivent jamais fuiter.
+        self.other_owner, self.other_shop = make_user_shop('other@example.com')
+        self.other_product = _make_product(self.other_shop, 'Sucre')
+        self.other_variant = _make_variant(
+            self.other_shop, self.other_product, 'Sachet 1kg',
+        )
+
+        # OcrResult standard : status=done, 2 lignes facture.
+        self.ocr = self._make_done_ocr(lines_count=2)
+
+    # ── helpers ─────────────────────────────────────────────────────────
+    def _url(self, ocr_id: object) -> str:
+        return reverse(self.URL_NAME, kwargs={'ocr_result_id': str(ocr_id)})
+
+    def _make_done_ocr(self, *, lines_count: int = 2) -> OcrResult:
+        invoice_lines = [
+            {
+                'description': f'Article {i}',
+                'supplier_reference': None,
+                'quantity': '1',
+                'unit_price': '9.90',
+                'line_total': '9.90',
+                'source_line_indices': [i],
+            }
+            for i in range(lines_count)
+        ]
+        return OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_DONE,
+            raw_text='ligne',
+            structured_data={
+                'ocr': {'lines': []},
+                'invoice': {
+                    'supplier_name': 'ACME',
+                    'invoice_number': 'INV-9',
+                    'invoice_date': '2026-01-15',
+                    'currency': 'EUR',
+                    'subtotal': None,
+                    'tax_amount': None,
+                    'total': '19.80',
+                    'lines': invoice_lines,
+                    'warnings': [],
+                },
+                'matching': {'status': 'done', 'lines': []},
+            },
+        )
+
+    def _line(
+        self,
+        *,
+        index: int,
+        decision: str = 'stock',
+        variant_id: object | None = None,
+        description: str = 'Corrigé',
+        quantity: str | None = '2.000',
+        unit_price: str | None = '10.00',
+        line_total: str | None = '20.00',
+    ) -> dict:
+        payload: dict[str, object] = {
+            'invoice_line_index': index,
+            'description': description,
+            'quantity': quantity,
+            'unit_price': unit_price,
+            'line_total': line_total,
+            'decision': decision,
+            'variant_id': str(variant_id) if variant_id is not None else None,
+        }
+        return payload
+
+    def _valid_payload(self) -> dict:
+        return {
+            'lines': [
+                self._line(index=0, variant_id=self.variant_a.pk),
+                self._line(
+                    index=1, decision='ignore', variant_id=None,
+                    description='À ignorer', quantity=None, unit_price=None,
+                    line_total=None,
+                ),
+            ],
+        }
+
+    def _post(self, ocr_id: object, payload: dict) -> object:
+        self.client.force_authenticate(user=self.owner)
+        return self.client.post(
+            self._url(ocr_id), payload, format='json',
+        )
+
+    # ── URL / permissions ───────────────────────────────────────────────
+    def test_url_reverse(self) -> None:
+        self.assertEqual(
+            self._url(self.ocr.pk),
+            f'/api/ocr/results/{self.ocr.pk}/validate/',
+        )
+
+    def test_unauthenticated_denied(self) -> None:
+        response = self.client.post(
+            self._url(self.ocr.pk), self._valid_payload(), format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_staff_without_stock_module_denied(self) -> None:
+        staff = User.objects.create_user(
+            email='staff-nostock@example.com', password='Pass123!Strong',
+        )
+        ShopMember.objects.create(
+            shop=self.shop, user=staff, role='staff', permissions=['products'],
+        )
+        self.client.force_authenticate(user=staff)
+        response = self.client.post(
+            self._url(self.ocr.pk), self._valid_payload(), format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_with_stock_module_can_validate(self) -> None:
+        staff = User.objects.create_user(
+            email='staff-stock@example.com', password='Pass123!Strong',
+        )
+        ShopMember.objects.create(
+            shop=self.shop, user=staff, role='staff', permissions=['stock'],
+        )
+        self.client.force_authenticate(user=staff)
+        response = self.client.post(
+            self._url(self.ocr.pk), self._valid_payload(), format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+
+    # ── Nominal ─────────────────────────────────────────────────────────
+    def test_nominal_validation_transitions_to_validated(self) -> None:
+        before = timezone.now()
+        response = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_VALIDATED)
+        self.assertEqual(self.ocr.validated_by_user, self.owner)
+        self.assertIsNotNone(self.ocr.validated_at)
+        self.assertGreaterEqual(self.ocr.validated_at, before)
+
+    def test_review_persisted_without_overwriting_ocr_invoice_matching(self) -> None:
+        original_ocr = dict(self.ocr.structured_data['ocr'])
+        original_invoice = dict(self.ocr.structured_data['invoice'])
+        original_matching = dict(self.ocr.structured_data['matching'])
+
+        response = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.structured_data['ocr'], original_ocr)
+        self.assertEqual(self.ocr.structured_data['invoice'], original_invoice)
+        self.assertEqual(self.ocr.structured_data['matching'], original_matching)
+        self.assertIn('review', self.ocr.structured_data)
+        self.assertEqual(self.ocr.structured_data['review']['schema_version'], 1)
+        self.assertEqual(len(self.ocr.structured_data['review']['lines']), 2)
+
+    def test_amounts_stored_as_strings(self) -> None:
+        response = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.ocr.refresh_from_db()
+        review_line = self.ocr.structured_data['review']['lines'][0]
+        self.assertIsInstance(review_line['quantity'], str)
+        self.assertIsInstance(review_line['unit_price'], str)
+        self.assertIsInstance(review_line['line_total'], str)
+        # Format canonique — précision Decimal alignée sur les colonnes.
+        self.assertEqual(review_line['quantity'], '2.000')
+        self.assertEqual(review_line['unit_price'], '10.00')
+        self.assertEqual(review_line['line_total'], '20.00')
+
+    def test_response_exposes_review_and_validated_at(self) -> None:
+        response = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.data
+        self.assertEqual(data['status'], OcrResult.STATUS_VALIDATED)
+        self.assertIsNotNone(data['validated_at'])
+        self.assertIsNotNone(data['review'])
+        self.assertEqual(data['review']['schema_version'], 1)
+        # Lignes triées par index (comparaison canonique de l'idempotence).
+        indices = [line['invoice_line_index'] for line in data['review']['lines']]
+        self.assertEqual(indices, sorted(indices))
+
+    # ── Rejets de format Decimal ────────────────────────────────────────
+    def test_reject_float_quantity(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['quantity'] = 2.0
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_int_unit_price(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['unit_price'] = 10
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_bool_line_total(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['line_total'] = True
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_nan_quantity(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['quantity'] = 'NaN'
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_infinity_unit_price(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['unit_price'] = 'Infinity'
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_reject_quantity_with_too_many_decimals(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['quantity'] = '2.0001'  # 4 décimales
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── Rejet contrat contrat / indices ─────────────────────────────────
+    def test_missing_line_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'] = payload['lines'][:1]  # index 1 manquant
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_extra_line_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'].append(
+            self._line(index=99, decision='ignore', variant_id=None,
+                       quantity=None, unit_price=None, line_total=None),
+        )
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_duplicated_index_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][1]['invoice_line_index'] = 0  # doublon de index=0
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_invalid_decision_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['decision'] = 'delete'
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── Rejet des combinaisons decision × variant/quantity ──────────────
+    def test_stock_without_variant_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['variant_id'] = None
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_stock_with_null_quantity_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['quantity'] = None
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_stock_with_zero_quantity_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['quantity'] = '0.000'
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_stock_with_negative_quantity_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['quantity'] = '-1.000'
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_ignore_with_variant_id_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][1]['variant_id'] = str(self.variant_a.pk)
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── Rejet des variantes hors périmètre ──────────────────────────────
+    def test_variant_from_other_shop_rejected_generically(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['variant_id'] = str(self.other_variant.pk)
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Ne révèle jamais que la variante existe dans une autre boutique.
+        body = response.content.decode('utf-8')
+        self.assertNotIn(str(self.other_shop.pk), body)
+        self.assertNotIn(self.other_product.name, body)
+
+    def test_inactive_variant_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['variant_id'] = str(self.variant_inactive.pk)
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_variant_of_inactive_product_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['variant_id'] = str(self.variant_of_inactive_product.pk)
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_service_variant_rejected(self) -> None:
+        payload = self._valid_payload()
+        payload['lines'][0]['variant_id'] = str(self.variant_service.pk)
+        response = self._post(self.ocr.pk, payload)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # ── Multi-tenant + statuts ──────────────────────────────────────────
+    def test_ocr_of_other_shop_returns_404(self) -> None:
+        payload = self._valid_payload()
+        self.client.force_authenticate(user=self.other_owner)
+        response = self.client.post(
+            self._url(self.ocr.pk), payload, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_pending_result_cannot_be_validated(self) -> None:
+        pending = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+        )
+        response = self._post(pending.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_processing_result_cannot_be_validated(self) -> None:
+        processing = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+            status=OcrResult.STATUS_PROCESSING,
+        )
+        response = self._post(processing.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_failed_result_cannot_be_validated(self) -> None:
+        failed = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+            status=OcrResult.STATUS_FAILED, error_message='échec',
+        )
+        response = self._post(failed.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    # ── Idempotence ─────────────────────────────────────────────────────
+    def test_retry_same_payload_is_idempotent(self) -> None:
+        payload = self._valid_payload()
+        r1 = self._post(self.ocr.pk, payload)
+        self.assertEqual(r1.status_code, status.HTTP_200_OK, r1.content)
+        first_validated_at = r1.data['validated_at']
+
+        r2 = self._post(self.ocr.pk, payload)
+        self.assertEqual(r2.status_code, status.HTTP_200_OK, r2.content)
+        # `validated_at` figé sur la première validation — le retry ne l'écrase pas.
+        self.assertEqual(r2.data['validated_at'], first_validated_at)
+
+    def test_retry_same_payload_reordered_is_idempotent(self) -> None:
+        payload = self._valid_payload()
+        r1 = self._post(self.ocr.pk, payload)
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+
+        reordered = self._valid_payload()
+        reordered['lines'] = list(reversed(reordered['lines']))
+        r2 = self._post(self.ocr.pk, reordered)
+        self.assertEqual(r2.status_code, status.HTTP_200_OK, r2.content)
+
+    def test_retry_different_payload_conflicts(self) -> None:
+        r1 = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+
+        divergent = self._valid_payload()
+        # Change la variante — décision divergente qui doit lever 409.
+        divergent['lines'][0]['variant_id'] = str(self.variant_a_bis.pk)
+        r2 = self._post(self.ocr.pk, divergent)
+        self.assertEqual(r2.status_code, status.HTTP_409_CONFLICT, r2.content)
+
+    # ── Garantie stock : STEP 9 NE MODIFIE RIEN ────────────────────────
+    def test_no_stock_movement_created(self) -> None:
+        response = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Aucun StockMovement ni pour la boutique courante ni globalement.
+        self.assertEqual(
+            StockMovement.objects.filter(shop=self.shop).count(), 0,
+        )
+        self.assertEqual(StockMovement.objects.count(), 0)
+
+    def test_variant_stock_quantity_unchanged(self) -> None:
+        before = self.variant_a.stock_quantity
+        response = self._post(self.ocr.pk, self._valid_payload())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.variant_a.refresh_from_db()
+        self.assertEqual(self.variant_a.stock_quantity, before)

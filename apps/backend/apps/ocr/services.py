@@ -15,8 +15,10 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, NamedTuple
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.core.storage import delete_object, upload_fileobj
+from apps.products.models import ProductVariant
 
 from .models import OcrResult, UploadedDocument
 
@@ -33,15 +35,21 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = (
+    'REVIEW_SCHEMA_VERSION',
     'InvalidConfidenceScoreError',
     'InvalidFileSignatureError',
     'InvalidOcrTransitionError',
+    'OcrResultNotReviewableError',
+    'ReviewConflictError',
+    'ReviewPayloadValidationError',
     'SupplierInvoiceUpload',
+    'build_canonical_review',
     'create_supplier_invoice_upload',
     'mark_ocr_done',
     'mark_ocr_failed',
     'mark_ocr_processing',
     'validate_file_signature',
+    'validate_invoice_review',
 )
 
 
@@ -302,3 +310,314 @@ def mark_ocr_failed(
             update_fields.append('confidence_score')
         result.save(update_fields=update_fields)
     return result
+
+
+# ─── Validation humaine d'une facture (Step 9A — URS-044/045) ──────────────
+#
+# Une fois l'OCR + la structuration LLM + le matching terminés (status='done'),
+# la commerçante relit chaque ligne et choisit :
+#   - `stock`  → cette ligne devra créer un StockMovement (Step 10)
+#   - `ignore` → ligne conservée pour audit mais ignorée par le stock
+#
+# Cette étape N'AJOUTE PAS de mouvement de stock. Elle grave uniquement la
+# décision humaine dans `structured_data['review']` et bascule le statut vers
+# `validated`. Un endpoint dédié (Step 10) consommera ce namespace review pour
+# créer les StockMovement — c'est la seule séparation qui garantit que la
+# validation reste rétractable tant qu'aucun mouvement n'est écrit.
+
+REVIEW_SCHEMA_VERSION = 1
+
+REVIEW_DECISION_STOCK = 'stock'
+REVIEW_DECISION_IGNORE = 'ignore'
+_REVIEW_DECISIONS: frozenset[str] = frozenset({
+    REVIEW_DECISION_STOCK, REVIEW_DECISION_IGNORE,
+})
+
+# Précisions Decimal alignées sur les colonnes ProductVariant (Decimal(14,3)
+# pour la quantité, Decimal(12,2) pour les prix). Utilisées pour figer le
+# format canonique côté JSON — permettant une comparaison byte-équivalente
+# pour l'idempotence de retry.
+_QUANTITY_PRECISION = Decimal('0.001')
+_PRICE_PRECISION = Decimal('0.01')
+
+
+class OcrResultNotReviewableError(ValueError):
+    """OcrResult dans un statut qui ne permet pas la validation humaine.
+
+    Levée par `validate_invoice_review` si le statut source n'est ni `done`
+    ni `validated`. La vue traduit cette exception en 409 Conflict — l'API
+    répond ainsi qu'un état est incompatible avec la transition demandée
+    (ce n'est ni une erreur d'input ni un 404).
+    """
+
+
+class ReviewPayloadValidationError(ValueError):
+    """Payload de revue en contradiction avec la facture ou le domaine.
+
+    Regroupe : indices manquants/en trop/dupliqués, decision invalide,
+    variante d'une autre boutique, produit/variante inactif, produit de
+    type service, quantité nulle sur une ligne stock… La vue la traduit en
+    400 Bad Request avec un message générique côté client.
+    """
+
+
+class ReviewConflictError(ValueError):
+    """L'OcrResult est déjà validé avec un contenu différent.
+
+    Levée par `validate_invoice_review` quand un retry idempotent est
+    tenté mais que le payload canonique diffère de celui déjà enregistré.
+    La vue traduit en 409 Conflict.
+    """
+
+
+def _quantize_decimal(value: Decimal, precision: Decimal) -> Decimal:
+    """Force la précision d'un Decimal — évite qu'un client envoie `1` et
+    qu'un retry envoie `1.000` sans que ce soit considéré comme le même
+    payload par l'idempotence. On quantize toujours *avant* comparaison et
+    persistence.
+    """
+    return value.quantize(precision)
+
+
+def _canonical_amount(value: Decimal | None, precision: Decimal) -> str | None:
+    """Convertit un Decimal en string canonique (nombre de décimales figé).
+
+    `None` reste `None` — permet aux lignes `ignore` de ne pas être forcées
+    d'envoyer un montant si le client ne l'a pas corrigé.
+    """
+    if value is None:
+        return None
+    return str(_quantize_decimal(value, precision))
+
+
+def build_canonical_review(lines: list[dict]) -> dict:
+    """Construit la forme canonique du namespace `review`.
+
+    Cette fonction est pure (aucune query, aucun IO) — elle sert à la fois :
+    1. à figer la forme persistée dans `structured_data['review']` ;
+    2. à comparer un payload de retry à la version déjà stockée pour
+       décider si on est en présence d'un doublon idempotent ou d'un
+       conflit sémantique (`ReviewConflictError`).
+
+    Les lignes sont triées par `invoice_line_index` : cela garantit que
+    deux payloads équivalents mais envoyés dans des ordres différents
+    aboutissent au *même* dict canonique.
+    """
+    canonical_lines = []
+    for entry in lines:
+        variant_id = entry.get('variant_id')
+        canonical_lines.append({
+            'invoice_line_index': int(entry['invoice_line_index']),
+            'description': str(entry.get('description', '')),
+            'quantity': _canonical_amount(entry.get('quantity'), _QUANTITY_PRECISION),
+            'unit_price': _canonical_amount(entry.get('unit_price'), _PRICE_PRECISION),
+            'line_total': _canonical_amount(entry.get('line_total'), _PRICE_PRECISION),
+            'decision': str(entry['decision']),
+            'variant_id': str(variant_id) if variant_id is not None else None,
+        })
+    canonical_lines.sort(key=lambda line: line['invoice_line_index'])
+    return {
+        'schema_version': REVIEW_SCHEMA_VERSION,
+        'lines': canonical_lines,
+    }
+
+
+def _check_indices_contract(
+    expected_indices: list[int],
+    provided: list[dict],
+) -> None:
+    """Vérifie que le payload adresse exactement les lignes de la facture.
+
+    Rejette : indices manquants, indices en trop, doublons. Ces trois cas
+    partagent la même exception : côté client c'est une erreur de contrat,
+    pas un problème sémantique par ligne. Message générique — les détails
+    précis vont dans les logs applicatifs, pas dans la réponse HTTP.
+    """
+    provided_indices = [entry['invoice_line_index'] for entry in provided]
+
+    if len(provided_indices) != len(set(provided_indices)):
+        raise ReviewPayloadValidationError(
+            "Le payload contient des invoice_line_index dupliqués."
+        )
+    if set(provided_indices) != set(expected_indices):
+        missing = sorted(set(expected_indices) - set(provided_indices))
+        extra = sorted(set(provided_indices) - set(expected_indices))
+        raise ReviewPayloadValidationError(
+            "Les lignes de revue ne correspondent pas à la facture "
+            f"(manquantes={missing}, en trop={extra})."
+        )
+
+
+def _validate_stock_line_business(
+    line: dict,
+    *,
+    variants_by_id: dict[str, ProductVariant],
+    shop_id: uuid.UUID,
+) -> None:
+    """Vérifie une ligne `stock` : variant valide, actif, produit actif,
+    de type product, appartenant à la boutique.
+
+    Toutes les erreurs partagent le même message d'exception côté API —
+    on ne révèle jamais si un variant_id inconnu existe dans une autre
+    boutique (IDOR blindé). Les détails précis vont côté serveur uniquement.
+    """
+    variant_id = line.get('variant_id')
+    quantity = line.get('quantity')
+
+    if variant_id is None:
+        raise ReviewPayloadValidationError(
+            "Une ligne `stock` doit désigner une variante."
+        )
+    if quantity is None or quantity <= 0:
+        raise ReviewPayloadValidationError(
+            "Une ligne `stock` doit avoir une quantité strictement positive."
+        )
+
+    variant = variants_by_id.get(str(variant_id))
+    if variant is None:
+        # Volontairement identique aux autres cas d'échec de sécurité :
+        # ne pas révéler l'existence dans une autre boutique.
+        raise ReviewPayloadValidationError(
+            "Variante invalide ou inaccessible pour cette boutique."
+        )
+    if variant.shop_id != shop_id or variant.product.shop_id != shop_id:
+        raise ReviewPayloadValidationError(
+            "Variante invalide ou inaccessible pour cette boutique."
+        )
+    if not variant.is_active or not variant.product.is_active:
+        raise ReviewPayloadValidationError(
+            "Variante invalide ou inaccessible pour cette boutique."
+        )
+    if variant.product.type != 'product':
+        raise ReviewPayloadValidationError(
+            "Variante invalide ou inaccessible pour cette boutique."
+        )
+
+
+def _validate_ignore_line(line: dict) -> None:
+    """Une ligne `ignore` ne doit pas cibler de variante."""
+    if line.get('variant_id') is not None:
+        raise ReviewPayloadValidationError(
+            "Une ligne `ignore` ne doit pas désigner de variante."
+        )
+
+
+def _prefetch_variants_for_review(
+    shop_id: uuid.UUID,
+    lines: list[dict],
+) -> dict[str, ProductVariant]:
+    """Charge en un seul query les variantes cibles des lignes `stock`.
+
+    Filtrer par `shop=shop_id` dès la query évite tout accès cross-tenant :
+    une variante d'une autre boutique n'apparaîtra simplement pas dans le
+    dict retourné et la ligne sera rejetée génériquement (§ IDOR).
+    """
+    variant_ids = {
+        str(line['variant_id'])
+        for line in lines
+        if line.get('decision') == REVIEW_DECISION_STOCK
+        and line.get('variant_id') is not None
+    }
+    if not variant_ids:
+        return {}
+    queryset = ProductVariant.objects.select_related('product').filter(
+        shop_id=shop_id, pk__in=variant_ids,
+    )
+    return {str(variant.pk): variant for variant in queryset}
+
+
+def validate_invoice_review(
+    *,
+    ocr_result_id: UUID,
+    shop: Shop,
+    user: User,
+    lines: list[dict],
+) -> tuple[OcrResult, bool]:
+    """Fige la revue humaine d'un OcrResult (URS-044/045).
+
+    Contrat :
+    - `ocr_result_id` doit appartenir à `shop` — sinon `OcrResult.DoesNotExist`.
+    - `lines` : liste de dicts Decimal-typés (le serializer a déjà rejeté
+      les int/float JSON et normalisé les montants en `Decimal`).
+    - `shop` provient toujours de `get_shop(request.user)`, jamais du client.
+
+    Retourne `(result, created)` où `created=False` indique un doublon
+    idempotent (même payload que la validation précédente).
+
+    N'appelle AUCUN service stock. Aucun StockMovement n'est créé.
+    """
+    canonical_review = build_canonical_review(lines)
+
+    with transaction.atomic():
+        # `filter(shop=...)` avant `.get()` : garantit qu'un OcrResult d'une
+        # autre boutique lève DoesNotExist plutôt qu'un 403 déguisé.
+        result = (
+            OcrResult.objects
+            .select_for_update()
+            .filter(shop=shop)
+            .get(pk=ocr_result_id)
+        )
+
+        # Idempotence : retry avec exactement le même payload → 200.
+        # Payload différent → conflit métier explicite.
+        if result.status == OcrResult.STATUS_VALIDATED:
+            existing_review = (
+                result.structured_data.get('review')
+                if isinstance(result.structured_data, dict) else None
+            )
+            if existing_review == canonical_review:
+                return result, False
+            raise ReviewConflictError(
+                "Cette facture a déjà été validée avec un contenu différent."
+            )
+
+        if result.status != OcrResult.STATUS_DONE:
+            raise OcrResultNotReviewableError(
+                f'OcrResult status={result.status} — seuls les résultats '
+                'terminés (done) peuvent être validés.'
+            )
+
+        structured = result.structured_data or {}
+        if not isinstance(structured, dict):
+            raise ReviewPayloadValidationError(
+                "Ce résultat OCR ne contient pas de facture structurée."
+            )
+        invoice = structured.get('invoice')
+        if not isinstance(invoice, dict) or not isinstance(invoice.get('lines'), list):
+            raise ReviewPayloadValidationError(
+                "Ce résultat OCR ne contient pas de facture structurée."
+            )
+
+        expected_indices = list(range(len(invoice['lines'])))
+        _check_indices_contract(expected_indices, lines)
+
+        # Une seule requête pour toutes les variantes cibles — évite un N+1
+        # et centralise le filtre multi-tenant en un point unique.
+        variants_by_id = _prefetch_variants_for_review(shop.pk, lines)
+
+        for line in lines:
+            decision = line['decision']
+            if decision == REVIEW_DECISION_STOCK:
+                _validate_stock_line_business(
+                    line, variants_by_id=variants_by_id, shop_id=shop.pk,
+                )
+            elif decision == REVIEW_DECISION_IGNORE:
+                _validate_ignore_line(line)
+            else:  # pragma: no cover — bloqué en amont par le serializer.
+                raise ReviewPayloadValidationError(
+                    f"Décision inconnue : {decision}."
+                )
+
+        # Écriture atomique : on préserve intégralement ocr / invoice / matching
+        # (jamais écrasés) et on ajoute exclusivement la clé `review`.
+        new_structured = dict(structured)
+        new_structured['review'] = canonical_review
+        result.structured_data = new_structured
+        result.status = OcrResult.STATUS_VALIDATED
+        result.validated_by_user = user
+        result.validated_at = timezone.now()
+        result.save(update_fields=[
+            'structured_data', 'status', 'validated_by_user',
+            'validated_at', 'updated_at',
+        ])
+        return result, True

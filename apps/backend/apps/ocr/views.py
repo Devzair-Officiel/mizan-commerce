@@ -19,8 +19,15 @@ from .serializers import (
     OcrResultDetailSerializer,
     SupplierInvoiceUploadRequestSerializer,
     SupplierInvoiceUploadResponseSerializer,
+    ValidateInvoiceReviewRequestSerializer,
 )
-from .services import create_supplier_invoice_upload
+from .services import (
+    OcrResultNotReviewableError,
+    ReviewConflictError,
+    ReviewPayloadValidationError,
+    create_supplier_invoice_upload,
+    validate_invoice_review,
+)
 from .tasks import process_invoice_ocr
 
 logger = logging.getLogger(__name__)
@@ -114,3 +121,54 @@ class OcrResultDetailView(APIView):
             raise NotFound('OCR result introuvable.')
 
         return Response(OcrResultDetailSerializer.from_model(result))
+
+
+class OcrResultValidateView(APIView):
+    """Validation humaine d'une facture OCR (URS-044/045 — Step 9A).
+
+    Fige la revue ligne par ligne dans `structured_data['review']` et
+    bascule l'OcrResult vers `validated`. **N'écrit aucun StockMovement**
+    et ne modifie **aucune** quantité — c'est le rôle de Step 10.
+
+    Idempotence : un retry réseau avec le même payload canonique renvoie
+    200 avec l'état existant. Un retry avec un payload différent renvoie
+    409 pour signaler qu'une décision divergente a déjà été enregistrée.
+
+    Sécurité : `shop` provient exclusivement de `get_shop(request.user)`.
+    Tout `ocr_result_id` d'une autre boutique renvoie 404 (jamais 403).
+    Tout `variant_id` d'une autre boutique déclenche une erreur générique
+    (jamais d'exposition d'information cross-tenant).
+    """
+
+    permission_classes = (IsAuthenticated, HasStockModule)
+
+    def post(self, request: Request, ocr_result_id: str) -> Response:
+        shop = get_shop(request.user)
+
+        serializer = ValidateInvoiceReviewRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            result, _created = validate_invoice_review(
+                ocr_result_id=ocr_result_id,
+                shop=shop,
+                user=request.user,
+                lines=serializer.validated_data['lines'],
+            )
+        except OcrResult.DoesNotExist:
+            raise NotFound('OCR result introuvable.')
+        except (ReviewConflictError, OcrResultNotReviewableError) as exc:
+            return Response(
+                {'detail': str(exc)}, status=status.HTTP_409_CONFLICT,
+            )
+        except ReviewPayloadValidationError as exc:
+            return Response(
+                {'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Réponse identique en création et en retry idempotent : la représentation
+        # à jour suffit au client, pas besoin de distinguer l'état interne.
+        return Response(
+            OcrResultDetailSerializer.from_model(result),
+            status=status.HTTP_200_OK,
+        )

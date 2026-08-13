@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+from typing import ClassVar
+
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from rest_framework import serializers
 
 from .models import OcrResult, UploadedDocument
-from .services import InvalidFileSignatureError, validate_file_signature
+from .services import (
+    REVIEW_SCHEMA_VERSION,
+    InvalidFileSignatureError,
+    validate_file_signature,
+)
 
 
 class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
@@ -301,6 +308,8 @@ class OcrResultDetailSerializer(serializers.Serializer):
     lines = _OcrLineSerializer(many=True)
     invoice = _InvoiceSerializer(allow_null=True)
     matching = _MatchingSerializer(allow_null=True)
+    review = serializers.DictField(allow_null=True)
+    validated_at = serializers.DateTimeField(allow_null=True)
     error_message = serializers.CharField(allow_blank=True)
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
@@ -335,6 +344,11 @@ class OcrResultDetailSerializer(serializers.Serializer):
         )
         matching = _sanitize_matching(matching_block)
 
+        review_block = (
+            structured.get('review') if isinstance(structured, dict) else None
+        )
+        review = _sanitize_review(review_block)
+
         return cls({
             'ocr_result_id': ocr_result.pk,
             'document_id': ocr_result.uploaded_document_id,
@@ -344,7 +358,184 @@ class OcrResultDetailSerializer(serializers.Serializer):
             'lines': lines,
             'invoice': invoice,
             'matching': matching,
+            'review': review,
+            'validated_at': ocr_result.validated_at,
             'error_message': ocr_result.error_message,
             'created_at': ocr_result.created_at,
             'updated_at': ocr_result.updated_at,
         }).data
+
+
+# ─── Sérialiseurs revue humaine (Step 9A — URS-044/045) ─────────────────────
+#
+# Le contrat monétaire du frontend est *stricte* : quantités et prix arrivent
+# sous forme de string JSON, pas de nombre. On refuse int/float à l'entrée
+# pour éviter :
+#   - la perte de précision d'un float JS (0.1 + 0.2 ≠ 0.3) ;
+#   - une conversion silencieuse via `CharField.to_internal_value` qui ferait
+#     `str(number)` sans que le contrat de payload soit respecté.
+
+# Limite raisonnable pour la description corrigée par l'utilisateur — évite un
+# payload abusif tout en restant plus large que la longueur typique observée
+# sur une facture (~150 caractères) pour absorber les corrections manuelles.
+_REVIEW_DESCRIPTION_MAX_LENGTH = 500
+
+_REVIEW_DECISION_CHOICES: tuple[tuple[str, str], ...] = (
+    ('stock', 'stock'),
+    ('ignore', 'ignore'),
+)
+
+
+class _DecimalStringField(serializers.Field):
+    """Champ obligeant l'envoi d'une string JSON pour un montant Decimal.
+
+    Refuser explicitement int/float garantit que le contrat côté serveur
+    reste Decimal exact — un float JS 0.1 sérialisé en JSON `0.1` puis
+    reconverti en Decimal donne `Decimal('0.1000000000000000055511151231...')`.
+    En forçant le client à envoyer `"0.10"`, on évite toute divergence.
+
+    Rejette également NaN et Infinity : ces valeurs Decimal légales
+    n'ont aucun sens pour une quantité ou un prix et casseraient les
+    comparaisons ultérieures (Decimal('NaN') != Decimal('NaN')).
+    """
+
+    default_error_messages: ClassVar[dict[str, str]] = {
+        'not_string': (
+            'Doit être une chaîne de caractères (utilisez "10.00", pas 10.00).'
+        ),
+        'invalid_decimal': 'Format Decimal invalide.',
+        'not_finite': 'NaN et Infinity ne sont pas autorisés.',
+        'out_of_range': 'Valeur hors de la plage autorisée.',
+        'too_many_digits': 'Trop de chiffres au total.',
+        'too_many_decimals': 'Trop de décimales.',
+        'below_min': 'Valeur inférieure au minimum autorisé.',
+    }
+
+    def __init__(
+        self,
+        *,
+        max_digits: int,
+        decimal_places: int,
+        min_value: Decimal | None = None,
+        **kwargs: object,
+    ) -> None:
+        self.max_digits = max_digits
+        self.decimal_places = decimal_places
+        self.min_value = min_value
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data: object) -> Decimal:
+        # `bool` est un `int` en Python — on l'écarte explicitement avant
+        # le contrôle `isinstance(data, str)` pour ne pas laisser passer
+        # `True` comme la string 'True' via un contournement.
+        if isinstance(data, bool) or not isinstance(data, str):
+            self.fail('not_string')
+        try:
+            value = Decimal(data)
+        except (InvalidOperation, ValueError, TypeError):
+            self.fail('invalid_decimal')
+        if not value.is_finite():
+            self.fail('not_finite')
+
+        # Vérification de la précision : on analyse la représentation
+        # décimale via `as_tuple` — `Decimal('1E3')` a 4 chiffres même si
+        # sa représentation est courte, ce qui compte pour max_digits.
+        _, digits, exponent = value.as_tuple()
+        # Pour un Decimal fini, `exponent` est un `int`. On garde une
+        # normalisation défensive au cas où pandas / numpy passeraient.
+        if not isinstance(exponent, int):  # pragma: no cover
+            self.fail('invalid_decimal')
+        if exponent > 0:
+            integer_digits = len(digits) + exponent
+            decimal_digits = 0
+        else:
+            decimal_digits = -exponent
+            integer_digits = max(len(digits) - decimal_digits, 0)
+        if decimal_digits > self.decimal_places:
+            self.fail('too_many_decimals')
+        if integer_digits + self.decimal_places > self.max_digits:
+            self.fail('too_many_digits')
+
+        if self.min_value is not None and value < self.min_value:
+            self.fail('below_min')
+        return value
+
+    def to_representation(self, value: Decimal) -> str:
+        return str(value)
+
+
+class _ReviewLineRequestSerializer(serializers.Serializer):
+    """Une ligne de la revue humaine — validée strictement côté serveur."""
+
+    invoice_line_index = serializers.IntegerField(min_value=0)
+    description = serializers.CharField(
+        max_length=_REVIEW_DESCRIPTION_MAX_LENGTH, allow_blank=True,
+    )
+    quantity = _DecimalStringField(
+        max_digits=14, decimal_places=3, allow_null=True,
+    )
+    unit_price = _DecimalStringField(
+        max_digits=12, decimal_places=2, allow_null=True,
+    )
+    line_total = _DecimalStringField(
+        max_digits=12, decimal_places=2, allow_null=True,
+    )
+    decision = serializers.ChoiceField(choices=_REVIEW_DECISION_CHOICES)
+    variant_id = serializers.UUIDField(allow_null=True)
+
+    def validate_invoice_line_index(self, value: object) -> int:
+        # IntegerField accepte les bool (bool est int) — on écarte pour ne
+        # pas laisser passer `True` comme l'index 1.
+        if isinstance(value, bool):
+            raise serializers.ValidationError('Doit être un entier, pas un booléen.')
+        return value
+
+
+class ValidateInvoiceReviewRequestSerializer(serializers.Serializer):
+    """Payload complet de validation humaine d'une facture OCR."""
+
+    lines = _ReviewLineRequestSerializer(many=True, allow_empty=True)
+
+
+def _sanitize_review(block: object) -> dict | None:
+    """Whitelist stricte du namespace `review` exposé côté API.
+
+    Même logique défensive que `_sanitize_invoice` / `_sanitize_matching` :
+    on ne fait confiance à rien de ce qui est écrit dans `structured_data`,
+    même par notre propre pipeline. Toute clé imprévue est écartée pour
+    empêcher une régression future d'exposer un champ non revu.
+    """
+    if not isinstance(block, dict):
+        return None
+    if block.get('schema_version') != REVIEW_SCHEMA_VERSION:
+        return None
+    lines_raw = block.get('lines', [])
+    if not isinstance(lines_raw, list):
+        return None
+    sanitized_lines = []
+    for entry in lines_raw:
+        if not isinstance(entry, dict):
+            continue
+        index = entry.get('invoice_line_index')
+        if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+            continue
+        decision = entry.get('decision')
+        if decision not in {'stock', 'ignore'}:
+            continue
+        variant_id = entry.get('variant_id')
+        variant_id_str = (
+            str(variant_id) if isinstance(variant_id, str) else None
+        )
+        sanitized_lines.append({
+            'invoice_line_index': index,
+            'description': str(entry.get('description', '')),
+            'quantity': _optional_str(entry.get('quantity')),
+            'unit_price': _optional_str(entry.get('unit_price')),
+            'line_total': _optional_str(entry.get('line_total')),
+            'decision': decision,
+            'variant_id': variant_id_str,
+        })
+    return {
+        'schema_version': REVIEW_SCHEMA_VERSION,
+        'lines': sanitized_lines,
+    }
