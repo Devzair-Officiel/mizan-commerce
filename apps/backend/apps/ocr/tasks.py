@@ -28,6 +28,10 @@ from .ai_client import (
     extract_text_with_ai_service,
     structure_invoice_with_ai_service,
 )
+from .matching import (
+    InvoiceMatchingResult,
+    match_invoice_lines_to_variants,
+)
 from .models import OcrResult
 from .services import (
     InvalidConfidenceScoreError,
@@ -218,12 +222,25 @@ def process_invoice_ocr(ocr_result_id: str) -> str:
         )
         return 'failed_structuring_unexpected'
 
+    # Étape 7 : matching déterministe des lignes facture vers les
+    # ProductVariant de la boutique. Enrichissement local, aucune I/O
+    # externe, aucun StockMovement, aucune mutation ORM. Si ça lève, on ne
+    # perd ni l'OCR ni la facture : le statut global reste `done` et le
+    # namespace matching indique `failed` pour signaler l'absence de
+    # propositions.
+    matching_namespace = _run_matching_or_fallback(
+        ocr_result_id=ocr_result_id,
+        shop_id=ocr.shop_id,
+        invoice=invoice,
+    )
+
     structured_data = {
-        # Namespace `ocr` volontairement isolé du namespace `invoice` : les
-        # deux évoluent indépendamment et un futur re-traitement (relance
-        # LLM) doit pouvoir écraser `invoice` sans toucher au brut OCR.
+        # Namespaces volontairement cloisonnés : chacun évolue indépendamment
+        # et un futur re-traitement (relance LLM, re-matching après édition
+        # du catalogue) peut écraser un seul bloc sans toucher aux autres.
         'ocr': ocr_namespace,
         'invoice': _invoice_to_jsonable(invoice),
+        'matching': matching_namespace,
     }
 
     try:
@@ -287,6 +304,61 @@ def _invoice_to_jsonable(invoice: AiInvoiceExtraction) -> dict:
         ],
         'warnings': list(invoice.warnings),
     }
+
+
+def _matching_to_jsonable(result: InvoiceMatchingResult) -> dict:
+    """Sérialise un `InvoiceMatchingResult` pour `structured_data['matching']`.
+
+    Les `NamedTuple` de `matching.py` sont techniquement des tuples : sans
+    conversion explicite, `JSONField` les persisterait comme des tableaux.
+    On produit ici la forme dict canonique attendue par le serializer DRF.
+    """
+    return {
+        'status': 'done',
+        'lines': [
+            {
+                'invoice_line_index': line.invoice_line_index,
+                'candidates': [
+                    {
+                        'variant_id': candidate.variant_id,
+                        'product_id': candidate.product_id,
+                        'product_name': candidate.product_name,
+                        'packaging_name': candidate.packaging_name,
+                        'match_kind': candidate.match_kind,
+                        'similarity_score': candidate.similarity_score,
+                    }
+                    for candidate in line.candidates
+                ],
+            }
+            for line in result.lines
+        ],
+    }
+
+
+def _run_matching_or_fallback(
+    *,
+    ocr_result_id: str,
+    shop_id: object,
+    invoice: AiInvoiceExtraction,
+) -> dict:
+    """Exécute le matching déterministe ; sur exception, renvoie un namespace
+    `failed` propre pour ne pas faire échouer l'OCR global.
+
+    Le matching est un ENRICHISSEMENT : sa panne ne doit jamais perdre les
+    étapes en amont (OCR + structuration facture). On isole donc son échec
+    dans son propre namespace et on log côté serveur sans exposer de détail
+    au client (pas de stack trace ni de SQL dans le namespace exposé).
+    """
+    try:
+        result = match_invoice_lines_to_variants(
+            shop_id=shop_id, extraction=invoice,
+        )
+    except Exception:
+        logger.exception(
+            'Matching déterministe échoué pour OCR %s.', ocr_result_id,
+        )
+        return {'status': 'failed', 'lines': []}
+    return _matching_to_jsonable(result)
 
 
 def _mark_failed_preserving_ocr(

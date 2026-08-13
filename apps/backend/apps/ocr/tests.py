@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
 
@@ -2213,3 +2214,648 @@ class MarkOcrFailedPartialPersistenceTest(TestCase):
         self.assertEqual(ocr.raw_text, '')
         self.assertIsNone(ocr.structured_data)
         self.assertIsNone(ocr.confidence_score)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# match_invoice_lines_to_variants — service déterministe (étape 7)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Tests unitaires du service de matching. Aucun appel LLM, aucun HTTP, aucune
+# écriture stock. Chaque test vérifie une invariant précise du contrat :
+# isolation tenant, priorités des kinds, seuil de similarité, plafond,
+# déduplication, exclusions (inactif, service).
+
+
+def _make_product(
+    shop: Shop,
+    name: str,
+    *,
+    type_: str = 'product',
+    is_active: bool = True,
+) -> Product:
+    return Product.objects.create(shop=shop, name=name, type=type_, is_active=is_active)
+
+
+def _make_variant(
+    shop: Shop,
+    product: Product,
+    packaging: str,
+    *,
+    sku: str = '',
+    barcode: str = '',
+    is_active: bool = True,
+    selling_price: str = '9.90',
+) -> ProductVariant:
+    return ProductVariant.objects.create(
+        shop=shop,
+        product=product,
+        packaging_name=packaging,
+        sku=sku,
+        barcode=barcode,
+        selling_price=Decimal(selling_price),
+        is_active=is_active,
+    )
+
+
+def _invoice_line(
+    description: str,
+    *,
+    supplier_reference: str | None = None,
+    indices: list[int] | None = None,
+) -> object:
+    from .ai_client import AiInvoiceLine
+    return AiInvoiceLine(
+        description=description,
+        supplier_reference=supplier_reference,
+        quantity=Decimal(1),
+        unit_price=Decimal('9.90'),
+        line_total=Decimal('9.90'),
+        source_line_indices=indices if indices is not None else [],
+    )
+
+
+def _invoice_extraction(lines: list) -> object:
+    from datetime import date as _date
+
+    from .ai_client import AiInvoiceExtraction
+    return AiInvoiceExtraction(
+        supplier_name='ACME',
+        invoice_number='INV-001',
+        invoice_date=_date(2026, 1, 15),
+        currency='EUR',
+        subtotal=Decimal('100.00'),
+        tax_amount=Decimal('20.00'),
+        total=Decimal('120.00'),
+        lines=lines,
+        warnings=[],
+    )
+
+
+class MatchInvoiceLinesToVariantsTest(TestCase):
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+
+    def _run(self, lines: list) -> object:
+        from .matching import match_invoice_lines_to_variants
+        return match_invoice_lines_to_variants(
+            shop_id=self.shop.id,
+            extraction=_invoice_extraction(lines),
+        )
+
+    def test_barcode_exact_is_top_candidate(self) -> None:
+        product = _make_product(self.shop, 'Farine T65')
+        variant = _make_variant(self.shop, product, 'Sac 5kg', barcode='3760001234567')
+        line = _invoice_line('Farine T65 sac', supplier_reference='3760001234567')
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.invoice_line_index, 0)
+        self.assertEqual(len(matched_line.candidates), 1)
+        candidate = matched_line.candidates[0]
+        self.assertEqual(candidate.variant_id, str(variant.pk))
+        self.assertEqual(candidate.match_kind, 'barcode_exact')
+        self.assertEqual(candidate.similarity_score, 100)
+
+    def test_sku_exact_is_candidate_but_never_validated(self) -> None:
+        """Une égalité SKU génère un candidat mais n'écrit RIEN dans le
+        catalogue : `variant.sku` reste inchangé après le matching."""
+        product = _make_product(self.shop, 'Farine T65')
+        variant = _make_variant(self.shop, product, 'Sac 5kg', sku='SKU-42')
+        line = _invoice_line('Farine T65 sac 5kg', supplier_reference='SKU-42')
+
+        original_sku = variant.sku
+        original_barcode = variant.barcode
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        (candidate,) = matched_line.candidates
+        self.assertEqual(candidate.match_kind, 'sku_exact')
+        self.assertEqual(candidate.similarity_score, 100)
+
+        # Aucune écriture DB — le catalogue reste immuable.
+        variant.refresh_from_db()
+        self.assertEqual(variant.sku, original_sku)
+        self.assertEqual(variant.barcode, original_barcode)
+
+    def test_supplier_reference_never_writes_sku_or_barcode(self) -> None:
+        """La supplier_reference ne doit JAMAIS remplir sku/barcode, même si
+        le variant n'en a pas et que la description matche par nom."""
+        product = _make_product(self.shop, 'Farine T65')
+        variant = _make_variant(self.shop, product, 'Sac 5kg')  # sku/barcode vides
+        line = _invoice_line(
+            'Farine T65 sac 5kg', supplier_reference='SUPPLIER-XYZ-999',
+        )
+
+        self._run([line])
+
+        variant.refresh_from_db()
+        self.assertEqual(variant.sku, '')
+        self.assertEqual(variant.barcode, '')
+
+    def test_name_similarity_returns_candidates_above_threshold(self) -> None:
+        product = _make_product(self.shop, 'Farine T65 bio')
+        variant = _make_variant(self.shop, product, 'Sac 5kg')
+        line = _invoice_line('Farine T65 bio 5kg')
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        self.assertEqual(len(matched_line.candidates), 1)
+        candidate = matched_line.candidates[0]
+        self.assertEqual(candidate.variant_id, str(variant.pk))
+        self.assertEqual(candidate.match_kind, 'name_similarity')
+        self.assertGreaterEqual(candidate.similarity_score, 70)
+
+    def test_normalization_case_accent_punctuation(self) -> None:
+        """Casse / accents / ponctuation ne doivent PAS empêcher le match."""
+        product = _make_product(self.shop, 'Crème brûlée artisanale')
+        _make_variant(self.shop, product, 'Pot 100g')
+        # Casse inversée, accents supprimés, ponctuation exotique.
+        line = _invoice_line('CREME.BRULEE---ARTISANALE!!!')
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        self.assertEqual(len(matched_line.candidates), 1)
+        self.assertEqual(matched_line.candidates[0].match_kind, 'name_similarity')
+
+    def test_similarity_below_threshold_excluded(self) -> None:
+        product = _make_product(self.shop, 'Farine T65')
+        _make_variant(self.shop, product, 'Sac 5kg')
+        line = _invoice_line('Chaussures de randonnée pointure 42')
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates, [])
+
+    def test_max_three_candidates_per_line(self) -> None:
+        for i in range(6):
+            product = _make_product(self.shop, f'Farine T65 lot {i}')
+            _make_variant(self.shop, product, 'Sac 5kg')
+        line = _invoice_line('Farine T65 lot 1')
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        self.assertLessEqual(len(matched_line.candidates), 3)
+
+    def test_deterministic_ordering_barcode_before_sku_before_name(self) -> None:
+        """L'ordre des candidats suit strictement barcode > sku > nom."""
+        # Trois variantes très similaires mais un seul match par kind.
+        p_barcode = _make_product(self.shop, 'Farine T65 A')
+        v_barcode = _make_variant(
+            self.shop, p_barcode, 'Sac 5kg', barcode='3760001234567',
+        )
+        p_sku = _make_product(self.shop, 'Farine T65 B')
+        v_sku = _make_variant(self.shop, p_sku, 'Sac 5kg', sku='SKU-99')
+        p_name = _make_product(self.shop, 'Farine T65 C')
+        v_name = _make_variant(self.shop, p_name, 'Sac 5kg')
+        name_only_variant_ids = {str(v_name.pk)}
+
+        # supplier_reference matche le barcode. Description matche les noms.
+        # Le SKU n'est matché par personne, donc pour tester la priorité SKU
+        # il faut une deuxième ligne :
+        line = _invoice_line('Farine T65', supplier_reference='3760001234567')
+        result = self._run([line])
+
+        # Une seule ligne, mais elle doit renvoyer jusqu'à 3 candidats dont
+        # le premier est barcode_exact.
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates[0].variant_id, str(v_barcode.pk))
+        self.assertEqual(matched_line.candidates[0].match_kind, 'barcode_exact')
+        # Les autres candidats doivent être des name_similarity (SKU non
+        # matché par cette ligne), et inclure v_name.
+        other_kinds = {c.match_kind for c in matched_line.candidates[1:]}
+        self.assertEqual(other_kinds, {'name_similarity'})
+        other_ids = {c.variant_id for c in matched_line.candidates[1:]}
+        self.assertTrue(name_only_variant_ids.issubset(other_ids))
+
+        # Deuxième invocation : supplier_reference matche SKU.
+        line2 = _invoice_line('Farine T65', supplier_reference='SKU-99')
+        result2 = self._run([line2])
+        (matched2,) = result2.lines
+        self.assertEqual(matched2.candidates[0].variant_id, str(v_sku.pk))
+        self.assertEqual(matched2.candidates[0].match_kind, 'sku_exact')
+        # `v_name` doit apparaître après (name_similarity).
+        kinds = [c.match_kind for c in matched2.candidates]
+        self.assertEqual(kinds[0], 'sku_exact')
+        for kind in kinds[1:]:
+            self.assertEqual(kind, 'name_similarity')
+
+    def test_same_variant_not_duplicated_across_kinds(self) -> None:
+        """Un variant qui matche à la fois SKU et nom n'apparaît qu'une fois,
+        avec le kind le plus prioritaire (sku_exact)."""
+        product = _make_product(self.shop, 'Farine T65')
+        variant = _make_variant(self.shop, product, 'Sac 5kg', sku='SKU-1')
+        line = _invoice_line('Farine T65 sac', supplier_reference='SKU-1')
+
+        result = self._run([line])
+
+        (matched_line,) = result.lines
+        self.assertEqual(len(matched_line.candidates), 1)
+        self.assertEqual(matched_line.candidates[0].variant_id, str(variant.pk))
+        self.assertEqual(matched_line.candidates[0].match_kind, 'sku_exact')
+
+    def test_no_matches_returns_empty_candidates(self) -> None:
+        # Aucune variante en base.
+        line = _invoice_line('Article inconnu', supplier_reference='XYZ-000')
+        result = self._run([line])
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates, [])
+
+    def test_inactive_variant_excluded(self) -> None:
+        product = _make_product(self.shop, 'Farine T65')
+        _make_variant(self.shop, product, 'Sac 5kg', sku='SKU-1', is_active=False)
+        line = _invoice_line('Farine T65 sac', supplier_reference='SKU-1')
+
+        result = self._run([line])
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates, [])
+
+    def test_inactive_product_excluded(self) -> None:
+        product = _make_product(self.shop, 'Farine T65', is_active=False)
+        _make_variant(self.shop, product, 'Sac 5kg', sku='SKU-1')
+        line = _invoice_line('Farine T65 sac', supplier_reference='SKU-1')
+
+        result = self._run([line])
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates, [])
+
+    def test_service_type_excluded(self) -> None:
+        """Les services (Product.type=='service') n'ont pas de stock physique
+        à faire correspondre à une facture fournisseur."""
+        product = _make_product(self.shop, 'Livraison à domicile', type_='service')
+        _make_variant(self.shop, product, 'Standard', sku='LIV-1')
+        line = _invoice_line('Livraison à domicile', supplier_reference='LIV-1')
+
+        result = self._run([line])
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates, [])
+
+    def test_cross_tenant_variants_never_appear(self) -> None:
+        """Un variant d'une autre boutique NE DOIT JAMAIS apparaître."""
+        _other_user, other_shop = make_user_shop('other@example.com')
+        other_product = Product.objects.create(shop=other_shop, name='Farine T65')
+        ProductVariant.objects.create(
+            shop=other_shop, product=other_product,
+            packaging_name='Sac 5kg', sku='SKU-1', barcode='3760001234567',
+            selling_price=Decimal('9.90'),
+        )
+        line = _invoice_line(
+            'Farine T65 sac 5kg', supplier_reference='3760001234567',
+        )
+
+        result = self._run([line])
+        (matched_line,) = result.lines
+        self.assertEqual(matched_line.candidates, [])
+
+    def test_empty_supplier_reference_still_matches_by_name(self) -> None:
+        """Sans supplier_reference, on retombe sur la similarité de nom."""
+        product = _make_product(self.shop, 'Farine T65 bio')
+        _make_variant(self.shop, product, 'Sac 5kg')
+        line = _invoice_line('Farine T65 bio', supplier_reference=None)
+
+        result = self._run([line])
+        (matched_line,) = result.lines
+        self.assertEqual(len(matched_line.candidates), 1)
+        self.assertEqual(matched_line.candidates[0].match_kind, 'name_similarity')
+
+    def test_multiple_invoice_lines_each_get_own_candidates(self) -> None:
+        p1 = _make_product(self.shop, 'Farine T65')
+        v1 = _make_variant(self.shop, p1, 'Sac 5kg', barcode='B1')
+        p2 = _make_product(self.shop, 'Sucre roux')
+        v2 = _make_variant(self.shop, p2, 'Sachet 1kg', barcode='B2')
+
+        result = self._run([
+            _invoice_line('Farine T65 sac', supplier_reference='B1'),
+            _invoice_line('Sucre roux', supplier_reference='B2'),
+        ])
+
+        self.assertEqual(len(result.lines), 2)
+        self.assertEqual(result.lines[0].invoice_line_index, 0)
+        self.assertEqual(result.lines[0].candidates[0].variant_id, str(v1.pk))
+        self.assertEqual(result.lines[1].invoice_line_index, 1)
+        self.assertEqual(result.lines[1].candidates[0].variant_id, str(v2.pk))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# process_invoice_ocr — intégration matching (étape 7)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class ProcessInvoiceOcrMatchingTest(TestCase):
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.user)
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+        )
+
+    def _run(self) -> str:
+        from .tasks import process_invoice_ocr
+        return process_invoice_ocr.run(str(self.ocr.pk))
+
+    def _patch_pipeline(self) -> tuple:
+        """Retourne les patches (download, extract, structure) déjà configurés."""
+        return (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...'),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                return_value=_fake_extraction(),
+            ),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                return_value=_fake_invoice(),
+            ),
+        )
+
+    def test_matching_persisted_on_success(self) -> None:
+        """Nominal : ocr + invoice + matching persistés en un seul dict."""
+        # `_fake_invoice()` a une ligne avec supplier_reference='SKU-A' et
+        # description='Article A' → on met un variant qui matche par SKU.
+        product = _make_product(self.shop, 'Article A')
+        variant = _make_variant(self.shop, product, 'Standard', sku='SKU-A')
+
+        p_download, p_extract, p_structure = self._patch_pipeline()
+        with p_download, p_extract, p_structure:
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'done')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_DONE)
+
+        structured = self.ocr.structured_data
+        self.assertIn('ocr', structured)
+        self.assertIn('invoice', structured)
+        self.assertIn('matching', structured)
+
+        matching = structured['matching']
+        self.assertEqual(matching['status'], 'done')
+        self.assertEqual(len(matching['lines']), 1)
+        matched_line = matching['lines'][0]
+        self.assertEqual(matched_line['invoice_line_index'], 0)
+        (candidate,) = matched_line['candidates']
+        self.assertEqual(candidate['variant_id'], str(variant.pk))
+        self.assertEqual(candidate['match_kind'], 'sku_exact')
+        self.assertEqual(candidate['similarity_score'], 100)
+
+    def test_matching_empty_candidates_still_done(self) -> None:
+        """Aucune variante en base → matching.status=done, candidates=[]."""
+        p_download, p_extract, p_structure = self._patch_pipeline()
+        with p_download, p_extract, p_structure:
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'done')
+        self.ocr.refresh_from_db()
+        matching = self.ocr.structured_data['matching']
+        self.assertEqual(matching['status'], 'done')
+        # La liste des lignes reste peuplée (une ligne facture → une entrée
+        # avec `candidates: []`).
+        self.assertEqual(len(matching['lines']), 1)
+        self.assertEqual(matching['lines'][0]['candidates'], [])
+
+    def test_matching_failure_preserves_invoice_and_ocr(self) -> None:
+        """Si le matching lève, on garde ocr+invoice et matching.status=failed.
+
+        Le statut OcrResult reste `done` : matching est un enrichissement
+        indépendant, sa panne ne doit pas cacher la facture au commerçant.
+        """
+        p_download, p_extract, p_structure = self._patch_pipeline()
+        with (
+            p_download, p_extract, p_structure,
+            patch(
+                'apps.ocr.tasks.match_invoice_lines_to_variants',
+                side_effect=RuntimeError('DB timeout'),
+            ),
+        ):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'done')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_DONE)
+
+        structured = self.ocr.structured_data
+        self.assertIn('ocr', structured)
+        self.assertIn('invoice', structured)
+        # invoice reste intact.
+        self.assertEqual(structured['invoice']['supplier_name'], 'ACME')
+        # matching écrit son propre statut d'échec.
+        self.assertEqual(structured['matching'], {'status': 'failed', 'lines': []})
+
+    def test_no_stock_movement_on_matching_success(self) -> None:
+        product = _make_product(self.shop, 'Article A')
+        _make_variant(self.shop, product, 'Standard', sku='SKU-A')
+
+        p_download, p_extract, p_structure = self._patch_pipeline()
+        before = StockMovement.objects.count()
+        with p_download, p_extract, p_structure:
+            self._run()
+        self.assertEqual(StockMovement.objects.count(), before)
+
+    def test_no_stock_movement_on_matching_failure(self) -> None:
+        p_download, p_extract, p_structure = self._patch_pipeline()
+        before = StockMovement.objects.count()
+        with (
+            p_download, p_extract, p_structure,
+            patch(
+                'apps.ocr.tasks.match_invoice_lines_to_variants',
+                side_effect=RuntimeError('boom'),
+            ),
+        ):
+            self._run()
+        self.assertEqual(StockMovement.objects.count(), before)
+
+    def test_stock_quantity_unchanged_after_matching(self) -> None:
+        product = _make_product(self.shop, 'Article A')
+        variant = _make_variant(self.shop, product, 'Standard', sku='SKU-A')
+        original_stock = variant.stock_quantity
+
+        p_download, p_extract, p_structure = self._patch_pipeline()
+        with p_download, p_extract, p_structure:
+            self._run()
+
+        variant.refresh_from_db()
+        self.assertEqual(variant.stock_quantity, original_stock)
+
+    def test_tenant_mismatch_never_runs_matching(self) -> None:
+        """Le contrôle tenant existant doit court-circuiter AVANT tout appel
+        au matching : S3, IA, structuring, matching = jamais exécutés."""
+        _other_user, other_shop = make_user_shop('tenant-b@example.com')
+        cross_document = make_document(other_shop, _other_user)
+        cross_ocr = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=cross_document,
+        )
+
+        with (
+            patch('apps.ocr.tasks.download_bytes') as mock_download,
+            patch('apps.ocr.tasks.extract_text_with_ai_service') as mock_extract,
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service'
+            ) as mock_structure,
+            patch(
+                'apps.ocr.tasks.match_invoice_lines_to_variants'
+            ) as mock_matching,
+        ):
+            from .tasks import process_invoice_ocr
+            outcome = process_invoice_ocr.run(str(cross_ocr.pk))
+
+        self.assertEqual(outcome, 'failed_tenant_mismatch')
+        mock_download.assert_not_called()
+        mock_extract.assert_not_called()
+        mock_structure.assert_not_called()
+        mock_matching.assert_not_called()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# GET /api/ocr/results/<uuid>/ — exposition namespace matching (étape 7)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class OcrResultDetailMatchingViewTest(TestCase):
+    """Vérifie l'exposition contrôlée du namespace matching côté API."""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.owner)
+
+    def _url(self, pk: object) -> str:
+        return f'/api/ocr/results/{pk}/'
+
+    def _base_structured(self, extra_matching: dict | None = None) -> dict:
+        return {
+            'ocr': {'lines': []},
+            'invoice': {
+                'supplier_name': 'ACME',
+                'invoice_number': 'INV-1',
+                'invoice_date': None,
+                'currency': 'EUR',
+                'subtotal': None,
+                'tax_amount': None,
+                'total': None,
+                'lines': [],
+                'warnings': [],
+            },
+            **({'matching': extra_matching} if extra_matching is not None else {}),
+        }
+
+    def _make_ocr(self, structured: dict) -> OcrResult:
+        return OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_DONE,
+            raw_text='texte',
+            structured_data=structured,
+        )
+
+    def test_matching_exposed_via_whitelist(self) -> None:
+        import uuid as _uuid
+
+        variant_id = str(_uuid.uuid4())
+        product_id = str(_uuid.uuid4())
+        ocr = self._make_ocr(self._base_structured({
+            'status': 'done',
+            'lines': [
+                {
+                    'invoice_line_index': 0,
+                    'candidates': [
+                        {
+                            'variant_id': variant_id,
+                            'product_id': product_id,
+                            'product_name': 'Article A',
+                            'packaging_name': 'Standard',
+                            'match_kind': 'sku_exact',
+                            'similarity_score': 100,
+                            # Clé imprévue — ne doit PAS être exposée.
+                            'internal_debug': 'secret',
+                        },
+                    ],
+                    # Clé imprévue au niveau ligne.
+                    'ignored_line_extra': 'nope',
+                },
+            ],
+            # Clé imprévue au niveau namespace.
+            'debug_trace': 'super-secret',
+        }))
+
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        matching = response.data['matching']
+        self.assertIsNotNone(matching)
+        self.assertEqual(matching['status'], 'done')
+        self.assertEqual(len(matching['lines']), 1)
+        line = matching['lines'][0]
+        self.assertEqual(line['invoice_line_index'], 0)
+        self.assertEqual(len(line['candidates']), 1)
+        candidate = line['candidates'][0]
+        self.assertEqual(candidate['variant_id'], variant_id)
+        self.assertEqual(candidate['match_kind'], 'sku_exact')
+        self.assertEqual(candidate['similarity_score'], 100)
+
+        # Aucune clé imprévue ne fuite.
+        body = response.content.decode('utf-8')
+        self.assertNotIn('internal_debug', body)
+        self.assertNotIn('super-secret', body)
+        self.assertNotIn('debug_trace', body)
+        self.assertNotIn('ignored_line_extra', body)
+
+    def test_legacy_result_without_matching_returns_null(self) -> None:
+        """Un OCR ancien sans namespace matching → matching=null."""
+        ocr = self._make_ocr({
+            'ocr': {'lines': []},
+            'invoice': self._base_structured()['invoice'],
+        })
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['matching'])
+
+    def test_matching_failed_status_exposed(self) -> None:
+        """Un matching en échec doit exposer proprement status=failed."""
+        ocr = self._make_ocr(self._base_structured({
+            'status': 'failed',
+            'lines': [],
+        }))
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data['matching'], {'status': 'failed', 'lines': []},
+        )
+
+    def test_unknown_status_value_returns_null_matching(self) -> None:
+        """Un status inconnu (regression future) → matching=null (pas d'exposition)."""
+        ocr = self._make_ocr(self._base_structured({
+            'status': 'weird',
+            'lines': [],
+        }))
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['matching'])
+
+    def test_cross_tenant_get_returns_404(self) -> None:
+        """Une autre boutique ne peut PAS lire le matching."""
+        ocr = self._make_ocr(self._base_structured({
+            'status': 'done', 'lines': [],
+        }))
+        other_owner, _ = make_user_shop('other@example.com')
+        self.client.force_authenticate(user=other_owner)
+        response = self.client.get(self._url(ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_object_key_never_exposed_with_matching(self) -> None:
+        ocr = self._make_ocr(self._base_structured({
+            'status': 'done', 'lines': [],
+        }))
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.content.decode('utf-8')
+        self.assertNotIn('object_key', body)
+        self.assertNotIn(self.document.object_key, body)

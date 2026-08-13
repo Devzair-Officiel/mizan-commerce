@@ -346,6 +346,7 @@
 - [x] Endpoint upload facture + extraction texte brut
 - [x] Modèle `UploadedDocument`, `OcrResult`
 - [x] Extraction structurée : produits, quantités, prix
+- [ ] Matching déterministe des lignes OCR vers ProductVariant
 - [ ] Affichage frontend des lignes détectées avec confiance
 - [ ] Validation humaine ligne par ligne
 - [ ] Création des `StockMovement` après validation uniquement

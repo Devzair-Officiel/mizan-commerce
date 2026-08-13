@@ -159,6 +159,120 @@ def _optional_str(value: object) -> str | None:
     return str(value)
 
 
+# ─── Sérialiseurs matching (étape 7) ───────────────────────────────────────
+#
+# Le matching est un enrichissement déterministe produit côté Django : chaque
+# ligne facture reçoit 0..3 candidats `ProductVariant` de la boutique. Aucun
+# candidat n'est *validé* automatiquement — l'écran de revue l'exigera de
+# l'utilisateur (étape 8).
+#
+# Le namespace matching a son propre `status` : il peut valoir `'failed'`
+# tandis que l'OcrResult global reste `'done'`. Cela permet à l'UI d'afficher
+# la facture même si le matching a levé (dépendance catalogue, DB timeout…).
+
+_MATCH_KIND_CHOICES: tuple[tuple[str, str], ...] = (
+    ('barcode_exact', 'barcode_exact'),
+    ('sku_exact', 'sku_exact'),
+    ('name_similarity', 'name_similarity'),
+)
+_MATCHING_STATUS_CHOICES: tuple[tuple[str, str], ...] = (
+    ('done', 'done'),
+    ('failed', 'failed'),
+)
+
+
+class _MatchingCandidateSerializer(serializers.Serializer):
+    variant_id = serializers.UUIDField()
+    product_id = serializers.UUIDField()
+    product_name = serializers.CharField(allow_blank=True)
+    packaging_name = serializers.CharField(allow_blank=True)
+    match_kind = serializers.ChoiceField(choices=_MATCH_KIND_CHOICES)
+    similarity_score = serializers.IntegerField(min_value=0, max_value=100)
+
+
+class _MatchingLineSerializer(serializers.Serializer):
+    invoice_line_index = serializers.IntegerField(min_value=0)
+    candidates = _MatchingCandidateSerializer(many=True)
+
+
+class _MatchingSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=_MATCHING_STATUS_CHOICES)
+    lines = _MatchingLineSerializer(many=True)
+
+
+def _sanitize_matching_candidate(entry: object) -> dict | None:
+    """Whitelist stricte d'un candidat matching — écarte toute clé imprévue."""
+    if not isinstance(entry, dict):
+        return None
+    kind = entry.get('match_kind')
+    if kind not in {'barcode_exact', 'sku_exact', 'name_similarity'}:
+        return None
+    variant_id = entry.get('variant_id')
+    product_id = entry.get('product_id')
+    if variant_id is None or product_id is None:
+        return None
+    score_raw = entry.get('similarity_score')
+    # `bool` est un `int` en Python — on refuse pour ne pas laisser passer
+    # `True` comme score 1.
+    if isinstance(score_raw, bool) or not isinstance(score_raw, int):
+        return None
+    if score_raw < 0 or score_raw > 100:
+        return None
+    return {
+        'variant_id': str(variant_id),
+        'product_id': str(product_id),
+        'product_name': str(entry.get('product_name', '')),
+        'packaging_name': str(entry.get('packaging_name', '')),
+        'match_kind': kind,
+        'similarity_score': score_raw,
+    }
+
+
+def _sanitize_matching_line(entry: object) -> dict | None:
+    if not isinstance(entry, dict):
+        return None
+    index_raw = entry.get('invoice_line_index')
+    if isinstance(index_raw, bool) or not isinstance(index_raw, int):
+        return None
+    if index_raw < 0:
+        return None
+    candidates_raw = entry.get('candidates', [])
+    candidates = (
+        [
+            c for c in (_sanitize_matching_candidate(e) for e in candidates_raw)
+            if c is not None
+        ]
+        if isinstance(candidates_raw, list)
+        else []
+    )
+    return {'invoice_line_index': index_raw, 'candidates': candidates}
+
+
+def _sanitize_matching(block: object) -> dict | None:
+    """Whitelist stricte du namespace matching.
+
+    Filet défensif : tout comme `_sanitize_invoice`, l'objectif n'est pas de
+    filtrer une entrée hostile (le namespace est écrit par notre pipeline)
+    mais d'empêcher une régression future d'exfiltrer une clé imprévue via
+    l'API en ré-utilisant ce champ.
+    """
+    if not isinstance(block, dict):
+        return None
+    status_value = block.get('status')
+    if status_value not in {'done', 'failed'}:
+        return None
+    lines_raw = block.get('lines', [])
+    lines = (
+        [
+            line for line in (_sanitize_matching_line(e) for e in lines_raw)
+            if line is not None
+        ]
+        if isinstance(lines_raw, list)
+        else []
+    )
+    return {'status': status_value, 'lines': lines}
+
+
 class OcrResultDetailSerializer(serializers.Serializer):
     """Contrat de lecture d'un `OcrResult` par le commerçant.
 
@@ -172,6 +286,9 @@ class OcrResultDetailSerializer(serializers.Serializer):
     N'expose *jamais* : `object_key`, URL S3, l'utilisateur qui a uploadé,
     le contenu brut de `structured_data` (seuls les champs whitelistés
     ci-dessus fuitent — toute clé imprévue est écartée).
+
+    Le namespace `matching` (étape 7) a son propre statut et peut valoir
+    `null` (aucun matching lancé, ex. OCR pending ou étape LLM échouée).
     """
 
     ocr_result_id = serializers.UUIDField()
@@ -183,6 +300,7 @@ class OcrResultDetailSerializer(serializers.Serializer):
     )
     lines = _OcrLineSerializer(many=True)
     invoice = _InvoiceSerializer(allow_null=True)
+    matching = _MatchingSerializer(allow_null=True)
     error_message = serializers.CharField(allow_blank=True)
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
@@ -212,6 +330,11 @@ class OcrResultDetailSerializer(serializers.Serializer):
         )
         invoice = _sanitize_invoice(invoice_block)
 
+        matching_block = (
+            structured.get('matching') if isinstance(structured, dict) else None
+        )
+        matching = _sanitize_matching(matching_block)
+
         return cls({
             'ocr_result_id': ocr_result.pk,
             'document_id': ocr_result.uploaded_document_id,
@@ -220,6 +343,7 @@ class OcrResultDetailSerializer(serializers.Serializer):
             'confidence_score': ocr_result.confidence_score,
             'lines': lines,
             'invoice': invoice,
+            'matching': matching,
             'error_message': ocr_result.error_message,
             'created_at': ocr_result.created_at,
             'updated_at': ocr_result.updated_at,
