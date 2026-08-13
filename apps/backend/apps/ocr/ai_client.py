@@ -19,6 +19,8 @@ import json
 import logging
 import urllib.error
 import urllib.request
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urljoin
 
@@ -33,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 __all__ = (
     'INTERNAL_API_KEY_HEADER',
+    'AiInvoiceExtraction',
+    'AiInvoiceLine',
     'AiOcrExtraction',
     'AiOcrLine',
     'AiServiceHealth',
@@ -40,6 +44,7 @@ __all__ = (
     'check_ai_service_authenticated_health',
     'check_ai_service_health',
     'extract_text_with_ai_service',
+    'structure_invoice_with_ai_service',
 )
 
 # Doit rester strictement identique à `apps.ai-service/app/security.py`.
@@ -289,3 +294,213 @@ def extract_text_with_ai_service(
         raise AiServiceUnavailableError('Réponse invalide du service IA.') from exc
 
     return _parse_extraction(payload)
+
+
+# ─── Structuration facture (LLM externe côté ai-service) ───────────────────
+#
+# Contrat serveur (`POST /internal/invoice/structure`) — voir
+# `apps/ai-service/app/schemas.py::InvoiceExtraction`.
+# Toutes les valeurs monétaires transitent en `str` sur le fil pour éviter
+# tout arrondi binaire ; on les convertit ici en `Decimal` avant de les
+# renvoyer à la couche métier. Aucun dict brut ne franchit cette frontière.
+#
+# Les défenses ci-dessous sont volontairement redondantes avec la validation
+# côté ai-service : le service IA est un composant réseau distinct, et un
+# écart de contrat (mise à jour partielle, downgrade Pydantic) ne doit
+# JAMAIS pouvoir corrompre la base Django.
+
+
+class AiInvoiceLine(NamedTuple):
+    description: str
+    supplier_reference: str | None
+    quantity: Decimal | None
+    unit_price: Decimal | None
+    line_total: Decimal | None
+    source_line_indices: list[int]
+
+
+class AiInvoiceExtraction(NamedTuple):
+    supplier_name: str | None
+    invoice_number: str | None
+    invoice_date: date | None
+    currency: str | None
+    subtotal: Decimal | None
+    tax_amount: Decimal | None
+    total: Decimal | None
+    lines: list[AiInvoiceLine]
+    warnings: list[str]
+
+
+def _parse_optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    return value
+
+
+def _parse_decimal_str(value: Any) -> Decimal | None:
+    """Str JSON décimal → `Decimal`. Refuse NaN, Infinity, négatifs, non-str."""
+    if value is None:
+        return None
+    # `bool` est une sous-classe de `int`, donc de tout ce qui n'est pas str :
+    # on interdit strictement les types autres que `str` (pas d'`int`/`float`
+    # implicite — Money = Decimal, pas de conversion silencieuse).
+    if not isinstance(value, str):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation as exc:
+        raise AiServiceUnavailableError('Réponse invalide du service IA.') from exc
+    if not parsed.is_finite():
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    if parsed < 0:
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    return parsed
+
+
+def _parse_iso_date_str(value: Any) -> date | None:
+    if value is None:
+        return None
+    # `len == 10` empêche `date.fromisoformat` d'accepter un timestamp complet
+    # ('2026-01-01T12:00:00') qu'on ne saurait pas rendre côté écran.
+    if not isinstance(value, str) or len(value) != 10:
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise AiServiceUnavailableError('Réponse invalide du service IA.') from exc
+
+
+def _parse_source_indices(value: Any, num_ocr_lines: int) -> list[int]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    indices: list[int] = []
+    for entry in value:
+        # `bool` est un `int` en Python — on refuse explicitement.
+        if isinstance(entry, bool) or not isinstance(entry, int):
+            raise AiServiceUnavailableError('Réponse invalide du service IA.')
+        if entry < 0 or entry >= num_ocr_lines:
+            raise AiServiceUnavailableError('Réponse invalide du service IA.')
+        indices.append(entry)
+    return indices
+
+
+def _parse_str_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    result: list[str] = []
+    for entry in value:
+        if not isinstance(entry, str):
+            raise AiServiceUnavailableError('Réponse invalide du service IA.')
+        result.append(entry)
+    return result
+
+
+def _parse_invoice_line(entry: Any, num_ocr_lines: int) -> AiInvoiceLine:
+    if not isinstance(entry, dict):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    description = entry.get('description')
+    if not isinstance(description, str):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    return AiInvoiceLine(
+        description=description,
+        supplier_reference=_parse_optional_str(entry.get('supplier_reference')),
+        quantity=_parse_decimal_str(entry.get('quantity')),
+        unit_price=_parse_decimal_str(entry.get('unit_price')),
+        line_total=_parse_decimal_str(entry.get('line_total')),
+        source_line_indices=_parse_source_indices(
+            entry.get('source_line_indices'), num_ocr_lines,
+        ),
+    )
+
+
+def _parse_invoice(payload: Any, *, num_ocr_lines: int) -> AiInvoiceExtraction:
+    if not isinstance(payload, dict):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    lines_raw = payload.get('lines', [])
+    if not isinstance(lines_raw, list):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    lines = [_parse_invoice_line(entry, num_ocr_lines) for entry in lines_raw]
+    return AiInvoiceExtraction(
+        supplier_name=_parse_optional_str(payload.get('supplier_name')),
+        invoice_number=_parse_optional_str(payload.get('invoice_number')),
+        invoice_date=_parse_iso_date_str(payload.get('invoice_date')),
+        currency=_parse_optional_str(payload.get('currency')),
+        subtotal=_parse_decimal_str(payload.get('subtotal')),
+        tax_amount=_parse_decimal_str(payload.get('tax_amount')),
+        total=_parse_decimal_str(payload.get('total')),
+        lines=lines,
+        warnings=_parse_str_list(payload.get('warnings')),
+    )
+
+
+def structure_invoice_with_ai_service(
+    *,
+    raw_text: str,
+    lines: list[AiOcrLine],
+) -> AiInvoiceExtraction:
+    """POST du résultat OCR vers `/internal/invoice/structure`, réponse typée.
+
+    - Ne relève *jamais* la clé API dans un message d'erreur.
+    - Convertit toute erreur transport/HTTP/JSON en `AiServiceUnavailableError`
+      pour homogénéiser la gestion côté Celery.
+    - Timeout dédié (`AI_SERVICE_INVOICE_TIMEOUT_SECONDS`) : le LLM externe
+      appelé côté ai-service dispose de son propre budget (~45 s) ; on garde
+      une marge pour permettre au FastAPI de renvoyer proprement 502 sans
+      qu'httpx coupe la connexion prématurément.
+    - Ne JAMAIS logger : la clé interne, `raw_text` complet, la réponse
+      complète — ces données peuvent contenir des références fournisseur
+      ou montants sensibles.
+    """
+    url = _build_url('/internal/invoice/structure')
+    headers = {INTERNAL_API_KEY_HEADER: settings.AI_SERVICE_API_KEY}
+    payload = {
+        'raw_text': raw_text,
+        'lines': [
+            {
+                'text': line.text,
+                'confidence': line.confidence,
+                'bbox': line.bbox,
+            }
+            for line in lines
+        ],
+    }
+    timeout = settings.AI_SERVICE_INVOICE_TIMEOUT_SECONDS
+
+    try:
+        response = httpx.post(url, headers=headers, json=payload, timeout=timeout)
+    except httpx.TimeoutException as exc:
+        logger.warning('AI service invoice structuring timeout')
+        raise AiServiceUnavailableError('Service IA : délai dépassé.') from exc
+    except httpx.HTTPError as exc:
+        logger.warning('AI service invoice transport error: %r', exc)
+        raise AiServiceUnavailableError('Service IA injoignable.') from exc
+
+    if response.status_code >= 500:
+        logger.warning(
+            'AI service invoice HTTP error: status=%s', response.status_code,
+        )
+        raise AiServiceUnavailableError(
+            f'Service IA a renvoyé une erreur HTTP {response.status_code}.'
+        )
+    if response.status_code >= 400:
+        logger.warning(
+            'AI service invoice rejected payload: status=%s',
+            response.status_code,
+        )
+        raise AiServiceUnavailableError(
+            f'Service IA a refusé la requête (HTTP {response.status_code}).'
+        )
+
+    try:
+        body = response.json()
+    except json.JSONDecodeError as exc:
+        logger.warning('AI service invoice returned invalid JSON')
+        raise AiServiceUnavailableError('Réponse invalide du service IA.') from exc
+
+    return _parse_invoice(body, num_ocr_lines=len(lines))

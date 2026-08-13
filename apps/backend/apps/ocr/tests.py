@@ -1054,6 +1054,39 @@ def _fake_extraction() -> _FakeExtraction:
     )
 
 
+def _fake_invoice() -> object:
+    """AiInvoiceExtraction canonique — utilisé pour patcher la structuration.
+
+    Retourne un vrai `AiInvoiceExtraction` (NamedTuple) pour rester fidèle au
+    contrat typé : la tâche traite ces Decimal / date exactement comme un
+    résultat réel du service IA.
+    """
+    from datetime import date as _date
+
+    from .ai_client import AiInvoiceExtraction, AiInvoiceLine
+
+    return AiInvoiceExtraction(
+        supplier_name='ACME',
+        invoice_number='INV-001',
+        invoice_date=_date(2026, 1, 15),
+        currency='EUR',
+        subtotal=Decimal('100.00'),
+        tax_amount=Decimal('20.00'),
+        total=Decimal('120.00'),
+        lines=[
+            AiInvoiceLine(
+                description='Article A',
+                supplier_reference='SKU-A',
+                quantity=Decimal(2),
+                unit_price=Decimal('50.00'),
+                line_total=Decimal('100.00'),
+                source_line_indices=[0, 1],
+            ),
+        ],
+        warnings=[],
+    )
+
+
 class ProcessInvoiceOcrTaskTest(TestCase):
     def setUp(self) -> None:
         self.user, self.shop = make_user_shop('owner@example.com')
@@ -1073,6 +1106,10 @@ class ProcessInvoiceOcrTaskTest(TestCase):
                 'apps.ocr.tasks.extract_text_with_ai_service',
                 return_value=_fake_extraction(),
             ) as mock_extract,
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                return_value=_fake_invoice(),
+            ) as mock_structure,
         ):
             outcome = self._run()
 
@@ -1083,16 +1120,38 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         self.assertEqual(kwargs['content'], b'\xff\xd8\xff...')
         self.assertEqual(kwargs['mime_type'], self.document.mime_type)
 
+        # La structuration reçoit le texte OCR + les lignes typées.
+        structure_kwargs = mock_structure.call_args.kwargs
+        self.assertEqual(structure_kwargs['raw_text'], 'ligne 1\nligne 2')
+        self.assertEqual(len(structure_kwargs['lines']), 2)
+
         self.ocr.refresh_from_db()
         self.assertEqual(self.ocr.status, OcrResult.STATUS_DONE)
         self.assertEqual(self.ocr.raw_text, 'ligne 1\nligne 2')
         self.assertEqual(self.ocr.confidence_score, Decimal('0.912'))
-        # Namespace `ocr` isolé — laisse la place à `invoice` (étape 6).
+        # Les deux namespaces coexistent : `ocr` (brut PaddleOCR) et
+        # `invoice` (structure LLM validée déterministiquement).
         self.assertIn('ocr', self.ocr.structured_data)
+        self.assertIn('invoice', self.ocr.structured_data)
         lines = self.ocr.structured_data['ocr']['lines']
         self.assertEqual(len(lines), 2)
         self.assertEqual(lines[0], {'text': 'ligne 1', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]})
         self.assertEqual(lines[1], {'text': 'ligne 2', 'confidence': 0.88, 'bbox': []})
+
+        invoice = self.ocr.structured_data['invoice']
+        self.assertEqual(invoice['supplier_name'], 'ACME')
+        self.assertEqual(invoice['invoice_number'], 'INV-001')
+        self.assertEqual(invoice['invoice_date'], '2026-01-15')
+        self.assertEqual(invoice['currency'], 'EUR')
+        # Decimals sérialisés en str → aucune perte de précision.
+        self.assertEqual(invoice['total'], '120.00')
+        self.assertEqual(invoice['subtotal'], '100.00')
+        self.assertEqual(invoice['tax_amount'], '20.00')
+        self.assertEqual(len(invoice['lines']), 1)
+        self.assertEqual(invoice['lines'][0]['description'], 'Article A')
+        self.assertEqual(invoice['lines'][0]['line_total'], '100.00')
+        self.assertEqual(invoice['lines'][0]['source_line_indices'], [0, 1])
+        self.assertEqual(invoice['warnings'], [])
         self.assertEqual(self.ocr.error_message, '')
 
     def test_missing_ocr_result_returns_not_found_without_raising(self) -> None:
@@ -1164,6 +1223,10 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         with (
             patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
             patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                return_value=_fake_invoice(),
+            ),
         ):
             self._run()
 
@@ -1176,6 +1239,10 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         with (
             patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
             patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                return_value=_fake_invoice(),
+            ),
         ):
             outcome = self._run()
 
@@ -1188,6 +1255,10 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         with (
             patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
             patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=_fake_extraction()),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                return_value=_fake_invoice(),
+            ),
         ):
             before = StockMovement.objects.count()
             self._run()
@@ -1329,9 +1400,31 @@ class OcrResultDetailViewTest(TestCase):
                         {'text': 'ligne 2', 'confidence': 0.88, 'bbox': []},
                     ],
                 },
-                # Namespace hypothétique de l'étape 6 — NE doit PAS être exposé
-                # tant qu'aucun serializer ne le liste explicitement.
-                'invoice': {'total': '19.99'},
+                'invoice': {
+                    'supplier_name': 'ACME',
+                    'invoice_number': 'INV-42',
+                    'invoice_date': '2026-01-15',
+                    'currency': 'EUR',
+                    'subtotal': None,
+                    'tax_amount': None,
+                    'total': '19.99',
+                    'lines': [
+                        {
+                            'description': 'Article A',
+                            'supplier_reference': 'SKU-A',
+                            'quantity': '1',
+                            'unit_price': '19.99',
+                            'line_total': '19.99',
+                            'source_line_indices': [0],
+                        },
+                    ],
+                    'warnings': [],
+                    # Clé non prévue par le contrat — ne doit PAS être exposée
+                    # même si elle a été écrite par un chemin parallèle.
+                    'internal_debug_trace': 'super-secret',
+                },
+                # Namespace inconnu — écarté silencieusement par le serializer.
+                'audit_only': {'note': 'ne pas exposer'},
             },
         )
 
@@ -1402,13 +1495,33 @@ class OcrResultDetailViewTest(TestCase):
         self.assertNotIn('amazonaws', body.lower())
         self.assertNotIn('s3.', body.lower())
 
-    def test_response_does_not_expose_non_ocr_structured_namespaces(self) -> None:
-        """`structured_data.invoice` ne doit PAS fuiter par la lecture."""
+    def test_response_exposes_invoice_via_whitelist(self) -> None:
+        """`structured_data.invoice` est exposé — mais UNIQUEMENT via la
+        whitelist du serializer. Les clés non prévues sont écartées.
+        """
         self.client.force_authenticate(user=self.owner)
         response = self.client.get(self._url(self.ocr.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        invoice = response.data.get('invoice')
+        self.assertIsNotNone(invoice)
+        self.assertEqual(invoice['supplier_name'], 'ACME')
+        self.assertEqual(invoice['invoice_number'], 'INV-42')
+        self.assertEqual(invoice['invoice_date'], '2026-01-15')
+        self.assertEqual(invoice['currency'], 'EUR')
+        self.assertEqual(invoice['total'], '19.99')
+        self.assertEqual(len(invoice['lines']), 1)
+        self.assertEqual(invoice['lines'][0]['description'], 'Article A')
+        self.assertEqual(invoice['lines'][0]['line_total'], '19.99')
+
+        # Aucune clé imprévue ne doit fuiter.
+        self.assertNotIn('internal_debug_trace', invoice)
         body = response.content.decode('utf-8')
-        self.assertNotIn('invoice', body)
-        self.assertNotIn('19.99', body)
+        self.assertNotIn('internal_debug_trace', body)
+        self.assertNotIn('super-secret', body)
+        # Namespace inconnu écarté (« audit_only » n'apparaît pas à la racine).
+        self.assertNotIn('audit_only', response.data)
+        self.assertNotIn('audit_only', body)
 
     def test_pending_result_returns_status_only(self) -> None:
         pending = OcrResult.objects.create(
@@ -1421,3 +1534,596 @@ class OcrResultDetailViewTest(TestCase):
         self.assertEqual(response.data['raw_text'], '')
         self.assertEqual(response.data['lines'], [])
         self.assertIsNone(response.data['confidence_score'])
+        self.assertIsNone(response.data['invoice'])
+
+    def test_failed_structuring_exposes_ocr_but_null_invoice(self) -> None:
+        """OCR réussi + structuration LLM échouée : `invoice` reste `null`."""
+        failed = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_FAILED,
+            raw_text='texte reconnu',
+            confidence_score=Decimal('0.912'),
+            error_message="L'analyse structurée de la facture a échoué. Le texte OCR reste disponible.",
+            structured_data={
+                'ocr': {
+                    'lines': [
+                        {'text': 'texte reconnu', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]},
+                    ],
+                },
+            },
+        )
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.get(self._url(failed.pk))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], OcrResult.STATUS_FAILED)
+        self.assertEqual(response.data['raw_text'], 'texte reconnu')
+        self.assertEqual(len(response.data['lines']), 1)
+        self.assertIsNone(response.data['invoice'])
+        self.assertIn('structurée', response.data['error_message'])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# structure_invoice_with_ai_service — POST JSON typé (étape 6B)
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Même stratégie qu'`extract_text_with_ai_service` : `httpx.post` est patché,
+# on ne vérifie que le contrat (URL, headers, timeout, parsing strict). Les
+# tests réels du LLM vivent côté ai-service (tests/test_invoice_extraction.py).
+
+
+@override_settings(
+    AI_SERVICE_URL='http://ai-service:8000',
+    AI_SERVICE_API_KEY=_TEST_AI_KEY,
+    AI_SERVICE_INVOICE_TIMEOUT_SECONDS=50.0,
+)
+class StructureInvoiceWithAiServiceTest(SimpleTestCase):
+    def _ocr_lines(self) -> list:
+        from .ai_client import AiOcrLine
+        return [
+            AiOcrLine(text='ACME SARL', confidence=0.95, bbox=[10, 20, 100, 40]),
+            AiOcrLine(text='Total 120,00 EUR', confidence=0.90, bbox=[10, 60, 200, 80]),
+        ]
+
+    def _valid_payload(self) -> dict:
+        return {
+            'supplier_name': 'ACME SARL',
+            'invoice_number': 'INV-2026-001',
+            'invoice_date': '2026-01-15',
+            'currency': 'EUR',
+            'subtotal': '100.00',
+            'tax_amount': '20.00',
+            'total': '120.00',
+            'lines': [
+                {
+                    'description': 'Article A',
+                    'supplier_reference': 'SKU-A',
+                    'quantity': '2',
+                    'unit_price': '50.00',
+                    'line_total': '100.00',
+                    'source_line_indices': [0, 1],
+                },
+            ],
+            'warnings': [],
+        }
+
+    def test_nominal_returns_typed_extraction(self) -> None:
+        from datetime import date as _date
+
+        from .ai_client import structure_invoice_with_ai_service
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=self._valid_payload())
+            result = structure_invoice_with_ai_service(
+                raw_text='ACME SARL\nTotal 120,00 EUR',
+                lines=self._ocr_lines(),
+            )
+
+        self.assertEqual(result.supplier_name, 'ACME SARL')
+        self.assertEqual(result.invoice_number, 'INV-2026-001')
+        self.assertEqual(result.invoice_date, _date(2026, 1, 15))
+        self.assertEqual(result.currency, 'EUR')
+        self.assertEqual(result.total, Decimal('120.00'))
+        self.assertEqual(result.subtotal, Decimal('100.00'))
+        self.assertEqual(result.tax_amount, Decimal('20.00'))
+        self.assertEqual(len(result.lines), 1)
+        line = result.lines[0]
+        self.assertEqual(line.description, 'Article A')
+        self.assertEqual(line.quantity, Decimal(2))
+        self.assertEqual(line.unit_price, Decimal('50.00'))
+        self.assertEqual(line.line_total, Decimal('100.00'))
+        self.assertEqual(line.source_line_indices, [0, 1])
+        self.assertEqual(result.warnings, [])
+
+    def test_uses_expected_url_headers_timeout_and_payload(self) -> None:
+        from .ai_client import (
+            INTERNAL_API_KEY_HEADER,
+            structure_invoice_with_ai_service,
+        )
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=self._valid_payload())
+            structure_invoice_with_ai_service(
+                raw_text='ACME SARL\nTotal 120,00 EUR',
+                lines=self._ocr_lines(),
+            )
+
+        args, kwargs = mock_post.call_args
+        self.assertEqual(args[0], 'http://ai-service:8000/internal/invoice/structure')
+        self.assertEqual(kwargs['headers'], {INTERNAL_API_KEY_HEADER: _TEST_AI_KEY})
+        self.assertEqual(kwargs['timeout'], 50.0)
+        # Corps JSON = {raw_text, lines: [{text, confidence, bbox}, ...]}
+        body = kwargs['json']
+        self.assertEqual(body['raw_text'], 'ACME SARL\nTotal 120,00 EUR')
+        self.assertEqual(len(body['lines']), 2)
+        self.assertEqual(body['lines'][0]['text'], 'ACME SARL')
+        self.assertEqual(body['lines'][0]['bbox'], [10, 20, 100, 40])
+
+    def test_timeout_raises_domain_error(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        with patch(
+            'apps.ocr.ai_client.httpx.post',
+            side_effect=_httpx.ReadTimeout('too slow'),
+        ), self.assertRaises(AiServiceUnavailableError):
+            structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_transport_error_raises_domain_error(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        with patch(
+            'apps.ocr.ai_client.httpx.post',
+            side_effect=_httpx.ConnectError('refused'),
+        ), self.assertRaises(AiServiceUnavailableError):
+            structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_http_500_raises_domain_error(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(
+                status_code=500, payload={'detail': 'boom'},
+            )
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_http_400_raises_domain_error(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(
+                status_code=400, payload={'detail': 'bad'},
+            )
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_invalid_json_raises_domain_error(self) -> None:
+        import json as _json_mod
+
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        class _BadJson:
+            status_code = 200
+
+            def json(self_inner) -> object:
+                raise _json_mod.JSONDecodeError('bad', '<html>', 0)
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _BadJson()
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_non_dict_payload_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=[1, 2, 3])
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_non_list_lines_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['lines'] = 'not-a-list'
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_line_missing_description_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['lines'][0].pop('description')
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_decimal_as_number_rejected(self) -> None:
+        """Aucun cast implicite : les montants doivent arriver en `str`."""
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        for bad_value in (120.0, 120, True):
+            payload = self._valid_payload()
+            payload['total'] = bad_value
+            with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+                mock_post.return_value = _FakeHttpxResponse(payload=payload)
+                with self.assertRaises(AiServiceUnavailableError):
+                    structure_invoice_with_ai_service(
+                        raw_text='x', lines=self._ocr_lines(),
+                    )
+
+    def test_nan_and_infinity_decimal_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        for bad_value in ('NaN', 'Infinity', '-Infinity'):
+            payload = self._valid_payload()
+            payload['total'] = bad_value
+            with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+                mock_post.return_value = _FakeHttpxResponse(payload=payload)
+                with self.assertRaises(AiServiceUnavailableError):
+                    structure_invoice_with_ai_service(
+                        raw_text='x', lines=self._ocr_lines(),
+                    )
+
+    def test_negative_decimal_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['total'] = '-1.00'
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_malformed_decimal_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['total'] = 'not-a-number'
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_invalid_date_format_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        for bad_date in ('15/01/2026', '2026-1-5', '2026-01-15T12:00:00'):
+            payload = self._valid_payload()
+            payload['invoice_date'] = bad_date
+            with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+                mock_post.return_value = _FakeHttpxResponse(payload=payload)
+                with self.assertRaises(AiServiceUnavailableError):
+                    structure_invoice_with_ai_service(
+                        raw_text='x', lines=self._ocr_lines(),
+                    )
+
+    def test_source_index_out_of_bounds_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        # 2 lignes OCR fournies → indices valides = [0, 1]. On envoie 2.
+        payload['lines'][0]['source_line_indices'] = [0, 2]
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_source_index_negative_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['lines'][0]['source_line_indices'] = [-1]
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_source_index_non_integer_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        for bad_indices in ([0, '1'], [0, 1.5], [0, True], 'not-a-list'):
+            payload = self._valid_payload()
+            payload['lines'][0]['source_line_indices'] = bad_indices
+            with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+                mock_post.return_value = _FakeHttpxResponse(payload=payload)
+                with self.assertRaises(AiServiceUnavailableError):
+                    structure_invoice_with_ai_service(
+                        raw_text='x', lines=self._ocr_lines(),
+                    )
+
+    def test_none_optional_fields_accepted(self) -> None:
+        """`supplier_name`, `invoice_date`, etc. peuvent tous être null."""
+        from .ai_client import structure_invoice_with_ai_service
+
+        payload = {
+            'supplier_name': None,
+            'invoice_number': None,
+            'invoice_date': None,
+            'currency': None,
+            'subtotal': None,
+            'tax_amount': None,
+            'total': None,
+            'lines': [],
+            'warnings': [],
+        }
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            result = structure_invoice_with_ai_service(
+                raw_text='x', lines=self._ocr_lines(),
+            )
+        self.assertIsNone(result.supplier_name)
+        self.assertIsNone(result.total)
+        self.assertEqual(result.lines, [])
+
+    def test_warnings_must_be_list_of_str(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['warnings'] = [123, 'ok']
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_never_leaks_api_key(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        with (
+            self.assertLogs('apps.ocr.ai_client', level=_logging.WARNING) as logs,
+            patch(
+                'apps.ocr.ai_client.httpx.post',
+                side_effect=_httpx.ConnectError('refused'),
+            ),
+        ):
+            try:
+                structure_invoice_with_ai_service(
+                    raw_text='sensitive', lines=self._ocr_lines(),
+                )
+            except AiServiceUnavailableError as exc:
+                self.assertNotIn(_TEST_AI_KEY, str(exc))
+                if exc.__cause__ is not None:
+                    self.assertNotIn(_TEST_AI_KEY, str(exc.__cause__))
+        for entry in logs.output:
+            self.assertNotIn(_TEST_AI_KEY, entry)
+            # Le contenu potentiellement sensible ne doit pas non plus fuiter.
+            self.assertNotIn('sensitive', entry)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# process_invoice_ocr — comportement quand la structuration LLM échoue (6B)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class ProcessInvoiceOcrStructuringFailureTest(TestCase):
+    """La structuration LLM est un point de défaillance distinct de l'OCR :
+    on doit préserver le texte reconnu (raw_text + ocr namespace + score)
+    même si le LLM refuse la structuration.
+    """
+
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.user)
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+        )
+
+    def _run(self) -> str:
+        from .tasks import process_invoice_ocr
+        return process_invoice_ocr.run(str(self.ocr.pk))
+
+    def test_structuring_ai_service_error_preserves_ocr(self) -> None:
+        from .ai_client import AiServiceUnavailableError
+
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...'),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                return_value=_fake_extraction(),
+            ),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                side_effect=AiServiceUnavailableError('LLM down'),
+            ),
+        ):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'failed_structuring')
+        self.ocr.refresh_from_db()
+        # État : `failed`, mais avec l'OCR préservé.
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_FAILED)
+        self.assertEqual(self.ocr.raw_text, 'ligne 1\nligne 2')
+        self.assertEqual(self.ocr.confidence_score, Decimal('0.912'))
+        self.assertIn('ocr', self.ocr.structured_data)
+        self.assertEqual(len(self.ocr.structured_data['ocr']['lines']), 2)
+        # AUCUNE clé `invoice` — on n'invente pas de structure vide.
+        self.assertNotIn('invoice', self.ocr.structured_data)
+        # Message spécifique à la structuration (pas le générique OCR).
+        self.assertIn('structurée', self.ocr.error_message)
+        # Aucun détail interne (« LLM down », stack…) ne doit fuiter.
+        self.assertNotIn('LLM', self.ocr.error_message)
+        self.assertNotIn('down', self.ocr.error_message)
+
+    def test_structuring_unexpected_exception_preserves_ocr(self) -> None:
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...'),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                return_value=_fake_extraction(),
+            ),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                side_effect=TypeError('unexpected'),
+            ),
+        ):
+            outcome = self._run()
+
+        self.assertEqual(outcome, 'failed_structuring_unexpected')
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_FAILED)
+        self.assertEqual(self.ocr.raw_text, 'ligne 1\nligne 2')
+        self.assertEqual(self.ocr.confidence_score, Decimal('0.912'))
+        self.assertIn('ocr', self.ocr.structured_data)
+        self.assertNotIn('invoice', self.ocr.structured_data)
+
+    def test_no_stock_movement_on_structuring_failure(self) -> None:
+        from .ai_client import AiServiceUnavailableError
+
+        before = StockMovement.objects.count()
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...'),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                return_value=_fake_extraction(),
+            ),
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                side_effect=AiServiceUnavailableError('LLM down'),
+            ),
+        ):
+            self._run()
+        self.assertEqual(StockMovement.objects.count(), before)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# mark_ocr_failed — persistance partielle OCR après échec structuration (6B)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class MarkOcrFailedPartialPersistenceTest(TestCase):
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+        self.document = make_document(self.shop, self.user)
+
+    def _make_processing(self) -> OcrResult:
+        return OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_PROCESSING,
+        )
+
+    def test_partial_ocr_preserved_on_failure(self) -> None:
+        from .services import mark_ocr_failed
+
+        ocr = self._make_processing()
+        result = mark_ocr_failed(
+            ocr.pk,
+            error_message='structuration KO',
+            raw_text='texte reconnu',
+            structured_data={'ocr': {'lines': []}},
+            confidence_score=Decimal('0.912'),
+        )
+        result.refresh_from_db()
+        self.assertEqual(result.status, OcrResult.STATUS_FAILED)
+        self.assertEqual(result.raw_text, 'texte reconnu')
+        self.assertEqual(result.structured_data, {'ocr': {'lines': []}})
+        self.assertEqual(result.confidence_score, Decimal('0.912'))
+        self.assertEqual(result.error_message, 'structuration KO')
+
+    def test_partial_persistence_confidence_bounds_enforced(self) -> None:
+        from .services import InvalidConfidenceScoreError, mark_ocr_failed
+
+        ocr = self._make_processing()
+        with self.assertRaises(InvalidConfidenceScoreError):
+            mark_ocr_failed(
+                ocr.pk,
+                error_message='ko',
+                raw_text='x',
+                confidence_score=Decimal('1.001'),
+            )
+        ocr.refresh_from_db()
+        # Statut inchangé : la validation borne-t-elle avant la transaction.
+        self.assertEqual(ocr.status, OcrResult.STATUS_PROCESSING)
+        self.assertEqual(ocr.raw_text, '')
+
+    def test_partial_persistence_validated_state_immutable(self) -> None:
+        """Un OCR déjà validé humainement ne peut PAS être écrasé, même en
+        échec avec des données partielles."""
+        from .services import InvalidOcrTransitionError, mark_ocr_failed
+
+        ocr = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=self.document,
+            status=OcrResult.STATUS_VALIDATED,
+            raw_text='humain-validé',
+        )
+        with self.assertRaises(InvalidOcrTransitionError):
+            mark_ocr_failed(
+                ocr.pk,
+                error_message='ko',
+                raw_text='nouveau-texte',
+                structured_data={'ocr': {'lines': []}},
+                confidence_score=Decimal('0.5'),
+            )
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_VALIDATED)
+        self.assertEqual(ocr.raw_text, 'humain-validé')
+
+    def test_partial_persistence_backward_compat_without_extras(self) -> None:
+        """Sans paramètres optionnels, comportement historique inchangé."""
+        from .services import mark_ocr_failed
+
+        ocr = self._make_processing()
+        mark_ocr_failed(ocr.pk, error_message='old-flow')
+        ocr.refresh_from_db()
+        self.assertEqual(ocr.status, OcrResult.STATUS_FAILED)
+        self.assertEqual(ocr.raw_text, '')
+        self.assertIsNone(ocr.structured_data)
+        self.assertIsNone(ocr.confidence_score)

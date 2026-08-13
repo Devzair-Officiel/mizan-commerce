@@ -70,17 +70,108 @@ class _OcrLineSerializer(serializers.Serializer):
     bbox = serializers.ListField(child=serializers.IntegerField())
 
 
+# ─── Sérialiseurs facture (étape 6B) ───────────────────────────────────────
+#
+# Les valeurs monétaires et la date sont exposées sous forme de string : elles
+# proviennent du dict JSON persisté et suivent le contrat du service IA. On
+# évite ainsi toute réinterprétation numérique côté serializer (Decimal quantize
+# implicite, cast float) qui pourrait diverger de la source.
+
+
+class _InvoiceLineSerializer(serializers.Serializer):
+    description = serializers.CharField(allow_blank=True)
+    supplier_reference = serializers.CharField(allow_null=True, allow_blank=True)
+    quantity = serializers.CharField(allow_null=True)
+    unit_price = serializers.CharField(allow_null=True)
+    line_total = serializers.CharField(allow_null=True)
+    source_line_indices = serializers.ListField(child=serializers.IntegerField())
+
+
+class _InvoiceSerializer(serializers.Serializer):
+    supplier_name = serializers.CharField(allow_null=True, allow_blank=True)
+    invoice_number = serializers.CharField(allow_null=True, allow_blank=True)
+    invoice_date = serializers.CharField(allow_null=True)
+    currency = serializers.CharField(allow_null=True, allow_blank=True)
+    subtotal = serializers.CharField(allow_null=True)
+    tax_amount = serializers.CharField(allow_null=True)
+    total = serializers.CharField(allow_null=True)
+    lines = _InvoiceLineSerializer(many=True)
+    warnings = serializers.ListField(child=serializers.CharField(allow_blank=True))
+
+
+def _sanitize_invoice_line(entry: object) -> dict | None:
+    """Whitelist stricte des champs d'une ligne facture."""
+    if not isinstance(entry, dict):
+        return None
+    indices_raw = entry.get('source_line_indices')
+    indices = (
+        [int(v) for v in indices_raw if isinstance(v, int) and not isinstance(v, bool)]
+        if isinstance(indices_raw, list)
+        else []
+    )
+    return {
+        'description': str(entry.get('description', '')),
+        'supplier_reference': _optional_str(entry.get('supplier_reference')),
+        'quantity': _optional_str(entry.get('quantity')),
+        'unit_price': _optional_str(entry.get('unit_price')),
+        'line_total': _optional_str(entry.get('line_total')),
+        'source_line_indices': indices,
+    }
+
+
+def _sanitize_invoice(block: object) -> dict | None:
+    """Whitelist stricte des clés facture — écarte toute clé non prévue.
+
+    Pas un contrôle de sécurité au sens strict (l'écriture est déjà validée
+    côté service), mais un garde-fou contre une régression future qui
+    introduirait un champ non prévu et l'exposerait sans revue.
+    """
+    if not isinstance(block, dict):
+        return None
+    lines_raw = block.get('lines', [])
+    lines = (
+        [line for line in (_sanitize_invoice_line(e) for e in lines_raw) if line is not None]
+        if isinstance(lines_raw, list)
+        else []
+    )
+    warnings_raw = block.get('warnings', [])
+    warnings = (
+        [str(w) for w in warnings_raw if isinstance(w, str)]
+        if isinstance(warnings_raw, list)
+        else []
+    )
+    return {
+        'supplier_name': _optional_str(block.get('supplier_name')),
+        'invoice_number': _optional_str(block.get('invoice_number')),
+        'invoice_date': _optional_str(block.get('invoice_date')),
+        'currency': _optional_str(block.get('currency')),
+        'subtotal': _optional_str(block.get('subtotal')),
+        'tax_amount': _optional_str(block.get('tax_amount')),
+        'total': _optional_str(block.get('total')),
+        'lines': lines,
+        'warnings': warnings,
+    }
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
 class OcrResultDetailSerializer(serializers.Serializer):
     """Contrat de lecture d'un `OcrResult` par le commerçant.
 
     N'expose *que* les données nécessaires à l'écran de revue :
     - identifiants + statut ;
     - texte reconnu + lignes détectées avec confiance et bbox ;
-    - message d'erreur (générique) si l'OCR a échoué.
+    - proposition de structure facture (`invoice`) — nullable tant que la
+      structuration LLM n'a pas abouti ;
+    - message d'erreur (générique) si l'OCR ou la structuration a échoué.
 
     N'expose *jamais* : `object_key`, URL S3, l'utilisateur qui a uploadé,
-    le contenu complet de `structured_data` (namespace `invoice` réservé
-    aux étapes ultérieures).
+    le contenu brut de `structured_data` (seuls les champs whitelistés
+    ci-dessus fuitent — toute clé imprévue est écartée).
     """
 
     ocr_result_id = serializers.UUIDField()
@@ -91,6 +182,7 @@ class OcrResultDetailSerializer(serializers.Serializer):
         max_digits=4, decimal_places=3, allow_null=True,
     )
     lines = _OcrLineSerializer(many=True)
+    invoice = _InvoiceSerializer(allow_null=True)
     error_message = serializers.CharField(allow_blank=True)
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
@@ -115,6 +207,11 @@ class OcrResultDetailSerializer(serializers.Serializer):
             if isinstance(entry, dict)
         ]
 
+        invoice_block = (
+            structured.get('invoice') if isinstance(structured, dict) else None
+        )
+        invoice = _sanitize_invoice(invoice_block)
+
         return cls({
             'ocr_result_id': ocr_result.pk,
             'document_id': ocr_result.uploaded_document_id,
@@ -122,6 +219,7 @@ class OcrResultDetailSerializer(serializers.Serializer):
             'raw_text': ocr_result.raw_text,
             'confidence_score': ocr_result.confidence_score,
             'lines': lines,
+            'invoice': invoice,
             'error_message': ocr_result.error_message,
             'created_at': ocr_result.created_at,
             'updated_at': ocr_result.updated_at,

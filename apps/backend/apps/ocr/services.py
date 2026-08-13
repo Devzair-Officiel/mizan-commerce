@@ -260,17 +260,45 @@ def mark_ocr_failed(
     ocr_result_id: UUID,
     *,
     error_message: str,
+    raw_text: str | None = None,
+    structured_data: dict | None = None,
+    confidence_score: Decimal | None = None,
 ) -> OcrResult:
     """Marque un OCR en échec : `processing` → `failed`.
 
     Le message d'erreur doit rester safe pour affichage : ne pas y injecter
     de stack trace ni de chemin serveur. Détails techniques → logs.
+
+    Les paramètres optionnels `raw_text`, `structured_data`, `confidence_score`
+    servent au cas « OCR réussi + étape suivante échouée » (ex. structuration
+    LLM 6B) : on veut préserver ce qui a déjà été extrait pour ne pas re-payer
+    l'OCR et permettre à l'utilisateur de consulter le texte reconnu même si
+    la reconstruction structurée n'a pas abouti. Sans ces paramètres, le
+    comportement historique est inchangé.
     """
+    if confidence_score is not None and not (
+        _CONFIDENCE_MIN <= confidence_score <= _CONFIDENCE_MAX
+    ):
+        raise InvalidConfidenceScoreError(
+            f'confidence_score doit être dans [{_CONFIDENCE_MIN}, {_CONFIDENCE_MAX}], '
+            f'reçu : {confidence_score}.'
+        )
+
     with transaction.atomic():
         result = OcrResult.objects.select_for_update().get(pk=ocr_result_id)
         if result.status != OcrResult.STATUS_PROCESSING:
             _raise_invalid_transition(result.status, OcrResult.STATUS_FAILED)
         result.status = OcrResult.STATUS_FAILED
         result.error_message = error_message
-        result.save(update_fields=['status', 'error_message', 'updated_at'])
+        update_fields = ['status', 'error_message', 'updated_at']
+        if raw_text is not None:
+            result.raw_text = raw_text
+            update_fields.append('raw_text')
+        if structured_data is not None:
+            result.structured_data = structured_data
+            update_fields.append('structured_data')
+        if confidence_score is not None:
+            result.confidence_score = confidence_score
+            update_fields.append('confidence_score')
+        result.save(update_fields=update_fields)
     return result

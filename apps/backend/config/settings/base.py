@@ -218,3 +218,10 @@ AI_SERVICE_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_TIMEOUT_SECONDS', 
 # le premier appel dans un worker déclenche le chargement du pipeline PaddleOCR
 # (téléchargement + chargement modèles ~15 s) puis l'inférence proprement dite.
 AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SECONDS', '60'))
+# Timeout dédié à la structuration LLM (POC 6B). Doit rester légèrement
+# supérieur au timeout OpenAI configuré côté ai-service (par défaut 45 s) :
+# on veut que FastAPI puisse gérer son propre timeout et renvoyer un 502
+# propre plutôt que voir httpx couper la connexion prématurément.
+AI_SERVICE_INVOICE_TIMEOUT_SECONDS = float(
+    os.environ.get('AI_SERVICE_INVOICE_TIMEOUT_SECONDS', '50'),
+)

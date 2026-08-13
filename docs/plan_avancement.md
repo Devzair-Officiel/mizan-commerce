@@ -345,7 +345,7 @@
 - [x] Intégration PaddleOCR ou Tesseract dans le service IA
 - [x] Endpoint upload facture + extraction texte brut
 - [x] Modèle `UploadedDocument`, `OcrResult`
-- [ ] Extraction structurée : produits, quantités, prix
+- [x] Extraction structurée : produits, quantités, prix
 - [ ] Affichage frontend des lignes détectées avec confiance
 - [ ] Validation humaine ligne par ligne
 - [ ] Création des `StockMovement` après validation uniquement

@@ -21,7 +21,13 @@ from django.utils import timezone
 
 from apps.core.storage import download_bytes
 
-from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
+from .ai_client import (
+    AiInvoiceExtraction,
+    AiOcrExtraction,
+    AiServiceUnavailableError,
+    extract_text_with_ai_service,
+    structure_invoice_with_ai_service,
+)
 from .models import OcrResult
 from .services import (
     InvalidConfidenceScoreError,
@@ -37,6 +43,13 @@ logger = logging.getLogger(__name__)
 # Message générique remonté côté commerçant. Volontairement non technique :
 # le détail (stack, code HTTP, chemin S3) reste dans les logs serveur.
 _GENERIC_FAILURE_MESSAGE = "L'extraction du texte a échoué. Veuillez réessayer."
+
+# Message spécifique quand l'OCR a réussi mais que la structuration LLM a
+# échoué : on veut expliquer au commerçant qu'il peut quand même consulter
+# le texte reconnu (préservé sur l'OcrResult malgré le status=failed).
+_STRUCTURING_FAILURE_MESSAGE = (
+    "L'analyse structurée de la facture a échoué. Le texte OCR reste disponible."
+)
 
 # Précision cible pour le champ `OcrResult.confidence_score`
 # (`DecimalField(max_digits=4, decimal_places=3)`).
@@ -167,23 +180,51 @@ def process_invoice_ocr(ocr_result_id: str) -> str:
         mark_ocr_failed(ocr_result_id, error_message=_GENERIC_FAILURE_MESSAGE)
         return 'failed_unexpected'
 
-    structured_data = {
-        # Namespace `ocr` volontairement isolé : l'étape 6 (extraction
-        # structurée) ajoutera `structured_data['invoice']` sans écraser
-        # les données brutes conservées ici pour audit / debug.
-        'ocr': {
-            'lines': [
-                {
-                    'text': line.text,
-                    'confidence': line.confidence,
-                    'bbox': line.bbox,
-                }
-                for line in extraction.lines
-            ],
-        },
-    }
-
+    ocr_namespace = _build_ocr_namespace(extraction)
     confidence = _to_decimal_confidence(extraction.confidence_score)
+
+    # Étape 6B : structuration LLM. On appelle après l'OCR pour ne pas re-payer
+    # la reconnaissance PaddleOCR en cas d'échec côté LLM. En cas d'échec, on
+    # préserve les données OCR (raw_text + `structured_data['ocr']` + score)
+    # via `mark_ocr_failed(..., raw_text=, structured_data=, confidence_score=)`
+    # : le commerçant peut consulter le texte extrait même sans structure.
+    try:
+        invoice = structure_invoice_with_ai_service(
+            raw_text=extraction.raw_text,
+            lines=extraction.lines,
+        )
+    except AiServiceUnavailableError:
+        logger.warning(
+            'Service IA (structuration) indisponible pour OCR %s.', ocr_result_id,
+        )
+        _mark_failed_preserving_ocr(
+            ocr_result_id,
+            extraction=extraction,
+            ocr_namespace=ocr_namespace,
+            confidence=confidence,
+        )
+        return 'failed_structuring'
+    except Exception:
+        # Filet de sécurité — on ne perd jamais l'OCR sur une erreur inattendue
+        # pendant la structuration.
+        logger.exception(
+            'Erreur inattendue pendant la structuration facture %s.', ocr_result_id,
+        )
+        _mark_failed_preserving_ocr(
+            ocr_result_id,
+            extraction=extraction,
+            ocr_namespace=ocr_namespace,
+            confidence=confidence,
+        )
+        return 'failed_structuring_unexpected'
+
+    structured_data = {
+        # Namespace `ocr` volontairement isolé du namespace `invoice` : les
+        # deux évoluent indépendamment et un futur re-traitement (relance
+        # LLM) doit pouvoir écraser `invoice` sans toucher au brut OCR.
+        'ocr': ocr_namespace,
+        'invoice': _invoice_to_jsonable(invoice),
+    }
 
     try:
         mark_ocr_done(
@@ -202,3 +243,75 @@ def process_invoice_ocr(ocr_result_id: str) -> str:
         return 'failed_invalid_confidence'
 
     return 'done'
+
+
+def _build_ocr_namespace(extraction: AiOcrExtraction) -> dict:
+    """Sérialise le résultat OCR pour le champ `structured_data['ocr']`."""
+    return {
+        'lines': [
+            {
+                'text': line.text,
+                'confidence': line.confidence,
+                'bbox': line.bbox,
+            }
+            for line in extraction.lines
+        ],
+    }
+
+
+def _invoice_to_jsonable(invoice: AiInvoiceExtraction) -> dict:
+    """Convertit un `AiInvoiceExtraction` en dict JSON-sérialisable.
+
+    Les `Decimal` deviennent des strings (précision préservée, pas d'arrondi
+    binaire) et la date ISO passe par `isoformat()`. Ce format est celui
+    persisté dans `OcrResult.structured_data` et relu par le serializer.
+    """
+    return {
+        'supplier_name': invoice.supplier_name,
+        'invoice_number': invoice.invoice_number,
+        'invoice_date': invoice.invoice_date.isoformat() if invoice.invoice_date else None,
+        'currency': invoice.currency,
+        'subtotal': str(invoice.subtotal) if invoice.subtotal is not None else None,
+        'tax_amount': str(invoice.tax_amount) if invoice.tax_amount is not None else None,
+        'total': str(invoice.total) if invoice.total is not None else None,
+        'lines': [
+            {
+                'description': line.description,
+                'supplier_reference': line.supplier_reference,
+                'quantity': str(line.quantity) if line.quantity is not None else None,
+                'unit_price': str(line.unit_price) if line.unit_price is not None else None,
+                'line_total': str(line.line_total) if line.line_total is not None else None,
+                'source_line_indices': list(line.source_line_indices),
+            }
+            for line in invoice.lines
+        ],
+        'warnings': list(invoice.warnings),
+    }
+
+
+def _mark_failed_preserving_ocr(
+    ocr_result_id: str,
+    *,
+    extraction: AiOcrExtraction,
+    ocr_namespace: dict,
+    confidence: Decimal | None,
+) -> None:
+    """Bascule en `failed` en conservant le résultat OCR déjà obtenu.
+
+    Volontairement PAS d'entrée `invoice` dans `structured_data` : la
+    structuration n'a pas abouti, on ne doit pas mentir sur l'existence
+    d'une structure côté API.
+    """
+    try:
+        mark_ocr_failed(
+            ocr_result_id,
+            error_message=_STRUCTURING_FAILURE_MESSAGE,
+            raw_text=extraction.raw_text,
+            structured_data={'ocr': ocr_namespace},
+            confidence_score=confidence,
+        )
+    except InvalidConfidenceScoreError:
+        logger.exception(
+            'Score OCR hors bornes pendant échec structuration %s.', ocr_result_id,
+        )
+        mark_ocr_failed(ocr_result_id, error_message=_GENERIC_FAILURE_MESSAGE)
