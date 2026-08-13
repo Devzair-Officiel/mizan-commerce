@@ -88,7 +88,10 @@ interface ProductListViewProps {
 
 function ProductListView({ search, setSearch, onPickProduct }: ProductListViewProps) {
   const t = useTranslations('stock.catalogSheet');
-  const { data, isLoading } = useProducts({ search, type: 'product', all: true });
+  // Pas de `all: true` : le backend interprète all=1 comme
+  // "actifs + inactifs" ; ici on veut uniquement les produits actifs
+  // (filtre par défaut côté serveur).
+  const { data, isLoading } = useProducts({ search, type: 'product' });
   const products = useMemo<Product[]>(() => data?.results ?? [], [data]);
 
   return (
@@ -96,7 +99,7 @@ function ProductListView({ search, setSearch, onPickProduct }: ProductListViewPr
       <div className="relative">
         <Search
           size={15}
-          className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          className="absolute inset-s-3 top-1/2 -translate-y-1/2 text-muted-foreground"
         />
         <input
           type="search"
@@ -116,7 +119,7 @@ function ProductListView({ search, setSearch, onPickProduct }: ProductListViewPr
             type="button"
             onClick={() => setSearch('')}
             aria-label={t('search_clear_aria')}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           >
             <X size={13} />
           </button>

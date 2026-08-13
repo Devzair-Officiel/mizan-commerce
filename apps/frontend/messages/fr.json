@@ -910,6 +910,7 @@
       "error_payload": "Certaines lignes ne sont pas valides. Vérifiez les quantités et les articles sélectionnés.",
       "error_conflict": "Cette facture a déjà été validée avec des choix différents. Rechargez la page.",
       "validated_title": "Facture validée",
+      "validated_at": "Validée le {when}",
       "validated_body": "{stock, plural, =0 {Aucune ligne} one {# ligne} other {# lignes}} en stock, {ignored, plural, =0 {aucune ignorée} one {# ignorée} other {# ignorées}}.",
       "validated_no_stock_hint": "L'entrée de stock proprement dite arrive dans l'étape suivante.",
       "validated_lines_title": "Décisions",

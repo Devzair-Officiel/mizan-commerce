@@ -888,6 +888,7 @@
       "error_payload": "بعض الأسطر غير صالحة. تحقق من الكميات والمنتجات المختارة.",
       "error_conflict": "تم التحقق من هذه الفاتورة مسبقًا بخيارات مختلفة. أعد تحميل الصفحة.",
       "validated_title": "تم التحقق من الفاتورة",
+      "validated_at": "تم التحقق في {when}",
       "validated_body": "{stock, plural, =0 {لا سطر} one {# سطر} other {# أسطر}} في المخزون، {ignored, plural, =0 {لم يُتجاهل شيء} one {# متجاهل} other {# متجاهلة}}.",
       "validated_no_stock_hint": "إدخال المخزون الفعلي في الخطوة التالية.",
       "validated_lines_title": "القرارات",

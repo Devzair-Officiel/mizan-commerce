@@ -10,6 +10,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { FloatingInput } from '@/components/ui/floating-fields';
+import { useFormatDateTime } from '@/lib/hooks/useFormat';
 import {
   MatchingCandidatesSheet,
   type MatchingCandidateSelection,
@@ -878,8 +879,12 @@ interface ValidatedViewProps {
 
 function ValidatedView({ result, invoice, review, onReset }: ValidatedViewProps) {
   const t = useTranslations('stock.importInvoice');
+  const formatDateTime = useFormatDateTime();
   const stockCount = review.lines.filter((l) => l.decision === 'stock').length;
   const ignoreCount = review.lines.filter((l) => l.decision === 'ignore').length;
+  const validatedAtLabel = result.validated_at
+    ? t('validated_at', { when: formatDateTime(result.validated_at) })
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -892,6 +897,9 @@ function ValidatedView({ result, invoice, review, onReset }: ValidatedViewProps)
           <p className="text-xs text-muted-foreground mt-1 max-w-xs">
             {t('validated_body', { stock: stockCount, ignored: ignoreCount })}
           </p>
+          {validatedAtLabel && (
+            <p className="text-[11px] text-muted-foreground mt-1.5">{validatedAtLabel}</p>
+          )}
         </div>
         <p className="text-[11px] text-muted-foreground/80">
           {t('validated_no_stock_hint')}

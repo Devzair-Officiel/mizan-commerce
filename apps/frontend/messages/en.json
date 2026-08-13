@@ -910,6 +910,7 @@
       "error_payload": "Some lines are invalid. Please check quantities and selected items.",
       "error_conflict": "This invoice was already validated with different choices. Please reload.",
       "validated_title": "Invoice validated",
+      "validated_at": "Validated on {when}",
       "validated_body": "{stock, plural, =0 {No line} one {# line} other {# lines}} in stock, {ignored, plural, =0 {none ignored} one {# ignored} other {# ignored}}.",
       "validated_no_stock_hint": "The actual stock entry happens in the next step.",
       "validated_lines_title": "Decisions",

@@ -84,10 +84,8 @@ export interface OcrReviewLine {
 }
 
 export interface OcrReview {
-  schema_version: number;
+  schema_version: 1;
   lines: OcrReviewLine[];
-  validated_by: string | null;
-  validated_at: string;
 }
 
 // ── Résultat OCR complet ───────────────────────────────────────────────────
@@ -205,6 +203,10 @@ export interface ValidateReviewPayload {
  * un retry réseau avec le même payload canonique renvoie 200. Un payload
  * divergent après validation retourne 409.
  *
+ * Sur 409, on refetch l'OcrResult : si le serveur est déjà `validated`,
+ * l'écran bascule automatiquement sur `ValidatedView`. On n'invalide PAS
+ * sur les 400 (contrat client cassé, l'état serveur est inchangé).
+ *
  * Aucun StockMovement n'est créé — l'entrée de stock est déclenchée en Step 10.
  */
 export function useValidateOcrReview(ocrResultId: string | null | undefined) {
@@ -219,6 +221,12 @@ export function useValidateOcrReview(ocrResultId: string | null | undefined) {
       if (!ocrResultId) return;
       qc.setQueryData(qk.ocr.result(ocrResultId), data);
       qc.invalidateQueries({ queryKey: qk.ocr.result(ocrResultId) });
+    },
+    onError: (err) => {
+      if (!ocrResultId) return;
+      if (err instanceof ApiError && err.status === 409) {
+        qc.invalidateQueries({ queryKey: qk.ocr.result(ocrResultId) });
+      }
     },
   });
 }
