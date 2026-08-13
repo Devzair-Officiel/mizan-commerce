@@ -15,7 +15,7 @@ import type {
 } from '@/lib/hooks/useOcr';
 import {
   bestCandidateForLine, buildReviewDraft, buildReviewPayload,
-  candidatesForLine, computeLineOcrConfidence, matchKindLabel,
+  candidatesForLine, computeLineOcrConfidence,
   type ReviewedInvoiceLine,
 } from '@/lib/ocr/review';
 
@@ -407,6 +407,7 @@ function InvoiceLineRow({
   index, invoiceLine, draftLine, ocrLines, matching, currency, onChange, onOpenMatch,
 }: InvoiceLineRowProps) {
   const t = useTranslations('stock.importInvoice');
+  const tMatch = useTranslations('stock.matchKind');
   const ocrConfidence = computeLineOcrConfidence(invoiceLine.source_line_indices, ocrLines);
   const ocrConfidencePct = ocrConfidence !== null ? Math.round(ocrConfidence * 100) : null;
 
@@ -481,7 +482,7 @@ function InvoiceLineRow({
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {candidateToDisplay.packaging_name && <>{candidateToDisplay.packaging_name} · </>}
-                {matchKindLabel(candidateToDisplay.match_kind)}
+                {tMatch(candidateToDisplay.match_kind)}
                 {!isConfirmed && ` · ${t('proposal_suffix')}`}
               </p>
             </>

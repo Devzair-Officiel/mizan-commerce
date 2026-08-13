@@ -154,21 +154,6 @@ export function buildReviewPayload(
 }
 
 /**
- * Étiquette FR courte pour un `match_kind`. Placée ici (pas dans le
- * composant) pour rester testable et réutilisable sans dépendance UI.
- */
-export function matchKindLabel(kind: OcrMatchingCandidate['match_kind']): string {
-  switch (kind) {
-    case 'barcode_exact':
-      return 'Code-barres identique';
-    case 'sku_exact':
-      return 'Référence identique';
-    case 'name_similarity':
-      return 'Nom similaire';
-  }
-}
-
-/**
  * Wrapper pratique : construit un draft vide (utilisé quand l'invoice
  * est absente mais qu'on veut initialiser un état stable).
  */

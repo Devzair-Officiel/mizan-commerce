@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { Check } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { matchKindLabel } from '@/lib/ocr/review';
 import type { OcrMatchingCandidate } from '@/lib/hooks/useOcr';
 
 interface MatchingCandidatesSheetProps {
@@ -30,6 +29,7 @@ export function MatchingCandidatesSheet({
   open, onClose, candidates, selectedVariantId, onSelect, invoiceDescription,
 }: MatchingCandidatesSheetProps) {
   const t = useTranslations('stock.candidatesSheet');
+  const tMatch = useTranslations('stock.matchKind');
   return (
     <BottomSheet open={open} onClose={onClose} title={t('title')}>
       <div className="flex flex-col gap-3">
@@ -72,7 +72,7 @@ export function MatchingCandidatesSheet({
                         <p className="text-xs text-muted-foreground truncate">{c.packaging_name}</p>
                       )}
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground">{matchKindLabel(c.match_kind)}</span>
+                        <span className="text-[11px] text-muted-foreground">{tMatch(c.match_kind)}</span>
                         <span className="text-[11px] tabular-nums text-muted-foreground/80">·</span>
                         <span className="text-[11px] tabular-nums text-muted-foreground">
                           {c.similarity_score}/100

@@ -898,6 +898,11 @@
       "empty_title": "Aucun article correspondant",
       "empty_body": "Le catalogue ne propose aucun article pour cette ligne.",
       "remove_selection": "Retirer la sélection"
+    },
+    "matchKind": {
+      "barcode_exact": "Code-barres identique",
+      "sku_exact": "Référence identique",
+      "name_similarity": "Nom similaire"
     }
   },
   "messages": {

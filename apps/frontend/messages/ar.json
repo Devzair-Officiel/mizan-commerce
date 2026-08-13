@@ -876,6 +876,11 @@
       "empty_title": "لا يوجد منتج مطابق",
       "empty_body": "لا يقترح الكتالوج أي منتج لهذا السطر.",
       "remove_selection": "إلغاء التحديد"
+    },
+    "matchKind": {
+      "barcode_exact": "رمز شريطي مطابق",
+      "sku_exact": "مرجع مطابق",
+      "name_similarity": "اسم مشابه"
     }
   },
   "messages": {

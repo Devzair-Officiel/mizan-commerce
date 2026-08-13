@@ -898,6 +898,11 @@
       "empty_title": "No matching item",
       "empty_body": "The catalog offers no item for this line.",
       "remove_selection": "Clear selection"
+    },
+    "matchKind": {
+      "barcode_exact": "Exact barcode",
+      "sku_exact": "Exact SKU",
+      "name_similarity": "Similar name"
     }
   },
   "messages": {
