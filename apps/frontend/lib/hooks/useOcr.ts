@@ -70,6 +70,26 @@ export interface OcrMatching {
   lines: OcrMatchingLine[];
 }
 
+// ── Revue humaine (Step 9) ─────────────────────────────────────────────────
+export type OcrReviewDecision = 'stock' | 'ignore';
+
+export interface OcrReviewLine {
+  invoice_line_index: number;
+  description: string;
+  quantity: string | null;
+  unit_price: string | null;
+  line_total: string | null;
+  decision: OcrReviewDecision;
+  variant_id: string | null;
+}
+
+export interface OcrReview {
+  schema_version: number;
+  lines: OcrReviewLine[];
+  validated_by: string | null;
+  validated_at: string;
+}
+
 // ── Résultat OCR complet ───────────────────────────────────────────────────
 export interface OcrResult {
   ocr_result_id: string;
@@ -81,6 +101,9 @@ export interface OcrResult {
   lines: OcrLine[];
   invoice: OcrInvoice | null;
   matching: OcrMatching | null;
+  /** Présent uniquement après validation humaine (status === 'validated'). */
+  review: OcrReview | null;
+  validated_at: string | null;
   error_message: string;
   created_at: string;
   updated_at: string;
@@ -159,4 +182,43 @@ export function useOcrResult(
 /** Exporté pour usage en test unitaire d'un helper d'arrêt du polling. */
 export function isTerminalOcrStatus(status: OcrStatus): boolean {
   return TERMINAL_STATUSES.has(status);
+}
+
+// ── Validation humaine (Step 9A) ───────────────────────────────────────────
+
+export interface ValidateReviewLinePayload {
+  invoice_line_index: number;
+  description: string;
+  quantity: string | null;
+  unit_price: string | null;
+  line_total: string | null;
+  decision: OcrReviewDecision;
+  variant_id: string | null;
+}
+
+export interface ValidateReviewPayload {
+  lines: ValidateReviewLinePayload[];
+}
+
+/**
+ * Fige la revue humaine côté backend. Idempotence garantie côté serveur :
+ * un retry réseau avec le même payload canonique renvoie 200. Un payload
+ * divergent après validation retourne 409.
+ *
+ * Aucun StockMovement n'est créé — l'entrée de stock est déclenchée en Step 10.
+ */
+export function useValidateOcrReview(ocrResultId: string | null | undefined) {
+  const qc = useQueryClient();
+  return useMutation<OcrResult, ApiError, ValidateReviewPayload>({
+    mutationFn: (payload: ValidateReviewPayload) =>
+      apiFetch<OcrResult>(`/ocr/results/${ocrResultId}/validate/`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: (data) => {
+      if (!ocrResultId) return;
+      qc.setQueryData(qk.ocr.result(ocrResultId), data);
+      qc.invalidateQueries({ queryKey: qk.ocr.result(ocrResultId) });
+    },
+  });
 }

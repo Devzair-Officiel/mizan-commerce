@@ -1,5 +1,5 @@
 /**
- * Utilitaires purs pour l'écran de revue de facture OCR.
+ * Utilitaires purs pour l'écran de revue de facture OCR (Steps 8-9).
  *
  * Aucune dépendance React ni réseau : ces fonctions sont pensées pour
  * être testables isolément et permettent aux composants d'afficher un
@@ -13,6 +13,9 @@ import type {
   OcrLine,
   OcrMatching,
   OcrMatchingCandidate,
+  OcrReviewDecision,
+  ValidateReviewLinePayload,
+  ValidateReviewPayload,
 } from '@/lib/hooks/useOcr';
 
 export interface ReviewedInvoiceLine {
@@ -22,14 +25,22 @@ export interface ReviewedInvoiceLine {
   quantity: string | null;
   unitPrice: string | null;
   lineTotal: string | null;
-  /** `null` tant que l'utilisateur n'a pas explicitement choisi/confirmé un candidat. */
+  /**
+   * Décision utilisateur explicite : `null` = ligne encore à traiter,
+   * `'stock'` = entrera en stock (variante requise), `'ignore'` = ignorée.
+   */
+  decision: OcrReviewDecision | null;
+  /** Défini uniquement pour `decision === 'stock'`. */
   selectedVariantId: string | null;
+  /** Snapshots d'affichage — évitent une requête catalogue pour rendre la ligne confirmée. */
+  selectedProductName: string | null;
+  selectedPackagingName: string | null;
 }
 
 /**
  * Construit le draft de revue à partir de la facture structurée.
- * `selectedVariantId` reste `null` même si un unique candidat sku_exact
- * existe : la validation implicite est interdite (Step 8 = revue uniquement).
+ * Aucune décision n'est présélectionnée — même un unique candidat
+ * sku_exact avec score 100 doit être coché explicitement (règle Step 8-9).
  */
 export function buildReviewDraft(invoice: OcrInvoice): ReviewedInvoiceLine[] {
   return invoice.lines.map((line, index) => ({
@@ -38,7 +49,10 @@ export function buildReviewDraft(invoice: OcrInvoice): ReviewedInvoiceLine[] {
     quantity: line.quantity,
     unitPrice: line.unit_price,
     lineTotal: line.line_total,
+    decision: null,
     selectedVariantId: null,
+    selectedProductName: null,
+    selectedPackagingName: null,
   }));
 }
 
@@ -101,56 +115,93 @@ export function candidatesForLine(
   return matchLine?.candidates ?? [];
 }
 
-export interface ReviewPayloadLine {
-  invoice_line_index: number;
-  description: string;
-  quantity: string | null;
-  unit_price: string | null;
-  line_total: string | null;
-  variant_id: string | null;
-}
-
-export interface ReviewPayload {
-  supplier_name: string | null;
-  invoice_number: string | null;
-  invoice_date: string | null;
-  currency: string | null;
-  subtotal: string | null;
-  tax_amount: string | null;
-  total: string | null;
-  lines: ReviewPayloadLine[];
+/**
+ * Une chaîne représente-t-elle une quantité strictement positive ?
+ * Utilise Number() pour un check numérique tolérant mais ne consomme jamais
+ * la valeur : on ne convertit pas les montants en float pour envoi API.
+ */
+export function isPositiveQuantityString(qty: string | null | undefined): boolean {
+  if (qty == null) return false;
+  const trimmed = qty.trim();
+  if (trimmed === '') return false;
+  const normalized = trimmed.replace(',', '.');
+  const num = Number(normalized);
+  return Number.isFinite(num) && num > 0;
 }
 
 /**
- * Construit le payload de revue qui sera envoyé à Step 9 (validation).
- * NE PAS appeler l'API depuis Step 8 : cette fonction reste pure et
- * ne fait qu'assembler l'état local en un dict sérialisable.
+ * Une ligne `stock` est-elle prête pour validation ?
+ * Requiert : variant sélectionné + quantité > 0.
+ * (Le backend impose aussi `unit_price` et `line_total` non nuls quand décision=stock ;
+ * l'utilisateur peut les corriger dans le formulaire.)
+ */
+export function isStockLineReady(line: ReviewedInvoiceLine): boolean {
+  if (line.decision !== 'stock') return false;
+  if (line.selectedVariantId === null) return false;
+  if (!isPositiveQuantityString(line.quantity)) return false;
+  return true;
+}
+
+/**
+ * Le draft est-il prêt à être envoyé au backend ?
+ * Requiert : au moins une ligne, toutes les lignes décidées, et toutes les lignes
+ * `stock` valides.
+ */
+export function isDraftReady(draft: readonly ReviewedInvoiceLine[]): boolean {
+  if (draft.length === 0) return false;
+  for (const line of draft) {
+    if (line.decision === null) return false;
+    if (line.decision === 'stock' && !isStockLineReady(line)) return false;
+  }
+  return true;
+}
+
+export interface DecisionCounts {
+  stock: number;
+  ignore: number;
+  pending: number;
+}
+
+/**
+ * Compte les lignes par état de décision — utilisé pour l'UI (résumé
+ * sticky, confirmation modal).
+ */
+export function countDecisions(draft: readonly ReviewedInvoiceLine[]): DecisionCounts {
+  const counts: DecisionCounts = { stock: 0, ignore: 0, pending: 0 };
+  for (const line of draft) {
+    if (line.decision === 'stock') counts.stock += 1;
+    else if (line.decision === 'ignore') counts.ignore += 1;
+    else counts.pending += 1;
+  }
+  return counts;
+}
+
+/**
+ * Construit le payload de validation à envoyer au backend Step 9A.
+ * Retourne uniquement `{ lines: [...] }` — les métadonnées fournisseur
+ * ne font PAS partie du contrat de validation (Step 9A n'y touche pas).
  *
- * Les montants sont conservés en STRING — jamais convertis en float.
- * Les lignes non modifiables (facture d'en-tête) sont copiées telles
- * quelles depuis l'`OcrInvoice` source.
+ * Les montants restent en STRING — aucune conversion float.
+ * `decision === 'ignore'` force `variant_id = null` côté payload,
+ * même si un variant avait été sélectionné puis basculé.
  */
 export function buildReviewPayload(
-  invoice: OcrInvoice,
   draft: readonly ReviewedInvoiceLine[],
-): ReviewPayload {
-  return {
-    supplier_name: invoice.supplier_name,
-    invoice_number: invoice.invoice_number,
-    invoice_date: invoice.invoice_date,
-    currency: invoice.currency,
-    subtotal: invoice.subtotal,
-    tax_amount: invoice.tax_amount,
-    total: invoice.total,
-    lines: draft.map((line) => ({
+): ValidateReviewPayload {
+  const lines: ValidateReviewLinePayload[] = draft
+    .filter((line): line is ReviewedInvoiceLine & { decision: OcrReviewDecision } =>
+      line.decision !== null,
+    )
+    .map((line) => ({
       invoice_line_index: line.invoiceLineIndex,
       description: line.description,
       quantity: line.quantity,
       unit_price: line.unitPrice,
       line_total: line.lineTotal,
-      variant_id: line.selectedVariantId,
-    })),
-  };
+      decision: line.decision,
+      variant_id: line.decision === 'stock' ? line.selectedVariantId : null,
+    }));
+  return { lines };
 }
 
 /**
