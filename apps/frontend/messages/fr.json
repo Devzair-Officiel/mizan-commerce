@@ -851,6 +851,55 @@
       "remove_failed": "Suppression impossible."
     }
   },
+  "stock": {
+    "importInvoice": {
+      "title": "Importer une facture",
+      "picker_title": "Ajouter une photo de facture",
+      "picker_helper": "JPEG, PNG ou WebP. L'analyse OCR démarre automatiquement.",
+      "pick_cta": "Prendre / choisir une photo",
+      "uploading": "Envoi…",
+      "upload_error": "Erreur lors de l'envoi.",
+      "loading": "Chargement…",
+      "analyzing": "Analyse de la facture…",
+      "analyzing_sub": "Cela prend en général quelques secondes.",
+      "error_network_title": "Erreur réseau",
+      "error_network_body": "Impossible de récupérer le résultat. Réessayez dans un instant.",
+      "restart": "Recommencer",
+      "restart_other_photo": "Recommencer avec une autre photo",
+      "retry_photo": "Réessayer avec une autre photo",
+      "failed_title": "L'analyse structurée a échoué",
+      "failed_with_raw": "Nous n'avons pas pu extraire de facture structurée. Le texte brut reste consultable ci-dessous.",
+      "failed_without_raw": "Aucun texte n'a pu être extrait. Essayez une photo plus nette et bien cadrée.",
+      "raw_text_label": "Texte OCR brut",
+      "matching_unavailable": "Correspondances catalogue indisponibles pour cette facture.",
+      "lines_title": "Lignes détectées",
+      "supplier": "Fournisseur",
+      "invoice_number": "N° facture",
+      "invoice_date": "Date",
+      "total": "Total",
+      "currency": "Devise",
+      "ocr_confidence_short": "Confiance OCR {pct}%",
+      "field_description": "Description",
+      "field_quantity": "Qté",
+      "field_unit_price": "PU",
+      "field_unit_price_with": "PU ({currency})",
+      "field_line_total": "Total",
+      "field_line_total_with": "Total ({currency})",
+      "supplier_ref_prefix": "Réf.",
+      "no_candidate": "Aucun article correspondant",
+      "proposal_suffix": "proposition",
+      "ready_summary": "{count, plural, one {# ligne prête pour validation} other {# lignes prêtes pour validation}}",
+      "missing_summary": "{count, plural, one {# ligne sans article} other {# lignes sans article}}",
+      "continue_pending": "Continuer (validation à venir)"
+    },
+    "candidatesSheet": {
+      "title": "Choisir un article",
+      "line_prefix": "Ligne facture :",
+      "empty_title": "Aucun article correspondant",
+      "empty_body": "Le catalogue ne propose aucun article pour cette ligne.",
+      "remove_selection": "Retirer la sélection"
+    }
+  },
   "messages": {
     "prepared": {
       "title": "Préparer le message",

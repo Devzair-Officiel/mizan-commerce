@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {
   PackagePlus, PackageMinus, AlertTriangle, AlertCircle,
-  History, RefreshCcw, ShoppingBag, Boxes,
+  History, RefreshCcw, ShoppingBag, Boxes, ScanLine,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useProductsSummary } from '@/lib/hooks/useProducts';
@@ -69,6 +69,20 @@ export default function StockPage() {
             <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Sortie stock</p>
           </Link>
         </div>
+
+        {/* Action secondaire — import facture (revue seulement à ce stade) */}
+        <Link
+          href="/stock/import-invoice"
+          className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center gap-3 active:scale-[0.98] transition-transform"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <ScanLine size={17} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Importer une facture</p>
+            <p className="text-xs text-muted-foreground">Photo → analyse OCR → revue</p>
+          </div>
+        </Link>
 
         {/* Alertes */}
         <div className="grid grid-cols-2 gap-3">

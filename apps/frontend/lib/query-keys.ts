@@ -148,4 +148,9 @@ export const qk = {
     all: ['subscription'] as const,
     current: ['subscription', 'current'] as const,
   },
+
+  ocr: {
+    all: ['ocr'] as const,
+    result: (id: string) => ['ocr', 'result', id] as const,
+  },
 } as const;

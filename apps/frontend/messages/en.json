@@ -851,6 +851,55 @@
       "remove_failed": "Could not remove."
     }
   },
+  "stock": {
+    "importInvoice": {
+      "title": "Import an invoice",
+      "picker_title": "Add an invoice photo",
+      "picker_helper": "JPEG, PNG or WebP. OCR analysis starts automatically.",
+      "pick_cta": "Take / pick a photo",
+      "uploading": "Uploading…",
+      "upload_error": "Upload failed.",
+      "loading": "Loading…",
+      "analyzing": "Analyzing invoice…",
+      "analyzing_sub": "This usually takes a few seconds.",
+      "error_network_title": "Network error",
+      "error_network_body": "Could not fetch the result. Please try again in a moment.",
+      "restart": "Start over",
+      "restart_other_photo": "Start over with another photo",
+      "retry_photo": "Try another photo",
+      "failed_title": "Structured extraction failed",
+      "failed_with_raw": "We couldn't extract a structured invoice. The raw text is available below.",
+      "failed_without_raw": "No text could be extracted. Try a sharper, well-framed photo.",
+      "raw_text_label": "Raw OCR text",
+      "matching_unavailable": "Catalog matches unavailable for this invoice.",
+      "lines_title": "Detected lines",
+      "supplier": "Supplier",
+      "invoice_number": "Invoice no.",
+      "invoice_date": "Date",
+      "total": "Total",
+      "currency": "Currency",
+      "ocr_confidence_short": "OCR confidence {pct}%",
+      "field_description": "Description",
+      "field_quantity": "Qty",
+      "field_unit_price": "Unit",
+      "field_unit_price_with": "Unit ({currency})",
+      "field_line_total": "Total",
+      "field_line_total_with": "Total ({currency})",
+      "supplier_ref_prefix": "Ref.",
+      "no_candidate": "No matching item",
+      "proposal_suffix": "proposal",
+      "ready_summary": "{count, plural, one {# line ready for validation} other {# lines ready for validation}}",
+      "missing_summary": "{count, plural, one {# line without item} other {# lines without item}}",
+      "continue_pending": "Continue (validation coming)"
+    },
+    "candidatesSheet": {
+      "title": "Pick an item",
+      "line_prefix": "Invoice line:",
+      "empty_title": "No matching item",
+      "empty_body": "The catalog offers no item for this line.",
+      "remove_selection": "Clear selection"
+    }
+  },
   "messages": {
     "prepared": {
       "title": "Prepare message",

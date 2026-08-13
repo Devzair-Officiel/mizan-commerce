@@ -829,6 +829,55 @@
       "remove_failed": "تعذر الحذف."
     }
   },
+  "stock": {
+    "importInvoice": {
+      "title": "استيراد فاتورة",
+      "picker_title": "أضف صورة الفاتورة",
+      "picker_helper": "JPEG أو PNG أو WebP. يبدأ التحليل الضوئي تلقائيًا.",
+      "pick_cta": "التقاط / اختيار صورة",
+      "uploading": "جاري الإرسال…",
+      "upload_error": "فشل الإرسال.",
+      "loading": "جاري التحميل…",
+      "analyzing": "جاري تحليل الفاتورة…",
+      "analyzing_sub": "يستغرق ذلك عادةً بضع ثوانٍ.",
+      "error_network_title": "خطأ في الشبكة",
+      "error_network_body": "تعذّر جلب النتيجة. حاول مرة أخرى بعد قليل.",
+      "restart": "إعادة المحاولة",
+      "restart_other_photo": "إعادة المحاولة بصورة أخرى",
+      "retry_photo": "جرّب صورة أخرى",
+      "failed_title": "فشل الاستخراج البنيوي",
+      "failed_with_raw": "تعذّر استخراج فاتورة بنيوية. النص الخام متاح أدناه.",
+      "failed_without_raw": "لم يتم استخراج أي نص. جرّب صورة أوضح ومؤطرة جيدًا.",
+      "raw_text_label": "نص OCR الخام",
+      "matching_unavailable": "روابط الكتالوج غير متوفرة لهذه الفاتورة.",
+      "lines_title": "الأسطر المكتشفة",
+      "supplier": "المورّد",
+      "invoice_number": "رقم الفاتورة",
+      "invoice_date": "التاريخ",
+      "total": "المجموع",
+      "currency": "العملة",
+      "ocr_confidence_short": "ثقة OCR {pct}%",
+      "field_description": "الوصف",
+      "field_quantity": "الكمية",
+      "field_unit_price": "سعر الوحدة",
+      "field_unit_price_with": "سعر الوحدة ({currency})",
+      "field_line_total": "الإجمالي",
+      "field_line_total_with": "الإجمالي ({currency})",
+      "supplier_ref_prefix": "مرجع",
+      "no_candidate": "لا يوجد منتج مطابق",
+      "proposal_suffix": "اقتراح",
+      "ready_summary": "{count, plural, one {# سطر جاهز للتحقق} other {# أسطر جاهزة للتحقق}}",
+      "missing_summary": "{count, plural, one {# سطر بدون منتج} other {# أسطر بدون منتج}}",
+      "continue_pending": "متابعة (التحقق قريبًا)"
+    },
+    "candidatesSheet": {
+      "title": "اختر منتجًا",
+      "line_prefix": "سطر الفاتورة:",
+      "empty_title": "لا يوجد منتج مطابق",
+      "empty_body": "لا يقترح الكتالوج أي منتج لهذا السطر.",
+      "remove_selection": "إلغاء التحديد"
+    }
+  },
   "messages": {
     "prepared": {
       "title": "تحضير الرسالة",
