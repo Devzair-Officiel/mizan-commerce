@@ -373,8 +373,9 @@ def _parse_iso_date_str(value: Any) -> date | None:
 
 
 def _parse_source_indices(value: Any, num_ocr_lines: int) -> list[int]:
-    if value is None:
-        return []
+    # Champ obligatoire côté contrat : `null` ou absence → refus. La liste
+    # peut être vide (le LLM a pu ne rattacher aucune ligne OCR), mais la
+    # clé doit exister et être typée `list`.
     if not isinstance(value, list):
         raise AiServiceUnavailableError('Réponse invalide du service IA.')
     indices: list[int] = []
@@ -389,8 +390,8 @@ def _parse_source_indices(value: Any, num_ocr_lines: int) -> list[int]:
 
 
 def _parse_str_list(value: Any) -> list[str]:
-    if value is None:
-        return []
+    # Champ obligatoire côté contrat : `null` ou absence → refus. La liste
+    # peut être vide, mais la clé doit exister et être typée `list`.
     if not isinstance(value, list):
         raise AiServiceUnavailableError('Réponse invalide du service IA.')
     result: list[str] = []
@@ -422,7 +423,9 @@ def _parse_invoice_line(entry: Any, num_ocr_lines: int) -> AiInvoiceLine:
 def _parse_invoice(payload: Any, *, num_ocr_lines: int) -> AiInvoiceExtraction:
     if not isinstance(payload, dict):
         raise AiServiceUnavailableError('Réponse invalide du service IA.')
-    lines_raw = payload.get('lines', [])
+    # Champ obligatoire côté contrat : `null` ou absence → refus. Une facture
+    # sans ligne détectée doit être renvoyée avec `"lines": []`, jamais omise.
+    lines_raw = payload.get('lines')
     if not isinstance(lines_raw, list):
         raise AiServiceUnavailableError('Réponse invalide du service IA.')
     lines = [_parse_invoice_line(entry, num_ocr_lines) for entry in lines_raw]

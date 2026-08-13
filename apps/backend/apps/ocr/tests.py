@@ -1920,6 +1920,92 @@ class StructureInvoiceWithAiServiceTest(SimpleTestCase):
             with self.assertRaises(AiServiceUnavailableError):
                 structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
 
+    # ─── Contrat strict : clés obligatoires non nullables ─────────────────
+    #
+    # Les listes `lines` (racine), `warnings` et `source_line_indices` (par
+    # ligne facture) sont obligatoires côté contrat réseau. Le service IA
+    # doit renvoyer `[]` si le champ est vide — jamais `null` ni omission.
+    # Toute déviation est refusée pour ne pas transformer silencieusement
+    # une réponse incomplète en résultat "propre" côté Django.
+
+    def test_root_lines_missing_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload.pop('lines')
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_root_lines_null_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['lines'] = None
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_warnings_missing_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload.pop('warnings')
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_warnings_null_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['warnings'] = None
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_source_line_indices_missing_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['lines'][0].pop('source_line_indices')
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
+    def test_source_line_indices_null_rejected(self) -> None:
+        from .ai_client import (
+            AiServiceUnavailableError,
+            structure_invoice_with_ai_service,
+        )
+
+        payload = self._valid_payload()
+        payload['lines'][0]['source_line_indices'] = None
+        with patch('apps.ocr.ai_client.httpx.post') as mock_post:
+            mock_post.return_value = _FakeHttpxResponse(payload=payload)
+            with self.assertRaises(AiServiceUnavailableError):
+                structure_invoice_with_ai_service(raw_text='x', lines=self._ocr_lines())
+
     def test_never_leaks_api_key(self) -> None:
         from .ai_client import (
             AiServiceUnavailableError,
