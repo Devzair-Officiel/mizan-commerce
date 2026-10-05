@@ -105,7 +105,7 @@ RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
 RECAPTCHA_MIN_SCORE = float(os.environ.get('RECAPTCHA_MIN_SCORE', '0.5'))
 
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},  # noqa: E501
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }
 
-from datetime import timedelta
+from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -218,7 +218,7 @@ AI_SERVICE_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_TIMEOUT_SECONDS', 
 # Timeout dédié à l'inférence OCR — beaucoup plus large que les sondes health :
 # le premier appel dans un worker déclenche le chargement du pipeline PaddleOCR
 # (téléchargement + chargement modèles ~15 s) puis l'inférence proprement dite.
-AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SECONDS', '60'))
+AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SECONDS', '60'))  # noqa: E501
 # Timeout dédié à la structuration LLM (POC 6B). Doit rester légèrement
 # supérieur au timeout OpenAI configuré côté ai-service (par défaut 45 s) :
 # on veut que FastAPI puisse gérer son propre timeout et renvoyer un 502

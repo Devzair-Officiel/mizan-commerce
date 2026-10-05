@@ -96,7 +96,7 @@ class HasModulePermission(BasePermission):
     À utiliser via `HasModulePermission.for_module('products')` sur une vue :
 
         permission_classes = (IsAuthenticated, HasModulePermission.for_module('products'))
-    """
+    """  # noqa: E501
 
     module: str = ""
     message = "Module non accordé à votre compte."
@@ -131,7 +131,7 @@ class ShopScopedQuerysetMixin:
         class ProductListCreateView(ShopScopedQuerysetMixin, generics.ListCreateAPIView):
             queryset = Product.objects.all()
             serializer_class = ProductSerializer
-    """
+    """  # noqa: E501
 
     shop_lookup: str = "shop"
 
