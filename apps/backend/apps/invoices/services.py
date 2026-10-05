@@ -34,8 +34,8 @@ def _next_invoice_number(shop: Shop, issued_on: date) -> str:
     À appeler **uniquement dans une transaction** (`@transaction.atomic`) : `select_for_update`
     sans transaction lève `TransactionManagementError`. Le verrou ligne empêche deux
     émissions concurrentes de générer le même numéro — garantie de continuité légale.
-    """
-    sequence, _created = InvoiceSequence.objects.select_for_update().get_or_create(shop=shop)
+    """  # noqa: E501
+    sequence, _created = InvoiceSequence.objects.select_for_update().get_or_create(shop=shop)  # noqa: E501
     sequence.last_number += 1
     sequence.save(update_fields=['last_number', 'updated_at'])
 
@@ -61,7 +61,7 @@ def _snapshot_buyer_from_order(invoice: Invoice, order: Order) -> None:
     if customer is None:
         return
     invoice.customer = customer
-    full_name = f'{customer.first_name} {customer.name}'.strip() if customer.first_name else customer.name
+    full_name = f'{customer.first_name} {customer.name}'.strip() if customer.first_name else customer.name  # noqa: E501
     invoice.buyer_name = full_name
     parts = [customer.address_line]
     if customer.postal_code or customer.city:
@@ -112,7 +112,7 @@ def _compute_totals(
     """
     subtotal_ht = sum((line.line_subtotal_ht for line in lines), Decimal('0'))
     subtotal_ht = subtotal_ht.quantize(Decimal('0.01'))
-    taxable_base = (subtotal_ht - discount_amount + shipping_amount).quantize(Decimal('0.01'))
+    taxable_base = (subtotal_ht - discount_amount + shipping_amount).quantize(Decimal('0.01'))  # noqa: E501
     tax_amount = (taxable_base * tax_rate / Decimal('100')).quantize(Decimal('0.01'))
     total_ttc = (taxable_base + tax_amount).quantize(Decimal('0.01'))
     return subtotal_ht, tax_amount, total_ttc
@@ -135,7 +135,7 @@ def issue_invoice_from_order(
 
     `tax_rate` et `payment_terms_days` peuvent être surchargés par appel ; sinon on prend
     les valeurs par défaut de la boutique.
-    """
+    """  # noqa: E501
     if not order.items.exists():
         raise EmptyOrderError()
 
@@ -147,7 +147,7 @@ def issue_invoice_from_order(
     number = _next_invoice_number(shop, now.date())
 
     effective_tax_rate = tax_rate if tax_rate is not None else shop.default_tax_rate
-    effective_terms = payment_terms_days if payment_terms_days is not None else shop.default_payment_terms_days
+    effective_terms = payment_terms_days if payment_terms_days is not None else shop.default_payment_terms_days  # noqa: E501
 
     # Synchro initiale avec le statut de la commande : si elle est déjà payée
     # ou annulée, la facture naît dans le même état.
@@ -217,7 +217,7 @@ def sync_invoice_from_order(order: Order) -> None:
     if order.status == 'cancelled':
         invoice.status = Invoice.STATUS_CANCELLED
         invoice.cancelled_at = now
-        invoice.save(update_fields=['status', 'amount_paid', 'cancelled_at', 'updated_at'])
+        invoice.save(update_fields=['status', 'amount_paid', 'cancelled_at', 'updated_at'])  # noqa: E501
         return
 
     if order.payment_status == 'paid':
@@ -249,7 +249,7 @@ def cancel_invoice(invoice: Invoice) -> Invoice:
     """Bascule en `cancelled` — pas d'avoir en v1, juste un drapeau de statut.
 
     Le numéro reste attribué (ne se recycle pas) : exigence légale, la trace doit subsister.
-    """
+    """  # noqa: E501
     if invoice.status == Invoice.STATUS_CANCELLED:
         return invoice
     invoice.status = Invoice.STATUS_CANCELLED

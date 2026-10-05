@@ -21,9 +21,9 @@ class ZakatCalculation(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='zakat_calculations')
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='zakat_calculations')  # noqa: E501
 
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_DRAFT)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_DRAFT)  # noqa: E501
     # Dernière étape atteinte par l'assistant (0 = liquidités … 5 = récapitulatif).
     # Permet au frontend de reprendre le brouillon au bon endroit.
     current_step = models.PositiveSmallIntegerField(default=0)
@@ -31,19 +31,19 @@ class ZakatCalculation(models.Model):
     reference_date = models.DateField()
 
     # ── Liquidités ─────────────────────────────────────────────────────────────
-    cash_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    cash_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
 
     # ── Créances clients ───────────────────────────────────────────────────────
     # `has_receivables` permet de distinguer "non renseigné" de "explicitement aucune".
     # `receivables_nominal` = total dû par les clients (mémoire).
     # `receivables_breakdown` = ventilation en 3 classes :
     #   [{'category': 'certain'|'probable'|'doubtful', 'amount': str}]
-    # Seules les classes `certain` + `probable` entrent dans `receivables_amount` (cache).
+    # Seules les classes `certain` + `probable` entrent dans `receivables_amount` (cache).  # noqa: E501
     # Les `doubtful` sont conservées pour mémoire / PDF mais hors base.
     has_receivables = models.BooleanField(default=False)
-    receivables_nominal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    receivables_nominal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
     receivables_breakdown = models.JSONField(default=list, blank=True)
-    receivables_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    receivables_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
 
     # ── Stock commercial ───────────────────────────────────────────────────────
     # `stock_value_estimated` = auto-calcul depuis le catalogue (référence).
@@ -52,9 +52,9 @@ class ZakatCalculation(models.Model):
     #     'amount': str}]
     # `stock_value_adjusted` = legacy (ancien ajustement global), conservé pour
     # rétro-compat mais ignoré si `stock_breakdown` est non vide.
-    stock_value_estimated = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    stock_value_estimated = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
     stock_breakdown = models.JSONField(default=list, blank=True)
-    stock_value_adjusted = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    stock_value_adjusted = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
 
     # ── Éléments exclus (pédagogique, non calculé) ─────────────────────────────
     # Liste de slugs cochés par l'utilisateur pour confirmer sa compréhension :
@@ -70,20 +70,20 @@ class ZakatCalculation(models.Model):
     # Seules les dettes `is_immediately_due=True` entrent dans `short_term_debts`
     # (cache recalculé à chaque enregistrement).
     debts_breakdown = models.JSONField(default=list, blank=True)
-    short_term_debts = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    short_term_debts = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
 
     # ── Résultat figé (renseigné uniquement à la finalisation) ─────────────────
-    zakat_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
-    zakat_rate = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0250'))
-    zakat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    zakat_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
+    zakat_rate = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0250'))  # noqa: E501
+    zakat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
     currency = models.CharField(max_length=3)
 
     # ── Snapshot du seuil de Nisab à la finalisation ──────────────────────────
     # Conservés sur la fiche pour figer le calcul (le cours évolue après finalisation).
     # `None` si la boutique n'avait pas configuré le Nisab au moment du calcul.
     nisab_method = models.CharField(max_length=8, blank=True)
-    nisab_unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    nisab_threshold = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    nisab_unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # noqa: E501
+    nisab_threshold = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
 
     pdf_object_key = models.CharField(max_length=500, blank=True)
     notes = models.TextField(blank=True)
@@ -98,8 +98,8 @@ class ZakatCalculation(models.Model):
             models.Index(fields=['shop', 'status']),
         ]
         constraints = [
-            # Un seul calcul finalisé par boutique et par année — un hawl, un justificatif.
-            # Le check applicatif côté service donne un message clair ; cet index est le filet
+            # Un seul calcul finalisé par boutique et par année — un hawl, un justificatif.  # noqa: E501
+            # Le check applicatif côté service donne un message clair ; cet index est le filet  # noqa: E501
             # de sécurité contre les courses concurrentes.
             models.UniqueConstraint(
                 models.F('shop'),

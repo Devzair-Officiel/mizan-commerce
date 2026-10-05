@@ -23,7 +23,7 @@ def send_zakat_reminders() -> dict[str, int]:
     created = 0
     for shop in shops:
         due_at = timezone.make_aware(
-            timezone.datetime(target_date.year, target_date.month, target_date.day, 9, 0)
+            timezone.datetime(target_date.year, target_date.month, target_date.day, 9, 0)  # noqa: E501
         )
 
         already_exists = Reminder.objects.filter(
@@ -41,7 +41,7 @@ def send_zakat_reminders() -> dict[str, int]:
             shop=shop,
             author=owner.user if owner else None,
             title='Rappel : calcul de la Zakat annuelle',
-            description=f"La date annuelle de zakat de votre boutique est dans 7 jours ({target_date.strftime('%d/%m/%Y')}).",
+            description=f"La date annuelle de zakat de votre boutique est dans 7 jours ({target_date.strftime('%d/%m/%Y')}).",  # noqa: E501
             due_at=due_at,
             category='zakat',
         )

@@ -5,11 +5,11 @@ from rest_framework import serializers
 from apps.core.storage import get_signed_url, is_storage_configured
 from apps.products.models import Product
 
-from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection
+from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection  # noqa: E501
 
 
 def _signed_url_or_none(object_key: str) -> str | None:
-    """Helper partagé : URL signée à 1h si le key existe et le stockage est OK, sinon None."""
+    """Helper partagé : URL signée à 1h si le key existe et le stockage est OK, sinon None."""  # noqa: E501
     if not object_key or not is_storage_configured():
         return None
     return get_signed_url(object_key)
@@ -18,7 +18,7 @@ def _signed_url_or_none(object_key: str) -> str | None:
 class PublicPageSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PublicPageSection
-        fields = ('id', 'type', 'position', 'is_visible', 'title', 'content', 'updated_at')
+        fields = ('id', 'type', 'position', 'is_visible', 'title', 'content', 'updated_at')  # noqa: E501
         read_only_fields = ('id', 'updated_at')
 
 
@@ -39,7 +39,7 @@ class PublicCatalogVisibilitySerializer(serializers.ModelSerializer):
         # Multi-tenant : le produit doit appartenir à la même boutique que la page.
         page: PublicPage = self.context['page']
         if product.shop_id != page.shop_id:
-            raise serializers.ValidationError('Ce produit n\'appartient pas à cette boutique.')
+            raise serializers.ValidationError('Ce produit n\'appartient pas à cette boutique.')  # noqa: E501
         return product
 
 
@@ -106,7 +106,7 @@ class PublicPageCreateSerializer(serializers.Serializer):
     """
 
     slug = serializers.CharField(max_length=50)
-    display_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    display_name = serializers.CharField(max_length=120, required=False, allow_blank=True)  # noqa: E501
 
 
 class PublicPageUpdateSerializer(serializers.ModelSerializer):

@@ -1,0 +1,8 @@
+extend-exclude = ["*/migrations/*"]
+
+[lint]
+select = ["E", "F", "W"]
+
+[lint.per-file-ignores]
+"config/settings/local.py" = ["F403", "F405"]
+"config/settings/production.py" = ["F403", "F405"]

@@ -10,7 +10,6 @@ from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
 from apps.products.models import Product, ProductVariant
 from apps.stock.models import StockMovement
-from apps.orders.models import Order
 from apps.orders import services as order_services
 from apps.notes.models import Reminder
 
@@ -58,7 +57,7 @@ class DashboardTodayTest(TestCase):
             unit='piece', base_quantity=1, selling_price=Decimal('10'),
             purchase_price=Decimal('5'), low_stock_threshold=5,
         )
-        StockMovement.objects.create(shop=self.shop, variant=v, movement_type='in', quantity=3)
+        StockMovement.objects.create(shop=self.shop, variant=v, movement_type='in', quantity=3)  # noqa: E501
         response = self.client.get(self._url())
         self.assertEqual(response.data['low_stock_products']['count'], 1)
 

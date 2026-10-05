@@ -41,7 +41,7 @@ class UploadedDocument(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f'{self.get_document_type_display()} — {self.original_filename or self.pk}'
+        return f'{self.get_document_type_display()} — {self.original_filename or self.pk}'  # noqa: E501
 
 
 class OcrResult(models.Model):

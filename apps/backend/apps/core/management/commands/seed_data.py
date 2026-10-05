@@ -5,7 +5,7 @@ Idempotente : relancer ne crée pas de doublons (django_get_or_create sur les fa
 Usage :
     docker compose exec backend python manage.py seed_data
     docker compose exec backend python manage.py seed_data --reset  # vide d'abord les tables métier
-"""
+"""  # noqa: E501
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--reset",
             action="store_true",
-            help="Vide les tables métier avant de seeder (garde les users et boutiques).",
+            help="Vide les tables métier avant de seeder (garde les users et boutiques).",  # noqa: E501
         )
 
     @transaction.atomic
@@ -31,7 +31,6 @@ class Command(BaseCommand):
         from apps.stock.factories import StockMovementFactory
         from apps.customers.factories import CustomerFactory
         from apps.accounts.models import User
-        from apps.shops.models import ShopMember
         from apps.products.models import Product, ProductVariant
         from apps.stock.models import StockMovement
         from apps.customers.models import Customer
@@ -52,7 +51,7 @@ class Command(BaseCommand):
             )
 
         def seed_product(*, shop, name, packaging_name='Par défaut', unit='piece',
-                         selling_price, purchase_price=None, low_stock_threshold=None, sku=''):
+                         selling_price, purchase_price=None, low_stock_threshold=None, sku=''):  # noqa: E501
             """Crée un Product + sa variante par défaut. Idempotent sur (shop, name)."""
             product, _ = Product.objects.get_or_create(shop=shop, name=name)
             ProductVariant.objects.get_or_create(
@@ -84,6 +83,10 @@ class Command(BaseCommand):
 
         if options["reset"]:
             from apps.products.models import ProductVariant
+            from apps.loyalty.models import LoyaltyCard, LoyaltyProgram, LoyaltyTransaction  # noqa: E501
+            LoyaltyTransaction.objects.all().delete()
+            LoyaltyCard.objects.all().delete()
+            LoyaltyProgram.objects.all().delete()
             ContactButton.objects.all().delete()
             PublicCatalogVisibility.objects.all().delete()
             PublicPageSection.objects.all().delete()
@@ -99,12 +102,12 @@ class Command(BaseCommand):
             Customer.objects.all().delete()
             self.stdout.write(self.style.WARNING("  Tables métier vidées."))
 
-        self.stdout.write(self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n"))
+        self.stdout.write(self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n"))  # noqa: E501
 
         # ── Superadmin ──────────────────────────────────────────────
         admin, created = User.objects.get_or_create(
             email="admin@mizan.dev",
-            defaults={"is_staff": True, "is_superuser": True, "full_name": "Admin Mizan"},
+            defaults={"is_staff": True, "is_superuser": True, "full_name": "Admin Mizan"},  # noqa: E501
         )
         if created:
             admin.set_password("Admin1234!")
@@ -120,7 +123,7 @@ class Command(BaseCommand):
             phone="+33601020304",
             password="Mizan1234!",
         )
-        shop_fr = ShopFactory(name="La Boutique de Youssef", currency="EUR", country="FR")
+        shop_fr = ShopFactory(name="La Boutique de Youssef", currency="EUR", country="FR")  # noqa: E501
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
         # Commerçant établi → Pro actif. Le trial a déjà été consommé.
         seed_subscription(shop=shop_fr, plan_code=SubscriptionPlan.CODE_PRO,
@@ -176,18 +179,18 @@ class Command(BaseCommand):
         customers_fr = [
             ("Karima Bensouda", "+33612345678", "Lyon", "Cliente fidèle depuis 2 ans."),
             ("Hamza Tazi", "+33698765432", "Paris", ""),
-            ("Nadia El Fassi", "+33655443322", "Marseille", "Préfère la livraison en point relais."),
+            ("Nadia El Fassi", "+33655443322", "Marseille", "Préfère la livraison en point relais."),  # noqa: E501
         ]
         for name, phone, city, notes in customers_fr:
-            CustomerFactory(shop=shop_fr, name=name, phone=phone, city=city, country="FR", notes=notes)
+            CustomerFactory(shop=shop_fr, name=name, phone=phone, city=city, country="FR", notes=notes)  # noqa: E501
 
-        self.stdout.write(f"    → {len(products_fr)} produits, {len(customers_fr)} clients")
+        self.stdout.write(f"    → {len(products_fr)} produits, {len(customers_fr)} clients")  # noqa: E501
 
         # Commandes boutique FR
         from apps.orders import services as order_services
         if not Order.objects.filter(shop=shop_fr).exists():
             karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
-            o1 = order_services.create_order(shop_fr, youssef, customer=karima, shipping=Decimal('5.00'))
+            o1 = order_services.create_order(shop_fr, youssef, customer=karima, shipping=Decimal('5.00'))  # noqa: E501
             order_services.add_item(o1, products_fr[0].variants.first(), 2)
             order_services.add_item(o1, products_fr[3].variants.first(), 1)
             order_services.transition_status(o1, 'to_prepare', youssef)
@@ -196,14 +199,14 @@ class Command(BaseCommand):
             o2 = order_services.create_order(shop_fr, youssef)
             order_services.add_item(o2, products_fr[1].variants.first(), 1)
             order_services.add_item(o2, products_fr[2].variants.first(), 1)
-            Note.objects.create(shop=shop_fr, order=o2, author=youssef, content='Livraison urgente')
+            Note.objects.create(shop=shop_fr, order=o2, author=youssef, content='Livraison urgente')  # noqa: E501
 
             o3 = order_services.create_order(shop_fr, youssef, customer=karima)
             order_services.add_item(o3, products_fr[4].variants.first(), 3)
             order_services.transition_status(o3, 'to_prepare', youssef)
             order_services.transition_status(o3, 'prepared', youssef)
             order_services.update_payment(o3, Decimal('50.00'))
-            self.stdout.write(f"    → 3 commandes créées")
+            self.stdout.write("    → 3 commandes créées")
 
         # Messages WhatsApp préparés boutique FR
         if not PreparedMessage.objects.filter(shop=shop_fr).exists():
@@ -233,12 +236,12 @@ class Command(BaseCommand):
                 recipient_name=hamza.name,
                 recipient_phone=hamza.phone,
                 message=(
-                    f"Bonjour {hamza.name}, nous venons de recevoir une nouvelle collection "
+                    f"Bonjour {hamza.name}, nous venons de recevoir une nouvelle collection "  # noqa: E501
                     "qui pourrait vous plaire. Passez quand vous voulez !"
                 ),
                 status=PreparedMessage.Status.PREPARED,
             )
-            self.stdout.write(f"    → 2 messages WhatsApp préparés")
+            self.stdout.write("    → 2 messages WhatsApp préparés")
 
         # ── Boutique 2 — Amira (Maroc / MAD) ────────────────────────
         amira = UserFactory(
@@ -247,7 +250,7 @@ class Command(BaseCommand):
             phone="+212661234567",
             password="Mizan1234!",
         )
-        shop_ma = ShopFactory(name="Boutique Chraibi — Casablanca", currency="MAD", country="MA")
+        shop_ma = ShopFactory(name="Boutique Chraibi — Casablanca", currency="MAD", country="MA")  # noqa: E501
         ShopMemberFactory(shop=shop_ma, user=amira, role="owner")
         # Commerçante récente → en essai 14j Boutique+ (URS-100).
         seed_subscription(
@@ -284,12 +287,12 @@ class Command(BaseCommand):
 
         customers_ma = [
             ("Zineb Alaoui", "+212662345678", "Rabat", ""),
-            ("Sofia Benali", "+212673456789", "Marrakech", "Commande souvent pour des occasions spéciales."),
+            ("Sofia Benali", "+212673456789", "Marrakech", "Commande souvent pour des occasions spéciales."),  # noqa: E501
         ]
         for name, phone, city, notes in customers_ma:
-            CustomerFactory(shop=shop_ma, name=name, phone=phone, city=city, country="MA", notes=notes)
+            CustomerFactory(shop=shop_ma, name=name, phone=phone, city=city, country="MA", notes=notes)  # noqa: E501
 
-        self.stdout.write(f"    → {len(products_ma)} produits, {len(customers_ma)} clients")
+        self.stdout.write(f"    → {len(products_ma)} produits, {len(customers_ma)} clients")  # noqa: E501
 
         if not Order.objects.filter(shop=shop_ma).exists():
             zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
@@ -297,7 +300,7 @@ class Command(BaseCommand):
             order_services.add_item(o4, products_ma[0].variants.first(), 1)
             order_services.transition_status(o4, 'to_prepare', amira)
             order_services.update_payment(o4, Decimal('200.00'))
-            self.stdout.write(f"    → 1 commande créée")
+            self.stdout.write("    → 1 commande créée")
 
         # Messages WhatsApp préparés boutique MA
         if not PreparedMessage.objects.filter(shop=shop_ma).exists():
@@ -311,12 +314,12 @@ class Command(BaseCommand):
                 recipient_name=sofia.name,
                 recipient_phone=sofia.phone,
                 message=(
-                    f"Bonjour {sofia.name}, un petit rappel concernant le solde restant "
+                    f"Bonjour {sofia.name}, un petit rappel concernant le solde restant "  # noqa: E501
                     "sur votre dernière commande. Merci de nous tenir informés."
                 ),
                 status=PreparedMessage.Status.PREPARED,
             )
-            self.stdout.write(f"    → 1 message WhatsApp préparé")
+            self.stdout.write("    → 1 message WhatsApp préparé")
 
         # ── Pages publiques ─────────────────────────────────────────
         # Boutique FR : page active et publiée, avec sections, contacts et catalogue.
@@ -381,7 +384,7 @@ class Command(BaseCommand):
             PublicPageSection.objects.create(
                 page=page_ma, type=PublicPageSection.Type.HEADER, position=0,
             )
-            self.stdout.write(f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}")
+            self.stdout.write(f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}")  # noqa: E501
 
         # ── OCR : facture fournisseur en attente (démo, pas de vrai upload S3) ──
         # Le seeding ne pousse pas de binaire vers l'Object Storage : on utilise
@@ -402,6 +405,26 @@ class Command(BaseCommand):
                 status=OcrResult.STATUS_PENDING,
             )
             self.stdout.write("    → 1 document OCR (pending, object_key fictif)")
+
+        # ── Loyalty ─────────────────────────────────────────────────
+        from apps.loyalty.factories import LoyaltyProgramFactory
+        from apps.loyalty import services as loyalty_services
+
+        LoyaltyProgramFactory(shop=shop_fr, is_active=True, points_per_unit=1, redemption_threshold=100)  # noqa: E501
+        LoyaltyProgramFactory(shop=shop_ma, is_active=True, points_per_unit=2, redemption_threshold=150)  # noqa: E501
+
+        karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
+        card_karima = loyalty_services.get_or_create_card(shop_fr, karima)
+        if card_karima.total_points_earned == 0:
+            loyalty_services.earn_points(card_karima, 80, created_by=youssef, note='Achat chemise et ceinture')  # noqa: E501
+            loyalty_services.earn_points(card_karima, 35, created_by=youssef, note='Achat sac × 3')  # noqa: E501
+
+        zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
+        card_zineb = loyalty_services.get_or_create_card(shop_ma, zineb)
+        if card_zineb.total_points_earned == 0:
+            loyalty_services.earn_points(card_zineb, 100, created_by=amira, note='Achat caftan brodé')  # noqa: E501
+
+        self.stdout.write("  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)")  # noqa: E501
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
         self.stdout.write("  youssef@example.com / Mizan1234!")

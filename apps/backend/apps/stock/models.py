@@ -26,7 +26,7 @@ class StockMovement(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='stock_movements')
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='stock_movements')  # noqa: E501
     variant = models.ForeignKey(
         ProductVariant, on_delete=models.CASCADE, related_name='stock_movements'
     )

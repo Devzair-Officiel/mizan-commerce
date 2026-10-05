@@ -24,13 +24,13 @@ urlpatterns = [
     path('cover/', PageCoverView.as_view(), name='public-page-cover'),
 
     path('sections/', SectionListCreateView.as_view(), name='public-page-sections'),
-    path('sections/reorder/', SectionReorderView.as_view(), name='public-page-sections-reorder'),
-    path('sections/<uuid:pk>/', SectionDetailView.as_view(), name='public-page-section-detail'),
+    path('sections/reorder/', SectionReorderView.as_view(), name='public-page-sections-reorder'),  # noqa: E501
+    path('sections/<uuid:pk>/', SectionDetailView.as_view(), name='public-page-section-detail'),  # noqa: E501
 
     path('catalog/', CatalogListCreateView.as_view(), name='public-page-catalog'),
-    path('catalog/reorder/', CatalogReorderView.as_view(), name='public-page-catalog-reorder'),
-    path('catalog/<uuid:pk>/', CatalogDetailView.as_view(), name='public-page-catalog-detail'),
+    path('catalog/reorder/', CatalogReorderView.as_view(), name='public-page-catalog-reorder'),  # noqa: E501
+    path('catalog/<uuid:pk>/', CatalogDetailView.as_view(), name='public-page-catalog-detail'),  # noqa: E501
 
     path('contacts/', ContactListCreateView.as_view(), name='public-page-contacts'),
-    path('contacts/<uuid:pk>/', ContactDetailView.as_view(), name='public-page-contact-detail'),
+    path('contacts/<uuid:pk>/', ContactDetailView.as_view(), name='public-page-contact-detail'),  # noqa: E501
 ]

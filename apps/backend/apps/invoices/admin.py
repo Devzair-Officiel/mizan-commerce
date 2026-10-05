@@ -6,7 +6,7 @@ from .models import Invoice, InvoiceLine, InvoiceSequence
 class InvoiceLineInline(admin.TabularInline):
     model = InvoiceLine
     extra = 0
-    readonly_fields = ('shop', 'description', 'quantity', 'unit_price_ht', 'line_subtotal_ht', 'created_at')
+    readonly_fields = ('shop', 'description', 'quantity', 'unit_price_ht', 'line_subtotal_ht', 'created_at')  # noqa: E501
 
 
 @admin.register(Invoice)

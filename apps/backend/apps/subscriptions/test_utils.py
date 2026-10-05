@@ -17,7 +17,7 @@ from django.utils import timezone
 from .models import Subscription, SubscriptionPlan
 
 
-def attach_subscription(shop, plan_code: str = SubscriptionPlan.CODE_PRO) -> Subscription:
+def attach_subscription(shop, plan_code: str = SubscriptionPlan.CODE_PRO) -> Subscription:  # noqa: E501
     """Attache une souscription `active` au shop pour les tests.
 
     Idempotent : si le shop a déjà une souscription, on la met à jour.

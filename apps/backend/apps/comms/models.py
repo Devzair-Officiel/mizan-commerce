@@ -34,13 +34,13 @@ class PreparedMessage(models.Model):
         ARCHIVED = 'archived', 'Archivé'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='prepared_messages')
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='prepared_messages')  # noqa: E501
 
     template_type = models.CharField(max_length=30, choices=TemplateType.choices)
     context_type = models.CharField(
         max_length=30, choices=ContextType.choices, default=ContextType.NONE,
     )
-    # Pas de FK formelle : l'ID polymorphique est résolu côté service selon `context_type`.
+    # Pas de FK formelle : l'ID polymorphique est résolu côté service selon `context_type`.  # noqa: E501
     context_id = models.UUIDField(null=True, blank=True)
 
     customer = models.ForeignKey(
@@ -53,10 +53,10 @@ class PreparedMessage(models.Model):
     recipient_name = models.CharField(max_length=150, blank=True)
     recipient_phone = models.CharField(max_length=30, blank=True)
 
-    # Contenu final du message — celui que l'utilisateur copiera / ouvrira dans WhatsApp.
+    # Contenu final du message — celui que l'utilisateur copiera / ouvrira dans WhatsApp.  # noqa: E501
     message = models.TextField()
 
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PREPARED)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PREPARED)  # noqa: E501
     sent_manually_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -72,4 +72,4 @@ class PreparedMessage(models.Model):
         ordering = ['-created_at']
 
     def __str__(self) -> str:
-        return f'{self.get_template_type_display()} → {self.recipient_name or self.recipient_phone or "?"}'
+        return f'{self.get_template_type_display()} → {self.recipient_name or self.recipient_phone or "?"}'  # noqa: E501

@@ -16,7 +16,7 @@ class PreparedMessageFactory(DjangoModelFactory):
     template_type = PreparedMessage.TemplateType.ORDER_CONFIRMATION
     context_type = PreparedMessage.ContextType.NONE
     context_id = None
-    recipient_name = factory.LazyAttribute(lambda o: o.customer.name if o.customer else '')
-    recipient_phone = factory.LazyAttribute(lambda o: o.customer.phone if o.customer else '')
+    recipient_name = factory.LazyAttribute(lambda o: o.customer.name if o.customer else '')  # noqa: E501
+    recipient_phone = factory.LazyAttribute(lambda o: o.customer.phone if o.customer else '')  # noqa: E501
     message = factory.Faker('paragraph', nb_sentences=3, locale='fr_FR')
     status = PreparedMessage.Status.PREPARED

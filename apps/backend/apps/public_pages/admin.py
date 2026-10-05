@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection
+from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection  # noqa: E501
 
 
 @admin.register(PublicPage)
@@ -20,7 +20,7 @@ class PublicPageSectionAdmin(admin.ModelAdmin):
 
 @admin.register(PublicCatalogVisibility)
 class PublicCatalogVisibilityAdmin(admin.ModelAdmin):
-    list_display = ('page', 'product', 'position', 'show_price', 'badge_promo', 'badge_new')
+    list_display = ('page', 'product', 'position', 'show_price', 'badge_promo', 'badge_new')  # noqa: E501
     list_filter = ('badge_promo', 'badge_new', 'show_price')
     search_fields = ('page__slug', 'product__name')
 

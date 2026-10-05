@@ -6,9 +6,9 @@ from rest_framework.views import APIView
 from apps.core.permissions import HasModulePermission, get_shop
 
 HasStockModule = HasModulePermission.for_module('stock')
-from apps.products.models import ProductVariant
-from .models import StockMovement
-from .serializers import StockMovementSerializer, StockInSerializer, StockOutSerializer
+from apps.products.models import ProductVariant  # noqa: E402
+from .models import StockMovement  # noqa: E402
+from .serializers import StockMovementSerializer, StockInSerializer, StockOutSerializer  # noqa: E402
 
 
 class StockMovementListView(generics.ListAPIView):
@@ -45,7 +45,7 @@ class StockInView(APIView):
         try:
             variant = ProductVariant.objects.get(pk=d['variant'], shop=shop)
         except ProductVariant.DoesNotExist:
-            return Response({'detail': 'Variante introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Variante introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
         movement = StockMovement.objects.create(
             shop=shop,
@@ -55,7 +55,7 @@ class StockInView(APIView):
             reason=d['reason'],
             created_by=request.user,
         )
-        return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)
+        return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)  # noqa: E501
 
 
 class StockOutView(APIView):
@@ -71,11 +71,11 @@ class StockOutView(APIView):
         try:
             variant = ProductVariant.objects.get(pk=d['variant'], shop=shop)
         except ProductVariant.DoesNotExist:
-            return Response({'detail': 'Variante introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Variante introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
         if variant.stock_quantity < d['quantity']:
             return Response(
-                {'detail': f'Stock insuffisant (disponible : {variant.stock_quantity}).'},
+                {'detail': f'Stock insuffisant (disponible : {variant.stock_quantity}).'},  # noqa: E501
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -87,4 +87,4 @@ class StockOutView(APIView):
             reason=d['reason'],
             created_by=request.user,
         )
-        return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)
+        return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)  # noqa: E501

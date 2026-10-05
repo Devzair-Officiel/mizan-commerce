@@ -8,10 +8,6 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
 from apps.customers.models import Customer
-from apps.orders.models import Order
-from apps.orders import services as order_services
-from apps.products.models import Product
-from apps.stock.models import StockMovement
 from .models import Note, Reminder
 
 
@@ -42,13 +38,13 @@ class NoteTest(TestCase):
         self.assertEqual(str(response.data['customer']), str(self.customer.pk))
 
     def test_filter_by_customer(self):
-        Note.objects.create(shop=self.shop, author=self.user, content='Note A', customer=self.customer)
+        Note.objects.create(shop=self.shop, author=self.user, content='Note A', customer=self.customer)  # noqa: E501
         Note.objects.create(shop=self.shop, author=self.user, content='Note B')
-        response = self.client.get(reverse('note-list') + f'?customer={self.customer.pk}')
+        response = self.client.get(reverse('note-list') + f'?customer={self.customer.pk}')  # noqa: E501
         self.assertEqual(response.data['count'], 1)
 
     def test_delete_note(self):
-        note = Note.objects.create(shop=self.shop, author=self.user, content='À supprimer')
+        note = Note.objects.create(shop=self.shop, author=self.user, content='À supprimer')  # noqa: E501
         response = self.client.delete(reverse('note-detail', kwargs={'pk': note.pk}))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
@@ -76,8 +72,8 @@ class ReminderTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_list_shows_pending_by_default(self):
-        Reminder.objects.create(shop=self.shop, author=self.user, title='En attente', due_at=timezone.now() + timedelta(days=1))
-        Reminder.objects.create(shop=self.shop, author=self.user, title='Terminé', due_at=timezone.now(), status='done')
+        Reminder.objects.create(shop=self.shop, author=self.user, title='En attente', due_at=timezone.now() + timedelta(days=1))  # noqa: E501
+        Reminder.objects.create(shop=self.shop, author=self.user, title='Terminé', due_at=timezone.now(), status='done')  # noqa: E501
         response = self.client.get(reverse('reminder-list'))
         titles = [r['title'] for r in response.data['results']]
         self.assertIn('En attente', titles)
@@ -88,7 +84,7 @@ class ReminderTest(TestCase):
             shop=self.shop, author=self.user,
             title='À faire', due_at=timezone.now() + timedelta(days=1),
         )
-        response = self.client.post(reverse('reminder-done', kwargs={'pk': reminder.pk}))
+        response = self.client.post(reverse('reminder-done', kwargs={'pk': reminder.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         reminder.refresh_from_db()
         self.assertEqual(reminder.status, 'done')
@@ -96,6 +92,6 @@ class ReminderTest(TestCase):
 
     def test_multitenant_isolation(self):
         user_b, shop_b, _ = setup('b@example.com')
-        r_b = Reminder.objects.create(shop=shop_b, author=user_b, title='Rappel B', due_at=timezone.now() + timedelta(days=1))
+        r_b = Reminder.objects.create(shop=shop_b, author=user_b, title='Rappel B', due_at=timezone.now() + timedelta(days=1))  # noqa: E501
         response = self.client.get(reverse('reminder-detail', kwargs={'pk': r_b.pk}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

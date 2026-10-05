@@ -28,7 +28,7 @@ class Order(models.Model):
     )
     order_number = models.CharField(max_length=20)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')  # noqa: E501
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)

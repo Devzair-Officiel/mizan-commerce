@@ -27,33 +27,33 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'stock_quantity', 'created_at', 'updated_at')
 
     def validate_packaging_name(self, value: str) -> str:
-        # Unicité du packaging au sein d'un produit (excepté l'instance courante en édition).
+        # Unicité du packaging au sein d'un produit (excepté l'instance courante en édition).  # noqa: E501
         product = self.context.get('product')
         if product is None and self.instance is not None:
             product = self.instance.product
         if product is None:
             return value
-        qs = ProductVariant.objects.filter(product=product, packaging_name__iexact=value)
+        qs = ProductVariant.objects.filter(product=product, packaging_name__iexact=value)  # noqa: E501
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise serializers.ValidationError("Ce nom de conditionnement existe déjà pour ce produit.")
+            raise serializers.ValidationError("Ce nom de conditionnement existe déjà pour ce produit.")  # noqa: E501
         return value
 
     def validate_base_quantity(self, value):
         if value <= Decimal('0'):
-            raise serializers.ValidationError('La quantité de base doit être strictement positive.')
+            raise serializers.ValidationError('La quantité de base doit être strictement positive.')  # noqa: E501
         return value
 
     def validate_selling_price(self, value):
         if value < Decimal('0'):
-            raise serializers.ValidationError('Le prix de vente ne peut pas être négatif.')
+            raise serializers.ValidationError('Le prix de vente ne peut pas être négatif.')  # noqa: E501
         return value
 
 
 def _primary_image_url(product: Product) -> str | None:
     """URL signée de l'image principale (ou première image disponible). None si pas d'image
-    ou si le bucket S3 n'est pas configuré."""
+    ou si le bucket S3 n'est pas configuré."""  # noqa: E501
     from django.conf import settings
     from apps.core.storage import get_signed_url
 
@@ -96,7 +96,7 @@ def _variant_aggregates(product: Product) -> dict:
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
-    # Agrégats calculés à partir des variantes (source de vérité depuis la migration v2).
+    # Agrégats calculés à partir des variantes (source de vérité depuis la migration v2).  # noqa: E501
     min_selling_price = serializers.SerializerMethodField()
     max_selling_price = serializers.SerializerMethodField()
     variant_count = serializers.SerializerMethodField()

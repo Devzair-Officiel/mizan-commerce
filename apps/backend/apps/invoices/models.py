@@ -16,7 +16,7 @@ class InvoiceSequence(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='invoice_sequence')
+    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='invoice_sequence')  # noqa: E501
     last_number = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -34,7 +34,7 @@ class Invoice(models.Model):
     légale). On accepte uniquement un changement de statut (`issued` → `paid`/`cancelled`).
     Toutes les infos vendeur/acheteur sont **snapshottées** : si le commerçant change
     son adresse ou si le client est renommé, l'historique de facturation reste figé.
-    """
+    """  # noqa: E501
 
     STATUS_ISSUED = 'issued'
     STATUS_PAID = 'paid'
@@ -47,18 +47,18 @@ class Invoice(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoices')
-    # `SET_NULL` sur Order : la suppression d'une commande ne doit pas effacer la facture émise.
+    # `SET_NULL` sur Order : la suppression d'une commande ne doit pas effacer la facture émise.  # noqa: E501
     order = models.OneToOneField(
         Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoice',
     )
     customer = models.ForeignKey(
-        Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices',
+        Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices',  # noqa: E501
     )
 
     # Numéro humain stable, ex: "fact-040626-0001" — préfixe fixe, date d'émission,
     # compteur continu par boutique (jamais reset).
     number = models.CharField(max_length=40)
-    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ISSUED)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ISSUED)  # noqa: E501
 
     issued_at = models.DateTimeField()
     due_date = models.DateField()
@@ -83,7 +83,7 @@ class Invoice(models.Model):
 
     # ── Totaux figés à l'émission ──────────────────────────────────────────
     currency = models.CharField(max_length=3)
-    # Taux TVA appliqué à toutes les lignes (uniforme en v1 — si besoin par-ligne plus tard).
+    # Taux TVA appliqué à toutes les lignes (uniforme en v1 — si besoin par-ligne plus tard).  # noqa: E501
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     subtotal_ht = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     # Remise commerciale et frais de port — snapshot depuis la commande à l'émission.
@@ -107,7 +107,7 @@ class Invoice(models.Model):
         db_table = 'invoices'
         constraints = [
             # Le numéro doit être strictement unique au sein d'une boutique.
-            models.UniqueConstraint(fields=['shop', 'number'], name='unique_invoice_number_per_shop'),
+            models.UniqueConstraint(fields=['shop', 'number'], name='unique_invoice_number_per_shop'),  # noqa: E501
         ]
         indexes = [
             models.Index(fields=['shop', '-issued_at']),
@@ -127,7 +127,7 @@ class InvoiceLine(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoice_lines')
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoice_lines')  # noqa: E501
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='lines')
 
     description = models.CharField(max_length=300)

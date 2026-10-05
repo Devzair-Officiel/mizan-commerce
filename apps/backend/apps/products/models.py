@@ -36,7 +36,7 @@ class Product(models.Model):
             models.Index(fields=['shop', 'name']),
         ]
         constraints = [
-            models.UniqueConstraint(Lower('name'), 'shop', name='unique_product_name_per_shop'),
+            models.UniqueConstraint(Lower('name'), 'shop', name='unique_product_name_per_shop'),  # noqa: E501
         ]
 
     def __str__(self):
@@ -52,27 +52,27 @@ class ProductVariant(models.Model):
     pas le contenu cumulé. Pour le vrac, on modélise une variante de base_quantity = 1
     en unité (kg, L, m) → le format vaut une unité, donc stock = quantité physique.
     Le contenu total disponible est dérivé à la volée : `stock_quantity * base_quantity`.
-    """
+    """  # noqa: E501
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='product_variants')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='product_variants')  # noqa: E501
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')  # noqa: E501
     packaging_name = models.CharField(max_length=120)
     unit = models.CharField(
         max_length=8, choices=Product.UNIT_CHOICES, default='piece',
-        help_text="Unité de mesure du contenu (g, kg, mL…). Descriptif uniquement, sert au prix au litre/kilo.",
+        help_text="Unité de mesure du contenu (g, kg, mL…). Descriptif uniquement, sert au prix au litre/kilo.",  # noqa: E501
     )
     base_quantity = models.DecimalField(
         max_digits=14, decimal_places=3, default=1,
         help_text='Quantité contenue par format (ex. 250 pour "Bouteille 250 mL").',
     )
     selling_price = models.DecimalField(max_digits=12, decimal_places=2)
-    purchase_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    purchase_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
     stock_quantity = models.DecimalField(
         max_digits=14, decimal_places=3, default=0,
-        help_text='Nombre de formats en stock (ex. 50 bouteilles), pas le contenu cumulé.',
+        help_text='Nombre de formats en stock (ex. 50 bouteilles), pas le contenu cumulé.',  # noqa: E501
     )
-    low_stock_threshold = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)
+    low_stock_threshold = models.DecimalField(max_digits=14, decimal_places=3, null=True, blank=True)  # noqa: E501
     sku = models.CharField(max_length=64, blank=True)
     barcode = models.CharField(max_length=64, blank=True)
     position = models.PositiveIntegerField(default=0)
@@ -120,8 +120,8 @@ class ProductVariant(models.Model):
 
 class ProductImage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='product_images')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='product_images')  # noqa: E501
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')  # noqa: E501
     object_key = models.CharField(max_length=500)
     is_primary = models.BooleanField(default=False)
     position = models.IntegerField(default=0)

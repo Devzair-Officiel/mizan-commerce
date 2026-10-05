@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.shops.models import Shop, ShopMember
+from apps.shops.models import ShopMember
 
 
 class RegisterViewTest(TestCase):
@@ -15,7 +15,7 @@ class RegisterViewTest(TestCase):
         self.url = reverse('auth-register')
 
     def test_register_creates_user_and_shop(self):
-        data = {'email': 'test@example.com', 'password': 'StrongPass123!', 'full_name': 'Test User'}
+        data = {'email': 'test@example.com', 'password': 'StrongPass123!', 'full_name': 'Test User'}  # noqa: E501
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('access', response.data)
@@ -27,18 +27,18 @@ class RegisterViewTest(TestCase):
 
     def test_register_duplicate_email(self):
         User.objects.create_user(email='dup@example.com', password='Pass123!')
-        response = self.client.post(self.url, {'email': 'dup@example.com', 'password': 'Pass123!'})
+        response = self.client.post(self.url, {'email': 'dup@example.com', 'password': 'Pass123!'})  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_register_weak_password(self):
-        response = self.client.post(self.url, {'email': 'weak@example.com', 'password': '123'})
+        response = self.client.post(self.url, {'email': 'weak@example.com', 'password': '123'})  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class AuthFlowTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(email='user@example.com', password='StrongPass123!')
+        self.user = User.objects.create_user(email='user@example.com', password='StrongPass123!')  # noqa: E501
 
     def test_login_returns_tokens(self):
         response = self.client.post(reverse('auth-login'), {
@@ -112,7 +112,7 @@ class AuthFlowTest(TestCase):
 class ResendEmailVerificationTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(email='unverified@example.com', password='StrongPass123!')
+        self.user = User.objects.create_user(email='unverified@example.com', password='StrongPass123!')  # noqa: E501
         self.url = reverse('auth-verify-email-resend')
 
     def test_requires_auth(self):
@@ -140,7 +140,7 @@ class ResendEmailVerificationTest(TestCase):
 
 
 class EmailVerificationViewTest(TestCase):
-    """Vérifie le bon comportement après le passage à `is_active=True` à l'inscription."""
+    """Vérifie le bon comportement après le passage à `is_active=True` à l'inscription."""  # noqa: E501
 
     def setUp(self):
         from django.contrib.auth.tokens import default_token_generator
@@ -148,7 +148,7 @@ class EmailVerificationViewTest(TestCase):
         from django.utils.http import urlsafe_base64_encode
 
         self.client = APIClient()
-        self.user = User.objects.create_user(email='verify@example.com', password='StrongPass123!')
+        self.user = User.objects.create_user(email='verify@example.com', password='StrongPass123!')  # noqa: E501
         self.uid = urlsafe_base64_encode(force_bytes(self.user.pk))
         self.token = default_token_generator.make_token(self.user)
         self.url = reverse('auth-verify-email')

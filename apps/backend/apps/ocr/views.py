@@ -50,7 +50,7 @@ class SupplierInvoiceUploadView(APIView):
     def post(self, request: Request) -> Response:
         if not is_storage_configured():
             return Response(
-                {'detail': "L'upload vers Object Storage n'est pas configuré sur cet environnement."},
+                {'detail': "L'upload vers Object Storage n'est pas configuré sur cet environnement."},  # noqa: E501
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 

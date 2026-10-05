@@ -15,13 +15,13 @@ HasMessagesModule = HasModulePermission.for_module('messages')
 # réutilise donc directement la feature commerciale `whatsapp`.
 HasWhatsappPlan = HasPlanForFeature.for_feature('whatsapp')
 
-from .models import PreparedMessage
-from .serializers import (
+from .models import PreparedMessage  # noqa: E402
+from .serializers import (  # noqa: E402
     PreparedMessageCreateSerializer,
     PreparedMessageSerializer,
     PreparedMessageUpdateSerializer,
 )
-from .services import prepare_message
+from .services import prepare_message  # noqa: E402
 
 
 class PreparedMessageListCreateView(generics.ListCreateAPIView):
@@ -45,7 +45,7 @@ class PreparedMessageListCreateView(generics.ListCreateAPIView):
         if customer_id := params.get('customer'):
             qs = qs.filter(customer_id=customer_id)
         if order_id := params.get('order'):
-            qs = qs.filter(context_type=PreparedMessage.ContextType.ORDER, context_id=order_id)
+            qs = qs.filter(context_type=PreparedMessage.ContextType.ORDER, context_id=order_id)  # noqa: E501
         if template := params.get('template_type'):
             qs = qs.filter(template_type=template)
         return qs
@@ -116,7 +116,7 @@ class PreparedMessageDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class PreparedMessageMarkSentView(APIView):
-    """POST /api/messages/prepared/<id>/mark-sent/ — marque le message comme envoyé manuellement."""
+    """POST /api/messages/prepared/<id>/mark-sent/ — marque le message comme envoyé manuellement."""  # noqa: E501
 
     permission_classes = (IsAuthenticated, HasWhatsappPlan, HasMessagesModule)
 

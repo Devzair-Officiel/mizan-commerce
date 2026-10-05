@@ -2,7 +2,7 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 
 class AuthRateThrottle(AnonRateThrottle):
-    """10 tentatives par minute par IP sur les endpoints sensibles (login, register, password reset)."""
+    """10 tentatives par minute par IP sur les endpoints sensibles (login, register, password reset)."""  # noqa: E501
     scope = 'auth'
 
 

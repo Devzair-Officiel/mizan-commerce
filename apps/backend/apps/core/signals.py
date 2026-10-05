@@ -4,7 +4,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 
-def _log(shop_id, user, action: str, model_name: str, obj_id: str, obj_repr: str, changes: dict) -> None:
+def _log(shop_id, user, action: str, model_name: str, obj_id: str, obj_repr: str, changes: dict) -> None:  # noqa: E501
     from apps.core.models import AuditLog
     AuditLog.objects.create(
         shop_id=shop_id,
@@ -38,7 +38,7 @@ def log_stock_movement(sender, instance, created: bool, **kwargs) -> None:
         obj_repr=str(instance),
         changes={
             'variant_id': str(instance.variant_id) if instance.variant_id else None,
-            'product_id': str(instance.variant.product_id) if instance.variant_id else None,
+            'product_id': str(instance.variant.product_id) if instance.variant_id else None,  # noqa: E501
             'quantity': str(instance.quantity),
             'reason': instance.reason,
         },

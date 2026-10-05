@@ -22,7 +22,7 @@ class NoteListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = Note.objects.filter(shop=shop).select_related('author', 'customer', 'order')
+        qs = Note.objects.filter(shop=shop).select_related('author', 'customer', 'order')  # noqa: E501
         if customer_id := self.request.query_params.get('customer'):
             qs = qs.filter(customer_id=customer_id)
         if order_id := self.request.query_params.get('order'):
@@ -59,7 +59,7 @@ class ReminderListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = Reminder.objects.filter(shop=shop).select_related('author', 'customer', 'order')
+        qs = Reminder.objects.filter(shop=shop).select_related('author', 'customer', 'order')  # noqa: E501
         status_filter = self.request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -93,7 +93,7 @@ class ReminderDoneView(APIView):
         try:
             reminder = Reminder.objects.get(pk=pk, shop=shop)
         except Reminder.DoesNotExist:
-            return Response({'detail': 'Rappel introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Rappel introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
         reminder.status = 'done'
         reminder.done_at = timezone.now()
         reminder.save(update_fields=['status', 'done_at', 'updated_at'])
@@ -109,7 +109,7 @@ class ReminderReopenView(APIView):
         try:
             reminder = Reminder.objects.get(pk=pk, shop=shop)
         except Reminder.DoesNotExist:
-            return Response({'detail': 'Rappel introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Rappel introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
         reminder.status = 'pending'
         reminder.done_at = None
         reminder.save(update_fields=['status', 'done_at', 'updated_at'])

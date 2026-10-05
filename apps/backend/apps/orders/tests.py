@@ -10,7 +10,6 @@ from apps.products.models import Product, ProductVariant
 from apps.customers.models import Customer
 from apps.stock.models import StockMovement
 from . import services
-from .models import Order, OrderItem
 
 
 def setup(email):
@@ -24,7 +23,7 @@ def setup(email):
         shop=shop, product=product, packaging_name='Par défaut',
         unit='piece', base_quantity=1, selling_price='20.00',
     )
-    StockMovement.objects.create(shop=shop, variant=variant, movement_type='in', quantity=50, created_by=user)
+    StockMovement.objects.create(shop=shop, variant=variant, movement_type='in', quantity=50, created_by=user)  # noqa: E501
     customer = Customer.objects.create(shop=shop, name='Client test')
     return user, shop, product, variant, customer
 
@@ -32,7 +31,7 @@ def setup(email):
 class OrderServiceTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.product, self.variant, self.customer = setup('service@example.com')
+        self.user, self.shop, self.product, self.variant, self.customer = setup('service@example.com')  # noqa: E501
 
     def test_create_order_generates_number(self):
         from django.utils import timezone
@@ -54,7 +53,7 @@ class OrderServiceTest(TestCase):
         self.assertEqual(order.total_amount, Decimal('60.00'))
 
     def test_total_with_discount_and_shipping(self):
-        order = services.create_order(self.shop, self.user, discount=Decimal('5'), shipping=Decimal('3'))
+        order = services.create_order(self.shop, self.user, discount=Decimal('5'), shipping=Decimal('3'))  # noqa: E501
         services.add_item(order, self.variant, 2)
         order.refresh_from_db()
         # 40 - 5 + 3 = 38
@@ -80,7 +79,7 @@ class OrderServiceTest(TestCase):
     def test_invalid_transition_raises(self):
         order = services.create_order(self.shop, self.user)
         with self.assertRaises(ValueError):
-            services.transition_status(order, 'shipped', self.user)  # draft → shipped interdit
+            services.transition_status(order, 'shipped', self.user)  # draft → shipped interdit  # noqa: E501
 
     def test_shipped_order_cannot_transition(self):
         order = services.create_order(self.shop, self.user)
@@ -114,7 +113,7 @@ class OrderAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user, self.shop, self.product, self.variant, self.customer = setup('api@example.com')
+        self.user, self.shop, self.product, self.variant, self.customer = setup('api@example.com')  # noqa: E501
         self.client.force_authenticate(user=self.user)
 
     def test_create_order_via_api(self):
@@ -142,7 +141,7 @@ class OrderAPITest(TestCase):
     def test_status_transition_via_api(self):
         order = services.create_order(self.shop, self.user)
         services.add_item(order, self.variant, 1)
-        response = self.client.post(reverse('order-status', kwargs={'pk': order.pk}), {'status': 'to_prepare'})
+        response = self.client.post(reverse('order-status', kwargs={'pk': order.pk}), {'status': 'to_prepare'})  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'to_prepare')
 
@@ -156,13 +155,13 @@ class OrderMultiTenantTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user_a, self.shop_a, self.product_a, self.variant_a, _ = setup('a@example.com')
-        self.user_b, self.shop_b, self.product_b, self.variant_b, _ = setup('b@example.com')
+        self.user_a, self.shop_a, self.product_a, self.variant_a, _ = setup('a@example.com')  # noqa: E501
+        self.user_b, self.shop_b, self.product_b, self.variant_b, _ = setup('b@example.com')  # noqa: E501
         self.order_b = services.create_order(self.shop_b, self.user_b)
 
     def test_user_a_cannot_see_order_b(self):
         self.client.force_authenticate(user=self.user_a)
-        response = self.client.get(reverse('order-detail', kwargs={'pk': self.order_b.pk}))
+        response = self.client.get(reverse('order-detail', kwargs={'pk': self.order_b.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_user_a_cannot_transition_order_b(self):

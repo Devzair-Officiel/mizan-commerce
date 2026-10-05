@@ -47,8 +47,8 @@ class ProductVariantFactory(DjangoModelFactory):
     packaging_name = factory.Sequence(lambda n: f"Conditionnement {n}")
     unit = "piece"
     base_quantity = 1
-    selling_price = factory.Faker("pydecimal", left_digits=2, right_digits=2, positive=True, min_value=10, max_value=150)
-    purchase_price = factory.Faker("pydecimal", left_digits=2, right_digits=2, positive=True, min_value=5, max_value=50)
+    selling_price = factory.Faker("pydecimal", left_digits=2, right_digits=2, positive=True, min_value=10, max_value=150)  # noqa: E501
+    purchase_price = factory.Faker("pydecimal", left_digits=2, right_digits=2, positive=True, min_value=5, max_value=50)  # noqa: E501
     low_stock_threshold = 5
     position = 0
     is_active = True

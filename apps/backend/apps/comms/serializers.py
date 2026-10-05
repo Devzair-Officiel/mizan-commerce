@@ -8,8 +8,8 @@ from .models import PreparedMessage
 class PreparedMessageSerializer(serializers.ModelSerializer):
     """Lecture : représentation complète d'un message préparé."""
 
-    template_type_display = serializers.CharField(source='get_template_type_display', read_only=True)
-    context_type_display = serializers.CharField(source='get_context_type_display', read_only=True)
+    template_type_display = serializers.CharField(source='get_template_type_display', read_only=True)  # noqa: E501
+    context_type_display = serializers.CharField(source='get_context_type_display', read_only=True)  # noqa: E501
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
@@ -67,14 +67,14 @@ class PreparedMessageCreateSerializer(serializers.Serializer):
     immédiate côté frontend).
     """
 
-    template_type = serializers.ChoiceField(choices=PreparedMessage.TemplateType.choices)
+    template_type = serializers.ChoiceField(choices=PreparedMessage.TemplateType.choices)  # noqa: E501
     context_type = serializers.ChoiceField(
         choices=PreparedMessage.ContextType.choices,
         default=PreparedMessage.ContextType.NONE,
     )
     context_id = serializers.UUIDField(required=False, allow_null=True)
     customer_id = serializers.UUIDField(required=False, allow_null=True)
-    custom_message = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+    custom_message = serializers.CharField(required=False, allow_blank=True, max_length=4000)  # noqa: E501
 
     def validate(self, data):
         template_type = data['template_type']

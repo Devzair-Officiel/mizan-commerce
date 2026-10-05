@@ -126,7 +126,7 @@ def prepare_message(
     product: Product | None = None
 
     if context_type == PreparedMessage.ContextType.ORDER and context_id:
-        order = Order.objects.filter(shop=shop, id=context_id).select_related('customer').first()
+        order = Order.objects.filter(shop=shop, id=context_id).select_related('customer').first()  # noqa: E501
         if order is None:
             raise ValueError('Commande introuvable.')
         if customer is None:
@@ -135,7 +135,7 @@ def prepare_message(
         product = Product.objects.filter(shop=shop, id=context_id).first()
         if product is None:
             raise ValueError('Produit introuvable.')
-    elif context_type == PreparedMessage.ContextType.CUSTOMER and context_id and customer is None:
+    elif context_type == PreparedMessage.ContextType.CUSTOMER and context_id and customer is None:  # noqa: E501
         customer = Customer.objects.filter(shop=shop, id=context_id).first()
         if customer is None:
             raise ValueError('Client introuvable.')

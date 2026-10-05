@@ -71,7 +71,7 @@ class ProductCRUDTest(TestCase):
         product = make_product(self.shop)
         variant = product.variants.first()
         self.client.patch(
-            reverse('product-variant-detail', kwargs={'pk': product.pk, 'variant_pk': variant.pk}),
+            reverse('product-variant-detail', kwargs={'pk': product.pk, 'variant_pk': variant.pk}),  # noqa: E501
             {'stock_quantity': 999},
         )
         variant.refresh_from_db()
@@ -87,7 +87,7 @@ class ProductMultiTenantTest(TestCase):
 
     def test_user_a_cannot_see_product_b(self):
         self.client.force_authenticate(user=self.user_a)
-        response = self.client.get(reverse('product-detail', kwargs={'pk': self.product_b.pk}))
+        response = self.client.get(reverse('product-detail', kwargs={'pk': self.product_b.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_user_a_list_shows_only_own_products(self):

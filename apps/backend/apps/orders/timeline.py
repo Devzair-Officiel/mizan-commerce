@@ -34,7 +34,7 @@ def get_order_timeline(order: Order) -> list[OrderTimelineEvent]:
 
     Combine les `AuditLog` (création, transitions de statut, changements de paiement) avec
     les `Note` attachées à la commande.
-    """
+    """  # noqa: E501
     events: list[OrderTimelineEvent] = []
     has_created_log = _append_audit_events(order, events)
     if not has_created_log:
@@ -58,7 +58,7 @@ def _append_audit_events(order: Order, events: list[OrderTimelineEvent]) -> bool
 
     has_created_log = False
     for log in log_qs:
-        actor_name = _actor_name(log.user_id, log.user if log.user_id is not None else None)
+        actor_name = _actor_name(log.user_id, log.user if log.user_id is not None else None)  # noqa: E501
         if log.action == 'order_created':
             has_created_log = True
             events.append(OrderTimelineEvent(
@@ -66,7 +66,7 @@ def _append_audit_events(order: Order, events: list[OrderTimelineEvent]) -> bool
                 type=EVENT_CREATED,
                 occurred_at=log.created_at,
                 actor_name=actor_name,
-                data={'order_number': log.changes.get('order_number', order.order_number)},
+                data={'order_number': log.changes.get('order_number', order.order_number)},  # noqa: E501
             ))
         elif log.action == 'order_status_change':
             events.append(OrderTimelineEvent(
@@ -96,12 +96,12 @@ def _append_audit_events(order: Order, events: list[OrderTimelineEvent]) -> bool
 
 
 def _append_note_events(order: Order, events: list[OrderTimelineEvent]) -> None:
-    note_qs = Note.objects.filter(order=order, shop_id=order.shop_id).select_related('author').only(
+    note_qs = Note.objects.filter(order=order, shop_id=order.shop_id).select_related('author').only(  # noqa: E501
         'id', 'content', 'created_at',
         'author__full_name', 'author__email',
     )
     for note in note_qs:
-        actor_name = _actor_name(note.author_id, note.author if note.author_id is not None else None)
+        actor_name = _actor_name(note.author_id, note.author if note.author_id is not None else None)  # noqa: E501
         events.append(OrderTimelineEvent(
             id=f'note-{note.id}',
             type=EVENT_NOTE,

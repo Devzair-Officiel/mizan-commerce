@@ -1,5 +1,5 @@
 import uuid
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin  # noqa: E501
 from django.db import models
 
 

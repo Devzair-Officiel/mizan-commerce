@@ -80,7 +80,7 @@ class AdminShopMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShopMember
-        fields = ('user_id', 'user_email', 'user_full_name', 'user_phone', 'role', 'created_at')
+        fields = ('user_id', 'user_email', 'user_full_name', 'user_phone', 'role', 'created_at')  # noqa: E501
 
 
 class AdminShopSerializer(serializers.ModelSerializer):

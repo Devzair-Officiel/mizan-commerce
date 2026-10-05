@@ -1,4 +1,4 @@
-from django.db.models import F, Exists, OuterRef, Q
+from django.db.models import F, Exists, OuterRef
 from rest_framework import generics, filters, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -8,8 +8,8 @@ from rest_framework.views import APIView
 from apps.core.permissions import HasModulePermission, get_shop
 
 HasProductsModule = HasModulePermission.for_module('products')
-from .models import Product, ProductImage, ProductVariant
-from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer
+from .models import Product, ProductImage, ProductVariant  # noqa: E402
+from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer  # noqa: E402, E501
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
@@ -47,13 +47,13 @@ class ProductListCreateView(generics.ListCreateAPIView):
         if product_type in ('product', 'service'):
             qs = qs.filter(type=product_type)
 
-        # Filtre rupture : toutes les variantes actives ont un stock <= 0 → produit en rupture.
-        # On exclut donc les produits qui possèdent au moins une variante active avec stock > 0.
+        # Filtre rupture : toutes les variantes actives ont un stock <= 0 → produit en rupture.  # noqa: E501
+        # On exclut donc les produits qui possèdent au moins une variante active avec stock > 0.  # noqa: E501
         if self.request.query_params.get('out_of_stock') == '1':
             has_stock = ProductVariant.objects.filter(
                 product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
             )
-            qs = qs.filter(type='product').annotate(_has_stock=Exists(has_stock)).filter(_has_stock=False)
+            qs = qs.filter(type='product').annotate(_has_stock=Exists(has_stock)).filter(_has_stock=False)  # noqa: E501
 
         # Filtre stock faible : au moins une variante active sous son seuil.
         if self.request.query_params.get('low_stock') == '1':
@@ -64,7 +64,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
                 stock_quantity__lte=F('low_stock_threshold'),
                 stock_quantity__gt=0,
             )
-            qs = qs.filter(type='product').annotate(_has_low=Exists(has_low)).filter(_has_low=True)
+            qs = qs.filter(type='product').annotate(_has_low=Exists(has_low)).filter(_has_low=True)  # noqa: E501
 
         return qs
 
@@ -142,23 +142,23 @@ class ProductImageUploadView(APIView):
 
         if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
             return Response(
-                {'detail': "L'upload vers Object Storage n'est pas configuré sur cet environnement."},
+                {'detail': "L'upload vers Object Storage n'est pas configuré sur cet environnement."},  # noqa: E501
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         shop = get_shop(request.user)
         file = request.FILES.get('image')
         if not file:
-            return Response({'detail': 'Champ « image » requis.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Champ « image » requis.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
         try:
             image = upload_product_image(shop=shop, product_id=pk, file=file)
         except Product.DoesNotExist:
-            return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
         signed_url = get_signed_url(image.object_key)
         return Response(
-            {'id': str(image.pk), 'object_key': image.object_key, 'url': signed_url, 'is_primary': image.is_primary},
+            {'id': str(image.pk), 'object_key': image.object_key, 'url': signed_url, 'is_primary': image.is_primary},  # noqa: E501
             status=status.HTTP_201_CREATED,
         )
 
@@ -215,7 +215,7 @@ class ProductVariantListCreateView(generics.ListCreateAPIView):
 
     def _get_product(self) -> Product:
         shop = get_shop(self.request.user)
-        return generics.get_object_or_404(Product.objects.filter(shop=shop), pk=self.kwargs['pk'])
+        return generics.get_object_or_404(Product.objects.filter(shop=shop), pk=self.kwargs['pk'])  # noqa: E501
 
     def get_queryset(self):
         product = self._get_product()
@@ -275,7 +275,7 @@ class ProductImageSignedUrlView(APIView):
         try:
             image = ProductImage.objects.get(pk=image_pk, product__pk=pk, shop=shop)
         except ProductImage.DoesNotExist:
-            return Response({'detail': 'Image introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Image introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
         signed_url = get_signed_url(image.object_key)
         return Response({'url': signed_url})

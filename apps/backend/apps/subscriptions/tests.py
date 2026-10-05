@@ -28,7 +28,7 @@ from apps.subscriptions.services import (
 
 
 def _make_user(email: str = 'owner@example.com') -> User:
-    return User.objects.create_user(email=email, password='StrongPass123!', full_name='Owner')
+    return User.objects.create_user(email=email, password='StrongPass123!', full_name='Owner')  # noqa: E501
 
 
 def _make_shop(name: str = 'Shop 1') -> Shop:
@@ -172,8 +172,8 @@ class SubscriptionCurrentEndpointTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], Subscription.STATUS_TRIALING)
-        self.assertEqual(response.data['plan']['code'], SubscriptionPlan.CODE_BOUTIQUE_PLUS)
-        self.assertEqual(response.data['effective_plan_code'], SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(response.data['plan']['code'], SubscriptionPlan.CODE_BOUTIQUE_PLUS)  # noqa: E501
+        self.assertEqual(response.data['effective_plan_code'], SubscriptionPlan.CODE_BOUTIQUE_PLUS)  # noqa: E501
         self.assertIsNotNone(response.data['days_remaining'])
 
 
@@ -191,7 +191,7 @@ class SubscriptionChangeEndpointTest(TestCase):
         response = self.client.post(self.url, {'plan_code': SubscriptionPlan.CODE_FREE})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['plan']['code'], SubscriptionPlan.CODE_FREE)
-        self.assertEqual(response.data['effective_plan_code'], SubscriptionPlan.CODE_FREE)
+        self.assertEqual(response.data['effective_plan_code'], SubscriptionPlan.CODE_FREE)  # noqa: E501
 
     def test_upgrade_to_pro_is_rejected(self):
         self.client.force_authenticate(user=self.user)
@@ -213,9 +213,9 @@ class PlanGatingTest(TestCase):
     mais de vérifier que `HasPlanForFeature` est bien câblé sur au moins un
     endpoint de chaque tier (pro, boutique+). On utilise GET /api/orders/ (pro)
     et GET /api/public-page/ (boutique+) comme sondes.
-    """
+    """  # noqa: E501
 
-    def _setup_member(self, plan_code: str, status: str = Subscription.STATUS_ACTIVE) -> User:
+    def _setup_member(self, plan_code: str, status: str = Subscription.STATUS_ACTIVE) -> User:  # noqa: E501
         user = _make_user(f'{plan_code}@example.com')
         shop = _make_shop(f'Shop {plan_code}')
         _make_owner(user, shop)
@@ -318,7 +318,7 @@ class PlanQuantitativeLimitsTest(TestCase):
 
         # Désactive un produit → un slot se libère.
         Product.objects.filter(shop=shop, is_active=True).first().is_active = False
-        Product.objects.filter(shop=shop, is_active=True, name='Actif 0').update(is_active=False)
+        Product.objects.filter(shop=shop, is_active=True, name='Actif 0').update(is_active=False)  # noqa: E501
         enforce_product_limit(shop)  # ne doit pas lever.
 
     def test_orders_per_month_limit_blocks_when_reached(self):

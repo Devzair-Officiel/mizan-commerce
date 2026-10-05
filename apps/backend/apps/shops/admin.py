@@ -12,7 +12,7 @@ class ShopMemberInline(admin.TabularInline):
 
 @admin.register(Shop)
 class ShopAdmin(admin.ModelAdmin):
-    list_display = ('name', 'currency', 'country', 'timezone', 'owner_email', 'created_at')
+    list_display = ('name', 'currency', 'country', 'timezone', 'owner_email', 'created_at')  # noqa: E501
     search_fields = ('name',)
     ordering = ('-created_at',)
     readonly_fields = ('id', 'created_at', 'updated_at')

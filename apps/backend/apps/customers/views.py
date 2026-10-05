@@ -1,4 +1,3 @@
-from decimal import Decimal
 from django.db.models import Count, Sum, F, Q, ExpressionWrapper, DecimalField
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -10,18 +9,18 @@ from apps.core.pagination import FlexiblePageNumberPagination
 from apps.core.permissions import HasModulePermission, get_shop
 
 HasCustomersModule = HasModulePermission.for_module('customers')
-from .models import Customer
-from .serializers import CustomerSerializer, CustomerListSerializer
-from .services import ALL_TYPES, get_customer_timeline
+from .models import Customer  # noqa: E402
+from .serializers import CustomerSerializer, CustomerListSerializer  # noqa: E402
+from .services import ALL_TYPES, get_customer_timeline  # noqa: E402
 
 
 def _customer_qs_with_stats(shop):
     return Customer.objects.filter(shop=shop).annotate(
-        order_count=Count('orders', filter=~Q(orders__status='cancelled'), distinct=True),
+        order_count=Count('orders', filter=~Q(orders__status='cancelled'), distinct=True),  # noqa: E501
         pending_amount=ExpressionWrapper(
             Sum(
                 F('orders__total_amount') - F('orders__amount_paid'),
-                filter=Q(orders__payment_status__in=['unpaid', 'partial']) & ~Q(orders__status='cancelled'),
+                filter=Q(orders__payment_status__in=['unpaid', 'partial']) & ~Q(orders__status='cancelled'),  # noqa: E501
             ),
             output_field=DecimalField(max_digits=12, decimal_places=2),
         ),
@@ -43,7 +42,7 @@ class CustomerListCreateView(generics.ListCreateAPIView):
     ordering = ('name',)
 
     def get_serializer_class(self):
-        return CustomerListSerializer if self.request.method == 'GET' else CustomerSerializer
+        return CustomerListSerializer if self.request.method == 'GET' else CustomerSerializer  # noqa: E501
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -87,7 +86,7 @@ class CustomerActivityView(APIView):
         try:
             customer = Customer.objects.get(pk=pk, shop=shop)
         except Customer.DoesNotExist:
-            return Response({'detail': 'Client introuvable.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Client introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
         raw_types = request.query_params.get('types')
         if raw_types:

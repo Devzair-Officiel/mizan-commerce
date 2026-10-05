@@ -72,7 +72,7 @@ def enforce_orders_per_month_limit(shop: 'Shop') -> None:
     if count >= limit:
         raise ValidationError({
             'detail': (
-                f'Votre formule « {plan.name} » est limitée à {limit} commandes par mois. '
+                f'Votre formule « {plan.name} » est limitée à {limit} commandes par mois. '  # noqa: E501
                 'Passez à une formule supérieure pour en créer davantage.'
             ),
             'code': 'plan_limit_exceeded',

@@ -34,8 +34,8 @@ class Shop(models.Model):
     timezone = models.CharField(max_length=50, default='Europe/Paris')
     zakat_annual_date = models.DateField(null=True, blank=True)
     # Méthode et prix unitaire (par gramme) utilisés pour calculer le seuil de Nisab.
-    # Pas de valeur par défaut sur le prix : le cours fluctue, l'utilisateur doit le saisir.
-    # Argent par défaut comme méthode (plus inclusif, recommandé pour la zakat commerciale).
+    # Pas de valeur par défaut sur le prix : le cours fluctue, l'utilisateur doit le saisir.  # noqa: E501
+    # Argent par défaut comme méthode (plus inclusif, recommandé pour la zakat commerciale).  # noqa: E501
     nisab_method = models.CharField(
         max_length=8, choices=NISAB_METHOD_CHOICES, default=NISAB_METHOD_SILVER,
     )
@@ -119,7 +119,7 @@ class ShopMember(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='members')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shop_memberships')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shop_memberships')  # noqa: E501
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_OWNER)
     permissions = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

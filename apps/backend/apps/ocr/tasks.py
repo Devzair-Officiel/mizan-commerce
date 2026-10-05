@@ -286,18 +286,18 @@ def _invoice_to_jsonable(invoice: AiInvoiceExtraction) -> dict:
     return {
         'supplier_name': invoice.supplier_name,
         'invoice_number': invoice.invoice_number,
-        'invoice_date': invoice.invoice_date.isoformat() if invoice.invoice_date else None,
+        'invoice_date': invoice.invoice_date.isoformat() if invoice.invoice_date else None,  # noqa: E501
         'currency': invoice.currency,
         'subtotal': str(invoice.subtotal) if invoice.subtotal is not None else None,
-        'tax_amount': str(invoice.tax_amount) if invoice.tax_amount is not None else None,
+        'tax_amount': str(invoice.tax_amount) if invoice.tax_amount is not None else None,  # noqa: E501
         'total': str(invoice.total) if invoice.total is not None else None,
         'lines': [
             {
                 'description': line.description,
                 'supplier_reference': line.supplier_reference,
                 'quantity': str(line.quantity) if line.quantity is not None else None,
-                'unit_price': str(line.unit_price) if line.unit_price is not None else None,
-                'line_total': str(line.line_total) if line.line_total is not None else None,
+                'unit_price': str(line.unit_price) if line.unit_price is not None else None,  # noqa: E501
+                'line_total': str(line.line_total) if line.line_total is not None else None,  # noqa: E501
                 'source_line_indices': list(line.source_line_indices),
             }
             for line in invoice.lines

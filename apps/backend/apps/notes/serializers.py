@@ -7,7 +7,7 @@ class NoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Note
-        fields = ('id', 'customer', 'order', 'content', 'author', 'author_name', 'created_at', 'updated_at')
+        fields = ('id', 'customer', 'order', 'content', 'author', 'author_name', 'created_at', 'updated_at')  # noqa: E501
         read_only_fields = ('id', 'author', 'created_at', 'updated_at')
 
     def validate(self, data):
@@ -24,7 +24,7 @@ class NoteSerializer(serializers.ModelSerializer):
 class ReminderSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.full_name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)  # noqa: E501
 
     class Meta:
         model = Reminder

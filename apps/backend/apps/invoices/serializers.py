@@ -18,7 +18,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
     Le seul champ modifiable via PATCH côté API est `status` (cf. `InvoiceStatusUpdateSerializer`).
     Exposer ce sérialiseur en `ModelSerializer` complet faciliterait la triche : on garde
     tout en read-only ici et on contrôle finement les mutations dans des sérialiseurs séparés.
-    """
+    """  # noqa: E501
 
     lines = InvoiceLineSerializer(many=True, read_only=True)
 
@@ -42,17 +42,17 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
 
 class InvoiceIssueSerializer(serializers.Serializer):
-    """Payload d'émission — `order_id` requis, le reste est optionnel et surcharge les défauts shop."""
+    """Payload d'émission — `order_id` requis, le reste est optionnel et surcharge les défauts shop."""  # noqa: E501
 
     order_id = serializers.UUIDField()
     tax_rate = serializers.DecimalField(
         max_digits=5, decimal_places=2, required=False, min_value=0, max_value=100,
     )
-    payment_terms_days = serializers.IntegerField(required=False, min_value=0, max_value=365)
+    payment_terms_days = serializers.IntegerField(required=False, min_value=0, max_value=365)  # noqa: E501
     notes = serializers.CharField(required=False, allow_blank=True, max_length=2000)
 
 
 class InvoiceStatusUpdateSerializer(serializers.Serializer):
     """PATCH — accepte uniquement les transitions vers `paid` ou `cancelled`."""
 
-    status = serializers.ChoiceField(choices=[Invoice.STATUS_PAID, Invoice.STATUS_CANCELLED])
+    status = serializers.ChoiceField(choices=[Invoice.STATUS_PAID, Invoice.STATUS_CANCELLED])  # noqa: E501

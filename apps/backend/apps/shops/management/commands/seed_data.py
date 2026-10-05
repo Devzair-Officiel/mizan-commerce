@@ -97,4 +97,4 @@ class Command(BaseCommand):
             )
         )
 
-        self.stdout.write(self.style.SUCCESS("\nSeed terminé. Mot de passe : SeedPass123!"))
+        self.stdout.write(self.style.SUCCESS("\nSeed terminé. Mot de passe : SeedPass123!"))  # noqa: E501

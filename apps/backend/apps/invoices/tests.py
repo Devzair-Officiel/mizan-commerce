@@ -1,9 +1,7 @@
-from datetime import date
 from decimal import Decimal
 
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -15,10 +13,10 @@ from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
 
 from . import services
-from .models import Invoice, InvoiceLine, InvoiceSequence
+from .models import Invoice
 
 
-def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, ProductVariant | None, Customer]:
+def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, ProductVariant | None, Customer]:  # noqa: E501
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(
         name=f'Shop {email}',
@@ -56,7 +54,7 @@ def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, Pr
 
 def _make_order_with_items(shop: Shop, user: User, variant: ProductVariant,
                           customer: Customer | None = None,
-                          *, qty: int = 2, discount: str = '0', shipping: str = '0') -> 'order_services.Order':
+                          *, qty: int = 2, discount: str = '0', shipping: str = '0') -> 'order_services.Order':  # noqa: E501
     order = order_services.create_order(
         shop, user, customer=customer,
         discount=Decimal(discount), shipping=Decimal(shipping),
@@ -69,7 +67,7 @@ def _make_order_with_items(shop: Shop, user: User, variant: ProductVariant,
 class InvoiceNumberingTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('num@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('num@example.com')  # noqa: E501
 
     def test_number_format(self):
         order = _make_order_with_items(self.shop, self.user, self.variant)
@@ -112,7 +110,7 @@ class InvoiceNumberingTest(TestCase):
 class InvoiceTotalsTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('totals@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('totals@example.com')  # noqa: E501
 
     def test_totals_simple(self):
         # 2 × 10€ HT, TVA 20% → 20€ HT, 4€ TVA, 24€ TTC.
@@ -157,10 +155,10 @@ class InvoiceTotalsTest(TestCase):
 class InvoiceSnapshotTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('snap@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('snap@example.com')  # noqa: E501
 
     def test_seller_snapshot_is_immutable_after_shop_change(self):
-        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer)
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer)  # noqa: E501
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
         original_name = invoice.seller_name
         original_address = invoice.seller_address
@@ -177,7 +175,7 @@ class InvoiceSnapshotTest(TestCase):
         self.assertEqual(invoice.seller_tax_id, original_tax_id)
 
     def test_buyer_snapshot_from_customer(self):
-        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer)
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer)  # noqa: E501
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
         self.assertEqual(invoice.buyer_name, 'Jean Dupont')
         self.assertIn('12 avenue', invoice.buyer_address)
@@ -186,13 +184,13 @@ class InvoiceSnapshotTest(TestCase):
         self.assertEqual(invoice.buyer_email, 'jean@example.com')
 
     def test_buyer_fields_empty_without_customer(self):
-        order = _make_order_with_items(self.shop, self.user, self.variant, customer=None)
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=None)  # noqa: E501
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
         self.assertEqual(invoice.buyer_name, '')
         self.assertIsNone(invoice.customer)
 
     def test_buyer_snapshot_immutable_after_customer_rename(self):
-        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer)
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer)  # noqa: E501
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
         original = invoice.buyer_name
 
@@ -207,7 +205,7 @@ class InvoiceSnapshotTest(TestCase):
 class InvoiceIssueGuardsTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('guard@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('guard@example.com')  # noqa: E501
 
     def test_empty_order_raises(self):
         order = order_services.create_order(self.shop, self.user)
@@ -234,7 +232,7 @@ class InvoiceIssueGuardsTest(TestCase):
 class InvoiceStatusInitTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('init@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('init@example.com')  # noqa: E501
 
     def test_paid_order_yields_paid_invoice(self):
         order = _make_order_with_items(self.shop, self.user, self.variant, qty=1)
@@ -256,7 +254,7 @@ class InvoiceStatusInitTest(TestCase):
 class InvoiceSyncFromOrderTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('sync@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('sync@example.com')  # noqa: E501
 
     def test_sync_marks_paid_when_order_paid(self):
         order = _make_order_with_items(self.shop, self.user, self.variant, qty=1)
@@ -308,9 +306,9 @@ class InvoiceSyncFromOrderTest(TestCase):
 class InvoiceStatusActionsTest(TestCase):
 
     def setUp(self):
-        self.user, self.shop, self.variant, self.customer = _make_shop('act@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('act@example.com')  # noqa: E501
         self.order = _make_order_with_items(self.shop, self.user, self.variant, qty=2)
-        self.invoice = services.issue_invoice_from_order(shop=self.shop, order=self.order)
+        self.invoice = services.issue_invoice_from_order(shop=self.shop, order=self.order)  # noqa: E501
 
     def test_mark_paid_is_idempotent(self):
         services.mark_paid(self.invoice)
@@ -334,11 +332,11 @@ class InvoiceAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user, self.shop, self.variant, self.customer = _make_shop('api@example.com')
+        self.user, self.shop, self.variant, self.customer = _make_shop('api@example.com')  # noqa: E501
         self.client.force_authenticate(user=self.user)
 
     def test_create_invoice_from_order(self):
-        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer, qty=2)
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=self.customer, qty=2)  # noqa: E501
         response = self.client.post(
             reverse('invoice-list'),
             {'order_id': str(order.pk)},
@@ -368,7 +366,7 @@ class InvoiceAPITest(TestCase):
 
     def test_create_invoice_duplicate_returns_409(self):
         order = _make_order_with_items(self.shop, self.user, self.variant)
-        self.client.post(reverse('invoice-list'), {'order_id': str(order.pk)}, format='json')
+        self.client.post(reverse('invoice-list'), {'order_id': str(order.pk)}, format='json')  # noqa: E501
         response = self.client.post(
             reverse('invoice-list'),
             {'order_id': str(order.pk)},
@@ -438,7 +436,7 @@ class InvoiceAPITest(TestCase):
     def test_cannot_delete_invoice(self):
         order = _make_order_with_items(self.shop, self.user, self.variant)
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
-        response = self.client.delete(reverse('invoice-detail', kwargs={'pk': invoice.pk}))
+        response = self.client.delete(reverse('invoice-detail', kwargs={'pk': invoice.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
@@ -449,11 +447,11 @@ class InvoiceMultiTenantTest(TestCase):
         self.user_a, self.shop_a, self.variant_a, _ = _make_shop('a@example.com')
         self.user_b, self.shop_b, self.variant_b, _ = _make_shop('b@example.com')
         order_b = _make_order_with_items(self.shop_b, self.user_b, self.variant_b)
-        self.invoice_b = services.issue_invoice_from_order(shop=self.shop_b, order=order_b)
+        self.invoice_b = services.issue_invoice_from_order(shop=self.shop_b, order=order_b)  # noqa: E501
 
     def test_user_a_cannot_see_invoice_b(self):
         self.client.force_authenticate(user=self.user_a)
-        response = self.client.get(reverse('invoice-detail', kwargs={'pk': self.invoice_b.pk}))
+        response = self.client.get(reverse('invoice-detail', kwargs={'pk': self.invoice_b.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_user_a_cannot_patch_invoice_b(self):

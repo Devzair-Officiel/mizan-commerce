@@ -12,7 +12,7 @@ class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 0
     readonly_fields = ('id', 'stock_quantity', 'created_at', 'updated_at')
-    fields = ('packaging_name', 'unit', 'base_quantity', 'selling_price', 'purchase_price', 'stock_quantity', 'sku', 'is_active')
+    fields = ('packaging_name', 'unit', 'base_quantity', 'selling_price', 'purchase_price', 'stock_quantity', 'sku', 'is_active')  # noqa: E501
 
 
 @admin.register(Product)

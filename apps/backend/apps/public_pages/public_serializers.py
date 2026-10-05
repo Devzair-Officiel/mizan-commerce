@@ -12,7 +12,7 @@ from rest_framework import serializers
 from apps.core.storage import get_signed_url, is_storage_configured
 from apps.products.models import Product
 
-from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection
+from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection  # noqa: E501
 
 
 def _signed_url_or_none(object_key: str) -> str | None:
@@ -46,7 +46,7 @@ class PublicCatalogItemSerializer(serializers.ModelSerializer):
         )
 
     def _first_active_variant(self, product: Product):
-        return product.variants.filter(is_active=True).order_by('position', 'created_at').first()
+        return product.variants.filter(is_active=True).order_by('position', 'created_at').first()  # noqa: E501
 
     def get_price(self, obj: PublicCatalogVisibility) -> str | None:
         if not obj.show_price:

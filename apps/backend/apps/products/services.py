@@ -17,17 +17,17 @@ if TYPE_CHECKING:
 __all__ = ('upload_product_image', 'get_signed_url')
 
 
-def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFile) -> 'ProductImage':
+def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFile) -> 'ProductImage':  # noqa: E501
     from apps.products.models import Product, ProductImage
 
     max_bytes = getattr(settings, 'PRODUCT_IMAGE_MAX_SIZE_MB', 5) * 1024 * 1024
-    allowed_types: set[str] = getattr(settings, 'PRODUCT_IMAGE_ALLOWED_TYPES', {'image/jpeg', 'image/png', 'image/webp'})
+    allowed_types: set[str] = getattr(settings, 'PRODUCT_IMAGE_ALLOWED_TYPES', {'image/jpeg', 'image/png', 'image/webp'})  # noqa: E501
 
     if file.size > max_bytes:
-        raise ValidationError(f"L'image ne doit pas dépasser {max_bytes // (1024 * 1024)} Mo.")
+        raise ValidationError(f"L'image ne doit pas dépasser {max_bytes // (1024 * 1024)} Mo.")  # noqa: E501
 
     if file.content_type not in allowed_types:
-        raise ValidationError(f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.")
+        raise ValidationError(f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.")  # noqa: E501
 
     product = Product.objects.get(pk=product_id, shop=shop)
 

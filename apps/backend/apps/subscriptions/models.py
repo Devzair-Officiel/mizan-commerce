@@ -33,7 +33,7 @@ class SubscriptionPlan(models.Model):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    price_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    price_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
     currency = models.CharField(max_length=3, default='EUR')
     billing_period = models.CharField(max_length=20, choices=PERIOD_CHOICES, blank=True)
     # Préparé pour la future intégration Stripe — laissé vide tant que la couche
@@ -92,7 +92,7 @@ class Subscription(models.Model):
     plan = models.ForeignKey(
         SubscriptionPlan, on_delete=models.PROTECT, related_name='subscriptions',
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE)  # noqa: E501
     # Stripe — préparés, vides tant que la couche paiement n'est pas branchée.
     stripe_subscription_id = models.CharField(max_length=100, blank=True)
     stripe_customer_id = models.CharField(max_length=100, blank=True)

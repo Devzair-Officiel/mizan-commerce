@@ -17,10 +17,10 @@ from rest_framework.views import APIView
 from apps.core.permissions import IsShopAdmin, get_shop_from_request
 from apps.subscriptions.permissions import HasPlanForFeature
 
-from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection
+from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection  # noqa: E501
 
 HasPublicPagesPlan = HasPlanForFeature.for_feature('public_pages')
-from .serializers import (
+from .serializers import (  # noqa: E402
     ContactButtonSerializer,
     PublicCatalogVisibilitySerializer,
     PublicPageCreateSerializer,
@@ -29,7 +29,7 @@ from .serializers import (
     PublicPageUpdateSerializer,
     ReorderSerializer,
 )
-from .services import (
+from .services import (  # noqa: E402
     create_public_page,
     delete_page_cover,
     delete_page_logo,
@@ -72,7 +72,7 @@ class PublicPageView(_PublicPageMixin, APIView):
         shop = get_shop_from_request(request)
         try:
             page = PublicPage.objects.prefetch_related(
-                'sections', 'catalog_items', 'catalog_items__product', 'contact_buttons',
+                'sections', 'catalog_items', 'catalog_items__product', 'contact_buttons',  # noqa: E501
             ).get(shop=shop)
         except PublicPage.DoesNotExist:
             return Response({
@@ -199,7 +199,7 @@ class SectionReorderView(_PublicPageMixin, APIView):
     def post(self, request) -> Response:
         serializer = ReorderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        reorder_sections(page=self._get_page(), order=serializer.validated_data['order'])
+        reorder_sections(page=self._get_page(), order=serializer.validated_data['order'])  # noqa: E501
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -210,7 +210,7 @@ class CatalogListCreateView(_PublicPageMixin, generics.ListCreateAPIView):
     serializer_class = PublicCatalogVisibilitySerializer
 
     def get_queryset(self):
-        return PublicCatalogVisibility.objects.filter(page=self._get_page()).select_related('product')
+        return PublicCatalogVisibility.objects.filter(page=self._get_page()).select_related('product')  # noqa: E501
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()

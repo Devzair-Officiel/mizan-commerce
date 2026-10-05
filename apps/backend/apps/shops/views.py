@@ -64,7 +64,7 @@ class ShopMemberListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         shop = get_user_shop(self.request.user)
-        return ShopMember.objects.filter(shop=shop).select_related('user').order_by('created_at')
+        return ShopMember.objects.filter(shop=shop).select_related('user').order_by('created_at')  # noqa: E501
 
     def create(self, request, *args, **kwargs):
         shop = get_user_shop(request.user)
@@ -105,7 +105,7 @@ class ShopMemberDetailView(generics.GenericAPIView):
         # Un admin ne peut pas se retirer ses propres droits.
         if member.user_id == request.user.id:
             return Response(
-                {'detail': 'Vous ne pouvez pas modifier votre propre rôle ou vos permissions.'},
+                {'detail': 'Vous ne pouvez pas modifier votre propre rôle ou vos permissions.'},  # noqa: E501
                 status=status.HTTP_400_BAD_REQUEST,
             )
         serializer = self.get_serializer(data=request.data)
@@ -129,7 +129,7 @@ class ShopMemberDetailView(generics.GenericAPIView):
 
 
 class ShopLogoView(APIView):
-    """Upload (POST) ou suppression (DELETE) du logo de la boutique courante — admin uniquement."""
+    """Upload (POST) ou suppression (DELETE) du logo de la boutique courante — admin uniquement."""  # noqa: E501
     permission_classes = (IsAuthenticated, IsShopAdmin)
     parser_classes = (MultiPartParser,)
 
@@ -142,7 +142,7 @@ class ShopLogoView(APIView):
         shop = self._get_shop()
         file = request.FILES.get('logo')
         if not file:
-            return Response({'detail': 'Champ « logo » requis.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Champ « logo » requis.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         upload_shop_logo(shop=shop, file=file)
         return Response(ShopSerializer(shop, context={'request': request}).data)
 
@@ -167,7 +167,7 @@ class OnboardingView(APIView):
         shop.dashboard_mode = serializer.validated_data['dashboard_mode']
         if shop.onboarding_completed_at is None:
             shop.onboarding_completed_at = timezone.now()
-        shop.save(update_fields=['catalog_kind', 'dashboard_mode', 'onboarding_completed_at', 'updated_at'])
+        shop.save(update_fields=['catalog_kind', 'dashboard_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
         return Response(ShopSerializer(shop, context={'request': request}).data)
 
 

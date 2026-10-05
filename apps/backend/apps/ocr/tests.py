@@ -193,7 +193,7 @@ class SupplierInvoiceUploadViewTest(TestCase):
 
     # ── Permissions ─────────────────────────────────────────────────────
     def test_unauthenticated_denied(self) -> None:
-        response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+        response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')  # noqa: E501
         # JWTAuthentication expose un WWW-Authenticate → DRF renvoie 401.
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -203,11 +203,11 @@ class SupplierInvoiceUploadViewTest(TestCase):
             response = self.client.post(
                 self.URL, {'document': self._jpeg()}, format='multipart',
             )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
         mock_upload.assert_called_once()
 
     def test_staff_with_stock_module_can_upload(self) -> None:
-        staff = User.objects.create_user(email='staff-stock@example.com', password='Pass123!Strong')
+        staff = User.objects.create_user(email='staff-stock@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(
             shop=self.shop, user=staff, role='staff', permissions=['stock'],
         )
@@ -216,12 +216,12 @@ class SupplierInvoiceUploadViewTest(TestCase):
             response = self.client.post(
                 self.URL, {'document': self._jpeg()}, format='multipart',
             )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
 
     def test_staff_without_stock_module_denied(self) -> None:
-        staff = User.objects.create_user(email='staff-nostock@example.com', password='Pass123!Strong')
+        staff = User.objects.create_user(email='staff-nostock@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(
-            shop=self.shop, user=staff, role='staff', permissions=['products', 'orders'],
+            shop=self.shop, user=staff, role='staff', permissions=['products', 'orders'],  # noqa: E501
         )
         self.client.force_authenticate(user=staff)
         with patch('apps.ocr.services.upload_fileobj') as mock_upload:
@@ -271,7 +271,7 @@ class SupplierInvoiceUploadViewTest(TestCase):
             'facture.jpg', b'%PDF-1.4 fake', content_type='image/jpeg',
         )
         with patch('apps.ocr.services.upload_fileobj') as mock_upload:
-            response = self.client.post(self.URL, {'document': fake}, format='multipart')
+            response = self.client.post(self.URL, {'document': fake}, format='multipart')  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_upload.assert_not_called()
 
@@ -282,7 +282,7 @@ class SupplierInvoiceUploadViewTest(TestCase):
                 response = self.client.post(
                     self.URL, {'document': factory()}, format='multipart',
                 )
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
 
     # ── Storage non configuré ───────────────────────────────────────────
     @override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
@@ -298,7 +298,7 @@ class SupplierInvoiceUploadViewTest(TestCase):
         self.client.force_authenticate(user=self.owner)
         with patch('apps.ocr.services.upload_fileobj') as mock_upload:
             response = self.client.post(
-                self.URL, {'document': self._jpeg('ma-facture.jpg')}, format='multipart',
+                self.URL, {'document': self._jpeg('ma-facture.jpg')}, format='multipart',  # noqa: E501
             )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -307,7 +307,7 @@ class SupplierInvoiceUploadViewTest(TestCase):
 
         self.assertEqual(doc.shop, self.shop)
         self.assertEqual(doc.uploaded_by_user, self.owner)
-        self.assertEqual(doc.document_type, UploadedDocument.DOCUMENT_TYPE_SUPPLIER_INVOICE)
+        self.assertEqual(doc.document_type, UploadedDocument.DOCUMENT_TYPE_SUPPLIER_INVOICE)  # noqa: E501
         self.assertEqual(doc.original_filename, 'ma-facture.jpg')
         self.assertEqual(doc.mime_type, 'image/jpeg')
         self.assertEqual(doc.size_bytes, len(JPEG_BYTES))
@@ -686,12 +686,12 @@ class OcrTransitionsTest(TestCase):
 # dans le rapport (curl host + backend->ai-service via manage.py shell).
 
 
-import io
-import json as _json
-import logging as _logging
-import urllib.error as _urllib_error
+import io  # noqa: E402
+import json as _json  # noqa: E402
+import logging as _logging  # noqa: E402
+import urllib.error as _urllib_error  # noqa: E402
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase  # noqa: E402
 
 _TEST_AI_KEY = 'test-internal-ai-key-not-real'
 
@@ -763,7 +763,7 @@ class AiClientHealthTest(SimpleTestCase):
         request = mock_open.call_args.args[0]
         self.assertEqual(request.full_url, 'http://ai-service:8000/health')
         # Aucun header d'auth ne doit fuiter sur l'endpoint public.
-        self.assertNotIn('X-internal-api-key', {k.lower(): v for k, v in request.header_items()})
+        self.assertNotIn('X-internal-api-key', {k.lower(): v for k, v in request.header_items()})  # noqa: E501
 
     def test_authenticated_health_sends_expected_header(self) -> None:
         from .ai_client import check_ai_service_authenticated_health
@@ -889,13 +889,13 @@ class AiClientErrorHandlingTest(SimpleTestCase):
 # (URL, headers, timeout, parsing, erreurs).
 
 
-import httpx as _httpx
+import httpx as _httpx  # noqa: E402
 
 
 class _FakeHttpxResponse:
     """Simulation minimale d'une `httpx.Response` pour les tests."""
 
-    def __init__(self, *, status_code: int = 200, payload: object | None = None, raw: bytes | None = None) -> None:
+    def __init__(self, *, status_code: int = 200, payload: object | None = None, raw: bytes | None = None) -> None:  # noqa: E501
         self.status_code = status_code
         self._payload = payload
         self._raw = raw
@@ -975,7 +975,7 @@ class ExtractTextWithAiServiceTest(SimpleTestCase):
         from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
 
         with patch('apps.ocr.ai_client.httpx.post') as mock_post:
-            mock_post.return_value = _FakeHttpxResponse(status_code=500, payload={'detail': 'boom'})
+            mock_post.return_value = _FakeHttpxResponse(status_code=500, payload={'detail': 'boom'})  # noqa: E501
             with self.assertRaises(AiServiceUnavailableError):
                 extract_text_with_ai_service(
                     content=b'x', filename='x.jpg', mime_type='image/jpeg',
@@ -985,7 +985,7 @@ class ExtractTextWithAiServiceTest(SimpleTestCase):
         from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
 
         with patch('apps.ocr.ai_client.httpx.post') as mock_post:
-            mock_post.return_value = _FakeHttpxResponse(status_code=400, payload={'detail': 'bad'})
+            mock_post.return_value = _FakeHttpxResponse(status_code=400, payload={'detail': 'bad'})  # noqa: E501
             with self.assertRaises(AiServiceUnavailableError):
                 extract_text_with_ai_service(
                     content=b'x', filename='x.jpg', mime_type='image/jpeg',
@@ -994,8 +994,8 @@ class ExtractTextWithAiServiceTest(SimpleTestCase):
     def test_invalid_payload_raises_domain_error(self) -> None:
         from .ai_client import AiServiceUnavailableError, extract_text_with_ai_service
 
-        for bad in ({'raw_text': None}, {'raw_text': 'x', 'confidence_score': 2.5, 'lines': []},
-                    {'raw_text': 'x', 'confidence_score': 0.5, 'lines': [{'text': 'a'}]}):
+        for bad in ({'raw_text': None}, {'raw_text': 'x', 'confidence_score': 2.5, 'lines': []},  # noqa: E501
+                    {'raw_text': 'x', 'confidence_score': 0.5, 'lines': [{'text': 'a'}]}):  # noqa: E501
             with patch('apps.ocr.ai_client.httpx.post') as mock_post:
                 mock_post.return_value = _FakeHttpxResponse(payload=bad)
                 with self.assertRaises(AiServiceUnavailableError):
@@ -1031,7 +1031,7 @@ class ExtractTextWithAiServiceTest(SimpleTestCase):
 class _FakeExtraction:
     """Objet-double compatible avec `AiOcrExtraction` (NamedTuple)."""
 
-    def __init__(self, raw_text: str = 'texte', confidence_score: float = 0.9, lines: list | None = None) -> None:
+    def __init__(self, raw_text: str = 'texte', confidence_score: float = 0.9, lines: list | None = None) -> None:  # noqa: E501
         self.raw_text = raw_text
         self.confidence_score = confidence_score
         self.lines = lines if lines is not None else []
@@ -1102,7 +1102,7 @@ class ProcessInvoiceOcrTaskTest(TestCase):
 
     def test_nominal_end_to_end(self) -> None:
         with (
-            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...') as mock_download,
+            patch('apps.ocr.tasks.download_bytes', return_value=b'\xff\xd8\xff...') as mock_download,  # noqa: E501
             patch(
                 'apps.ocr.tasks.extract_text_with_ai_service',
                 return_value=_fake_extraction(),
@@ -1136,7 +1136,7 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         self.assertIn('invoice', self.ocr.structured_data)
         lines = self.ocr.structured_data['ocr']['lines']
         self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0], {'text': 'ligne 1', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]})
+        self.assertEqual(lines[0], {'text': 'ligne 1', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]})  # noqa: E501
         self.assertEqual(lines[1], {'text': 'ligne 2', 'confidence': 0.88, 'bbox': []})
 
         invoice = self.ocr.structured_data['invoice']
@@ -1174,7 +1174,7 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         self.assertEqual(self.ocr.status, OcrResult.STATUS_PROCESSING)
 
     def test_storage_failure_marks_failed(self) -> None:
-        with patch('apps.ocr.tasks.download_bytes', side_effect=RuntimeError('S3 down')):
+        with patch('apps.ocr.tasks.download_bytes', side_effect=RuntimeError('S3 down')):  # noqa: E501
             outcome = self._run()
 
         self.assertEqual(outcome, 'failed_storage')
@@ -1223,7 +1223,7 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         )
         with (
             patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
-            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),
+            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),  # noqa: E501
             patch(
                 'apps.ocr.tasks.structure_invoice_with_ai_service',
                 return_value=_fake_invoice(),
@@ -1239,7 +1239,7 @@ class ProcessInvoiceOcrTaskTest(TestCase):
         extraction = _FakeExtraction(raw_text='x', confidence_score=1.4, lines=[])
         with (
             patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
-            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),
+            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=extraction),  # noqa: E501
             patch(
                 'apps.ocr.tasks.structure_invoice_with_ai_service',
                 return_value=_fake_invoice(),
@@ -1255,7 +1255,7 @@ class ProcessInvoiceOcrTaskTest(TestCase):
     def test_no_stock_movement_created(self) -> None:
         with (
             patch('apps.ocr.tasks.download_bytes', return_value=b'x'),
-            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=_fake_extraction()),
+            patch('apps.ocr.tasks.extract_text_with_ai_service', return_value=_fake_extraction()),  # noqa: E501
             patch(
                 'apps.ocr.tasks.structure_invoice_with_ai_service',
                 return_value=_fake_invoice(),
@@ -1333,9 +1333,9 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
             patch('apps.ocr.services.upload_fileobj'),
             patch('apps.ocr.views.process_invoice_ocr.delay') as mock_delay,
         ):
-            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')  # noqa: E501
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
         mock_delay.assert_called_once()
         # L'argument passé DOIT être l'UUID de l'OcrResult créé, en str
         # (JSON-serializable pour Celery/Redis).
@@ -1351,9 +1351,9 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
             patch('apps.ocr.tasks.extract_text_with_ai_service') as mock_ai,
             patch('apps.ocr.tasks.download_bytes') as mock_s3,
         ):
-            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')  # noqa: E501
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
         mock_ai.assert_not_called()
         mock_s3.assert_not_called()
 
@@ -1365,7 +1365,7 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
                 side_effect=RuntimeError('broker down'),
             ),
         ):
-            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')
+            response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')  # noqa: E501
 
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
         # Les IDs sont exposés pour permettre une reprise manuelle par un op.
@@ -1373,7 +1373,7 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
         self.assertIn('ocr_result_id', response.data)
         # Les enregistrements restent en base (le document est déjà uploadé).
         self.assertTrue(UploadedDocument.objects.filter(pk=response.data['document_id']).exists())
-        self.assertTrue(OcrResult.objects.filter(pk=response.data['ocr_result_id'], status='pending').exists())
+        self.assertTrue(OcrResult.objects.filter(pk=response.data['ocr_result_id'], status='pending').exists())  # noqa: E501
         # Le message ne contient aucune trace technique.
         self.assertNotIn('broker', response.data['detail'].lower())
 
@@ -1455,7 +1455,7 @@ class OcrResultDetailViewTest(TestCase):
         self.assertEqual(data['lines'][0]['bbox'], [1, 2, 3, 4])
 
     def test_staff_with_stock_module_can_read(self) -> None:
-        staff = User.objects.create_user(email='staff@example.com', password='Pass123!Strong')
+        staff = User.objects.create_user(email='staff@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(
             shop=self.shop, user=staff, role='staff', permissions=['stock'],
         )
@@ -1464,7 +1464,7 @@ class OcrResultDetailViewTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_staff_without_stock_module_denied(self) -> None:
-        staff = User.objects.create_user(email='staff-nostock@example.com', password='Pass123!Strong')
+        staff = User.objects.create_user(email='staff-nostock@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(
             shop=self.shop, user=staff, role='staff', permissions=['products'],
         )
@@ -1545,11 +1545,11 @@ class OcrResultDetailViewTest(TestCase):
             status=OcrResult.STATUS_FAILED,
             raw_text='texte reconnu',
             confidence_score=Decimal('0.912'),
-            error_message="L'analyse structurée de la facture a échoué. Le texte OCR reste disponible.",
+            error_message="L'analyse structurée de la facture a échoué. Le texte OCR reste disponible.",  # noqa: E501
             structured_data={
                 'ocr': {
                     'lines': [
-                        {'text': 'texte reconnu', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]},
+                        {'text': 'texte reconnu', 'confidence': 0.94, 'bbox': [1, 2, 3, 4]},  # noqa: E501
                     ],
                 },
             },

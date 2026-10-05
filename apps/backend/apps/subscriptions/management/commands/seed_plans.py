@@ -75,5 +75,5 @@ class Command(BaseCommand):
                 defaults={k: v for k, v in data.items() if k != 'code'},
             )
             verb = 'créé' if created else 'mis à jour'
-            self.stdout.write(f'  ✓ {plan.code:15} {plan.name:12} {plan.price_amount} {plan.currency} ({verb})')
+            self.stdout.write(f'  ✓ {plan.code:15} {plan.name:12} {plan.price_amount} {plan.currency} ({verb})')  # noqa: E501
         self.stdout.write(self.style.SUCCESS('Plans canoniques OK.'))

@@ -27,7 +27,7 @@ class Customer(models.Model):
             models.Index(fields=['shop', 'phone']),
         ]
         constraints = [
-            models.UniqueConstraint(Lower('name'), 'shop', name='unique_customer_name_per_shop'),
+            models.UniqueConstraint(Lower('name'), 'shop', name='unique_customer_name_per_shop'),  # noqa: E501
         ]
         ordering = ['name']
 

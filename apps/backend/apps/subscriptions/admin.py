@@ -5,7 +5,7 @@ from .models import Subscription, SubscriptionPlan
 
 @admin.register(SubscriptionPlan)
 class SubscriptionPlanAdmin(admin.ModelAdmin):
-    list_display = ('code', 'name', 'price_amount', 'currency', 'billing_period', 'is_active')
+    list_display = ('code', 'name', 'price_amount', 'currency', 'billing_period', 'is_active')  # noqa: E501
     list_filter = ('is_active', 'billing_period', 'currency')
     search_fields = ('code', 'name')
     ordering = ('price_amount',)
@@ -13,7 +13,7 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('shop', 'plan', 'status', 'current_period_end', 'cancel_at_period_end')
+    list_display = ('shop', 'plan', 'status', 'current_period_end', 'cancel_at_period_end')  # noqa: E501
     list_filter = ('status', 'plan__code', 'cancel_at_period_end')
     search_fields = ('shop__name', 'stripe_subscription_id', 'stripe_customer_id')
     autocomplete_fields = ('shop', 'plan')

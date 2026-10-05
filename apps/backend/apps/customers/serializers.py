@@ -50,4 +50,4 @@ class CustomerListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Customer
-        fields = ('id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at', 'pending_amount')
+        fields = ('id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at', 'pending_amount')  # noqa: E501

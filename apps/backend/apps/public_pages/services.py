@@ -91,7 +91,7 @@ def validate_slug(slug: str, *, exclude_page: PublicPage | None = None) -> str:
 
 
 @transaction.atomic
-def create_public_page(*, shop: 'Shop', slug: str, display_name: str = '') -> PublicPage:
+def create_public_page(*, shop: 'Shop', slug: str, display_name: str = '') -> PublicPage:  # noqa: E501
     """Crée la page publique d'une boutique avec ses sections par défaut.
 
     URS-070 : l'activation est explicite (un POST de l'admin). On crée la
@@ -186,10 +186,10 @@ def _upload_page_image(
         raise ValidationError(f"L'image ne doit pas dépasser {max_size_mb} Mo.")
     if file.content_type not in PUBLIC_PAGE_IMAGE_ALLOWED_TYPES:
         raise ValidationError(
-            f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.",
+            f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.",  # noqa: E501
         )
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
-        raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")
+        raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")  # noqa: E501
 
     field = f'{kind}_object_key'
     ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else 'jpg'
@@ -247,9 +247,9 @@ def reorder_sections(*, page: PublicPage, order: list[dict]) -> None:
     sections doivent appartenir à la page. Toute incohérence lève 400.
     """
     section_ids = [entry['id'] for entry in order]
-    sections = {s.id: s for s in PublicPageSection.objects.filter(page=page, id__in=section_ids)}
+    sections = {s.id: s for s in PublicPageSection.objects.filter(page=page, id__in=section_ids)}  # noqa: E501
     if len(sections) != len(section_ids):
-        raise ValidationError({'detail': 'Certaines sections sont introuvables sur cette page.'})
+        raise ValidationError({'detail': 'Certaines sections sont introuvables sur cette page.'})  # noqa: E501
 
     for entry in order:
         section = sections[entry['id']]
@@ -261,9 +261,9 @@ def reorder_sections(*, page: PublicPage, order: list[dict]) -> None:
 def reorder_catalog(*, page: PublicPage, order: list[dict]) -> None:
     """Pendant `reorder_sections` pour `PublicCatalogVisibility`."""
     item_ids = [entry['id'] for entry in order]
-    items = {i.id: i for i in PublicCatalogVisibility.objects.filter(page=page, id__in=item_ids)}
+    items = {i.id: i for i in PublicCatalogVisibility.objects.filter(page=page, id__in=item_ids)}  # noqa: E501
     if len(items) != len(item_ids):
-        raise ValidationError({'detail': 'Certains éléments sont introuvables sur cette page.'})
+        raise ValidationError({'detail': 'Certains éléments sont introuvables sur cette page.'})  # noqa: E501
 
     for entry in order:
         item = items[entry['id']]

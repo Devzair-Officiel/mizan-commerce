@@ -6,7 +6,7 @@ from .models import User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('email', 'full_name', 'phone', 'is_active', 'is_staff', 'email_verified_at', 'created_at')
+    list_display = ('email', 'full_name', 'phone', 'is_active', 'is_staff', 'email_verified_at', 'created_at')  # noqa: E501
     list_filter = ('is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'full_name', 'phone')
     ordering = ('-created_at',)
@@ -15,7 +15,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('id', 'email', 'password')}),
         ('Informations', {'fields': ('full_name', 'phone', 'email_verified_at')}),
-        ('Droits', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Droits', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),  # noqa: E501
         ('Dates', {'fields': ('last_login', 'created_at', 'updated_at')}),
     )
 

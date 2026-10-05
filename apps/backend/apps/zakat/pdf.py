@@ -44,7 +44,7 @@ _EXCLUDED_LABELS = {
     'other': 'Autre outil de travail',
 }
 
-# Ordre déterministe — utilisé pour afficher tous les items possibles avec coché/non coché.
+# Ordre déterministe — utilisé pour afficher tous les items possibles avec coché/non coché.  # noqa: E501
 _EXCLUDED_ORDER = ['vehicle', 'computer', 'machine', 'premises', 'furniture', 'other']
 
 _STOCK_LABELS = {
@@ -94,7 +94,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
     story = []
 
     # En-tête : boutique + dates
-    story.append(Paragraph(f'<b>Justificatif de zakat commerciale</b>', h1))
+    story.append(Paragraph('<b>Justificatif de zakat commerciale</b>', h1))
     story.append(Paragraph(
         f'{calc.shop.name} — date de référence&nbsp;: '
         f'<b>{calc.reference_date.strftime("%d/%m/%Y")}</b>',
@@ -116,7 +116,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
     if calc.receivables_breakdown:
         for r in calc.receivables_breakdown:
             label = _RECEIVABLE_LABELS.get(r.get('category'), 'Créances')
-            patrimoine_rows.append([f'  ↳ {label}', _fmt(r.get('amount', '0'), calc.currency)])
+            patrimoine_rows.append([f'  ↳ {label}', _fmt(r.get('amount', '0'), calc.currency)])  # noqa: E501
     else:
         patrimoine_rows.append(
             ['Créances récupérables', _fmt(calc.receivables_amount, calc.currency)],
@@ -125,17 +125,17 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
     if calc.stock_breakdown:
         for s in calc.stock_breakdown:
             label = _STOCK_LABELS.get(s.get('category'), 'Stock')
-            patrimoine_rows.append([f'  ↳ {label}', _fmt(s.get('amount', '0'), calc.currency)])
+            patrimoine_rows.append([f'  ↳ {label}', _fmt(s.get('amount', '0'), calc.currency)])  # noqa: E501
     else:
-        stock_label = 'Stock commercial (ajusté)' if calc.stock_value_adjusted else 'Stock commercial (estimé)'
-        patrimoine_rows.append([stock_label, _fmt(calc.stock_value_for_base, calc.currency)])
+        stock_label = 'Stock commercial (ajusté)' if calc.stock_value_adjusted else 'Stock commercial (estimé)'  # noqa: E501
+        patrimoine_rows.append([stock_label, _fmt(calc.stock_value_for_base, calc.currency)])  # noqa: E501
 
     patrimoine_total = (
         Decimal(calc.cash_amount or 0)
         + Decimal(calc.receivables_amount or 0)
         + Decimal(calc.stock_value_for_base or 0)
     )
-    patrimoine_rows.append(['Sous-total positif', _fmt(patrimoine_total, calc.currency)])
+    patrimoine_rows.append(['Sous-total positif', _fmt(patrimoine_total, calc.currency)])  # noqa: E501
     story.append(_money_table(patrimoine_rows))
     story.append(Spacer(1, 6 * mm))
 
@@ -151,7 +151,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
                 f'{label} ({cat}, {due})',
                 _fmt(debt.get('amount', '0'), calc.currency),
             ])
-        debt_rows.append(['Total déductible', _fmt(calc.short_term_debts, calc.currency)])
+        debt_rows.append(['Total déductible', _fmt(calc.short_term_debts, calc.currency)])  # noqa: E501
         story.append(_money_table(debt_rows))
         story.append(Spacer(1, 6 * mm))
 
@@ -166,7 +166,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
         body,
     ))
     story.append(Paragraph(
-        f'Zakat = base × {rate_pct}&nbsp;% = <b>{_fmt(calc.zakat_amount, calc.currency)}</b>',
+        f'Zakat = base × {rate_pct}&nbsp;% = <b>{_fmt(calc.zakat_amount, calc.currency)}</b>',  # noqa: E501
         body,
     ))
     story.append(Spacer(1, 8 * mm))
@@ -197,16 +197,16 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
     # Seuil de Nisab — verdict d'obligation, ou mention "non configuré".
     story.append(Paragraph('Seuil de Nisab', h2))
     if calc.nisab_threshold is not None:
-        method_label = 'argent (595 g)' if calc.nisab_method == 'silver' else 'or (85 g)'
+        method_label = 'argent (595 g)' if calc.nisab_method == 'silver' else 'or (85 g)'  # noqa: E501
         verdict = (
             'Votre base dépasse le seuil — la zakat est due.'
             if calc.is_above_nisab
-            else 'Votre base reste sous le seuil — la zakat n\'est pas obligatoire cette année.'
+            else 'Votre base reste sous le seuil — la zakat n\'est pas obligatoire cette année.'  # noqa: E501
         )
         story.append(Paragraph(
             f'Méthode <b>{method_label}</b>, prix au gramme '
             f'<b>{_fmt(calc.nisab_unit_price, calc.currency)}</b><br/>'
-            f'Seuil retenu&nbsp;: <b>{_fmt(calc.nisab_threshold, calc.currency)}</b><br/>'
+            f'Seuil retenu&nbsp;: <b>{_fmt(calc.nisab_threshold, calc.currency)}</b><br/>'  # noqa: E501
             f'{verdict}',
             body,
         ))
@@ -218,7 +218,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
         ))
     story.append(Spacer(1, 6 * mm))
 
-    # Exclusions — on liste TOUS les items possibles avec ✓ ou ✗ pour traçabilité complète.
+    # Exclusions — on liste TOUS les items possibles avec ✓ ou ✗ pour traçabilité complète.  # noqa: E501
     story.append(Paragraph('Exclus de la base (outils de travail)', h2))
     ack = set(calc.excluded_items_acknowledged or [])
     items_text = '<br/>'.join(
@@ -227,14 +227,14 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
     )
     story.append(Paragraph(items_text, body))
     story.append(Paragraph(
-        'Les éléments cochés ont été explicitement reconnus comme hors base par le commerçant.',
+        'Les éléments cochés ont été explicitement reconnus comme hors base par le commerçant.',  # noqa: E501
         small,
     ))
     story.append(Spacer(1, 6 * mm))
 
     # Mention indicative — légalement important
     story.append(Paragraph(
-        'Document fourni à titre indicatif. Ce calcul ne se substitue pas à l\'avis d\'un '
+        'Document fourni à titre indicatif. Ce calcul ne se substitue pas à l\'avis d\'un '  # noqa: E501
         'érudit ou d\'un spécialiste de la zakat commerciale. Conservez-le comme trace '
         'de votre déclaration.',
         small,
@@ -245,7 +245,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
 
 
 def _money_table(rows: list[list[str]]) -> Table:
-    """Tableau à deux colonnes (label / montant aligné à droite) avec dernière ligne en gras."""
+    """Tableau à deux colonnes (label / montant aligné à droite) avec dernière ligne en gras."""  # noqa: E501
     table = Table(rows, colWidths=[110 * mm, 64 * mm])
     table.setStyle(TableStyle([
         ('FONTSIZE', (0, 0), (-1, -1), 10),

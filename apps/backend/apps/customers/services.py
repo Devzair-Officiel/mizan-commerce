@@ -14,7 +14,7 @@ EVENT_ORDER = 'order'
 EVENT_PAYMENT = 'payment'
 EVENT_SHIPMENT = 'shipment'
 EVENT_NOTE = 'note'
-ALL_TYPES: frozenset[str] = frozenset({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT, EVENT_NOTE})
+ALL_TYPES: frozenset[str] = frozenset({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT, EVENT_NOTE})  # noqa: E501
 
 
 class TimelineEvent(TypedDict):
@@ -53,7 +53,7 @@ def get_customer_timeline(
 
     events: list[TimelineEvent] = []
     order_by_id: dict[str, Order] = {}
-    need_orders = bool({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT} & selected) or pending_only
+    need_orders = bool({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT} & selected) or pending_only  # noqa: E501
 
     if need_orders:
         order_qs = Order.objects.filter(
@@ -81,7 +81,7 @@ def get_customer_timeline(
         for log in log_qs:
             if log.action == 'order_payment_change':
                 latest_payment_at[log.object_id] = log.created_at
-            elif log.action == 'order_status_change' and log.changes.get('to') == 'shipped':
+            elif log.action == 'order_status_change' and log.changes.get('to') == 'shipped':  # noqa: E501
                 latest_shipment_at[log.object_id] = log.created_at
 
     for order in order_by_id.values():

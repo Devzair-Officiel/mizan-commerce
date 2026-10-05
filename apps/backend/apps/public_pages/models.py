@@ -29,7 +29,7 @@ RESERVED_SLUGS = frozenset({
 
 slug_validator = RegexValidator(
     regex=r'^[a-z0-9]+(?:-[a-z0-9]+)*$',
-    message="Slug invalide : minuscules, chiffres et tirets uniquement (pas en début ni fin).",
+    message="Slug invalide : minuscules, chiffres et tirets uniquement (pas en début ni fin).",  # noqa: E501
 )
 
 
@@ -54,7 +54,7 @@ class PublicPage(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='public_page')
+    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='public_page')  # noqa: E501
 
     slug = models.CharField(max_length=50, unique=True, validators=[slug_validator])
     is_active = models.BooleanField(default=False)
@@ -67,11 +67,11 @@ class PublicPage(models.Model):
     logo_object_key = models.CharField(max_length=500, blank=True)
     cover_object_key = models.CharField(max_length=500, blank=True)
 
-    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default=THEME_CLASSIC)
+    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default=THEME_CLASSIC)  # noqa: E501
     primary_color = models.CharField(
         max_length=7,
         default='#0ea5e9',
-        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #0ea5e9.')],
+        validators=[RegexValidator(r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #0ea5e9.')],  # noqa: E501
     )
 
     # URS-078 : message pré-rempli envoyé au commerçant quand un visiteur clique
@@ -115,7 +115,7 @@ class PublicPageSection(models.Model):
         CONTACT = 'contact', 'Contact'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name='sections')
+    page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name='sections')  # noqa: E501
     type = models.CharField(max_length=20, choices=Type.choices)
     position = models.PositiveIntegerField(default=0)
     is_visible = models.BooleanField(default=True)
@@ -129,7 +129,7 @@ class PublicPageSection(models.Model):
         db_table = 'public_page_sections'
         ordering = ['position']
         constraints = [
-            models.UniqueConstraint(fields=['page', 'type'], name='unique_section_type_per_page'),
+            models.UniqueConstraint(fields=['page', 'type'], name='unique_section_type_per_page'),  # noqa: E501
         ]
 
     def __str__(self) -> str:
@@ -147,8 +147,8 @@ class PublicCatalogVisibility(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name='catalog_items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='public_visibilities')
+    page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name='catalog_items')  # noqa: E501
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='public_visibilities')  # noqa: E501
     position = models.PositiveIntegerField(default=0)
     show_price = models.BooleanField(default=True)
     badge_promo = models.BooleanField(default=False)
@@ -161,7 +161,7 @@ class PublicCatalogVisibility(models.Model):
         db_table = 'public_catalog_visibilities'
         ordering = ['position']
         constraints = [
-            models.UniqueConstraint(fields=['page', 'product'], name='unique_visibility_per_page_product'),
+            models.UniqueConstraint(fields=['page', 'product'], name='unique_visibility_per_page_product'),  # noqa: E501
         ]
         indexes = [
             models.Index(fields=['page', 'position']),
@@ -188,7 +188,7 @@ class ContactButton(models.Model):
         PHONE = 'phone', 'Téléphone'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name='contact_buttons')
+    page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name='contact_buttons')  # noqa: E501
     type = models.CharField(max_length=20, choices=Type.choices)
     value = models.CharField(max_length=200)
     label = models.CharField(max_length=60, blank=True)
@@ -203,7 +203,7 @@ class ContactButton(models.Model):
         db_table = 'public_page_contact_buttons'
         ordering = ['position']
         constraints = [
-            models.UniqueConstraint(fields=['page', 'type'], name='unique_contact_type_per_page'),
+            models.UniqueConstraint(fields=['page', 'type'], name='unique_contact_type_per_page'),  # noqa: E501
         ]
 
     def __str__(self) -> str:

@@ -4,5 +4,5 @@ from .views import CustomerActivityView, CustomerListCreateView, CustomerDetailV
 urlpatterns = [
     path('', CustomerListCreateView.as_view(), name='customer-list'),
     path('<uuid:pk>/', CustomerDetailView.as_view(), name='customer-detail'),
-    path('<uuid:pk>/activity/', CustomerActivityView.as_view(), name='customer-activity'),
+    path('<uuid:pk>/activity/', CustomerActivityView.as_view(), name='customer-activity'),  # noqa: E501
 ]

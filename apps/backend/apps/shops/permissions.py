@@ -14,4 +14,4 @@ class IsShopOwner(BasePermission):
     """Vérifie que l'utilisateur est owner de la boutique ciblée."""
 
     def has_object_permission(self, request, view, obj):
-        return ShopMember.objects.filter(shop=obj, user=request.user, role='owner').exists()
+        return ShopMember.objects.filter(shop=obj, user=request.user, role='owner').exists()  # noqa: E501

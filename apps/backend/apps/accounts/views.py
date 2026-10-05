@@ -42,7 +42,7 @@ class RegisterView(generics.CreateAPIView):
         # Shop + ShopMember + Subscription liés logiquement : si l'un échoue,
         # rien n'est commité (sinon on se retrouve avec une boutique sans owner
         # ou sans souscription, ce qui casserait le gating ensuite).
-        shop_name = request.data.get('shop_name') or f"Boutique de {user.full_name or user.email}"
+        shop_name = request.data.get('shop_name') or f"Boutique de {user.full_name or user.email}"  # noqa: E501
         with transaction.atomic():
             shop = Shop.objects.create(name=shop_name)
             ShopMember.objects.create(shop=shop, user=user, role='owner')
@@ -53,7 +53,7 @@ class RegisterView(generics.CreateAPIView):
         verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",
+            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",  # noqa: E501
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -92,7 +92,7 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
         user = request.user
         if not user.check_password(serializer.validated_data['old_password']):
-            return Response({'old_password': 'Mot de passe incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'old_password': 'Mot de passe incorrect.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         user.set_password(serializer.validated_data['new_password'])
         user.save()
         return Response({'detail': 'Mot de passe modifié.'})
@@ -111,10 +111,10 @@ class PasswordResetRequestView(APIView):
             user = User.objects.get(email=email, is_active=True)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
+            reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"  # noqa: E501
             send_mail(
                 subject='Réinitialisation de votre mot de passe — Mizan',
-                message=f"Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n{reset_url}\n\nCe lien est valable 24 heures.",
+                message=f"Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n{reset_url}\n\nCe lien est valable 24 heures.",  # noqa: E501
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
@@ -123,7 +123,7 @@ class PasswordResetRequestView(APIView):
             pass  # Ne pas révéler si l'email existe
 
         # Toujours retourner 200 pour éviter l'énumération d'emails
-        return Response({'detail': "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé."})
+        return Response({'detail': "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé."})  # noqa: E501
 
 
 class PasswordResetConfirmView(APIView):
@@ -138,10 +138,10 @@ class PasswordResetConfirmView(APIView):
             uid = force_str(urlsafe_base64_decode(serializer.validated_data['uid']))
             user = User.objects.get(pk=uid, is_active=True)
         except (User.DoesNotExist, ValueError, TypeError):
-            return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
-        if not default_token_generator.check_token(user, serializer.validated_data['token']):
-            return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not default_token_generator.check_token(user, serializer.validated_data['token']):  # noqa: E501
+            return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
         user.set_password(serializer.validated_data['new_password'])
         user.save()
@@ -166,7 +166,7 @@ class ResendEmailVerificationView(APIView):
         verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",
+            message=f"Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",  # noqa: E501
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -185,10 +185,10 @@ class EmailVerificationView(APIView):
             uid = force_str(urlsafe_base64_decode(uid_b64))
             user = User.objects.get(pk=uid)
         except (User.DoesNotExist, ValueError, TypeError):
-            return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
         if not default_token_generator.check_token(user, token):
-            return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
         if user.email_verified_at is None:
             user.email_verified_at = timezone.now()

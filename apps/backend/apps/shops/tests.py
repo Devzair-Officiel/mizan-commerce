@@ -65,7 +65,7 @@ class OnboardingViewTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.owner, self.shop = make_user_with_shop('owner@example.com')
-        self.staff = User.objects.create_user(email='staff@example.com', password='Pass123!Strong')
+        self.staff = User.objects.create_user(email='staff@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(shop=self.shop, user=self.staff, role='staff')
         self.url = reverse('shop-onboarding')
 
@@ -99,15 +99,15 @@ class OnboardingViewTest(TestCase):
 
     def test_second_call_keeps_initial_completion_date(self):
         self.client.force_authenticate(user=self.owner)
-        self.client.post(self.url, {'catalog_kind': 'products', 'dashboard_mode': 'minimal'})
+        self.client.post(self.url, {'catalog_kind': 'products', 'dashboard_mode': 'minimal'})  # noqa: E501
         self.shop.refresh_from_db()
         first_completion = self.shop.onboarding_completed_at
 
-        response = self.client.post(self.url, {'catalog_kind': 'both', 'dashboard_mode': 'complete'})
+        response = self.client.post(self.url, {'catalog_kind': 'both', 'dashboard_mode': 'complete'})  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.shop.refresh_from_db()
         # Préférences mises à jour, mais date d'origine préservée — utile si
-        # on veut un jour mesurer "combien de temps après création le wizard a été fait".
+        # on veut un jour mesurer "combien de temps après création le wizard a été fait".  # noqa: E501
         self.assertEqual(self.shop.catalog_kind, 'both')
         self.assertEqual(self.shop.dashboard_mode, 'complete')
         self.assertEqual(self.shop.onboarding_completed_at, first_completion)

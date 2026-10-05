@@ -5,7 +5,7 @@ from factory.django import DjangoModelFactory
 from apps.products.factories import ProductFactory
 from apps.shops.factories import ShopFactory
 
-from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection
+from .models import ContactButton, PublicCatalogVisibility, PublicPage, PublicPageSection  # noqa: E501
 
 
 class PublicPageFactory(DjangoModelFactory):

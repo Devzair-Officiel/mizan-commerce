@@ -71,7 +71,7 @@ def downgrade_to_free(subscription: Subscription) -> Subscription:
     """
 
     free_plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
-    if subscription.plan_id == free_plan.id and subscription.status == Subscription.STATUS_ACTIVE:
+    if subscription.plan_id == free_plan.id and subscription.status == Subscription.STATUS_ACTIVE:  # noqa: E501
         return subscription
 
     subscription.plan = free_plan

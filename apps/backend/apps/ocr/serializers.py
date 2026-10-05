@@ -28,7 +28,7 @@ class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError('Le fichier est vide.')
         if file.size > max_bytes:
             raise serializers.ValidationError(
-                f'Le document ne doit pas dépasser {settings.OCR_DOCUMENT_MAX_SIZE_MB} Mo.'
+                f'Le document ne doit pas dépasser {settings.OCR_DOCUMENT_MAX_SIZE_MB} Mo.'  # noqa: E501
             )
         if file.content_type not in allowed_types:
             raise serializers.ValidationError(
@@ -137,7 +137,7 @@ def _sanitize_invoice(block: object) -> dict | None:
         return None
     lines_raw = block.get('lines', [])
     lines = (
-        [line for line in (_sanitize_invoice_line(e) for e in lines_raw) if line is not None]
+        [line for line in (_sanitize_invoice_line(e) for e in lines_raw) if line is not None]  # noqa: E501
         if isinstance(lines_raw, list)
         else []
     )
@@ -328,7 +328,7 @@ class OcrResultDetailSerializer(serializers.Serializer):
             {
                 'text': str(entry.get('text', '')),
                 'confidence': float(entry.get('confidence', 0.0)),
-                'bbox': [int(v) for v in entry.get('bbox', [])] if isinstance(entry.get('bbox'), list) else [],
+                'bbox': [int(v) for v in entry.get('bbox', [])] if isinstance(entry.get('bbox'), list) else [],  # noqa: E501
             }
             for entry in lines_raw
             if isinstance(entry, dict)

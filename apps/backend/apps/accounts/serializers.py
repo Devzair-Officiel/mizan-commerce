@@ -9,7 +9,7 @@ User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
-    recaptcha_token = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    recaptcha_token = serializers.CharField(write_only=True, required=False, allow_blank=True)  # noqa: E501
 
     class Meta:
         model = User
@@ -39,7 +39,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class MeSerializer(UserSerializer):
-    """`/api/me/` — étend `UserSerializer` avec l'appartenance boutique (rôle + modules)."""
+    """`/api/me/` — étend `UserSerializer` avec l'appartenance boutique (rôle + modules)."""  # noqa: E501
 
     membership = serializers.SerializerMethodField()
 
@@ -70,7 +70,7 @@ class MeSerializer(UserSerializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    new_password = serializers.CharField(write_only=True, validators=[validate_password])  # noqa: E501
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -80,4 +80,4 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
-    new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    new_password = serializers.CharField(write_only=True, validators=[validate_password])  # noqa: E501

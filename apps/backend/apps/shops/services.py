@@ -40,13 +40,13 @@ def upload_shop_logo(shop: Shop, file: InMemoryUploadedFile) -> Shop:
     l'ancien fichier S3 (best-effort, sans faire échouer l'upload)."""
     max_bytes = SHOP_LOGO_MAX_SIZE_MB * 1024 * 1024
     if file.size > max_bytes:
-        raise ValidationError(f"Le logo ne doit pas dépasser {SHOP_LOGO_MAX_SIZE_MB} Mo.")
+        raise ValidationError(f"Le logo ne doit pas dépasser {SHOP_LOGO_MAX_SIZE_MB} Mo.")  # noqa: E501
     if file.content_type not in SHOP_LOGO_ALLOWED_TYPES:
         raise ValidationError(
-            f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.",
+            f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.",  # noqa: E501
         )
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
-        raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")
+        raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")  # noqa: E501
 
     ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else 'jpg'
     new_key = f"shops/{shop.pk}/logo-{uuid.uuid4()}.{ext}"
@@ -111,9 +111,9 @@ def create_staff_member(
         # Un user existant ne peut pas être réutilisé s'il est déjà membre de
         # cette boutique. S'il n'a aucune boutique on lui rattache, sinon erreur.
         if ShopMember.objects.filter(shop=shop, user=user).exists():
-            raise ValidationError({'email': 'Cet utilisateur est déjà membre de la boutique.'})
+            raise ValidationError({'email': 'Cet utilisateur est déjà membre de la boutique.'})  # noqa: E501
         if ShopMember.objects.filter(user=user).exists():
-            raise ValidationError({'email': 'Cet email est déjà associé à une autre boutique.'})
+            raise ValidationError({'email': 'Cet email est déjà associé à une autre boutique.'})  # noqa: E501
 
     return ShopMember.objects.create(
         shop=shop,
@@ -134,7 +134,7 @@ def update_member_permissions(
     On ne peut **pas** modifier le rôle d'un `owner`. Les permissions sont
     ignorées pour les admins (toujours accès total).
     """
-    if member.role == ShopMember.ROLE_OWNER and role is not None and role != ShopMember.ROLE_OWNER:
+    if member.role == ShopMember.ROLE_OWNER and role is not None and role != ShopMember.ROLE_OWNER:  # noqa: E501
         raise ValidationError({'role': "Impossible de retirer le rôle owner."})
 
     fields = []

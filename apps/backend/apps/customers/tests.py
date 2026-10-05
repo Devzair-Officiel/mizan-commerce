@@ -22,7 +22,7 @@ class CustomerCRUDTest(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_create_customer(self):
-        response = self.client.post(reverse('customer-list'), {'name': 'Mohammed Ali', 'phone': '+33600000000'})
+        response = self.client.post(reverse('customer-list'), {'name': 'Mohammed Ali', 'phone': '+33600000000'})  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_list_active_only_by_default(self):
@@ -58,5 +58,5 @@ class CustomerMultiTenantTest(TestCase):
 
     def test_user_a_cannot_access_customer_b(self):
         self.client.force_authenticate(user=self.user_a)
-        response = self.client.get(reverse('customer-detail', kwargs={'pk': self.customer_b.pk}))
+        response = self.client.get(reverse('customer-detail', kwargs={'pk': self.customer_b.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

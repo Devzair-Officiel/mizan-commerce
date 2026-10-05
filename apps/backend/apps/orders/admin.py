@@ -10,8 +10,8 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('order_number', 'shop', 'customer', 'status', 'payment_status', 'total_amount', 'created_at')
+    list_display = ('order_number', 'shop', 'customer', 'status', 'payment_status', 'total_amount', 'created_at')  # noqa: E501
     list_filter = ('status', 'payment_status', 'shop')
     search_fields = ('order_number', 'customer__name')
-    readonly_fields = ('id', 'order_number', 'subtotal', 'total_amount', 'stock_reserved', 'created_at', 'updated_at', 'cancelled_at')
+    readonly_fields = ('id', 'order_number', 'subtotal', 'total_amount', 'stock_reserved', 'created_at', 'updated_at', 'cancelled_at')  # noqa: E501
     inlines = (OrderItemInline,)

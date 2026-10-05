@@ -19,7 +19,7 @@ class SubscriptionPlanFactory(factory.django.DjangoModelFactory):
 
     code = factory.Sequence(lambda n: f'plan_{n}')
     name = factory.LazyAttribute(lambda obj: obj.code.replace('_', ' ').title())
-    price_amount = factory.Faker('pydecimal', left_digits=3, right_digits=2, positive=True)
+    price_amount = factory.Faker('pydecimal', left_digits=3, right_digits=2, positive=True)  # noqa: E501
     currency = 'EUR'
     billing_period = SubscriptionPlan.PERIOD_MONTH
     is_active = True

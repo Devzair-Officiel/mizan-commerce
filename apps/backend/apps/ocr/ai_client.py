@@ -282,7 +282,7 @@ def extract_text_with_ai_service(
         # 4xx = binaire refusé (taille, signature) ; on remonte quand même en
         # `AiServiceUnavailableError` — la tâche marquera l'OCR en `failed`
         # avec un message générique. Détail dans les logs uniquement.
-        logger.warning('AI service OCR rejected upload: status=%s', response.status_code)
+        logger.warning('AI service OCR rejected upload: status=%s', response.status_code)  # noqa: E501
         raise AiServiceUnavailableError(
             f'Service IA a refusé le document (HTTP {response.status_code}).'
         )
