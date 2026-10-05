@@ -326,7 +326,7 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
             onChange={(e) => setValue('is_primary', e.target.checked, { shouldDirty: true })}
             className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
           />
-          <span className="text-sm">Contact principal (utilisé pour les boutons "Commander")</span>
+          <span className="text-sm">Contact principal (utilisé pour les boutons &quot;Commander&quot;)</span>
         </label>
 
         {serverError && (

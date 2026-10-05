@@ -62,8 +62,12 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
 
   useEffect(() => {
     const url = URL.createObjectURL(file);
-    setImageUrl(url);
-    return () => URL.revokeObjectURL(url);
+    let active = true;
+    queueMicrotask(() => { if (active) setImageUrl(url); });
+    return () => {
+      active = false;
+      URL.revokeObjectURL(url);
+    };
   }, [file]);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => {

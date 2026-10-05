@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Palette } from 'lucide-react';
@@ -59,7 +59,7 @@ export function IdentityCard({ page }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
-    register, handleSubmit, reset, setValue, watch,
+    register, handleSubmit, reset, setValue, control,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -70,8 +70,8 @@ export function IdentityCard({ page }: Props) {
     reset(defaultsFromPage(page));
   }, [page, reset]);
 
-  const currentColor = watch('primary_color');
-  const currentTheme = watch('theme');
+  const currentColor = useWatch({ control, name: 'primary_color' });
+  const currentTheme = useWatch({ control, name: 'theme' });
 
   async function onSubmit(values: FormValues) {
     setServerError(null);

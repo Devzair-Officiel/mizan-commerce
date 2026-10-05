@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
@@ -17,11 +17,13 @@ interface Props {
 export function MessageTemplateCard({ page }: Props) {
   const update = useUpdatePublicPage();
   const [value, setValue] = useState(page.order_message_template);
+  const [prevTemplate, setPrevTemplate] = useState(page.order_message_template);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  if (page.order_message_template !== prevTemplate) {
+    setPrevTemplate(page.order_message_template);
     setValue(page.order_message_template);
-  }, [page.order_message_template]);
+  }
 
   const isDirty = value !== page.order_message_template;
   const isOverLimit = value.length > MAX_LEN;

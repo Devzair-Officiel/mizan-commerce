@@ -534,7 +534,7 @@ function InvoiceLineRow({
   const stockIncomplete = isStock && !stockReady;
 
   return (
-    <li className={`px-4 py-3 flex flex-col gap-3 ${isIgnored ? 'opacity-60' : ''}`}>
+    <li className="px-4 py-3 flex flex-col gap-3">
       <FloatingInput
         id={`desc-${index}`}
         label={t('field_description')}

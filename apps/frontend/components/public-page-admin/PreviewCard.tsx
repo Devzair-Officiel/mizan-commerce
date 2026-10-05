@@ -24,10 +24,10 @@ export function PreviewCard({ page }: Props) {
   // page change côté admin (chaque save met à jour `updated_at`).
   const src = `/boutique/${page.slug}?preview=1&v=${encodeURIComponent(page.updated_at)}`;
 
-  const [isReloading, setIsReloading] = useState(false);
+  const [prevSrc, setPrevSrc] = useState(src);
+  const isReloading = src !== prevSrc;
   useEffect(() => {
-    setIsReloading(true);
-    const t = setTimeout(() => setIsReloading(false), 400);
+    const t = setTimeout(() => setPrevSrc(src), 400);
     return () => clearTimeout(t);
   }, [src]);
 
@@ -95,7 +95,7 @@ export function PreviewCard({ page }: Props) {
             // puisse ouvrir sa fenêtre picture-in-picture (sinon erreur console
             // en boucle). Pas d'allow-top-navigation : l'iframe ne peut pas
             // détourner la page de l'éditeur.
-            sandbox="allow-scripts allow-same-origin allow-popups"
+            sandbox="allow-scripts allow-popups"
           />
         </div>
       </div>
