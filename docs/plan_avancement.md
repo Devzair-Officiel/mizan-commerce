@@ -9,8 +9,8 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-08-12
-**Version actuelle en développement** : Phase V1 — RBAC (rôles & permissions par module)
+**Dernière mise à jour** : 2026-10-05
+**Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
 
 ---
 
@@ -433,3 +433,7 @@
 - Si une tâche se découpe en sous-tâches non prévues, les ajouter en sous-puces et cocher au fur et à mesure.
 - Si une tâche est annulée, la barrer avec `~~texte~~` plutôt que de la supprimer (trace de la décision).
 - Pour estimer l'avancement d'une phase, compter `[x]` / total. Une phase est validée à 100 %.
+
+## Discipline de mise à jour
+
+Ce fichier doit être modifié **dans le même commit** que la fonctionnalité qu'il décrit, jamais après coup. Un `[x]` coché dans un commit séparé, ou plus tard, est un signal que la discipline a été relâchée.
