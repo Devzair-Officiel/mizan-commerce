@@ -34,8 +34,43 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'email', 'full_name', 'phone', 'email_verified_at', 'created_at',
             'theme_mode', 'primary_color', 'background_theme',
+            'primary_color_custom_hex', 'background_custom_hex',
         )
         read_only_fields = ('id', 'email_verified_at', 'created_at')
+
+    def validate(self, attrs):
+        # Fusionne avec les valeurs existantes de l'instance (PATCH partiel).
+        instance = self.instance
+        primary_color = attrs.get(
+            'primary_color',
+            getattr(instance, 'primary_color', None) if instance else None,
+        )
+        primary_hex = attrs.get(
+            'primary_color_custom_hex',
+            getattr(instance, 'primary_color_custom_hex', None) if instance else None,
+        )
+        bg_theme = attrs.get(
+            'background_theme',
+            getattr(instance, 'background_theme', None) if instance else None,
+        )
+        bg_hex = attrs.get(
+            'background_custom_hex',
+            getattr(instance, 'background_custom_hex', None) if instance else None,
+        )
+
+        if primary_color == 'custom' and not primary_hex:
+            raise serializers.ValidationError({
+                'primary_color_custom_hex': (
+                    'Ce champ est requis quand primary_color est « custom ».'
+                ),
+            })
+        if bg_theme == 'custom' and not bg_hex:
+            raise serializers.ValidationError({
+                'background_custom_hex': (
+                    'Ce champ est requis quand background_theme est « custom ».'
+                ),
+            })
+        return attrs
 
 
 class MeSerializer(UserSerializer):

@@ -80,6 +80,33 @@ class AuthFlowTest(TestCase):
         self.assertEqual(response.data['primary_color'], 'purple')
         self.assertEqual(response.data['background_theme'], 'lavender')
 
+    def test_me_persists_custom_color_hex(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(reverse('auth-me'), {
+            'theme_mode': 'dark',
+            'primary_color': 'custom',
+            'primary_color_custom_hex': '#ff6600',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.theme_mode, 'dark')
+        self.assertEqual(self.user.primary_color, 'custom')
+        self.assertEqual(self.user.primary_color_custom_hex, '#ff6600')
+
+        response = self.client.get(reverse('auth-me'))
+        self.assertEqual(response.data['primary_color'], 'custom')
+        self.assertEqual(response.data['primary_color_custom_hex'], '#ff6600')
+
+    def test_me_rejects_custom_color_without_hex(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            reverse('auth-me'), {'primary_color': 'custom'}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        errors = response.data.get('errors', response.data)
+        self.assertIn('primary_color_custom_hex', errors)
+
     def test_me_rejects_invalid_appearance_preferences(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(

@@ -1,5 +1,6 @@
 import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin  # noqa: E501
+from django.core.validators import RegexValidator
 from django.db import models
 
 
@@ -59,6 +60,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             ('slate', 'Ardoise'),
             ('taupe', 'Taupe'),
             ('charcoal', 'Anthracite'),
+            ('custom', 'Personnalisée'),
         )
     ]
 
@@ -76,6 +78,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             ('sage', 'Sauge'),
             ('peach', 'Pêche'),
             ('lilac', 'Lilas'),
+            ('custom', 'Personnalisée'),
         )
     ]
 
@@ -100,6 +103,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     background_theme = models.CharField(
         max_length=20, choices=BACKGROUND_THEME_CHOICES, null=True, blank=True,
+    )
+    primary_color_custom_hex = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(  # noqa: E501
+            r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #3b82f6.',
+        )],
+    )
+    background_custom_hex = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(  # noqa: E501
+            r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #ffffff.',
+        )],
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
