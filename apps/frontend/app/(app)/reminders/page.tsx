@@ -164,13 +164,13 @@ export default function RemindersPage() {
 
           <div className="flex flex-col gap-2 mt-1">
             {editing && editing.status === 'pending' && (
-              <Button variant="outline" className="w-full text-green-600 border-green-200 hover:bg-green-50"
+              <Button variant="outline" className="w-full text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/20"
                 onClick={() => markDone.mutate(editing.id)} disabled={markDone.isPending}>
                 {markDone.isPending ? '…' : 'Marquer comme terminé'}
               </Button>
             )}
             {editing && editing.status !== 'pending' && (
-              <Button variant="outline" className="w-full text-amber-600 border-amber-200 hover:bg-amber-50"
+              <Button variant="outline" className="w-full text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/20"
                 onClick={() => reopen.mutate(editing.id)} disabled={reopen.isPending}>
                 {reopen.isPending ? '…' : 'Remettre en attente'}
               </Button>
