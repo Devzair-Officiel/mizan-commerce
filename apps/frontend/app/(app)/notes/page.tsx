@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { StickyNote } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
@@ -132,10 +133,27 @@ export default function NotesPage() {
         action={<Button size="sm" onClick={openNew}>+ Nouvelle</Button>}
       />
       <div className="flex flex-col gap-3 p-4">
-        {isLoading && <p className="text-sm text-muted-foreground text-center py-8">Chargement…</p>}
+        {isLoading && (
+          <div className="flex flex-col gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-4">
+                <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+                <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {!isLoading && (data?.results ?? []).length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">Aucune note.</p>
+          <div className="flex flex-col items-center gap-3 py-12">
+            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted">
+              <StickyNote className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-foreground">Aucune note</p>
+              <p className="text-xs text-muted-foreground mt-1">Appuyez sur + Nouvelle pour créer votre première note.</p>
+            </div>
+          </div>
         )}
 
         {(data?.results ?? []).map((note) => (
