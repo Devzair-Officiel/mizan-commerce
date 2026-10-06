@@ -88,7 +88,7 @@ export function ThemeToggle() {
                 onClick={() => setPrimaryId(pc.id)}
                 title={pc.label}
                 className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center ${
-                  active ? 'border-foreground scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                  active ? 'border-foreground scale-110 shadow-md' : 'border-border hover:scale-105'
                 }`}
                 style={{ backgroundColor: pc.swatch }}
                 aria-label={pc.label}
@@ -105,7 +105,7 @@ export function ThemeToggle() {
             className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${
               primaryId === 'custom'
                 ? 'border-foreground scale-110 shadow-md'
-                : 'border-transparent hover:scale-105'
+                : 'border-border hover:scale-105'
             }`}
             style={{
               background: primaryId === 'custom'
@@ -133,7 +133,7 @@ export function ThemeToggle() {
                 onClick={() => setBgId(bg.id)}
                 title={bg.label}
                 className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center ${
-                  active ? 'border-foreground scale-110 shadow-md' : 'border-zinc-200 hover:scale-105'
+                  active ? 'border-foreground scale-110 shadow-md' : 'border-border hover:scale-105'
                 }`}
                 style={{ backgroundColor: bg.swatch }}
                 aria-label={bg.label}
@@ -150,7 +150,7 @@ export function ThemeToggle() {
             className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${
               bgId === 'custom'
                 ? 'border-foreground scale-110 shadow-md'
-                : 'border-zinc-200 hover:scale-105'
+                : 'border-border hover:scale-105'
             }`}
             style={{
               background: bgId === 'custom'

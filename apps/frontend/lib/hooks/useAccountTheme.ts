@@ -46,36 +46,32 @@ export function useAccountTheme() {
     );
   }, [bgId, setBgId, updatePreferences]);
 
-  const setAccountPrimaryCustomHex = useCallback((hex: string) => {
+  const setAccountPrimaryCustomHex = useCallback(async (hex: string): Promise<void> => {
     const previousId = primaryId;
     const previousHex = primaryCustomHex;
     setPrimaryId('custom');
     setPrimaryCustomHex(hex);
-    updatePreferences.mutate(
-      { primary_color: 'custom', primary_color_custom_hex: hex },
-      {
-        onError: () => {
-          setPrimaryId(previousId);
-          setPrimaryCustomHex(previousHex);
-        },
-      },
-    );
+    try {
+      await updatePreferences.mutateAsync({ primary_color: 'custom', primary_color_custom_hex: hex });
+    } catch (err) {
+      setPrimaryId(previousId);
+      setPrimaryCustomHex(previousHex);
+      throw err;
+    }
   }, [primaryId, primaryCustomHex, setPrimaryId, setPrimaryCustomHex, updatePreferences]);
 
-  const setAccountBgCustomHex = useCallback((hex: string) => {
+  const setAccountBgCustomHex = useCallback(async (hex: string): Promise<void> => {
     const previousId = bgId;
     const previousHex = bgCustomHex;
     setBgId('custom');
     setBgCustomHex(hex);
-    updatePreferences.mutate(
-      { background_theme: 'custom', background_custom_hex: hex },
-      {
-        onError: () => {
-          setBgId(previousId);
-          setBgCustomHex(previousHex);
-        },
-      },
-    );
+    try {
+      await updatePreferences.mutateAsync({ background_theme: 'custom', background_custom_hex: hex });
+    } catch (err) {
+      setBgId(previousId);
+      setBgCustomHex(previousHex);
+      throw err;
+    }
   }, [bgId, bgCustomHex, setBgId, setBgCustomHex, updatePreferences]);
 
   return {

@@ -165,6 +165,7 @@
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* ─────────────────────────────────────────────────────────────────────────
    Overrides dark mode pour les classes zinc hardcodées dans les pages
