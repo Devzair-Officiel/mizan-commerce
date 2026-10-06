@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { WizardLayout, TOTAL_STEPS } from '@/components/zakat/WizardLayout';
 import { WizardHub } from '@/components/zakat/WizardHub';
@@ -21,6 +21,7 @@ import {
   type ZakatCalculation,
 } from '@/lib/hooks/useZakat';
 import { ApiError } from '@/lib/api-client';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function NewZakatWizardPage() {
   const { data: draft, isLoading: draftLoading } = useZakatCurrentDraft();
@@ -51,6 +52,7 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
   const [calc, setCalc] = useState<ZakatCalculation | null>(initialDraft);
   const [mode] = useState<'linear' | 'hub'>(startInHub ? 'hub' : 'linear');
   const [editingFromHub, setEditingFromHub] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const { data: estimate, isLoading: estimateLoading } = useZakatStockEstimate();
   const currency = calc?.currency ?? estimate?.currency ?? 'EUR';
@@ -122,12 +124,16 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
     }
   };
 
-  const handleDiscard = async () => {
+  function triggerDiscard() {
     if (!draftId) {
       router.push('/zakat');
       return;
     }
-    if (!window.confirm('Supprimer ce brouillon ? Toutes les saisies seront perdues.')) return;
+    setConfirmDiscard(true);
+  }
+
+  const handleDiscard = async () => {
+    if (!draftId) return;
     await deleteDraft.mutateAsync(draftId);
     router.push('/zakat');
   };
@@ -144,23 +150,6 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
 
   const isPending =
     createDraft.isPending || updateDraft.isPending || finalize.isPending || deleteDraft.isPending;
-
-  if (mode === 'hub' && !editingFromHub && calc) {
-    return (
-      <WizardHub
-        calc={calc}
-        state={state}
-        currency={currency}
-        onEditStep={(s) => {
-          setStep(s);
-          setEditingFromHub(true);
-        }}
-        onFinalize={handleFinalize}
-        onDiscard={handleDiscard}
-        isPending={isPending}
-      />
-    );
-  }
 
   const { title, subtitle } = STEP_TITLES[step] ?? { title: '', subtitle: undefined };
   const isHubEdit = mode === 'hub' && editingFromHub;
@@ -181,36 +170,63 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
       : undefined;
 
   return (
-    <WizardLayout
-      step={step}
-      title={title}
-      subtitle={subtitle}
-      nextLabel={nextLabel}
-      onNext={onNext}
-      onPrev={onPrev}
-      canGoNext={canGoNext}
-      isPending={isPending}
-    >
-      <WizardSteps
-        step={step}
-        state={state}
-        patch={patch}
-        calc={calc}
-        estimate={estimate}
-        estimateLoading={estimateLoading}
-        currency={currency}
-      />
-
-      {draftId && (
-        <button
-          type="button"
-          onClick={handleDiscard}
-          disabled={isPending}
-          className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50"
+    <Fragment>
+      {mode === 'hub' && !editingFromHub && calc ? (
+        <WizardHub
+          calc={calc}
+          state={state}
+          currency={currency}
+          onEditStep={(s) => {
+            setStep(s);
+            setEditingFromHub(true);
+          }}
+          onFinalize={handleFinalize}
+          onDiscard={triggerDiscard}
+          isPending={isPending}
+        />
+      ) : (
+        <WizardLayout
+          step={step}
+          title={title}
+          subtitle={subtitle}
+          nextLabel={nextLabel}
+          onNext={onNext}
+          onPrev={onPrev}
+          canGoNext={canGoNext}
+          isPending={isPending}
         >
-          Abandonner ce brouillon
-        </button>
+          <WizardSteps
+            step={step}
+            state={state}
+            patch={patch}
+            calc={calc}
+            estimate={estimate}
+            estimateLoading={estimateLoading}
+            currency={currency}
+          />
+
+          {draftId && (
+            <button
+              type="button"
+              onClick={triggerDiscard}
+              disabled={isPending}
+              className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50"
+            >
+              Abandonner ce brouillon
+            </button>
+          )}
+        </WizardLayout>
       )}
-    </WizardLayout>
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title="Supprimer ce brouillon ?"
+        description="Toutes les saisies seront perdues."
+        onConfirm={handleDiscard}
+        variant="destructive"
+        confirmLabel="Supprimer"
+      />
+    </Fragment>
   );
 }
