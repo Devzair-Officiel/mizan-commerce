@@ -16,6 +16,7 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
   `text-foreground`, etc.).
 - Signaux sémantiques uniquement (red/amber/green) : danger, attente, succès.
   Toujours en paire light/dark : `text-amber-600 dark:text-amber-400`.
+- **Exception — icônes sur fond de swatch fixe** : les icônes incrustées dans un swatch de couleur (ThemeToggle, ColorPicker) sont évaluées contre la couleur du swatch lui-même, pas contre le thème actif. Pas de paire `dark:` requise sur ces icônes précises.
 - Rayons : `rounded-2xl` cartes, `rounded-full` boutons d'action, `rounded-xl` chips.
 
 ## 3. Hiérarchie typo

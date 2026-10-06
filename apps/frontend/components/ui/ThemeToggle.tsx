@@ -139,7 +139,7 @@ export function ThemeToggle() {
                 aria-label={bg.label}
                 aria-pressed={active}
               >
-                {bg.id === 'default' && <ResetIcon className="h-4 w-4 text-zinc-400 drop-shadow" />}
+                {bg.id === 'default' && <ResetIcon className="h-4 w-4 text-zinc-500 drop-shadow" />}
               </button>
             );
           })}
