@@ -154,7 +154,11 @@
       "background": "الخلفية",
       "background_desc": "لون خلفية التطبيق",
       "switch_to_light": "التبديل إلى الوضع الفاتح",
-      "switch_to_dark": "التبديل إلى الوضع الداكن"
+      "switch_to_dark": "التبديل إلى الوضع الداكن",
+      "custom_label": "مخصص",
+      "primary_color_picker_title": "اللون الرئيسي",
+      "background_picker_title": "خلفية مخصصة",
+      "apply": "تطبيق"
     },
     "guard": {
       "forbidden_title": "تم رفض الوصول",

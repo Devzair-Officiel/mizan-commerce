@@ -176,7 +176,11 @@
       "background": "Background",
       "background_desc": "App background color",
       "switch_to_light": "Switch to light mode",
-      "switch_to_dark": "Switch to dark mode"
+      "switch_to_dark": "Switch to dark mode",
+      "custom_label": "Custom",
+      "primary_color_picker_title": "Primary color",
+      "background_picker_title": "Custom background",
+      "apply": "Apply"
     },
     "guard": {
       "forbidden_title": "Access denied",

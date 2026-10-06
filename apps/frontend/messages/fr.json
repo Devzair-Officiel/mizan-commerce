@@ -176,7 +176,11 @@
       "background": "Arrière-plan",
       "background_desc": "Couleur de fond de l'application",
       "switch_to_light": "Passer en mode clair",
-      "switch_to_dark": "Passer en mode sombre"
+      "switch_to_dark": "Passer en mode sombre",
+      "custom_label": "Personnalisée",
+      "primary_color_picker_title": "Couleur principale",
+      "background_picker_title": "Arrière-plan personnalisé",
+      "apply": "Appliquer"
     },
     "guard": {
       "forbidden_title": "Accès refusé",

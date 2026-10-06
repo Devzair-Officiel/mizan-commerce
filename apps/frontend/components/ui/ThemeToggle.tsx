@@ -88,7 +88,7 @@ export function ThemeToggle() {
                 onClick={() => setPrimaryId(pc.id)}
                 title={pc.label}
                 className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center ${
-                  active ? 'border-foreground scale-110 shadow-md' : 'border-border hover:scale-105'
+                  active ? 'border-foreground scale-110 shadow-md' : 'border-border hover:scale-105 active:scale-95'
                 }`}
                 style={{ backgroundColor: pc.swatch }}
                 aria-label={pc.label}
@@ -101,18 +101,18 @@ export function ThemeToggle() {
           {/* Swatch personnalisé */}
           <button
             onClick={() => setPrimaryPickerOpen(true)}
-            title="Personnalisée"
+            title={t('custom_label')}
             className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${
               primaryId === 'custom'
                 ? 'border-foreground scale-110 shadow-md'
-                : 'border-border hover:scale-105'
+                : 'border-border hover:scale-105 active:scale-95'
             }`}
             style={{
               background: primaryId === 'custom'
                 ? primaryCustomHex
                 : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
             }}
-            aria-label="Personnalisée"
+            aria-label={t('custom_label')}
             aria-pressed={primaryId === 'custom'}
           >
             {primaryId !== 'custom' && <PaletteIcon className="h-4 w-4 text-white drop-shadow" />}
@@ -133,7 +133,7 @@ export function ThemeToggle() {
                 onClick={() => setBgId(bg.id)}
                 title={bg.label}
                 className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center ${
-                  active ? 'border-foreground scale-110 shadow-md' : 'border-border hover:scale-105'
+                  active ? 'border-foreground scale-110 shadow-md' : 'border-border hover:scale-105 active:scale-95'
                 }`}
                 style={{ backgroundColor: bg.swatch }}
                 aria-label={bg.label}
@@ -146,18 +146,18 @@ export function ThemeToggle() {
           {/* Swatch personnalisé */}
           <button
             onClick={() => setBgPickerOpen(true)}
-            title="Personnalisée"
+            title={t('custom_label')}
             className={`h-10 w-10 rounded-full border-2 transition-all flex items-center justify-center overflow-hidden ${
               bgId === 'custom'
                 ? 'border-foreground scale-110 shadow-md'
-                : 'border-border hover:scale-105'
+                : 'border-border hover:scale-105 active:scale-95'
             }`}
             style={{
               background: bgId === 'custom'
                 ? bgCustomHex
                 : 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
             }}
-            aria-label="Personnalisée"
+            aria-label={t('custom_label')}
             aria-pressed={bgId === 'custom'}
           >
             {bgId !== 'custom' && <PaletteIcon className="h-4 w-4 text-white drop-shadow" />}
@@ -170,14 +170,14 @@ export function ThemeToggle() {
         onClose={() => setPrimaryPickerOpen(false)}
         value={primaryCustomHex}
         onConfirm={setAccountPrimaryCustomHex}
-        title="Couleur principale"
+        title={t('primary_color_picker_title')}
       />
       <ColorPickerSheet
         open={bgPickerOpen}
         onClose={() => setBgPickerOpen(false)}
         value={bgCustomHex}
         onConfirm={setAccountBgCustomHex}
-        title="Couleur d'arrière-plan"
+        title={t('background_picker_title')}
       />
     </div>
   );

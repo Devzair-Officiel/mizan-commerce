@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 
@@ -19,6 +20,7 @@ export function ColorPickerSheet({
   onConfirm,
   title,
 }: ColorPickerSheetProps) {
+  const t = useTranslations('layout.themeDrawer');
   const [draft, setDraft] = useState(value);
   const [prevOpen, setPrevOpen] = useState(open);
   const [busy, setBusy] = useState(false);
@@ -78,7 +80,7 @@ export function ColorPickerSheet({
           disabled={busy}
           className="w-full rounded-lg bg-primary py-3 text-sm font-semibold text-primary-foreground transition-opacity active:opacity-80 disabled:opacity-50"
         >
-          {busy ? '…' : 'Appliquer'}
+          {busy ? '…' : t('apply')}
         </button>
       </div>
     </BottomSheet>
