@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, FileText } from 'lucide-react';
@@ -21,6 +22,7 @@ import {
   useReopenZakat,
   useDeleteZakatCalculation,
 } from '@/lib/hooks/useZakat';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function ZakatDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +30,7 @@ export default function ZakatDetailPage() {
   const { data: calc, isLoading } = useZakatCalculation(id);
   const reopen = useReopenZakat();
   const remove = useDeleteZakatCalculation();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleEdit = async () => {
     if (!calc) return;
@@ -44,9 +47,6 @@ export default function ZakatDetailPage() {
 
   const handleDelete = async () => {
     if (!calc) return;
-    if (!window.confirm(
-      'Supprimer définitivement ce calcul de l\'historique ? Cette action est irréversible.',
-    )) return;
     await remove.mutateAsync(calc.id);
     router.push('/zakat');
   };
@@ -137,9 +137,19 @@ export default function ZakatDetailPage() {
         <DetailActions
           isFinalized={calc.status === 'finalized'}
           onEdit={handleEdit}
-          onDelete={handleDelete}
+          onDelete={() => setConfirmDelete(true)}
           isEditing={reopen.isPending}
           isDeleting={remove.isPending}
+        />
+
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Supprimer ce calcul ?"
+          description="Cette action est irréversible. Le calcul sera définitivement supprimé de l'historique."
+          onConfirm={handleDelete}
+          variant="destructive"
+          confirmLabel="Supprimer"
         />
 
         <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3">

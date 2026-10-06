@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Pencil, Trash2 } from 'lucide-react';
 import { ApiError } from '@/lib/api-client';
@@ -8,6 +9,7 @@ import {
   type ProductVariant,
 } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 interface VariantRowProps {
   variant: ProductVariant;
@@ -23,9 +25,9 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
   const currency = shop?.currency ?? 'EUR';
   const currencySymbol = currency === 'EUR' ? '€' : currency;
   const del = useDeleteProductVariant(productId);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function handleDelete() {
-    if (!confirm(t('confirm_remove', { name: variant.packaging_name }))) return;
     try {
       await del.mutateAsync(variant.id);
     } catch (err) {
@@ -45,6 +47,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
   const unitPrice = formatUnitPrice(variant.selling_price, variant.base_quantity, variant.unit);
 
   return (
+    <>
     <div className="flex items-start gap-3 px-4 py-3">
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <div className="flex items-center gap-2 min-w-0">
@@ -91,7 +94,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
           {canDelete && (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               aria-label={t('remove_aria')}
               disabled={del.isPending}
               className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
@@ -102,5 +105,14 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      open={confirmDelete}
+      onOpenChange={setConfirmDelete}
+      title={t('confirm_remove', { name: variant.packaging_name })}
+      onConfirm={handleDelete}
+      variant="destructive"
+      confirmLabel="Supprimer"
+    />
+    </>
   );
 }

@@ -9,6 +9,7 @@ import {
   useDeletePageLogo,
   useUploadPageLogo,
 } from '@/lib/hooks/usePublicPageAdmin';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 interface Props {
   page: PublicPage;
@@ -20,6 +21,7 @@ export function LogoUploader({ page }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function handlePickFile() {
     setError(null);
@@ -47,7 +49,6 @@ export function LogoUploader({ page }: Props) {
   }
 
   async function handleDelete() {
-    if (!confirm('Supprimer le logo ?')) return;
     try {
       await remove.mutateAsync();
     } catch {
@@ -91,7 +92,7 @@ export function LogoUploader({ page }: Props) {
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={remove.isPending}
             >
               {remove.isPending ? 'Suppression…' : 'Supprimer'}
@@ -115,6 +116,15 @@ export function LogoUploader({ page }: Props) {
         onConfirm={handleCropConfirm}
         aspect={1}
         outputSize={512}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Supprimer le logo ?"
+        onConfirm={handleDelete}
+        variant="destructive"
+        confirmLabel="Supprimer"
       />
     </div>
   );

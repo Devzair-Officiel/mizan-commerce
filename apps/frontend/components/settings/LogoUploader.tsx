@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
 import { useUploadShopLogo, useDeleteShopLogo, type Shop } from '@/lib/hooks/useShop';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 interface LogoUploaderProps {
   shop: Shop | undefined;
@@ -14,6 +15,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   function handlePickFile() {
     setLogoError(null);
@@ -41,7 +43,6 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
   }
 
   async function handleDeleteLogo() {
-    if (!confirm('Supprimer le logo de la boutique ?')) return;
     try {
       await deleteLogo.mutateAsync();
     } catch {
@@ -84,7 +85,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={handleDeleteLogo}
+              onClick={() => setConfirmDelete(true)}
               disabled={deleteLogo.isPending}
             >
               {deleteLogo.isPending ? 'Suppression…' : 'Supprimer'}
@@ -106,6 +107,16 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
         file={pendingFile}
         onClose={() => setPendingFile(null)}
         onConfirm={handleCropConfirm}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Supprimer le logo ?"
+        description="Le logo de la boutique sera supprimé définitivement."
+        onConfirm={handleDeleteLogo}
+        variant="destructive"
+        confirmLabel="Supprimer"
       />
     </>
   );

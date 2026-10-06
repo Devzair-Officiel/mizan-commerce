@@ -11,6 +11,7 @@ import { ActionRow } from '@/components/products/detail/ActionRow';
 import { HeroCard } from '@/components/products/detail/HeroCard';
 import { StatsGrid } from '@/components/products/detail/StatsGrid';
 import { ProductDetailSkeleton } from '@/components/products/detail/Skeleton';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import {
   useProduct,
   useDeactivateProduct,
@@ -31,6 +32,7 @@ export default function ProductDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -45,7 +47,6 @@ export default function ProductDetailPage() {
   }
 
   async function handleDeactivate() {
-    if (!confirm(t('confirm_deactivate'))) return;
     await deactivate.mutateAsync(id);
     router.push('/products');
   }
@@ -82,7 +83,7 @@ export default function ProductDetailPage() {
               icon={<PowerOff size={18} />}
               label={tActions('deactivate')}
               description={tActions('deactivate_helper')}
-              onClick={async () => { setShowMore(false); await handleDeactivate(); }}
+              onClick={() => { setShowMore(false); setConfirmDeactivate(true); }}
               disabled={deactivate.isPending}
               tone="danger"
             />
@@ -118,6 +119,14 @@ export default function ProductDetailPage() {
         <StatsGrid product={product} />
 
         <VariantsManager product={product} />
+
+        <ConfirmDialog
+          open={confirmDeactivate}
+          onOpenChange={setConfirmDeactivate}
+          title={t('confirm_deactivate')}
+          onConfirm={handleDeactivate}
+          variant="destructive"
+        />
 
         {product.description && (
           <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">

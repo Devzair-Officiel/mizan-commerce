@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ShoppingBag, User } from 'lucide-react';
@@ -11,11 +12,14 @@ import { PartyCard } from '@/components/invoices/detail/PartyCard';
 import { LinesList } from '@/components/invoices/detail/LinesList';
 import { TotalsCard } from '@/components/invoices/detail/TotalsCard';
 import { StatusActions } from '@/components/invoices/detail/StatusActions';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: invoice, isLoading } = useInvoice(id);
   const updateStatus = useUpdateInvoiceStatus(id);
+  const [confirmPaid, setConfirmPaid] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   if (isLoading) {
     return (
@@ -39,12 +43,10 @@ export default function InvoiceDetailPage() {
   const showPaymentBreakdown = payment.state === 'partial';
 
   async function handleMarkPaid() {
-    if (!confirm('Marquer cette facture comme payée ?')) return;
     await updateStatus.mutateAsync('paid');
   }
 
   async function handleCancel() {
-    if (!confirm('Annuler cette facture ? Le numéro reste réservé et la trace est conservée.')) return;
     await updateStatus.mutateAsync('cancelled');
   }
 
@@ -119,8 +121,27 @@ export default function InvoiceDetailPage() {
         <StatusActions
           invoice={invoice}
           isPending={updateStatus.isPending}
-          onMarkPaid={handleMarkPaid}
-          onCancel={handleCancel}
+          onMarkPaid={() => setConfirmPaid(true)}
+          onCancel={() => setConfirmCancel(true)}
+        />
+
+        <ConfirmDialog
+          open={confirmPaid}
+          onOpenChange={setConfirmPaid}
+          title="Marquer comme payée ?"
+          description="Cette facture sera enregistrée comme intégralement réglée."
+          onConfirm={handleMarkPaid}
+          confirmLabel="Confirmer"
+        />
+
+        <ConfirmDialog
+          open={confirmCancel}
+          onOpenChange={setConfirmCancel}
+          title="Annuler cette facture ?"
+          description="Le numéro reste réservé et la trace est conservée."
+          onConfirm={handleCancel}
+          variant="destructive"
+          confirmLabel="Annuler la facture"
         />
       </div>
     </>
