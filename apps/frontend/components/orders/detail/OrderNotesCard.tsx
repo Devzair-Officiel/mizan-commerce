@@ -38,13 +38,13 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
-        <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <StickyNote size={14} />
           {t('title')}
           {notesData && notesData.count > 0 && (
-            <span className="text-zinc-400 normal-case font-normal tracking-normal">
+            <span className="text-muted-foreground normal-case font-normal tracking-normal">
               ({notesData.count})
             </span>
           )}
@@ -62,7 +62,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
       </div>
 
       {showNoteForm && (
-        <div className="p-3 border-b border-zinc-100 flex flex-col gap-2">
+        <div className="p-3 border-b border-border flex flex-col gap-2">
           <FloatingTextarea
             id="note-content"
             label={t('field_label')}
@@ -91,17 +91,17 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
       )}
 
       {notesData?.results.length ? (
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y divide-border">
           {notesData.results.map((note) => {
             const fullTimestamp = formatDateTime(note.created_at, {
               day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
             });
             return (
               <li key={note.id} className="px-4 py-3 flex flex-col gap-1.5">
-                <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                   {note.content}
                 </p>
-                <div className="flex items-center justify-between text-xs text-zinc-400">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
                     {note.author_name ?? t('anonymous')} ·{' '}
                     <span title={fullTimestamp}>{relativeTime(note.created_at)}</span>
@@ -110,7 +110,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
                     type="button"
                     onClick={() => setPendingDeleteId(note.id)}
                     aria-label={t('delete_aria')}
-                    className="inline-flex items-center justify-center h-11 w-11 -mr-2.5 text-zinc-400 hover:text-red-500 transition-colors"
+                    className="inline-flex items-center justify-center h-11 w-11 -mr-2.5 text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -120,7 +120,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
           })}
         </ul>
       ) : !showNoteForm && (
-        <p className="px-4 py-6 text-center text-sm text-zinc-400">
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">
           {t('empty')}
         </p>
       )}

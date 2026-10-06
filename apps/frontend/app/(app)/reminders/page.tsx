@@ -7,6 +7,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { qk } from '@/lib/query-keys';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 interface Reminder {
   id: string;
@@ -49,6 +50,7 @@ export default function RemindersPage() {
   const [category,    setCategory]    = useState('free');
   const [description, setDescription] = useState('');
   const [filter,      setFilter]      = useState<'pending' | 'done'>('pending');
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: qk.reminders.byFilter(filter),
@@ -177,15 +179,24 @@ export default function RemindersPage() {
               {isPending ? 'Enregistrement…' : editing ? 'Mettre à jour' : 'Créer le rappel'}
             </Button>
             {editing && (
-              <Button variant="outline" className="w-full text-red-500 border-red-200 hover:bg-red-50"
+              <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
                 disabled={remove.isPending}
-                onClick={() => { if (confirm('Supprimer ce rappel ?')) remove.mutate(editing.id); }}>
+                onClick={() => setConfirmRemove(true)}>
                 {remove.isPending ? 'Suppression…' : 'Supprimer le rappel'}
               </Button>
             )}
             <Button variant="outline" className="w-full" onClick={resetForm}>Annuler</Button>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={confirmRemove}
+          onOpenChange={setConfirmRemove}
+          title="Supprimer ce rappel ?"
+          onConfirm={() => { if (editing) return remove.mutateAsync(editing.id); }}
+          variant="destructive"
+          confirmLabel="Supprimer"
+        />
       </>
     );
   }

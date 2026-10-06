@@ -18,6 +18,7 @@ import { OrderInvoiceCard } from '@/components/orders/detail/OrderInvoiceCard';
 import { OrderNotesCard } from '@/components/orders/detail/OrderNotesCard';
 import { OrderActivityTimeline } from '@/components/orders/detail/OrderActivityTimeline';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import { PaymentBottomSheet } from '@/components/orders/detail/PaymentBottomSheet';
 import { InvoiceBottomSheet } from '@/components/orders/detail/InvoiceBottomSheet';
 import { REVERT_TRANSITION, STATUS_ALLOWS_CANCEL } from '@/components/orders/detail/constants';
@@ -37,9 +38,10 @@ export default function OrderDetailPage() {
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
-  if (isLoading) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-zinc-400">{t('loading')}</p></>;
-  if (!order) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-red-500">{t('not_found')}</p></>;
+  if (isLoading) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
+  if (!order) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   const totalAmount = parseFloat(order.total_amount);
   const subtotalAmount = parseFloat(order.subtotal);
@@ -50,7 +52,6 @@ export default function OrderDetailPage() {
   const canCancel = STATUS_ALLOWS_CANCEL.has(order.status);
 
   async function handleTransition(status: string) {
-    if (status === 'cancelled' && !confirm(t('cancel_confirm'))) return;
     await transition.mutateAsync(status);
   }
 
@@ -161,20 +162,20 @@ export default function OrderDetailPage() {
         )}
 
         {canCancel && (
-          <div className="mt-4 pt-4 border-t border-zinc-200 flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('danger_zone')}
             </p>
             <Button
               variant="outline"
-              className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 inline-flex items-center justify-center gap-2"
-              onClick={() => handleTransition('cancelled')}
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 inline-flex items-center justify-center gap-2"
+              onClick={() => setConfirmCancel(true)}
               disabled={transition.isPending}
             >
               <XCircle size={16} />
               {t('cancel_cta')}
             </Button>
-            <p className="text-xs text-zinc-400 px-1">{t('cancel_sub')}</p>
+            <p className="text-xs text-muted-foreground px-1">{t('cancel_sub')}</p>
           </div>
         )}
       </div>
@@ -198,6 +199,15 @@ export default function OrderDetailPage() {
         isPending={issueInvoice.isPending}
         error={invoiceError}
         onSubmit={handleIssueInvoice}
+      />
+
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title={t('cancel_confirm')}
+        onConfirm={() => handleTransition('cancelled')}
+        variant="destructive"
+        confirmLabel={t('cancel_cta')}
       />
     </>
   );
