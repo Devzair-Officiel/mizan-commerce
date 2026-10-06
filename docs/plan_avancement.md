@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-05
+**Dernière mise à jour** : 2026-10-06
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
 
 ---
@@ -424,6 +424,13 @@
 - [ ] **Test de restauration mensuel** (un backup non testé n'est pas un backup)
 - [ ] Versioning Object Storage activé si possible
 - [ ] Plan de rollback documenté
+
+### Dette technique connue
+
+- [ ] Remplacer les window.alert() résiduels par un composant toast une fois
+      disponible : apps/frontend/app/(app)/zakat/new/page.tsx:112 (conflit
+      409 sur finalisation), apps/frontend/app/(app)/zakat/[id]/page.tsx:44
+      (échec de réouverture)
 
 ---
 
