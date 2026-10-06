@@ -6,6 +6,7 @@ import { Plus, StickyNote, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { useCreateOrderNote, useDeleteNote, useOrderNotes } from '@/lib/hooks/useNotes';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import { useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
 
 interface OrderNotesCardProps {
@@ -22,6 +23,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
   const deleteNote = useDeleteNote(orderId);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteInput, setNoteInput] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   async function handleAddNote() {
     const trimmed = noteInput.trim();
@@ -32,7 +34,6 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
   }
 
   async function handleDeleteNote(noteId: string) {
-    if (!confirm(t('delete_confirm'))) return;
     await deleteNote.mutateAsync(noteId);
   }
 
@@ -107,9 +108,9 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleDeleteNote(note.id)}
+                    onClick={() => setPendingDeleteId(note.id)}
                     aria-label={t('delete_aria')}
-                    className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
+                    className="inline-flex items-center justify-center h-11 w-11 -mr-2.5 text-zinc-400 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -123,6 +124,15 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
           {t('empty')}
         </p>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}
+        title={t('delete_confirm')}
+        onConfirm={() => { if (pendingDeleteId) handleDeleteNote(pendingDeleteId); }}
+        variant="destructive"
+        confirmLabel="Supprimer"
+      />
     </div>
   );
 }
