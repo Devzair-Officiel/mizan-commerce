@@ -25,7 +25,14 @@ export default function InvoiceDetailPage() {
     return (
       <>
         <TopBar title="Facture" />
-        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+        <div className="flex flex-col gap-3 p-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+            </div>
+          ))}
+        </div>
       </>
     );
   }

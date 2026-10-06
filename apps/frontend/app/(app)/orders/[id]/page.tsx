@@ -40,7 +40,19 @@ export default function OrderDetailPage() {
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  if (isLoading) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
+  if (isLoading) return (
+    <>
+      <TopBar title={t('topbar')} />
+      <div className="flex flex-col gap-3 p-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-4">
+            <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+            <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+          </div>
+        ))}
+      </div>
+    </>
+  );
   if (!order) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   const totalAmount = parseFloat(order.total_amount);

@@ -29,7 +29,14 @@ export default function NewZakatWizardPage() {
   if (draftLoading) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center px-4">
-        <p className="text-sm text-muted-foreground">Chargement…</p>
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -210,7 +217,7 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
               type="button"
               onClick={triggerDiscard}
               disabled={isPending}
-              className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50"
+              className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50 px-3 py-2 -mx-3"
             >
               Abandonner ce brouillon
             </button>

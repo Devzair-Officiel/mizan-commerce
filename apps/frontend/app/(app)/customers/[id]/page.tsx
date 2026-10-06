@@ -87,7 +87,7 @@ export default function CustomerDetailPage() {
   }
 
   if (isLoading) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
-  if (!customer) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-red-500">{t('not_found')}</p></>;
+  if (!customer) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   return (
     <>

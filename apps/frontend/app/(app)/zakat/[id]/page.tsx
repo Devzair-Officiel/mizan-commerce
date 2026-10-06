@@ -55,7 +55,14 @@ export default function ZakatDetailPage() {
     return (
       <>
         <TopBar title="Détail du calcul" />
-        <p className="text-sm text-muted-foreground text-center py-12">Chargement…</p>
+        <div className="flex flex-col gap-3 p-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+            </div>
+          ))}
+        </div>
       </>
     );
   }
@@ -152,8 +159,8 @@ export default function ZakatDetailPage() {
           confirmLabel="Supprimer"
         />
 
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3">
-          <p className="text-xs text-amber-700">
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
+          <p className="text-xs text-amber-700 dark:text-amber-400">
             Ce calcul est fourni à titre indicatif. Pour valider votre obligation, consultez un
             érudit ou un spécialiste de la zakat commerciale.
           </p>

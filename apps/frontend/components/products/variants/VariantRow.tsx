@@ -82,12 +82,12 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
         {unitPrice && (
           <span className="text-[11px] text-muted-foreground tabular-nums">{unitPrice}</span>
         )}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={onEdit}
             aria-label={t('edit_aria')}
-            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            className="p-2.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Pencil size={14} />
           </button>
@@ -97,7 +97,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
               onClick={() => setConfirmDelete(true)}
               aria-label={t('remove_aria')}
               disabled={del.isPending}
-              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+              className="p-2.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
             >
               <Trash2 size={14} />
             </button>
