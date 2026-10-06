@@ -13,7 +13,10 @@ import { isThemeMode, type ThemeMode } from '@/lib/themes';
  */
 export function useAccountTheme() {
   const { theme, setTheme } = useTheme();
-  const { primaryId, bgId, setPrimaryId, setBgId } = useColorTheme();
+  const {
+    primaryId, bgId, primaryCustomHex, bgCustomHex,
+    setPrimaryId, setBgId, setPrimaryCustomHex, setBgCustomHex,
+  } = useColorTheme();
   const updatePreferences = useUpdateAppearancePreferences();
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
@@ -43,9 +46,43 @@ export function useAccountTheme() {
     );
   }, [bgId, setBgId, updatePreferences]);
 
+  const setAccountPrimaryCustomHex = useCallback((hex: string) => {
+    const previousId = primaryId;
+    const previousHex = primaryCustomHex;
+    setPrimaryId('custom');
+    setPrimaryCustomHex(hex);
+    updatePreferences.mutate(
+      { primary_color: 'custom', primary_color_custom_hex: hex },
+      {
+        onError: () => {
+          setPrimaryId(previousId);
+          setPrimaryCustomHex(previousHex);
+        },
+      },
+    );
+  }, [primaryId, primaryCustomHex, setPrimaryId, setPrimaryCustomHex, updatePreferences]);
+
+  const setAccountBgCustomHex = useCallback((hex: string) => {
+    const previousId = bgId;
+    const previousHex = bgCustomHex;
+    setBgId('custom');
+    setBgCustomHex(hex);
+    updatePreferences.mutate(
+      { background_theme: 'custom', background_custom_hex: hex },
+      {
+        onError: () => {
+          setBgId(previousId);
+          setBgCustomHex(previousHex);
+        },
+      },
+    );
+  }, [bgId, bgCustomHex, setBgId, setBgCustomHex, updatePreferences]);
+
   return {
     setThemeMode,
     setPrimaryId: setAccountPrimaryId,
     setBgId: setAccountBgId,
+    setAccountPrimaryCustomHex,
+    setAccountBgCustomHex,
   };
 }
