@@ -217,7 +217,7 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
               type="button"
               onClick={triggerDiscard}
               disabled={isPending}
-              className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50 px-3 py-2 -mx-3"
+              className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50 min-h-11 px-3 -mx-3 flex items-center justify-center"
             >
               Abandonner ce brouillon
             </button>
