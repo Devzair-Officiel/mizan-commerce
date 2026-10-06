@@ -1,3 +1,5 @@
+import { converter } from 'culori';
+
 export interface ThemeVars {
   background: string;
   foreground: string;
@@ -137,15 +139,40 @@ export const BACKGROUNDS: BackgroundDef[] = [
 
 export const PRIMARY_STORAGE_KEY = 'mizan-primary-color';
 export const BG_STORAGE_KEY = 'mizan-bg-color';
+export const PRIMARY_CUSTOM_HEX_KEY = 'mizan-primary-custom-hex';
+export const BG_CUSTOM_HEX_KEY = 'mizan-bg-custom-hex';
 export const DEFAULT_PRIMARY_ID = 'mint';
 export const DEFAULT_BG_ID = 'default';
+export const DEFAULT_PRIMARY_CUSTOM_HEX = '#3b82f6';
+export const DEFAULT_BG_CUSTOM_HEX = '#e0f2fe';
 
 export function isPrimaryColorId(value: string | null | undefined): value is string {
-  return value != null && PRIMARY_COLORS.some((color) => color.id === value);
+  return value != null && (value === 'custom' || PRIMARY_COLORS.some((color) => color.id === value));
 }
 
 export function isBackgroundId(value: string | null | undefined): value is string {
-  return value != null && BACKGROUNDS.some((background) => background.id === value);
+  return value != null && (value === 'custom' || BACKGROUNDS.some((background) => background.id === value));
+}
+
+const toOklch = converter('oklch');
+
+export function hexToHueChroma(hex: string): { hue: number; chroma: number } {
+  const mode = toOklch(hex);
+  return { hue: mode?.h ?? 0, chroma: mode?.c ?? 0.2 };
+}
+
+export function hexToBackgroundDef(
+  hex: string,
+): Pick<BackgroundDef, 'light' | 'dark' | 'lightGradient' | 'darkGradient'> {
+  const { hue: h } = hexToHueChroma(hex);
+  const h2 = h - 2;
+  const h5 = h - 5;
+  return {
+    light: `oklch(0.985 0.008 ${h})`,
+    dark: `oklch(0.20 0.012 ${h})`,
+    lightGradient: `linear-gradient(135deg, oklch(1 0.002 ${h}) 0%, oklch(0.965 0.035 ${h2}) 50%, oklch(0.90 0.09 ${h5}) 100%)`,
+    darkGradient: `linear-gradient(135deg, oklch(0.30 0.018 ${h}) 0%, oklch(0.20 0.042 ${h2}) 50%, oklch(0.11 0.085 ${h5}) 100%)`,
+  };
 }
 
 function clamp(v: number, lo: number, hi: number) { return Math.min(hi, Math.max(lo, v)); }
@@ -155,12 +182,34 @@ function clamp(v: number, lo: number, hi: number) { return Math.min(hi, Math.max
 const DEFAULT_PRIMARY: PrimaryColorDef = PRIMARY_COLORS[0]!;
 const DEFAULT_BG: BackgroundDef = BACKGROUNDS[0]!;
 
-function buildThemeVars(primaryId: string, bgId: string, isDark: boolean): ThemeVars {
-  const pc = PRIMARY_COLORS.find(c => c.id === primaryId) ?? DEFAULT_PRIMARY;
-  const bg = BACKGROUNDS.find(b => b.id === bgId) ?? DEFAULT_BG;
+type BgSlice = Pick<BackgroundDef, 'light' | 'dark' | 'lightGradient' | 'darkGradient'>;
 
-  const h = pc.hue;
-  const c = pc.chroma;
+function resolveBg(bgId: string, bgCustomHex?: string): BgSlice {
+  if (bgId === 'custom' && bgCustomHex) return hexToBackgroundDef(bgCustomHex);
+  return BACKGROUNDS.find(b => b.id === bgId) ?? DEFAULT_BG;
+}
+
+function buildThemeVars(
+  primaryId: string,
+  bgId: string,
+  isDark: boolean,
+  primaryCustomHex?: string,
+  bgCustomHex?: string,
+): ThemeVars {
+  let h: number | null;
+  let c: number;
+
+  if (primaryId === 'custom' && primaryCustomHex) {
+    const derived = hexToHueChroma(primaryCustomHex);
+    h = derived.hue;
+    c = derived.chroma;
+  } else {
+    const pc = PRIMARY_COLORS.find(color => color.id === primaryId) ?? DEFAULT_PRIMARY;
+    h = pc.hue;
+    c = pc.chroma;
+  }
+
+  const bg = resolveBg(bgId, bgCustomHex);
 
   if (h === null) {
     return isDark ? {
@@ -247,9 +296,15 @@ function buildThemeVars(primaryId: string, bgId: string, isDark: boolean): Theme
   };
 }
 
-export function applyThemeVars(primaryId: string, bgId: string, isDark: boolean): void {
-  const vars = buildThemeVars(primaryId, bgId, isDark);
-  const bg = BACKGROUNDS.find(b => b.id === bgId) ?? DEFAULT_BG;
+export function applyThemeVars(
+  primaryId: string,
+  bgId: string,
+  isDark: boolean,
+  primaryCustomHex?: string,
+  bgCustomHex?: string,
+): void {
+  const vars = buildThemeVars(primaryId, bgId, isDark, primaryCustomHex, bgCustomHex);
+  const bg = resolveBg(bgId, bgCustomHex);
   const root = document.documentElement;
   for (const [key, value] of Object.entries(vars)) {
     root.style.setProperty(`--${key}`, value);
