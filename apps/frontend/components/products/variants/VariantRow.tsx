@@ -31,10 +31,10 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
     try {
       await del.mutateAsync(variant.id);
     } catch (err) {
-      const msg = err instanceof ApiError && typeof err.data === 'object' && err.data !== null
-        ? (err.data as { detail?: string }).detail ?? t('remove_failed')
-        : t('remove_failed');
-      alert(msg);
+      const detail = err instanceof ApiError && typeof err.data === 'object' && err.data !== null
+        ? (err.data as { detail?: string }).detail
+        : undefined;
+      throw new Error(detail ?? t('remove_failed'));
     }
   }
 
