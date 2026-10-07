@@ -107,6 +107,15 @@ class AuthFlowTest(TestCase):
         errors = response.data.get('errors', response.data)
         self.assertIn('primary_color_custom_hex', errors)
 
+    def test_me_rejects_custom_background_without_hex(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            reverse('auth-me'), {'background_theme': 'custom'}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        errors = response.data.get('errors', response.data)
+        self.assertIn('background_custom_hex', errors)
+
     def test_me_rejects_invalid_appearance_preferences(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(
