@@ -34,11 +34,11 @@ docker compose exec backend ruff format .     # Format
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
 
-# Frontend (depuis apps/frontend)
-npm run dev      # Dev server
-npm run test     # Vitest
-npm run lint     # ESLint
-npm run build    # Build de prod
+# Frontend (depuis la racine du repo)
+docker compose exec -T frontend npm run dev      # Dev server
+docker compose exec -T frontend npm run lint     # ESLint
+docker compose exec -T frontend npm run build    # Build de prod
+# npm run test n'existe pas encore — aucune infra Vitest en place
 
 # Stack complète
 docker compose up -d

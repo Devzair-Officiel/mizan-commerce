@@ -427,6 +427,8 @@
 
 ### Dette technique connue
 
+- [ ] Mettre en place Vitest côté frontend (aucun test, aucun script
+      npm run test actuellement) — voir CLAUDE.md pour la note associée
 - [ ] Remplacer les window.alert() résiduels par un composant toast une fois
       disponible : apps/frontend/app/(app)/zakat/new/page.tsx:112 (conflit
       409 sur finalisation), apps/frontend/app/(app)/zakat/[id]/page.tsx:44
