@@ -46,9 +46,9 @@ export function OrderNextStepCard({ status, isPending, onTransition }: OrderNext
   const stepTitle = nextStep.key === 'prepared'
     ? t('prepared_mark', { label: label('shipped') })
     : t(`${nextStep.key}_title` as const);
-  const stepSub = nextStep.key === 'to_prepare' && ck === 'services'
-    ? t('to_prepare_sub_services')
-    : t(`${nextStep.key}_sub` as const);
+  const stepSub = nextStep.key === 'draft' ? t('draft_sub', { kind: ck })
+    : nextStep.key === 'to_prepare' ? t('to_prepare_sub', { kind: ck })
+    : t('prepared_sub');
   const stepCta = nextStep.key === 'prepared'
     ? t('prepared_cta_mark', { label: label('shipped') })
     : t(`${nextStep.key}_cta` as const);

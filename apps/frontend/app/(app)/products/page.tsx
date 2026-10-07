@@ -78,9 +78,7 @@ export default function CatalogPage() {
   return (
     <>
       <TopBar
-        title={catalogKind === 'products' ? t('topbar.title_products')
-          : catalogKind === 'services' ? t('topbar.title_services')
-          : t('topbar.title')}
+        title={t('topbar.title', { kind: catalogKind })}
         titleClassName="text-3xl"
       />
 
@@ -92,7 +90,7 @@ export default function CatalogPage() {
             inputMode="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('list.search_placeholder')}
+            placeholder={t('list.search_placeholder', { kind: catalogKind })}
             className="w-full h-12 rounded-2xl border border-border bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
           />
           {search && (
@@ -131,7 +129,7 @@ export default function CatalogPage() {
             className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
           >
             <PackagePlus size={16} strokeWidth={2.2} />
-            {t('list.new_product')}
+            {t('list.new_product', { kind: catalogKind })}
           </button>
           <button
             onClick={() => setOptionsOpen(true)}
@@ -157,7 +155,7 @@ export default function CatalogPage() {
         {!isLoading && items.length > 0 && (
           <>
             <p className="text-xs text-muted-foreground self-end -mb-1 tabular-nums">
-              {t('list.count', { count: items.length })}
+              {t('list.count', { count: items.length, kind: catalogKind })}
             </p>
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
               {items.map((p, i) => (

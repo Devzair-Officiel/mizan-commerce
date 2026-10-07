@@ -121,7 +121,7 @@
       "services": "Services"
     },
     "breadcrumb": {
-      "products": "Articles",
+      "products": "{kind, select, products {Articles} services {Services} other {Catalogue}}",
       "customers": "Clients",
       "orders": "Commandes",
       "settings": "Paramètres",
@@ -136,8 +136,8 @@
       "orders_edit": "Modifier la commande",
       "customers_new": "Nouveau client",
       "customers_edit": "Modifier le client",
-      "products_new": "Nouvel article",
-      "products_edit": "Modifier l'article"
+      "products_new": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
+      "products_edit": "{kind, select, products {Modifier l'article} services {Modifier le service} other {Modifier}}"
     },
     "bottomNav": {
       "quick_actions": "Actions rapides",
@@ -147,8 +147,8 @@
       "new_customer_sub": "Enregistrer un contact",
       "new_order": "Nouvelle commande",
       "new_order_sub": "Créer une vente",
-      "new_product": "Nouvel article",
-      "new_product_sub": "Ajouter un produit ou service"
+      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
+      "new_product_sub": "{kind, select, products {Ajouter un produit} services {Ajouter un service} other {Ajouter un produit ou service}}"
     },
     "burgerMenu": {
       "activity_section": "Activité",
@@ -162,7 +162,7 @@
       "min_chars": "Tapez au moins 2 caractères pour rechercher.",
       "searching": "Recherche…",
       "no_results": "Aucun résultat pour « {query} ».",
-      "section_products": "Produits",
+      "section_products": "{kind, select, products {Produits} services {Services} other {Produits et services}}",
       "section_customers": "Clients",
       "section_orders": "Commandes",
       "out_of_stock": "Rupture",
@@ -304,9 +304,9 @@
       "title": "Bienvenue dans ta boutique",
       "sub": "Commence par enregistrer ta première vente.",
       "cta": "Nouvelle vente",
-      "add_products": "Ajoute tes produits",
+      "add_products": "{kind, select, products {Ajoute tes produits} services {Ajoute tes services} other {Ajoute tes produits}}",
       "add_customers": "Enregistre tes premiers clients",
-      "products_done": "{count, plural, one {# produit ajouté} other {# produits ajoutés}}",
+      "products_done": "{kind, select, products {{count, plural, one {# produit ajouté} other {# produits ajoutés}}} services {{count, plural, one {# service ajouté} other {# services ajoutés}}} other {{count, plural, one {# article ajouté} other {# articles ajoutés}}}}",
       "customers_done": "{count, plural, one {# client enregistré} other {# clients enregistrés}}"
     },
     "greeting_morning": "Bonjour",
@@ -552,10 +552,10 @@
       "shipped_title": "Commande expédiée",
       "shipped_sub": "Toutes les étapes sont terminées.",
       "draft_title": "Confirmer la commande",
-      "draft_sub": "Verrouille le stock et passe en préparation.",
+      "draft_sub": "{kind, select, services {Confirme la prestation et prépare.} other {Verrouille le stock et passe en préparation.}}",
       "draft_cta": "Confirmer la commande",
       "to_prepare_title": "Marquer comme prête",
-      "to_prepare_sub": "Quand les articles sont prêts à être expédiés.",
+      "to_prepare_sub": "{kind, select, services {Quand la prestation est confirmée avec le client.} other {Quand les articles sont prêts à être expédiés.}}",
       "to_prepare_cta": "Marquer prête",
       "prepared_title": "Marquer comme expédiée",
       "prepared_sub": "Quand la commande quitte la boutique.",
@@ -564,8 +564,7 @@
       "prepared_cta_mark": "{label}",
       "shipped_title_dynamic": "{label}",
       "shipped_sub_services": "La prestation a été réalisée.",
-      "shipped_sub_on_site": "Le client a récupéré sa commande.",
-      "to_prepare_sub_services": "Quand la prestation est confirmée avec le client."
+      "shipped_sub_on_site": "Le client a récupéré sa commande."
     },
     "revert": {
       "to_prepare": "Revenir en brouillon",
@@ -731,12 +730,6 @@
       "filter_product": "Produits",
       "filter_service": "Services",
       "create_product": "Créer un article ou service",
-      "panel_items_products": "Articles",
-      "panel_items_services": "Services",
-      "panel_items_both": "Articles et services",
-      "panel_create_products": "Créer un article",
-      "panel_create_services": "Créer un service",
-      "panel_create_both": "Créer un article",
       "free_line_title": "Article ou service ponctuel",
       "free_line_sub": "Sans enregistrer au catalogue",
       "no_results": "Aucun résultat.",
@@ -757,7 +750,9 @@
       "free_price_required": "Le prix est requis.",
       "free_qty_required": "La quantité doit être au moins 1.",
       "free_submit": "Ajouter à la commande",
-      "add_aria": "Ajouter {name}"
+      "add_aria": "Ajouter {name}",
+      "panel_items": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
+      "panel_create": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article}}"
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",
@@ -800,16 +795,14 @@
   },
   "articles": {
     "topbar": {
-      "title": "Mes articles",
-      "title_products": "Articles",
-      "title_services": "Services"
+      "title": "{kind, select, products {Articles} services {Services} other {Mes articles}}"
     },
     "list": {
-      "search_placeholder": "Rechercher un article…",
+      "search_placeholder": "{kind, select, products {Rechercher un article…} services {Rechercher un service…} other {Rechercher un article…}}",
       "clear_search": "Effacer la recherche",
-      "new_product": "Nouvel article",
+      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
       "options": "Options",
-      "count": "{count, plural, one {# article} other {# articles}}"
+      "count": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}"
     },
     "stats": {
       "out_of_stock": "En rupture",

@@ -232,10 +232,8 @@ export function CatalogPanel({ form }: CatalogPanelProps) {
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
-  const panelTitle = catalogKind === 'products' ? t('panel_items_products')
-    : catalogKind === 'services' ? t('panel_items_services')
-    : t('panel_items_both');
-  const createLabel = catalogKind === 'services' ? t('panel_create_services') : t('panel_create_both');
+  const panelTitle = t('panel_items', { kind: catalogKind });
+  const createLabel = t('panel_create', { kind: catalogKind });
 
   const picker = useCatalogPicker();
   const [mode, setMode] = useState<PanelMode>('list');

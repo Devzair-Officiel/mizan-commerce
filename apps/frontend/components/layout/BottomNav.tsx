@@ -7,6 +7,8 @@ import { useTranslations } from 'next-intl';
 import { ChevronRight, ClipboardPlus, Package, PackagePlus, UserPlus, Users } from 'lucide-react';
 import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
 import { usePlanGating, type Feature } from '@/lib/hooks/usePlanGating';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import type { CatalogKind } from '@/lib/hooks/useMe';
 
 // Type d'icône suffisamment large pour accepter à la fois les SVG locaux
 // (className seul) et les composants lucide-react (qui prennent strokeWidth).
@@ -87,6 +89,16 @@ function useExternalDialogOpen() {
   return open;
 }
 
+function getQuickActionTexts(
+  key: QuickActionKey,
+  kind: CatalogKind,
+  t: ReturnType<typeof useTranslations<'layout.bottomNav'>>,
+): [string, string] {
+  if (key === 'new_product') return [t('new_product', { kind }), t('new_product_sub', { kind })];
+  if (key === 'new_customer') return [t('new_customer'), t('new_customer_sub')];
+  return [t('new_order'), t('new_order_sub')];
+}
+
 export function BottomNav() {
   const tNav = useTranslations('layout.nav');
   const tBottom = useTranslations('layout.bottomNav');
@@ -96,6 +108,7 @@ export function BottomNav() {
   const { data: me } = useMe();
   const membership = me?.membership ?? null;
   const { can } = usePlanGating();
+  const kind = useCatalogKind();
 
   const allowed = <T extends { module: ModuleKey; feature?: Feature }>(i: T) =>
     hasModuleAccess(i.module, membership) && (i.feature ? can(i.feature) : true);
@@ -154,24 +167,27 @@ export function BottomNav() {
             <p className="mt-0.5 text-xs text-muted-foreground">{tBottom('quick_actions_sub')}</p>
           </div>
           <div className="px-4 pt-4 pb-28 flex flex-col gap-2">
-            {quickActions.map(({ href, labelKey, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMenuOpen(false)}
-                tabIndex={menuOpen ? 0 : -1}
-                className="group flex items-center gap-4 rounded-2xl bg-muted/40 px-4 py-3.5 text-left transition-colors hover:bg-muted active:scale-[0.99]"
-              >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                  <Icon className="h-5 w-5" strokeWidth={2} />
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-[15px] font-semibold text-foreground leading-tight">{tBottom(labelKey)}</span>
-                  <span className="text-xs text-muted-foreground mt-0.5">{tBottom(`${labelKey}_sub`)}</span>
-                </div>
-                <ChevronRight size={18} className="text-muted-foreground/60 rtl:rotate-180 shrink-0 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            ))}
+            {quickActions.map(({ href, labelKey, icon: Icon }) => {
+              const [label, sub] = getQuickActionTexts(labelKey, kind, tBottom);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMenuOpen(false)}
+                  tabIndex={menuOpen ? 0 : -1}
+                  className="group flex items-center gap-4 rounded-2xl bg-muted/40 px-4 py-3.5 text-left transition-colors hover:bg-muted active:scale-[0.99]"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-[15px] font-semibold text-foreground leading-tight">{label}</span>
+                    <span className="text-xs text-muted-foreground mt-0.5">{sub}</span>
+                  </div>
+                  <ChevronRight size={18} className="text-muted-foreground/60 rtl:rotate-180 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

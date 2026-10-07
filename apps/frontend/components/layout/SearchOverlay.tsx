@@ -8,6 +8,7 @@ import { Search, X, Package, Users, ShoppingBag } from 'lucide-react';
 import { useSearch } from '@/lib/hooks/useSearch';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 
 interface SearchContextValue {
   open: () => void;
@@ -35,6 +36,7 @@ export function useSearchOverlay() {
 
 function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
   const t = useTranslations('layout.search');
+  const kind = useCatalogKind();
   const [q, setQ] = useState('');
   const [visible, setVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,10 +132,10 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
         )}
 
         {data && data.products.length > 0 && (
-          <section aria-label={t('section_products')}>
+          <section aria-label={t('section_products', { kind })}>
             <div className="flex items-center gap-2 mb-2">
               <Package size={14} className="text-muted-foreground" aria-hidden="true" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('section_products')}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('section_products', { kind })}</p>
             </div>
             <div className="flex flex-col rounded-xl border border-border overflow-hidden">
               {data.products.map((p, i) => (

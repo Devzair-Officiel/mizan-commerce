@@ -55,7 +55,13 @@ export function SidebarNavGroup({
               {badgeCount > 0 && (
                 <span
                   aria-hidden="true"
-                  className="ms-auto min-w-5.5 h-5.5 px-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tabular-nums flex items-center justify-center leading-none"
+                  className={`ms-auto min-w-5.5 h-5.5 px-1.5 rounded-full text-xs font-semibold tabular-nums flex items-center justify-center leading-none ${
+                    badgeKey === 'low_stock'
+                      ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400'
+                      : active
+                      ? 'bg-card text-foreground'
+                      : 'bg-muted text-foreground'
+                  }`}
                 >
                   {badgeCount > 99 ? '99+' : badgeCount}
                 </span>

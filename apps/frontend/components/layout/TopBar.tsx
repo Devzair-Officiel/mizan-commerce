@@ -7,6 +7,8 @@ import { useTranslations } from 'next-intl';
 import { Search, Home, ChevronRight } from 'lucide-react';
 import { BurgerButton } from './BurgerMenu';
 import { useSearchOverlay } from './SearchOverlay';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import type { CatalogKind } from '@/lib/hooks/useMe';
 
 type BreadcrumbSegment =
   | 'products' | 'customers' | 'orders' | 'settings' | 'stock'
@@ -40,9 +42,23 @@ function Breadcrumb() {
   const rawFrom = searchParams.get('from');
   const fromPath = rawFrom && rawFrom.startsWith('/') && !rawFrom.startsWith('//') ? rawFrom : null;
   const ref = useRef<HTMLDivElement>(null);
+  const kind = useCatalogKind();
 
   function segmentLabel(seg: string): string {
-    return KNOWN_SEGMENTS.has(seg) ? t(seg as BreadcrumbSegment) : seg;
+    if (!KNOWN_SEGMENTS.has(seg)) return seg;
+    const s = seg as BreadcrumbSegment;
+    if (s === 'products') return t('products', { kind });
+    return t(s);
+  }
+
+  function getContextualLabel(resource: ContextualResource, action: ContextualAction): string {
+    if (resource === 'products') {
+      return action === 'new' ? t('products_new', { kind }) : t('products_edit', { kind });
+    }
+    if (resource === 'orders') {
+      return action === 'new' ? t('orders_new') : t('orders_edit');
+    }
+    return action === 'new' ? t('customers_new') : t('customers_edit');
   }
 
   useEffect(() => {
@@ -95,7 +111,7 @@ function Breadcrumb() {
   const resourceSeg = currentSegments[0];
   const contextualLabel = fromPath && resourceSeg && lastSeg
     && isContextualResource(resourceSeg) && isContextualAction(lastSeg)
-    ? t(`${resourceSeg}_${lastSeg}` as const)
+    ? getContextualLabel(resourceSeg, lastSeg)
     : undefined;
 
   if (fromPath) pushCategoryCrumbs(fromPath.split('/').filter(Boolean));
