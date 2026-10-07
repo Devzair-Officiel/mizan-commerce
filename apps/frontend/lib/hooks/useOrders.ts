@@ -78,7 +78,7 @@ export interface OrderCreateData {
   amount_paid?: string;
 }
 
-export function useOrders(filters: OrdersListFilters = {}) {
+export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?: boolean }) {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
   if (filters.payment_status) params.set('payment_status', filters.payment_status);
@@ -89,10 +89,11 @@ export function useOrders(filters: OrdersListFilters = {}) {
   return useQuery({
     queryKey: qk.orders.list(filters),
     queryFn: () => apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${params}`),
+    enabled: options?.enabled,
   });
 }
 
-export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {}) {
+export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {}, options?: { enabled?: boolean }) {
   const buildParams = (pg: number) => {
     const p = new URLSearchParams();
     if (filters.status) p.set('status', filters.status);
@@ -109,6 +110,7 @@ export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {})
     initialPageParam: 1 as number,
     getNextPageParam: (last, _, lastPageParam) =>
       last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: options?.enabled,
   });
 }
 
