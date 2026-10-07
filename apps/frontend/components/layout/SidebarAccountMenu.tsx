@@ -7,7 +7,10 @@ import { Menu } from '@base-ui/react/menu';
 import { isNavActive, ACCOUNT_ENTRIES, passesGate, type NavLabelKey } from '@/lib/navigation';
 import { LogoutIcon } from '@/lib/navigation';
 import type { ModuleKey, ShopRole } from '@/lib/hooks/useMe';
-import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { LOCALES } from '@/i18n/locales';
+import { LOCALE_LABELS } from '@/components/layout/LanguageSwitcher';
+import { useLocaleSwitch } from '@/lib/hooks/useLocaleSwitch';
+import { SidebarAccountTrigger } from './SidebarAccountTrigger';
 
 export function SidebarAccountMenu({
   me,
@@ -24,16 +27,8 @@ export function SidebarAccountMenu({
 }) {
   const tNav = useTranslations('layout.nav');
   const tc = useTranslations('layout.common');
-  const tTeam = useTranslations('team');
   const router = useRouter();
-
-  const initials =
-    me?.full_name
-      ?.split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((n) => n[0]?.toUpperCase() ?? '')
-      .join('') ?? '?';
+  const { current: currentLocale, switchLocale } = useLocaleSwitch();
 
   const allowedAccountEntries = ACCOUNT_ENTRIES.filter((e) =>
     passesGate(e.gate, membership),
@@ -41,22 +36,10 @@ export function SidebarAccountMenu({
 
   return (
     <Menu.Root>
-      <Menu.Trigger className="flex w-full items-center gap-3 rounded-xl ps-3 pe-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors data-popup-open:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none outline-none mx-0 px-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground text-xs font-semibold">
-          {initials}
-        </span>
-        <span className="flex-1 min-w-0 text-start">
-          <span className="block truncate">{me?.full_name ?? '—'}</span>
-          {membership && (
-            <span className="block truncate text-xs text-muted-foreground font-normal">
-              {tTeam(`role.${membership.role}`)}
-            </span>
-          )}
-        </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-muted-foreground shrink-0">
-          <path d="M18 15l-6-6-6 6" />
-        </svg>
-      </Menu.Trigger>
+      <SidebarAccountTrigger
+        fullName={me?.full_name ?? null}
+        role={membership?.role ?? null}
+      />
       <Menu.Portal>
         <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50 w-52">
           <Menu.Popup className="rounded-xl border border-border bg-card shadow-lg p-1 outline-none">
@@ -80,9 +63,26 @@ export function SidebarAccountMenu({
               );
             })}
             <Menu.Separator className="my-1 border-t border-border" />
-            <div className="px-1 py-1">
-              <LanguageSwitcher />
-            </div>
+            <Menu.RadioGroup
+              value={currentLocale}
+              onValueChange={(v) => switchLocale(v as typeof LOCALES[number])}
+              aria-label={tc('language')}
+            >
+              {LOCALES.map((loc) => (
+                <Menu.RadioItem
+                  key={loc}
+                  value={loc}
+                  lang={loc}
+                  className="flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm cursor-pointer transition-colors text-foreground hover:bg-muted data-highlighted:bg-muted"
+                >
+                  <Menu.RadioItemIndicator className="h-4 w-4 shrink-0 flex items-center justify-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  </Menu.RadioItemIndicator>
+                  <span className="empty:hidden" />
+                  {LOCALE_LABELS[loc]}
+                </Menu.RadioItem>
+              ))}
+            </Menu.RadioGroup>
             <Menu.Separator className="my-1 border-t border-border" />
             <Menu.Item
               className="flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm text-foreground hover:bg-muted data-highlighted:bg-muted cursor-pointer transition-colors"

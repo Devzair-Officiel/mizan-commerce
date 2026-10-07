@@ -1,9 +1,8 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
-
-import { LOCALES, LOCALE_COOKIE, isLocale, type Locale } from '@/i18n/locales';
+import { useTranslations } from 'next-intl';
+import { LOCALES, type Locale } from '@/i18n/locales';
+import { useLocaleSwitch } from '@/lib/hooks/useLocaleSwitch';
 
 /**
  * Switcher de langue affiché en permanence dans le BurgerMenu (préférence
@@ -19,34 +18,15 @@ import { LOCALES, LOCALE_COOKIE, isLocale, type Locale } from '@/i18n/locales';
  * sans connaître le français. Plus discoverable que des codes ISO.
  */
 
-const LABELS: Record<Locale, string> = {
+export const LOCALE_LABELS: Record<Locale, string> = {
   fr: 'Français',
   ar: 'العربية',
   en: 'English',
 };
 
-// 1 an — le pose à chaque visite via proxy renouvelle la fraîcheur du cookie.
-const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
-
-// Helper module-level : la règle `react-hooks/immutability` interdit la
-// mutation directe de `document.cookie` dans le corps d'un composant. Sortir
-// l'écriture ici clarifie qu'on parle bien d'un side-effect navigateur, pas
-// d'un état React.
-function writeLocaleCookie(locale: Locale) {
-  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${ONE_YEAR_SECONDS}; samesite=lax`;
-}
-
 export function LanguageSwitcher() {
   const tc = useTranslations('layout.common');
-  const raw = useLocale();
-  const current: Locale = isLocale(raw) ? raw : 'fr';
-  const router = useRouter();
-
-  function pick(locale: Locale) {
-    if (locale === current) return;
-    writeLocaleCookie(locale);
-    router.refresh();
-  }
+  const { current, switchLocale } = useLocaleSwitch();
 
   return (
     <div
@@ -60,7 +40,7 @@ export function LanguageSwitcher() {
           <button
             key={loc}
             type="button"
-            onClick={() => pick(loc)}
+            onClick={() => switchLocale(loc)}
             aria-pressed={active}
             lang={loc}
             className={`flex-1 rounded-xl px-2 py-2 text-[13px] font-medium transition-all ${
@@ -69,7 +49,7 @@ export function LanguageSwitcher() {
                 : 'text-white/75 hover:text-white hover:bg-white/10'
             }`}
           >
-            {LABELS[loc]}
+            {LOCALE_LABELS[loc]}
           </button>
         );
       })}
