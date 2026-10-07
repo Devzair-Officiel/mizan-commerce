@@ -111,7 +111,11 @@
       "settings": "Shop settings",
       "stock_in": "Stock in",
       "stock_out": "Stock out",
-      "new_sale": "New sale"
+      "new_sale": "New sale",
+      "stock": "Stock",
+      "group_sell": "Sell",
+      "group_catalog": "Catalog",
+      "group_track": "Track"
     },
     "breadcrumb": {
       "products": "Items",
@@ -189,6 +193,18 @@
       "forbidden_title": "Access denied",
       "forbidden_body": "You don't have permission to access this page. Contact your shop administrator if you need access.",
       "back_home": "Back to home"
+    },
+    "trial": {
+      "banner_expired": "Boutique+ trial ended. Upgrade to a paid plan to restore all features.",
+      "banner_expired_cta": "See plans",
+      "banner_today": "Your Boutique+ trial ends today.",
+      "banner_tomorrow": "Your Boutique+ trial ends tomorrow.",
+      "banner_days": "Your Boutique+ trial ends in {days} days.",
+      "banner_cta": "Manage",
+      "card_days": "{days, plural, =0 {Expires today} one {# day left} other {# days left}}",
+      "card_expired": "Trial ended",
+      "card_expired_cta": "See plans",
+      "card_cta": "Upgrade"
     }
   },
   "dashboard": {

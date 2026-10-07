@@ -152,49 +152,82 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
   const { open: openSearch } = useSearchOverlay();
 
   return (
-    <header
-      className="sticky top-0 z-40 flex flex-col border-b border-border backdrop-blur-md"
-      style={{ background: 'color-mix(in oklch, var(--card) 85%, transparent)' }}
-    >
-      <div className="h-14 flex items-center px-4 gap-2">
-        <div className="shrink-0">
-          {back ? (
-            <button
-              onClick={() => onBack ? onBack() : router.back()}
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              aria-label={tc('back')}
-            >
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
-                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {tc('back')}
-            </button>
-          ) : (
-            <span className="lg:hidden">
-              <BurgerButton />
-            </span>
-          )}
-        </div>
-
-        <h1 className={`flex-1 min-w-0 text-center font-semibold text-foreground pointer-events-none capitalize truncate ${titleClassName ?? 'text-2xl'}`}>
-          {title}
-        </h1>
-
-        <div className="shrink-0 flex items-center gap-1">
-          {action && action}
+    <>
+      {/* Desktop (≥ lg) : non-sticky, grand titre aligné à gauche */}
+      <div className="hidden lg:block pb-8">
+        {back && (
           <button
-            onClick={openSearch}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label={tc('search')}
+            onClick={() => onBack ? onBack() : router.back()}
+            className="flex items-center gap-1 mb-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={tc('back')}
           >
-            <Search size={19} />
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
+              <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {tc('back')}
           </button>
+        )}
+        <div className="flex items-end gap-4">
+          <h1 className="flex-1 min-w-0 text-[28px] font-semibold tracking-tight text-foreground truncate">
+            {title}
+          </h1>
+          <div className="flex items-center gap-3 shrink-0 mb-1">
+            {action}
+            <button
+              onClick={openSearch}
+              className="flex items-center h-11 w-80 rounded-full gap-3 px-4 bg-muted/70 hover:bg-muted text-sm text-muted-foreground border border-border/50 transition-colors"
+              aria-label={tc('search')}
+            >
+              <Search size={16} className="shrink-0" />
+              <span className="text-muted-foreground/70">{tc('search')}</span>
+            </button>
+          </div>
         </div>
       </div>
-      {/* Suspense requis : Breadcrumb utilise useSearchParams, sinon le build statique échoue */}
-      <Suspense fallback={null}>
-        <Breadcrumb />
-      </Suspense>
-    </header>
+
+      {/* Mobile (< lg) : sticky avec blur */}
+      <header
+        className="lg:hidden sticky top-0 z-40 flex flex-col border-b border-border backdrop-blur-md"
+        style={{ background: 'color-mix(in oklch, var(--card) 85%, transparent)' }}
+      >
+        <div className="h-14 flex items-center px-4 gap-2">
+          <div className="shrink-0">
+            {back ? (
+              <button
+                onClick={() => onBack ? onBack() : router.back()}
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+                aria-label={tc('back')}
+              >
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
+                  <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {tc('back')}
+              </button>
+            ) : (
+              <BurgerButton />
+            )}
+          </div>
+
+          <h1 className={`flex-1 min-w-0 text-center font-semibold text-foreground pointer-events-none truncate ${titleClassName ?? 'text-2xl'}`}>
+            {title}
+          </h1>
+
+          <div className="shrink-0 flex items-center gap-1">
+            {action && action}
+            <button
+              onClick={openSearch}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={tc('search')}
+            >
+              <Search size={19} />
+            </button>
+          </div>
+        </div>
+        {/* Suspense requis : Breadcrumb utilise useSearchParams, sinon le build statique échoue */}
+        <Suspense fallback={null}>
+          <Breadcrumb />
+        </Suspense>
+      </header>
+    </>
   );
 }

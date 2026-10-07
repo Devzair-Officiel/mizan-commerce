@@ -89,7 +89,11 @@
       "settings": "إعدادات المتجر",
       "stock_in": "إدخال مخزون",
       "stock_out": "إخراج مخزون",
-      "new_sale": "بيع جديد"
+      "new_sale": "بيع جديد",
+      "stock": "المخزون",
+      "group_sell": "البيع",
+      "group_catalog": "الكتالوج",
+      "group_track": "المتابعة"
     },
     "breadcrumb": {
       "products": "المنتجات",
@@ -167,6 +171,18 @@
       "forbidden_title": "تم رفض الوصول",
       "forbidden_body": "لا تملك الصلاحيات اللازمة للوصول إلى هذه الصفحة. تواصل مع مدير المتجر إذا احتجت إلى ذلك.",
       "back_home": "العودة إلى الرئيسية"
+    },
+    "trial": {
+      "banner_expired": "انتهت تجربة Boutique+. انتقل إلى خطة مدفوعة لاستعادة جميع الميزات.",
+      "banner_expired_cta": "عرض الخطط",
+      "banner_today": "تنتهي تجربة Boutique+ اليوم.",
+      "banner_tomorrow": "تنتهي تجربة Boutique+ غداً.",
+      "banner_days": "تنتهي تجربة Boutique+ خلال {days} أيام.",
+      "banner_cta": "إدارة",
+      "card_days": "{days, plural, =0 {تنتهي اليوم} one {يوم واحد متبقٍ} other {# أيام متبقية}}",
+      "card_expired": "انتهت التجربة",
+      "card_expired_cta": "عرض الخطط",
+      "card_cta": "ترقية"
     }
   },
   "dashboard": {

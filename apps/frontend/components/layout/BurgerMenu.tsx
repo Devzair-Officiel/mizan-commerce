@@ -21,11 +21,10 @@ import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsClient } from '@/lib/hooks/useIsClient';
-import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
+import { useMe } from '@/lib/hooks/useMe';
+import { passesGate, type Gate } from '@/lib/navigation';
 
 type NavKey = 'invoices' | 'reminders' | 'notes' | 'zakat' | 'profile' | 'settings';
-
-type Gate = { kind: 'module'; module: ModuleKey } | { kind: 'admin' };
 
 /* ── Contexte ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -83,14 +82,6 @@ const MENU_SECTIONS: MenuSection[] = [
     ],
   },
 ];
-
-function passesGate(gate: Gate | undefined, membership: { is_admin: boolean; permissions: ModuleKey[] } | null): boolean {
-  if (!gate) return true;
-  if (!membership) return false;
-  if (gate.kind === 'admin') return membership.is_admin;
-  if (membership.is_admin) return true;
-  return membership.permissions.includes(gate.module);
-}
 
 export function BurgerMenuDrawer() {
   const tc = useTranslations('layout.common');

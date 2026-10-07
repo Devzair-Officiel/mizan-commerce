@@ -20,9 +20,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <AccountThemeSync />
             <LegacyTokenCleaner />
             <OnboardingGate />
-            <div className="flex flex-col flex-1 lg:ml-60">
+            <div className="flex flex-col flex-1 lg:ms-60">
               <TrialBanner />
-              <main className="flex-1 pb-20 lg:pb-8">{children}</main>
+              <main className="flex-1 pb-20 lg:pb-8">
+                <div className="lg:max-w-300 lg:mx-auto lg:px-10 lg:pt-8">
+                  {children}
+                </div>
+              </main>
             </div>
             <BottomNav />
           </AppContent>

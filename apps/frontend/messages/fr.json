@@ -111,7 +111,11 @@
       "settings": "Paramètres boutique",
       "stock_in": "Entrée stock",
       "stock_out": "Sortie stock",
-      "new_sale": "Nouvelle vente"
+      "new_sale": "Nouvelle vente",
+      "stock": "Stock",
+      "group_sell": "Vendre",
+      "group_catalog": "Catalogue",
+      "group_track": "Suivi"
     },
     "breadcrumb": {
       "products": "Articles",
@@ -189,6 +193,18 @@
       "forbidden_title": "Accès refusé",
       "forbidden_body": "Vous n'avez pas les droits nécessaires pour accéder à cette page. Contactez l'administrateur de la boutique si besoin.",
       "back_home": "Retour à l'accueil"
+    },
+    "trial": {
+      "banner_expired": "Essai Boutique+ terminé. Passez à un plan payant pour retrouver toutes les fonctionnalités.",
+      "banner_expired_cta": "Voir les formules",
+      "banner_today": "Votre essai Boutique+ se termine aujourd'hui.",
+      "banner_tomorrow": "Votre essai Boutique+ se termine demain.",
+      "banner_days": "Votre essai Boutique+ se termine dans {days} jours.",
+      "banner_cta": "Gérer",
+      "card_days": "{days, plural, =0 {Expiration aujourd'hui} one {# jour restant} other {# jours restants}}",
+      "card_expired": "Essai terminé",
+      "card_expired_cta": "Voir les formules",
+      "card_cta": "Passer à Pro"
     }
   },
   "dashboard": {

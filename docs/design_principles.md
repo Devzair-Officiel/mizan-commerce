@@ -47,6 +47,13 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 8. Le pattern existe-t-il déjà ailleurs (Clients/Détail client) ? Suivre, ne pas inventer.
 9. Pour une action destructive : le focus par défaut est-il sur l'option non-destructive, et la fermeture est-elle bloquée pendant l'exécution ?
 
+## 7. Grand écran (≥ lg)
+
+- **Sidebar** : 240 px fixe, `inset-s-0` (logique RTL). Groupes de navigation avec titres `text-xs font-semibold uppercase tracking-wide text-muted-foreground`. Entrée active : `bg-secondary text-secondary-foreground font-semibold`, icône `text-primary`. Menu compte ancré en bas, ouvre un Base UI Menu `side="top"`.
+- **Contenu** : conteneur `max-w-300 mx-auto px-10 pt-8` — jamais de padding additionnel dans les pages sur desktop.
+- **TopBar desktop** : non-sticky, pas de blur/border, titre `text-[28px] font-semibold tracking-tight` aligné à gauche, lien retour au-dessus du titre, barre de recherche `h-11 w-80 rounded-full` à droite. Le breadcrumb reste mobile uniquement (`lg:hidden`).
+- **Propriétés logiques** : toujours `ms/me/ps/pe/start/end` (jamais `ml/mr/pl/pr/left/right`) pour le support RTL.
+
 ## 6. Quand l'utilisateur partage une capture
 1. Identifier l'action principale et la friction principale (1 phrase).
 2. Lister 2-4 problèmes UX concrets (pas du goût, du fonctionnel).
