@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-06
+**Dernière mise à jour** : 2026-10-07
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
 
 ---
@@ -427,12 +427,29 @@
 
 ### Dette technique connue
 
-- [ ] Mettre en place Vitest côté frontend (aucun test, aucun script
-      npm run test actuellement) — voir CLAUDE.md pour la note associée
 - [ ] Remplacer les window.alert() résiduels par un composant toast une fois
       disponible : apps/frontend/app/(app)/zakat/new/page.tsx:112 (conflit
       409 sur finalisation), apps/frontend/app/(app)/zakat/[id]/page.tsx:44
       (échec de réouverture)
+
+- [ ] Mettre en place Vitest côté frontend (aucun test, aucun script
+      npm run test actuellement) — voir CLAUDE.md pour la note associée
+
+- [ ] Auditer et corriger l'i18n de ConfirmDialog (components/ui/dialog.tsx) :
+      les valeurs par défaut du composant (confirmLabel='Confirmer',
+      cancelLabel='Annuler') et plusieurs appelants codent le texte en dur
+      en français plutôt que de passer par next-intl. Repéré sur au moins :
+      VariantRow.tsx (confirmLabel="Supprimer"), notes/page.tsx
+      (title="Supprimer cette note ?"), zakat/[id]/page.tsx (title +
+      confirmLabel), customers/[id]/page.tsx:152 (confirmLabel absent,
+      tombe sur le défaut français), invoices/[id]/page.tsx:134,144
+      (confirmLabel), color-picker.tsx:49 ('Une erreur est survenue.').
+      ConfirmDialog est utilisé dans 16 endroits au total — liste non
+      exhaustive, à auditer en entier avant correction.
+
+- [ ] Empty state texte seul sur reminders/page.tsx:231-234 — pas de pattern
+      canonique (icône + titre + sous-titre) contrairement à notes/page.tsx,
+      qui a reçu ce traitement lors du chantier UX. À aligner.
 
 ---
 
