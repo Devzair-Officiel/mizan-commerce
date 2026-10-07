@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useFormatDateTime, useFormatMoney } from '@/lib/hooks/useFormat';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
 import { getAlert } from './alert';
 import { type Bucket, PAYMENT_COLOR, STATUS_BAR, STATUS_TEXT } from './constants';
@@ -23,6 +24,7 @@ export function OrderRow({ order, bucket, first, currency }: OrderRowProps) {
   const tAlert = useTranslations('orders.alert');
   const formatMoney = useFormatMoney();
   const formatDateTime = useFormatDateTime();
+  const label = useOrderStatusLabel();
 
   const total = formatMoney(order.total_amount, currency, { maximumFractionDigits: 2 });
   const dateOpts: Intl.DateTimeFormatOptions =
@@ -67,7 +69,7 @@ export function OrderRow({ order, bucket, first, currency }: OrderRowProps) {
         </div>
         <p className="text-xs mt-0.5 truncate">
           <span className={`font-medium ${STATUS_TEXT[order.status] ?? STATUS_TEXT.draft}`}>
-            {order.status_display}
+            {label(order.status)}
           </span>
           <span className="text-muted-foreground"> · {time} · {itemLabel}</span>
         </p>

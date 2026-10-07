@@ -29,7 +29,7 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
     default_tax_rate: shop.default_tax_rate ?? '0',
     default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
     catalog_kind: shop.catalog_kind ?? 'both',
-    dashboard_mode: shop.dashboard_mode ?? 'complete',
+    fulfillment_mode: shop.fulfillment_mode ?? null,
   };
 }
 

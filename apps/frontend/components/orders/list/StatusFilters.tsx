@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { STATUSES, type StatusFilterKey } from './constants';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 
 interface StatusFiltersProps {
   value: string;
@@ -10,11 +11,15 @@ interface StatusFiltersProps {
 
 export function StatusFilters({ value, onChange }: StatusFiltersProps) {
   const t = useTranslations('orders.statusFilter');
+  const label = useOrderStatusLabel();
   return (
     <div className="-mx-4 lg:-mx-8 px-4 lg:px-8 overflow-x-auto no-scrollbar">
       <div className="flex gap-2 pr-4">
         {STATUSES.map(({ value: optionValue, labelKey, dot, activeClass }) => {
           const isActive = value === optionValue;
+          const displayLabel = (optionValue === 'to_prepare' || optionValue === 'shipped')
+            ? label(optionValue, true)
+            : t(labelKey);
           return (
             <button
               key={optionValue}
@@ -24,7 +29,7 @@ export function StatusFilters({ value, onChange }: StatusFiltersProps) {
               }`}
             >
               {dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
-              {t(labelKey)}
+              {displayLabel}
             </button>
           );
         })}

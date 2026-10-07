@@ -1,12 +1,14 @@
-import type { ModuleKey } from '@/lib/hooks/useMe';
+import type { CatalogKind, ModuleKey } from '@/lib/hooks/useMe';
 import type { Feature } from '@/lib/hooks/usePlanGating';
+import { useShop } from '@/lib/hooks/useShop';
 
 export type Gate = { kind: 'module'; module: ModuleKey } | { kind: 'admin' };
 
 export type NavLabelKey =
   | 'dashboard' | 'orders' | 'customers' | 'products' | 'invoices'
   | 'stock' | 'reminders' | 'notes' | 'zakat' | 'profile' | 'settings'
-  | 'group_sell' | 'group_catalog' | 'group_track';
+  | 'group_sell' | 'group_catalog' | 'group_track'
+  | 'articles' | 'catalogue' | 'services';
 
 export type NavEntry = {
   href: string;
@@ -37,6 +39,51 @@ export function isNavActive(href: string, pathname: string): boolean {
     return pathname === '/stock' || pathname.startsWith('/stock/');
   }
   return pathname === href || pathname.startsWith(href + '/');
+}
+
+export function getNavGroups(catalogKind: CatalogKind): readonly NavGroup[] {
+  const productsLabelKey: NavLabelKey =
+    catalogKind === 'products' ? 'articles'
+    : catalogKind === 'services' ? 'services'
+    : 'catalogue';
+  const productsEntry: NavEntry = {
+    href: '/products',
+    labelKey: productsLabelKey,
+    icon: PackageIcon,
+    gate: { kind: 'module', module: 'products' },
+    feature: 'products',
+  };
+  const catalogEntries: readonly NavEntry[] = catalogKind === 'services'
+    ? [productsEntry]
+    : [
+        productsEntry,
+        { href: '/stock', labelKey: 'stock', icon: ArchiveIcon, gate: { kind: 'module', module: 'stock' }, feature: 'stock' },
+      ];
+  return [
+    { entries: [{ href: '/dashboard', labelKey: 'dashboard', icon: HomeIcon, gate: { kind: 'module', module: 'dashboard' } }] },
+    {
+      titleKey: 'group_sell',
+      entries: [
+        { href: '/orders', labelKey: 'orders', icon: ShoppingBagIcon, gate: { kind: 'module', module: 'orders' }, feature: 'orders' },
+        { href: '/customers', labelKey: 'customers', icon: UsersIcon, gate: { kind: 'module', module: 'customers' } },
+        { href: '/invoices', labelKey: 'invoices', icon: ReceiptIcon, gate: { kind: 'module', module: 'invoices' }, feature: 'invoices' },
+      ],
+    },
+    { titleKey: 'group_catalog', entries: catalogEntries },
+    {
+      titleKey: 'group_track',
+      entries: [
+        { href: '/reminders', labelKey: 'reminders', icon: BellIcon, feature: 'reminders' },
+        { href: '/notes', labelKey: 'notes', icon: NoteIcon, feature: 'notes' },
+        { href: '/zakat', labelKey: 'zakat', icon: ZakatIcon, gate: { kind: 'admin' }, feature: 'zakat' },
+      ],
+    },
+  ];
+}
+
+export function useNavGroups(): readonly NavGroup[] {
+  const { data: shop } = useShop();
+  return getNavGroups(shop?.catalog_kind ?? 'both');
 }
 
 export const NAV_GROUPS: readonly NavGroup[] = [

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useFormatDateTime, useFormatMoney } from '@/lib/hooks/useFormat';
 import { STATUS_BAR, STATUS_TEXT, PAYMENT_COLOR } from './constants';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 
 interface Props { order: OrderSummary; currency: string; }
 
@@ -13,6 +14,7 @@ export function OrdersTableRow({ order, currency }: Props) {
   const tPayment = useTranslations('orders.payment');
   const formatMoney = useFormatMoney();
   const formatDateTime = useFormatDateTime();
+  const label = useOrderStatusLabel();
 
   const amountDue = parseFloat(order.total_amount) - parseFloat(order.amount_paid);
   const dateStr = formatDateTime(order.created_at, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -40,7 +42,7 @@ export function OrdersTableRow({ order, currency }: Props) {
       <td className="px-4 py-3">
         <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${STATUS_TEXT[order.status] ?? ''}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${STATUS_BAR[order.status] ?? ''}`} />
-          {order.status_display}
+          {label(order.status)}
         </span>
       </td>
       <td className="px-4 py-3">

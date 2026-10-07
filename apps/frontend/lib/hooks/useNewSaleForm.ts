@@ -54,7 +54,6 @@ export interface NewSaleForm extends NewSaleLines {
   setCreateProductOpen: (v: boolean) => void;
   // computed
   total: number;
-  toPrepareLabel: string;
   isPending: boolean;
   handleSubmit: () => Promise<void>;
 }
@@ -88,14 +87,11 @@ export function useNewSaleForm(): NewSaleForm {
   const shippingN = parseFloat(shipping) || 0;
   const total = lines.subtotal - discountN + shippingN;
 
-  const toPrepareLabel = lines.hasProducts && lines.hasNonProducts ? t('status_to_process')
-    : lines.hasNonProducts && !lines.hasProducts ? t('status_confirmed')
-    : t('status_to_prepare');
-
   async function handleSubmit() {
     setPaymentError('');
     if (lines.items.length === 0) return;
     const payErr = validatePayment(paymentStatus, amountPaid, total, t);
+    if (payErr) { setPaymentError(payErr); return; }
     if (payErr) { setPaymentError(payErr); return; }
     const payloadItems: OrderItemPayload[] = lines.items.map((i) =>
       i.variant
@@ -132,7 +128,6 @@ export function useNewSaleForm(): NewSaleForm {
     createCustomerOpen, setCreateCustomerOpen,
     createProductOpen, setCreateProductOpen,
     total,
-    toPrepareLabel,
     isPending,
     handleSubmit,
   };

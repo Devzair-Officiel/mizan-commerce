@@ -115,7 +115,10 @@
       "stock": "المخزون",
       "group_sell": "البيع",
       "group_catalog": "الكتالوج",
-      "group_track": "المتابعة"
+      "group_track": "المتابعة",
+      "articles": "العناصر",
+      "catalogue": "الفهرس",
+      "services": "الخدمات"
     },
     "breadcrumb": {
       "products": "المنتجات",
@@ -458,6 +461,28 @@
       "search_label": "البحث في الطلبات",
       "clear_filters": "مسح الفلاتر"
     },
+    "statusLabel": {
+      "draft": "مسودة",
+      "draft_pl": "مسودات",
+      "to_prepare_products": "قيد التحضير",
+      "to_prepare_products_pl": "قيد التحضير",
+      "to_prepare_services": "مؤكَّدة",
+      "to_prepare_services_pl": "مؤكَّدة",
+      "to_prepare_both": "للمعالجة",
+      "to_prepare_both_pl": "للمعالجة",
+      "prepared": "جاهزة",
+      "prepared_pl": "جاهزة",
+      "shipped_services": "منجزة",
+      "shipped_services_pl": "منجزة",
+      "shipped_on_site": "سُلِّمت للعميل",
+      "shipped_on_site_pl": "سُلِّمت للعميل",
+      "shipped_delivery": "مُرسلة",
+      "shipped_delivery_pl": "مُرسلة",
+      "shipped_other": "مكتملة",
+      "shipped_other_pl": "مكتملة",
+      "cancelled": "ملغاة",
+      "cancelled_pl": "ملغاة"
+    },
     "statusFilter": {
       "all": "الكل",
       "draft": "مسودات",
@@ -516,7 +541,13 @@
       "to_prepare_cta": "تعليم كجاهزة",
       "prepared_title": "اعتبارها مُرسلة",
       "prepared_sub": "عند مغادرة الطلب للمتجر.",
-      "prepared_cta": "تعليم كمُرسلة"
+      "prepared_cta": "تعليم كمُرسلة",
+      "prepared_mark": "تعليم كـ {label}",
+      "prepared_cta_mark": "{label}",
+      "shipped_title_dynamic": "{label}",
+      "shipped_sub_services": "تم إنجاز الخدمة.",
+      "shipped_sub_on_site": "استلم العميل طلبه.",
+      "to_prepare_sub_services": "عند تأكيد الخدمة مع العميل."
     },
     "revert": {
       "to_prepare": "العودة إلى مسودة",
@@ -682,6 +713,12 @@
       "filter_product": "منتجات",
       "filter_service": "خدمات",
       "create_product": "إنشاء منتج أو خدمة",
+      "panel_items_products": "العناصر",
+      "panel_items_services": "الخدمات",
+      "panel_items_both": "العناصر والخدمات",
+      "panel_create_products": "إنشاء عنصر",
+      "panel_create_services": "إنشاء خدمة",
+      "panel_create_both": "إنشاء عنصر",
       "free_line_title": "منتج أو خدمة عابرة",
       "free_line_sub": "دون حفظ في الفهرس",
       "no_results": "لا نتائج.",
@@ -745,7 +782,9 @@
   },
   "articles": {
     "topbar": {
-      "title": "منتجاتي"
+      "title": "منتجاتي",
+      "title_products": "العناصر",
+      "title_services": "الخدمات"
     },
     "list": {
       "search_placeholder": "ابحث عن منتج…",
@@ -1104,5 +1143,30 @@
       "delete_error": "تعذّر إزالة هذا العضو."
     }
   },
-  "ui": { "close": "إغلاق", "panel": "لوحة" }
+  "ui": { "close": "إغلاق", "panel": "لوحة" },
+  "settings": {
+    "preferences": {
+      "title": "تفضيلات متقدمة",
+      "subtitle": "نوع النشاط وطريقة الاستلام.",
+      "catalog_kind_label": "نوع النشاط",
+      "catalog_kind_products": "منتجات",
+      "catalog_kind_services": "خدمات",
+      "catalog_kind_both": "الاثنان",
+      "fulfillment_mode_label": "طريقة الاستلام",
+      "fulfillment_on_site": "في المحل",
+      "fulfillment_delivery": "توصيل",
+      "fulfillment_both": "الاثنان"
+    }
+  },
+  "onboarding": {
+    "step2_title": "كيف يستلم عملاؤك مشترياتهم؟",
+    "step2_sub": "يؤثر هذا على تسميات الحالات وخيارات الشحن.",
+    "step2_label": "طريقة الاستلام",
+    "step2_on_site_title": "في المحل",
+    "step2_on_site_desc": "الحالة النهائية: «سُلِّمت للعميل». بدون رسوم شحن.",
+    "step2_delivery_title": "توصيل",
+    "step2_delivery_desc": "الحالة النهائية: «مُرسلة». رسوم الشحن متاحة.",
+    "step2_both_title": "الاثنان",
+    "step2_both_desc": "الحالة النهائية: «مكتملة». رسوم الشحن متاحة."
+  }
 }

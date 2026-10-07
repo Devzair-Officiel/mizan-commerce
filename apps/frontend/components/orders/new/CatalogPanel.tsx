@@ -105,35 +105,6 @@ function CatalogSearch({
   );
 }
 
-function CatalogFooter({
-  onCreate,
-  onFree,
-  t,
-}: {
-  onCreate: () => void;
-  onFree: () => void;
-  t: ReturnType<typeof useTranslations<'orders.picker'>>;
-}) {
-  return (
-    <div className="px-4 py-3 border-t border-border shrink-0 flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={onCreate}
-        className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-      >
-        <PackagePlus size={15} />
-        {t('create_product')}
-      </button>
-      <button
-        type="button"
-        onClick={onFree}
-        className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
-      >
-        {t('free_line_title')}
-      </button>
-    </div>
-  );
-}
 
 interface ProductRowProps {
   p: {
@@ -222,13 +193,49 @@ function CatalogPanelVariantMode({ picker, form, onBack }: {
   );
 }
 
+function CatalogPanelFooter({
+  createLabel,
+  onCreate,
+  onFree,
+  t,
+}: {
+  createLabel: string;
+  onCreate: () => void;
+  onFree: () => void;
+  t: ReturnType<typeof useTranslations<'orders.picker'>>;
+}) {
+  return (
+    <div className="px-4 py-3 border-t border-border shrink-0 flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={onCreate}
+        className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+      >
+        <PackagePlus size={15} />
+        {createLabel}
+      </button>
+      <button
+        type="button"
+        onClick={onFree}
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+      >
+        {t('free_line_title')}
+      </button>
+    </div>
+  );
+}
+
 export function CatalogPanel({ form }: CatalogPanelProps) {
   const t = useTranslations('orders.picker');
-  const tNew = useTranslations('orders.new');
   const { data: shop } = useShop();
+  const catalogKind = shop?.catalog_kind ?? 'both';
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+  const panelTitle = catalogKind === 'products' ? t('panel_items_products')
+    : catalogKind === 'services' ? t('panel_items_services')
+    : t('panel_items_both');
+  const createLabel = catalogKind === 'services' ? t('panel_create_services') : t('panel_create_both');
 
   const picker = useCatalogPicker();
   const [mode, setMode] = useState<PanelMode>('list');
@@ -241,7 +248,7 @@ export function CatalogPanel({ form }: CatalogPanelProps) {
   if (mode === 'create') {
     return (
       <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
-        <CatalogPanelHeader label={t('create_product')} />
+        <CatalogPanelHeader label={createLabel} />
         <div className="px-4 py-4">
           <QuickAddProductForm
             onCreated={(product: ProductDetail) => { void form.addProductFromQuickAdd(product.id); setMode('list'); }}
@@ -268,8 +275,8 @@ export function CatalogPanel({ form }: CatalogPanelProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
-      <CatalogPanelHeader label={tNew('section_items').replace(/^\d+ · /, '')} />
-      <CatalogFilterChips filter={picker.filter} setFilter={picker.setFilter} t={t} />
+      <CatalogPanelHeader label={panelTitle} />
+      {catalogKind === 'both' && <CatalogFilterChips filter={picker.filter} setFilter={picker.setFilter} t={t} />}
       <CatalogSearch search={picker.search} setSearch={picker.setSearch} t={t} />
       <div className="flex-1 overflow-y-auto divide-y divide-border px-4">
         {isEmpty ? (
@@ -292,7 +299,14 @@ export function CatalogPanel({ form }: CatalogPanelProps) {
           ))
         )}
       </div>
-      {!isEmpty && <CatalogFooter onCreate={() => setMode('create')} onFree={() => setMode('free')} t={t} />}
+      {!isEmpty && (
+        <CatalogPanelFooter
+          createLabel={createLabel}
+          onCreate={() => setMode('create')}
+          onFree={() => setMode('free')}
+          t={t}
+        />
+      )}
     </div>
   );
 }

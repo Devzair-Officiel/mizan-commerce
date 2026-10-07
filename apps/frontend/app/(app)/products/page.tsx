@@ -77,7 +77,12 @@ export default function CatalogPage() {
 
   return (
     <>
-      <TopBar title={t('topbar.title')} titleClassName="text-3xl" />
+      <TopBar
+        title={catalogKind === 'products' ? t('topbar.title_products')
+          : catalogKind === 'services' ? t('topbar.title_services')
+          : t('topbar.title')}
+        titleClassName="text-3xl"
+      />
 
       <div className="flex flex-col gap-4 p-4 pb-28">
         <div className="relative">

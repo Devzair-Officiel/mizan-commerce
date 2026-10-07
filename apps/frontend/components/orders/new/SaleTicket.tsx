@@ -12,6 +12,7 @@ import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput
 import { CustomerPicker } from '@/components/orders/CustomerPicker';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 
 interface SaleTicketProps {
@@ -101,6 +102,7 @@ function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
 function TicketPaymentControls({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
+  const label = useOrderStatusLabel();
   return (
     <>
       <div className="px-4 py-4 border-t border-border">
@@ -128,8 +130,8 @@ function TicketPaymentControls({ form }: { form: NewSaleForm }) {
           title={t('status_title')}
           options={[
             { value: 'draft', label: t('status_draft') },
-            { value: 'to_prepare', label: form.toPrepareLabel },
-            { value: 'shipped', label: t('status_shipped') },
+            { value: 'to_prepare', label: label('to_prepare') },
+            { value: 'shipped', label: label('shipped') },
           ]}
           value={form.orderStatus}
           onChange={(v) => form.setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}

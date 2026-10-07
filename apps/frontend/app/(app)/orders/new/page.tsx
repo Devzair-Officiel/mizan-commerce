@@ -16,6 +16,7 @@ import { CatalogPanel } from '@/components/orders/new/CatalogPanel';
 import { SaleTicket } from '@/components/orders/new/SaleTicket';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import type { Customer } from '@/lib/hooks/useCustomers';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 
@@ -98,6 +99,7 @@ function NewSaleFormMobile() {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
   const form = useNewSaleForm();
+  const label = useOrderStatusLabel();
 
   return (
     <div className="flex flex-col gap-5 p-4 pb-32">
@@ -146,8 +148,8 @@ function NewSaleFormMobile() {
         title={t('status_title')}
         options={[
           { value: 'draft', label: t('status_draft') },
-          { value: 'to_prepare', label: form.toPrepareLabel },
-          { value: 'shipped', label: t('status_shipped') },
+          { value: 'to_prepare', label: label('to_prepare') },
+          { value: 'shipped', label: label('shipped') },
         ]}
         value={form.orderStatus}
         onChange={(v) => form.setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}

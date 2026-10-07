@@ -20,11 +20,13 @@ class Shop(models.Model):
         (CATALOG_BOTH, 'Les deux'),
     ]
 
-    DASHBOARD_MINIMAL = 'minimal'
-    DASHBOARD_COMPLETE = 'complete'
-    DASHBOARD_MODE_CHOICES = [
-        (DASHBOARD_MINIMAL, 'Minimaliste'),
-        (DASHBOARD_COMPLETE, 'Complet'),
+    FULFILLMENT_ON_SITE = 'on_site'
+    FULFILLMENT_DELIVERY = 'delivery'
+    FULFILLMENT_BOTH = 'both'
+    FULFILLMENT_MODE_CHOICES = [
+        (FULFILLMENT_ON_SITE, 'Sur place'),
+        (FULFILLMENT_DELIVERY, 'En livraison'),
+        (FULFILLMENT_BOTH, 'Les deux'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -64,8 +66,8 @@ class Shop(models.Model):
     catalog_kind = models.CharField(
         max_length=10, choices=CATALOG_KIND_CHOICES, default=CATALOG_BOTH,
     )
-    dashboard_mode = models.CharField(
-        max_length=10, choices=DASHBOARD_MODE_CHOICES, default=DASHBOARD_COMPLETE,
+    fulfillment_mode = models.CharField(
+        max_length=10, choices=FULFILLMENT_MODE_CHOICES, null=True, blank=True,
     )
     onboarding_completed_at = models.DateTimeField(null=True, blank=True)
 

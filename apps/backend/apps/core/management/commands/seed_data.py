@@ -36,6 +36,7 @@ class Command(BaseCommand):
         from apps.customers.models import Customer
         from apps.subscriptions.models import Subscription, SubscriptionPlan
         from ._seed_fr import run_seed_fr
+        from ._seed_services import run_seed_services
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
             """Pose un abonnement déterministe sur la boutique. Idempotent."""
@@ -145,6 +146,12 @@ class Command(BaseCommand):
         self.stdout.write(f"    + Staff : {sara.email} (4 modules)")
 
         run_seed_fr(shop_fr, youssef, sara, stdout=self.stdout)
+
+        shop_fr.catalog_kind = 'products'
+        shop_fr.fulfillment_mode = 'on_site'
+        if shop_fr.onboarding_completed_at is None:
+            shop_fr.onboarding_completed_at = timezone.now()
+        shop_fr.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
 
         # ── Messages WhatsApp boutique FR ────────────────────────────
         if not PreparedMessage.objects.filter(shop=shop_fr).exists():
@@ -336,6 +343,31 @@ class Command(BaseCommand):
             f"  ✓ Boutique VIDE : {shop_vide.name} (essai Boutique+ 14j, email non vérifié)"  # noqa: E501
         )
 
+        # ── Boutique 4 — Samira (Services, EUR) ─────────────────────
+        samira = UserFactory(
+            email='services@example.com',
+            full_name='Samira Oukassi',
+            phone='+33699887766',
+            password='Mizan1234!',
+        )
+        shop_services = ShopFactory(name='Atelier Samira', currency='EUR', country='FR')
+        ShopMemberFactory(shop=shop_services, user=samira, role='owner')
+        seed_subscription(
+            shop=shop_services,
+            plan_code=SubscriptionPlan.CODE_PRO,
+            status=Subscription.STATUS_ACTIVE,
+        )
+        if samira.trial_consumed_at is None:
+            samira.trial_consumed_at = timezone.now()
+            samira.save(update_fields=['trial_consumed_at', 'updated_at'])
+        shop_services.catalog_kind = 'services'
+        shop_services.fulfillment_mode = None
+        if shop_services.onboarding_completed_at is None:
+            shop_services.onboarding_completed_at = timezone.now()
+        shop_services.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
+        self.stdout.write(f'  ✓ Boutique Services : {shop_services.name}')
+        run_seed_services(shop_services, samira, stdout=self.stdout)
+
         # ── Pages publiques ─────────────────────────────────────────
         page_fr, fr_created = PublicPage.objects.get_or_create(
             shop=shop_fr,
@@ -488,6 +520,7 @@ class Command(BaseCommand):
         self.stdout.write(
             "    vide@example.com    / Mizan1234!  (essai Boutique+, accueil vide)"
         )
+        self.stdout.write("    services@example.com / Mizan1234!  (Pro actif, services)")  # noqa: E501
         self.stdout.write("    admin@mizan.dev     / Admin1234!  (superadmin)")
         self.stdout.write(f"  Boutique FR — commandes : {fr_status}")
         self.stdout.write(f"  Boutique FR — impayées/partielles actives : {fr_unpaid}")

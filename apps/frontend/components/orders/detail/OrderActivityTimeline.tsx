@@ -5,26 +5,23 @@ import { History } from 'lucide-react';
 import { useOrderActivity } from '@/lib/hooks/useOrders';
 import { useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
 import { describeEvent } from './constants';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 
 interface OrderActivityTimelineProps {
   orderId: string;
 }
 
-const STATUS_KEYS = new Set(['draft', 'to_prepare', 'prepared', 'shipped', 'cancelled']);
 const PAYMENT_KEYS = new Set(['unpaid', 'partial', 'paid']);
 
 export function OrderActivityTimeline({ orderId }: OrderActivityTimelineProps) {
   const t = useTranslations('orders.activity');
-  const tStatus = useTranslations('orders.statusFilter');
   const tPayment = useTranslations('orders.payment');
   const formatDateTime = useFormatDateTime();
   const relativeTime = useRelativeTime();
+  const label = useOrderStatusLabel();
   const { data } = useOrderActivity(orderId);
   if (!data || data.events.length === 0) return null;
 
-  function translateStatus(raw: string): string {
-    return STATUS_KEYS.has(raw) ? tStatus(raw as 'draft') : raw;
-  }
   function translatePayment(raw: string): string {
     return PAYMENT_KEYS.has(raw) ? tPayment(raw as 'unpaid') : raw;
   }
@@ -43,8 +40,8 @@ export function OrderActivityTimeline({ orderId }: OrderActivityTimelineProps) {
           let title: string;
           if (disp.titleKey === 'event_status') {
             title = t('event_status', {
-              from: translateStatus(disp.titleParams?.from ?? ''),
-              to: translateStatus(disp.titleParams?.to ?? ''),
+              from: label(disp.titleParams?.from ?? ''),
+              to: label(disp.titleParams?.to ?? ''),
             });
           } else if (disp.titleKey === 'event_payment') {
             title = t('event_payment', {

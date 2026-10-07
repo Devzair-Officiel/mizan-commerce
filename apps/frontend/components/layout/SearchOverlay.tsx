@@ -7,11 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Search, X, Package, Users, ShoppingBag } from 'lucide-react';
 import { useSearch } from '@/lib/hooks/useSearch';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
-
-type OrderStatusKey = 'draft' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled';
-const KNOWN_STATUSES: ReadonlySet<string> = new Set([
-  'draft', 'to_prepare', 'prepared', 'shipped', 'cancelled',
-]);
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 
 interface SearchContextValue {
   open: () => void;
@@ -39,7 +35,6 @@ export function useSearchOverlay() {
 
 function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
   const t = useTranslations('layout.search');
-  const tStatus = useTranslations('layout.orderStatus');
   const [q, setQ] = useState('');
   const [visible, setVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -47,10 +42,7 @@ function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const { data, isFetching } = useSearch(q);
   const titleId = useId();
-
-  function statusLabel(status: string): string {
-    return KNOWN_STATUSES.has(status) ? tStatus(status as OrderStatusKey) : status;
-  }
+  const statusLabel = useOrderStatusLabel();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setVisible(true));

@@ -10,6 +10,7 @@ import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
 import type { PreparedMessageTemplate } from '@/lib/hooks/usePreparedMessages';
 import { PAYMENT_PILL, STATUS_CONFIG, STATUS_DRAFT, WhatsAppIcon } from './constants';
+import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { buildWhatsAppMessage } from './whatsapp';
 
 interface OrderHeroCardProps {
@@ -34,6 +35,7 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
   const formatDate = useFormatDate();
   const [waOpen, setWaOpen] = useState(false);
 
+  const label = useOrderStatusLabel();
   const cfg = STATUS_CONFIG[order.status] ?? STATUS_DRAFT;
   const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
   const waPhone = order.customer_phone?.replace(/\D/g, '') ?? '';
@@ -45,7 +47,7 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
         <div className="flex items-center justify-between">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${cfg.badge}`}>
             {cfg.icon}
-            {order.status_display}
+            {label(order.status)}
           </span>
           <span className="text-xs text-zinc-400">
             {formatDate(order.created_at, { day: 'numeric', month: 'short', year: 'numeric' })}

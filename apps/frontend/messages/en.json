@@ -115,7 +115,10 @@
       "stock": "Stock",
       "group_sell": "Sell",
       "group_catalog": "Catalog",
-      "group_track": "Track"
+      "group_track": "Track",
+      "articles": "Items",
+      "catalogue": "Catalogue",
+      "services": "Services"
     },
     "breadcrumb": {
       "products": "Items",
@@ -458,6 +461,28 @@
       "search_label": "Search orders",
       "clear_filters": "Clear filters"
     },
+    "statusLabel": {
+      "draft": "Draft",
+      "draft_pl": "Drafts",
+      "to_prepare_products": "To prepare",
+      "to_prepare_products_pl": "To prepare",
+      "to_prepare_services": "Confirmed",
+      "to_prepare_services_pl": "Confirmed",
+      "to_prepare_both": "To process",
+      "to_prepare_both_pl": "To process",
+      "prepared": "Ready",
+      "prepared_pl": "Ready",
+      "shipped_services": "Completed",
+      "shipped_services_pl": "Completed",
+      "shipped_on_site": "Handed to customer",
+      "shipped_on_site_pl": "Handed to customer",
+      "shipped_delivery": "Shipped",
+      "shipped_delivery_pl": "Shipped",
+      "shipped_other": "Done",
+      "shipped_other_pl": "Done",
+      "cancelled": "Cancelled",
+      "cancelled_pl": "Cancelled"
+    },
     "statusFilter": {
       "all": "All",
       "draft": "Drafts",
@@ -516,7 +541,13 @@
       "to_prepare_cta": "Mark ready",
       "prepared_title": "Mark as shipped",
       "prepared_sub": "When the order leaves the shop.",
-      "prepared_cta": "Mark shipped"
+      "prepared_cta": "Mark shipped",
+      "prepared_mark": "Mark as {label}",
+      "prepared_cta_mark": "{label}",
+      "shipped_title_dynamic": "{label}",
+      "shipped_sub_services": "The service has been completed.",
+      "shipped_sub_on_site": "The customer has collected their order.",
+      "to_prepare_sub_services": "When the service is confirmed with the customer."
     },
     "revert": {
       "to_prepare": "Back to draft",
@@ -682,6 +713,12 @@
       "filter_product": "Products",
       "filter_service": "Services",
       "create_product": "Create an item or service",
+      "panel_items_products": "Items",
+      "panel_items_services": "Services",
+      "panel_items_both": "Items and services",
+      "panel_create_products": "Create an item",
+      "panel_create_services": "Create a service",
+      "panel_create_both": "Create an item",
       "free_line_title": "One-off item or service",
       "free_line_sub": "Without saving to the catalog",
       "no_results": "No results.",
@@ -745,7 +782,9 @@
   },
   "articles": {
     "topbar": {
-      "title": "My articles"
+      "title": "My articles",
+      "title_products": "Items",
+      "title_services": "Services"
     },
     "list": {
       "search_placeholder": "Search an article…",
@@ -1104,5 +1143,30 @@
       "delete_error": "Could not remove this member."
     }
   },
-  "ui": { "close": "Close", "panel": "Panel" }
+  "ui": { "close": "Close", "panel": "Panel" },
+  "settings": {
+    "preferences": {
+      "title": "Advanced preferences",
+      "subtitle": "Activity type and fulfillment mode.",
+      "catalog_kind_label": "Activity type",
+      "catalog_kind_products": "Products",
+      "catalog_kind_services": "Services",
+      "catalog_kind_both": "Both",
+      "fulfillment_mode_label": "Fulfillment mode",
+      "fulfillment_on_site": "In-store pickup",
+      "fulfillment_delivery": "Delivery",
+      "fulfillment_both": "Both"
+    }
+  },
+  "onboarding": {
+    "step2_title": "How do your customers receive their purchases?",
+    "step2_sub": "This adapts status labels and shipping options.",
+    "step2_label": "Fulfillment mode",
+    "step2_on_site_title": "In-store pickup",
+    "step2_on_site_desc": "Final status: \u201cHanded to customer\u201d. No shipping fees.",
+    "step2_delivery_title": "Delivery",
+    "step2_delivery_desc": "Final status: \u201cShipped\u201d. Shipping fees available.",
+    "step2_both_title": "Both",
+    "step2_both_desc": "Final status: \u201cDone\u201d. Shipping fees available."
+  }
 }

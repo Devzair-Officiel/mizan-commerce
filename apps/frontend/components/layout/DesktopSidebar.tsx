@@ -7,7 +7,7 @@ import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { useMe } from '@/lib/hooks/useMe';
 import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { useShop } from '@/lib/hooks/useShop';
-import { passesGate, NAV_GROUPS } from '@/lib/navigation';
+import { passesGate, useNavGroups } from '@/lib/navigation';
 import { SidebarNavGroup } from './SidebarNavGroup';
 import { SidebarAccountMenu } from './SidebarAccountMenu';
 import { SidebarTrialCard } from './SidebarTrialCard';
@@ -21,6 +21,7 @@ export function DesktopSidebar() {
   const { data: shop } = useShop();
   const membership = me?.membership ?? null;
   const { can } = usePlanGating();
+  const navGroups = useNavGroups();
 
   const canCreateOrder =
     passesGate({ kind: 'module', module: 'orders' }, membership) && can('orders');
@@ -62,7 +63,7 @@ export function DesktopSidebar() {
 
       {/* Navigation groupée */}
       <nav className="flex flex-col flex-1 overflow-y-auto px-3 py-2 gap-0.5">
-        {NAV_GROUPS.map((group, idx) => (
+        {navGroups.map((group, idx) => (
           <SidebarNavGroup
             key={idx}
             group={group}

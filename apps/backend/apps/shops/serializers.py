@@ -17,7 +17,7 @@ class ShopSerializer(serializers.ModelSerializer):
             'logo_object_key', 'logo_url',
             'legal_address', 'tax_id', 'legal_mentions',
             'default_tax_rate', 'default_payment_terms_days',
-            'catalog_kind', 'dashboard_mode', 'onboarding_completed_at',
+            'catalog_kind', 'fulfillment_mode', 'onboarding_completed_at',
             'created_at', 'updated_at',
         )
         read_only_fields = (
@@ -35,7 +35,12 @@ class OnboardingSerializer(serializers.Serializer):
     """Payload du wizard 1er login — `Choices` validés par DRF directement."""
 
     catalog_kind = serializers.ChoiceField(choices=Shop.CATALOG_KIND_CHOICES)
-    dashboard_mode = serializers.ChoiceField(choices=Shop.DASHBOARD_MODE_CHOICES)
+    fulfillment_mode = serializers.ChoiceField(
+        choices=Shop.FULFILLMENT_MODE_CHOICES,
+        required=False,
+        allow_null=True,
+        default=None,
+    )
 
 
 class ShopMemberSerializer(serializers.ModelSerializer):

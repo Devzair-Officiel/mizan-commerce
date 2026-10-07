@@ -6,7 +6,7 @@ import type { ThemeMode } from '@/lib/themes';
 export type ShopRole = 'owner' | 'admin' | 'staff';
 
 export type CatalogKind = 'products' | 'services' | 'both';
-export type DashboardMode = 'minimal' | 'complete';
+export type FulfillmentMode = 'on_site' | 'delivery' | 'both' | null;
 
 export type ModuleKey =
   | 'products'
@@ -30,7 +30,7 @@ export interface Membership {
   is_admin: boolean;
   permissions: ModuleKey[];
   catalog_kind: CatalogKind;
-  dashboard_mode: DashboardMode;
+  fulfillment_mode: FulfillmentMode;
   onboarding_completed_at: string | null;
 }
 

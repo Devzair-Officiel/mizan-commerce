@@ -95,7 +95,7 @@ class MeSerializer(UserSerializer):
             'permissions': list(m.permissions or []),
             # Onboarding : `onboarding_completed_at` null = wizard à présenter.
             'catalog_kind': m.shop.catalog_kind,
-            'dashboard_mode': m.shop.dashboard_mode,
+            'fulfillment_mode': m.shop.fulfillment_mode,
             'onboarding_completed_at': (
                 m.shop.onboarding_completed_at.isoformat()
                 if m.shop.onboarding_completed_at else None

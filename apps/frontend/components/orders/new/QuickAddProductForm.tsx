@@ -8,6 +8,7 @@ import { FloatingInput } from '@/components/ui/floating-fields';
 import { useCreateProduct, type ProductDetail, type ProductType, type ProductVariant } from '@/lib/hooks/useProducts';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
+import { useShop } from '@/lib/hooks/useShop';
 
 interface QuickAddProductFormProps {
   onCreated: (product: ProductDetail) => void;
@@ -56,9 +57,13 @@ function ProductFormFields({
 
 export function QuickAddProductForm({ onCreated, onClose }: QuickAddProductFormProps) {
   const t = useTranslations('orders.quickAdd');
+  const { data: shop } = useShop();
+  const ck = shop?.catalog_kind ?? 'both';
+  const forcedType: 'product' | 'service' | null =
+    ck === 'products' ? 'product' : ck === 'services' ? 'service' : null;
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [type, setType] = useState<ProductType>('product');
+  const [type, setType] = useState<ProductType>(forcedType ?? 'product');
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
   const { mutateAsync, isPending } = useCreateProduct();
   const qc = useQueryClient();
@@ -106,13 +111,15 @@ export function QuickAddProductForm({ onCreated, onClose }: QuickAddProductFormP
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-muted-foreground px-1">{t('type_label')}</span>
-        <div className="flex gap-2">
-          <TypeChip active={type === 'product'} onClick={() => setType('product')} label={t('type_product')} />
-          <TypeChip active={type === 'service'} onClick={() => setType('service')} label={t('type_service')} />
+      {!forcedType && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-muted-foreground px-1">{t('type_label')}</span>
+          <div className="flex gap-2">
+            <TypeChip active={type === 'product'} onClick={() => setType('product')} label={t('type_product')} />
+            <TypeChip active={type === 'service'} onClick={() => setType('service')} label={t('type_service')} />
+          </div>
         </div>
-      </div>
+      )}
       <ProductFormFields
         name={name}
         price={price}

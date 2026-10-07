@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
-import type { CatalogKind, DashboardMode } from './useMe';
+import type { CatalogKind, FulfillmentMode } from './useMe';
 
 export type NisabMethod = 'gold' | 'silver';
 
@@ -22,7 +22,7 @@ export interface Shop {
   default_tax_rate: string;
   default_payment_terms_days: number;
   catalog_kind: CatalogKind;
-  dashboard_mode: DashboardMode;
+  fulfillment_mode: FulfillmentMode;
   onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -41,12 +41,12 @@ export interface ShopUpdateData {
   default_tax_rate?: string;
   default_payment_terms_days?: number;
   catalog_kind?: CatalogKind;
-  dashboard_mode?: DashboardMode;
+  fulfillment_mode?: FulfillmentMode;
 }
 
 export interface OnboardingPayload {
   catalog_kind: CatalogKind;
-  dashboard_mode: DashboardMode;
+  fulfillment_mode: FulfillmentMode;
 }
 
 export function useShop() {

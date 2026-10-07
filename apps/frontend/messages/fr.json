@@ -115,7 +115,10 @@
       "stock": "Stock",
       "group_sell": "Vendre",
       "group_catalog": "Catalogue",
-      "group_track": "Suivi"
+      "group_track": "Suivi",
+      "articles": "Articles",
+      "catalogue": "Catalogue",
+      "services": "Services"
     },
     "breadcrumb": {
       "products": "Articles",
@@ -458,6 +461,28 @@
       "search_label": "Rechercher des commandes",
       "clear_filters": "Effacer les filtres"
     },
+    "statusLabel": {
+      "draft": "Brouillon",
+      "draft_pl": "Brouillons",
+      "to_prepare_products": "À préparer",
+      "to_prepare_products_pl": "À préparer",
+      "to_prepare_services": "Confirmée",
+      "to_prepare_services_pl": "Confirmées",
+      "to_prepare_both": "À traiter",
+      "to_prepare_both_pl": "À traiter",
+      "prepared": "Prête",
+      "prepared_pl": "Prêtes",
+      "shipped_services": "Réalisée",
+      "shipped_services_pl": "Réalisées",
+      "shipped_on_site": "Remise au client",
+      "shipped_on_site_pl": "Remises au client",
+      "shipped_delivery": "Expédiée",
+      "shipped_delivery_pl": "Expédiées",
+      "shipped_other": "Terminée",
+      "shipped_other_pl": "Terminées",
+      "cancelled": "Annulée",
+      "cancelled_pl": "Annulées"
+    },
     "statusFilter": {
       "all": "Toutes",
       "draft": "Brouillons",
@@ -516,7 +541,13 @@
       "to_prepare_cta": "Marquer prête",
       "prepared_title": "Marquer comme expédiée",
       "prepared_sub": "Quand la commande quitte la boutique.",
-      "prepared_cta": "Marquer expédiée"
+      "prepared_cta": "Marquer expédiée",
+      "prepared_mark": "Marquer comme {label}",
+      "prepared_cta_mark": "{label}",
+      "shipped_title_dynamic": "{label}",
+      "shipped_sub_services": "La prestation a été réalisée.",
+      "shipped_sub_on_site": "Le client a récupéré sa commande.",
+      "to_prepare_sub_services": "Quand la prestation est confirmée avec le client."
     },
     "revert": {
       "to_prepare": "Revenir en brouillon",
@@ -682,6 +713,12 @@
       "filter_product": "Produits",
       "filter_service": "Services",
       "create_product": "Créer un article ou service",
+      "panel_items_products": "Articles",
+      "panel_items_services": "Services",
+      "panel_items_both": "Articles et services",
+      "panel_create_products": "Créer un article",
+      "panel_create_services": "Créer un service",
+      "panel_create_both": "Créer un article",
       "free_line_title": "Article ou service ponctuel",
       "free_line_sub": "Sans enregistrer au catalogue",
       "no_results": "Aucun résultat.",
@@ -745,7 +782,9 @@
   },
   "articles": {
     "topbar": {
-      "title": "Mes articles"
+      "title": "Mes articles",
+      "title_products": "Articles",
+      "title_services": "Services"
     },
     "list": {
       "search_placeholder": "Rechercher un article…",
@@ -1104,5 +1143,30 @@
       "delete_error": "Impossible de retirer ce membre."
     }
   },
-  "ui": { "close": "Fermer", "panel": "Panneau" }
+  "ui": { "close": "Fermer", "panel": "Panneau" },
+  "settings": {
+    "preferences": {
+      "title": "Préférences avancées",
+      "subtitle": "Type d'activité et mode de retrait.",
+      "catalog_kind_label": "Type d'activité",
+      "catalog_kind_products": "Produits",
+      "catalog_kind_services": "Services",
+      "catalog_kind_both": "Les deux",
+      "fulfillment_mode_label": "Mode de retrait",
+      "fulfillment_on_site": "Sur place",
+      "fulfillment_delivery": "En livraison",
+      "fulfillment_both": "Les deux"
+    }
+  },
+  "onboarding": {
+    "step2_title": "Comment vos clients récupèrent-ils leurs achats ?",
+    "step2_sub": "Cela adapte les libellés de statut et les options de livraison.",
+    "step2_label": "Mode de retrait",
+    "step2_on_site_title": "Sur place",
+    "step2_on_site_desc": "Statut final : « Remise au client ». Pas de frais de livraison.",
+    "step2_delivery_title": "En livraison",
+    "step2_delivery_desc": "Statut final : « Expédiée ». Frais de livraison disponibles.",
+    "step2_both_title": "Les deux",
+    "step2_both_desc": "Statut final : « Terminée ». Frais de livraison disponibles."
+  }
 }
