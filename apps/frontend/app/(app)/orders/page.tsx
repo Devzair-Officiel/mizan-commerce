@@ -105,7 +105,7 @@ export default function OrdersPage() {
   return (
     <>
       <TopBar title={t('topbar')} titleClassName="text-3xl" />
-      <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
+      <div className="flex flex-col gap-4 p-4 pb-28">
         <Suspense>
           <OrdersList />
         </Suspense>

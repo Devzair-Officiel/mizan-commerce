@@ -47,16 +47,20 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 8. Le pattern existe-t-il déjà ailleurs (Clients/Détail client) ? Suivre, ne pas inventer.
 9. Pour une action destructive : le focus par défaut est-il sur l'option non-destructive, et la fermeture est-elle bloquée pendant l'exécution ?
 
-## 7. Grand écran (≥ lg)
-
-- **Sidebar** : 240 px fixe, `inset-s-0` (logique RTL). Groupes de navigation avec titres `text-xs font-semibold uppercase tracking-wide text-muted-foreground`. Entrée active : `bg-secondary text-secondary-foreground font-semibold`, icône `text-primary`. Menu compte ancré en bas, ouvre un Base UI Menu `side="top"`.
-- **Contenu** : conteneur `max-w-300 mx-auto px-10 pt-8` — jamais de padding additionnel dans les pages sur desktop.
-- **TopBar desktop** : non-sticky, pas de blur/border, titre `text-[28px] font-semibold tracking-tight` aligné à gauche, lien retour au-dessus du titre, barre de recherche `h-11 w-80 rounded-full` à droite. Le breadcrumb reste mobile uniquement (`lg:hidden`).
-- **Propriétés logiques** : toujours `ms/me/ps/pe/start/end` (jamais `ml/mr/pl/pr/left/right`) pour le support RTL.
-
 ## 6. Quand l'utilisateur partage une capture
 1. Identifier l'action principale et la friction principale (1 phrase).
 2. Lister 2-4 problèmes UX concrets (pas du goût, du fonctionnel).
 3. Proposer un redesign en s'appuyant sur les patterns canoniques (§4).
 4. Pas de nouveau composant si un existant peut faire le job.
 5. Coder seulement après validation des principes proposés.
+
+## 7. Grand écran (≥ lg)
+
+- **Sidebar** : 240 px fixe, `inset-s-0` (logique RTL). Groupes de navigation avec titres `text-xs font-semibold uppercase tracking-wide text-muted-foreground`. Entrée active : `bg-secondary text-secondary-foreground font-semibold`, icône `text-primary`. Menu compte ancré en bas, ouvre un Base UI Menu `side="top"`.
+- **Contenu** : conteneur `max-w-300 mx-auto px-6 pt-8`. Le conteneur fournit le padding latéral desktop ; TopBar et pages utilisent `p-4` / `px-4`, jamais de `lg:px-*` dans une page.
+- **TopBar desktop** : non-sticky, pas de blur/border, titre `text-[28px] font-semibold tracking-tight` aligné à gauche, lien retour au-dessus du titre, barre de recherche `h-11 w-80 rounded-full bg-card border border-border` à droite. Le breadcrumb reste mobile uniquement (`lg:hidden`).
+- **Propriétés logiques** : toujours `ms/me/ps/pe/start/end` (jamais `ml/mr/pl/pr/left/right`) pour le support RTL.
+- **Action de création unique** : « Nouvelle vente » vit dans la sidebar, pas dans les pages. Une seule CTA principale par écran ; ne pas dupliquer l'action en TopBar.
+- **Bandeau unique** : la carte d'essai (`SidebarTrialCard`) vit dans la sidebar desktop. Ne jamais afficher deux bandeaux d'information simultanément.
+- **Couleur réservée aux signaux** : les titres de section de la sidebar sont `text-muted-foreground` (neutre), pas `text-primary`. La couleur primaire reste réservée aux états actifs et aux signaux.
+- **Menu compte ancré** : sur grand écran, le menu compte (Base UI `side="top"`) remplace le BottomSheet pour les actions de compte — exception au pattern §4 « Actions secondaires : BottomSheet ».

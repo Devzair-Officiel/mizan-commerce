@@ -79,7 +79,7 @@ export default function CatalogPage() {
     <>
       <TopBar title={t('topbar.title')} titleClassName="text-3xl" />
 
-      <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
+      <div className="flex flex-col gap-4 p-4 pb-28">
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input

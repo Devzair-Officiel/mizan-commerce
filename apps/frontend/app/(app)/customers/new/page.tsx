@@ -21,7 +21,7 @@ export default function NewCustomerPage() {
     <>
       <TopBar title={t('title')} />
 
-      <div className="px-4 pt-4 lg:max-w-2xl lg:mx-auto lg:px-8">
+      <div className="px-4 pt-4">
         <div
           className="rounded-3xl p-5 flex items-center gap-4"
           style={{ background: 'color-mix(in oklch, var(--primary) 7%, transparent)' }}

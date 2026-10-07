@@ -8,8 +8,6 @@ import { Search, Home, ChevronRight } from 'lucide-react';
 import { BurgerButton } from './BurgerMenu';
 import { useSearchOverlay } from './SearchOverlay';
 
-// Clés statiques connues du catalogue : permet à TS de garder l'autocomplétion
-// next-intl tout en autorisant un fallback raw pour les segments inconnus.
 type BreadcrumbSegment =
   | 'products' | 'customers' | 'orders' | 'settings' | 'stock'
   | 'notes'    | 'reminders' | 'new'    | 'edit'     | 'add' | 'out';
@@ -82,8 +80,6 @@ function Breadcrumb() {
       if (seg === undefined) continue;
       acc += `/${seg}`;
       if (isId(seg)) continue;
-      // Si le segment suivant est un ID, faire pointer la catégorie vers l'item
-      // précis (sauf si cet item est la page courante → pointer vers la liste).
       let href = acc;
       const nextSeg = i + 1 < segments.length ? segments[i + 1] : null;
       if (nextSeg && isId(nextSeg)) {
@@ -146,88 +142,91 @@ interface TopBarProps {
   titleClassName?: string;
 }
 
+function TopBarBackLink({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      aria-label={label}
+    >
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
+        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      {label}
+    </button>
+  );
+}
+
+function TopBarSearchButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="hidden lg:flex items-center h-11 w-80 rounded-full gap-3 px-4 bg-card border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
+      aria-label={label}
+    >
+      <Search size={16} className="shrink-0" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
 export function TopBar({ title, action, back, onBack, titleClassName }: TopBarProps) {
   const tc = useTranslations('layout.common');
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
 
+  const handleBack = () => (onBack ? onBack() : router.back());
+
   return (
-    <>
-      {/* Desktop (≥ lg) : non-sticky, grand titre aligné à gauche */}
-      <div className="hidden lg:block pb-8">
-        {back && (
+    <header
+      className="sticky top-0 z-40 flex flex-col border-b border-border backdrop-blur-md bg-card/85 lg:static lg:border-b-0 lg:backdrop-blur-none lg:bg-transparent"
+    >
+      {/* Desktop back link — row above title, large screens only */}
+      {back && (
+        <div className="hidden lg:block px-4 pt-2 pb-0">
+          <TopBarBackLink onClick={handleBack} label={tc('back')} />
+        </div>
+      )}
+
+      {/* Main row */}
+      <div className="h-14 flex items-center px-4 gap-2 lg:h-auto lg:pb-8 lg:items-end">
+        {/* Left slot — mobile only */}
+        <div className="shrink-0 lg:hidden">
+          {back ? (
+            <TopBarBackLink onClick={handleBack} label={tc('back')} />
+          ) : (
+            <BurgerButton />
+          )}
+        </div>
+
+        {/* Title */}
+        <h1
+          className={`flex-1 min-w-0 text-center font-semibold text-foreground pointer-events-none truncate lg:text-start lg:text-[28px] lg:tracking-tight lg:pointer-events-auto ${titleClassName ?? 'text-2xl'}`}
+        >
+          {title}
+        </h1>
+
+        {/* Right actions */}
+        <div className="shrink-0 flex items-center gap-1 lg:gap-3 lg:mb-1">
+          {action}
+          <TopBarSearchButton onClick={openSearch} label={tc('search')} />
           <button
-            onClick={() => onBack ? onBack() : router.back()}
-            className="flex items-center gap-1 mb-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={tc('back')}
+            onClick={openSearch}
+            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label={tc('search')}
           >
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
-              <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {tc('back')}
+            <Search size={19} />
           </button>
-        )}
-        <div className="flex items-end gap-4">
-          <h1 className="flex-1 min-w-0 text-[28px] font-semibold tracking-tight text-foreground truncate">
-            {title}
-          </h1>
-          <div className="flex items-center gap-3 shrink-0 mb-1">
-            {action}
-            <button
-              onClick={openSearch}
-              className="flex items-center h-11 w-80 rounded-full gap-3 px-4 bg-muted/70 hover:bg-muted text-sm text-muted-foreground border border-border/50 transition-colors"
-              aria-label={tc('search')}
-            >
-              <Search size={16} className="shrink-0" />
-              <span className="text-muted-foreground/70">{tc('search')}</span>
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Mobile (< lg) : sticky avec blur */}
-      <header
-        className="lg:hidden sticky top-0 z-40 flex flex-col border-b border-border backdrop-blur-md"
-        style={{ background: 'color-mix(in oklch, var(--card) 85%, transparent)' }}
-      >
-        <div className="h-14 flex items-center px-4 gap-2">
-          <div className="shrink-0">
-            {back ? (
-              <button
-                onClick={() => onBack ? onBack() : router.back()}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-                aria-label={tc('back')}
-              >
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" className="shrink-0 -translate-y-px rtl:rotate-180">
-                  <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                {tc('back')}
-              </button>
-            ) : (
-              <BurgerButton />
-            )}
-          </div>
-
-          <h1 className={`flex-1 min-w-0 text-center font-semibold text-foreground pointer-events-none truncate ${titleClassName ?? 'text-2xl'}`}>
-            {title}
-          </h1>
-
-          <div className="shrink-0 flex items-center gap-1">
-            {action && action}
-            <button
-              onClick={openSearch}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label={tc('search')}
-            >
-              <Search size={19} />
-            </button>
-          </div>
-        </div>
+      {/* Breadcrumb — mobile only */}
+      <div className="lg:hidden">
         {/* Suspense requis : Breadcrumb utilise useSearchParams, sinon le build statique échoue */}
         <Suspense fallback={null}>
           <Breadcrumb />
         </Suspense>
-      </header>
-    </>
+      </div>
+    </header>
   );
 }

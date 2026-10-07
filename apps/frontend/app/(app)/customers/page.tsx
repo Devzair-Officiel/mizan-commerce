@@ -59,7 +59,7 @@ export default function CustomersPage() {
   return (
     <>
       <TopBar title={t('title')} titleClassName="text-3xl" />
-      <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
+      <div className="flex flex-col gap-4 p-4 pb-28">
 
         <div className="grid grid-cols-2 gap-3">
           <StatCard

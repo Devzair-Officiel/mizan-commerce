@@ -34,7 +34,7 @@ export default function DashboardPage() {
   return (
     <>
       <TopBar title={tNav('dashboard')} />
-      <div className="p-4 lg:px-8 lg:py-6 flex flex-col gap-4">
+      <div className="p-4 flex flex-col gap-4">
 
         <EmailVerificationBanner />
 
