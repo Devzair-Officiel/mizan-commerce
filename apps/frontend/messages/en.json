@@ -610,11 +610,13 @@
       "signoff": "See you soon."
     },
     "new": {
-      "topbar": "New order",
+      "topbar": "New sale",
       "section_customer": "1 · Customer",
       "customer_required": "Select a customer to continue.",
+      "no_customer_payment_warning": "Without a customer, you won't be able to follow up on this payment.",
       "section_items": "2 · Items & services",
       "items_required": "Add at least one item or service.",
+      "items_empty": "No items yet.",
       "payment_title": "Payment",
       "payment_amount_required": "Enter an amount greater than 0.",
       "payment_amount_exceeds": "The amount received cannot exceed the total.",
@@ -626,7 +628,7 @@
       "status_confirmed": "Confirmed",
       "status_shipped": "Shipped",
       "submit_creating": "Creating…",
-      "submit_label": "Create order",
+      "submit_label": "Record sale",
       "notes_label": "Internal notes (optional)",
       "notes_hide_aria": "Hide notes",
       "notes_show": "Add an internal note",
@@ -699,7 +701,8 @@
       "free_name_required": "Name is required.",
       "free_price_required": "Price is required.",
       "free_qty_required": "Quantity must be at least 1.",
-      "free_submit": "Add to order"
+      "free_submit": "Add to order",
+      "add_aria": "Add {name}"
     },
     "customerPicker": {
       "trigger_select": "Pick a customer",

@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
+import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 
 interface BottomSheetProps {
   open: boolean;
@@ -16,6 +17,7 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   const [tracked, setTracked] = useState(open);
   const titleId = useId();
   const sheetRef = useFocusTrap<HTMLDivElement>(open);
+  const isDesktop = useIsDesktop();
 
   if (tracked !== open) {
     setTracked(open);
@@ -37,6 +39,48 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
 
   if (!open) return null;
 
+  if (isDesktop === true) {
+    return (
+      <div
+        className="fixed inset-0 z-70 flex items-center justify-center"
+        style={{
+          backdropFilter: visible ? 'blur(4px)' : 'none',
+          background: visible ? 'rgba(0,0,0,0.25)' : 'transparent',
+          transition: 'background 0.25s ease, backdrop-filter 0.25s ease',
+        }}
+        onClick={onClose}
+      >
+        <div
+          ref={sheetRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          aria-label={title ? undefined : 'Panneau'}
+          className="flex flex-col w-full max-w-lg rounded-2xl bg-card shadow-2xl max-h-[85vh] overflow-y-auto outline-none"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'scale(1)' : 'scale(0.95)',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {title && (
+            <p
+              id={titleId}
+              className="px-5 pt-4 pb-3 font-semibold text-base text-foreground border-b border-border shrink-0"
+            >
+              {title}
+            </p>
+          )}
+          <div className="px-5 py-4 overflow-y-auto">
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile (isDesktop === false or undefined — default to bottom sheet)
   return (
     <div
       className="fixed inset-0 z-70 flex flex-col justify-end"

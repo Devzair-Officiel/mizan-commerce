@@ -610,11 +610,13 @@
       "signoff": "إلى اللقاء قريبًا."
     },
     "new": {
-      "topbar": "طلب جديد",
+      "topbar": "بيع جديد",
       "section_customer": "1 · الزبون",
       "customer_required": "اختر زبونًا للمتابعة.",
+      "no_customer_payment_warning": "بدون عميل، لن تتمكن من متابعة هذه المدفوعات.",
       "section_items": "2 · المنتجات والخدمات",
       "items_required": "أضف منتجًا أو خدمة على الأقل.",
+      "items_empty": "لا توجد مقالات حالياً.",
       "payment_title": "الدفع",
       "payment_amount_required": "أدخل مبلغًا أكبر من 0.",
       "payment_amount_exceeds": "لا يمكن أن يتجاوز المبلغ المستلم الإجمالي.",
@@ -626,7 +628,7 @@
       "status_confirmed": "مؤكَّدة",
       "status_shipped": "مُرسلة",
       "submit_creating": "جارٍ الإنشاء…",
-      "submit_label": "إنشاء الطلب",
+      "submit_label": "تسجيل البيع",
       "notes_label": "ملاحظات داخلية (اختياري)",
       "notes_hide_aria": "إخفاء الملاحظات",
       "notes_show": "إضافة ملاحظة داخلية",
@@ -699,7 +701,8 @@
       "free_name_required": "الاسم مطلوب.",
       "free_price_required": "السعر مطلوب.",
       "free_qty_required": "يجب أن تكون الكمية 1 على الأقل.",
-      "free_submit": "إضافة إلى الطلب"
+      "free_submit": "إضافة إلى الطلب",
+      "add_aria": "إضافة {name}"
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",

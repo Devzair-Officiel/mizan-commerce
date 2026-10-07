@@ -11,6 +11,9 @@ interface CustomerPickerProps {
   selectedCustomer?: Customer | null;
   onChange: (id: string) => void;
   onRequestCreate: () => void;
+  hideTrigger?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function CustomerPicker({
@@ -18,9 +21,14 @@ export function CustomerPicker({
   selectedCustomer,
   onChange,
   onRequestCreate,
+  hideTrigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: CustomerPickerProps) {
   const t = useTranslations('orders.customerPicker');
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [search, setSearch] = useState('');
   const { data } = useCustomers(search);
 
@@ -57,64 +65,66 @@ export function CustomerPicker({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        className="w-full text-left rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition-colors active:bg-muted"
-      >
-        {value && selectedCustomer ? (
-          <>
-            <div className="shrink-0 w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-base">
-              {initial}
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <span className="text-sm font-semibold text-foreground truncate">{fullName}</span>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
-                {selectedCustomer.phone && (
-                  <span className="flex items-center gap-1 min-w-0">
-                    <Phone size={11} className="shrink-0" />
-                    <span className="truncate tabular-nums">{selectedCustomer.phone}</span>
-                  </span>
-                )}
-                {selectedCustomer.city && (
-                  <span className="flex items-center gap-1 min-w-0">
-                    <MapPin size={11} className="shrink-0" />
-                    <span className="truncate">{selectedCustomer.city}</span>
-                  </span>
-                )}
-                {!selectedCustomer.phone && !selectedCustomer.city && (
-                  <span className="flex items-center gap-1">
-                    <User size={11} className="shrink-0" />
-                    <span>{t('trigger_selected')}</span>
-                  </span>
-                )}
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          className="w-full text-left rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition-colors active:bg-muted"
+        >
+          {value && selectedCustomer ? (
+            <>
+              <div className="shrink-0 w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-base">
+                {initial}
               </div>
-            </div>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={handleRemove}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRemove(e as unknown as React.MouseEvent); } }}
-              aria-label={t('remove_aria')}
-              className="shrink-0 w-9 h-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors flex items-center justify-center"
-            >
-              <X size={16} />
-            </span>
-          </>
-        ) : (
-          <>
-            <div className="shrink-0 w-11 h-11 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
-              <User size={18} />
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-              <span className="text-sm font-medium text-foreground">{t('trigger_select')}</span>
-              <span className="text-xs text-muted-foreground">{t('trigger_select_sub')}</span>
-            </div>
-            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
-          </>
-        )}
-      </button>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-foreground truncate">{fullName}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
+                  {selectedCustomer.phone && (
+                    <span className="flex items-center gap-1 min-w-0">
+                      <Phone size={11} className="shrink-0" />
+                      <span className="truncate tabular-nums">{selectedCustomer.phone}</span>
+                    </span>
+                  )}
+                  {selectedCustomer.city && (
+                    <span className="flex items-center gap-1 min-w-0">
+                      <MapPin size={11} className="shrink-0" />
+                      <span className="truncate">{selectedCustomer.city}</span>
+                    </span>
+                  )}
+                  {!selectedCustomer.phone && !selectedCustomer.city && (
+                    <span className="flex items-center gap-1">
+                      <User size={11} className="shrink-0" />
+                      <span>{t('trigger_selected')}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={handleRemove}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleRemove(e as unknown as React.MouseEvent); } }}
+                aria-label={t('remove_aria')}
+                className="shrink-0 w-9 h-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors flex items-center justify-center"
+              >
+                <X size={16} />
+              </span>
+            </>
+          ) : (
+            <>
+              <div className="shrink-0 w-11 h-11 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
+                <User size={18} />
+              </div>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-foreground">{t('trigger_select')}</span>
+                <span className="text-xs text-muted-foreground">{t('trigger_select_sub')}</span>
+              </div>
+              <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
+            </>
+          )}
+        </button>
+      )}
 
       <BottomSheet open={open} onClose={close} title={t('sheet_title')}>
         <div className="relative mb-3">

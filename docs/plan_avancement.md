@@ -385,6 +385,8 @@
 - [~] Étape 3 — Shell grand écran : sidebar groupée, en-tête de page, largeur max, bandeau unique
 - [x] Étape 4 — Nouvel accueil : compteurs « À faire », listes, carte Ventes, écran de démarrage
 - [~] Étape 5 — Commandes et Nouvelle vente : vente sans client, vue caisse, libellés de statuts
+  - [x] 5a — page Commandes (liste, filtres, pagination/infinite scroll)
+  - [x] 5b — Nouvelle vente (vue caisse desktop, client facultatif, paiement par défaut)
 - [ ] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [ ] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

@@ -610,11 +610,13 @@
       "signoff": "À bientôt."
     },
     "new": {
-      "topbar": "Nouvelle commande",
+      "topbar": "Nouvelle vente",
       "section_customer": "1 · Client",
       "customer_required": "Sélectionnez un client pour continuer.",
+      "no_customer_payment_warning": "Sans client, tu ne pourras pas relancer ce paiement.",
       "section_items": "2 · Articles & services",
       "items_required": "Ajoutez au moins un article ou service.",
+      "items_empty": "Aucun article pour l'instant.",
       "payment_title": "Paiement",
       "payment_amount_required": "Saisis un montant reçu supérieur à 0.",
       "payment_amount_exceeds": "Le montant reçu ne peut pas dépasser le total.",
@@ -626,7 +628,7 @@
       "status_confirmed": "Confirmée",
       "status_shipped": "Expédiée",
       "submit_creating": "Création…",
-      "submit_label": "Créer la commande",
+      "submit_label": "Enregistrer la vente",
       "notes_label": "Notes internes (optionnel)",
       "notes_hide_aria": "Masquer les notes",
       "notes_show": "Ajouter une note interne",
@@ -699,7 +701,8 @@
       "free_name_required": "Le nom est requis.",
       "free_price_required": "Le prix est requis.",
       "free_qty_required": "La quantité doit être au moins 1.",
-      "free_submit": "Ajouter à la commande"
+      "free_submit": "Ajouter à la commande",
+      "add_aria": "Ajouter {name}"
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",

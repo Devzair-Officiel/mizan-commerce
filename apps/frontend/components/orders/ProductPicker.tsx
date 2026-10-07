@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight, Plus } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useProducts, type Product } from '@/lib/hooks/useProducts';
-import { PickView, type PickFilter } from './picker/PickView';
+import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
+import { PickView } from './picker/PickView';
 import { FreeLineView, type FreeLine } from './picker/FreeLineView';
 import { VariantView, type VariantPick } from './picker/VariantView';
 
@@ -17,49 +16,13 @@ interface ProductPickerProps {
   onRequestCreate: () => void;
 }
 
-type View = 'pick' | 'free';
-type Stage = 'list' | 'variants';
-
 export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPickerProps) {
   const t = useTranslations('orders.picker');
-  const [open, setOpen] = useState(false);
-  const [view, setView] = useState<View>('pick');
-  const [stage, setStage] = useState<Stage>('list');
-  const [pickedProductId, setPickedProductId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<PickFilter>('all');
-  const { data } = useProducts({ search });
+  const picker = useCatalogPicker();
 
-  const products = (data?.results ?? []).filter((p) => p.is_active);
-  const filtered = filter === 'all' ? products : products.filter((p) => p.type === filter);
-
-  function close() {
-    setOpen(false);
-    setSearch('');
-    setFilter('all');
-    setView('pick');
-    setStage('list');
-    setPickedProductId(null);
-  }
-
-  function handlePickProduct(p: Product) {
-    setPickedProductId(p.id);
-    setStage('variants');
-  }
-
-  function handlePickVariant(pick: VariantPick) {
-    onPick(pick);
-    close();
-  }
-
-  function handleCreate() {
-    close();
-    onRequestCreate();
-  }
-
-  const title = view === 'free'
+  const title = picker.view === 'free'
     ? t('free_sheet_title')
-    : stage === 'variants'
+    : picker.stage === 'variants'
       ? t('variant_sheet_title')
       : t('product_sheet_title');
 
@@ -67,7 +30,7 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={picker.openPicker}
         aria-haspopup="dialog"
         className="w-full text-left rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition-colors active:bg-muted"
       >
@@ -81,28 +44,28 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
         <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
       </button>
 
-      <BottomSheet open={open} onClose={close} title={title}>
-        {view === 'free' ? (
+      <BottomSheet open={picker.open} onClose={picker.close} title={title}>
+        {picker.view === 'free' ? (
           <FreeLineView
-            onCancel={() => setView('pick')}
-            onSubmit={(line) => { onFreeLine(line); close(); }}
+            onCancel={picker.backToList}
+            onSubmit={(line) => { onFreeLine(line); picker.close(); }}
           />
-        ) : stage === 'variants' && pickedProductId ? (
+        ) : picker.stage === 'variants' && picker.pickedProductId ? (
           <VariantView
-            productId={pickedProductId}
-            onBack={() => { setStage('list'); setPickedProductId(null); }}
-            onPick={handlePickVariant}
+            productId={picker.pickedProductId}
+            onBack={() => { picker.backToList(); }}
+            onPick={(pick) => picker.handlePickVariant(pick, onPick)}
           />
         ) : (
           <PickView
-            search={search}
-            setSearch={setSearch}
-            filter={filter}
-            setFilter={setFilter}
-            products={filtered}
-            onPick={handlePickProduct}
-            onCreate={handleCreate}
-            onFreeLine={() => setView('free')}
+            search={picker.search}
+            setSearch={picker.setSearch}
+            filter={picker.filter}
+            setFilter={picker.setFilter}
+            products={picker.filtered}
+            onPick={picker.handlePickProduct}
+            onCreate={() => picker.handleCreate(onRequestCreate)}
+            onFreeLine={picker.goToFreeLine}
           />
         )}
       </BottomSheet>
