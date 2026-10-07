@@ -23,7 +23,7 @@ fi
 
 if [ "$frontend_changed" -eq 0 ]; then
   docker compose ps --status running --services 2>/dev/null | grep -q '^frontend$' && {
-    out=$( { docker compose exec -T frontend npm run lint && docker compose exec -T frontend npm run typecheck; } 2>&1 ) || { fail=1; report+=$'\n--- Frontend ---\n'"$out"; }
+    out=$( { docker compose exec -T frontend npm run lint && docker compose exec -T frontend npm run typecheck && docker compose exec -T frontend npm run i18n:check; } 2>&1 ) || { fail=1; report+=$'\n--- Frontend ---\n'"$out"; }
   }
 fi
 
