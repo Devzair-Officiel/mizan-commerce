@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist } from 'next/font/google';
+import { Geist, Noto_Sans_Arabic } from 'next/font/google';
 import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -9,6 +9,12 @@ import { getDirection, isLocale, DEFAULT_LOCALE } from '@/i18n/locales';
 import './globals.css';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
+const notoArabic = Noto_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-arabic',
+});
 
 export const metadata: Metadata = {
   title: 'Mizan — Gestion boutique',
@@ -33,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={locale}
       dir={dir}
-      className={`${geist.variable} h-full antialiased`}
+      className={`${geist.variable} ${notoArabic.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
