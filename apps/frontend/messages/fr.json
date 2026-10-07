@@ -441,8 +441,22 @@
       "items": "{count, plural, one {# article} other {# articles}}",
       "empty_filtered_title": "Aucune commande pour ce filtre",
       "empty_title": "Aucune commande",
-      "empty_filtered_sub": "Essaie un autre statut ou retire le filtre.",
-      "empty_sub": "Crée ta première commande pour démarrer."
+      "empty_filtered_sub": "Retire les filtres pour voir toutes tes commandes.",
+      "empty_sub": "Chaque vente que tu enregistres apparaît ici, avec son statut de préparation et de paiement.",
+      "empty_cta": "Nouvelle vente",
+      "load_more": "Charger plus",
+      "column_number": "N°",
+      "column_client_items": "Client et articles",
+      "column_date": "Date",
+      "column_preparation": "Préparation",
+      "column_payment": "Paiement",
+      "column_total": "Total",
+      "pagination_range": "{from}–{to} sur {total}",
+      "pagination_prev": "Précédente",
+      "pagination_next": "Suivante",
+      "search_placeholder": "Rechercher…",
+      "search_label": "Rechercher des commandes",
+      "clear_filters": "Effacer les filtres"
     },
     "statusFilter": {
       "all": "Toutes",
@@ -719,6 +733,11 @@
       "submit": "Créer et ajouter",
       "submitting": "Création…",
       "error": "Erreur lors de la création."
+    },
+    "paymentFilter": {
+      "all": "Tous",
+      "due": "À encaisser",
+      "paid": "Payées"
     }
   },
   "articles": {

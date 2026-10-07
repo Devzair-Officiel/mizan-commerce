@@ -441,8 +441,22 @@
       "items": "{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
       "empty_filtered_title": "لا توجد طلبات لهذا الفلتر",
       "empty_title": "لا توجد طلبات",
-      "empty_filtered_sub": "جرّب حالة أخرى أو ألغِ الفلتر.",
-      "empty_sub": "أنشئ طلبك الأول للبدء."
+      "empty_filtered_sub": "أزل الفلاتر لرؤية جميع طلباتك.",
+      "empty_sub": "كل عملية بيع تسجّلها تظهر هنا مع حالة التحضير والدفع.",
+      "empty_cta": "بيع جديد",
+      "load_more": "تحميل المزيد",
+      "column_number": "رقم",
+      "column_client_items": "الزبون والمقالات",
+      "column_date": "التاريخ",
+      "column_preparation": "التحضير",
+      "column_payment": "الدفع",
+      "column_total": "المجموع",
+      "pagination_range": "{from}–{to} من {total}",
+      "pagination_prev": "السابقة",
+      "pagination_next": "التالية",
+      "search_placeholder": "بحث…",
+      "search_label": "البحث في الطلبات",
+      "clear_filters": "مسح الفلاتر"
     },
     "statusFilter": {
       "all": "الكل",
@@ -719,6 +733,11 @@
       "submit": "إنشاء وإضافة",
       "submitting": "جارٍ الإنشاء…",
       "error": "حدث خطأ أثناء الإنشاء."
+    },
+    "paymentFilter": {
+      "all": "الكل",
+      "due": "للتحصيل",
+      "paid": "مدفوعة"
     }
   },
   "articles": {

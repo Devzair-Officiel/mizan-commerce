@@ -26,6 +26,7 @@ __all__ = [
     'EVENT_STATUS_CHANGE',
     'OrderTimelineEvent',
     'add_item',
+    'build_items_preview_batch',
     'create_order',
     'generate_order_number',
     'get_order_timeline',
@@ -232,6 +233,23 @@ def _release_stock(order: Order, user) -> None:
             )
     order.stock_reserved = False
     order.save(update_fields=['stock_reserved', 'updated_at'])
+
+
+def build_items_preview_batch(order_ids: list) -> dict:
+    """Fetche items pour une liste d'IDs commande.
+
+    Retourne {str(order_id): [{'name': ..., 'quantity': ...}, ...]}.
+    """
+    items_by_order: dict = {}
+    qs = OrderItem.objects.filter(order_id__in=order_ids).values(
+        'order_id', 'product_name', 'quantity',
+    )
+    for item in qs:
+        oid = str(item['order_id'])
+        items_by_order.setdefault(oid, []).append(
+            {'name': item['product_name'], 'quantity': item['quantity']},
+        )
+    return items_by_order
 
 
 @transaction.atomic

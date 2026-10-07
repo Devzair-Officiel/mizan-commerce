@@ -441,8 +441,22 @@
       "items": "{count, plural, one {# item} other {# items}}",
       "empty_filtered_title": "No orders for this filter",
       "empty_title": "No orders",
-      "empty_filtered_sub": "Try another status or remove the filter.",
-      "empty_sub": "Create your first order to get started."
+      "empty_filtered_sub": "Remove the filters to see all your orders.",
+      "empty_sub": "Every sale you record appears here, with its preparation and payment status.",
+      "empty_cta": "New sale",
+      "load_more": "Load more",
+      "column_number": "No.",
+      "column_client_items": "Customer & items",
+      "column_date": "Date",
+      "column_preparation": "Preparation",
+      "column_payment": "Payment",
+      "column_total": "Total",
+      "pagination_range": "{from}–{to} of {total}",
+      "pagination_prev": "Previous",
+      "pagination_next": "Next",
+      "search_placeholder": "Search…",
+      "search_label": "Search orders",
+      "clear_filters": "Clear filters"
     },
     "statusFilter": {
       "all": "All",
@@ -719,6 +733,11 @@
       "submit": "Create and add",
       "submitting": "Creating…",
       "error": "Error creating item."
+    },
+    "paymentFilter": {
+      "all": "All",
+      "due": "Outstanding",
+      "paid": "Paid"
     }
   },
   "articles": {

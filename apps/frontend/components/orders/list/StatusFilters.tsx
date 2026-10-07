@@ -20,10 +20,10 @@ export function StatusFilters({ value, onChange }: StatusFiltersProps) {
               key={optionValue}
               onClick={() => onChange(optionValue)}
               className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors active:scale-95 ${
-                isActive ? activeClass : 'bg-muted text-muted-foreground hover:text-foreground'
+                isActive ? activeClass : 'border border-border bg-card text-foreground hover:bg-muted/50'
               }`}
             >
-              {!isActive && dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
+              {dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
               {t(labelKey)}
             </button>
           );

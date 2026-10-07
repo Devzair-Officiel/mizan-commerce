@@ -171,3 +171,112 @@ class OrderMultiTenantTest(TestCase):
             {'status': 'cancelled'},
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class OrderListFilterAPITest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, self.product, self.variant, self.customer = setup(  # noqa: E501
+            'filter@example.com',
+        )
+        self.client.force_authenticate(user=self.user)
+
+        self.user_b, self.shop_b, self.product_b, self.variant_b, _ = setup(  # noqa: E501
+            'filter_b@example.com',
+        )
+
+    def _make_order(self, shop=None, user=None, status_val='draft', payment_status_val='unpaid'):  # noqa: E501
+        s = shop or self.shop
+        u = user or self.user
+        order = services.create_order(s, u)
+        services.add_item(order, self.variant if s == self.shop else self.variant_b, 1)
+        if status_val != 'draft':
+            path = {
+                'to_prepare': ['to_prepare'],
+                'prepared': ['to_prepare', 'prepared'],
+                'shipped': ['to_prepare', 'prepared', 'shipped'],
+                'cancelled': ['to_prepare', 'cancelled'],
+            }
+            for step in path.get(status_val, []):
+                services.transition_status(order, step, u)
+        if payment_status_val == 'paid':
+            order.refresh_from_db()
+            services.update_payment(order, order.total_amount, user=u)
+        elif payment_status_val == 'partial':
+            order.refresh_from_db()
+            services.update_payment(order, order.total_amount / 2, user=u)
+        return order
+
+    def test_due_excludes_draft(self):
+        self._make_order(status_val='draft', payment_status_val='unpaid')
+        response = self.client.get(reverse('order-list') + '?due=true')
+        self.assertEqual(response.data['count'], 0)
+
+    def test_due_excludes_cancelled(self):
+        order = services.create_order(self.shop, self.user)
+        services.add_item(order, self.variant, 1)
+        services.transition_status(order, 'to_prepare', self.user)
+        services.transition_status(order, 'cancelled', self.user)
+        response = self.client.get(reverse('order-list') + '?due=true')
+        self.assertEqual(response.data['count'], 0)
+
+    def test_due_excludes_paid(self):
+        order = services.create_order(self.shop, self.user)
+        services.add_item(order, self.variant, 1)
+        services.transition_status(order, 'to_prepare', self.user)
+        order.refresh_from_db()
+        services.update_payment(order, order.total_amount, user=self.user)
+        response = self.client.get(reverse('order-list') + '?due=true')
+        self.assertEqual(response.data['count'], 0)
+
+    def test_due_includes_correct(self):
+        order = services.create_order(self.shop, self.user)
+        services.add_item(order, self.variant, 1)
+        services.transition_status(order, 'to_prepare', self.user)
+        response = self.client.get(reverse('order-list') + '?due=true')
+        self.assertEqual(response.data['count'], 1)
+
+    def test_due_other_shop_excluded(self):
+        # commande due de l'autre boutique
+        order_b = services.create_order(self.shop_b, self.user_b)
+        services.add_item(order_b, self.variant_b, 1)
+        services.transition_status(order_b, 'to_prepare', self.user_b)
+        # commande due de ma boutique
+        order = services.create_order(self.shop, self.user)
+        services.add_item(order, self.variant, 1)
+        services.transition_status(order, 'to_prepare', self.user)
+        response = self.client.get(reverse('order-list') + '?due=true')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], str(order.id))
+
+    def test_search_by_customer_name(self):
+        customer = Customer.objects.create(shop=self.shop, name='Karima Benali')
+        order = services.create_order(self.shop, self.user, customer=customer)
+        services.add_item(order, self.variant, 1)
+        response = self.client.get(reverse('order-list') + '?search=Karima')
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['id'], str(order.id))
+
+    def test_search_by_order_number(self):
+        order = services.create_order(self.shop, self.user)
+        services.add_item(order, self.variant, 1)
+        number = order.order_number
+        response = self.client.get(reverse('order-list') + f'?search={number}')
+        self.assertGreaterEqual(response.data['count'], 1)
+        ids = [r['id'] for r in response.data['results']]
+        self.assertIn(str(order.id), ids)
+
+    def test_items_preview_no_n_plus_one(self):
+        # Crée 3 commandes avec 2 articles chacune
+        for _ in range(3):
+            order = services.create_order(self.shop, self.user)
+            services.add_item(order, self.variant, 1)
+
+        # shop_member×2 + subscription + plan + get_shop + count + list + items prefetch
+        with self.assertNumQueries(8):
+            response = self.client.get(reverse('order-list'))
+        self.assertEqual(response.status_code, 200)
+        # Les items_preview sont présents
+        for item in response.data['results']:
+            self.assertIn('items_preview', item)

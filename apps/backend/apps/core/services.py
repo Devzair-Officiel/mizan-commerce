@@ -8,7 +8,8 @@ from django.utils import timezone
 
 from apps.customers.models import Customer
 from apps.notes.models import Reminder
-from apps.orders.models import Order, OrderItem
+from apps.orders.models import Order
+from apps.orders.services import build_items_preview_batch
 from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop
 
@@ -85,13 +86,7 @@ def _build_orders_to_prepare(shop: Shop) -> dict:
 
     oldest_created_at = rows[0]['created_at'].isoformat() if rows else None
 
-    order_ids = [o['id'] for o in rows]
-    items_by_order: dict[str, list] = {}
-    item_qs = OrderItem.objects.filter(order_id__in=order_ids).values('order_id', 'product_name', 'quantity')  # noqa: E501
-    for item in item_qs:
-        oid = str(item['order_id'])
-        items_by_order.setdefault(oid, []).append({'name': item['product_name'], 'quantity': item['quantity']})  # noqa: E501
-
+    items_by_order = build_items_preview_batch([o['id'] for o in rows])
     for o in rows:
         oid = str(o['id'])
         all_items = items_by_order.get(oid, [])

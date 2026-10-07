@@ -27,12 +27,12 @@ export const PAYMENT_COLOR: Record<string, string> = {
 export type StatusFilterKey = '' | 'draft' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled';
 
 export const STATUSES: { value: StatusFilterKey; labelKey: 'all' | 'draft' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled'; dot: string | null; activeClass: string }[] = [
-  { value: '',           labelKey: 'all',        dot: null,           activeClass: 'bg-foreground text-background' },
-  { value: 'draft',      labelKey: 'draft',      dot: 'bg-zinc-400',  activeClass: 'bg-zinc-500 text-white' },
-  { value: 'to_prepare', labelKey: 'to_prepare', dot: 'bg-blue-500',  activeClass: 'bg-blue-600 text-white' },
-  { value: 'prepared',   labelKey: 'prepared',   dot: 'bg-amber-500', activeClass: 'bg-amber-500 text-white' },
-  { value: 'shipped',    labelKey: 'shipped',    dot: 'bg-green-500', activeClass: 'bg-green-600 text-white' },
-  { value: 'cancelled',  labelKey: 'cancelled',  dot: 'bg-red-500',   activeClass: 'bg-red-600 text-white' },
+  { value: '',           labelKey: 'all',        dot: null,           activeClass: 'bg-secondary text-secondary-foreground' },
+  { value: 'draft',      labelKey: 'draft',      dot: 'bg-zinc-400',  activeClass: 'bg-secondary text-secondary-foreground' },
+  { value: 'to_prepare', labelKey: 'to_prepare', dot: 'bg-blue-500',  activeClass: 'bg-secondary text-secondary-foreground' },
+  { value: 'prepared',   labelKey: 'prepared',   dot: 'bg-amber-500', activeClass: 'bg-secondary text-secondary-foreground' },
+  { value: 'shipped',    labelKey: 'shipped',    dot: 'bg-green-500', activeClass: 'bg-secondary text-secondary-foreground' },
+  { value: 'cancelled',  labelKey: 'cancelled',  dot: 'bg-red-500',   activeClass: 'bg-secondary text-secondary-foreground' },
 ];
 
 export const BUCKET_ORDER: Bucket[] = ['today', 'yesterday', 'this_week', 'older'];

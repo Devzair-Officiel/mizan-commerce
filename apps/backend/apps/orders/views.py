@@ -26,7 +26,8 @@ from .serializers import (  # noqa: E402
 
 class OrderListCreateView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
-    filter_backends = (filters.OrderingFilter,)
+    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    search_fields = ['order_number', 'customer__name', 'customer__phone']
     ordering_fields = ('created_at', 'total_amount')
     ordering = ('-created_at',)
 
@@ -45,6 +46,11 @@ class OrderListCreateView(generics.ListAPIView):
             qs = qs.filter(payment_status=payment_filter)
         if customer_filter:
             qs = qs.filter(customer_id=customer_filter)
+        due_filter = self.request.query_params.get('due')
+        if due_filter == 'true':
+            qs = qs.filter(payment_status__in=('unpaid', 'partial')).exclude(
+                status__in=('draft', 'cancelled'),
+            )
         return qs
 
     def post(self, request, *args, **kwargs):

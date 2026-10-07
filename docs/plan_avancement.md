@@ -383,8 +383,8 @@
 - [~] **Correctif police** — `--font-sans` ne se référence plus lui-même ; Geist + Noto Sans Arabic pour l'arabe
 - [~] Étape 2 — Jeu de données de démo réaliste (seed)
 - [~] Étape 3 — Shell grand écran : sidebar groupée, en-tête de page, largeur max, bandeau unique
-- [ ] Étape 4 — Nouvel accueil : compteurs « À faire », listes, carte Ventes, écran de démarrage
-- [ ] Étape 5 — Commandes et Nouvelle vente : vente sans client, vue caisse, libellés de statuts
+- [x] Étape 4 — Nouvel accueil : compteurs « À faire », listes, carte Ventes, écran de démarrage
+- [~] Étape 5 — Commandes et Nouvelle vente : vente sans client, vue caisse, libellés de statuts
 - [ ] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [ ] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { ChevronRight, ClipboardPlus, Package, PackagePlus, UserPlus, Users, X } from 'lucide-react';
+import { ChevronRight, ClipboardPlus, Package, PackagePlus, UserPlus, Users } from 'lucide-react';
 import { useMe, type ModuleKey } from '@/lib/hooks/useMe';
 import { usePlanGating, type Feature } from '@/lib/hooks/usePlanGating';
 

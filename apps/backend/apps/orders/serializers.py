@@ -79,7 +79,17 @@ class OrderListSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)  # noqa: E501
-    item_count = serializers.IntegerField(source='items.count', read_only=True)
+    item_count = serializers.SerializerMethodField()
+    items_preview = serializers.SerializerMethodField()
+
+    def get_item_count(self, obj: Order) -> int:
+        return len(obj.items.all())
+
+    def get_items_preview(self, obj: Order) -> list:
+        return [
+            {'name': item.product_name, 'quantity': item.quantity}
+            for item in list(obj.items.all())[:3]
+        ]
 
     class Meta:
         model = Order
@@ -88,7 +98,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             'payment_status', 'payment_status_display',
             'customer', 'customer_name',
             'total_amount', 'amount_paid',
-            'item_count', 'created_at',
+            'item_count', 'items_preview', 'created_at',
         )
 
 

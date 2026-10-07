@@ -60,7 +60,7 @@ export function ActiveShopDashboard({ data }: Props) {
             value={formatMoney(data.unpaid_orders.total_due, currency)}
             valueColor="text-amber-700 dark:text-amber-400"
             sub={t('counters.unpaid_sub', { count: data.unpaid_orders.count })}
-            href="#impayes"
+            href="/orders?due=true"
           />
           <CounterCard
             label={t('low_stock.title')}
@@ -69,7 +69,7 @@ export function ActiveShopDashboard({ data }: Props) {
               ? t('counters.low_stock_sub', { count: data.low_stock_products.out_of_stock_count })
               : undefined}
             subColor="text-red-600 dark:text-red-400"
-            href="/products?filter=low_stock"
+            href="/stock"
           />
           <CounterCard
             label={t('reminders.title')}
@@ -85,10 +85,8 @@ export function ActiveShopDashboard({ data }: Props) {
         <div className="lg:col-span-3 flex flex-col gap-4">
           <PrepareList count={data.orders_to_prepare.count} items={data.orders_to_prepare.items}
             oldestCreatedAt={data.orders_to_prepare.oldest_created_at} />
-          <div id="impayes">
-            <UnpaidList count={data.unpaid_orders.count} items={data.unpaid_orders.items}
-              totalDue={data.unpaid_orders.total_due} />
-          </div>
+          <UnpaidList count={data.unpaid_orders.count} items={data.unpaid_orders.items}
+            totalDue={data.unpaid_orders.total_due} />
         </div>
         <div className="lg:col-span-2 flex flex-col gap-4">
           <RevenueCard
