@@ -11,6 +11,23 @@ interface CreateReminderPayload {
   order?: string;
 }
 
+interface ReminderDone {
+  id: string;
+  status: string;
+}
+
+export function useMarkReminderDone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<ReminderDone>(`/reminders/${id}/done/`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.reminders.all });
+      qc.invalidateQueries({ queryKey: qk.dashboard.all });
+    },
+  });
+}
+
 export function useCreateReminder() {
   const qc = useQueryClient();
   return useMutation({

@@ -158,7 +158,7 @@
       "close": "Close search",
       "min_chars": "Type at least 2 characters to search.",
       "searching": "Searching…",
-      "no_results": "No results for \u201c{query}\u201d.",
+      "no_results": "No results for “{query}”.",
       "section_products": "Products",
       "section_customers": "Customers",
       "section_orders": "Orders",
@@ -213,54 +213,72 @@
     "error_title": "Loading error",
     "error_no_shop": "No shop associated with this account.",
     "error_server": "Unable to reach the server.",
-    "fresh": {
-      "refresh_aria": "Refresh",
-      "refreshing": "Refreshing…",
-      "just_now": "just now",
-      "minutes_ago": "{count} min ago",
-      "hours_ago": "{count} h ago",
-      "days_ago": "{count} d ago"
-    },
-    "kpi": {
-      "revenue_today": "Revenue",
-      "sales": "Sales",
-      "avg_ticket": "Avg ticket",
-      "today_label": "Today",
-      "delta_same": "= yesterday",
-      "delta_change": "{sign}{pct}% vs yesterday"
-    },
-    "sparkline": {
-      "title": "Revenue — last 7 days",
-      "bar_tooltip": "{revenue} — {date}"
-    },
-    "sections": {
-      "to_prepare_title": "To prepare",
-      "to_prepare_empty": "All caught up",
-      "to_prepare_empty_sub": "No orders to prepare.",
-      "unpaid_title": "Pending payments",
-      "unpaid_empty": "No unpaid",
-      "unpaid_empty_sub": "All payments are up to date.",
-      "low_stock_title": "Low stock",
-      "low_stock_empty": "Stocks OK",
-      "low_stock_empty_sub": "No product out of stock or below threshold.",
-      "reminders_title": "Today's reminders",
-      "reminders_empty": "No reminders",
-      "reminders_empty_sub": "Nothing scheduled today."
-    },
-    "rows": {
-      "see_all": "See all ({count}) →",
-      "out_of_stock": "Out of stock",
-      "remaining": "{qty} left"
-    },
-    "zakat_banner": {
-      "title": "{days, plural, =0 {Zakat today} one {Zakat in # day} other {Zakat in # days}}",
-      "sub": "Prepare the annual zakat calculation."
-    },
-    "shortcuts": {
-      "new_order": "New order",
+    "counters": {
+      "revenue": "Revenue today",
       "orders": "Orders",
-      "articles": "Articles",
-      "customers": "Customers"
+      "unpaid": "Unpaid",
+      "low_stock": "Low stock",
+      "revenue_delta_same": "= yesterday",
+      "revenue_delta": "{sign}{pct}% vs yesterday",
+      "low_stock_out": "{count} out of stock"
+    },
+    "prepare": {
+      "title": "To prepare",
+      "oldest_age": "Oldest: {age}",
+      "empty": "All caught up",
+      "empty_sub": "No orders to prepare.",
+      "see_all": "See {count} orders →"
+    },
+    "unpaid": {
+      "title": "Unpaid",
+      "total_due": "{amount} to collect",
+      "empty": "No unpaid",
+      "empty_sub": "All payments are up to date.",
+      "due": "owed {amount}",
+      "relancer": "Follow up",
+      "see_all": "See {count} orders →"
+    },
+    "revenue": {
+      "title": "Revenue — 7 days",
+      "aria_label": "Revenue over the last 7 days",
+      "today": "Today"
+    },
+    "low_stock": {
+      "title": "Low stock",
+      "empty": "Stocks OK",
+      "empty_sub": "No product out of stock or below threshold.",
+      "rupture": "Out of stock",
+      "remaining": "{qty} left",
+      "out_of_stock_sub": "{count} out of stock",
+      "see_all": "See {count} products →"
+    },
+    "reminders": {
+      "title": "Reminders",
+      "empty": "No reminders",
+      "empty_sub": "Nothing scheduled today.",
+      "overdue": "Overdue",
+      "mark_done_aria": "Mark as done",
+      "see_all": "See all →"
+    },
+    "notice": {
+      "email_title": "Confirm your email address",
+      "email_sub": "To secure your account.",
+      "email_cta": "Send link",
+      "email_sent": "Link sent — check your inbox.",
+      "email_verified": "Email verified — refresh the page.",
+      "email_resend": "Resend",
+      "zakat_title": "{days, plural, =0 {Zakat today} one {Zakat in # day} other {Zakat in # days}}",
+      "zakat_sub": "Prepare the annual zakat calculation.",
+      "zakat_cta": "View"
+    },
+    "welcome": {
+      "title": "Welcome to your shop",
+      "sub": "Start by recording your first sale.",
+      "cta": "New sale",
+      "add_products": "Add your products",
+      "add_customers": "Register your first customers",
+      "products_done": "{count, plural, one {# product added} other {# products added}}",
+      "customers_done": "{count, plural, one {# customer registered} other {# customers registered}}"
     }
   },
   "customers": {

@@ -158,7 +158,7 @@
       "close": "Fermer la recherche",
       "min_chars": "Tapez au moins 2 caractères pour rechercher.",
       "searching": "Recherche…",
-      "no_results": "Aucun résultat pour «\u00a0{query}\u00a0».",
+      "no_results": "Aucun résultat pour « {query} ».",
       "section_products": "Produits",
       "section_customers": "Clients",
       "section_orders": "Commandes",
@@ -213,54 +213,72 @@
     "error_title": "Erreur de chargement",
     "error_no_shop": "Aucune boutique associée à ce compte.",
     "error_server": "Impossible de contacter le serveur.",
-    "fresh": {
-      "refresh_aria": "Actualiser",
-      "refreshing": "Actualisation…",
-      "just_now": "à l'instant",
-      "minutes_ago": "il y a {count} min",
-      "hours_ago": "il y a {count} h",
-      "days_ago": "il y a {count} j"
-    },
-    "kpi": {
-      "revenue_today": "CA jour",
-      "sales": "Ventes",
-      "avg_ticket": "Ticket moyen",
-      "today_label": "Aujourd'hui",
-      "delta_same": "= hier",
-      "delta_change": "{sign}{pct}% vs hier"
-    },
-    "sparkline": {
-      "title": "CA — 7 derniers jours",
-      "bar_tooltip": "{revenue} — {date}"
-    },
-    "sections": {
-      "to_prepare_title": "À préparer",
-      "to_prepare_empty": "Tout est à jour",
-      "to_prepare_empty_sub": "Aucune commande à préparer.",
-      "unpaid_title": "Paiements en attente",
-      "unpaid_empty": "Aucun impayé",
-      "unpaid_empty_sub": "Tous les paiements sont à jour.",
-      "low_stock_title": "Stock faible",
-      "low_stock_empty": "Stocks OK",
-      "low_stock_empty_sub": "Aucun produit en rupture ou sous le seuil.",
-      "reminders_title": "Rappels du jour",
-      "reminders_empty": "Aucun rappel",
-      "reminders_empty_sub": "Rien de prévu aujourd'hui."
-    },
-    "rows": {
-      "see_all": "Voir tout ({count}) →",
-      "out_of_stock": "Rupture",
-      "remaining": "{qty} restants"
-    },
-    "zakat_banner": {
-      "title": "{days, plural, =0 {Zakat aujourd'hui} one {Zakat dans # jour} other {Zakat dans # jours}}",
-      "sub": "Préparer le calcul de la zakat annuelle."
-    },
-    "shortcuts": {
-      "new_order": "Nouvelle commande",
+    "counters": {
+      "revenue": "CA du jour",
       "orders": "Commandes",
-      "articles": "Articles",
-      "customers": "Clients"
+      "unpaid": "Impayés",
+      "low_stock": "Stock faible",
+      "revenue_delta_same": "= hier",
+      "revenue_delta": "{sign}{pct}% vs hier",
+      "low_stock_out": "{count} en rupture"
+    },
+    "prepare": {
+      "title": "À préparer",
+      "oldest_age": "Plus ancienne : {age}",
+      "empty": "Tout est à jour",
+      "empty_sub": "Aucune commande à préparer.",
+      "see_all": "Voir {count} commandes →"
+    },
+    "unpaid": {
+      "title": "Impayés",
+      "total_due": "{amount} à percevoir",
+      "empty": "Aucun impayé",
+      "empty_sub": "Tous les paiements sont à jour.",
+      "due": "reste {amount}",
+      "relancer": "Relancer",
+      "see_all": "Voir {count} commandes →"
+    },
+    "revenue": {
+      "title": "CA — 7 jours",
+      "aria_label": "Chiffre d'affaires des 7 derniers jours",
+      "today": "Auj."
+    },
+    "low_stock": {
+      "title": "Stock faible",
+      "empty": "Stocks OK",
+      "empty_sub": "Aucun produit en rupture ou sous le seuil.",
+      "rupture": "Rupture",
+      "remaining": "{qty} restants",
+      "out_of_stock_sub": "{count} en rupture",
+      "see_all": "Voir {count} produits →"
+    },
+    "reminders": {
+      "title": "Rappels",
+      "empty": "Aucun rappel",
+      "empty_sub": "Rien de prévu aujourd'hui.",
+      "overdue": "En retard",
+      "mark_done_aria": "Marquer comme terminé",
+      "see_all": "Voir tout →"
+    },
+    "notice": {
+      "email_title": "Confirme ton adresse email",
+      "email_sub": "Pour sécuriser ton compte.",
+      "email_cta": "Envoyer le lien",
+      "email_sent": "Lien envoyé — vérifie ta boîte mail.",
+      "email_verified": "Email vérifié — actualise la page.",
+      "email_resend": "Renvoyer",
+      "zakat_title": "{days, plural, =0 {Zakat aujourd'hui} one {Zakat dans # jour} other {Zakat dans # jours}}",
+      "zakat_sub": "Préparer le calcul de la zakat annuelle.",
+      "zakat_cta": "Voir"
+    },
+    "welcome": {
+      "title": "Bienvenue dans ta boutique",
+      "sub": "Commence par enregistrer ta première vente.",
+      "cta": "Nouvelle vente",
+      "add_products": "Ajoute tes produits",
+      "add_customers": "Enregistre tes premiers clients",
+      "products_done": "{count, plural, one {# produit ajouté} other {# produits ajoutés}}",
+      "customers_done": "{count, plural, one {# client enregistré} other {# clients enregistrés}}"
     }
   },
   "customers": {

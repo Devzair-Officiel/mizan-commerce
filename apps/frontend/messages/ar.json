@@ -136,7 +136,7 @@
       "close": "إغلاق البحث",
       "min_chars": "اكتب حرفين على الأقل للبحث.",
       "searching": "جاري البحث…",
-      "no_results": "لا توجد نتائج لـ «\u00a0{query}\u00a0».",
+      "no_results": "لا توجد نتائج لـ « {query} ».",
       "section_products": "المنتجات",
       "section_customers": "العملاء",
       "section_orders": "الطلبات",
@@ -191,54 +191,72 @@
     "error_title": "خطأ في التحميل",
     "error_no_shop": "لا يوجد متجر مرتبط بهذا الحساب.",
     "error_server": "تعذر الاتصال بالخادم.",
-    "fresh": {
-      "refresh_aria": "تحديث",
-      "refreshing": "جاري التحديث…",
-      "just_now": "الآن",
-      "minutes_ago": "منذ {count} د",
-      "hours_ago": "منذ {count} س",
-      "days_ago": "منذ {count} ي"
-    },
-    "kpi": {
-      "revenue_today": "الإيرادات",
-      "sales": "المبيعات",
-      "avg_ticket": "متوسط الفاتورة",
-      "today_label": "اليوم",
-      "delta_same": "= البارحة",
-      "delta_change": "{sign}{pct}٪ مقارنة بالأمس"
-    },
-    "sparkline": {
-      "title": "الإيرادات — آخر 7 أيام",
-      "bar_tooltip": "{revenue} — {date}"
-    },
-    "sections": {
-      "to_prepare_title": "قيد التحضير",
-      "to_prepare_empty": "كل شيء محدث",
-      "to_prepare_empty_sub": "لا توجد طلبات للتحضير.",
-      "unpaid_title": "مدفوعات معلقة",
-      "unpaid_empty": "لا توجد مستحقات",
-      "unpaid_empty_sub": "جميع المدفوعات محدثة.",
-      "low_stock_title": "مخزون منخفض",
-      "low_stock_empty": "المخزون جيد",
-      "low_stock_empty_sub": "لا يوجد منتج نفد أو تحت الحد الأدنى.",
-      "reminders_title": "تذكيرات اليوم",
-      "reminders_empty": "لا توجد تذكيرات",
-      "reminders_empty_sub": "لا شيء مجدول اليوم."
-    },
-    "rows": {
-      "see_all": "عرض الكل ({count}) →",
-      "out_of_stock": "نفد المخزون",
-      "remaining": "بقي {qty}"
-    },
-    "zakat_banner": {
-      "title": "{days, plural, =0 {الزكاة اليوم} one {الزكاة بعد # يوم} other {الزكاة بعد # أيام}}",
-      "sub": "تحضير حساب الزكاة السنوية."
-    },
-    "shortcuts": {
-      "new_order": "طلب جديد",
+    "counters": {
+      "revenue": "إيرادات اليوم",
       "orders": "الطلبات",
-      "articles": "المقالات",
-      "customers": "العملاء"
+      "unpaid": "المستحقات",
+      "low_stock": "مخزون منخفض",
+      "revenue_delta_same": "= البارحة",
+      "revenue_delta": "{sign}{pct}٪ مقارنة بالأمس",
+      "low_stock_out": "{count} نفد مخزونه"
+    },
+    "prepare": {
+      "title": "قيد التحضير",
+      "oldest_age": "الأقدم: {age}",
+      "empty": "كل شيء محدث",
+      "empty_sub": "لا توجد طلبات للتحضير.",
+      "see_all": "عرض {count} طلب →"
+    },
+    "unpaid": {
+      "title": "المستحقات",
+      "total_due": "{amount} للتحصيل",
+      "empty": "لا توجد مستحقات",
+      "empty_sub": "جميع المدفوعات محدثة.",
+      "due": "متبقي {amount}",
+      "relancer": "تذكير",
+      "see_all": "عرض {count} طلب →"
+    },
+    "revenue": {
+      "title": "الإيرادات — 7 أيام",
+      "aria_label": "الإيرادات خلال آخر 7 أيام",
+      "today": "اليوم"
+    },
+    "low_stock": {
+      "title": "مخزون منخفض",
+      "empty": "المخزون جيد",
+      "empty_sub": "لا يوجد منتج نفد أو تحت الحد الأدنى.",
+      "rupture": "نفد",
+      "remaining": "بقي {qty}",
+      "out_of_stock_sub": "{count} نفد",
+      "see_all": "عرض {count} منتج →"
+    },
+    "reminders": {
+      "title": "التذكيرات",
+      "empty": "لا توجد تذكيرات",
+      "empty_sub": "لا شيء مجدول اليوم.",
+      "overdue": "متأخر",
+      "mark_done_aria": "تحديد كمنجز",
+      "see_all": "عرض الكل →"
+    },
+    "notice": {
+      "email_title": "تأكيد عنوان بريدك الإلكتروني",
+      "email_sub": "لتأمين حسابك.",
+      "email_cta": "إرسال الرابط",
+      "email_sent": "تم إرسال الرابط — تحقق من بريدك.",
+      "email_verified": "تم التحقق — أعد تحميل الصفحة.",
+      "email_resend": "إعادة الإرسال",
+      "zakat_title": "{days, plural, =0 {الزكاة اليوم} one {الزكاة بعد # يوم} other {الزكاة بعد # أيام}}",
+      "zakat_sub": "تحضير حساب الزكاة السنوية.",
+      "zakat_cta": "عرض"
+    },
+    "welcome": {
+      "title": "مرحباً بك في متجرك",
+      "sub": "ابدأ بتسجيل أول عملية بيع.",
+      "cta": "بيع جديد",
+      "add_products": "أضف منتجاتك",
+      "add_customers": "سجّل أول عملائك",
+      "products_done": "{count, plural, one {# منتج مضاف} other {# منتجات مضافة}}",
+      "customers_done": "{count, plural, one {# عميل مسجّل} other {# عملاء مسجّلون}}"
     }
   },
   "customers": {

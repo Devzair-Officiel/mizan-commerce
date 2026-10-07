@@ -15,7 +15,9 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
   `--muted-foreground`, `--border`, `--destructive` (via Tailwind: `bg-primary`,
   `text-foreground`, etc.).
 - Signaux sémantiques uniquement (red/amber/green) : danger, attente, succès.
-  Toujours en paire light/dark : `text-amber-600 dark:text-amber-400`.
+  Toujours en paire light/dark. Pour du texte normal (≥ 12px) : `text-amber-700 dark:text-amber-400`
+  et `text-red-700 dark:text-red-400`. Pour les grandes métriques ou les badges : `text-amber-600`/`text-red-600`.
+  Ne jamais utiliser `-500` sur fond clair (contraste insuffisant WCAG).
 - **Exception — icônes sur fond de swatch fixe** : les icônes incrustées dans un swatch de couleur (ThemeToggle, ColorPicker) sont évaluées contre la couleur du swatch lui-même, pas contre le thème actif. Pas de paire `dark:` requise sur ces icônes précises.
 - Rayons : `rounded-2xl` cartes, `rounded-full` boutons d'action, `rounded-xl` chips.
 

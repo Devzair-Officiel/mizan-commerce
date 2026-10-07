@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { qk } from '@/lib/query-keys';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { useMarkReminderDone } from '@/lib/hooks/useReminders';
 
 interface Reminder {
   id: string;
@@ -69,10 +70,7 @@ export default function RemindersPage() {
 
   function invalidateAll() { qc.invalidateQueries({ queryKey: qk.reminders.all }); }
 
-  const markDone = useMutation({
-    mutationFn: (id: string) => apiFetch<Reminder>(`/reminders/${id}/done/`, { method: 'POST' }),
-    onSuccess: () => { invalidateAll(); resetForm(); },
-  });
+  const markDone = useMarkReminderDone();
   const reopen = useMutation({
     mutationFn: (id: string) => apiFetch<Reminder>(`/reminders/${id}/reopen/`, { method: 'POST' }),
     onSuccess: () => { invalidateAll(); resetForm(); },
@@ -165,7 +163,7 @@ export default function RemindersPage() {
           <div className="flex flex-col gap-2 mt-1">
             {editing && editing.status === 'pending' && (
               <Button variant="outline" className="w-full text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/20"
-                onClick={() => markDone.mutate(editing.id)} disabled={markDone.isPending}>
+                onClick={() => markDone.mutate(editing.id, { onSuccess: resetForm })} disabled={markDone.isPending}>
                 {markDone.isPending ? '…' : 'Marquer comme terminé'}
               </Button>
             )}

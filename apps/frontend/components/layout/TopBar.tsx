@@ -136,6 +136,7 @@ function Breadcrumb() {
 
 interface TopBarProps {
   title: string;
+  subtitle?: string;
   action?: React.ReactNode;
   back?: boolean;
   onBack?: () => void;
@@ -170,7 +171,7 @@ function TopBarSearchButton({ onClick, label }: { onClick: () => void; label: st
   );
 }
 
-export function TopBar({ title, action, back, onBack, titleClassName }: TopBarProps) {
+export function TopBar({ title, subtitle, action, back, onBack, titleClassName }: TopBarProps) {
   const tc = useTranslations('layout.common');
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
@@ -200,11 +201,16 @@ export function TopBar({ title, action, back, onBack, titleClassName }: TopBarPr
         </div>
 
         {/* Title */}
-        <h1
-          className={`flex-1 min-w-0 text-center font-semibold text-foreground pointer-events-none truncate lg:text-start lg:text-[28px] lg:tracking-tight lg:pointer-events-auto ${titleClassName ?? 'text-2xl'}`}
-        >
-          {title}
-        </h1>
+        <div className="flex-1 min-w-0 lg:flex lg:flex-col">
+          <h1
+            className={`min-w-0 text-center font-semibold text-foreground pointer-events-none truncate lg:text-start lg:text-[28px] lg:tracking-tight lg:pointer-events-auto ${titleClassName ?? 'text-2xl'}`}
+          >
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="hidden lg:block text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>
+          )}
+        </div>
 
         {/* Right actions */}
         <div className="shrink-0 flex items-center gap-1 lg:gap-3 lg:mb-1">
