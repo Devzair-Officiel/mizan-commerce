@@ -35,7 +35,7 @@ class Command(BaseCommand):
         from apps.stock.models import StockMovement
         from apps.customers.models import Customer
         from apps.subscriptions.models import Subscription, SubscriptionPlan
-        from .seed_fr import run_seed_fr
+        from ._seed_fr import run_seed_fr
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
             """Pose un abonnement déterministe sur la boutique. Idempotent."""
