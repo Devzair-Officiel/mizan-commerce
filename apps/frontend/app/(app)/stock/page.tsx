@@ -12,6 +12,7 @@ import {
   type StockMovement,
   type StockMovementType,
 } from '@/lib/hooks/useStock';
+import { isDefaultVariant } from '@/lib/products';
 
 const MOVEMENT_VISUAL: Record<
   StockMovementType,
@@ -182,7 +183,7 @@ function MovementRow({ movement }: { movement: StockMovement }) {
   // déjà indiqué dans variant_name juste en dessous).
   const num = parseFloat(movement.quantity);
   const qty = Number.isInteger(num) ? num.toString() : num.toString().replace(/\.?0+$/, '');
-  const showVariant = movement.variant_name && movement.variant_name !== 'Par défaut';
+  const showVariant = movement.variant_name && !isDefaultVariant(movement.variant_name);
 
   return (
     <li>

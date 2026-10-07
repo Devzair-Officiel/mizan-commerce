@@ -467,6 +467,10 @@
       canonique (icône + titre + sous-titre) contrairement à notes/page.tsx,
       qui a reçu ce traitement lors du chantier UX. À aligner.
 
+- [ ] Variante par défaut identifiée par son nom stocké en français (`'Par défaut'`) :
+      remplacer par un booléen `is_default` sur `ProductVariant`, avec migration des données.
+      Centralisé dans `lib/products.ts` (`DEFAULT_VARIANT_NAME` + `isDefaultVariant()`) en attendant.
+
 - [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la
       surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de

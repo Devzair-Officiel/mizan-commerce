@@ -10,12 +10,15 @@ export type NavLabelKey =
   | 'group_sell' | 'group_catalog' | 'group_track'
   | 'articles' | 'catalogue' | 'services';
 
+export type BadgeKey = 'orders_to_prepare' | 'low_stock' | 'reminders_due';
+
 export type NavEntry = {
   href: string;
   labelKey: NavLabelKey;
   icon: (props: { className?: string }) => React.JSX.Element;
   gate?: Gate;
   feature?: Feature;
+  badgeKey?: BadgeKey;
 };
 
 export type NavGroup = {
@@ -57,14 +60,14 @@ export function getNavGroups(catalogKind: CatalogKind): readonly NavGroup[] {
     ? [productsEntry]
     : [
         productsEntry,
-        { href: '/stock', labelKey: 'stock', icon: ArchiveIcon, gate: { kind: 'module', module: 'stock' }, feature: 'stock' },
+        { href: '/stock', labelKey: 'stock', icon: ArchiveIcon, gate: { kind: 'module', module: 'stock' }, feature: 'stock', badgeKey: 'low_stock' },
       ];
   return [
     { entries: [{ href: '/dashboard', labelKey: 'dashboard', icon: HomeIcon, gate: { kind: 'module', module: 'dashboard' } }] },
     {
       titleKey: 'group_sell',
       entries: [
-        { href: '/orders', labelKey: 'orders', icon: ShoppingBagIcon, gate: { kind: 'module', module: 'orders' }, feature: 'orders' },
+        { href: '/orders', labelKey: 'orders', icon: ShoppingBagIcon, gate: { kind: 'module', module: 'orders' }, feature: 'orders', badgeKey: 'orders_to_prepare' },
         { href: '/customers', labelKey: 'customers', icon: UsersIcon, gate: { kind: 'module', module: 'customers' } },
         { href: '/invoices', labelKey: 'invoices', icon: ReceiptIcon, gate: { kind: 'module', module: 'invoices' }, feature: 'invoices' },
       ],
@@ -73,7 +76,7 @@ export function getNavGroups(catalogKind: CatalogKind): readonly NavGroup[] {
     {
       titleKey: 'group_track',
       entries: [
-        { href: '/reminders', labelKey: 'reminders', icon: BellIcon, feature: 'reminders' },
+        { href: '/reminders', labelKey: 'reminders', icon: BellIcon, feature: 'reminders', badgeKey: 'reminders_due' },
         { href: '/notes', labelKey: 'notes', icon: NoteIcon, feature: 'notes' },
         { href: '/zakat', labelKey: 'zakat', icon: ZakatIcon, gate: { kind: 'admin' }, feature: 'zakat' },
       ],
@@ -95,7 +98,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     titleKey: 'group_sell',
     entries: [
-      { href: '/orders',   labelKey: 'orders',   icon: ShoppingBagIcon, gate: { kind: 'module', module: 'orders' },   feature: 'orders' },
+      { href: '/orders',   labelKey: 'orders',   icon: ShoppingBagIcon, gate: { kind: 'module', module: 'orders' },   feature: 'orders',   badgeKey: 'orders_to_prepare' },
       { href: '/customers',labelKey: 'customers', icon: UsersIcon,       gate: { kind: 'module', module: 'customers' } },
       { href: '/invoices', labelKey: 'invoices',  icon: ReceiptIcon,     gate: { kind: 'module', module: 'invoices' }, feature: 'invoices' },
     ],
@@ -104,13 +107,13 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     titleKey: 'group_catalog',
     entries: [
       { href: '/products', labelKey: 'products', icon: PackageIcon, gate: { kind: 'module', module: 'products' }, feature: 'products' },
-      { href: '/stock',    labelKey: 'stock',    icon: ArchiveIcon,  gate: { kind: 'module', module: 'stock' },    feature: 'stock' },
+      { href: '/stock',    labelKey: 'stock',    icon: ArchiveIcon,  gate: { kind: 'module', module: 'stock' },    feature: 'stock',    badgeKey: 'low_stock' },
     ],
   },
   {
     titleKey: 'group_track',
     entries: [
-      { href: '/reminders', labelKey: 'reminders', icon: BellIcon,  feature: 'reminders' },
+      { href: '/reminders', labelKey: 'reminders', icon: BellIcon,  feature: 'reminders', badgeKey: 'reminders_due' },
       { href: '/notes',     labelKey: 'notes',     icon: NoteIcon,  feature: 'notes' },
       { href: '/zakat',     labelKey: 'zakat',     icon: ZakatIcon, gate: { kind: 'admin' }, feature: 'zakat' },
     ],

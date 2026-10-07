@@ -24,6 +24,7 @@ export function useMarkReminderDone() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.reminders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
     },
   });
 }
@@ -36,6 +37,7 @@ export function useCreateReminder() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.reminders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
     },
   });
 }

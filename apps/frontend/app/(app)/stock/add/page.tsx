@@ -62,6 +62,7 @@ function StockAddForm() {
       });
       qc.invalidateQueries({ queryKey: qk.products.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
       router.back();
     } catch {
       setError("Erreur lors de l'ajout de stock.");

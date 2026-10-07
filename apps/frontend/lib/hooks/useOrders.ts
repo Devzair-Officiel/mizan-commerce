@@ -160,6 +160,7 @@ export function useCreateOrder() {
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
@@ -173,6 +174,7 @@ export function useTransitionOrder(id: string) {
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
       qc.invalidateQueries({ queryKey: qk.invoices.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },

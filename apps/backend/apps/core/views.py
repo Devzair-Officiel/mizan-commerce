@@ -7,8 +7,8 @@ from apps.customers.models import Customer
 from apps.orders.models import Order
 from apps.products.models import Product
 
-from .permissions import HasModulePermission, get_shop
-from .services import build_dashboard_today
+from .permissions import HasModulePermission, get_member, get_shop
+from .services import build_dashboard_today, build_nav_badges
 
 HasDashboardModule = HasModulePermission.for_module('dashboard')
 
@@ -19,6 +19,14 @@ class DashboardTodayView(APIView):
     def get(self, request):
         shop = get_shop(request.user)
         return Response(build_dashboard_today(shop))
+
+
+class DashboardBadgesView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        member = get_member(request.user)
+        return Response(build_nav_badges(member.shop, member))
 
 
 class GlobalSearchView(APIView):

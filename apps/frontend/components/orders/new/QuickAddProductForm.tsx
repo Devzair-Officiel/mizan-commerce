@@ -9,6 +9,7 @@ import { useCreateProduct, type ProductDetail, type ProductType, type ProductVar
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 import { useShop } from '@/lib/hooks/useShop';
+import { DEFAULT_VARIANT_NAME } from '@/lib/products';
 
 interface QuickAddProductFormProps {
   onCreated: (product: ProductDetail) => void;
@@ -87,7 +88,7 @@ export function QuickAddProductForm({ onCreated, onClose }: QuickAddProductFormP
       await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
         method: 'POST',
         body: JSON.stringify({
-          packaging_name: 'Par défaut',
+          packaging_name: DEFAULT_VARIANT_NAME,
           unit: 'piece',
           base_quantity: '1',
           selling_price: price,

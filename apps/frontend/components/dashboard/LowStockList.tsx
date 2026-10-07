@@ -5,11 +5,10 @@ import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { formatStock } from '@/lib/hooks/useProducts';
 import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { isDefaultVariant } from '@/lib/products';
 import type { ProductSummary } from '@/lib/hooks/useDashboard';
 
 interface Props { count: number; items: ProductSummary[]; outOfStockCount: number; }
-
-const DEFAULT_VARIANT_NAME = 'Par défaut';
 
 export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
   const t = useTranslations('dashboard.low_stock');
@@ -31,7 +30,7 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
       <div className="divide-y divide-border">
         {items.map((p) => {
           const isOut = parseFloat(p.stock_quantity) <= 0;
-          const showVariant = p.variant_name !== DEFAULT_VARIANT_NAME;
+          const showVariant = !isDefaultVariant(p.variant_name);
           return (
             <div key={p.variant_id} className="flex items-center gap-3 px-5 py-3.5">
               <Link href={`/products/${p.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">

@@ -18,7 +18,7 @@ from apps.orders import services as order_services
 from apps.orders.models import Order
 from apps.notes.models import Reminder
 
-from apps.core.services import build_dashboard_today
+from apps.core.services import build_dashboard_today, build_nav_badges
 
 
 def setup(email: str, shop_timezone: str = 'Europe/Paris'):
@@ -225,6 +225,76 @@ class DashboardTodayTest(TestCase):
         order_services.create_order(shop_b, user_b)
         data = build_dashboard_today(self.shop)
         self.assertFalse(data['setup']['has_orders'])
+
+
+class DashboardBadgesTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup("badges@example.com")
+        self.client.force_authenticate(user=self.user)
+
+    def _url(self):
+        return reverse("dashboard-badges")
+
+    def test_empty_badges(self):
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('orders_to_prepare', response.data)
+        self.assertNotIn('low_stock', response.data)
+        self.assertNotIn('reminders_due', response.data)
+
+    def test_orders_to_prepare_badge(self):
+        order = order_services.create_order(self.shop, self.user)
+        order_services.transition_status(order, "to_prepare", self.user)
+        response = self.client.get(self._url())
+        self.assertEqual(response.data.get('orders_to_prepare'), 1)
+
+    def test_low_stock_badge(self):
+        p = Product.objects.create(shop=self.shop, name="Low stock test")
+        v = ProductVariant.objects.create(
+            shop=self.shop, product=p, packaging_name="Par défaut", unit="piece",
+            base_quantity=1, selling_price=Decimal("10"), low_stock_threshold=5,
+        )
+        StockMovement.objects.create(shop=self.shop, variant=v, movement_type="in", quantity=3)
+        response = self.client.get(self._url())
+        self.assertEqual(response.data.get('low_stock'), 1)
+
+    def test_out_of_stock_badge(self):
+        p = Product.objects.create(shop=self.shop, name="Rupture test")
+        ProductVariant.objects.create(
+            shop=self.shop, product=p, packaging_name="Par défaut", unit="piece",
+            base_quantity=1, selling_price=Decimal("10"),
+        )
+        response = self.client.get(self._url())
+        self.assertEqual(response.data.get('low_stock'), 1)
+
+    def test_reminders_due_badge(self):
+        Reminder.objects.create(
+            shop=self.shop, author=self.user, title="Relance",
+            due_at=timezone.now() - timedelta(hours=2),
+        )
+        response = self.client.get(self._url())
+        self.assertEqual(response.data.get('reminders_due'), 1)
+
+    def test_multitenant_isolation(self):
+        user_b, shop_b = setup("badges_b@example.com")
+        order_b = order_services.create_order(shop_b, user_b)
+        order_services.transition_status(order_b, "to_prepare", user_b)
+        response = self.client.get(self._url())
+        self.assertNotIn('orders_to_prepare', response.data)
+
+    def test_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(self._url())
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_service_direct(self):
+        from apps.shops.models import ShopMember
+        order = order_services.create_order(self.shop, self.user)
+        order_services.transition_status(order, "to_prepare", self.user)
+        member = ShopMember.objects.get(shop=self.shop, user=self.user)
+        badges = build_nav_badges(self.shop, member)
+        self.assertEqual(badges.get('orders_to_prepare'), 1)
 
 
 class SeedDataTest(TestCase):

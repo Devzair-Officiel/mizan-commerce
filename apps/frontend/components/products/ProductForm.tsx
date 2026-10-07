@@ -9,6 +9,7 @@ import { AlertCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
 import { ApiError } from '@/lib/api-client';
+import { DEFAULT_VARIANT_NAME } from '@/lib/products';
 import {
   UNIT_LABELS,
   type ProductDetail,
@@ -124,7 +125,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         description: values.description,
       };
       const variant: ProductVariantFormData | null = isEditing ? null : {
-        packaging_name: 'Par défaut',
+        packaging_name: DEFAULT_VARIANT_NAME,
         unit: isProduct ? (values.unit ?? 'piece') : 'piece',
         base_quantity: '1',
         selling_price: values.selling_price ?? '',

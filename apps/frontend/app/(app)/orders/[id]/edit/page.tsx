@@ -20,6 +20,7 @@ import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { apiFetch } from '@/lib/api-client';
+import { isDefaultVariant } from '@/lib/products';
 
 interface EditItem {
   id?: string;
@@ -207,7 +208,7 @@ function EditController({ order }: { order: Order }) {
                   <div key={k} className="flex items-center gap-3 px-4 py-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{item.product_name}</p>
-                      {item.variant_name && item.variant_name !== 'Par défaut' && (
+                      {item.variant_name && !isDefaultVariant(item.variant_name) && (
                         <p className="text-[11px] text-muted-foreground truncate">{item.variant_name}</p>
                       )}
                     </div>

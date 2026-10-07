@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { isNavActive, passesGate, type NavGroup, type NavLabelKey } from '@/lib/navigation';
 import type { ModuleKey } from '@/lib/hooks/useMe';
 import type { Feature } from '@/lib/hooks/usePlanGating';
+import { useNavBadges } from '@/lib/hooks/useNavBadges';
 
 export function SidebarNavGroup({
   group,
@@ -18,6 +19,7 @@ export function SidebarNavGroup({
   pathname: string;
 }) {
   const tNav = useTranslations('layout.nav');
+  const { data: badges } = useNavBadges();
 
   const visible = group.entries.filter(
     (e) => passesGate(e.gate, membership) && (e.feature ? can(e.feature) : true),
@@ -33,8 +35,9 @@ export function SidebarNavGroup({
         </p>
       )}
       <div className="flex flex-col gap-0.5">
-        {visible.map(({ href, labelKey, icon: Icon }) => {
+        {visible.map(({ href, labelKey, icon: Icon, badgeKey }) => {
           const active = isNavActive(href, pathname);
+          const badgeCount = badgeKey ? (badges?.[badgeKey] ?? 0) : 0;
           return (
             <Link
               key={href}
@@ -49,6 +52,14 @@ export function SidebarNavGroup({
                 className={`h-5 w-5 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`}
               />
               {tNav(labelKey as NavLabelKey)}
+              {badgeCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="ms-auto min-w-5.5 h-5.5 px-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tabular-nums flex items-center justify-center leading-none"
+                >
+                  {badgeCount > 99 ? '99+' : badgeCount}
+                </span>
+              )}
             </Link>
           );
         })}

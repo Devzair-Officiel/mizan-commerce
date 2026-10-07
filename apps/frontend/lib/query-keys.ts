@@ -157,4 +157,8 @@ export const qk = {
     all: ['ocr'] as const,
     result: (id: string) => ['ocr', 'result', id] as const,
   },
+
+  navBadges: {
+    all: ['nav-badges'] as const,
+  },
 } as const;

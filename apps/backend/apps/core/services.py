@@ -11,7 +11,7 @@ from apps.notes.models import Reminder
 from apps.orders.models import Order
 from apps.orders.services import build_items_preview_batch
 from apps.products.models import Product, ProductVariant
-from apps.shops.models import Shop
+from apps.shops.models import Shop, ShopMember
 
 
 def _day_bounds(now: datetime, tz: ZoneInfo) -> tuple[datetime, datetime, date]:
@@ -196,6 +196,35 @@ def _build_setup(shop: Shop) -> dict:
         'products_count': Product.objects.filter(shop=shop, is_active=True).count(),
         'customers_count': Customer.objects.filter(shop=shop, is_active=True).count(),
     }
+
+
+def build_nav_badges(shop: Shop, member: ShopMember) -> dict[str, int]:
+    result: dict[str, int] = {}
+    if member.has_module('orders'):
+        count = Order.objects.filter(shop=shop, status='to_prepare').count()
+        if count > 0:
+            result['orders_to_prepare'] = count
+    if member.has_module('stock'):
+        count = (
+            ProductVariant.objects.filter(
+                shop=shop, is_active=True, product__is_active=True, product__type='product',
+            )
+            .filter(
+                Q(stock_quantity__lte=0) |
+                Q(low_stock_threshold__isnull=False, stock_quantity__lte=F('low_stock_threshold'))
+            )
+            .count()
+        )
+        if count > 0:
+            result['low_stock'] = count
+    now = timezone.now()
+    _, day_end, _ = _day_bounds(now, ZoneInfo(shop.timezone))
+    count = Reminder.objects.filter(
+        shop=shop, status='pending', due_at__lt=day_end,
+    ).count()
+    if count > 0:
+        result['reminders_due'] = count
+    return result
 
 
 def build_dashboard_today(shop: Shop, now: datetime | None = None) -> dict:

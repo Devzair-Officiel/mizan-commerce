@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { isDefaultVariant } from '@/lib/products';
 import type { LineItem } from './types';
 
 interface OrderItemsListProps {
@@ -70,7 +71,7 @@ function OrderItemRow({
               </span>
             )}
           </div>
-          {item.variant_name && item.variant_name !== 'Par défaut' && (
+          {item.variant_name && !isDefaultVariant(item.variant_name) && (
             <span className="text-[11px] text-muted-foreground truncate">{item.variant_name}</span>
           )}
           <span className="text-xs text-muted-foreground tabular-nums">
