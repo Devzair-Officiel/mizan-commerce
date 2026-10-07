@@ -17,8 +17,8 @@
   --au-ink:       #16261d;
   --au-ink-soft:  #5e6c61;
   --au-line:      rgba(20, 38, 29, 0.10);
-  --au-sans:      var(--font-manrope), system-ui, sans-serif;
-  --au-serif:     var(--font-instrument-serif), Georgia, serif;
+  --au-sans:      var(--font-manrope), var(--font-arabic), system-ui, sans-serif;
+  --au-serif:     var(--font-instrument-serif), var(--font-arabic), Georgia, serif;
 
   font-family: var(--au-sans);
   color: var(--au-cream);
@@ -107,6 +107,11 @@
   font-style: italic;
   font-weight: 400;
   color: var(--au-gold-deep);
+}
+/* L'italique synthétisé sur l'arabe est illisible — on le désactive en RTL */
+[dir="rtl"] .mzn-auth .au-card h1 .serif-i {
+  font-style: normal;
+  font-weight: 600;
 }
 .mzn-auth .au-card .au-sub {
   margin: 8px 0 0;
