@@ -19,8 +19,8 @@ export function NewShopWelcome({ productsCount, customersCount }: Props) {
         <h2 className="text-lg font-semibold text-foreground">{t('title')}</h2>
         <p className="text-sm text-muted-foreground max-w-xs">{t('sub')}</p>
       </div>
-      <Button asChild size="lg" className="rounded-full px-8">
-        <Link href="/orders/new">{t('cta')}</Link>
+      <Button render={<Link href="/orders/new" />} size="lg" className="rounded-full px-8">
+        {t('cta')}
       </Button>
       <div className="flex flex-col gap-2 w-full max-w-xs text-start">
         <SetupItem
