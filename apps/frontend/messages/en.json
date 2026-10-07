@@ -156,8 +156,8 @@
     },
     "search": {
       "title": "Search",
-      "placeholder": "Search product, customer, order…",
-      "aria_label": "Search product, customer, order",
+      "placeholder": "Search orders, customers…",
+      "aria_label": "Search orders, customers",
       "close": "Close search",
       "min_chars": "Type at least 2 characters to search.",
       "searching": "Searching…",
@@ -225,18 +225,26 @@
       "revenue_delta": "{sign}{pct}% vs yesterday",
       "low_stock_out": "{count} out of stock",
       "section_today": "What to do today",
-      "prepare_sub": "oldest: {age}",
-      "unpaid_sub": "{count, plural, one {# order} other {# orders}}",
+      "prepare_sub": "orders, oldest {age}",
+      "unpaid_sub": "{count, plural, one {# order} other {# orders}} pending",
       "low_stock_sub": "incl. {count} out of stock",
-      "reminders_next": "next at {time}",
-      "reminders_late": "{count} overdue"
+      "reminders_next": "today, next at {time}",
+      "reminders_late": "{count} overdue",
+      "low_stock_unit": "items"
     },
     "prepare": {
-      "title": "To prepare",
+      "title": "Orders to prepare",
       "oldest_age": "Oldest: {age}",
       "empty": "All caught up",
       "empty_sub": "No orders to prepare.",
-      "see_all": "See {count} orders →"
+      "see_all": "See {count} orders →",
+      "see_all_link": "View all",
+      "date_today": "Today",
+      "date_yesterday": "Yesterday",
+      "payment_paid": "Paid",
+      "payment_partial": "Partial",
+      "payment_unpaid": "Unpaid",
+      "no_customer": "No customer"
     },
     "unpaid": {
       "title": "Unpaid",
@@ -245,14 +253,20 @@
       "empty_sub": "All payments are up to date.",
       "due": "owed {amount}",
       "relancer": "Follow up",
-      "see_all": "See {count} orders →"
+      "see_all": "See {count} orders →",
+      "total_due_label": "Total due",
+      "order_ref": "Order {number}, {age}",
+      "no_customer": "No customer"
     },
     "revenue": {
-      "title": "Revenue — 7 days",
+      "title": "Sales",
       "aria_label": "Revenue over the last 7 days",
       "today": "Today",
       "footer": "7-day total: {amount}",
-      "orders_summary": "{count, plural, one {# sale} other {# sales}} · avg basket {avg}"
+      "orders_summary": "{count, plural, one {# sale} other {# sales}}, avg basket {avg}",
+      "header_meta": "Last 7 days",
+      "today_label": "Today",
+      "footer_label": "7-day total"
     },
     "low_stock": {
       "title": "Low stock",
@@ -261,15 +275,19 @@
       "rupture": "Out of stock",
       "remaining": "{qty} left",
       "out_of_stock_sub": "{count} out of stock",
-      "see_all": "See {count} products →"
+      "see_all": "See {count} products →",
+      "see_stock": "View stock",
+      "restock": "Restock"
     },
     "reminders": {
-      "title": "Reminders",
+      "title": "Today's reminders",
       "empty": "No reminders",
       "empty_sub": "Nothing scheduled today.",
       "overdue": "Overdue",
       "mark_done_aria": "Mark as done",
-      "see_all": "See all →"
+      "see_all": "View all",
+      "overdue_label": "Overdue",
+      "date_yesterday": "yesterday"
     },
     "notice": {
       "email_title": "Confirm your email address",
@@ -1143,7 +1161,10 @@
       "delete_error": "Could not remove this member."
     }
   },
-  "ui": { "close": "Close", "panel": "Panel" },
+  "ui": {
+    "close": "Close",
+    "panel": "Panel"
+  },
   "settings": {
     "preferences": {
       "title": "Advanced preferences",
@@ -1163,10 +1184,10 @@
     "step2_sub": "This adapts status labels and shipping options.",
     "step2_label": "Fulfillment mode",
     "step2_on_site_title": "In-store pickup",
-    "step2_on_site_desc": "Final status: \u201cHanded to customer\u201d. No shipping fees.",
+    "step2_on_site_desc": "Final status: “Handed to customer”. No shipping fees.",
     "step2_delivery_title": "Delivery",
-    "step2_delivery_desc": "Final status: \u201cShipped\u201d. Shipping fees available.",
+    "step2_delivery_desc": "Final status: “Shipped”. Shipping fees available.",
     "step2_both_title": "Both",
-    "step2_both_desc": "Final status: \u201cDone\u201d. Shipping fees available."
+    "step2_both_desc": "Final status: “Done”. Shipping fees available."
   }
 }

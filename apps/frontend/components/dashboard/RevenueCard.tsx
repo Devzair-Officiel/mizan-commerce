@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useFormatMoney, useFormatDate } from '@/lib/hooks/useFormat';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import type { RevenueDayPoint } from '@/lib/hooks/useDashboard';
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
   revenueDeltaColor: string;
 }
 
-const BAR_MAX_PX = 96;
+const BAR_MAX_REM = 6;
 
 export function RevenueCard({ points, currency, todayRevenue, todayOrdersCount, revenueDeltaText, revenueDeltaColor }: Props) {
   const t = useTranslations('dashboard.revenue');
@@ -35,48 +36,55 @@ export function RevenueCard({ points, currency, todayRevenue, todayOrdersCount, 
     : null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
-      <div>
-        <p className="text-3xl font-bold tabular-nums text-foreground">
-          {formatMoney(todayRevenue, currency)}
-        </p>
-        {revenueDeltaText && (
-          <p className={`text-xs font-medium mt-0.5 ${revenueDeltaColor}`}>{revenueDeltaText}</p>
-        )}
-        {todayOrdersCount > 0 && avgBasket && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t('orders_summary', { count: todayOrdersCount, avg: avgBasket })}
+    <DashboardCard
+      title={t('title')}
+      rightSlot={<span className="text-muted-foreground">{t('header_meta')}</span>}
+    >
+      <div className="p-5 flex flex-col gap-5">
+        <div>
+          <p className="text-sm text-muted-foreground">{t('today_label')}</p>
+          <p className="text-[2rem] font-bold tabular-nums text-foreground leading-tight">
+            {formatMoney(todayRevenue, currency)}
           </p>
-        )}
-      </div>
+          {todayOrdersCount > 0 && avgBasket && (
+            <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
+              {t('orders_summary', { count: todayOrdersCount, avg: avgBasket })}
+            </p>
+          )}
+          {revenueDeltaText && (
+            <p className={`text-[0.8125rem] font-medium mt-0.5 ${revenueDeltaColor}`}>{revenueDeltaText}</p>
+          )}
+        </div>
 
-      <div role="img" aria-label={ariaLabel} className="flex items-end gap-1" style={{ height: `${BAR_MAX_PX + 16}px` }}>
-        {points.map((p, i) => {
-          const val = values[i] ?? 0;
-          const isToday = p.date === todayDate;
-          const isZero = val <= 0;
-          const barH = isZero ? 3 : Math.max(Math.round(val / max * BAR_MAX_PX), 4);
-          const dayLabel = isToday
-            ? t('today')
-            : formatDate(p.date, { weekday: 'short' });
-          return (
-            <div key={p.date} className="flex-1 flex flex-col items-center justify-end gap-1">
-              <div
-                className={`w-full rounded-sm transition-all ${isZero ? 'bg-border' : isToday ? 'bg-primary' : 'bg-primary/25'}`}
-                style={{ height: `${barH}px` }}
-                title={`${formatMoney(p.revenue, currency)} — ${formatDate(p.date, { day: '2-digit', month: 'short' })}`}
-              />
-              <span className={`text-[9px] leading-none truncate max-w-full ${isToday ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>
-                {dayLabel}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+        <div role="img" aria-label={ariaLabel} className="flex items-end gap-2" style={{ height: '7.5rem' }}>
+          {points.map((p, i) => {
+            const val = values[i] ?? 0;
+            const isToday = p.date === todayDate;
+            const isZero = val <= 0;
+            const barH = isZero ? 0.1875 : Math.max(Number((val / max * BAR_MAX_REM).toFixed(4)), 0.25);
+            const dayLabel = isToday
+              ? t('today')
+              : formatDate(p.date, { weekday: 'short' });
+            return (
+              <div key={p.date} className="flex-1 flex flex-col items-center justify-end gap-1">
+                <div
+                  className={`w-full rounded-t-md transition-all ${isZero ? 'bg-border' : isToday ? 'bg-primary' : 'bg-primary/25'}`}
+                  style={{ height: `${barH}rem` }}
+                  title={`${formatMoney(p.revenue, currency)} — ${formatDate(p.date, { day: '2-digit', month: 'short' })}`}
+                />
+                <span className={`text-xs leading-none truncate max-w-full ${isToday ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                  {dayLabel}
+                </span>
+              </div>
+            );
+          })}
+        </div>
 
-      <p className="text-xs text-muted-foreground border-t border-border pt-2">
-        {t('footer', { amount: formatMoney(total7d, currency) })}
-      </p>
-    </div>
+        <div className="flex items-center justify-between border-t border-border pt-3.5">
+          <span className="text-[0.8125rem] text-muted-foreground">{t('footer_label')}</span>
+          <span className="text-[0.8125rem] font-semibold text-foreground">{formatMoney(total7d, currency)}</span>
+        </div>
+      </div>
+    </DashboardCard>
   );
 }

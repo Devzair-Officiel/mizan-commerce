@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { formatStock } from '@/lib/hooks/useProducts';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import type { ProductSummary } from '@/lib/hooks/useDashboard';
 
 interface Props { count: number; items: ProductSummary[]; outOfStockCount: number; }
 
-export function LowStockList({ count, items, outOfStockCount }: Props) {
+const DEFAULT_VARIANT_NAME = 'Par défaut';
+
+export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
   const t = useTranslations('dashboard.low_stock');
 
   if (count === 0) {
@@ -24,41 +27,46 @@ export function LowStockList({ count, items, outOfStockCount }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">{t('title')}</p>
-        <span className="rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 text-xs font-semibold px-2 py-0.5">{count}</span>
-        {outOfStockCount > 0 && (
-          <span className="text-xs font-medium text-red-600 dark:text-red-400">
-            {t('out_of_stock_sub', { count: outOfStockCount })}
-          </span>
-        )}
-      </div>
+    <DashboardCard title={t('title')} rightLink={{ label: t('see_stock'), href: '/stock' }}>
       <div className="divide-y divide-border">
         {items.map((p) => {
           const isOut = parseFloat(p.stock_quantity) <= 0;
+          const showVariant = p.variant_name !== DEFAULT_VARIANT_NAME;
           return (
-            <Link key={p.variant_id} href={`/products/${p.id}`}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-muted active:bg-muted transition-colors">
-              <div className="flex-1 min-w-0">
+            <div key={p.variant_id} className="flex items-center gap-3 px-5 py-3.5">
+              <Link href={`/products/${p.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
                 <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{p.variant_name}</p>
+                {showVariant && (
+                  <p className="text-[0.8125rem] text-muted-foreground truncate">{p.variant_name}</p>
+                )}
+              </Link>
+              <div className="flex items-center gap-2 shrink-0">
+                {isOut ? (
+                  <span className="rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 px-2.5 py-0.5 text-xs font-semibold">
+                    {t('rupture')}
+                  </span>
+                ) : (
+                  <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                    {t('remaining', { qty: formatStock(p.stock_quantity, p.unit, { baseQuantity: p.base_quantity, packagingName: p.variant_name }) })}
+                  </span>
+                )}
+                <Link
+                  href={`/stock/add?product=${p.id}&variant=${p.variant_id}`}
+                  className="text-[0.8125rem] font-medium text-primary hover:underline"
+                >
+                  {t('restock')}
+                </Link>
               </div>
-              <span className={`text-sm font-semibold tabular-nums shrink-0 ${isOut ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'}`}>
-                {isOut
-                  ? t('rupture')
-                  : t('remaining', { qty: formatStock(p.stock_quantity, p.unit, { baseQuantity: p.base_quantity, packagingName: p.variant_name }) })}
-              </span>
-            </Link>
+            </div>
           );
         })}
       </div>
       {count > items.length && (
         <Link href="/products?filter=low_stock"
-          className="block text-center text-xs font-medium text-primary px-4 py-3 hover:bg-muted transition-colors border-t border-border">
+          className="block text-center text-[0.8125rem] font-medium text-primary px-5 py-3.5 hover:bg-muted transition-colors border-t border-border">
           {t('see_all', { count })}
         </Link>
       )}
-    </div>
+    </DashboardCard>
   );
 }

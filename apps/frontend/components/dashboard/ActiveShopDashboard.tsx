@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Package, Clock, AlertTriangle, Bell } from 'lucide-react';
 import { useFormatMoney, useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
 import { useShop } from '@/lib/hooks/useShop';
 import { CounterCard } from '@/components/dashboard/CounterCard';
@@ -24,7 +25,7 @@ function getRevenueDeltaDisplay(today: number, yesterday: number, t: TDashboard)
     ? t('counters.revenue_delta_same')
     : t('counters.revenue_delta', { sign: delta.positive ? '+' : '-', pct: Math.abs(delta.pct) });
   const color = delta.pct === 0 ? 'text-muted-foreground' as const
-    : delta.positive ? 'text-green-600 dark:text-green-400' as const : 'text-red-600 dark:text-red-400' as const;
+    : delta.positive ? 'text-green-600 dark:text-green-400' as const : 'text-amber-700 dark:text-amber-400' as const;
   return { text, color };
 }
 
@@ -44,6 +45,18 @@ function getRemindersSub(
       : undefined;
   const color = overdueCount > 0 ? 'text-amber-700 dark:text-amber-400' as const : 'text-muted-foreground' as const;
   return { sub, color };
+}
+
+function getLowStockSub(outOfStock: number, t: TDashboard) {
+  if (outOfStock <= 0) return t('counters.low_stock_unit');
+  return (
+    <>
+      {t('counters.low_stock_unit')}{', '}
+      <span className="text-red-600 dark:text-red-400">
+        {t('counters.low_stock_sub', { count: outOfStock })}
+      </span>
+    </>
+  );
 }
 
 function useActiveShopDashboardData(data: DashboardData) {
@@ -70,6 +83,9 @@ export function ActiveShopDashboard({ data }: Props) {
   const { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders } =
     useActiveShopDashboardData(data);
 
+  const outOfStock = data.low_stock_products.out_of_stock_count;
+  const lowStockSub = getLowStockSub(outOfStock, t);
+
   return (
     <>
       <div className="flex flex-col gap-3">
@@ -82,6 +98,7 @@ export function ActiveShopDashboard({ data }: Props) {
             value={data.orders_to_prepare.count}
             sub={oldestSub}
             href="/orders?status=to_prepare"
+            icon={<Package size={15} />}
           />
           <CounterCard
             label={t('unpaid.title')}
@@ -89,16 +106,17 @@ export function ActiveShopDashboard({ data }: Props) {
             valueColor="text-amber-700 dark:text-amber-400"
             sub={t('counters.unpaid_sub', { count: data.unpaid_orders.count })}
             href="/orders?due=true"
+            icon={<Clock size={15} />}
+            iconVariant="amber"
           />
           {catalogKind !== 'services' && (
             <CounterCard
               label={t('low_stock.title')}
               value={data.low_stock_products.count}
-              sub={data.low_stock_products.out_of_stock_count > 0
-                ? t('counters.low_stock_sub', { count: data.low_stock_products.out_of_stock_count })
-                : undefined}
-              subColor="text-red-600 dark:text-red-400"
+              sub={lowStockSub}
               href="/stock"
+              icon={<AlertTriangle size={15} />}
+              iconVariant={outOfStock > 0 ? 'red' : 'default'}
             />
           )}
           <CounterCard
@@ -107,6 +125,7 @@ export function ActiveShopDashboard({ data }: Props) {
             sub={reminders.sub}
             subColor={reminders.color}
             href="/reminders"
+            icon={<Bell size={15} />}
           />
         </CountersGrid>
       </div>

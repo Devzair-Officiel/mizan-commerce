@@ -37,7 +37,8 @@ export default function DashboardPage() {
 
   const firstName = me?.full_name?.split(' ')[0] ?? null;
   const title = useGreeting(firstName);
-  const subtitle = formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const rawDate = formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' });
+  const subtitle = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
   const isNewShop = data !== undefined && !data.setup.has_orders;
 

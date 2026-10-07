@@ -3,10 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
+import { MessageCircle } from 'lucide-react';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
-import { useFormatMoney } from '@/lib/hooks/useFormat';
-import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
 
 function WaIcon({ size = 18 }: { size?: number }) {
   return (
@@ -15,30 +13,41 @@ function WaIcon({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
+import { useFormatMoney, useRelativeTime } from '@/lib/hooks/useFormat';
+import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
 
 interface Props { order: UnpaidOrder; currency: string; }
 
 export function UnpaidRow({ order, currency }: Props) {
   const t = useTranslations('dashboard.unpaid');
   const formatMoney = useFormatMoney();
+  const relativeTime = useRelativeTime();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3">
+    <div className="flex items-center gap-3 px-5 py-3.5">
       <Link href={`/orders/${order.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
         <p className="text-sm font-semibold text-foreground truncate">
-          {order.order_number}{order.customer_name ? ` · ${order.customer_name}` : ''}
+          {order.customer_name ?? <span className="text-muted-foreground">{t('no_customer')}</span>}
         </p>
-        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-0.5">
-          {t('due', { amount: formatMoney(order.amount_due, currency) })}
+        <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
+          {t('order_ref', { number: order.order_number, age: relativeTime(order.created_at) })}
         </p>
       </Link>
-      {order.customer_phone && (
-        <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}
-          className="h-8 px-2.5 text-xs shrink-0 gap-1 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/20">
-          <WaIcon size={13} />
+      <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0 w-20 text-right">
+        {formatMoney(order.amount_due, currency)}
+      </span>
+      {order.customer_phone ? (
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="h-9 px-3.5 rounded-full border border-border bg-card text-[0.8125rem] font-medium text-foreground flex items-center gap-1.5 shrink-0 hover:bg-muted transition-colors"
+        >
+          <MessageCircle size={14} className="text-primary" />
           {t('relancer')}
-        </Button>
+        </button>
+      ) : (
+        <div className="h-9 w-9 shrink-0 invisible" />
       )}
       {dialogOpen && (
         <PreparedMessageDialog

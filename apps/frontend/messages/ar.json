@@ -156,8 +156,8 @@
     },
     "search": {
       "title": "بحث",
-      "placeholder": "ابحث عن منتج أو عميل أو طلب…",
-      "aria_label": "ابحث عن منتج أو عميل أو طلب",
+      "placeholder": "ابحث عن طلب، عميل…",
+      "aria_label": "ابحث عن طلب، عميل",
       "close": "إغلاق البحث",
       "min_chars": "اكتب حرفين على الأقل للبحث.",
       "searching": "جاري البحث…",
@@ -225,18 +225,26 @@
       "revenue_delta": "{sign}{pct}٪ مقارنة بالأمس",
       "low_stock_out": "{count} نفد مخزونه",
       "section_today": "مهام اليوم",
-      "prepare_sub": "الأقدم: {age}",
-      "unpaid_sub": "{count, plural, one {# طلب} other {# طلبات}}",
+      "prepare_sub": "طلبات، الأقدم {age}",
+      "unpaid_sub": "{count, plural, one {# طلب} other {# طلبات}} معلّقة",
       "low_stock_sub": "منها {count} نفد",
-      "reminders_next": "التالي في {time}",
-      "reminders_late": "{count} متأخر"
+      "reminders_next": "اليوم، التالي في {time}",
+      "reminders_late": "{count} متأخر",
+      "low_stock_unit": "منتجات"
     },
     "prepare": {
-      "title": "قيد التحضير",
+      "title": "طلبات قيد التحضير",
       "oldest_age": "الأقدم: {age}",
       "empty": "كل شيء محدث",
       "empty_sub": "لا توجد طلبات للتحضير.",
-      "see_all": "عرض {count} طلب →"
+      "see_all": "عرض {count} طلب →",
+      "see_all_link": "عرض الكل",
+      "date_today": "اليوم",
+      "date_yesterday": "أمس",
+      "payment_paid": "مدفوعة",
+      "payment_partial": "جزئي",
+      "payment_unpaid": "غير مدفوعة",
+      "no_customer": "بدون عميل"
     },
     "unpaid": {
       "title": "المستحقات",
@@ -245,14 +253,20 @@
       "empty_sub": "جميع المدفوعات محدثة.",
       "due": "متبقي {amount}",
       "relancer": "تذكير",
-      "see_all": "عرض {count} طلب →"
+      "see_all": "عرض {count} طلب →",
+      "total_due_label": "المبلغ المستحق",
+      "order_ref": "الطلب {number}، {age}",
+      "no_customer": "بدون عميل"
     },
     "revenue": {
-      "title": "الإيرادات — 7 أيام",
+      "title": "المبيعات",
       "aria_label": "الإيرادات خلال آخر 7 أيام",
       "today": "اليوم",
       "footer": "إجمالي 7 أيام: {amount}",
-      "orders_summary": "{count, plural, one {# بيعة} other {# مبيعات}} · متوسط السلة {avg}"
+      "orders_summary": "{count, plural, one {# مبيعة} other {# مبيعات}}، متوسط السلة {avg}",
+      "header_meta": "آخر 7 أيام",
+      "today_label": "اليوم",
+      "footer_label": "إجمالي 7 أيام"
     },
     "low_stock": {
       "title": "مخزون منخفض",
@@ -261,15 +275,19 @@
       "rupture": "نفد",
       "remaining": "بقي {qty}",
       "out_of_stock_sub": "{count} نفد",
-      "see_all": "عرض {count} منتج →"
+      "see_all": "عرض {count} منتج →",
+      "see_stock": "عرض المخزون",
+      "restock": "إعادة تموين"
     },
     "reminders": {
-      "title": "التذكيرات",
+      "title": "تذكيرات اليوم",
       "empty": "لا توجد تذكيرات",
       "empty_sub": "لا شيء مجدول اليوم.",
       "overdue": "متأخر",
       "mark_done_aria": "تحديد كمنجز",
-      "see_all": "عرض الكل →"
+      "see_all": "عرض الكل",
+      "overdue_label": "متأخر",
+      "date_yesterday": "أمس"
     },
     "notice": {
       "email_title": "تأكيد عنوان بريدك الإلكتروني",
@@ -1143,7 +1161,10 @@
       "delete_error": "تعذّر إزالة هذا العضو."
     }
   },
-  "ui": { "close": "إغلاق", "panel": "لوحة" },
+  "ui": {
+    "close": "إغلاق",
+    "panel": "لوحة"
+  },
   "settings": {
     "preferences": {
       "title": "تفضيلات متقدمة",

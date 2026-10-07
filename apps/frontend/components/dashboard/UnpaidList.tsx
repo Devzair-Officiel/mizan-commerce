@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Clock } from 'lucide-react';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useShop } from '@/lib/hooks/useShop';
+import { DashboardCard } from '@/components/dashboard/DashboardCard';
 import { UnpaidRow } from '@/components/dashboard/UnpaidRow';
 import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
 
@@ -28,26 +29,26 @@ export function UnpaidList({ count, items, totalDue }: Props) {
     );
   }
 
+  const totalDueSlot = parseFloat(totalDue) > 0 ? (
+    <span className="text-muted-foreground">
+      {t('total_due_label')}{' '}
+      <span className="font-semibold text-amber-700 dark:text-amber-400">
+        {formatMoney(totalDue, currency)}
+      </span>
+    </span>
+  ) : undefined;
+
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex-1">{t('title')}</p>
-        <span className="rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-semibold px-2 py-0.5">{count}</span>
-        {parseFloat(totalDue) > 0 && (
-          <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-            {t('total_due', { amount: formatMoney(totalDue, currency) })}
-          </span>
-        )}
-      </div>
+    <DashboardCard title={t('title')} rightSlot={totalDueSlot}>
       <div className="divide-y divide-border">
         {items.map((o) => <UnpaidRow key={o.id} order={o} currency={currency} />)}
       </div>
       {count > items.length && (
         <Link href="/orders?payment_status=unpaid"
-          className="block text-center text-xs font-medium text-primary px-4 py-3 hover:bg-muted transition-colors border-t border-border">
+          className="block text-center text-[0.8125rem] font-medium text-primary px-5 py-3.5 hover:bg-muted transition-colors border-t border-border">
           {t('see_all', { count })}
         </Link>
       )}
-    </div>
+    </DashboardCard>
   );
 }

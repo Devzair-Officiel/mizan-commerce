@@ -141,6 +141,9 @@
   }
   html {
     @apply font-sans;
+    /* Échelle fluide : 16px jusqu'à 1440px, 18px à 1920px, linéaire entre les deux.
+       Mobile (≤1440px) et 1280px restent à 16px (clamp min). */
+    font-size: clamp(1rem, calc(0.4167vw + 0.625rem), 1.125rem);
     /* Fond solide de secours visible si le pseudo-élément ne charge pas encore */
     background: var(--background);
   }

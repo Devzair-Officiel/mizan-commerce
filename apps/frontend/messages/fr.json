@@ -156,8 +156,8 @@
     },
     "search": {
       "title": "Recherche",
-      "placeholder": "Rechercher produit, client, commande…",
-      "aria_label": "Rechercher produit, client, commande",
+      "placeholder": "Rechercher une commande, un client…",
+      "aria_label": "Rechercher une commande, un client",
       "close": "Fermer la recherche",
       "min_chars": "Tapez au moins 2 caractères pour rechercher.",
       "searching": "Recherche…",
@@ -225,18 +225,26 @@
       "revenue_delta": "{sign}{pct}% vs hier",
       "low_stock_out": "{count} en rupture",
       "section_today": "À faire aujourd'hui",
-      "prepare_sub": "la plus ancienne : {age}",
-      "unpaid_sub": "{count, plural, one {# commande} other {# commandes}}",
+      "prepare_sub": "commandes, la plus ancienne {age}",
+      "unpaid_sub": "sur {count, plural, one {# commande} other {# commandes}}",
       "low_stock_sub": "dont {count} en rupture",
-      "reminders_next": "le prochain à {time}",
-      "reminders_late": "{count} en retard"
+      "reminders_next": "aujourd'hui, le prochain à {time}",
+      "reminders_late": "{count} en retard",
+      "low_stock_unit": "articles"
     },
     "prepare": {
-      "title": "À préparer",
+      "title": "Commandes à préparer",
       "oldest_age": "Plus ancienne : {age}",
       "empty": "Tout est à jour",
       "empty_sub": "Aucune commande à préparer.",
-      "see_all": "Voir {count} commandes →"
+      "see_all": "Voir {count} commandes →",
+      "see_all_link": "Tout voir",
+      "date_today": "Aujourd'hui",
+      "date_yesterday": "Hier",
+      "payment_paid": "Payée",
+      "payment_partial": "Partiel",
+      "payment_unpaid": "Non payée",
+      "no_customer": "Sans client"
     },
     "unpaid": {
       "title": "Impayés",
@@ -245,31 +253,41 @@
       "empty_sub": "Tous les paiements sont à jour.",
       "due": "reste {amount}",
       "relancer": "Relancer",
-      "see_all": "Voir {count} commandes →"
+      "see_all": "Voir {count} commandes →",
+      "total_due_label": "Total dû",
+      "order_ref": "Commande {number}, {age}",
+      "no_customer": "Sans client"
     },
     "revenue": {
-      "title": "CA — 7 jours",
+      "title": "Ventes",
       "aria_label": "Chiffre d'affaires des 7 derniers jours",
       "today": "Auj.",
       "footer": "Total sur 7 jours : {amount}",
-      "orders_summary": "{count, plural, one {# vente} other {# ventes}} · panier moyen {avg}"
+      "orders_summary": "{count, plural, one {# vente} other {# ventes}}, panier moyen {avg}",
+      "header_meta": "7 derniers jours",
+      "today_label": "Aujourd'hui",
+      "footer_label": "Total sur 7 jours"
     },
     "low_stock": {
       "title": "Stock faible",
       "empty": "Stocks OK",
       "empty_sub": "Aucun produit en rupture ou sous le seuil.",
       "rupture": "Rupture",
-      "remaining": "{qty} restants",
+      "remaining": "Reste {qty}",
       "out_of_stock_sub": "{count} en rupture",
-      "see_all": "Voir {count} produits →"
+      "see_all": "Voir {count} produits →",
+      "see_stock": "Voir le stock",
+      "restock": "Réassort"
     },
     "reminders": {
-      "title": "Rappels",
+      "title": "Rappels du jour",
       "empty": "Aucun rappel",
       "empty_sub": "Rien de prévu aujourd'hui.",
       "overdue": "En retard",
       "mark_done_aria": "Marquer comme terminé",
-      "see_all": "Voir tout →"
+      "see_all": "Tout voir",
+      "overdue_label": "En retard",
+      "date_yesterday": "hier"
     },
     "notice": {
       "email_title": "Confirme ton adresse email",
@@ -1143,7 +1161,10 @@
       "delete_error": "Impossible de retirer ce membre."
     }
   },
-  "ui": { "close": "Fermer", "panel": "Panneau" },
+  "ui": {
+    "close": "Fermer",
+    "panel": "Panneau"
+  },
   "settings": {
     "preferences": {
       "title": "Préférences avancées",
