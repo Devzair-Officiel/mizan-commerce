@@ -13,8 +13,8 @@ class UserManager(BaseUserManager):
         # valeurs applicatives. Les lignes historiques restent nulles via la
         # migration et peuvent ainsi importer leur ancien thème local.
         extra_fields.setdefault('theme_mode', 'system')
-        extra_fields.setdefault('primary_color', 'mint')
-        extra_fields.setdefault('background_theme', 'default')
+        extra_fields.setdefault('primary_color', 'sage')
+        extra_fields.setdefault('background_theme', 'cream')
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -56,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             ('amber', 'Ambre'),
             ('forest', 'Forêt'),
             ('mint', 'Menthe'),
+            ('sage', 'Sauge'),
             ('cyan', 'Cyan'),
             ('slate', 'Ardoise'),
             ('taupe', 'Taupe'),
@@ -67,6 +68,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     BACKGROUND_THEME_CHOICES = [
         (value, label) for value, label in (
             ('default', 'Défaut'),
+            ('cream', 'Crème'),
             ('warm', 'Chaud'),
             ('sky', 'Ciel'),
             ('blush', 'Blush'),

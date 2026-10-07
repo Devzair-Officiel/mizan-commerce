@@ -26,6 +26,7 @@ export interface PrimaryColorDef {
   hue: number | null;
   chroma: number;
   swatch: string;
+  overrides?: { light?: Partial<ThemeVars>; dark?: Partial<ThemeVars> };
 }
 
 export interface BackgroundDef {
@@ -36,6 +37,7 @@ export interface BackgroundDef {
   dark: string;
   lightGradient: string;
   darkGradient: string;
+  overrides?: { light?: Partial<ThemeVars>; dark?: Partial<ThemeVars> };
 }
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -56,6 +58,23 @@ export const PRIMARY_COLORS: PrimaryColorDef[] = [
   { id: 'amber',    label: 'Ambre',      hue: 75,   chroma: 0.20, swatch: '#f59e0b' },
   { id: 'forest',   label: 'Forêt',      hue: 145,  chroma: 0.18, swatch: '#16a34a' },
   { id: 'mint',     label: 'Menthe',     hue: 168,  chroma: 0.19, swatch: '#10b981' },
+  {
+    id: 'sage', label: 'Sauge', hue: 170, chroma: 0.075, swatch: '#367762',
+    overrides: {
+      light: {
+        primary:              'oklch(0.52 0.075 170)',
+        'primary-foreground': 'oklch(1 0 0)',
+        ring:                 'oklch(0.52 0.075 170)',
+      },
+      dark: {
+        primary:              'oklch(0.76 0.07 170)',
+        'primary-foreground': 'oklch(0.24 0.012 170)',
+        ring:                 'oklch(0.76 0.07 170)',
+        secondary:            'oklch(0.34 0.018 170)',
+        accent:               'oklch(0.34 0.018 170)',
+      },
+    },
+  },
   { id: 'cyan',     label: 'Cyan',       hue: 200,  chroma: 0.22, swatch: '#06b6d4' },
   { id: 'slate',    label: 'Ardoise',    hue: 220,  chroma: 0.06, swatch: '#64748b' },
   { id: 'taupe',    label: 'Taupe',      hue: 35,   chroma: 0.09, swatch: '#92400e' },
@@ -68,6 +87,35 @@ export const BACKGROUNDS: BackgroundDef[] = [
     light: 'oklch(1 0 0)', dark: 'oklch(0.20 0 0)',
     lightGradient: 'linear-gradient(135deg, oklch(1 0 0) 0%, oklch(0.97 0 0) 40%, oklch(0.92 0 0) 100%)',
     darkGradient:  'linear-gradient(135deg, oklch(0.30 0 0) 0%, oklch(0.20 0 0) 50%, oklch(0.11 0 0) 100%)',
+  },
+  {
+    id: 'cream', label: 'Crème', swatch: '#FAF6EF',
+    light:         'oklch(0.975 0.010 85)',
+    dark:          'oklch(0.24 0.012 170)',
+    lightGradient: 'linear-gradient(to bottom, oklch(0.985 0.006 85) 0%, oklch(0.965 0.012 85) 100%)',
+    darkGradient:  'linear-gradient(to bottom, oklch(0.26 0.012 170) 0%, oklch(0.22 0.012 170) 100%)',
+    overrides: {
+      light: {
+        foreground:           'oklch(0.27 0.02 170)',
+        card:                 'oklch(0.995 0.005 85)',
+        'card-foreground':    'oklch(0.27 0.02 170)',
+        popover:              'oklch(0.995 0.005 85)',
+        'popover-foreground': 'oklch(0.27 0.02 170)',
+        muted:                'oklch(0.945 0.012 90)',
+        'muted-foreground':   'oklch(0.53 0.012 170)',
+        border:               'oklch(0.90 0.014 90)',
+        input:                'oklch(0.90 0.014 90)',
+      },
+      dark: {
+        foreground:           'oklch(0.93 0.008 85)',
+        card:                 'oklch(0.29 0.014 170)',
+        'card-foreground':    'oklch(0.93 0.008 85)',
+        popover:              'oklch(0.29 0.014 170)',
+        'popover-foreground': 'oklch(0.93 0.008 85)',
+        muted:                'oklch(0.33 0.014 170)',
+        'muted-foreground':   'oklch(0.74 0.010 160)',
+      },
+    },
   },
   {
     id: 'warm', label: 'Chaud', swatch: '#fef3c7',
@@ -141,8 +189,8 @@ export const PRIMARY_STORAGE_KEY = 'mizan-primary-color';
 export const BG_STORAGE_KEY = 'mizan-bg-color';
 export const PRIMARY_CUSTOM_HEX_KEY = 'mizan-primary-custom-hex';
 export const BG_CUSTOM_HEX_KEY = 'mizan-bg-custom-hex';
-export const DEFAULT_PRIMARY_ID = 'mint';
-export const DEFAULT_BG_ID = 'default';
+export const DEFAULT_PRIMARY_ID = 'sage';
+export const DEFAULT_BG_ID = 'cream';
 export const DEFAULT_PRIMARY_CUSTOM_HEX = '#3b82f6';
 export const DEFAULT_BG_CUSTOM_HEX = '#e0f2fe';
 
@@ -198,21 +246,27 @@ function buildThemeVars(
 ): ThemeVars {
   let h: number | null;
   let c: number;
+  let pcDef: PrimaryColorDef | undefined;
 
   if (primaryId === 'custom' && primaryCustomHex) {
     const derived = hexToHueChroma(primaryCustomHex);
     h = derived.hue;
     c = derived.chroma;
   } else {
-    const pc = PRIMARY_COLORS.find(color => color.id === primaryId) ?? DEFAULT_PRIMARY;
-    h = pc.hue;
-    c = pc.chroma;
+    pcDef = PRIMARY_COLORS.find(color => color.id === primaryId) ?? DEFAULT_PRIMARY;
+    h = pcDef.hue;
+    c = pcDef.chroma;
   }
 
   const bg = resolveBg(bgId, bgCustomHex);
+  const bgDef = bgId !== 'custom'
+    ? (BACKGROUNDS.find(b => b.id === bgId) ?? DEFAULT_BG)
+    : undefined;
+
+  let base: ThemeVars;
 
   if (h === null) {
-    return isDark ? {
+    base = isDark ? {
       background: bg.dark,
       foreground: 'oklch(0.985 0 0)',
       card: 'oklch(0.26 0 0)',
@@ -249,12 +303,10 @@ function buildThemeVars(
       input: 'oklch(0.922 0 0)',
       ring: 'oklch(0.708 0 0)',
     };
-  }
+  } else {
+    const cc = (factor: number) => clamp(c * factor, 0.004, 0.32).toFixed(4);
 
-  const cc = (factor: number) => clamp(c * factor, 0.004, 0.32).toFixed(4);
-
-  if (isDark) {
-    return {
+    base = isDark ? {
       background: bg.dark,
       foreground: 'oklch(0.985 0 0)',
       card: `oklch(0.25 ${cc(0.16)} ${h})`,
@@ -272,27 +324,32 @@ function buildThemeVars(
       border: 'oklch(1 0 0 / 10%)',
       input: 'oklch(1 0 0 / 15%)',
       ring: `oklch(0.70 ${cc(0.85)} ${h})`,
+    } : {
+      background: bg.light,
+      foreground: 'oklch(0.145 0 0)',
+      card: `oklch(0.998 ${cc(0.05)} ${h})`,
+      'card-foreground': 'oklch(0.145 0 0)',
+      popover: `oklch(0.998 ${cc(0.05)} ${h})`,
+      'popover-foreground': 'oklch(0.145 0 0)',
+      primary: `oklch(0.50 ${cc(1)} ${h})`,
+      'primary-foreground': `oklch(0.97 ${cc(0.08)} ${h})`,
+      secondary: `oklch(0.93 ${cc(0.30)} ${h})`,
+      'secondary-foreground': `oklch(0.30 ${cc(0.60)} ${h})`,
+      muted: `oklch(0.95 ${cc(0.18)} ${h})`,
+      'muted-foreground': 'oklch(0.556 0 0)',
+      accent: `oklch(0.93 ${cc(0.35)} ${h})`,
+      'accent-foreground': `oklch(0.30 ${cc(0.70)} ${h})`,
+      border: `oklch(0.88 ${cc(0.20)} ${h})`,
+      input: `oklch(0.88 ${cc(0.20)} ${h})`,
+      ring: `oklch(0.50 ${cc(1)} ${h})`,
     };
   }
 
+  const mode = isDark ? 'dark' : 'light';
   return {
-    background: bg.light,
-    foreground: 'oklch(0.145 0 0)',
-    card: `oklch(0.998 ${cc(0.05)} ${h})`,
-    'card-foreground': 'oklch(0.145 0 0)',
-    popover: `oklch(0.998 ${cc(0.05)} ${h})`,
-    'popover-foreground': 'oklch(0.145 0 0)',
-    primary: `oklch(0.50 ${cc(1)} ${h})`,
-    'primary-foreground': `oklch(0.97 ${cc(0.08)} ${h})`,
-    secondary: `oklch(0.93 ${cc(0.30)} ${h})`,
-    'secondary-foreground': `oklch(0.30 ${cc(0.60)} ${h})`,
-    muted: `oklch(0.95 ${cc(0.18)} ${h})`,
-    'muted-foreground': 'oklch(0.556 0 0)',
-    accent: `oklch(0.93 ${cc(0.35)} ${h})`,
-    'accent-foreground': `oklch(0.30 ${cc(0.70)} ${h})`,
-    border: `oklch(0.88 ${cc(0.20)} ${h})`,
-    input: `oklch(0.88 ${cc(0.20)} ${h})`,
-    ring: `oklch(0.50 ${cc(1)} ${h})`,
+    ...base,
+    ...(bgDef?.overrides?.[mode] ?? {}),
+    ...(pcDef?.overrides?.[mode] ?? {}),
   };
 }
 

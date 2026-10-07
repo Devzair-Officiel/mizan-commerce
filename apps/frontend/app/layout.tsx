@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           id="theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem('mizan-primary-color')||'mint';var b=localStorage.getItem('mizan-bg-color')||'default';document.documentElement.setAttribute('data-primary',p);document.documentElement.setAttribute('data-bg',b);}catch(e){}})();`,
+            __html: `(function(){try{var p=localStorage.getItem('mizan-primary-color')||'sage';var b=localStorage.getItem('mizan-bg-color')||'cream';document.documentElement.setAttribute('data-primary',p);document.documentElement.setAttribute('data-bg',b);}catch(e){}})();`,
           }}
         />
       </head>

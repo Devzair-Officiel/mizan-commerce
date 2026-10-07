@@ -101,11 +101,12 @@ export function useCompleteOnboarding() {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
-      // `me.membership` contient onboarding_completed_at — il faut l'invalider
-      // pour que le gating dans (app)/layout débloque l'accès au dashboard.
+    onSuccess: async () => {
+      // On attend que `me` soit rechargé avant de résoudre mutateAsync.
+      // `invalidateQueries` seul est fire-and-forget : OnboardingGate lirait
+      // l'ancienne valeur (null) et renverrait vers /onboarding en boucle.
+      await qc.refetchQueries({ queryKey: qk.me.all });
       qc.invalidateQueries({ queryKey: qk.shop.all });
-      qc.invalidateQueries({ queryKey: qk.me.all });
     },
   });
 }
