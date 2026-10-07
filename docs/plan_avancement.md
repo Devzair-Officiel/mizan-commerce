@@ -467,6 +467,11 @@
       canonique (icône + titre + sous-titre) contrairement à notes/page.tsx,
       qui a reçu ce traitement lors du chantier UX. À aligner.
 
+- [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
+      par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la
+      surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de
+      cette liste au fur et à mesure qu'il est découpé.
+
 ---
 
 ## Légende et bonnes pratiques d'usage

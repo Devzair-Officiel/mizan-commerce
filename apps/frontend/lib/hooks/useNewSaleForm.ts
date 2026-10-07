@@ -5,6 +5,19 @@ import { useCreateOrder, type OrderItemPayload } from '@/lib/hooks/useOrders';
 import { useCustomer } from '@/lib/hooks/useCustomers';
 import { useNewSaleLines, type NewSaleLines } from '@/lib/hooks/useNewSaleLines';
 
+function validatePayment(
+  paymentStatus: 'unpaid' | 'partial' | 'paid',
+  amountPaid: string,
+  total: number,
+  t: ReturnType<typeof useTranslations<'orders.new'>>,
+): string | null {
+  if (paymentStatus !== 'partial') return null;
+  const n = parseFloat(amountPaid);
+  if (!n || n <= 0) return t('payment_amount_required');
+  if (n > total) return t('payment_amount_exceeds');
+  return null;
+}
+
 export interface NewSaleForm extends NewSaleLines {
   // customer
   customerId: string;
@@ -75,27 +88,15 @@ export function useNewSaleForm(): NewSaleForm {
   const shippingN = parseFloat(shipping) || 0;
   const total = lines.subtotal - discountN + shippingN;
 
-  const toPrepareLabel = lines.hasProducts && lines.hasNonProducts
-    ? t('status_to_process')
-    : lines.hasNonProducts && !lines.hasProducts
-      ? t('status_confirmed')
-      : t('status_to_prepare');
+  const toPrepareLabel = lines.hasProducts && lines.hasNonProducts ? t('status_to_process')
+    : lines.hasNonProducts && !lines.hasProducts ? t('status_confirmed')
+    : t('status_to_prepare');
 
   async function handleSubmit() {
     setPaymentError('');
-    if (lines.items.length === 0) {
-      // expose itemsError via lines — we need to trigger it
-      // Since clearItemsError resets it, we set it via the lines hook's internal state
-      // We use a workaround: call addItem with invalid data to trigger the state
-      // Actually we need to expose setItemsError — but the spec says itemsError is computed
-      // Let's just check length here and rely on lines.itemsError for UI
-      return;
-    }
-    if (paymentStatus === 'partial') {
-      const n = parseFloat(amountPaid);
-      if (!n || n <= 0) { setPaymentError(t('payment_amount_required')); return; }
-      if (n > total) { setPaymentError(t('payment_amount_exceeds')); return; }
-    }
+    if (lines.items.length === 0) return;
+    const payErr = validatePayment(paymentStatus, amountPaid, total, t);
+    if (payErr) { setPaymentError(payErr); return; }
     const payloadItems: OrderItemPayload[] = lines.items.map((i) =>
       i.variant
         ? { variant: i.variant, quantity: i.quantity, unit_price: i.unit_price }
@@ -116,33 +117,20 @@ export function useNewSaleForm(): NewSaleForm {
 
   return {
     ...lines,
-    customerId,
-    setCustomerId,
+    customerId, setCustomerId,
     selectedCustomer,
-    notes,
-    setNotes,
-    showNotes,
-    setShowNotes,
-    discount,
-    setDiscount,
-    shipping,
-    setShipping,
-    showDiscount,
-    setShowDiscount,
-    showShipping,
-    setShowShipping,
-    paymentStatus,
-    setPaymentStatus,
-    amountPaid,
-    setAmountPaid,
-    paymentError,
-    setPaymentError,
-    orderStatus,
-    setOrderStatus,
-    createCustomerOpen,
-    setCreateCustomerOpen,
-    createProductOpen,
-    setCreateProductOpen,
+    notes, setNotes,
+    showNotes, setShowNotes,
+    discount, setDiscount,
+    shipping, setShipping,
+    showDiscount, setShowDiscount,
+    showShipping, setShowShipping,
+    paymentStatus, setPaymentStatus,
+    amountPaid, setAmountPaid,
+    paymentError, setPaymentError,
+    orderStatus, setOrderStatus,
+    createCustomerOpen, setCreateCustomerOpen,
+    createProductOpen, setCreateProductOpen,
     total,
     toPrepareLabel,
     isPending,

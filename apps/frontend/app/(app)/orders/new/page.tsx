@@ -41,6 +41,59 @@ function NewSaleFormDesktop() {
   );
 }
 
+function MobileCustomerSection({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
+  const t = useTranslations('orders.new');
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+        {t('section_customer')}
+      </span>
+      <CustomerPicker
+        value={form.customerId}
+        selectedCustomer={form.selectedCustomer}
+        onChange={(id) => form.setCustomerId(id)}
+        onRequestCreate={() => form.setCreateCustomerOpen(true)}
+      />
+      <QuickAddCustomer
+        hideTrigger
+        open={form.createCustomerOpen}
+        onOpenChange={form.setCreateCustomerOpen}
+        onCreated={(c: Customer) => { form.setCustomerId(c.id); }}
+      />
+      {!form.customerId && form.paymentStatus !== 'paid' && (
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 px-1">
+          {t('no_customer_payment_warning')}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MobileItemsSection({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
+  const t = useTranslations('orders.new');
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+        {t('section_items')}
+      </span>
+      <ProductPicker
+        onPick={form.addItem}
+        onFreeLine={form.addFreeLine}
+        onRequestCreate={() => form.setCreateProductOpen(true)}
+      />
+      <QuickAddProduct
+        hideTrigger
+        open={form.createProductOpen}
+        onOpenChange={form.setCreateProductOpen}
+        onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
+      />
+      {form.itemsError && (
+        <p className="text-[11px] text-destructive px-1">{t('items_required')}</p>
+      )}
+    </div>
+  );
+}
+
 function NewSaleFormMobile() {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
@@ -48,50 +101,8 @@ function NewSaleFormMobile() {
 
   return (
     <div className="flex flex-col gap-5 p-4 pb-32">
-      {/* Customer section */}
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          {t('section_customer')}
-        </span>
-        <CustomerPicker
-          value={form.customerId}
-          selectedCustomer={form.selectedCustomer}
-          onChange={(id) => form.setCustomerId(id)}
-          onRequestCreate={() => form.setCreateCustomerOpen(true)}
-        />
-        <QuickAddCustomer
-          hideTrigger
-          open={form.createCustomerOpen}
-          onOpenChange={form.setCreateCustomerOpen}
-          onCreated={(c: Customer) => { form.setCustomerId(c.id); }}
-        />
-        {!form.customerId && form.paymentStatus !== 'paid' && (
-          <p className="text-[11px] text-amber-600 dark:text-amber-400 px-1">
-            {t('no_customer_payment_warning')}
-          </p>
-        )}
-      </div>
-
-      {/* Items section */}
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          {t('section_items')}
-        </span>
-        <ProductPicker
-          onPick={form.addItem}
-          onFreeLine={form.addFreeLine}
-          onRequestCreate={() => form.setCreateProductOpen(true)}
-        />
-        <QuickAddProduct
-          hideTrigger
-          open={form.createProductOpen}
-          onOpenChange={form.setCreateProductOpen}
-          onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
-        />
-        {form.itemsError && (
-          <p className="text-[11px] text-destructive px-1">{t('items_required')}</p>
-        )}
-      </div>
+      <MobileCustomerSection form={form} />
+      <MobileItemsSection form={form} />
 
       <OrderItemsList items={form.items} onUpdateQty={form.updateQty} onRemove={form.removeItem} />
 

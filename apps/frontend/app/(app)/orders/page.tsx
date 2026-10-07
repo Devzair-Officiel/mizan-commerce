@@ -32,9 +32,7 @@ function OrdersContent() {
     data: infiniteData, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading: mobileLoading,
   } = useOrdersInfinite(state.filters, { enabled: isDesktop === false });
 
-  const totalCount = isDesktop === false
-    ? (infiniteData?.pages[0]?.count ?? 0)
-    : (pageData?.count ?? 0);
+  const totalCount = isDesktop === false ? (infiniteData?.pages[0]?.count ?? 0) : (pageData?.count ?? 0);
   const mobileOrders = infiniteData?.pages.flatMap(p => p.results) ?? [];
   const isLoading = isDesktop === undefined ? true : isDesktop ? pageLoading : mobileLoading;
   const hasLoaded = isDesktop === true ? !!pageData : isDesktop === false ? !!infiniteData : false;

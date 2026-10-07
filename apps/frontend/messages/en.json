@@ -1103,5 +1103,6 @@
       "update_error": "Could not save these changes.",
       "delete_error": "Could not remove this member."
     }
-  }
+  },
+  "ui": { "close": "Close", "panel": "Panel" }
 }

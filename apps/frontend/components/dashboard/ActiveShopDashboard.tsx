@@ -15,6 +15,37 @@ import type { DashboardData } from '@/lib/hooks/useDashboard';
 
 interface Props { data: DashboardData; }
 
+type TDashboard = ReturnType<typeof useTranslations<'dashboard'>>;
+
+function getRevenueDeltaDisplay(today: number, yesterday: number, t: TDashboard) {
+  const delta = computeDelta(today, yesterday);
+  if (delta === null) return { text: undefined, color: 'text-muted-foreground' as const };
+  const text = delta.pct === 0
+    ? t('counters.revenue_delta_same')
+    : t('counters.revenue_delta', { sign: delta.positive ? '+' : '-', pct: Math.abs(delta.pct) });
+  const color = delta.pct === 0 ? 'text-muted-foreground' as const
+    : delta.positive ? 'text-green-600 dark:text-green-400' as const : 'text-red-600 dark:text-red-400' as const;
+  return { text, color };
+}
+
+function getRemindersSub(
+  count: number,
+  items: { is_overdue: boolean; due_at: string }[],
+  t: TDashboard,
+  formatDateTime: (v: string, opts?: Intl.DateTimeFormatOptions) => string,
+) {
+  if (count === 0) return { sub: undefined, color: 'text-muted-foreground' as const };
+  const overdueCount = items.filter((r) => r.is_overdue).length;
+  const nextNonOverdue = items.find((r) => !r.is_overdue);
+  const sub = overdueCount > 0
+    ? t('counters.reminders_late', { count: overdueCount })
+    : nextNonOverdue
+      ? t('counters.reminders_next', { time: formatDateTime(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
+      : undefined;
+  const color = overdueCount > 0 ? 'text-amber-700 dark:text-amber-400' as const : 'text-muted-foreground' as const;
+  return { sub, color };
+}
+
 export function ActiveShopDashboard({ data }: Props) {
   const t = useTranslations('dashboard');
   const formatMoney = useFormatMoney();
@@ -23,24 +54,15 @@ export function ActiveShopDashboard({ data }: Props) {
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
 
-  const delta = computeDelta(parseFloat(data.today.revenue), parseFloat(data.today.revenue_yesterday));
-  const revenueDeltaText = delta === null ? undefined
-    : delta.pct === 0 ? t('counters.revenue_delta_same')
-    : t('counters.revenue_delta', { sign: delta.positive ? '+' : '-', pct: Math.abs(delta.pct) });
-  const revenueDeltaColor = delta === null || delta.pct === 0 ? 'text-muted-foreground'
-    : delta.positive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-
+  const { text: revenueDeltaText, color: revenueDeltaColor } = getRevenueDeltaDisplay(
+    parseFloat(data.today.revenue), parseFloat(data.today.revenue_yesterday), t,
+  );
   const oldestSub = data.orders_to_prepare.oldest_created_at
     ? t('counters.prepare_sub', { age: relativeTime(data.orders_to_prepare.oldest_created_at) })
     : undefined;
-
-  const overdueCount = data.today_reminders.items.filter((r) => r.is_overdue).length;
-  const nextNonOverdue = data.today_reminders.items.find((r) => !r.is_overdue);
-  const remindersSub = data.today_reminders.count === 0 ? undefined
-    : overdueCount > 0 ? t('counters.reminders_late', { count: overdueCount })
-    : nextNonOverdue ? t('counters.reminders_next', { time: formatDateTime(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
-    : undefined;
-  const remindersSubColor = overdueCount > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground';
+  const { sub: remindersSub, color: remindersSubColor } = getRemindersSub(
+    data.today_reminders.count, data.today_reminders.items, t, formatDateTime,
+  );
 
   return (
     <>

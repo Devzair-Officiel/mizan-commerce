@@ -18,29 +18,18 @@ interface SaleTicketProps {
   form: NewSaleForm;
 }
 
-export function SaleTicket({ form }: SaleTicketProps) {
+function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
-  const tPayment = useTranslations('orders.payment');
-  const { data: shop } = useShop();
-  const currency = shop?.currency ?? 'EUR';
-  const formatMoney = useFormatMoney();
-  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const { customerId, selectedCustomer } = form;
 
-  const { selectedCustomer, customerId } = form;
-
-  const initial = selectedCustomer
-    ? (selectedCustomer.first_name?.[0] ?? selectedCustomer.name?.[0] ?? '?').toUpperCase()
-    : '';
+  const initial = selectedCustomer ? (selectedCustomer.first_name?.[0] ?? selectedCustomer.name?.[0] ?? '?').toUpperCase() : '';
   const fullName = selectedCustomer
-    ? (selectedCustomer.first_name
-        ? `${selectedCustomer.first_name} ${selectedCustomer.name}`
-        : selectedCustomer.name)
+    ? (selectedCustomer.first_name ? `${selectedCustomer.first_name} ${selectedCustomer.name}` : selectedCustomer.name)
     : '';
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
-      {/* Customer block */}
+    <>
       <div className="px-4 py-3 border-b border-border">
         {customerId && selectedCustomer ? (
           <div className="flex items-center gap-3">
@@ -89,8 +78,6 @@ export function SaleTicket({ form }: SaleTicketProps) {
           </div>
         )}
       </div>
-
-      {/* CustomerPicker controlled */}
       <CustomerPicker
         hideTrigger
         open={customerPickerOpen}
@@ -100,8 +87,6 @@ export function SaleTicket({ form }: SaleTicketProps) {
         onChange={(id) => { form.setCustomerId(id); setCustomerPickerOpen(false); }}
         onRequestCreate={() => { setCustomerPickerOpen(false); form.setCreateCustomerOpen(true); }}
       />
-
-      {/* Warning */}
       {!customerId && form.paymentStatus !== 'paid' && (
         <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200/50 dark:border-amber-800/30">
           <p className="text-xs text-amber-700 dark:text-amber-400">
@@ -109,35 +94,15 @@ export function SaleTicket({ form }: SaleTicketProps) {
           </p>
         </div>
       )}
+    </>
+  );
+}
 
-      {/* Items */}
-      {form.items.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-          {t('items_empty')}
-        </p>
-      ) : (
-        <OrderItemsList items={form.items} onUpdateQty={form.updateQty} onRemove={form.removeItem} />
-      )}
-
-      {/* Summary */}
-      {form.items.length > 0 && (
-        <OrderSummary
-          subtotal={form.subtotal}
-          total={form.total}
-          discount={form.discount}
-          shipping={form.shipping}
-          showDiscount={form.showDiscount}
-          showShipping={form.showShipping}
-          onDiscountChange={form.setDiscount}
-          onShippingChange={form.setShipping}
-          onShowDiscount={() => form.setShowDiscount(true)}
-          onShowShipping={() => form.setShowShipping(true)}
-          onClearDiscount={() => { form.setDiscount(''); form.setShowDiscount(false); }}
-          onClearShipping={() => { form.setShipping(''); form.setShowShipping(false); }}
-        />
-      )}
-
-      {/* Payment */}
+function TicketPaymentControls({ form }: { form: NewSaleForm }) {
+  const t = useTranslations('orders.new');
+  const tPayment = useTranslations('orders.payment');
+  return (
+    <>
       <div className="px-4 py-4 border-t border-border">
         <SectionChips
           title={t('payment_title')}
@@ -158,8 +123,6 @@ export function SaleTicket({ form }: SaleTicketProps) {
           )}
         </SectionChips>
       </div>
-
-      {/* Order status */}
       <div className="px-4 pb-4">
         <SectionChips
           title={t('status_title')}
@@ -172,8 +135,6 @@ export function SaleTicket({ form }: SaleTicketProps) {
           onChange={(v) => form.setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
         />
       </div>
-
-      {/* Notes */}
       <div className="px-4 pb-4">
         <NotesSection
           notes={form.notes}
@@ -183,8 +144,48 @@ export function SaleTicket({ form }: SaleTicketProps) {
           onHide={() => form.setShowNotes(false)}
         />
       </div>
+    </>
+  );
+}
 
-      {/* CTA */}
+export function SaleTicket({ form }: SaleTicketProps) {
+  const t = useTranslations('orders.new');
+  const { data: shop } = useShop();
+  const currency = shop?.currency ?? 'EUR';
+  const formatMoney = useFormatMoney();
+  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
+      <TicketCustomerBlock form={form} />
+
+      {form.items.length === 0 ? (
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+          {t('items_empty')}
+        </p>
+      ) : (
+        <OrderItemsList items={form.items} onUpdateQty={form.updateQty} onRemove={form.removeItem} />
+      )}
+
+      {form.items.length > 0 && (
+        <OrderSummary
+          subtotal={form.subtotal}
+          total={form.total}
+          discount={form.discount}
+          shipping={form.shipping}
+          showDiscount={form.showDiscount}
+          showShipping={form.showShipping}
+          onDiscountChange={form.setDiscount}
+          onShippingChange={form.setShipping}
+          onShowDiscount={() => form.setShowDiscount(true)}
+          onShowShipping={() => form.setShowShipping(true)}
+          onClearDiscount={() => { form.setDiscount(''); form.setShowDiscount(false); }}
+          onClearShipping={() => { form.setShipping(''); form.setShowShipping(false); }}
+        />
+      )}
+
+      <TicketPaymentControls form={form} />
+
       <div className="px-4 pb-4">
         <button
           type="button"

@@ -1103,5 +1103,6 @@
       "update_error": "Impossible d'enregistrer ces changements.",
       "delete_error": "Impossible de retirer ce membre."
     }
-  }
+  },
+  "ui": { "close": "Fermer", "panel": "Panneau" }
 }

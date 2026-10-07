@@ -12,6 +12,39 @@ import { LOCALE_LABELS } from '@/components/layout/LanguageSwitcher';
 import { useLocaleSwitch } from '@/lib/hooks/useLocaleSwitch';
 import { SidebarAccountTrigger } from './SidebarAccountTrigger';
 
+function AccountNavItems({
+  entries,
+  pathname,
+  router,
+}: {
+  entries: typeof ACCOUNT_ENTRIES;
+  pathname: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const tNav = useTranslations('layout.nav');
+  return (
+    <>
+      {entries.map(({ href, labelKey, icon: Icon }) => {
+        const active = isNavActive(href, pathname);
+        return (
+          <Menu.Item
+            key={href}
+            className={`flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm cursor-pointer transition-colors ${
+              active
+                ? 'bg-secondary text-secondary-foreground font-semibold'
+                : 'text-foreground hover:bg-muted data-highlighted:bg-muted'
+            }`}
+            onClick={() => router.push(href)}
+          >
+            <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+            {tNav(labelKey as NavLabelKey)}
+          </Menu.Item>
+        );
+      })}
+    </>
+  );
+}
+
 export function SidebarAccountMenu({
   me,
   membership,
@@ -25,7 +58,6 @@ export function SidebarAccountMenu({
   onLogout: () => void;
   toggleThemeDrawer: () => void;
 }) {
-  const tNav = useTranslations('layout.nav');
   const tc = useTranslations('layout.common');
   const router = useRouter();
   const { current: currentLocale, switchLocale } = useLocaleSwitch();
@@ -43,25 +75,7 @@ export function SidebarAccountMenu({
       <Menu.Portal>
         <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50 w-52">
           <Menu.Popup className="rounded-xl border border-border bg-card shadow-lg p-1 outline-none">
-            {allowedAccountEntries.map(({ href, labelKey, icon: Icon }) => {
-              const active = isNavActive(href, pathname);
-              return (
-                <Menu.Item
-                  key={href}
-                  className={`flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm cursor-pointer transition-colors ${
-                    active
-                      ? 'bg-secondary text-secondary-foreground font-semibold'
-                      : 'text-foreground hover:bg-muted data-highlighted:bg-muted'
-                  }`}
-                  onClick={() => router.push(href)}
-                >
-                  <Icon
-                    className={`h-4 w-4 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`}
-                  />
-                  {tNav(labelKey as NavLabelKey)}
-                </Menu.Item>
-              );
-            })}
+            <AccountNavItems entries={allowedAccountEntries} pathname={pathname} router={router} />
             <Menu.Separator className="my-1 border-t border-border" />
             <Menu.RadioGroup
               value={currentLocale}

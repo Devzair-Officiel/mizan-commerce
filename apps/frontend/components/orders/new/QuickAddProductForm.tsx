@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,46 @@ import { qk } from '@/lib/query-keys';
 interface QuickAddProductFormProps {
   onCreated: (product: ProductDetail) => void;
   onClose: () => void;
+}
+
+function ProductFormFields({
+  name, price, nameLabel, priceLabel, errors, setName, setPrice, setErrors,
+}: {
+  name: string;
+  price: string;
+  nameLabel: string;
+  priceLabel: string;
+  errors: { name?: string; price?: string };
+  setName: (v: string) => void;
+  setPrice: (v: string) => void;
+  setErrors: React.Dispatch<React.SetStateAction<{ name?: string; price?: string }>>;
+}) {
+  return (
+    <>
+      <div className="flex flex-col gap-0.5">
+        <FloatingInput
+          id="qpf-name"
+          label={nameLabel}
+          value={name}
+          onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
+          autoFocus
+        />
+        {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name}</p>}
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <FloatingInput
+          id="qpf-price"
+          label={priceLabel}
+          type="number"
+          step="0.01"
+          min="0"
+          value={price}
+          onChange={(e) => { setPrice(e.target.value); setErrors((p) => ({ ...p, price: undefined })); }}
+        />
+        {errors.price && <p className="text-[11px] text-destructive px-1">{errors.price}</p>}
+      </div>
+    </>
+  );
 }
 
 export function QuickAddProductForm({ onCreated, onClose }: QuickAddProductFormProps) {
@@ -73,28 +113,16 @@ export function QuickAddProductForm({ onCreated, onClose }: QuickAddProductFormP
           <TypeChip active={type === 'service'} onClick={() => setType('service')} label={t('type_service')} />
         </div>
       </div>
-      <div className="flex flex-col gap-0.5">
-        <FloatingInput
-          id="qpf-name"
-          label={t('name_label')}
-          value={name}
-          onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
-          autoFocus
-        />
-        {errors.name && <p className="text-[11px] text-destructive px-1">{errors.name}</p>}
-      </div>
-      <div className="flex flex-col gap-0.5">
-        <FloatingInput
-          id="qpf-price"
-          label={priceLabel}
-          type="number"
-          step="0.01"
-          min="0"
-          value={price}
-          onChange={(e) => { setPrice(e.target.value); setErrors((p) => ({ ...p, price: undefined })); }}
-        />
-        {errors.price && <p className="text-[11px] text-destructive px-1">{errors.price}</p>}
-      </div>
+      <ProductFormFields
+        name={name}
+        price={price}
+        nameLabel={t('name_label')}
+        priceLabel={priceLabel}
+        errors={errors}
+        setName={setName}
+        setPrice={setPrice}
+        setErrors={setErrors}
+      />
       <Button type="submit" disabled={isPending} className="w-full rounded-full">
         {isPending ? t('submitting') : t('submit')}
       </Button>
