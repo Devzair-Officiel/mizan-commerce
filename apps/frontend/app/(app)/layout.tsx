@@ -23,7 +23,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <div className="flex flex-col flex-1 lg:ms-60">
               <TrialBanner />
               <main className="flex-1 pb-20 lg:pb-8">
-                <div className="lg:max-w-300 lg:mx-auto lg:px-6 lg:pt-8">
+                <div className="lg:max-w-400 lg:mx-auto lg:px-6 lg:pt-8">
                   {children}
                 </div>
               </main>

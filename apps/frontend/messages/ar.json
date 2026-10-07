@@ -198,7 +198,13 @@
       "low_stock": "مخزون منخفض",
       "revenue_delta_same": "= البارحة",
       "revenue_delta": "{sign}{pct}٪ مقارنة بالأمس",
-      "low_stock_out": "{count} نفد مخزونه"
+      "low_stock_out": "{count} نفد مخزونه",
+      "section_today": "مهام اليوم",
+      "prepare_sub": "الأقدم: {age}",
+      "unpaid_sub": "{count, plural, one {# طلب} other {# طلبات}}",
+      "low_stock_sub": "منها {count} نفد",
+      "reminders_next": "التالي في {time}",
+      "reminders_late": "{count} متأخر"
     },
     "prepare": {
       "title": "قيد التحضير",
@@ -219,7 +225,9 @@
     "revenue": {
       "title": "الإيرادات — 7 أيام",
       "aria_label": "الإيرادات خلال آخر 7 أيام",
-      "today": "اليوم"
+      "today": "اليوم",
+      "footer": "إجمالي 7 أيام: {amount}",
+      "orders_summary": "{count, plural, one {# بيعة} other {# مبيعات}} · متوسط السلة {avg}"
     },
     "low_stock": {
       "title": "مخزون منخفض",
@@ -257,7 +265,13 @@
       "add_customers": "سجّل أول عملائك",
       "products_done": "{count, plural, one {# منتج مضاف} other {# منتجات مضافة}}",
       "customers_done": "{count, plural, one {# عميل مسجّل} other {# عملاء مسجّلون}}"
-    }
+    },
+    "greeting_morning": "صباح الخير",
+    "greeting_morning_named": "صباح الخير، {name}",
+    "greeting_afternoon": "مساء الخير",
+    "greeting_afternoon_named": "مساء الخير، {name}",
+    "greeting_evening": "مساء الخير",
+    "greeting_evening_named": "مساء الخير، {name}"
   },
   "customers": {
     "list": {

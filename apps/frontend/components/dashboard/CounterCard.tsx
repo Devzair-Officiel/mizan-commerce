@@ -4,20 +4,21 @@ import { type ReactNode } from 'react';
 interface CounterCardProps {
   label: string;
   value: string | number;
+  valueColor?: string;
   sub?: string;
   subColor?: string;
   href?: string;
   icon?: ReactNode;
 }
 
-function CardInner({ label, value, sub, subColor, icon }: Omit<CounterCardProps, 'href'>) {
+function CardInner({ label, value, valueColor, sub, subColor, icon }: Omit<CounterCardProps, 'href'>) {
   return (
     <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card p-4 h-full">
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
         {icon}
         {label}
       </p>
-      <p className="text-3xl font-bold tabular-nums text-foreground">{value}</p>
+      <p className={`text-3xl font-bold tabular-nums ${valueColor ?? 'text-foreground'}`}>{value}</p>
       {sub && (
         <p className={`text-xs font-medium ${subColor ?? 'text-muted-foreground'}`}>{sub}</p>
       )}

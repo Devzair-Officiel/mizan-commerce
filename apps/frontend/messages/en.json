@@ -220,7 +220,13 @@
       "low_stock": "Low stock",
       "revenue_delta_same": "= yesterday",
       "revenue_delta": "{sign}{pct}% vs yesterday",
-      "low_stock_out": "{count} out of stock"
+      "low_stock_out": "{count} out of stock",
+      "section_today": "What to do today",
+      "prepare_sub": "oldest: {age}",
+      "unpaid_sub": "{count, plural, one {# order} other {# orders}}",
+      "low_stock_sub": "incl. {count} out of stock",
+      "reminders_next": "next at {time}",
+      "reminders_late": "{count} overdue"
     },
     "prepare": {
       "title": "To prepare",
@@ -241,7 +247,9 @@
     "revenue": {
       "title": "Revenue — 7 days",
       "aria_label": "Revenue over the last 7 days",
-      "today": "Today"
+      "today": "Today",
+      "footer": "7-day total: {amount}",
+      "orders_summary": "{count, plural, one {# sale} other {# sales}} · avg basket {avg}"
     },
     "low_stock": {
       "title": "Low stock",
@@ -279,7 +287,13 @@
       "add_customers": "Register your first customers",
       "products_done": "{count, plural, one {# product added} other {# products added}}",
       "customers_done": "{count, plural, one {# customer registered} other {# customers registered}}"
-    }
+    },
+    "greeting_morning": "Good morning",
+    "greeting_morning_named": "Good morning, {name}",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_afternoon_named": "Good afternoon, {name}",
+    "greeting_evening": "Good evening",
+    "greeting_evening_named": "Good evening, {name}"
   },
   "customers": {
     "list": {

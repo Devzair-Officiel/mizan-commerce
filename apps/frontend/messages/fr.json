@@ -220,7 +220,13 @@
       "low_stock": "Stock faible",
       "revenue_delta_same": "= hier",
       "revenue_delta": "{sign}{pct}% vs hier",
-      "low_stock_out": "{count} en rupture"
+      "low_stock_out": "{count} en rupture",
+      "section_today": "À faire aujourd'hui",
+      "prepare_sub": "la plus ancienne : {age}",
+      "unpaid_sub": "{count, plural, one {# commande} other {# commandes}}",
+      "low_stock_sub": "dont {count} en rupture",
+      "reminders_next": "le prochain à {time}",
+      "reminders_late": "{count} en retard"
     },
     "prepare": {
       "title": "À préparer",
@@ -241,7 +247,9 @@
     "revenue": {
       "title": "CA — 7 jours",
       "aria_label": "Chiffre d'affaires des 7 derniers jours",
-      "today": "Auj."
+      "today": "Auj.",
+      "footer": "Total sur 7 jours : {amount}",
+      "orders_summary": "{count, plural, one {# vente} other {# ventes}} · panier moyen {avg}"
     },
     "low_stock": {
       "title": "Stock faible",
@@ -279,7 +287,13 @@
       "add_customers": "Enregistre tes premiers clients",
       "products_done": "{count, plural, one {# produit ajouté} other {# produits ajoutés}}",
       "customers_done": "{count, plural, one {# client enregistré} other {# clients enregistrés}}"
-    }
+    },
+    "greeting_morning": "Bonjour",
+    "greeting_morning_named": "Bonjour, {name}",
+    "greeting_afternoon": "Bonjour",
+    "greeting_afternoon_named": "Bonjour, {name}",
+    "greeting_evening": "Bonsoir",
+    "greeting_evening_named": "Bonsoir, {name}"
   },
   "customers": {
     "list": {

@@ -73,7 +73,7 @@ export default function SettingsPage() {
     <>
       <TopBar title="Paramètres boutique" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32 max-w-3xl mx-auto w-full">
         <IdentitySection shop={shop} register={register} errors={errors} />
         <ManagementSection
           showPublicPage={can('public_pages')}

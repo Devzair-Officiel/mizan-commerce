@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { useDashboard } from '@/lib/hooks/useDashboard';
 import { useMe } from '@/lib/hooks/useMe';
@@ -10,6 +10,25 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { NewShopWelcome } from '@/components/dashboard/NewShopWelcome';
 import { ActiveShopDashboard } from '@/components/dashboard/ActiveShopDashboard';
 
+function useGreeting(firstName: string | null): string {
+  const t = useTranslations('dashboard');
+  const locale = useLocale();
+  const hours = new Date().getHours();
+
+  const period: 'morning' | 'afternoon' | 'evening' =
+    hours < 5 || hours >= 18 ? 'evening'
+    : hours < 12 ? 'morning'
+    : locale === 'fr' ? 'morning'
+    : 'afternoon';
+
+  const greetings = {
+    morning: firstName ? t('greeting_morning_named', { name: firstName }) : t('greeting_morning'),
+    afternoon: firstName ? t('greeting_afternoon_named', { name: firstName }) : t('greeting_afternoon'),
+    evening: firstName ? t('greeting_evening_named', { name: firstName }) : t('greeting_evening'),
+  };
+  return greetings[period];
+}
+
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const { data, isLoading, isError, error } = useDashboard();
@@ -17,7 +36,7 @@ export default function DashboardPage() {
   const formatDate = useFormatDate();
 
   const firstName = me?.full_name?.split(' ')[0] ?? null;
-  const title = firstName ? t('greeting_named', { name: firstName }) : t('greeting');
+  const title = useGreeting(firstName);
   const subtitle = formatDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   const isNewShop = data !== undefined && !data.setup.has_orders;
@@ -25,7 +44,7 @@ export default function DashboardPage() {
   return (
     <>
       <TopBar title={title} subtitle={subtitle} />
-      <div className="flex flex-col gap-4 p-4 pt-0">
+      <div className="flex flex-col gap-4 p-4 lg:pt-0">
 
         <DashboardNotice />
 
