@@ -5,23 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useNavBadges } from '@/lib/hooks/useNavBadges';
-
-const ENTRY_SCREEN_PATTERNS = [
-  /^\/orders\/new$/,
-  /^\/orders\/[^/]+\/edit$/,
-  /^\/products\/new$/,
-  /^\/products\/[^/]+\/edit$/,
-  /^\/customers\/new$/,
-  /^\/customers\/[^/]+\/edit$/,
-  /^\/stock\/add$/,
-  /^\/stock\/out$/,
-  /^\/stock\/import-invoice$/,
-  /^\/zakat\/new$/,
-];
-
-function isEntryScreen(pathname: string): boolean {
-  return ENTRY_SCREEN_PATTERNS.some((re) => re.test(pathname));
-}
+import { confirmLeave } from '@/lib/dirtyGuard';
 
 function isNavActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
@@ -33,19 +17,21 @@ interface NavItemProps {
   icon: React.ReactNode;
   active: boolean;
   badge?: number;
+  confirmMsg: string;
 }
 
-function NavItem({ href, label, icon, active, badge }: NavItemProps) {
+function NavItem({ href, label, icon, active, badge, confirmMsg }: NavItemProps) {
   return (
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
+      onClick={(e) => { if (!confirmLeave(confirmMsg)) e.preventDefault(); }}
       className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-14"
     >
       <span className={`relative flex items-center justify-center h-7.5 w-13 rounded-full transition-colors ${active ? 'bg-secondary' : ''}`}>
         <span className={active ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
         {(badge ?? 0) > 0 && (
-          <span className="absolute -top-0.5 -inset-e-1 min-w-4.5 h-4.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+          <span className="absolute -top-0.5 -inset-e-1 min-w-4.5 h-4.5 rounded-full bg-muted text-foreground border-2 border-card text-[10px] font-bold flex items-center justify-center px-1 leading-none">
             {(badge ?? 0) > 99 ? '99+' : badge}
           </span>
         )}
@@ -57,19 +43,20 @@ function NavItem({ href, label, icon, active, badge }: NavItemProps) {
   );
 }
 
-function SellButton({ label }: { label: string }) {
+function SellButton({ label, confirmMsg }: { label: string; confirmMsg: string }) {
   return (
     <Link
       href="/orders/new"
       aria-label={label}
+      onClick={(e) => { if (!confirmLeave(confirmMsg)) e.preventDefault(); }}
       className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-14 py-2"
     >
-      <span className="flex items-center justify-center h-13 w-13 rounded-full bg-primary shadow-[0_4px_14px_-2px_rgba(0,0,0,0.25)] -mt-3 active:scale-95 transition-transform">
+      <span className="flex items-center justify-center h-14 w-14 rounded-full bg-primary shadow-md ring-4 ring-card -mt-7 active:scale-95 transition-transform">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />
         </svg>
       </span>
-      <span className="text-[0.6875rem] leading-none text-muted-foreground">{label}</span>
+      <span className="text-[0.6875rem] leading-none text-foreground font-semibold">{label}</span>
     </Link>
   );
 }
@@ -77,11 +64,11 @@ function SellButton({ label }: { label: string }) {
 export function BottomNav() {
   const t = useTranslations('layout.nav');
   const tBottom = useTranslations('layout.bottomNav');
+  const tc = useTranslations('layout.common');
   const pathname = usePathname();
   const kind = useCatalogKind();
   const { data: badges } = useNavBadges();
-
-  if (isEntryScreen(pathname)) return null;
+  const confirmMsg = tc('confirm_leave');
 
   const catalogLabel = kind === 'services' ? t('services') : kind === 'products' ? t('articles') : t('catalogue');
 
@@ -92,14 +79,14 @@ export function BottomNav() {
     >
       <div className="flex items-end justify-around">
         <NavItem href="/dashboard" label={t('dashboard')} active={isNavActive('/dashboard', pathname)}
-          icon={<HomeIcon />} />
+          icon={<HomeIcon />} confirmMsg={confirmMsg} />
         <NavItem href="/customers" label={t('customers')} active={isNavActive('/customers', pathname)}
-          icon={<UsersIcon />} />
-        <SellButton label={tBottom('sell')} />
+          icon={<UsersIcon />} confirmMsg={confirmMsg} />
+        <SellButton label={tBottom('sell')} confirmMsg={confirmMsg} />
         <NavItem href="/orders" label={t('orders')} active={isNavActive('/orders', pathname)}
-          icon={<ShoppingBagIcon />} badge={badges?.orders_to_prepare} />
+          icon={<ShoppingBagIcon />} badge={badges?.orders_to_prepare} confirmMsg={confirmMsg} />
         <NavItem href="/products" label={catalogLabel} active={isNavActive('/products', pathname)}
-          icon={<PackageIcon />} />
+          icon={<PackageIcon />} confirmMsg={confirmMsg} />
       </div>
     </nav>
   );

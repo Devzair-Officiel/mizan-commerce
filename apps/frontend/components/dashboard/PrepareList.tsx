@@ -37,7 +37,7 @@ const PAYMENT_CLS: Record<string, string> = {
   unpaid: 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400',
 };
 
-function PaymentBadge({ status, t }: { status: string; t: TPrep }) {
+function PaymentBadge({ status, t, className }: { status: string; t: TPrep; className?: string }) {
   const labels: Record<string, string> = {
     paid: t('payment_paid'),
     partial: t('payment_partial'),
@@ -45,7 +45,7 @@ function PaymentBadge({ status, t }: { status: string; t: TPrep }) {
   };
   const cls = PAYMENT_CLS[status] ?? PAYMENT_CLS.unpaid;
   return (
-    <span className={`inline-flex items-center justify-center h-6 min-w-20 px-2.5 rounded-full text-xs font-semibold shrink-0 ${cls}`}>
+    <span className={`inline-flex items-center justify-center h-6 min-w-20 px-2.5 rounded-full text-xs font-semibold shrink-0 ${cls} ${className ?? ''}`}>
       {labels[status] ?? labels.unpaid}
     </span>
   );
@@ -75,7 +75,7 @@ export function PrepareList({ count, items }: Props) {
       <div className="divide-y divide-border">
         {items.map((o) => (
           <Link key={o.id} href={`/orders/${o.id}`}
-            className="flex items-center gap-3 px-5 py-3.5 hover:bg-muted active:bg-muted transition-colors">
+            className="flex items-start sm:items-center gap-3 px-5 py-3.5 hover:bg-muted active:bg-muted transition-colors">
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-1.5 min-w-0">
                 <span className="text-sm font-semibold text-foreground truncate">
@@ -89,14 +89,17 @@ export function PrepareList({ count, items }: Props) {
                   {o.items_count > o.items_preview.length && ` +${o.items_count - o.items_preview.length}`}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground mt-0.5 sm:hidden">{rowDate(o.created_at)}</p>
             </div>
             <span className="hidden sm:block text-[0.8125rem] text-muted-foreground shrink-0 tabular-nums">
               {rowDate(o.created_at)}
             </span>
-            <PaymentBadge status={o.payment_status} t={t} />
-            <span className="text-sm font-semibold tabular-nums text-foreground shrink-0 w-20 text-right">
-              {formatMoney(o.total_amount, currency)}
-            </span>
+            <div className="flex flex-col items-end gap-1.5 sm:contents shrink-0">
+              <span className="text-sm font-semibold tabular-nums text-foreground sm:shrink-0 sm:w-20 sm:text-right sm:order-2">
+                {formatMoney(o.total_amount, currency)}
+              </span>
+              <PaymentBadge status={o.payment_status} t={t} />
+            </div>
           </Link>
         ))}
       </div>

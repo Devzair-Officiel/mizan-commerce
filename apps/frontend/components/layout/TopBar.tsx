@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { confirmLeave } from '@/lib/dirtyGuard';
 import { Search } from 'lucide-react';
 import { BurgerButton } from './BurgerMenu';
 import { useSearchOverlay, DesktopSearchPopover } from './SearchOverlay';
@@ -91,7 +92,10 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
 
-  const handleBack = () => (onBack ? onBack() : router.back());
+  const handleBack = () => {
+    if (!confirmLeave(tc('confirm_leave'))) return;
+    if (onBack) onBack(); else router.back();
+  };
   const backText = backLabel ?? tc('back');
   // Mobile search button always opens the fullscreen overlay
 

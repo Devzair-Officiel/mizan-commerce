@@ -76,11 +76,13 @@ Trois types d'écrans — règle fixe :
 |------|-----------------------|--------------|
 | **Page de rubrique** (accueil, commandes, clients, catalogue, factures, stock, rappels, notes, zakat, paramètres) | Menu burger | Visible |
 | **Page de détail** (une commande, un client, un article, une facture, un calcul…) | Flèche retour (`back`) | Visible |
-| **Écran de saisie** (nouvelle vente, création/modification, entrée/sortie de stock, import facture) | Flèche retour (`back`) | **Masquée** |
+| **Écran de saisie** (nouvelle vente, création/modification, entrée/sortie de stock, import facture) | Flèche retour (`back`) | **Visible** |
 
 Application :
-- Passer `back` sur les pages de détail et de saisie. La barre du bas se masque automatiquement sur les chemins de saisie (détectés par pattern de chemin).
+- Passer `back` sur les pages de détail et de saisie. La barre du bas est toujours visible — même sur les écrans de saisie.
+- Sur les écrans de saisie, la `MobileSubmitBar` se place juste au-dessus de la barre du bas (`bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px))`), version compacte (`py-2`, bouton `h-11`). Le contenu de la page conserve assez de `pb` pour ne pas être caché derrière les deux barres.
+- **Garde de saisie** : si l'utilisateur a commencé à saisir (articles ou client renseignés), quitter par la barre du bas, le BurgerMenu ou la flèche retour déclenche une confirmation native (`window.confirm`). La page appelle `registerDirtyChecker` à l'effet et `unregisterDirtyChecker` au démontage.
 - **Plus de fil d'Ariane sur mobile** : le `<Breadcrumb>` est supprimé ; la flèche retour suffit.
-- **Bandeau d'essai dans le menu** : le `TrialBanner` quitte l'en-tête des pages pour vivre exclusivement dans le BurgerMenu. Un seul point d'accès, jamais deux bandeaux simultanés.
-- **Barre du bas** : 5 emplacements fixes (Accueil, Clients, Vendre au centre, Commandes, Catalogue). `bg-card border-t`. Onglet actif : icône dans pastille `bg-secondary`, libellé `text-primary font-semibold`. « Vendre » : bouton rond `bg-primary` légèrement surélevé → `/orders/new` direct.
-- **BurgerMenu** : `bg-card`. Groupes issus de `lib/navigation.tsx`, sans les entrées déjà dans la barre du bas. Badges sur Commandes (rouge si >0), Rappels (neutre).
+- **Bandeau d'essai dans le menu** : `SidebarTrialCard` vit exclusivement dans le BurgerMenu. Un seul point d'accès, jamais deux bandeaux simultanés.
+- **Barre du bas** : 5 emplacements fixes (Accueil, Clients, Vendre au centre, Commandes, Catalogue). `bg-card border-t`. Onglet actif : icône dans pastille `bg-secondary`, libellé `text-primary font-semibold`. « Vendre » : bouton `h-14 w-14`, `ring-4 ring-card`, `-mt-7` → `/orders/new` direct. Badge : style neutre `bg-muted text-foreground` avec liseré `border-card`.
+- **BurgerMenu** : `bg-card`, entièrement défilable (pas de pied fixe). En-tête avec carré `M` bg-primary + nom boutique. Groupes issus de `lib/navigation.tsx`, sans les entrées déjà dans la barre du bas. Badge Stock : `bg-destructive/10 text-destructive`. Badge Rappels : `bg-muted text-foreground`.

@@ -3,17 +3,16 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
-import { Sun, Moon, Palette, LogOut } from 'lucide-react';
+import { Palette, LogOut } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
-import { TrialBanner } from '@/components/layout/TrialBanner';
+import { SidebarTrialCard } from '@/components/layout/SidebarTrialCard';
 import { useShop } from '@/lib/hooks/useShop';
-import { useIsClient } from '@/lib/hooks/useIsClient';
 import { useMe } from '@/lib/hooks/useMe';
 import { useNavGroups, passesGate, isNavActive, ACCOUNT_ENTRIES, type NavEntry } from '@/lib/navigation';
 import { useNavBadges } from '@/lib/hooks/useNavBadges';
+import { confirmLeave } from '@/lib/dirtyGuard';
 
 /* ── Context ── */
 interface BurgerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -45,8 +44,8 @@ const BOTTOM_NAV_HREFS = new Set(['/dashboard', '/customers', '/orders', '/produ
 function BadgeDot({ count, danger }: { count: number; danger?: boolean }) {
   if (count === 0) return null;
   return (
-    <span className={`ms-auto min-w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center px-1.5 leading-none ${
-      danger ? 'bg-red-500 text-white' : 'bg-secondary text-secondary-foreground'
+    <span className={`ms-auto min-w-5.5 h-5.5 rounded-full text-xs font-semibold flex items-center justify-center px-1.5 leading-none ${
+      danger ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground'
     }`}>
       {count > 99 ? '99+' : count}
     </span>
@@ -60,20 +59,57 @@ function MenuNavItem({ entry, active, onNav, badge }: { entry: NavEntry; active:
   return (
     <button
       onClick={() => onNav(entry.href)}
-      className={`flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-sm font-medium transition-all text-start ${
+      className={`flex w-full items-center gap-3.5 rounded-xl px-3 min-h-12 text-[0.9375rem] font-medium transition-all text-start ${
         active ? 'bg-secondary text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
       }`}
     >
       <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-primary' : ''}`} />
-      <span className="flex-1 text-[15px]">{t(entry.labelKey)}</span>
+      <span className="flex-1">{t(entry.labelKey)}</span>
       {(badge ?? 0) > 0 && <BadgeDot count={badge!} danger={isDanger} />}
     </button>
   );
 }
 
+function AppearanceRow({ onNav }: { onNav: (href: string) => void }) {
+  const tc = useTranslations('layout.common');
+  const { close } = useBurger();
+  const { toggle } = useThemeDrawer();
+  function handleClick() { close(); toggle(); }
+  return (
+    <button onClick={handleClick}
+      className="flex w-full items-center gap-3.5 rounded-xl px-3 min-h-12 text-[0.9375rem] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all">
+      <Palette className="h-5 w-5 shrink-0" />
+      <span className="flex-1">{tc('appearance')}</span>
+    </button>
+  );
+}
+
+function NavGroupSection({ titleKey, entries, pathname, onNav, badges }: {
+  titleKey?: string; entries: NavEntry[]; pathname: string;
+  onNav: (href: string) => void; badges: Record<string, number> | undefined;
+}) {
+  const tNav = useTranslations('layout.nav');
+  return (
+    <div className="flex flex-col gap-0.5">
+      {titleKey && (
+        <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+          {tNav(titleKey)}
+        </div>
+      )}
+      {entries.map((entry) => {
+        const badge = entry.badgeKey ? (badges?.[entry.badgeKey] ?? 0) : 0;
+        return (
+          <MenuNavItem key={entry.href} entry={entry}
+            active={isNavActive(entry.href, pathname)}
+            onNav={onNav} badge={badge} />
+        );
+      })}
+    </div>
+  );
+}
+
 export function BurgerMenuDrawer() {
   const tc = useTranslations('layout.common');
-  const tNav = useTranslations('layout.nav');
   const tBurger = useTranslations('layout.burgerMenu');
   const { open, close } = useBurger();
   const router   = useRouter();
@@ -84,7 +120,6 @@ export function BurgerMenuDrawer() {
   const { data: badges } = useNavBadges();
   const navGroups = useNavGroups();
 
-  // Filter nav entries: exclude what's already in the bottom nav
   const filteredGroups = navGroups
     .map((group) => ({
       ...group,
@@ -110,6 +145,7 @@ export function BurgerMenuDrawer() {
   }
 
   function handleNav(href: string) {
+    if (!confirmLeave(tc('confirm_leave'))) return;
     close();
     router.push(href);
   }
@@ -130,79 +166,67 @@ export function BurgerMenuDrawer() {
         aria-modal={open ? true : undefined}
         aria-hidden={!open}
         aria-label={tc('menu')}
-        className={`fixed top-0 inset-s-0 z-80 flex h-dvh flex-col bg-card shadow-xl border-e border-border transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 inset-s-0 z-80 flex h-dvh flex-col bg-card shadow-xl border-e border-border overflow-y-auto transition-transform duration-300 ease-in-out ${
           open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
         }`}
-        style={{ width: 'min(86vw, 21rem)' }}
+        style={{
+          width: 'min(86vw, 21rem)',
+          paddingTop: 'calc(0.875rem + env(safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+        }}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between px-5 gap-3 border-b border-border shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {shop?.logo_url && (
-              <Image src={shop.logo_url} alt={displayName} width={36} height={36} unoptimized
-                className="h-9 w-9 rounded-xl object-cover ring-1 ring-border shrink-0" />
-            )}
-            <span className="text-base font-semibold text-foreground truncate">{displayName}</span>
+        <div className="flex items-center gap-2.5 px-4 pb-4.5">
+          <div className="h-9 w-9 flex-none rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0 overflow-hidden">
+            {shop?.logo_url
+              ? <Image src={shop.logo_url} alt={displayName} width={36} height={36} unoptimized className="h-9 w-9 object-cover" />
+              : 'M'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[0.9375rem] font-semibold text-foreground leading-tight">Mizan</div>
+            <div className="text-xs text-muted-foreground truncate">{displayName}</div>
           </div>
           <button onClick={close} aria-label={tc('close')}
-            className="h-9 w-9 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6L6 18M6 6l12 12" />
+            className="h-11 w-11 flex items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 6l12 12M18 6 6 18" />
             </svg>
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-3 flex flex-col gap-4">
+        {/* Navigation groups */}
+        <div className="flex flex-col gap-5 px-2.5">
           {filteredGroups.map((group) => (
-            <div key={group.titleKey ?? 'main'}>
-              {group.titleKey && (
-                <div className="px-4 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {tNav(group.titleKey)}
-                </div>
-              )}
-              <div className="flex flex-col gap-0.5">
-                {group.entries.map((entry) => {
-                  const badge = entry.badgeKey ? (badges?.[entry.badgeKey] ?? 0) : 0;
-                  return (
-                    <MenuNavItem key={entry.href} entry={entry}
-                      active={isNavActive(entry.href, pathname)}
-                      onNav={handleNav} badge={badge} />
-                  );
-                })}
-              </div>
-            </div>
+            <NavGroupSection key={group.titleKey ?? 'main'} titleKey={group.titleKey}
+              entries={group.entries} pathname={pathname} onNav={handleNav} badges={badges} />
           ))}
 
           {/* Account section */}
-          <div>
-            <div className="px-4 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="flex flex-col gap-0.5">
+            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               {tBurger('account_section')}
             </div>
-            <div className="flex flex-col gap-0.5">
-              {accountEntries.map((entry) => (
-                <MenuNavItem key={entry.href} entry={entry}
-                  active={isNavActive(entry.href, pathname)}
-                  onNav={handleNav} />
-              ))}
-            </div>
+            {accountEntries.map((entry) => (
+              <MenuNavItem key={entry.href} entry={entry}
+                active={isNavActive(entry.href, pathname)}
+                onNav={handleNav} />
+            ))}
+            <AppearanceRow onNav={handleNav} />
           </div>
-        </nav>
 
-        {/* Footer: language + theme + trial + logout */}
-        <div className="p-3 flex flex-col gap-1 border-t border-border shrink-0"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <div className="px-1 py-2">
+          {/* Language */}
+          <div className="px-1">
+            <div className="text-[0.8125rem] font-medium text-muted-foreground mb-1.5">{tc('language')}</div>
             <LanguageSwitcher />
           </div>
-          <AppearanceRow />
-          <ThemeToggleRow />
-          <div className="px-1 py-1">
-            <TrialBanner />
-          </div>
+        </div>
+
+        {/* Bottom section: trial + logout */}
+        <div className="mt-auto flex flex-col gap-2 pt-5 px-2.5">
+          <SidebarTrialCard />
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            className="flex w-full items-center gap-3.5 rounded-xl px-3 min-h-12 text-[0.9375rem] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
           >
             <LogOut className="h-5 w-5 shrink-0" />
             {tc('logout')}
@@ -210,34 +234,5 @@ export function BurgerMenuDrawer() {
         </div>
       </aside>
     </>
-  );
-}
-
-function AppearanceRow() {
-  const tc = useTranslations('layout.common');
-  const { close } = useBurger();
-  const { toggle } = useThemeDrawer();
-  function handleClick() { close(); toggle(); }
-  return (
-    <button onClick={handleClick}
-      className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-      <Palette className="h-5 w-5 shrink-0" />
-      {tc('appearance')}
-    </button>
-  );
-}
-
-function ThemeToggleRow() {
-  const tc = useTranslations('layout.common');
-  const { setTheme, resolvedTheme } = useTheme();
-  const mounted = useIsClient();
-  if (!mounted) return null;
-  const isDark = resolvedTheme === 'dark';
-  return (
-    <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-      {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
-      {isDark ? tc('light_mode') : tc('dark_mode')}
-    </button>
   );
 }

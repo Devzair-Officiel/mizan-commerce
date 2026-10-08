@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
@@ -16,6 +16,7 @@ import { DesktopCatalogPanel } from '@/components/orders/new/DesktopCatalogPanel
 import { DesktopSaleTicket } from '@/components/orders/new/DesktopSaleTicket';
 import { StatusSwitch } from '@/components/orders/new/StatusSwitch';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
+import { registerDirtyChecker, unregisterDirtyChecker } from '@/lib/dirtyGuard';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { useShop } from '@/lib/hooks/useShop';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
@@ -24,6 +25,11 @@ import type { ProductDetail } from '@/lib/hooks/useProducts';
 
 function NewSaleFormDesktop() {
   const form = useNewSaleForm();
+  useEffect(() => {
+    registerDirtyChecker(() => form.items.length > 0 || !!form.customerId);
+    return unregisterDirtyChecker;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.items.length, form.customerId]);
 
   return (
     <div className="flex gap-6 p-6 pb-10 items-start">
@@ -95,11 +101,16 @@ function NewSaleFormMobile() {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
   const form = useNewSaleForm();
+  useEffect(() => {
+    registerDirtyChecker(() => form.items.length > 0 || !!form.customerId);
+    return unregisterDirtyChecker;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.items.length, form.customerId]);
   const { data: shop } = useShop();
   const catalogKind = useCatalogKind();
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-36">
+    <div className="flex flex-col gap-4 p-4 pb-44">
       <MobileCustomerCard form={form} />
       <MobileItemsCard form={form} />
 

@@ -34,20 +34,30 @@ export function UnpaidRow({ order, currency }: Props) {
           {t('order_ref', { number: order.order_number, age: relativeTime(order.created_at) })}
         </p>
       </Link>
-      <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0 w-20 text-right">
+      <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0 sm:w-20 sm:text-right">
         {formatMoney(order.amount_due, currency)}
       </span>
       {order.customer_phone ? (
-        <button
-          type="button"
-          onClick={() => setDialogOpen(true)}
-          className="h-9 px-3.5 rounded-full border border-border bg-card text-[0.8125rem] font-medium text-foreground flex items-center gap-1.5 shrink-0 hover:bg-muted transition-colors"
-        >
-          <MessageCircle size={14} className="text-primary" />
-          {t('relancer')}
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            aria-label={t('relancer_aria', { name: order.customer_name ?? '' })}
+            className="sm:hidden h-11 w-11 rounded-full border border-border bg-card text-primary flex items-center justify-center shrink-0 hover:bg-muted transition-colors"
+          >
+            <WaIcon size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="max-sm:hidden h-9 px-3.5 rounded-full border border-border bg-card text-[0.8125rem] font-medium text-foreground flex items-center gap-1.5 shrink-0 hover:bg-muted transition-colors"
+          >
+            <MessageCircle size={14} className="text-primary" />
+            {t('relancer')}
+          </button>
+        </>
       ) : (
-        <div className="h-9 w-9 shrink-0 invisible" />
+        <div className="h-11 w-11 sm:h-9 sm:w-9 shrink-0 invisible" />
       )}
       {dialogOpen && (
         <PreparedMessageDialog

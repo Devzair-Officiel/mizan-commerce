@@ -43,7 +43,7 @@ export function LanguageSwitcher() {
             onClick={() => switchLocale(loc)}
             aria-pressed={active}
             lang={loc}
-            className={`flex-1 rounded-xl px-2 py-2 text-[13px] font-medium transition-all ${
+            className={`flex-1 h-9 flex items-center justify-center rounded-xl px-2 text-[13px] font-medium transition-all ${
               active
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50'

@@ -19,8 +19,8 @@ export function MobileSubmitBar({ total, isPending, onClick }: MobileSubmitBarPr
 
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border flex items-center gap-3 px-4 pt-3"
-      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      className="fixed inset-x-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border flex items-center gap-3 px-4 py-2"
+      style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}
     >
       <div className="flex flex-col min-w-0">
         <span className="text-xs text-muted-foreground">{t('total')}</span>
@@ -30,7 +30,7 @@ export function MobileSubmitBar({ total, isPending, onClick }: MobileSubmitBarPr
         type="button"
         onClick={() => void onClick()}
         disabled={isPending}
-        className="flex-1 h-13 rounded-full bg-primary text-primary-foreground text-[0.9375rem] font-semibold flex items-center justify-center disabled:opacity-60 active:scale-[0.98] transition-all"
+        className="flex-1 h-11 rounded-full bg-primary text-primary-foreground text-[0.9375rem] font-semibold flex items-center justify-center disabled:opacity-60 active:scale-[0.98] transition-all"
       >
         {isPending ? t('submit_creating') : t('submit_label')}
       </button>

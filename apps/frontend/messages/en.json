@@ -96,7 +96,8 @@
       "appearance": "Appearance",
       "shop_fallback": "Mizan Commerce",
       "light_mode": "Light mode",
-      "dark_mode": "Dark mode"
+      "dark_mode": "Dark mode",
+      "confirm_leave": "Leave without saving? Your changes will be lost."
     },
     "nav": {
       "dashboard": "Home",
@@ -259,7 +260,8 @@
       "see_all": "See {count} orders →",
       "total_due_label": "Total due",
       "order_ref": "Order {number}, {age}",
-      "no_customer": "No customer"
+      "no_customer": "No customer",
+      "relancer_aria": "Follow up with {name} on WhatsApp"
     },
     "revenue": {
       "title": "Sales",

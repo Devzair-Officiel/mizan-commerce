@@ -96,7 +96,8 @@
       "appearance": "المظهر",
       "shop_fallback": "ميزان كوميرس",
       "light_mode": "الوضع الفاتح",
-      "dark_mode": "الوضع الداكن"
+      "dark_mode": "الوضع الداكن",
+      "confirm_leave": "المغادرة دون حفظ؟ سيتم فقدان ما أدخلته."
     },
     "nav": {
       "dashboard": "الرئيسية",
@@ -259,7 +260,8 @@
       "see_all": "عرض {count} طلب →",
       "total_due_label": "المبلغ المستحق",
       "order_ref": "الطلب {number}، {age}",
-      "no_customer": "بدون عميل"
+      "no_customer": "بدون عميل",
+      "relancer_aria": "متابعة مع {name} على واتساب"
     },
     "revenue": {
       "title": "المبيعات",
