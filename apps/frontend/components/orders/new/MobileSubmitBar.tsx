@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 
 interface MobileSubmitBarProps {
   total: number;
@@ -18,10 +19,7 @@ export function MobileSubmitBar({ total, isPending, onClick }: MobileSubmitBarPr
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
 
   return (
-    <div
-      className="fixed inset-x-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border flex items-center gap-3 px-4 py-2"
-      style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))' }}
-    >
+    <FloatingActionBar>
       <div className="flex flex-col min-w-0">
         <span className="text-xs text-muted-foreground">{t('total')}</span>
         <span className="text-xl font-bold tabular-nums text-foreground">{money(total)}</span>
@@ -34,6 +32,6 @@ export function MobileSubmitBar({ total, isPending, onClick }: MobileSubmitBarPr
       >
         {isPending ? t('submit_creating') : t('submit_label')}
       </button>
-    </div>
+    </FloatingActionBar>
   );
 }

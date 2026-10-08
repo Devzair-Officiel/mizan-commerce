@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { ChevronDown, MapPin, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { FloatingInput, FloatingTextarea } from '@/components/ui/floating-fields';
 import { CountryPicker } from '@/components/ui/CountryPicker';
 import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
@@ -72,7 +73,7 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
   return (
     <form
       onSubmit={handleSubmit(handleValid)}
-      className="flex flex-col gap-4 p-4 pb-32 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6 lg:pb-8"
+      className="flex flex-col gap-4 p-4 pb-44 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6 lg:pb-8"
     >
       <section className="flex flex-col gap-2.5">
         <SectionHeading>{t('section_identity')}</SectionHeading>
@@ -139,15 +140,16 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
         <FloatingTextarea id="notes" label={t('notes_placeholder')} rows={3} {...register('notes')} />
       </CollapsibleSection>
 
-      <div className="sticky bottom-24 lg:bottom-2 -mx-4 lg:mx-0 px-4 lg:px-0 mt-2">
-        <Button
-          type="submit"
-          className="w-full rounded-full shadow-lg h-12 text-sm font-semibold"
-          disabled={!canSubmit}
-        >
+      <div className="hidden lg:block mt-2">
+        <Button type="submit" className="w-full rounded-full shadow-lg h-12 text-sm font-semibold" disabled={!canSubmit}>
           {isSubmitting ? t('submitting') : t('submit')}
         </Button>
       </div>
+      <FloatingActionBar>
+        <Button type="submit" className="flex-1 h-11 rounded-full text-sm font-semibold" disabled={!canSubmit}>
+          {isSubmitting ? t('submitting') : t('submit')}
+        </Button>
+      </FloatingActionBar>
     </form>
   );
 }

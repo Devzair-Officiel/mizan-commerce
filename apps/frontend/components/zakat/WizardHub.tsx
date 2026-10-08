@@ -4,6 +4,7 @@ import { ChevronLeft, Pencil, Wallet, Users, Package, ShieldCheck, Receipt } fro
 import { useRouter } from 'next/navigation';
 import type { ComponentType } from 'react';
 import { Button } from '@/components/ui/button';
+import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import {
   formatMoney,
   sumImmediateDebts,
@@ -135,10 +136,9 @@ export function WizardHub({
 }: WizardHubProps) {
   const router = useRouter();
   const cards = buildCards(calc, state, currency);
-
+  const finalizeLabel = isPending ? 'Finalisation…' : 'Finaliser la zakat';
   return (
     <div className="flex flex-col min-h-screen pb-44 lg:pb-24">
-      {/* En-tête : flèche retour + titre */}
       <header className="sticky top-0 z-20 bg-background border-b border-border">
         <div className="flex items-center gap-2 px-3 py-3">
           <button
@@ -157,9 +157,7 @@ export function WizardHub({
           </div>
         </div>
       </header>
-
       <main className="flex-1 flex flex-col gap-4 px-4 py-5">
-        {/* Cartes éditables — 5 étapes de saisie. L'étape 5 (récap) est intégrée juste en dessous. */}
         <div className="flex flex-col gap-2">
           {cards.map(({ step, Icon, label, summary }) => (
             <button
@@ -182,7 +180,6 @@ export function WizardHub({
           ))}
         </div>
 
-        {/* Récap (étape 6) — vérification finale, contient déjà projection + Nisab + audit */}
         <div className="flex flex-col gap-1 mt-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
             Vérification finale
@@ -200,12 +197,12 @@ export function WizardHub({
         </button>
       </main>
 
-      {/* Pied : même positionnement que WizardLayout pour cohérence (mobile au-dessus de BottomNav). */}
-      <footer className="fixed bottom-24 left-0 right-0 z-40 px-4 lg:static lg:bottom-auto lg:px-0 lg:py-3">
-        <Button onClick={onFinalize} disabled={isPending} className="w-full">
-          {isPending ? 'Finalisation…' : 'Finaliser la zakat'}
-        </Button>
+      <footer className="hidden lg:block lg:py-3">
+        <Button onClick={onFinalize} disabled={isPending} className="w-full">{finalizeLabel}</Button>
       </footer>
+      <FloatingActionBar>
+        <Button onClick={onFinalize} disabled={isPending} className="flex-1">{finalizeLabel}</Button>
+      </FloatingActionBar>
     </div>
   );
 }

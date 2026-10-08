@@ -26,6 +26,7 @@ import type {
   OcrInvoiceLine, OcrMatching, OcrMatchingCandidate, OcrResult, OcrReview,
 } from '@/lib/hooks/useOcr';
 import { ApiError } from '@/lib/api-client';
+import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import {
   bestCandidateForLine, buildReviewDraft, buildReviewPayload,
   candidatesForLine, computeLineOcrConfidence, countDecisions,
@@ -69,7 +70,7 @@ export default function ImportInvoicePage() {
   return (
     <>
       <TopBar title={t('title')} back />
-      <div className="flex flex-col gap-4 p-4 pb-32">
+      <div className="flex flex-col gap-4 p-4 pb-44 lg:pb-4">
         {!ocrResultId && (
           <FilePickerCard
             inputRef={inputRef}
@@ -769,28 +770,23 @@ interface ContinueBarProps {
 function ContinueBar({ disabled, summary, onClick, loading }: ContinueBarProps) {
   const t = useTranslations('stock.importInvoice');
   return (
-    <div
-      className="fixed bottom-0 inset-x-0 z-30 border-t border-border bg-card/95 backdrop-blur-md p-3 pb-safe"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
-    >
-      <div className="max-w-md mx-auto flex flex-col gap-1.5">
-        <p className="text-[11px] text-muted-foreground text-center">{summary}</p>
-        <Button
-          disabled={disabled}
-          onClick={onClick}
-          className="w-full min-h-12"
-        >
-          {loading ? (
-            <>
-              <Loader2 size={16} className="animate-spin me-2" />
-              {t('validating')}
-            </>
-          ) : (
-            t('continue_cta')
-          )}
-        </Button>
-      </div>
-    </div>
+    <FloatingActionBar>
+      <p className="flex-1 min-w-0 text-[11px] text-muted-foreground">{summary}</p>
+      <Button
+        disabled={disabled}
+        onClick={onClick}
+        className="h-11 rounded-full px-6 shrink-0"
+      >
+        {loading ? (
+          <>
+            <Loader2 size={16} className="animate-spin me-2" />
+            {t('validating')}
+          </>
+        ) : (
+          t('continue_cta')
+        )}
+      </Button>
+    </FloatingActionBar>
   );
 }
 

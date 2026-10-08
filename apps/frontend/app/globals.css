@@ -54,6 +54,9 @@
    (le script inline utilise data-primary / data-bg). Ils n'ont aucun effet.
    ───────────────────────────────────────────────────────────────────────── */
 :root {
+  --bottom-nav-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  --sell-overflow: 1.75rem;
+
   --background:           oklch(0.975 0.010 85);
   --foreground:           oklch(0.27 0.02 170);
   --card:                 oklch(0.995 0.005 85);
