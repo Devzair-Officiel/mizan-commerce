@@ -586,7 +586,7 @@
     "items": {
       "title": "{kind, select, products {Articles} services {Services} other {Articles}}",
       "unit_count": "{count, plural, one {# unité} other {# unités}}",
-      "empty": "{kind, select, products {Aucun article.} services {Aucune prestation.} other {Aucun article.}}",
+      "empty": "{kind, select, products {Aucun article.} services {Aucun service.} other {Aucun article.}}",
       "unit_price_short": "{amount}/u",
       "total": "Total",
       "subtotal": "Sous-total",
@@ -748,7 +748,7 @@
       "filter_product": "Produits",
       "filter_service": "Services",
       "create_product": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou service}}",
-      "free_line_title": "{kind, select, products {Article ponctuel} services {Prestation ponctuelle} other {Article ou service ponctuel}}",
+      "free_line_title": "{kind, select, products {Article ponctuel} services {Service ponctuel} other {Article ou service ponctuel}}",
       "free_line_sub": "Sans enregistrer au catalogue",
       "no_results": "Aucun résultat.",
       "no_products": "{kind, select, products {Aucun article enregistré.} services {Aucun service enregistré.} other {Aucun article enregistré.}}",
@@ -772,10 +772,11 @@
       "panel_items": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "panel_create": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou un service}}",
       "desktop_search_placeholder": "{kind, select, products {Nom de l'article, référence ou code-barres} services {Nom du service} other {Nom de l'article, référence ou code-barres}}",
-      "free_line_desktop": "{kind, select, products {Article ponctuel, sans l'enregistrer} services {Prestation ponctuelle, sans l'enregistrer} other {Article ponctuel, sans l'enregistrer}}",
+      "free_line_desktop": "{kind, select, products {Article ponctuel, sans l'enregistrer} services {Service ponctuel, sans l'enregistrer} other {Article ponctuel, sans l'enregistrer}}",
       "empty_catalog_title": "Ton catalogue est vide",
-      "empty_catalog_text": "{kind, select, products {Commence par créer un article pour l'ajouter à ta vente.} services {Commence par créer une prestation pour l'ajouter à ta vente.} other {Commence par créer un article ou une prestation.}}",
-      "empty_catalog_free_line": "{kind, select, products {Un article que tu ne revendras pas ? Ajoute-le sans l'enregistrer.} services {Une prestation ponctuelle ? Ajoute-la sans l'enregistrer.} other {Un article ponctuel ? Ajoute-le sans l'enregistrer.}}"
+      "empty_catalog_text": "{kind, select, products {Crée l'article ici : il s'ajoute à la vente et reste dans ton catalogue pour les prochaines fois.} services {Crée le service ici : il s'ajoute à la vente et reste dans ton catalogue pour les prochaines fois.} other {Crée l'article ou le service ici : il s'ajoute à la vente et reste dans ton catalogue pour les prochaines fois.}}",
+      "empty_catalog_free_question": "{kind, select, products {Un article que tu ne revendras pas ?} services {Un service que tu ne factureras qu'une fois ?} other {Un article ou un service ponctuel ?}}",
+      "empty_catalog_free_link": "Ajoute-le sans l'enregistrer"
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",
@@ -801,18 +802,16 @@
       "type_label": "Type",
       "type_product": "Article",
       "type_service": "Service",
-      "name_label": "{type, select, product {Nom de l'article} service {Nom de la prestation} other {Nom}}",
+      "name_label": "Nom",
       "name_required": "Le nom est requis.",
       "price_label": "Prix de vente",
-      "price_service": "Prix de la prestation",
       "price_required": "Le prix de vente est requis.",
       "submit": "Ajouter à la vente",
       "submitting": "Création…",
       "error": "Erreur lors de la création.",
       "name_placeholder_product": "Chemise en lin blanc",
       "name_placeholder_service": "Retouche ourlet",
-      "save_helper": "Sera enregistré dans le catalogue.",
-      "skip_save": "Ajouter sans enregistrer",
+      "save_helper": "{type, select, product {Stock, tailles et photo se complètent plus tard.} service {La description se complète plus tard.} other {Sera enregistré dans le catalogue.}}",
       "back_to_catalog": "Retour au catalogue"
     },
     "paymentFilter": {

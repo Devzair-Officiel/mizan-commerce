@@ -775,8 +775,9 @@
       "desktop_search_placeholder": "{kind, select, products {Name, reference or barcode} services {Service name} other {Name, reference or barcode}}",
       "free_line_desktop": "{kind, select, products {One-off item, without saving} services {One-off service, without saving} other {One-off item, without saving}}",
       "empty_catalog_title": "Your catalog is empty",
-      "empty_catalog_text": "{kind, select, products {Create your first item to add it directly to the sale.} services {Create your first service to add it directly to the sale.} other {Create your first item or service.}}",
-      "empty_catalog_free_line": "{kind, select, products {One-off item you won't resell? Add it without saving.} services {One-off service? Add it without saving.} other {One-off item? Add it without saving.}}"
+      "empty_catalog_text": "{kind, select, products {Create the item here: it's added to the sale and stays in your catalog for next time.} services {Create the service here: it's added to the sale and stays in your catalog for next time.} other {Create the item or service here: it's added to the sale and stays in your catalog for next time.}}",
+      "empty_catalog_free_question": "{kind, select, products {An item you won't be reselling?} services {A service you'll only invoice once?} other {A one-time item or service?}}",
+      "empty_catalog_free_link": "Add it without saving"
     },
     "customerPicker": {
       "trigger_select": "Pick a customer",
@@ -802,18 +803,16 @@
       "type_label": "Type",
       "type_product": "Item",
       "type_service": "Service",
-      "name_label": "{type, select, product {Item name} service {Service name} other {Name}}",
+      "name_label": "Name",
       "name_required": "Name is required.",
       "price_label": "Sale price",
-      "price_service": "Service price",
       "price_required": "Sale price is required.",
       "submit": "Add to sale",
       "submitting": "Creating…",
       "error": "Error creating item.",
       "name_placeholder_product": "White linen shirt",
       "name_placeholder_service": "Trouser hem",
-      "save_helper": "Will be saved to the catalog.",
-      "skip_save": "Add without saving",
+      "save_helper": "{type, select, product {Stock, sizes and photos can be added later.} service {Description can be added later.} other {Will be saved to the catalog.}}",
       "back_to_catalog": "Back to catalog"
     },
     "paymentFilter": {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Check, Search, X, Package } from 'lucide-react';
+import { Plus, Check, Search, X, Tag } from 'lucide-react';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
@@ -191,26 +191,32 @@ function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, pick
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <DesktopCatalogHeader title={panelTitle} kind={catalogKind} filter={pickerFilter}
-        setFilter={onFilterChange} t={t} />
-      <div className="px-5 pt-2 pb-6 flex flex-col gap-5">
-        <div className="flex flex-col items-center gap-3 pt-4 pb-2">
-          <div className="w-12 h-12 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0">
-            <Package size={22} />
+      <div className="px-5 py-4 border-b border-border">
+        <h2 className="text-[0.9375rem] font-semibold text-foreground">{panelTitle}</h2>
+      </div>
+      <div className="p-6 flex flex-col">
+        <div className="flex items-start gap-4">
+          <div className="w-11 h-11 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0">
+            <Tag size={18} />
           </div>
-          <div className="flex flex-col items-center gap-1 text-center">
+          <div className="flex flex-col gap-1">
             <span className="text-base font-semibold text-foreground">{t('empty_catalog_title')}</span>
-            <span className="text-sm text-muted-foreground max-w-xs">{t('empty_catalog_text', { kind: catalogKind })}</span>
+            <span className="text-sm text-muted-foreground">{t('empty_catalog_text', { kind: catalogKind })}</span>
           </div>
         </div>
-        <QuickAddProductForm
-          onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
-          onClose={() => {}}
-        />
-        <button type="button" onClick={() => setMode('free')}
-          className="self-center text-sm text-muted-foreground hover:text-foreground transition-colors">
-          {t('empty_catalog_free_line', { kind: catalogKind })}
-        </button>
+        <div className="mt-5">
+          <QuickAddProductForm
+            onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
+            onClose={() => {}}
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-x-1.5 items-baseline text-[0.8125rem]">
+          <span className="text-muted-foreground">{t('empty_catalog_free_question', { kind: catalogKind })}</span>
+          <button type="button" onClick={() => setMode('free')}
+            className="text-primary font-semibold hover:underline">
+            {t('empty_catalog_free_link')}
+          </button>
+        </div>
       </div>
     </div>
   );

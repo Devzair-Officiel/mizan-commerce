@@ -774,8 +774,9 @@
       "desktop_search_placeholder": "{kind, select, products {الاسم أو المرجع أو الباركود} services {اسم الخدمة} other {الاسم أو المرجع أو الباركود}}",
       "free_line_desktop": "{kind, select, products {صنف طارئ، دون حفظ} services {خدمة طارئة، دون حفظ} other {صنف طارئ، دون حفظ}}",
       "empty_catalog_title": "فهرسك فارغ",
-      "empty_catalog_text": "{kind, select, products {ابدأ بإنشاء بضاعة لإضافتها مباشرة إلى البيع.} services {ابدأ بإنشاء خدمة لإضافتها مباشرة إلى البيع.} other {ابدأ بإنشاء بضاعة أو خدمة.}}",
-      "empty_catalog_free_line": "{kind, select, products {بضاعة لن تعيد بيعها؟ أضفها دون حفظ.} services {خدمة طارئة؟ أضفها دون حفظ.} other {صنف طارئ؟ أضفه دون حفظ.}}"
+      "empty_catalog_text": "{kind, select, products {أنشئ البضاعة هنا: ستُضاف إلى البيع وتبقى في فهرسك للمرات القادمة.} services {أنشئ الخدمة هنا: ستُضاف إلى البيع وتبقى في فهرسك للمرات القادمة.} other {أنشئ البضاعة أو الخدمة هنا: ستُضاف إلى البيع وتبقى في فهرسك للمرات القادمة.}}",
+      "empty_catalog_free_question": "{kind, select, products {بضاعة لن تعيد بيعها؟} services {خدمة لن تفوترها إلا مرة واحدة؟} other {صنف أو خدمة طارئة؟}}",
+      "empty_catalog_free_link": "أضفه دون حفظ"
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",
@@ -801,18 +802,16 @@
       "type_label": "النوع",
       "type_product": "بضاعة",
       "type_service": "خدمة",
-      "name_label": "{type, select, product {اسم البضاعة} service {اسم الخدمة} other {الاسم}}",
+      "name_label": "الاسم",
       "name_required": "الاسم مطلوب.",
       "price_label": "سعر البيع",
-      "price_service": "سعر الخدمة",
       "price_required": "سعر البيع مطلوب.",
-      "submit": "إضافة إلى الطلب",
+      "submit": "إضافة إلى البيع",
       "submitting": "جارٍ الإنشاء…",
       "error": "حدث خطأ أثناء الإنشاء.",
       "name_placeholder_product": "قميص كتاني أبيض",
       "name_placeholder_service": "تقصير بنطلون",
-      "save_helper": "سيُحفظ في الفهرس.",
-      "skip_save": "إضافة دون حفظ",
+      "save_helper": "{type, select, product {المخزون والأحجام والصورة تُكمَل لاحقًا.} service {الوصف يُكمَل لاحقًا.} other {سيُحفظ في الفهرس.}}",
       "back_to_catalog": "العودة إلى الفهرس"
     },
     "paymentFilter": {

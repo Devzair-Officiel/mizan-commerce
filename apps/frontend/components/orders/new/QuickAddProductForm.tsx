@@ -23,11 +23,19 @@ export function QuickAddProductForm({ onCreated, onClose, onBack }: QuickAddProd
     ck === 'products' ? 'product' : ck === 'services' ? 'service' : null;
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [type, setType] = useState<ProductType>(forcedType ?? 'product');
+  const [type, setType] = useState<ProductType>('product');
+  // effectiveType is derived — never stored, avoids stale state when shop loads after render
+  const effectiveType = forcedType ?? type;
   const [errors, setErrors] = useState<{ name?: string; price?: string }>({});
   const { mutateAsync, isPending } = useCreateProduct();
   const qc = useQueryClient();
   const currency = shop?.currency ?? 'EUR';
+
+  if (!shop) {
+    return (
+      <div className="rounded-2xl border border-border bg-muted/30 p-5 h-37 animate-pulse" />
+    );
+  }
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -36,7 +44,7 @@ export function QuickAddProductForm({ onCreated, onClose, onBack }: QuickAddProd
     if (!price || isNaN(parseFloat(price))) errs.price = t('price_required');
     if (Object.keys(errs).length) { setErrors(errs); return; }
     try {
-      const product = await mutateAsync({ name: name.trim(), type });
+      const product = await mutateAsync({ name: name.trim(), type: effectiveType });
       await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
         method: 'POST',
         body: JSON.stringify({ packaging_name: DEFAULT_VARIANT_NAME, unit: 'piece', base_quantity: '1', selling_price: price }),
@@ -44,7 +52,7 @@ export function QuickAddProductForm({ onCreated, onClose, onBack }: QuickAddProd
       qc.invalidateQueries({ queryKey: qk.products.all });
       const refreshed = await apiFetch<ProductDetail>(`/products/${product.id}/`);
       onCreated(refreshed);
-      setName(''); setPrice(''); setType(forcedType ?? 'product'); setErrors({});
+      setName(''); setPrice(''); setType('product'); setErrors({});
     } catch (err) {
       if (err instanceof ApiError && typeof err.data === 'object' && err.data !== null) {
         const data = err.data as Record<string, string[]>;
@@ -64,13 +72,13 @@ export function QuickAddProductForm({ onCreated, onClose, onBack }: QuickAddProd
         </button>
       )}
       <QuickAddFormCard
-        type={type} forcedType={forcedType} name={name} price={price}
+        type={effectiveType} forcedType={forcedType} name={name} price={price}
         errors={errors} currency={currency} isPending={isPending}
         onTypeChange={setType} onNameChange={(v) => { setName(v); setErrors((p) => ({ ...p, name: undefined })); }}
         onPriceChange={(v) => { setPrice(v); setErrors((p) => ({ ...p, price: undefined })); }}
-        submitLabel={t('submit')} submittingLabel={t('submitting')} helperText={t('save_helper')}
-        nameLabel={t('name_label', { type })} priceLabel={type === 'service' ? t('price_service') : t('price_label')}
-        namePlaceholder={type === 'service' ? t('name_placeholder_service') : t('name_placeholder_product')}
+        submitLabel={t('submit')} submittingLabel={t('submitting')} helperText={t('save_helper', { type: effectiveType })}
+        nameLabel={t('name_label')} priceLabel={t('price_label')}
+        namePlaceholder={effectiveType === 'service' ? t('name_placeholder_service') : t('name_placeholder_product')}
         typeProductLabel={t('type_product')} typeServiceLabel={t('type_service')}
       />
     </form>
