@@ -225,6 +225,50 @@ class OrderServiceTest(TestCase):
                 )
 
 
+class AdvanceOrderToTest(TestCase):
+    """Tests pour advance_order_to — enchaînement automatique de transitions."""
+
+    def setUp(self):
+        self.user, self.shop, _, self.variant, self.customer = setup(  # noqa: E501
+            'advance@example.com'
+        )
+
+    def _order(self):
+        order = services.create_order(self.shop, self.user)
+        services.add_item(order, self.variant, 1)
+        return order
+
+    def test_on_site_advance_to_shipped(self):
+        """on_site : advance_order_to('shipped') enchaîne to_prepare → shipped."""
+        order = self._order()
+        result = services.advance_order_to(order, 'shipped', self.user)
+        result.refresh_from_db()
+        self.assertEqual(result.status, 'shipped')
+
+    def test_delivery_advance_to_shipped(self):
+        """Boutique delivery : advance_order_to('shipped') enchaîne to_prepare → prepared → shipped."""  # noqa: E501
+        _, delivery_shop, _, delivery_variant, _ = setup('advance_delivery@example.com', fulfillment_mode='delivery')  # noqa: E501
+        user = User.objects.get(email='advance_delivery@example.com')
+        order = services.create_order(delivery_shop, user)
+        services.add_item(order, delivery_variant, 1)
+        result = services.advance_order_to(order, 'shipped', user)
+        result.refresh_from_db()
+        self.assertEqual(result.status, 'shipped')
+
+    def test_already_at_target_is_noop(self):
+        """advance_order_to ne fait rien si l'order est déjà au statut cible."""
+        order = self._order()
+        self.assertEqual(order.status, 'to_prepare')
+        result = services.advance_order_to(order, 'to_prepare', self.user)
+        self.assertEqual(result.status, 'to_prepare')
+
+    def test_impossible_target_raises(self):
+        """Cible inaccessible (ex: 'prepared' pour on_site) lève ValueError."""
+        order = self._order()
+        with self.assertRaises(ValueError):
+            services.advance_order_to(order, 'prepared', self.user)
+
+
 class OrderAPITest(TestCase):
 
     def setUp(self):

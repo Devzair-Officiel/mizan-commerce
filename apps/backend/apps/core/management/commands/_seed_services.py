@@ -61,17 +61,7 @@ def _create_service_order(
     for variant in variants:
         order_services.add_item(order, variant, 1)
 
-    # Transition draft → to_prepare
-    if ord_status in ('to_prepare', 'prepared', 'shipped'):
-        order_services.transition_status(order, 'to_prepare', owner)
-
-    # Transition to_prepare → prepared
-    if ord_status in ('prepared', 'shipped'):
-        order_services.transition_status(order, 'prepared', owner)
-
-    # Transition prepared → shipped
-    if ord_status == 'shipped':
-        order_services.transition_status(order, 'shipped', owner)
+    order_services.advance_order_to(order, ord_status, owner)
 
     # Paiement
     amount_paid = Decimal('0')

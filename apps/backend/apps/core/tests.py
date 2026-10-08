@@ -49,14 +49,12 @@ class DashboardTodayTest(TestCase):
         self.assertEqual(response.data["today_reminders"]["count"], 0)
 
     def test_orders_to_prepare_count(self):
-        order = order_services.create_order(self.shop, self.user)
-        order_services.transition_status(order, "to_prepare", self.user)
+        order_services.create_order(self.shop, self.user)
         response = self.client.get(self._url())
         self.assertEqual(response.data["orders_to_prepare"]["count"], 1)
 
     def test_unpaid_orders_count(self):
-        order = order_services.create_order(self.shop, self.user)
-        order_services.transition_status(order, "to_prepare", self.user)
+        order_services.create_order(self.shop, self.user)
         response = self.client.get(self._url())
         self.assertEqual(response.data["unpaid_orders"]["count"], 1)
 
@@ -109,8 +107,7 @@ class DashboardTodayTest(TestCase):
 
     def test_multitenant_isolation(self):
         user_b, shop_b = setup("b@example.com")
-        order_b = order_services.create_order(shop_b, user_b)
-        order_services.transition_status(order_b, "to_prepare", user_b)
+        order_services.create_order(shop_b, user_b)
         response = self.client.get(self._url())
         self.assertEqual(response.data["orders_to_prepare"]["count"], 0)
 
@@ -125,8 +122,6 @@ class DashboardTodayTest(TestCase):
         Order.objects.filter(pk=order.pk).update(
             created_at=datetime(2025, 1, 15, 22, 30, tzinfo=ZoneInfo("UTC")),
         )
-        order.refresh_from_db()
-        order_services.transition_status(order, "to_prepare", self.user)
         data = build_dashboard_today(self.shop, now=now)
         # to_prepare n'est pas exclu → la commande compte dans orders_count aujourd'hui
         self.assertEqual(data["today"]["orders_count"], 1)
@@ -140,9 +135,6 @@ class DashboardTodayTest(TestCase):
         Order.objects.filter(pk=order.pk).update(
             created_at=datetime(2025, 1, 15, 23, 30, tzinfo=ZoneInfo("UTC")),
         )
-        order.refresh_from_db()
-        # On active to_prepare pour qu'il passe les filtres revenue
-        order_services.transition_status(order, "to_prepare", self.user)
         data = build_dashboard_today(self.shop, now=now)
         self.assertEqual(data["today"]["orders_count"], 0)
 
@@ -151,7 +143,6 @@ class DashboardTodayTest(TestCase):
     def test_amount_due_per_order(self):
         """amount_due = total_amount - amount_paid pour chaque commande impayée."""
         order = order_services.create_order(self.shop, self.user)
-        order_services.transition_status(order, "to_prepare", self.user)
         Order.objects.filter(pk=order.pk).update(
             total_amount=Decimal("100.00"),
             amount_paid=Decimal("30.00"),
@@ -168,7 +159,6 @@ class DashboardTodayTest(TestCase):
             (Decimal("50.00"), Decimal("0.00")),
         ]:  # noqa: E501
             order = order_services.create_order(self.shop, self.user)
-            order_services.transition_status(order, "to_prepare", self.user)
             Order.objects.filter(pk=order.pk).update(
                 total_amount=total,
                 amount_paid=paid,
@@ -249,8 +239,8 @@ class DashboardTodayTest(TestCase):
         self.assertEqual(data["setup"]["products_count"], 0)
         self.assertEqual(data["setup"]["customers_count"], 0)
 
-    def test_setup_has_orders_includes_drafts(self):
-        """has_orders est True dès qu'un brouillon existe."""
+    def test_setup_has_orders(self):
+        """has_orders est True dès qu'une commande existe."""
         order_services.create_order(self.shop, self.user)
         data = build_dashboard_today(self.shop)
         self.assertTrue(data["setup"]["has_orders"])
@@ -282,8 +272,7 @@ class DashboardBadgesTest(TestCase):
         self.assertNotIn("reminders_due", response.data)
 
     def test_orders_to_prepare_badge(self):
-        order = order_services.create_order(self.shop, self.user)
-        order_services.transition_status(order, "to_prepare", self.user)
+        order_services.create_order(self.shop, self.user)
         response = self.client.get(self._url())
         self.assertEqual(response.data.get("orders_to_prepare"), 1)
 
@@ -329,8 +318,7 @@ class DashboardBadgesTest(TestCase):
 
     def test_multitenant_isolation(self):
         user_b, shop_b = setup("badges_b@example.com")
-        order_b = order_services.create_order(shop_b, user_b)
-        order_services.transition_status(order_b, "to_prepare", user_b)
+        order_services.create_order(shop_b, user_b)
         response = self.client.get(self._url())
         self.assertNotIn("orders_to_prepare", response.data)
 
@@ -342,8 +330,7 @@ class DashboardBadgesTest(TestCase):
     def test_service_direct(self):
         from apps.shops.models import ShopMember
 
-        order = order_services.create_order(self.shop, self.user)
-        order_services.transition_status(order, "to_prepare", self.user)
+        order_services.create_order(self.shop, self.user)
         member = ShopMember.objects.get(shop=self.shop, user=self.user)
         badges = build_nav_badges(self.shop, member)
         self.assertEqual(badges.get("orders_to_prepare"), 1)
@@ -383,7 +370,7 @@ class SeedDataTest(TestCase):
         today = timezone.now().date()
         count = (
             Order.objects.filter(shop=shop, created_at__date=today)
-            .exclude(status__in=("draft", "cancelled"))
+            .exclude(status="cancelled")
             .count()
         )
         self.assertGreater(count, 0)
@@ -400,7 +387,7 @@ class SeedDataTest(TestCase):
                 payment_status__in=("unpaid", "partial"),
                 customer__isnull=False,
             )
-            .exclude(status__in=("draft", "cancelled"))
+            .exclude(status="cancelled")
             .exists()
         )
         self.assertTrue(exists)

@@ -25,6 +25,7 @@ __all__ = [
     'EVENT_STATUS_CHANGE',
     'OrderTimelineEvent',
     'add_item',
+    'advance_order_to',
     'allowed_transitions',
     'build_items_preview_batch',
     'create_order',
@@ -52,6 +53,52 @@ def allowed_transitions(order: Order) -> list[str]:
     if order.status == 'cancelled':
         return ['to_prepare']
     return []
+
+
+def advance_order_to(order: Order, target_status: str, user) -> Order:
+    """Avance order jusqu'à target_status en enchaînant les transitions autorisées.
+
+    No-op si l'order est déjà au statut cible. Lève ValueError si target_status
+    est inaccessible depuis le statut courant pour ce fulfillment_mode.
+    """
+    if order.status == target_status:
+        return order
+
+    fm = order.shop.fulfillment_mode
+
+    def _allowed(s: str) -> list[str]:
+        if s == 'to_prepare':
+            return ['prepared' if fm == 'delivery' else 'shipped', 'cancelled']
+        if s == 'prepared':
+            return ['shipped', 'cancelled', 'to_prepare']
+        if s == 'shipped':
+            return ['prepared'] if fm == 'delivery' else ['to_prepare']
+        if s == 'cancelled':
+            return ['to_prepare']
+        return []
+
+    from collections import deque
+    queue: deque[list[str]] = deque([[order.status]])
+    visited: set[str] = {order.status}
+    path: list[str] | None = None
+    while queue and path is None:
+        current_path = queue.popleft()
+        for next_s in _allowed(current_path[-1]):
+            if next_s == target_status:
+                path = current_path + [next_s]
+                break
+            if next_s not in visited:
+                visited.add(next_s)
+                queue.append(current_path + [next_s])
+
+    if path is None:
+        raise ValueError(
+            f"Transition impossible : impossible d'atteindre '{target_status}' "
+            f"depuis '{order.status}' (fulfillment_mode={fm!r})."
+        )
+    for next_s in path[1:]:
+        order = transition_status(order, next_s, user)
+    return order
 
 
 def generate_order_number(shop) -> str:

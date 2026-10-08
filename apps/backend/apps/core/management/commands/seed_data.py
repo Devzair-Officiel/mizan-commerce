@@ -295,7 +295,7 @@ class Command(BaseCommand):
             zineb = Customer.objects.get(shop=shop_ma, name="Zineb Alaoui")
             o4 = order_services.create_order(shop_ma, amira, customer=zineb)
             order_services.add_item(o4, products_ma[0].variants.first(), 1)
-            order_services.transition_status(o4, "to_prepare", amira)
+            order_services.advance_order_to(o4, "to_prepare", amira)
             order_services.update_payment(o4, Decimal("200.00"))
             self.stdout.write("    → 1 commande créée")
 
@@ -504,11 +504,11 @@ class Command(BaseCommand):
         fr_orders = Ord.objects.filter(shop=shop_fr)
         fr_status = {
             s: fr_orders.filter(status=s).count()
-            for s in ("draft", "to_prepare", "prepared", "shipped", "cancelled")
+            for s in ("to_prepare", "prepared", "shipped", "cancelled")
         }
         fr_unpaid = (
             fr_orders.filter(payment_status__in=("unpaid", "partial"))
-            .exclude(status__in=("draft", "cancelled"))
+            .exclude(status="cancelled")
             .count()
         )
 

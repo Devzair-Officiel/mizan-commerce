@@ -98,15 +98,7 @@ def _make_order(
 
     order_services.reserve_stock(order, user)
 
-    if final_status == "cancelled":
-        order_services.transition_status(order, "cancelled", user)
-    elif final_status in ("prepared", "shipped"):
-        fm = shop.fulfillment_mode
-        if fm == "delivery":
-            order_services.transition_status(order, "prepared", user)
-        if final_status == "shipped":
-            order_services.transition_status(order, "shipped", user)
-    # else: to_prepare est l'état final (déjà là par défaut)
+    order_services.advance_order_to(order, final_status, user)
 
     if pay == "full":
         order.refresh_from_db()
