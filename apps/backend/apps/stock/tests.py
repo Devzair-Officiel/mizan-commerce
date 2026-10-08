@@ -7,6 +7,7 @@ from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
 from apps.products.models import Product, ProductVariant
 from .models import StockMovement
+from .services import create_movement
 
 
 def setup(email):
@@ -61,3 +62,43 @@ class StockMovementTest(TestCase):
         response = self.client.get(reverse('stock-movements'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
+
+
+class StockServiceTest(TestCase):
+
+    def setUp(self):
+        self.user, self.shop, self.product, self.variant = setup('svc@example.com')
+
+    def test_create_movement_valid(self):
+        m = create_movement(
+            self.shop, self.variant, 'in', 5, 'Réassort', created_by=self.user)
+        self.assertEqual(m.movement_type, 'in')
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock_quantity, 5)
+
+    def test_create_movement_invalid_type_raises(self):
+        with self.assertRaises(ValueError):
+            create_movement(self.shop, self.variant, 'unknown', 5)
+
+    def test_create_movement_zero_quantity_raises(self):
+        with self.assertRaises(ValueError):
+            create_movement(self.shop, self.variant, 'in', 0)
+
+    def test_create_movement_negative_quantity_raises(self):
+        with self.assertRaises(ValueError):
+            create_movement(self.shop, self.variant, 'in', -1)
+
+    def test_create_movement_service_product_refused(self):
+        service_product = Product.objects.create(
+            shop=self.shop, name='Service', type='service')
+        service_variant = ProductVariant.objects.create(
+            shop=self.shop, product=service_product, packaging_name='Par défaut',
+            unit='piece', base_quantity=1, selling_price='10.00',
+        )
+        with self.assertRaises(ValueError):
+            create_movement(self.shop, service_variant, 'in', 1)
+
+    def test_create_movement_wrong_shop_refused(self):
+        _, other_shop, _, _ = setup('other_svc@example.com')
+        with self.assertRaises(ValueError):
+            create_movement(other_shop, self.variant, 'in', 1)

@@ -36,7 +36,6 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
   const [waOpen, setWaOpen] = useState(false);
 
   const label = useOrderStatusLabel();
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG['to_prepare']!;
   const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
   const kind = shop?.catalog_kind ?? 'both';

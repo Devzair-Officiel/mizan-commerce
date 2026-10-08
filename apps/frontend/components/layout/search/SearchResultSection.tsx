@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { ProductResultRow, CustomerResultRow, OrderResultRow } from './SearchResultRow';
 import type { SearchProduct, SearchCustomer, SearchOrder } from '@/lib/hooks/useSearch';
 
-type SectionKind = 'products' | 'customers' | 'orders';
 
 const SECTION_TITLE = 'text-[0.8125rem] font-medium text-muted-foreground px-1 mb-2';
 

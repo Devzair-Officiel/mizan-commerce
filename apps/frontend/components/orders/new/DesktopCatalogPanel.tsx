@@ -151,13 +151,13 @@ function DesktopCatalogSearch({ search, setSearch, placeholder, t }: {
   return (
     <div className="px-5 pb-4">
       <div className="relative">
-        <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Search size={16} className="absolute inset-s-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <input type="search" inputMode="search" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
           value={search} onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
           className="w-full h-11 rounded-full border border-border bg-background ps-10 pe-9 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
         {search && (
           <button type="button" onClick={() => setSearch('')} aria-label={t('search_clear_aria')}
-            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
             <X size={13} />
           </button>
         )}
@@ -183,10 +183,9 @@ function DesktopCatalogFooter({ createLabel, freeLabel, onCreate, onFree }: {
   );
 }
 
-function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, pickerFilter, onFilterChange, t }: {
+function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, t }: {
   form: NewSaleForm; catalogKind: string; panelTitle: string;
-  setMode: (m: PanelMode) => void; pickerFilter: PickFilter;
-  onFilterChange: (v: PickFilter) => void;
+  setMode: (m: PanelMode) => void;
   t: T;
 }) {
   return (
@@ -266,7 +265,7 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
   if (isEmptyCatalog) {
     return (
       <DesktopEmptyCatalogPanel form={form} catalogKind={catalogKind} panelTitle={panelTitle}
-        setMode={setMode} pickerFilter={picker.filter} onFilterChange={picker.setFilter} t={t} />
+        setMode={setMode} t={t} />
     );
   }
 

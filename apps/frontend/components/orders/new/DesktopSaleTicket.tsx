@@ -43,7 +43,7 @@ function DesktopTicketLine({ item, onUpdateQty, money, t }: {
           +
         </button>
       </div>
-      <span className="w-[72px] text-end text-sm font-bold tabular-nums shrink-0">
+      <span className="w-18 text-end text-sm font-bold tabular-nums shrink-0">
         {money(unitPrice * item.quantity)}
       </span>
     </div>
@@ -151,7 +151,7 @@ function DesktopTicketControls({ form }: { form: NewSaleForm }) {
               onChange={(e) => form.setNotes(e.target.value)} rows={3} autoFocus={form.showNotes && !form.notes} />
             {!form.notes && (
               <button type="button" onClick={() => form.setShowNotes(false)} aria-label={t('notes_hide_aria')}
-                className="absolute top-2 end-2 p-1 text-muted-foreground hover:text-foreground transition-colors">
+                className="absolute top-2 inset-e-2 p-1 text-muted-foreground hover:text-foreground transition-colors">
                 <X size={16} />
               </button>
             )}

@@ -40,12 +40,12 @@ function NavItem({ href, label, icon, active, badge }: NavItemProps) {
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
-      className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-[56px]"
+      className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-14"
     >
-      <span className={`relative flex items-center justify-center h-[30px] w-[52px] rounded-full transition-colors ${active ? 'bg-secondary' : ''}`}>
+      <span className={`relative flex items-center justify-center h-7.5 w-13 rounded-full transition-colors ${active ? 'bg-secondary' : ''}`}>
         <span className={active ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
         {(badge ?? 0) > 0 && (
-          <span className="absolute -top-0.5 -end-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+          <span className="absolute -top-0.5 -inset-e-1 min-w-4.5 h-4.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
             {(badge ?? 0) > 99 ? '99+' : badge}
           </span>
         )}
@@ -62,9 +62,9 @@ function SellButton({ label }: { label: string }) {
     <Link
       href="/orders/new"
       aria-label={label}
-      className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[56px] py-2"
+      className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-14 py-2"
     >
-      <span className="flex items-center justify-center h-[52px] w-[52px] rounded-full bg-primary shadow-[0_4px_14px_-2px_rgba(0,0,0,0.25)] -mt-3 active:scale-95 transition-transform">
+      <span className="flex items-center justify-center h-13 w-13 rounded-full bg-primary shadow-[0_4px_14px_-2px_rgba(0,0,0,0.25)] -mt-3 active:scale-95 transition-transform">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
           <path d="M12 5v14M5 12h14" />
         </svg>

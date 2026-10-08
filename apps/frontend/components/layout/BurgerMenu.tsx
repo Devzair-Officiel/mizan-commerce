@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
-import { Sun, Moon, Palette, User, Settings, LogOut } from 'lucide-react';
+import { Sun, Moon, Palette, LogOut } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { TrialBanner } from '@/components/layout/TrialBanner';
@@ -45,7 +45,7 @@ const BOTTOM_NAV_HREFS = new Set(['/dashboard', '/customers', '/orders', '/produ
 function BadgeDot({ count, danger }: { count: number; danger?: boolean }) {
   if (count === 0) return null;
   return (
-    <span className={`ms-auto min-w-[20px] h-5 rounded-full text-[11px] font-bold flex items-center justify-center px-1.5 leading-none ${
+    <span className={`ms-auto min-w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center px-1.5 leading-none ${
       danger ? 'bg-red-500 text-white' : 'bg-secondary text-secondary-foreground'
     }`}>
       {count > 99 ? '99+' : count}
@@ -60,7 +60,7 @@ function MenuNavItem({ entry, active, onNav, badge }: { entry: NavEntry; active:
   return (
     <button
       onClick={() => onNav(entry.href)}
-      className={`flex w-full items-center gap-3 rounded-2xl px-4 min-h-[48px] text-sm font-medium transition-all text-start ${
+      className={`flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-sm font-medium transition-all text-start ${
         active ? 'bg-secondary text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
       }`}
     >
@@ -202,7 +202,7 @@ export function BurgerMenuDrawer() {
           </div>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-[48px] text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
           >
             <LogOut className="h-5 w-5 shrink-0" />
             {tc('logout')}
@@ -220,7 +220,7 @@ function AppearanceRow() {
   function handleClick() { close(); toggle(); }
   return (
     <button onClick={handleClick}
-      className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-[48px] text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+      className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
       <Palette className="h-5 w-5 shrink-0" />
       {tc('appearance')}
     </button>
@@ -235,7 +235,7 @@ function ThemeToggleRow() {
   const isDark = resolvedTheme === 'dark';
   return (
     <button onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-[48px] text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+      className="flex w-full items-center gap-3 rounded-2xl px-4 min-h-12 text-[15px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
       {isDark ? <Sun className="h-5 w-5 shrink-0" /> : <Moon className="h-5 w-5 shrink-0" />}
       {isDark ? tc('light_mode') : tc('dark_mode')}
     </button>

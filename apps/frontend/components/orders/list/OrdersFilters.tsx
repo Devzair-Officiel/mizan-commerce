@@ -18,7 +18,7 @@ export function OrdersFilters({ search, onSearchChange, paymentFilter, onPayment
   return (
     <div className="flex items-center gap-2">
       <div className="relative flex-1">
-        <Search size={14} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Search size={14} className="absolute inset-s-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <label className="sr-only">{t('search_label')}</label>
         <input
           type="search"

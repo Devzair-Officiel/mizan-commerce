@@ -189,6 +189,30 @@ class OrderServiceTest(TestCase):
         with self.assertRaises(ValueError):
             services.add_item(order, self.variant, 1)
 
+    def test_stale_item_atomicity_uses_db_quantity(self):
+        """select_for_update force la relecture DB — objet périmé → delta correct."""
+        order = services.create_order(self.shop, self.user)
+        item = services.add_item(order, self.variant, 2)
+        services.reserve_stock(order, self.user)
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock_quantity, 48)  # 50-2
+
+        # Première mise à jour légtime : qty 2 → 5
+        services.update_item_quantity(order, item, 5, user=self.user)
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock_quantity, 45)  # 50-5
+
+        # Objet périmé : qty en mémoire = 2, DB = 5.
+        # Le service re-lit depuis la DB et calcule delta = 3-5 = -2 (libération).
+        from apps.orders.models import OrderItem
+        stale = OrderItem.objects.get(pk=item.pk)
+        stale.quantity = 2  # simuler la péremption
+        services.update_item_quantity(order, stale, 3, user=self.user)
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock_quantity, 47)  # 45+2 libérés
+        item.refresh_from_db()
+        self.assertEqual(item.quantity, 3)
+
 
 class OrderAPITest(TestCase):
 

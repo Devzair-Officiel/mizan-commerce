@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.core.audit import log_action
 from apps.products.models import ProductVariant
-from apps.stock.models import StockMovement
+from apps.stock.services import create_movement
 from .models import Order, OrderItem
 from .timeline import (  # ré-exports pour la rétro-compat des imports `services.*`
     EVENT_CREATED,
@@ -114,6 +114,8 @@ def add_item(
     Ajoute une ligne à la commande (autorisé en to_prepare et prepared).
     Si le stock est déjà réservé, crée immédiatement le mouvement delta.
     """
+    order = Order.objects.select_for_update().get(pk=order.pk)
+
     if order.status not in ('to_prepare', 'prepared'):
         raise ValueError("Impossible d'ajouter un article à une commande non modifiable.")  # noqa: E501
 
@@ -139,7 +141,7 @@ def add_item(
     )
 
     if order.stock_reserved and variant and variant.product.type == 'product':
-        StockMovement.objects.create(
+        create_movement(
             shop=order.shop,
             variant=variant,
             movement_type='reservation',
@@ -155,6 +157,9 @@ def add_item(
 
 @transaction.atomic
 def update_item_quantity(order: Order, item: OrderItem, quantity: int, user=None) -> OrderItem:  # noqa: E501
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    item = OrderItem.objects.select_related('variant__product').select_for_update(of=('self',)).get(pk=item.pk)  # noqa: E501
+
     if order.status not in ('to_prepare', 'prepared'):
         raise ValueError("Impossible de modifier un article d'une commande non modifiable.")  # noqa: E501
 
@@ -165,7 +170,7 @@ def update_item_quantity(order: Order, item: OrderItem, quantity: int, user=None
     recalculate_totals(order)
 
     if order.stock_reserved and delta != 0 and item.variant and item.variant.product.type == 'product':  # noqa: E501
-        StockMovement.objects.create(
+        create_movement(
             shop=order.shop,
             variant=item.variant,
             movement_type='reservation' if delta > 0 else 'release',
@@ -180,11 +185,14 @@ def update_item_quantity(order: Order, item: OrderItem, quantity: int, user=None
 
 @transaction.atomic
 def remove_item(order: Order, item: OrderItem, user=None) -> None:
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    item = OrderItem.objects.select_related('variant__product').select_for_update(of=('self',)).get(pk=item.pk)  # noqa: E501
+
     if order.status not in ('to_prepare', 'prepared'):
         raise ValueError("Impossible de retirer un article d'une commande non modifiable.")  # noqa: E501
 
     if order.stock_reserved and item.variant and item.variant.product.type == 'product':
-        StockMovement.objects.create(
+        create_movement(
             shop=order.shop,
             variant=item.variant,
             movement_type='release',
@@ -200,6 +208,8 @@ def remove_item(order: Order, item: OrderItem, user=None) -> None:
 
 @transaction.atomic
 def transition_status(order: Order, new_status: str, user) -> Order:
+    Order.objects.select_for_update().get(pk=order.pk)  # acquire row lock
+    order.refresh_from_db()  # re-read fresh state into the original object
     allowed = allowed_transitions(order)
     if new_status not in allowed:
         raise ValueError(
@@ -246,7 +256,7 @@ def reserve_stock(order: Order, user) -> None:
         return
     for item in order.items.select_related('variant__product').all():
         if item.variant and item.variant.product.type == 'product':
-            StockMovement.objects.create(
+            create_movement(
                 shop=order.shop,
                 variant=item.variant,
                 movement_type='reservation',
@@ -265,7 +275,7 @@ def _release_stock(order: Order, user) -> None:
         return
     for item in order.items.select_related('variant__product').all():
         if item.variant and item.variant.product.type == 'product':
-            StockMovement.objects.create(
+            create_movement(
                 shop=order.shop,
                 variant=item.variant,
                 movement_type='release',
