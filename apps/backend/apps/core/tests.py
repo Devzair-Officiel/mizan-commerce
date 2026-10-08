@@ -18,6 +18,7 @@ from apps.orders import services as order_services
 from apps.orders.models import Order
 from apps.notes.models import Reminder
 
+from apps.customers.models import Customer
 from apps.core.services import build_dashboard_today, build_nav_badges
 
 
@@ -422,3 +423,113 @@ class SeedDataTest(TestCase):
             )  # noqa: E501
         )
         self.assertTrue(low.exists())
+
+
+def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501
+    p = Product.objects.create(shop=shop, name=name)
+    ProductVariant.objects.create(
+        shop=shop, product=p, packaging_name="U",
+        unit="piece", base_quantity=1, selling_price=price, sku=sku, barcode=barcode,
+    )
+    return p
+
+
+class GlobalSearchTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup("search@example.com")
+        self.member = ShopMember.objects.get(shop=self.shop, user=self.user)
+        self.client.force_authenticate(user=self.user)
+
+    def _url(self, q: str) -> str:
+        return reverse("global-search") + f"?q={q}"
+
+    # ── module filtering ──────────────────────────────────────────────────────
+
+    def test_staff_without_customers_sees_no_customers(self):
+        """Staff sans module customers ne voit aucun client dans la recherche."""
+        Customer.objects.create(shop=self.shop, name="Karima Bensaid")
+        staff_user = User.objects.create_user(email="staff_s@example.com", password="Pass123!Strong")  # noqa: E501
+        ShopMember.objects.create(
+            shop=self.shop, user=staff_user, role="staff", permissions=["orders", "products"],  # noqa: E501
+        )
+        self.client.force_authenticate(user=staff_user)
+        resp = self.client.get(self._url("Karima"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["customers"]["total"], 0)
+        self.assertEqual(resp.data["customers"]["items"], [])
+
+    def test_staff_without_orders_sees_no_orders(self):
+        """Staff sans module orders ne voit aucune commande."""
+        order = order_services.create_order(self.shop, self.user)
+        staff_user = User.objects.create_user(email="staff_o@example.com", password="Pass123!Strong")  # noqa: E501
+        ShopMember.objects.create(
+            shop=self.shop, user=staff_user, role="staff", permissions=["products", "customers"],  # noqa: E501
+        )
+        self.client.force_authenticate(user=staff_user)
+        resp = self.client.get(self._url(order.order_number))
+        self.assertEqual(resp.data["orders"]["total"], 0)
+
+    # ── multi-tenant isolation ────────────────────────────────────────────────
+
+    def test_multitenant_isolation(self):
+        """La recherche ne renvoie pas de données d'une autre boutique."""
+        other_user, other_shop = setup("other_search@example.com")
+        Customer.objects.create(shop=other_shop, name="ClientAutreBoutique")
+        _make_product(other_shop, "ProduitAutreBoutique")
+        resp = self.client.get(self._url("AutreBoutique"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["customers"]["total"], 0)
+        self.assertEqual(resp.data["products"]["total"], 0)
+
+    # ── barcode search ────────────────────────────────────────────────────────
+
+    def test_search_by_barcode(self):
+        """La recherche fonctionne sur le code-barres d'une variante."""
+        _make_product(self.shop, "Produit Code-Barres", barcode="8901234567890")
+        resp = self.client.get(self._url("8901234"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["products"]["total"], 1)
+        self.assertEqual(resp.data["products"]["items"][0]["name"], "Produit Code-Barres")  # noqa: E501
+
+    def test_search_by_sku(self):
+        """La recherche fonctionne sur le SKU d'une variante."""
+        _make_product(self.shop, "Produit SKU", sku="SKU-ABC-001")
+        resp = self.client.get(self._url("SKU-ABC"))
+        self.assertEqual(resp.data["products"]["total"], 1)
+
+    # ── totals ────────────────────────────────────────────────────────────────
+
+    def test_totals_exceed_limit(self):
+        """total reflète le nombre total même si items est limité à 5."""
+        for i in range(8):
+            Customer.objects.create(shop=self.shop, name=f"TestClient {i}")
+        resp = self.client.get(self._url("TestClient"))
+        self.assertEqual(resp.data["customers"]["total"], 8)
+        self.assertEqual(len(resp.data["customers"]["items"]), 5)
+
+    def test_enriched_product_fields(self):
+        """La section produits expose min_price, type et is_out_of_stock."""
+        _make_product(self.shop, "Café Arabica", price=Decimal("12.50"))
+        resp = self.client.get(self._url("Café"))
+        item = resp.data["products"]["items"][0]
+        self.assertIn("min_price", item)
+        self.assertEqual(item["min_price"], "12.50")
+        self.assertIn("type", item)
+        self.assertIn("is_out_of_stock", item)
+
+    def test_enriched_order_fields(self):
+        """La section commandes expose payment_status et created_at."""
+        order = order_services.create_order(self.shop, self.user)
+        resp = self.client.get(self._url(order.order_number))
+        item = resp.data["orders"]["items"][0]
+        self.assertIn("payment_status", item)
+        self.assertIn("created_at", item)
+
+    def test_short_query_returns_empty(self):
+        """Une requête d'1 caractère renvoie des sections vides."""
+        resp = self.client.get(self._url("a"))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data["products"]["total"], 0)
+        self.assertEqual(resp.data["customers"]["total"], 0)
+        self.assertEqual(resp.data["orders"]["total"], 0)

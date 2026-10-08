@@ -166,7 +166,18 @@
       "section_customers": "Customers",
       "section_orders": "Orders",
       "out_of_stock": "Out of stock",
-      "formats": "{count, plural, one {# format} other {# formats}}"
+      "formats": "{count, plural, one {# format} other {# formats}}",
+      "clear": "Clear",
+      "cancel": "Cancel",
+      "see_more": "See all {count} results",
+      "create_customer": "Create customer « {name} »",
+      "quick_actions": "Quick actions",
+      "qa_new_order": "New sale",
+      "qa_new_customer": "New customer",
+      "qa_new_product": "{kind, select, services {New service} other {New product}}",
+      "qa_to_prepare": "Orders to prepare",
+      "qa_to_prepare_count": "Orders to prepare ({count})",
+      "qa_unpaid": "Unpaid orders"
     },
     "orderStatus": {
       "draft": "Draft",

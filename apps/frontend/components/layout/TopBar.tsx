@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Search, Home, ChevronRight } from 'lucide-react';
 import { BurgerButton } from './BurgerMenu';
-import { useSearchOverlay } from './SearchOverlay';
+import { useSearchOverlay, DesktopSearchPopover } from './SearchOverlay';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { CatalogKind } from '@/lib/hooks/useMe';
 
@@ -176,16 +176,35 @@ function TopBarBackLink({ onClick, label }: { onClick: () => void; label: string
   );
 }
 
-function TopBarSearchButton({ onClick, label }: { onClick: () => void; label: string }) {
+function TopBarDesktopSearch() {
+  const tc = useTranslations('layout.common');
+  const { isOpen, open, close, anchorRef } = useSearchOverlay();
+  const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
+  const hint = isMac ? '⌘K' : 'Ctrl K';
+
   return (
-    <button
-      onClick={onClick}
-      className="hidden lg:flex items-center h-11 w-80 rounded-full gap-3 px-4 bg-card border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
-      aria-label={label}
+    <div
+      ref={anchorRef as React.RefObject<HTMLDivElement>}
+      className="hidden lg:block relative"
     >
-      <Search size={16} className="shrink-0" />
-      <span>{label}</span>
-    </button>
+      {!isOpen ? (
+        <button
+          onClick={open}
+          aria-label={tc('search')}
+          className="flex items-center h-11 w-80 rounded-full gap-3 px-4 bg-card border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
+        >
+          <Search size={16} className="shrink-0" aria-hidden />
+          <span className="flex-1 text-start">{tc('search')}</span>
+          <span className="text-xs bg-muted rounded px-1.5 py-0.5 font-mono">{hint}</span>
+        </button>
+      ) : (
+        <div className="h-11 w-80 rounded-full flex items-center px-4 bg-card border border-primary">
+          <Search size={16} className="shrink-0 text-muted-foreground me-3" aria-hidden />
+          <span className="flex-1 text-sm text-muted-foreground">{tc('search')}</span>
+        </div>
+      )}
+      {isOpen && <DesktopSearchPopover onClose={close} anchorRef={anchorRef} />}
+    </div>
   );
 }
 
@@ -196,6 +215,7 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
 
   const handleBack = () => (onBack ? onBack() : router.back());
   const backText = backLabel ?? tc('back');
+  // Mobile search button always opens the fullscreen overlay
 
   return (
     <header
@@ -234,7 +254,9 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
         {/* Right actions */}
         <div className="shrink-0 flex items-center gap-1 lg:gap-3 lg:mb-1">
           {action}
-          {!hideSearch && <TopBarSearchButton onClick={openSearch} label={tc('search')} />}
+          {/* Desktop search — always mounted, hides/shows via CSS in the component */}
+          <TopBarDesktopSearch />
+          {/* Mobile search button — always visible unless hideSearch */}
           {!hideSearch && (
             <button
               onClick={openSearch}

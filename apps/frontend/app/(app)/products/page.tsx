@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   AlertTriangle, PackageX, PackagePlus, Plus, SlidersHorizontal, Search, X,
@@ -23,14 +23,15 @@ import { AddTypeSheet } from '@/components/products/list/AddTypeSheet';
 
 type StockFilter = 'all' | 'out_of_stock' | 'low_stock';
 
-export default function CatalogPage() {
+function CatalogContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('articles');
   const { data: shop } = useShop();
   const catalogKind = shop?.catalog_kind ?? 'both';
   const forcedType: ProductType | null =
     catalogKind === 'products' ? 'product' : catalogKind === 'services' ? 'service' : null;
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
@@ -255,5 +256,13 @@ export default function CatalogPage() {
         onPick={pickType}
       />
     </>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense>
+      <CatalogContent />
+    </Suspense>
   );
 }

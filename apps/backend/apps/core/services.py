@@ -287,3 +287,88 @@ def build_dashboard_today(shop: Shop, now: datetime | None = None) -> dict:
         "today_reminders": _build_today_reminders(shop, day_start, day_end),
         "setup": _build_setup(shop),
     }
+
+
+_SEARCH_LIMIT = 5
+
+
+def _search_products(shop: Shop, q: str) -> dict:
+    qs = (
+        Product.objects.filter(shop=shop, is_active=True)
+        .filter(
+            Q(name__icontains=q)
+            | Q(variants__sku__icontains=q)
+            | Q(variants__barcode__icontains=q)
+        )
+        .distinct()
+        .prefetch_related("variants")
+    )
+    total = qs.count()
+    items = []
+    for p in qs[:_SEARCH_LIMIT]:
+        variants = [v for v in p.variants.all() if v.is_active]
+        min_price = min((v.selling_price for v in variants), default=None)
+        ref = next((v.sku or v.barcode for v in variants if v.sku or v.barcode), "")
+        items.append(
+            {
+                "id": str(p.id),
+                "name": p.name,
+                "reference": ref,
+                "type": p.type,
+                "variant_count": len(variants),
+                "is_out_of_stock": all(v.is_out_of_stock for v in variants) if variants else True,  # noqa: E501
+                "min_price": str(min_price) if min_price is not None else None,
+            }
+        )
+    return {"total": total, "items": items}
+
+
+def _search_customers(shop: Shop, q: str) -> dict:
+    qs = Customer.objects.filter(shop=shop, is_active=True).filter(
+        Q(name__icontains=q) | Q(phone__icontains=q)
+    )
+    total = qs.count()
+    rows = list(qs.values("id", "name", "phone", "city")[:_SEARCH_LIMIT])
+    for c in rows:
+        c["id"] = str(c["id"])
+    return {"total": total, "items": rows}
+
+
+def _search_orders(shop: Shop, q: str) -> dict:
+    qs = Order.objects.filter(shop=shop).filter(
+        Q(order_number__icontains=q) | Q(customer__name__icontains=q)
+    )
+    total = qs.count()
+    rows = list(
+        qs.values(
+            "id", "order_number", "status", "payment_status",
+            "total_amount", "created_at", "customer__name",
+        )[:_SEARCH_LIMIT]
+    )
+    items = []
+    for o in rows:
+        items.append(
+            {
+                "id": str(o["id"]),
+                "order_number": o["order_number"],
+                "status": o["status"],
+                "payment_status": o["payment_status"],
+                "total_amount": str(o["total_amount"]),
+                "created_at": o["created_at"].isoformat(),
+                "customer_name": o.get("customer__name"),
+            }
+        )
+    return {"total": total, "items": items}
+
+
+def global_search(shop: Shop, member: ShopMember, q: str) -> dict:
+    """Recherche globale filtrée par les modules du membre.
+
+    Chaque section expose `total` (nb total de correspondances) + `items` (≤ 5).
+    Seules les sections dont le membre a le module sont peuplées.
+    """
+    _empty: dict = {"total": 0, "items": []}
+    products = _search_products(shop, q) if member.has_module("products") else _empty
+    customers = _search_customers(shop, q) if member.has_module("customers") else _empty
+    orders = _search_orders(shop, q) if member.has_module("orders") else _empty
+    return {"products": products, "customers": customers, "orders": orders}

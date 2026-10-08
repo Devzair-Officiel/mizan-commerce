@@ -1,32 +1,25 @@
 'use client';
 
-import { useState, useEffect, useRef, useId, createContext, useContext, useCallback } from 'react';
-import type { ReactNode } from 'react';
+import {
+  useState, useEffect, useRef, useId, createContext, useContext, useCallback,
+  type RefObject, type ReactNode,
+} from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { Search, X, Package, Users, ShoppingBag } from 'lucide-react';
 import { useSearch } from '@/lib/hooks/useSearch';
-import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
-import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
-import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
+import { SearchInput } from './search/SearchInput';
+import { SearchPanel } from './search/SearchPanel';
+
+/* ── Context ──────────────────────────────────────────────────────────────── */
 
 interface SearchContextValue {
+  isOpen: boolean;
   open: () => void;
+  close: () => void;
+  anchorRef: RefObject<HTMLElement | null>;
 }
 
 const SearchContext = createContext<SearchContextValue | null>(null);
-
-export function SearchProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
-
-  return (
-    <SearchContext.Provider value={{ open }}>
-      {children}
-      {isOpen && <SearchOverlayPanel onClose={() => setIsOpen(false)} />}
-    </SearchContext.Provider>
-  );
-}
 
 export function useSearchOverlay() {
   const ctx = useContext(SearchContext);
@@ -34,187 +27,188 @@ export function useSearchOverlay() {
   return ctx;
 }
 
-function SearchOverlayPanel({ onClose }: { onClose: () => void }) {
-  const t = useTranslations('layout.search');
-  const kind = useCatalogKind();
+/* ── Keyboard navigation hook ─────────────────────────────────────────────── */
+
+function useSearchKeyNav(items: string[]) {
+  const itemsKey = items.join(',');
+  // Track active index alongside the items key it was computed for.
+  // When the key changes, the index is stale — treat it as null.
+  const [nav, setNav] = useState<{ key: string; idx: number | null }>({ key: '', idx: null });
+  const activeIdx = nav.key === itemsKey ? nav.idx : null;
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setNav({ key: itemsKey, idx: activeIdx === null ? 0 : Math.min(activeIdx + 1, items.length - 1) });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setNav({ key: itemsKey, idx: activeIdx === null ? items.length - 1 : Math.max(activeIdx - 1, 0) });
+    }
+  }
+
+  const activeId = activeIdx !== null ? items[activeIdx] ?? null : null;
+  return { activeId, onKeyDown };
+}
+
+/* ── Mobile overlay ───────────────────────────────────────────────────────── */
+
+function MobileSearchOverlay({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState('');
-  const [visible, setVisible] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useFocusTrap<HTMLDivElement>(true);
   const router = useRouter();
+  const listId = useId();
   const { data, isFetching } = useSearch(q);
-  const titleId = useId();
-  const statusLabel = useOrderStatusLabel();
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-
-  useEffect(() => {
-    if (visible) inputRef.current?.focus();
-  }, [visible]);
-
-  const handleClose = useCallback(() => {
-    setVisible(false);
-    setTimeout(onClose, 200);
+    history.pushState({ searchOverlay: true }, '');
+    const handler = (e: PopStateEvent) => {
+      if (!(e.state as { searchOverlay?: boolean } | null)?.searchOverlay) onClose();
+    };
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
   }, [onClose]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleClose]);
+  }, [onClose]);
 
-  function navigate(href: string) {
-    onClose();
-    router.push(href);
+  const allIds = buildAllIds(q, data);
+  const { activeId, onKeyDown } = useSearchKeyNav(allIds);
+
+  function navigate(href: string) { onClose(); router.push(href); }
+  function handleEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    onKeyDown(e);
+    if (e.key === 'Enter' && activeId) {
+      const href = resolveIdHref(activeId, q, data);
+      if (href) navigate(href);
+    }
   }
 
-  const hasResults = data && (
-    data.products.length > 0 || data.customers.length > 0 || data.orders.length > 0
-  );
-  const showEmpty = q.trim().length >= 2 && !isFetching && !hasResults;
-
   return (
-    <div
-      ref={containerRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      className="fixed inset-0 z-100 flex flex-col backdrop-blur-md transition-opacity duration-200 outline-none"
-      style={{
-        background: 'color-mix(in oklch, var(--background) 72%, transparent)',
-        opacity: visible ? 1 : 0,
-      }}
-    >
-      <h2 id={titleId} className="sr-only">{t('title')}</h2>
-
-      <div
-        className="flex items-center gap-3 border-b border-border px-4 h-14 shrink-0 transition-transform duration-200"
-        style={{ transform: visible ? 'translateY(0)' : 'translateY(-8px)' }}
-      >
-        <Search size={18} className="text-muted-foreground shrink-0" aria-hidden="true" />
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          placeholder={t('placeholder')}
-          aria-label={t('aria_label')}
-          className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none"
-        />
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label={t('close')}
-          className="text-muted-foreground p-1"
-        >
-          <X size={20} aria-hidden="true" />
-        </button>
+    <div className="fixed inset-0 z-50 flex flex-col bg-background" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="shrink-0 px-4 pt-3 pb-3 border-b border-border">
+        <SearchInput value={q} onChange={setQ} onClose={onClose}
+          listId={listId} activeId={activeId} onKeyDown={handleEnter}
+          autoFocus showCancel
+          className="h-12 rounded-full bg-muted px-4"
+          inputClassName="text-base" />
       </div>
-
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4" aria-live="polite" aria-busy={isFetching}>
-
-        {q.trim().length < 2 && (
-          <p className="text-sm text-muted-foreground text-center py-12">
-            {t('min_chars')}
-          </p>
-        )}
-
-        {isFetching && q.trim().length >= 2 && (
-          <p className="text-sm text-muted-foreground text-center py-12">{t('searching')}</p>
-        )}
-
-        {showEmpty && (
-          <p className="text-sm text-muted-foreground text-center py-12">
-            {t('no_results', { query: q })}
-          </p>
-        )}
-
-        {data && data.products.length > 0 && (
-          <section aria-label={t('section_products', { kind })}>
-            <div className="flex items-center gap-2 mb-2">
-              <Package size={14} className="text-muted-foreground" aria-hidden="true" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('section_products', { kind })}</p>
-            </div>
-            <div className="flex flex-col rounded-xl border border-border overflow-hidden">
-              {data.products.map((p, i) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => navigate(`/products/${p.id}`)}
-                  className={`flex items-center justify-between px-4 py-3 text-start bg-card active:bg-muted transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{p.name}</p>
-                    {p.reference && <p className="text-xs text-muted-foreground">{p.reference}</p>}
-                  </div>
-                  {p.type === 'product' && (
-                    <p className={`text-xs shrink-0 ms-3 ${p.is_out_of_stock ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                      {p.is_out_of_stock
-                        ? t('out_of_stock')
-                        : t('formats', { count: p.variant_count })}
-                    </p>
-                  )}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {data && data.customers.length > 0 && (
-          <section aria-label={t('section_customers')}>
-            <div className="flex items-center gap-2 mb-2">
-              <Users size={14} className="text-muted-foreground" aria-hidden="true" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('section_customers')}</p>
-            </div>
-            <div className="flex flex-col rounded-xl border border-border overflow-hidden">
-              {data.customers.map((c, i) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => navigate(`/customers/${c.id}`)}
-                  className={`flex items-center justify-between px-4 py-3 text-start bg-card active:bg-muted transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
-                >
-                  <p className="text-sm font-medium text-foreground">{c.name}</p>
-                  <div className="flex gap-3 text-xs text-muted-foreground shrink-0 ms-3">
-                    {c.phone && <span>{c.phone}</span>}
-                    {c.city && <span>{c.city}</span>}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {data && data.orders.length > 0 && (
-          <section aria-label={t('section_orders')}>
-            <div className="flex items-center gap-2 mb-2">
-              <ShoppingBag size={14} className="text-muted-foreground" aria-hidden="true" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('section_orders')}</p>
-            </div>
-            <div className="flex flex-col rounded-xl border border-border overflow-hidden">
-              {data.orders.map((o, i) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => navigate(`/orders/${o.id}`)}
-                  className={`flex items-center justify-between px-4 py-3 text-start bg-card active:bg-muted transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{o.order_number}</p>
-                    {o.customer_name && <p className="text-xs text-muted-foreground">{o.customer_name}</p>}
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5 shrink-0 ms-3">
-                    <p className="text-xs text-muted-foreground">{statusLabel(o.status)}</p>
-                    <p className="text-xs font-medium text-foreground">{o.total_amount} €</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+      <div className="flex-1 overflow-y-auto" aria-live="polite" aria-busy={isFetching}>
+        <SearchPanel q={q} data={data} isFetching={isFetching}
+          activeId={activeId} listId={listId} onNavigate={navigate} />
       </div>
     </div>
   );
+}
+
+/* ── Desktop popover ──────────────────────────────────────────────────────── */
+
+export function DesktopSearchPopover({ onClose, anchorRef }: { onClose: () => void; anchorRef: RefObject<HTMLElement | null> }) {
+  const [q, setQ] = useState('');
+  const router = useRouter();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const { data, isFetching } = useSearch(q);
+  const allIds = buildAllIds(q, data);
+  const { activeId, onKeyDown } = useSearchKeyNav(allIds);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const anchor = anchorRef.current;
+      const panel = panelRef.current;
+      if (!anchor || !panel) return;
+      if (!anchor.contains(e.target as Node) && !panel.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [anchorRef, onClose]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  function navigate(href: string) { onClose(); router.push(href); }
+  function handleEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    onKeyDown(e);
+    if (e.key === 'Enter' && activeId) {
+      const href = resolveIdHref(activeId, q, data);
+      if (href) navigate(href);
+    }
+  }
+
+  return (
+    <div ref={panelRef} className="absolute inset-e-0 top-full mt-1 w-xl max-w-[calc(100vw-2rem)] z-50 rounded-2xl border border-border bg-popover shadow-lg overflow-hidden flex flex-col max-h-[70vh]">
+      <div className="shrink-0 px-4 py-3 border-b border-border">
+        <SearchInput value={q} onChange={setQ} onClose={onClose}
+          listId={listId} activeId={activeId} onKeyDown={handleEnter}
+          autoFocus className="h-9" />
+      </div>
+      <div className="flex-1 overflow-y-auto" aria-live="polite" aria-busy={isFetching}>
+        <SearchPanel q={q} data={data} isFetching={isFetching}
+          activeId={activeId} listId={listId} onNavigate={navigate} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Provider ─────────────────────────────────────────────────────────────── */
+
+export function SearchProvider({ children }: { children: ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const anchorRef = useRef<HTMLElement | null>(null);
+  const isDesktop = useIsDesktop();
+
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta && e.key === 'k') { e.preventDefault(); setIsOpen(true); return; }
+      if (e.key === '/' && !isInputActive()) { e.preventDefault(); setIsOpen(true); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  return (
+    <SearchContext.Provider value={{ isOpen, open, close, anchorRef }}>
+      {children}
+      {isOpen && isDesktop === false && <MobileSearchOverlay onClose={close} />}
+    </SearchContext.Provider>
+  );
+}
+
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
+
+function isInputActive() {
+  const el = document.activeElement;
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement;
+}
+
+import type { SearchResults } from '@/lib/hooks/useSearch';
+
+function buildAllIds(q: string, data: SearchResults | undefined): string[] {
+  if (q.trim().length < 2) {
+    return Array.from({ length: 5 }, (_, i) => `qa-${i}`);
+  }
+  const ids: string[] = [];
+  (data?.orders.items ?? []).forEach((_, i) => ids.push(`ord-${i}`));
+  (data?.customers.items ?? []).forEach((_, i) => ids.push(`cst-${i}`));
+  (data?.products.items ?? []).forEach((_, i) => ids.push(`prd-${i}`));
+  return ids;
+}
+
+function resolveIdHref(id: string, q: string, data: SearchResults | undefined): string | null {
+  if (id.startsWith('qa-')) return null;
+  const [prefix, idx] = id.split('-');
+  const i = parseInt(idx ?? '0', 10);
+  if (prefix === 'ord') { const item = data?.orders.items[i]; return item ? `/orders/${item.id}` : null; }
+  if (prefix === 'cst') { const item = data?.customers.items[i]; return item ? `/customers/${item.id}` : null; }
+  if (prefix === 'prd') { const item = data?.products.items[i]; return item ? `/products/${item.id}` : null; }
+  return null;
 }

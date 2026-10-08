@@ -166,7 +166,18 @@
       "section_customers": "العملاء",
       "section_orders": "الطلبات",
       "out_of_stock": "نفد المخزون",
-      "formats": "{count, plural, one {# نمط} other {# أنماط}}"
+      "formats": "{count, plural, one {# نمط} other {# أنماط}}",
+      "clear": "مسح",
+      "cancel": "إلغاء",
+      "see_more": "عرض {count} نتيجة",
+      "create_customer": "إنشاء عميل « {name} »",
+      "quick_actions": "إجراءات سريعة",
+      "qa_new_order": "بيع جديد",
+      "qa_new_customer": "عميل جديد",
+      "qa_new_product": "{kind, select, services {خدمة جديدة} other {منتج جديد}}",
+      "qa_to_prepare": "طلبات للتجهيز",
+      "qa_to_prepare_count": "طلبات للتجهيز ({count})",
+      "qa_unpaid": "غير مدفوعة"
     },
     "orderStatus": {
       "draft": "مسودة",

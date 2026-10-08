@@ -1,15 +1,18 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { UserPlus } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCreateCustomer } from '@/lib/hooks/useCustomers';
 
-export default function NewCustomerPage() {
+function NewCustomerContent() {
   const t = useTranslations('customers.new');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefillName = searchParams.get('name') ?? '';
   const { mutateAsync, isPending } = useCreateCustomer();
 
   async function handleSubmit(data: Parameters<typeof mutateAsync>[0]) {
@@ -20,16 +23,11 @@ export default function NewCustomerPage() {
   return (
     <>
       <TopBar title={t('title')} hideSearch />
-
       <div className="px-4 pt-4 max-w-3xl mx-auto w-full">
-        <div
-          className="rounded-3xl p-5 flex items-center gap-4"
-          style={{ background: 'color-mix(in oklch, var(--primary) 7%, transparent)' }}
-        >
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-md ring-2 ring-background"
-            style={{ background: 'var(--primary)' }}
-          >
+        <div className="rounded-3xl p-5 flex items-center gap-4"
+          style={{ background: 'color-mix(in oklch, var(--primary) 7%, transparent)' }}>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-primary-foreground shadow-md ring-2 ring-background"
+            style={{ background: 'var(--primary)' }}>
             <UserPlus size={24} />
           </div>
           <div className="flex flex-col">
@@ -38,8 +36,19 @@ export default function NewCustomerPage() {
           </div>
         </div>
       </div>
-
-      <CustomerForm onSubmit={handleSubmit} isSubmitting={isPending} />
+      <CustomerForm
+        defaultValues={prefillName ? { name: prefillName } : undefined}
+        onSubmit={handleSubmit}
+        isSubmitting={isPending}
+      />
     </>
+  );
+}
+
+export default function NewCustomerPage() {
+  return (
+    <Suspense>
+      <NewCustomerContent />
+    </Suspense>
   );
 }

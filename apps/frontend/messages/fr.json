@@ -166,7 +166,18 @@
       "section_customers": "Clients",
       "section_orders": "Commandes",
       "out_of_stock": "Rupture",
-      "formats": "{count, plural, one {# format} other {# formats}}"
+      "formats": "{count, plural, one {# format} other {# formats}}",
+      "clear": "Effacer",
+      "cancel": "Annuler",
+      "see_more": "Voir les {count} résultats",
+      "create_customer": "Créer le client « {name} »",
+      "quick_actions": "Actions rapides",
+      "qa_new_order": "Nouvelle vente",
+      "qa_new_customer": "Nouveau client",
+      "qa_new_product": "{kind, select, services {Nouveau service} other {Nouvel article}}",
+      "qa_to_prepare": "Commandes à préparer",
+      "qa_to_prepare_count": "Commandes à préparer ({count})",
+      "qa_unpaid": "Impayés"
     },
     "orderStatus": {
       "draft": "Brouillon",
