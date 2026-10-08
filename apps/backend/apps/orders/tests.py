@@ -213,6 +213,17 @@ class OrderServiceTest(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.quantity, 3)
 
+    def test_cannot_create_draft_order(self) -> None:
+        from django.db import IntegrityError, transaction
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                from .models import Order
+                Order.objects.create(
+                    shop=self.shop,
+                    status='draft',
+                    order_number='TEST-DRAFT-999',
+                )
+
 
 class OrderAPITest(TestCase):
 

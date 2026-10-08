@@ -1,14 +1,14 @@
 export type Bucket = 'today' | 'yesterday' | 'this_week' | 'older';
 
 export const STATUS_BAR: Record<string, string> = {
-  to_prepare: 'bg-blue-500',
+  to_prepare: 'bg-amber-500',
   prepared:   'bg-amber-500',
   shipped:    'bg-green-500',
   cancelled:  'bg-red-500',
 };
 
 export const STATUS_TEXT: Record<string, string> = {
-  to_prepare: 'text-blue-700 dark:text-blue-400',
+  to_prepare: 'text-amber-700 dark:text-amber-400',
   prepared:   'text-amber-700 dark:text-amber-400',
   shipped:    'text-green-700 dark:text-green-400',
   cancelled:  'text-red-600 dark:text-red-400',
@@ -26,7 +26,7 @@ export type StatusFilterKey = '' | 'to_prepare' | 'prepared' | 'shipped' | 'canc
 
 export const STATUSES: { value: StatusFilterKey; labelKey: 'all' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled'; dot: string | null; activeClass: string }[] = [
   { value: '',           labelKey: 'all',        dot: null,           activeClass: 'bg-secondary text-secondary-foreground' },
-  { value: 'to_prepare', labelKey: 'to_prepare', dot: 'bg-blue-500',  activeClass: 'bg-secondary text-secondary-foreground' },
+  { value: 'to_prepare', labelKey: 'to_prepare', dot: 'bg-amber-500', activeClass: 'bg-secondary text-secondary-foreground' },
   { value: 'prepared',   labelKey: 'prepared',   dot: 'bg-amber-500', activeClass: 'bg-secondary text-secondary-foreground' },
   { value: 'shipped',    labelKey: 'shipped',    dot: 'bg-green-500', activeClass: 'bg-secondary text-secondary-foreground' },
   { value: 'cancelled',  labelKey: 'cancelled',  dot: 'bg-red-500',   activeClass: 'bg-secondary text-secondary-foreground' },

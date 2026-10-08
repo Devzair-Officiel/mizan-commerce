@@ -61,6 +61,30 @@ function SellButton({ label, confirmMsg }: { label: string; confirmMsg: string }
   );
 }
 
+const ENTRY_SCREEN_RE = /\/(new|edit|add|out|import-invoice)$/;
+
+function SellNavItem({ active, label, confirmMsg }: { active: boolean; label: string; confirmMsg: string }) {
+  return (
+    <Link
+      href="/orders/new"
+      aria-current={active ? 'page' : undefined}
+      onClick={(e) => { if (!confirmLeave(confirmMsg)) e.preventDefault(); }}
+      className="relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 min-h-14"
+    >
+      <span className={`flex items-center justify-center h-7.5 w-13 rounded-full transition-colors ${active ? 'bg-secondary' : ''}`}>
+        <span className={active ? 'text-primary' : 'text-muted-foreground'}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+      </span>
+      <span className={`text-[0.6875rem] leading-none ${active ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+        {label}
+      </span>
+    </Link>
+  );
+}
+
 export function BottomNav() {
   const t = useTranslations('layout.nav');
   const tBottom = useTranslations('layout.bottomNav');
@@ -71,6 +95,7 @@ export function BottomNav() {
   const confirmMsg = tc('confirm_leave');
 
   const catalogLabel = kind === 'services' ? t('services') : kind === 'products' ? t('articles') : t('catalogue');
+  const onEntryScreen = ENTRY_SCREEN_RE.test(pathname);
 
   return (
     <nav
@@ -82,7 +107,10 @@ export function BottomNav() {
           icon={<HomeIcon />} confirmMsg={confirmMsg} />
         <NavItem href="/customers" label={t('customers')} active={isNavActive('/customers', pathname)}
           icon={<UsersIcon />} confirmMsg={confirmMsg} />
-        <SellButton label={tBottom('sell')} confirmMsg={confirmMsg} />
+        {onEntryScreen
+          ? <SellNavItem active={isNavActive('/orders/new', pathname)} label={tBottom('sell')} confirmMsg={confirmMsg} />
+          : <SellButton label={tBottom('sell')} confirmMsg={confirmMsg} />
+        }
         <NavItem href="/orders" label={t('orders')} active={isNavActive('/orders', pathname)}
           icon={<ShoppingBagIcon />} badge={badges?.orders_to_prepare} confirmMsg={confirmMsg} />
         <NavItem href="/products" label={catalogLabel} active={isNavActive('/products', pathname)}

@@ -16,7 +16,6 @@ interface TopBarProps {
   back?: boolean;
   backLabel?: string;
   onBack?: () => void;
-  titleClassName?: string;
   hideSearch?: boolean;
 }
 
@@ -87,7 +86,7 @@ function TopBarDesktopSearch() {
   );
 }
 
-export function TopBar({ title, subtitle, action, back, backLabel, onBack, titleClassName, hideSearch }: TopBarProps) {
+export function TopBar({ title, subtitle, action, back, backLabel, onBack, hideSearch }: TopBarProps) {
   const tc = useTranslations('layout.common');
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
@@ -102,6 +101,7 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
   return (
     <header
       className="sticky top-0 z-40 flex flex-col border-b border-border backdrop-blur-md bg-card/85 lg:static lg:border-b-0 lg:backdrop-blur-none lg:bg-transparent"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
       {/* Desktop back link — row above title, large screens only */}
       {back && (
@@ -111,7 +111,7 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
       )}
 
       {/* Main row */}
-      <div className="h-14 flex items-center px-4 gap-2 lg:h-auto lg:pb-8 lg:items-end">
+      <div className="min-h-14 py-2.5 flex items-center px-4 gap-2 lg:h-auto lg:py-0 lg:pb-8 lg:items-end">
         {/* Left slot — mobile only */}
         <div className="shrink-0 lg:hidden">
           {back ? (
@@ -124,7 +124,7 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
         {/* Title */}
         <div className="flex-1 min-w-0 flex flex-col">
           <h1
-            className={`min-w-0 text-start font-semibold text-foreground truncate lg:text-[28px] lg:tracking-tight ${titleClassName ?? 'text-xl'}`}
+            className={`min-w-0 text-start text-xl font-semibold leading-tight text-foreground truncate lg:text-[28px] lg:tracking-tight lg:leading-snug`}
           >
             {title}
           </h1>

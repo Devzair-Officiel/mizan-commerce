@@ -82,7 +82,6 @@ function CatalogContent() {
     <>
       <TopBar
         title={t('topbar.title', { kind: catalogKind })}
-        titleClassName="text-3xl"
         subtitle={items.length > 0 ? t('list.count', { count: items.length, kind: catalogKind }) : undefined}
         hideSearch
         action={

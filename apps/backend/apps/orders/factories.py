@@ -15,7 +15,7 @@ class OrderFactory(DjangoModelFactory):
     shop = factory.SubFactory(ShopFactory)
     customer = factory.SubFactory(CustomerFactory, shop=factory.SelfAttribute('..shop'))
     order_number = factory.Sequence(lambda n: f'2026-{n+1:03d}')
-    status = 'draft'
+    status = 'to_prepare'
     payment_status = 'unpaid'
     subtotal = Decimal('0')
     total_amount = Decimal('0')

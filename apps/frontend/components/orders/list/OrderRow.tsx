@@ -49,11 +49,11 @@ export function OrderRow({ order, bucket, first, currency }: OrderRowProps) {
         first ? '' : 'border-t border-border'
       }`}
     >
-      <div className={`w-1 rounded-full shrink-0 ${STATUS_BAR[order.status] ?? STATUS_BAR.draft}`} />
+      <div className={`w-1 rounded-full shrink-0 ${STATUS_BAR[order.status] ?? 'bg-muted'}`} />
 
       <div className="flex-1 min-w-0 self-center">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground capitalize truncate">
+          <span className="font-semibold text-foreground truncate">
             {order.customer_name ?? tList('no_client')}
           </span>
           <span className="text-[11px] text-muted-foreground/70 tabular-nums shrink-0">
@@ -70,10 +70,10 @@ export function OrderRow({ order, bucket, first, currency }: OrderRowProps) {
           )}
         </div>
         <p className="text-xs mt-0.5 truncate">
-          <span className={`font-medium ${STATUS_TEXT[order.status] ?? STATUS_TEXT.draft}`}>
+          <span className={`font-medium ${STATUS_TEXT[order.status] ?? 'text-muted-foreground'}`}>
             {label(order.status)}
           </span>
-          <span className="text-muted-foreground"> · {time} · {itemLabel}</span>
+          <span className="text-muted-foreground">, {time}, {itemLabel}</span>
         </p>
       </div>
 

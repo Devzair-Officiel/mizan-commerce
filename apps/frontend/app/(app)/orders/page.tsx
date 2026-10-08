@@ -2,8 +2,6 @@
 
 import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
-import { ClipboardPlus } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useOrders, useOrdersInfinite } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
@@ -41,7 +39,6 @@ function OrdersContent() {
     <>
       <TopBar
         title={t('topbar')}
-        titleClassName="text-3xl"
         subtitle={hasLoaded ? t('count', { count: totalCount }) : undefined}
         hideSearch
       />
@@ -57,14 +54,6 @@ function OrdersContent() {
             />
           </>
         )}
-
-        <Link
-          href="/orders/new"
-          className="lg:hidden flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform self-start"
-        >
-          <ClipboardPlus size={16} strokeWidth={2.4} />
-          {t('new_order')}
-        </Link>
 
         {!isLoading && hasLoaded && totalCount === 0 && (
           <>

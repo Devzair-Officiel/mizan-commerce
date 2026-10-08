@@ -55,6 +55,14 @@ class Order(models.Model):
             models.Index(fields=['shop', '-created_at']),
         ]
         ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    status__in=['to_prepare', 'prepared', 'shipped', 'cancelled'],
+                ),
+                name='orders_status_valid',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.order_number} — {self.shop}'
