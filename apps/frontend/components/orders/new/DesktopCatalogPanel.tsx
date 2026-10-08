@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Check, Search, X } from 'lucide-react';
+import { Plus, Check, Search, X, Package } from 'lucide-react';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
@@ -183,6 +183,39 @@ function DesktopCatalogFooter({ createLabel, freeLabel, onCreate, onFree }: {
   );
 }
 
+function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, pickerFilter, onFilterChange, t }: {
+  form: NewSaleForm; catalogKind: string; panelTitle: string;
+  setMode: (m: PanelMode) => void; pickerFilter: PickFilter;
+  onFilterChange: (v: PickFilter) => void;
+  t: T;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <DesktopCatalogHeader title={panelTitle} kind={catalogKind} filter={pickerFilter}
+        setFilter={onFilterChange} t={t} />
+      <div className="px-5 pt-2 pb-6 flex flex-col gap-5">
+        <div className="flex flex-col items-center gap-3 pt-4 pb-2">
+          <div className="w-12 h-12 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0">
+            <Package size={22} />
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <span className="text-base font-semibold text-foreground">{t('empty_catalog_title')}</span>
+            <span className="text-sm text-muted-foreground max-w-xs">{t('empty_catalog_text', { kind: catalogKind })}</span>
+          </div>
+        </div>
+        <QuickAddProductForm
+          onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
+          onClose={() => {}}
+        />
+        <button type="button" onClick={() => setMode('free')}
+          className="self-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {t('empty_catalog_free_line', { kind: catalogKind })}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.picker');
   const { data: shop } = useShop();
@@ -200,13 +233,12 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
 
   if (mode === 'create') {
     return (
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border">
-          <span className="text-[0.9375rem] font-semibold">{createLabel}</span>
-        </div>
-        <div className="px-5 py-4">
-          <QuickAddProductForm onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); backToList(); }} onClose={backToList} />
-        </div>
+      <div className="rounded-2xl border border-border bg-card overflow-hidden p-5">
+        <QuickAddProductForm
+          onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); backToList(); }}
+          onClose={backToList}
+          onBack={backToList}
+        />
       </div>
     );
   }
@@ -223,7 +255,14 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
     );
   }
 
-  const isEmpty = picker.filtered.length === 0 && !picker.search && picker.filter === 'all';
+  const isEmptyCatalog = picker.products.length === 0;
+
+  if (isEmptyCatalog) {
+    return (
+      <DesktopEmptyCatalogPanel form={form} catalogKind={catalogKind} panelTitle={panelTitle}
+        setMode={setMode} pickerFilter={picker.filter} onFilterChange={picker.setFilter} t={t} />
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -233,9 +272,7 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
         setSearch={(v) => { picker.setSearch(v); setExpandedId(null); }}
         placeholder={t('desktop_search_placeholder', { kind: catalogKind })} t={t} />
       <div className="border-t border-border divide-y divide-border">
-        {isEmpty ? (
-          <p className="px-5 py-8 text-center text-sm text-muted-foreground">{t('no_products', { kind: catalogKind })}</p>
-        ) : picker.filtered.length === 0 ? (
+        {picker.filtered.length === 0 ? (
           <p className="px-5 py-6 text-center text-sm text-muted-foreground">{t('no_results')}</p>
         ) : (
           picker.filtered.map((p) => (
@@ -244,14 +281,12 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
           ))
         )}
       </div>
-      {!isEmpty && (
-        <DesktopCatalogFooter
-          createLabel={createLabel}
-          freeLabel={t('free_line_desktop', { kind: catalogKind })}
-          onCreate={() => setMode('create')}
-          onFree={() => setMode('free')}
-        />
-      )}
+      <DesktopCatalogFooter
+        createLabel={createLabel}
+        freeLabel={t('free_line_desktop', { kind: catalogKind })}
+        onCreate={() => setMode('create')}
+        onFree={() => setMode('free')}
+      />
     </div>
   );
 }

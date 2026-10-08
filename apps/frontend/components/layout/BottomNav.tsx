@@ -70,7 +70,9 @@ function useExternalDialogOpen() {
       const nodes = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
       let hasExternal = false;
       nodes.forEach((el) => {
-        if (!el.hasAttribute('data-bottom-nav-sheet')) hasExternal = true;
+        if (!el.hasAttribute('data-bottom-nav-sheet') && el.getAttribute('aria-hidden') !== 'true') {
+          hasExternal = true;
+        }
       });
       setOpen(hasExternal);
     };

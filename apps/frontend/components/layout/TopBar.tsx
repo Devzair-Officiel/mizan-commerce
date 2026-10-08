@@ -178,9 +178,14 @@ function TopBarBackLink({ onClick, label }: { onClick: () => void; label: string
 
 function TopBarDesktopSearch() {
   const tc = useTranslations('layout.common');
-  const { isOpen, open, close, anchorRef } = useSearchOverlay();
+  const { isOpen, open, close, anchorRef, setDesktopSearchActive } = useSearchOverlay();
   const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform);
   const hint = isMac ? '⌘K' : 'Ctrl K';
+
+  useEffect(() => {
+    setDesktopSearchActive(true);
+    return () => setDesktopSearchActive(false);
+  }, [setDesktopSearchActive]);
 
   return (
     <div
@@ -254,8 +259,8 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
         {/* Right actions */}
         <div className="shrink-0 flex items-center gap-1 lg:gap-3 lg:mb-1">
           {action}
-          {/* Desktop search — always mounted, hides/shows via CSS in the component */}
-          <TopBarDesktopSearch />
+          {/* Desktop search — hidden on pages that use hideSearch; Ctrl+K still works via SearchProvider */}
+          {!hideSearch && <TopBarDesktopSearch />}
           {/* Mobile search button — always visible unless hideSearch */}
           {!hideSearch && (
             <button

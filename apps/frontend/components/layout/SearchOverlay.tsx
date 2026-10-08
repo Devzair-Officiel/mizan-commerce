@@ -2,7 +2,7 @@
 
 import {
   useState, useEffect, useRef, useId, createContext, useContext, useCallback,
-  type RefObject, type ReactNode,
+  type Dispatch, type SetStateAction, type RefObject, type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearch } from '@/lib/hooks/useSearch';
@@ -17,6 +17,7 @@ interface SearchContextValue {
   open: () => void;
   close: () => void;
   anchorRef: RefObject<HTMLElement | null>;
+  setDesktopSearchActive: Dispatch<SetStateAction<boolean>>;
 }
 
 const SearchContext = createContext<SearchContextValue | null>(null);
@@ -155,12 +156,58 @@ export function DesktopSearchPopover({ onClose, anchorRef }: { onClose: () => vo
   );
 }
 
+/* ── Desktop centered modal (used when the TopBar search bar is hidden) ──── */
+
+function DesktopSearchModal({ onClose }: { onClose: () => void }) {
+  const [q, setQ] = useState('');
+  const router = useRouter();
+  const listId = useId();
+  const { data, isFetching } = useSearch(q);
+  const allIds = buildAllIds(q, data);
+  const { activeId, onKeyDown } = useSearchKeyNav(allIds);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  function navigate(href: string) { onClose(); router.push(href); }
+  function handleEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    onKeyDown(e);
+    if (e.key === 'Enter' && activeId) {
+      const href = resolveIdHref(activeId, q, data);
+      if (href) navigate(href);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 hidden lg:flex items-start justify-center pt-[15vh]" onClick={onClose}>
+      <div
+        className="w-full max-w-xl mx-6 rounded-2xl border border-border bg-popover shadow-xl overflow-hidden flex flex-col max-h-[70vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 px-4 py-3 border-b border-border">
+          <SearchInput value={q} onChange={setQ} onClose={onClose}
+            listId={listId} activeId={activeId} onKeyDown={handleEnter}
+            autoFocus className="h-9" />
+        </div>
+        <div className="flex-1 overflow-y-auto" aria-live="polite" aria-busy={isFetching}>
+          <SearchPanel q={q} data={data} isFetching={isFetching}
+            activeId={activeId} listId={listId} onNavigate={navigate} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Provider ─────────────────────────────────────────────────────────────── */
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const anchorRef = useRef<HTMLElement | null>(null);
   const isDesktop = useIsDesktop();
+  const [desktopSearchActive, setDesktopSearchActive] = useState(false);
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
@@ -176,9 +223,10 @@ export function SearchProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SearchContext.Provider value={{ isOpen, open, close, anchorRef }}>
+    <SearchContext.Provider value={{ isOpen, open, close, anchorRef, setDesktopSearchActive }}>
       {children}
       {isOpen && isDesktop === false && <MobileSearchOverlay onClose={close} />}
+      {isOpen && isDesktop === true && !desktopSearchActive && <DesktopSearchModal onClose={close} />}
     </SearchContext.Provider>
   );
 }

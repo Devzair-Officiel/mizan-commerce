@@ -7,9 +7,11 @@
  *   1. Toute clé présente dans une langue doit exister dans les trois.
  *   2. Les variables ICU ({name}, {count}…) doivent être identiques
  *      pour une même clé dans les trois langues.
+ *   3. Les appels t('key') sans second argument ne doivent pas manquer
+ *      les variables ICU de premier niveau de la clé FR correspondante.
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -111,10 +113,66 @@ for (const key of allKeys) {
   }
 }
 
+// ── Check 3 : variables ICU présentes dans les call sites t('key') ───────────
+
+function collectTsxFiles(dir) {
+  const files = [];
+  let entries;
+  try { entries = readdirSync(dir); } catch { return files; }
+  for (const entry of entries) {
+    if (entry === 'node_modules' || entry === '.next' || entry === 'dist') continue;
+    const full = join(dir, entry);
+    let stat;
+    try { stat = statSync(full); } catch { continue; }
+    if (stat.isDirectory()) {
+      files.push(...collectTsxFiles(full));
+    } else if (stat.isFile() && (entry.endsWith('.tsx') || entry.endsWith('.ts'))) {
+      files.push(full);
+    }
+  }
+  return files;
+}
+
+const srcDir = join(__dirname, '..');
+const scanDirs = ['app', 'components', 'lib'].map((d) => join(srcDir, d));
+const tsxFiles = scanDirs.flatMap(collectTsxFiles);
+
+for (const file of tsxFiles) {
+  let src;
+  try { src = readFileSync(file, 'utf8'); } catch { continue; }
+
+  // Collect: const varName = useTranslations('namespace')
+  const declRe = /\bconst\s+(\w+)\s*=\s*useTranslations\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const varNsMap = {};
+  let declMatch;
+  while ((declMatch = declRe.exec(src)) !== null) {
+    varNsMap[declMatch[1]] = declMatch[2];
+  }
+  if (Object.keys(varNsMap).length === 0) continue;
+
+  // For each translation variable, find t('key') calls WITHOUT a second argument
+  for (const [varName, ns] of Object.entries(varNsMap)) {
+    // Matches varName('key') with no comma after the key string
+    const tCallRe = new RegExp(`\\b${varName}\\(\\s*['"]([^'"]+)['"]\\s*\\)`, 'g');
+    let tMatch;
+    while ((tMatch = tCallRe.exec(src)) !== null) {
+      const key = tMatch[1];
+      const fullKey = `${ns}.${key}`;
+      if (!(fullKey in flat['fr'])) continue;
+      const icuVars = extractIcuVars(flat['fr'][fullKey]);
+      if (icuVars.size === 0) continue;
+      const lineNum = src.slice(0, tMatch.index).split('\n').length;
+      const relPath = file.replace(srcDir + '/', '');
+      console.error(`\n[ICU-CALLSITE] ${relPath}:${lineNum} — ${varName}('${key}') manque {${[...icuVars].join(', ')}} (${fullKey})`);
+      hasError = true;
+    }
+  }
+}
+
 // ── Result ────────────────────────────────────────────────────────────────────
 
 if (!hasError) {
-  console.log(`✓ i18n OK — ${allKeys.size} clés, ${LANGS.length} langues, variables ICU cohérentes`);
+  console.log(`✓ i18n OK — ${allKeys.size} clés, ${LANGS.length} langues, variables ICU cohérentes, call sites vérifiés`);
 } else {
   process.exit(1);
 }

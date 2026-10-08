@@ -28,8 +28,9 @@ export function AddTypeSheet({ open, onClose, onPick }: AddTypeSheetProps) {
         }`}
       />
       <div
-        role="dialog"
-        aria-modal="true"
+        role={open ? 'dialog' : undefined}
+        aria-modal={open ? 'true' : undefined}
+        aria-hidden={!open}
         aria-label={t('trigger_aria')}
         className={`fixed inset-x-0 bottom-0 z-80 rounded-t-3xl bg-card shadow-2xl transition-transform duration-300 ease-out ${
           open ? 'translate-y-0' : 'translate-y-full'

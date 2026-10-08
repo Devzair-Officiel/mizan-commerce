@@ -11,6 +11,7 @@ import { useCreateCustomer, type Customer } from '@/lib/hooks/useCustomers';
 import { type ProductDetail } from '@/lib/hooks/useProducts';
 import { ApiError } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { QuickAddProductForm } from '@/components/orders/new/QuickAddProductForm';
 
 function AddButton({ onClick, ariaLabel }: { onClick: () => void; ariaLabel: string }) {
@@ -112,6 +113,7 @@ export function QuickAddProduct({
   hideTrigger?: boolean;
 }) {
   const t = useTranslations('orders.quickAdd');
+  const kind = useCatalogKind();
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
   const setOpen = controlledOnOpenChange ?? setInternalOpen;
@@ -123,7 +125,7 @@ export function QuickAddProduct({
   return (
     <>
       {!hideTrigger && <AddButton onClick={() => setOpen(true)} ariaLabel={t('trigger_aria')} />}
-      <BottomSheet open={open} onClose={handleClose} title={t('product_title')}>
+      <BottomSheet open={open} onClose={handleClose} title={t('product_title', { kind })}>
         <QuickAddProductForm
           onCreated={(product) => { onCreated(product); handleClose(); }}
           onClose={handleClose}

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
-import { TicketCustomerBlock } from '@/components/orders/new/SaleTicket';
+import { TicketCustomerBlock } from '@/components/orders/new/TicketCustomerBlock';
 import { SectionChips } from '@/components/orders/new/SectionChips';
 import { SummaryAmountInput } from '@/components/orders/new/OrderSummary';
 import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
@@ -50,7 +50,7 @@ function DesktopTicketLine({ item, onUpdateQty, money, t }: {
   );
 }
 
-function DesktopSummaryBlock({ form, money }: { form: NewSaleForm; money: (v: number | string) => string }) {
+function DesktopSummaryBlock({ form, money, hasItems }: { form: NewSaleForm; money: (v: number | string) => string; hasItems: boolean }) {
   const t = useTranslations('orders.new');
   const { data: shop } = useShop();
   const fulfillmentMode = shop?.fulfillment_mode ?? null;
@@ -64,43 +64,47 @@ function DesktopSummaryBlock({ form, money }: { form: NewSaleForm; money: (v: nu
 
   return (
     <div className="px-5 pt-4 pb-3 border-t border-border flex flex-col gap-2.5">
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">{t('subtotal')}</span>
-        <span className="tabular-nums">{money(form.subtotal)}</span>
-      </div>
-      {(form.showDiscount || discountN > 0) && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">{t('discount')}</span>
-          <SummaryAmountInput value={form.discount} onChange={form.setDiscount}
-            ariaLabel={t('discount_label')} clearAriaLabel={t('remove_aria', { label: t('discount_label').toLowerCase() })}
-            currencySymbol={currencySymbol} onClear={() => { form.setDiscount(''); form.setShowDiscount(false); }} />
-        </div>
-      )}
-      {(form.showShipping || shippingN > 0) && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">{t('shipping')}</span>
-          <SummaryAmountInput value={form.shipping} onChange={form.setShipping}
-            ariaLabel={t('shipping_label')} clearAriaLabel={t('remove_aria', { label: t('shipping_label').toLowerCase() })}
-            currencySymbol={currencySymbol} onClear={() => { form.setShipping(''); form.setShowShipping(false); }} />
-        </div>
-      )}
-      {(showAddDiscount || showAddShipping) && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {showAddDiscount && (
-            <button type="button" onClick={() => form.setShowDiscount(true)} className={linkClass}>
-              {t('add_discount')}
-            </button>
+      {hasItems && (
+        <>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{t('subtotal')}</span>
+            <span className="tabular-nums">{money(form.subtotal)}</span>
+          </div>
+          {(form.showDiscount || discountN > 0) && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t('discount')}</span>
+              <SummaryAmountInput value={form.discount} onChange={form.setDiscount}
+                ariaLabel={t('discount_label')} clearAriaLabel={t('remove_aria', { label: t('discount_label').toLowerCase() })}
+                currencySymbol={currencySymbol} onClear={() => { form.setDiscount(''); form.setShowDiscount(false); }} />
+            </div>
           )}
-          {showAddShipping && (
-            <button type="button" onClick={() => form.setShowShipping(true)} className={linkClass}>
-              {t('add_shipping')}
-            </button>
+          {(form.showShipping || shippingN > 0) && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{t('shipping')}</span>
+              <SummaryAmountInput value={form.shipping} onChange={form.setShipping}
+                ariaLabel={t('shipping_label')} clearAriaLabel={t('remove_aria', { label: t('shipping_label').toLowerCase() })}
+                currencySymbol={currencySymbol} onClear={() => { form.setShipping(''); form.setShowShipping(false); }} />
+            </div>
           )}
-        </div>
+          {(showAddDiscount || showAddShipping) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {showAddDiscount && (
+                <button type="button" onClick={() => form.setShowDiscount(true)} className={linkClass}>
+                  {t('add_discount')}
+                </button>
+              )}
+              {showAddShipping && (
+                <button type="button" onClick={() => form.setShowShipping(true)} className={linkClass}>
+                  {t('add_shipping')}
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
-      <div className="flex justify-between items-baseline pt-2.5 border-t border-border">
+      <div className={`flex justify-between items-baseline ${hasItems ? 'pt-2.5 border-t border-border' : ''}`}>
         <span className="text-[0.9375rem] font-semibold">{t('total')}</span>
-        <span className="text-2xl font-bold tabular-nums">{money(form.total)}</span>
+        <span className={`text-2xl font-bold tabular-nums ${!hasItems ? 'text-muted-foreground' : ''}`}>{money(form.total)}</span>
       </div>
     </div>
   );
@@ -186,7 +190,7 @@ export function DesktopSaleTicket({ form }: { form: NewSaleForm }) {
           ))}
         </div>
       )}
-      <DesktopSummaryBlock form={form} money={money} />
+      <DesktopSummaryBlock form={form} money={money} hasItems={form.items.length > 0} />
       <DesktopTicketControls form={form} />
       <div className="px-5 pb-5">
         <button type="button" onClick={() => void form.handleSubmit()} disabled={form.isPending}
