@@ -18,11 +18,11 @@ export default function EditCustomerPage() {
     router.push(`/customers/${id}`);
   }
 
-  if (isLoading) return <><TopBar title={t('topbar_short')} hideSearch /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
+  if (isLoading) return <><TopBar title={t('topbar_short')} back hideSearch /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
 
   return (
     <>
-      <TopBar title={t('title')} hideSearch />
+      <TopBar title={t('title')} back hideSearch />
       <CustomerForm defaultValues={customer} onSubmit={handleSubmit} isSubmitting={isPending} />
     </>
   );

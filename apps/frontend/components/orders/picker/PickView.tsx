@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ChevronRight, Search, X, PackagePlus, FilePlus2 } from 'lucide-react';
+import { Search, X, PackagePlus, FilePlus2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
@@ -139,7 +139,8 @@ function ProductRow({ product, onPick }: { product: Product; onPick: (p: Product
     <button
       type="button"
       onClick={() => onPick(product)}
-      className="flex items-center gap-3 px-1 py-3 text-left text-foreground transition-colors active:bg-muted"
+      aria-label={t('add_aria', { name: product.name })}
+      className="flex items-center gap-3 px-1 min-h-16 py-2 text-left text-foreground transition-colors active:bg-muted w-full"
     >
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -157,7 +158,9 @@ function ProductRow({ product, onPick }: { product: Product; onPick: (p: Product
         </div>
         <span className="text-xs text-muted-foreground tabular-nums">{priceLabel}</span>
       </div>
-      <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+      <div className="shrink-0 h-10 w-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl font-bold">
+        +
+      </div>
     </button>
   );
 }

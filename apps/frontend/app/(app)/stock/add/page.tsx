@@ -142,7 +142,7 @@ function StockAddForm() {
 export default function StockAddPage() {
   return (
     <>
-      <TopBar title="Entrée stock" />
+      <TopBar title="Entrée stock" back />
       <Suspense><StockAddForm /></Suspense>
     </>
   );

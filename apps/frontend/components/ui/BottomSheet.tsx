@@ -11,6 +11,7 @@ interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  fullHeight?: boolean;
   children: ReactNode;
 }
 
@@ -85,6 +86,7 @@ function MobileSheet({
   titleId,
   sheetRef,
   onClose,
+  fullHeight,
   t,
   children,
 }: {
@@ -93,6 +95,7 @@ function MobileSheet({
   titleId: string;
   sheetRef: React.RefObject<HTMLDivElement | null>;
   onClose: () => void;
+  fullHeight?: boolean;
   t: ReturnType<typeof useTranslations<'ui'>>;
   children: ReactNode;
 }) {
@@ -112,7 +115,7 @@ function MobileSheet({
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         aria-label={title ? undefined : t('panel')}
-        className="flex flex-col rounded-t-3xl bg-card shadow-2xl max-h-[75vh] outline-none"
+        className={`flex flex-col rounded-t-3xl bg-card shadow-2xl outline-none ${fullHeight ? 'h-[calc(100dvh-56px)]' : 'max-h-[75vh]'}`}
         style={{
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -130,7 +133,9 @@ function MobileSheet({
             {title}
           </p>
         )}
-        <div className="px-5 py-4 pb-safe overflow-y-auto">
+        <div className={fullHeight
+          ? 'flex flex-col flex-1 min-h-0 overflow-hidden'
+          : 'px-5 py-4 pb-safe overflow-y-auto'}>
           {children}
         </div>
       </div>
@@ -138,7 +143,7 @@ function MobileSheet({
   );
 }
 
-export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, fullHeight, children }: BottomSheetProps) {
   const [visible, setVisible] = useState(false);
   const [tracked, setTracked] = useState(open);
   const titleId = useId();
@@ -179,5 +184,5 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
   if (isDesktop === true) {
     return <DesktopDialog visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t}>{children}</DesktopDialog>;
   }
-  return <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t}>{children}</MobileSheet>;
+  return <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t}>{children}</MobileSheet>;
 }

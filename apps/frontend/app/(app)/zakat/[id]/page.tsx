@@ -54,7 +54,7 @@ export default function ZakatDetailPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Détail du calcul" />
+        <TopBar title="Détail du calcul" back />
         <div className="flex flex-col gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4">
@@ -70,7 +70,7 @@ export default function ZakatDetailPage() {
   if (!calc) {
     return (
       <>
-        <TopBar title="Détail du calcul" />
+        <TopBar title="Détail du calcul" back />
         <div className="flex flex-col gap-3 px-4 py-8 items-center">
           <p className="text-sm text-muted-foreground">Calcul introuvable.</p>
           <Link href="/zakat" className="text-sm text-primary underline">
@@ -88,7 +88,7 @@ export default function ZakatDetailPage() {
 
   return (
     <>
-      <TopBar title="Détail du calcul" />
+      <TopBar title="Détail du calcul" back />
       <div className="flex flex-col gap-4 p-4 pb-24">
         <Link
           href="/zakat"

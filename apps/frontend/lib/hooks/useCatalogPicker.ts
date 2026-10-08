@@ -55,7 +55,7 @@ export function useCatalogPicker(): CatalogPickerState {
 
   function handlePickVariant(pick: VariantPick, onPick: (pick: VariantPick) => void) {
     onPick(pick);
-    close();
+    backToList();
   }
 
   function handleCreate(onRequestCreate: () => void) {

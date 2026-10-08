@@ -67,3 +67,20 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 - **Couleur réservée aux signaux** : les titres de section de la sidebar sont `text-muted-foreground` (neutre), pas `text-primary`. La couleur primaire reste réservée aux états actifs et aux signaux.
 - **Menu compte ancré** : sur grand écran, le menu compte (Base UI `side="top"`) remplace le BottomSheet pour les actions de compte — exception au pattern §4 « Actions secondaires : BottomSheet ».
 - **`hideSearch` sur TopBar** : passer `hideSearch` sur toute page qui possède son propre champ de recherche (Commandes, Catalogue, Clients) et sur toute page de création/édition (Nouvelle vente, nouveau produit/client, édition produit/client). La recherche globale reste visible sur le tableau de bord et les pages de détail sans champ local.
+
+## 8. Navigation mobile (< lg)
+
+Trois types d'écrans — règle fixe :
+
+| Type | Contenu TopBar gauche | Barre du bas |
+|------|-----------------------|--------------|
+| **Page de rubrique** (accueil, commandes, clients, catalogue, factures, stock, rappels, notes, zakat, paramètres) | Menu burger | Visible |
+| **Page de détail** (une commande, un client, un article, une facture, un calcul…) | Flèche retour (`back`) | Visible |
+| **Écran de saisie** (nouvelle vente, création/modification, entrée/sortie de stock, import facture) | Flèche retour (`back`) | **Masquée** |
+
+Application :
+- Passer `back` sur les pages de détail et de saisie. La barre du bas se masque automatiquement sur les chemins de saisie (détectés par pattern de chemin).
+- **Plus de fil d'Ariane sur mobile** : le `<Breadcrumb>` est supprimé ; la flèche retour suffit.
+- **Bandeau d'essai dans le menu** : le `TrialBanner` quitte l'en-tête des pages pour vivre exclusivement dans le BurgerMenu. Un seul point d'accès, jamais deux bandeaux simultanés.
+- **Barre du bas** : 5 emplacements fixes (Accueil, Clients, Vendre au centre, Commandes, Catalogue). `bg-card border-t`. Onglet actif : icône dans pastille `bg-secondary`, libellé `text-primary font-semibold`. « Vendre » : bouton rond `bg-primary` légèrement surélevé → `/orders/new` direct.
+- **BurgerMenu** : `bg-card`. Groupes issus de `lib/navigation.tsx`, sans les entrées déjà dans la barre du bas. Badges sur Commandes (rouge si >0), Rappels (neutre).

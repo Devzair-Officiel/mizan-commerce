@@ -22,7 +22,7 @@ function NewCustomerContent() {
 
   return (
     <>
-      <TopBar title={t('title')} hideSearch />
+      <TopBar title={t('title')} back hideSearch />
       <div className="px-4 pt-4 max-w-3xl mx-auto w-full">
         <div className="rounded-3xl p-5 flex items-center gap-4"
           style={{ background: 'color-mix(in oklch, var(--primary) 7%, transparent)' }}>

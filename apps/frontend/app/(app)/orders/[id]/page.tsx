@@ -44,7 +44,7 @@ export default function OrderDetailPage() {
 
   if (isLoading) return (
     <>
-      <TopBar title={t('topbar')} />
+      <TopBar title={t('topbar')} back />
       <div className="flex flex-col gap-3 p-4">
         {[0, 1, 2].map((i) => (
           <div key={i} className="rounded-xl border border-border bg-card p-4">
@@ -55,7 +55,7 @@ export default function OrderDetailPage() {
       </div>
     </>
   );
-  if (!order) return <><TopBar title={t('topbar')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
+  if (!order) return <><TopBar title={t('topbar')} back /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   const totalAmount = parseFloat(order.total_amount);
   const subtotalAmount = parseFloat(order.subtotal);
@@ -119,6 +119,7 @@ export default function OrderDetailPage() {
   return (
     <>
       <TopBar
+        back
         title={order.order_number}
         action={
           (order.status === 'to_prepare' || order.status === 'prepared') && (

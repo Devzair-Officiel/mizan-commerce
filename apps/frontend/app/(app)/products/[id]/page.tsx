@@ -52,14 +52,14 @@ export default function ProductDetailPage() {
   }
 
   const type = product?.type ?? 'product';
-  if (isLoading) return <><TopBar title={t('title', { type: 'product' })} /><ProductDetailSkeleton /></>;
-  if (!product) return <><TopBar title={t('title', { type: 'product' })} /><p className="p-4 text-sm text-destructive">{t('not_found', { type: 'product' })}</p></>;
+  if (isLoading) return <><TopBar title={t('title', { type: 'product' })} back /><ProductDetailSkeleton /></>;
+  if (!product) return <><TopBar title={t('title', { type: 'product' })} back /><p className="p-4 text-sm text-destructive">{t('not_found', { type: 'product' })}</p></>;
 
   const isProduct = product.type === 'product';
 
   return (
     <>
-      <TopBar title={product.name} />
+      <TopBar title={product.name} back />
 
       <BottomSheet open={showMore} onClose={() => setShowMore(false)} title={tHero('more_actions')}>
         <div className="flex flex-col gap-1.5">

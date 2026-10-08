@@ -65,7 +65,7 @@ function NewProductForm() {
 
   return (
     <>
-      <TopBar title={type === 'service' ? tForm('topbar_new_service') : tForm('topbar_new_product')} hideSearch />
+      <TopBar title={type === 'service' ? tForm('topbar_new_service') : tForm('topbar_new_product')} back hideSearch />
       <ProductForm
         type={type}
         onSubmit={handleSubmit}

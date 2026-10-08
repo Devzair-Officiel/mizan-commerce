@@ -166,7 +166,7 @@ function StockOutForm() {
 export default function StockOutPage() {
   return (
     <>
-      <TopBar title="Sortie stock" />
+      <TopBar title="Sortie stock" back />
       <Suspense><StockOutForm /></Suspense>
     </>
   );

@@ -32,7 +32,7 @@ export function LanguageSwitcher() {
     <div
       role="group"
       aria-label={tc('language')}
-      className="flex gap-1 rounded-2xl bg-white/10 p-1"
+      className="flex gap-1 rounded-2xl bg-muted p-1"
     >
       {LOCALES.map((loc) => {
         const active = current === loc;
@@ -45,8 +45,8 @@ export function LanguageSwitcher() {
             lang={loc}
             className={`flex-1 rounded-xl px-2 py-2 text-[13px] font-medium transition-all ${
               active
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-white/75 hover:text-white hover:bg-white/10'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
             }`}
           >
             {LOCALE_LABELS[loc]}

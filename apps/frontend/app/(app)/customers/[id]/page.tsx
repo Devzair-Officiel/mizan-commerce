@@ -86,12 +86,12 @@ export default function CustomerDetailPage() {
     try { localStorage.setItem(todayKey, '1'); } catch { /* ignore */ }
   }
 
-  if (isLoading) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
-  if (!customer) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
+  if (isLoading) return <><TopBar title={t('topbar_short')} back /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
+  if (!customer) return <><TopBar title={t('topbar_short')} back /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   return (
     <>
-      <TopBar title={customer.name} />
+      <TopBar title={customer.name} back />
 
       <CustomerFlashNotification
         visible={flashVisible}

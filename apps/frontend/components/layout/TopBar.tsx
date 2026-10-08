@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -245,14 +245,14 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
         </div>
 
         {/* Title */}
-        <div className="flex-1 min-w-0 lg:flex lg:flex-col">
+        <div className="flex-1 min-w-0 flex flex-col">
           <h1
-            className={`min-w-0 text-center font-semibold text-foreground pointer-events-none truncate lg:text-start lg:text-[28px] lg:tracking-tight lg:pointer-events-auto ${titleClassName ?? 'text-2xl'}`}
+            className={`min-w-0 text-start font-semibold text-foreground truncate lg:text-[28px] lg:tracking-tight ${titleClassName ?? 'text-xl'}`}
           >
             {title}
           </h1>
           {subtitle && (
-            <p className="hidden lg:block text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>
+            <p className="text-[0.8125rem] text-muted-foreground mt-0.5 truncate">{subtitle}</p>
           )}
         </div>
 
@@ -265,7 +265,7 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
           {!hideSearch && (
             <button
               onClick={openSearch}
-              className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="lg:hidden flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               aria-label={tc('search')}
             >
               <Search size={19} />
@@ -274,13 +274,6 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
         </div>
       </div>
 
-      {/* Breadcrumb — mobile only */}
-      <div className="lg:hidden">
-        {/* Suspense requis : Breadcrumb utilise useSearchParams, sinon le build statique échoue */}
-        <Suspense fallback={null}>
-          <Breadcrumb />
-        </Suspense>
-      </div>
     </header>
   );
 }

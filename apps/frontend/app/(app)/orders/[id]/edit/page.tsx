@@ -40,7 +40,7 @@ export default function EditOrderPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title={t('topbar')} />
+        <TopBar title={t('topbar')} back />
         <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
       </>
     );
@@ -48,7 +48,7 @@ export default function EditOrderPage() {
   if (!order) {
     return (
       <>
-        <TopBar title={t('topbar')} />
+        <TopBar title={t('topbar')} back />
         <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
       </>
     );
@@ -56,7 +56,7 @@ export default function EditOrderPage() {
   if (order.status !== 'draft') {
     return (
       <>
-        <TopBar title={t('topbar')} />
+        <TopBar title={t('topbar')} back />
         <p className="p-4 text-sm text-muted-foreground">{t('draft_only')}</p>
       </>
     );
@@ -152,7 +152,7 @@ function EditController({ order }: { order: Order }) {
 
   return (
     <>
-      <TopBar title={t('topbar_with_number', { number: order.order_number })} action={
+      <TopBar title={t('topbar_with_number', { number: order.order_number })} back action={
         <Button size="sm" onClick={handleSave} disabled={isPending || items.length === 0}>
           {isPending ? t('saving') : t('save')}
         </Button>

@@ -24,7 +24,7 @@ export default function InvoiceDetailPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Facture" />
+        <TopBar title="Facture" back />
         <div className="flex flex-col gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4">
@@ -40,7 +40,7 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <>
-        <TopBar title="Facture" />
+        <TopBar title="Facture" back />
         <p className="p-4 text-sm text-destructive">Facture introuvable.</p>
       </>
     );
@@ -59,7 +59,7 @@ export default function InvoiceDetailPage() {
 
   return (
     <>
-      <TopBar title={invoice.number} />
+      <TopBar title={invoice.number} back />
       <div className="flex flex-col gap-4 p-4 pb-24">
         <HeroCard invoice={invoice} payment={payment} />
 
