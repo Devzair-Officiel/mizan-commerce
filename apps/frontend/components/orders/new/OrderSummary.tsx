@@ -112,7 +112,7 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function SummaryAmountInput({
+export function SummaryAmountInput({
   value, onChange, ariaLabel, clearAriaLabel, currencySymbol, onClear,
 }: {
   value: string;

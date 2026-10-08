@@ -12,7 +12,7 @@ export function SectionChips({
 }: SectionChipsProps) {
   return (
     <div className="flex flex-col gap-2">
-      <span className={titleClassName ?? 'text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1'}>
+      <span className={titleClassName ?? 'text-[0.8125rem] font-medium text-muted-foreground px-1'}>
         {title}
       </span>
       <div className="rounded-full bg-muted p-1 flex">

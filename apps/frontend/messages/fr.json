@@ -675,12 +675,14 @@
       "no_customer_payment_warning": "Sans client, tu ne pourras pas relancer ce paiement.",
       "section_items": "{kind, select, products {2 · Articles} services {2 · Services} other {2 · Articles & services}}",
       "items_required": "{kind, select, products {Ajoutez au moins un article.} services {Ajoutez au moins un service.} other {Ajoutez au moins un article ou service.}}",
-      "items_empty": "{kind, select, products {Aucun article pour l'instant.} services {Aucune prestation pour l'instant.} other {Aucun article pour l'instant.}}",
+      "items_empty": "{kind, select, products {Aucun article pour l'instant.} services {Aucun service pour l'instant.} other {Aucun article pour l'instant.}}",
       "payment_title": "Paiement",
       "payment_amount_required": "Saisis un montant reçu supérieur à 0.",
       "payment_amount_exceeds": "Le montant reçu ne peut pas dépasser le total.",
       "amount_received": "Montant reçu",
-      "status_title": "Statut initial",
+      "status_title": "Statut",
+      "per_unit": "l'unité",
+      "remove_one_aria": "Retirer {name}",
       "status_draft": "Brouillon",
       "status_to_prepare": "À préparer",
       "status_to_process": "À traiter",
@@ -768,7 +770,9 @@
       "free_submit": "Ajouter à la commande",
       "add_aria": "Ajouter {name}",
       "panel_items": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
-      "panel_create": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article}}"
+      "panel_create": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou un service}}",
+      "desktop_search_placeholder": "{kind, select, products {Nom de l'article, référence ou code-barres} services {Nom du service} other {Nom de l'article, référence ou code-barres}}",
+      "free_line_desktop": "{kind, select, products {Article ponctuel, sans l'enregistrer} services {Prestation ponctuelle, sans l'enregistrer} other {Article ponctuel, sans l'enregistrer}}"
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",

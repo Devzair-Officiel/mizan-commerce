@@ -42,7 +42,7 @@ function NoCustomerRow({ onAssociate, label }: { onAssociate: () => void; label:
   );
 }
 
-function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
+export function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const { customerId, selectedCustomer } = form;

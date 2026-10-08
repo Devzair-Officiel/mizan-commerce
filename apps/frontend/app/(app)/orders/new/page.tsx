@@ -12,8 +12,8 @@ import { SectionChips } from '@/components/orders/new/SectionChips';
 import { NotesSection } from '@/components/orders/new/NotesSection';
 import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
 import { SubmitCTA } from '@/components/orders/new/SubmitCTA';
-import { CatalogPanel } from '@/components/orders/new/CatalogPanel';
-import { SaleTicket } from '@/components/orders/new/SaleTicket';
+import { DesktopCatalogPanel } from '@/components/orders/new/DesktopCatalogPanel';
+import { DesktopSaleTicket } from '@/components/orders/new/DesktopSaleTicket';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
@@ -27,12 +27,11 @@ function NewSaleFormDesktop() {
   return (
     <div className="flex gap-6 p-6 pb-10 items-start">
       <div className="flex-1 min-w-0">
-        <CatalogPanel form={form} />
+        <DesktopCatalogPanel form={form} />
       </div>
-      <div className="w-105 shrink-0 lg:sticky top-8">
-        <SaleTicket form={form} />
+      <div className="w-105 shrink-0">
+        <DesktopSaleTicket form={form} />
       </div>
-      {/* QuickAddCustomer for SaleTicket */}
       <QuickAddCustomer
         hideTrigger
         open={form.createCustomerOpen}

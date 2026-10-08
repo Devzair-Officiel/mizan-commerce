@@ -680,7 +680,9 @@
       "payment_amount_required": "أدخل مبلغًا أكبر من 0.",
       "payment_amount_exceeds": "لا يمكن أن يتجاوز المبلغ المستلم الإجمالي.",
       "amount_received": "المبلغ المستلم",
-      "status_title": "الحالة الأولية",
+      "status_title": "الحالة",
+      "per_unit": "للوحدة",
+      "remove_one_aria": "إزالة {name}",
       "status_draft": "مسودة",
       "status_to_prepare": "للتحضير",
       "status_to_process": "للمعالجة",
@@ -768,7 +770,9 @@
       "free_submit": "إضافة إلى الطلب",
       "add_aria": "إضافة {name}",
       "panel_items": "{kind, select, products {العناصر} services {الخدمات} other {العناصر والخدمات}}",
-      "panel_create": "{kind, select, products {إنشاء عنصر} services {إنشاء خدمة} other {إنشاء عنصر}}"
+      "panel_create": "{kind, select, products {إنشاء عنصر} services {إنشاء خدمة} other {إنشاء عنصر أو خدمة}}",
+      "desktop_search_placeholder": "{kind, select, products {الاسم أو المرجع أو الباركود} services {اسم الخدمة} other {الاسم أو المرجع أو الباركود}}",
+      "free_line_desktop": "{kind, select, products {صنف طارئ، دون حفظ} services {خدمة طارئة، دون حفظ} other {صنف طارئ، دون حفظ}}"
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",
