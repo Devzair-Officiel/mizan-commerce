@@ -18,6 +18,7 @@ import {
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
 import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { apiFetch } from '@/lib/api-client';
 import { isDefaultVariant } from '@/lib/products';
@@ -70,6 +71,7 @@ function EditController({ order }: { order: Order }) {
   const { data: customers } = useCustomers();
   const { data: products }  = useProducts();
   const { data: shop } = useShop();
+  const kind = useCatalogKind();
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
@@ -180,10 +182,10 @@ function EditController({ order }: { order: Order }) {
           <div className="flex-1">
             <FloatingSelectBase
               id="product-picker"
-              label={t('product_picker_label')}
+              label={t('product_picker_label', { kind })}
               value=""
               onValueChange={(v) => { if (v) void addProductByDefaultVariant(v); }}
-              placeholder={t('product_picker_placeholder')}
+              placeholder={t('product_picker_placeholder', { kind })}
             >
               {products?.results.filter((p) => p.is_active).map((p) => {
                 const priceLabel = p.min_selling_price ? money(p.min_selling_price) : '—';
@@ -199,7 +201,7 @@ function EditController({ order }: { order: Order }) {
         {items.length > 0 && (
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('items_title')}</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('items_title', { kind })}</span>
             </div>
             <div className="divide-y divide-border">
               {items.map((item) => {

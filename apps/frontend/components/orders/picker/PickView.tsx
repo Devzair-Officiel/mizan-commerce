@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { ChevronRight, Search, X, PackagePlus, FilePlus2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Product } from '@/lib/hooks/useProducts';
 
 export type PickFilter = 'all' | 'product' | 'service';
@@ -29,6 +30,7 @@ export function PickView({
   search, setSearch, filter, setFilter, products, onPick, onCreate, onFreeLine,
 }: PickViewProps) {
   const t = useTranslations('orders.picker');
+  const kind = useCatalogKind();
   return (
     <>
       <div className="relative mb-3">
@@ -89,7 +91,7 @@ export function PickView({
           <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <PackagePlus size={16} />
           </span>
-          <span className="text-left">{t('create_product')}</span>
+          <span className="text-left">{t('create_product', { kind })}</span>
         </button>
         <button
           type="button"
@@ -100,7 +102,7 @@ export function PickView({
             <FilePlus2 size={16} />
           </span>
           <span className="flex-1 min-w-0 flex flex-col gap-0.5 text-left">
-            <span className="font-medium text-foreground">{t('free_line_title')}</span>
+            <span className="font-medium text-foreground">{t('free_line_title', { kind })}</span>
             <span className="text-xs text-muted-foreground">{t('free_line_sub')}</span>
           </span>
         </button>
@@ -109,7 +111,7 @@ export function PickView({
       <div className="flex flex-col divide-y divide-border -mx-5 px-5">
         {products.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {search || filter !== 'all' ? t('no_results') : t('no_products')}
+            {search || filter !== 'all' ? t('no_results') : t('no_products', { kind })}
           </p>
         ) : (
           products.map((p) => <ProductRow key={p.id} product={p} onPick={onPick} />)

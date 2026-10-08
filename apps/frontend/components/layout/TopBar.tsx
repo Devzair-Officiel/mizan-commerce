@@ -155,8 +155,10 @@ interface TopBarProps {
   subtitle?: string;
   action?: React.ReactNode;
   back?: boolean;
+  backLabel?: string;
   onBack?: () => void;
   titleClassName?: string;
+  hideSearch?: boolean;
 }
 
 function TopBarBackLink({ onClick, label }: { onClick: () => void; label: string }) {
@@ -187,12 +189,13 @@ function TopBarSearchButton({ onClick, label }: { onClick: () => void; label: st
   );
 }
 
-export function TopBar({ title, subtitle, action, back, onBack, titleClassName }: TopBarProps) {
+export function TopBar({ title, subtitle, action, back, backLabel, onBack, titleClassName, hideSearch }: TopBarProps) {
   const tc = useTranslations('layout.common');
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
 
   const handleBack = () => (onBack ? onBack() : router.back());
+  const backText = backLabel ?? tc('back');
 
   return (
     <header
@@ -201,7 +204,7 @@ export function TopBar({ title, subtitle, action, back, onBack, titleClassName }
       {/* Desktop back link — row above title, large screens only */}
       {back && (
         <div className="hidden lg:block px-4 pt-2 pb-0">
-          <TopBarBackLink onClick={handleBack} label={tc('back')} />
+          <TopBarBackLink onClick={handleBack} label={backText} />
         </div>
       )}
 
@@ -210,7 +213,7 @@ export function TopBar({ title, subtitle, action, back, onBack, titleClassName }
         {/* Left slot — mobile only */}
         <div className="shrink-0 lg:hidden">
           {back ? (
-            <TopBarBackLink onClick={handleBack} label={tc('back')} />
+            <TopBarBackLink onClick={handleBack} label={backText} />
           ) : (
             <BurgerButton />
           )}
@@ -231,14 +234,16 @@ export function TopBar({ title, subtitle, action, back, onBack, titleClassName }
         {/* Right actions */}
         <div className="shrink-0 flex items-center gap-1 lg:gap-3 lg:mb-1">
           {action}
-          <TopBarSearchButton onClick={openSearch} label={tc('search')} />
-          <button
-            onClick={openSearch}
-            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label={tc('search')}
-          >
-            <Search size={19} />
-          </button>
+          {!hideSearch && <TopBarSearchButton onClick={openSearch} label={tc('search')} />}
+          {!hideSearch && (
+            <button
+              onClick={openSearch}
+              className="lg:hidden flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={tc('search')}
+            >
+              <Search size={19} />
+            </button>
+          )}
         </div>
       </div>
 

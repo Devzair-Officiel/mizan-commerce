@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
-  AlertTriangle, PackageX, PackagePlus, SlidersHorizontal, Search, X,
+  AlertTriangle, PackageX, PackagePlus, Plus, SlidersHorizontal, Search, X,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useShop } from '@/lib/hooks/useShop';
@@ -75,74 +75,150 @@ export default function CatalogPage() {
     setAddOpen(true);
   }
 
+  const hasData = items.length > 0 || isLoading || filterActive;
+
   return (
     <>
       <TopBar
         title={t('topbar.title', { kind: catalogKind })}
         titleClassName="text-3xl"
+        subtitle={items.length > 0 ? t('list.count', { count: items.length, kind: catalogKind }) : undefined}
+        hideSearch
+        action={
+          <button
+            onClick={handleAdd}
+            className="hidden lg:flex h-9 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={15} strokeWidth={2.4} />
+            {t('list.new_product', { kind: catalogKind })}
+          </button>
+        }
       />
 
       <div className="flex flex-col gap-4 p-4 pb-28">
-        <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            inputMode="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('list.search_placeholder', { kind: catalogKind })}
-            className="w-full h-12 rounded-2xl border border-border bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch('')}
-              aria-label={t('list.clear_search')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+        {/* Desktop filter bar */}
+        {hasData && (
+          <div className="hidden lg:flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                inputMode="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('list.search_placeholder', { kind: catalogKind })}
+                className="h-11 w-80 rounded-full border border-border bg-card pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  aria-label={t('list.clear_search')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            {catalogKind === 'both' && (
+              <div className="flex gap-1">
+                {(['all', 'product', 'service'] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setTypeFilter(v as TypeFilter)}
+                    aria-pressed={typeFilter === v}
+                    className={`rounded-full px-4 h-9 text-sm font-medium transition-colors ${
+                      typeFilter === v
+                        ? 'bg-secondary text-secondary-foreground'
+                        : 'bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {v === 'all' ? t('list.filter_all') : v === 'product' ? t('list.filter_product') : t('list.filter_service')}
+                  </button>
+                ))}
+              </div>
+            )}
+            <select
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as Visibility)}
+              className="h-9 rounded-full border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:border-primary cursor-pointer"
             >
-              <X size={16} />
+              <option value="active">{t('list.visibility_active')}</option>
+              <option value="inactive">{t('list.visibility_inactive')}</option>
+              <option value="all">{t('list.visibility_all')}</option>
+            </select>
+          </div>
+        )}
+
+        {/* Mobile search */}
+        {hasData && (
+          <div className="relative lg:hidden">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              inputMode="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('list.search_placeholder', { kind: catalogKind })}
+              className="w-full h-12 rounded-2xl border border-border bg-card pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                aria-label={t('list.clear_search')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Stat cards — hidden for services */}
+        {catalogKind !== 'services' && hasData && (
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard
+              label={t('stats.out_of_stock')}
+              value={summary?.out_of_stock ?? '—'}
+              icon={<PackageX size={14} />}
+              tone="red"
+              active={stockFilter === 'out_of_stock'}
+              onClick={() => setStockFilter((s) => (s === 'out_of_stock' ? 'all' : 'out_of_stock'))}
+            />
+            <StatCard
+              label={t('stats.low_stock')}
+              value={summary?.low_stock ?? '—'}
+              icon={<AlertTriangle size={14} />}
+              tone="amber"
+              active={stockFilter === 'low_stock'}
+              onClick={() => setStockFilter((s) => (s === 'low_stock' ? 'all' : 'low_stock'))}
+            />
+          </div>
+        )}
+
+        {/* Mobile: add + options */}
+        {hasData && (
+          <div className="flex lg:hidden items-center justify-between gap-2">
+            <button
+              onClick={handleAdd}
+              className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
+            >
+              <PackagePlus size={16} strokeWidth={2.2} />
+              {t('list.new_product', { kind: catalogKind })}
             </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label={t('stats.out_of_stock')}
-            value={summary?.out_of_stock ?? '—'}
-            icon={<PackageX size={14} />}
-            tone="red"
-            active={stockFilter === 'out_of_stock'}
-            onClick={() => setStockFilter((s) => (s === 'out_of_stock' ? 'all' : 'out_of_stock'))}
-          />
-          <StatCard
-            label={t('stats.low_stock')}
-            value={summary?.low_stock ?? '—'}
-            icon={<AlertTriangle size={14} />}
-            tone="amber"
-            active={stockFilter === 'low_stock'}
-            onClick={() => setStockFilter((s) => (s === 'low_stock' ? 'all' : 'low_stock'))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={handleAdd}
-            className="flex h-11 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
-          >
-            <PackagePlus size={16} strokeWidth={2.2} />
-            {t('list.new_product', { kind: catalogKind })}
-          </button>
-          <button
-            onClick={() => setOptionsOpen(true)}
-            className={`flex h-11 items-center gap-2 rounded-2xl border px-4 text-sm font-medium transition-colors active:scale-95 ${
-              filterActive
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-border bg-card text-foreground'
-            }`}
-          >
-            <SlidersHorizontal size={16} />
-            {t('list.options')}
-          </button>
-        </div>
+            <button
+              onClick={() => setOptionsOpen(true)}
+              className={`flex h-11 items-center gap-2 rounded-2xl border px-4 text-sm font-medium transition-colors active:scale-95 ${
+                filterActive
+                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  : 'border-border bg-card text-foreground'
+              }`}
+            >
+              <SlidersHorizontal size={16} />
+              {t('list.options')}
+            </button>
+          </div>
+        )}
 
         {isLoading && <ProductListSkeleton />}
         {!isLoading && items.length === 0 && (
@@ -153,16 +229,11 @@ export default function CatalogPage() {
           />
         )}
         {!isLoading && items.length > 0 && (
-          <>
-            <p className="text-xs text-muted-foreground self-end -mb-1 tabular-nums">
-              {t('list.count', { count: items.length, kind: catalogKind })}
-            </p>
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              {items.map((p, i) => (
-                <ProductRow key={p.id} product={p} first={i === 0} />
-              ))}
-            </div>
-          </>
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            {items.map((p, i) => (
+              <ProductRow key={p.id} product={p} first={i === 0} />
+            ))}
+          </div>
         )}
       </div>
 

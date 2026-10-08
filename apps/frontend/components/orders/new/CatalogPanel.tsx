@@ -275,15 +275,14 @@ export function CatalogPanel({ form }: CatalogPanelProps) {
     <div className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
       <CatalogPanelHeader label={panelTitle} />
       {catalogKind === 'both' && <CatalogFilterChips filter={picker.filter} setFilter={picker.setFilter} t={t} />}
-      <CatalogSearch search={picker.search} setSearch={picker.setSearch} t={t} />
+      {!isEmpty && <CatalogSearch search={picker.search} setSearch={picker.setSearch} t={t} />}
       <div className="flex-1 overflow-y-auto divide-y divide-border px-4">
         {isEmpty ? (
-          <div className="py-4 flex flex-col gap-4">
-            <p className="text-sm text-center text-muted-foreground">{t('no_products')}</p>
-            <QuickAddProductForm onCreated={onCreated} onClose={() => {}} />
-            <button type="button" onClick={() => setMode('free')} className="text-xs text-primary hover:underline text-center">
-              {t('free_line_title')}
-            </button>
+          <div className="py-6 flex flex-col items-center gap-4 text-center">
+            <p className="text-sm text-muted-foreground">{t('no_products', { kind: catalogKind })}</p>
+            <div className="w-full rounded-2xl border bg-background p-5">
+              <QuickAddProductForm onCreated={onCreated} onClose={() => setMode('free')} />
+            </div>
           </div>
         ) : picker.filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t('no_results')}</p>

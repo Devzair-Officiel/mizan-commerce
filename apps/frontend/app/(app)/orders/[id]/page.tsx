@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useOrder, useTransitionOrder, useUpdatePayment } from '@/lib/hooks/useOrders';
 import { useIssueInvoice } from '@/lib/hooks/useInvoices';
 import { useShop } from '@/lib/hooks/useShop';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { ApiError } from '@/lib/api-client';
 import { OrderHeroCard } from '@/components/orders/detail/OrderHeroCard';
 import { OrderNextStepCard } from '@/components/orders/detail/OrderNextStepCard';
@@ -30,6 +31,7 @@ export default function OrderDetailPage() {
   const tRevert = useTranslations('orders.revert');
   const { data: order, isLoading } = useOrder(id);
   const { data: shop } = useShop();
+  const kind = useCatalogKind();
   const transition = useTransitionOrder(id);
   const updatePayment = useUpdatePayment(id);
   const issueInvoice = useIssueInvoice();
@@ -187,7 +189,7 @@ export default function OrderDetailPage() {
               <XCircle size={16} />
               {t('cancel_cta')}
             </Button>
-            <p className="text-xs text-muted-foreground px-1">{t('cancel_sub')}</p>
+            <p className="text-xs text-muted-foreground px-1">{t('cancel_sub', { kind })}</p>
           </div>
         )}
       </div>

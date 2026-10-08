@@ -66,3 +66,4 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 - **Bandeau unique** : la carte d'essai (`SidebarTrialCard`) vit dans la sidebar desktop. Ne jamais afficher deux bandeaux d'information simultanément.
 - **Couleur réservée aux signaux** : les titres de section de la sidebar sont `text-muted-foreground` (neutre), pas `text-primary`. La couleur primaire reste réservée aux états actifs et aux signaux.
 - **Menu compte ancré** : sur grand écran, le menu compte (Base UI `side="top"`) remplace le BottomSheet pour les actions de compte — exception au pattern §4 « Actions secondaires : BottomSheet ».
+- **`hideSearch` sur TopBar** : passer `hideSearch` sur toute page qui possède son propre champ de recherche (Commandes, Catalogue, Clients) et sur toute page de création/édition (Nouvelle vente, nouveau produit/client, édition produit/client). La recherche globale reste visible sur le tableau de bord et les pages de détail sans champ local.

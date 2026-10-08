@@ -51,8 +51,9 @@ export default function ProductDetailPage() {
     router.push('/products');
   }
 
-  if (isLoading) return <><TopBar title={t('title')} /><ProductDetailSkeleton /></>;
-  if (!product) return <><TopBar title={t('title')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
+  const type = product?.type ?? 'product';
+  if (isLoading) return <><TopBar title={t('title', { type: 'product' })} /><ProductDetailSkeleton /></>;
+  if (!product) return <><TopBar title={t('title', { type: 'product' })} /><p className="p-4 text-sm text-destructive">{t('not_found', { type: 'product' })}</p></>;
 
   const isProduct = product.type === 'product';
 
@@ -81,8 +82,8 @@ export default function ProductDetailPage() {
           {product.is_active ? (
             <ActionRow
               icon={<PowerOff size={18} />}
-              label={tActions('deactivate')}
-              description={tActions('deactivate_helper')}
+              label={tActions('deactivate', { type })}
+              description={tActions('deactivate_helper', { type })}
               onClick={() => { setShowMore(false); setConfirmDeactivate(true); }}
               disabled={deactivate.isPending}
               tone="danger"
@@ -90,7 +91,7 @@ export default function ProductDetailPage() {
           ) : (
             <ActionRow
               icon={<Power size={18} />}
-              label={tActions('reactivate')}
+              label={tActions('reactivate', { type })}
               onClick={async () => { setShowMore(false); await reactivate.mutateAsync(id); }}
               disabled={reactivate.isPending}
               tone="success"
@@ -123,7 +124,7 @@ export default function ProductDetailPage() {
         <ConfirmDialog
           open={confirmDeactivate}
           onOpenChange={setConfirmDeactivate}
-          title={t('confirm_deactivate')}
+          title={t('confirm_deactivate', { type })}
           onConfirm={handleDeactivate}
           variant="destructive"
         />

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { User, X } from 'lucide-react';
 import { Phone, MapPin } from 'lucide-react';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { OrderItemsList } from '@/components/orders/new/OrderItemsList';
 import { OrderSummary } from '@/components/orders/new/OrderSummary';
 import { SectionChips } from '@/components/orders/new/SectionChips';
@@ -19,6 +20,28 @@ interface SaleTicketProps {
   form: NewSaleForm;
 }
 
+function NoCustomerRow({ onAssociate, label }: { onAssociate: () => void; label: string }) {
+  const t = useTranslations('orders.new');
+  return (
+    <div className="flex items-center gap-3">
+      <div className="shrink-0 w-9 h-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
+        <User size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-semibold text-foreground block">{t('no_customer_name')}</span>
+        <span className="text-xs text-muted-foreground">{t('no_customer_sub')}</span>
+      </div>
+      <button
+        type="button"
+        onClick={onAssociate}
+        className="shrink-0 text-xs font-medium text-foreground border border-border rounded-full px-3 py-1.5 hover:bg-muted transition-colors"
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
 function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
@@ -31,7 +54,8 @@ function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
 
   return (
     <>
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 pt-3 pb-3 border-b border-border flex flex-col gap-1.5">
+        <span className="text-[0.8125rem] font-medium text-muted-foreground">{t('customer_label')}</span>
         {customerId && selectedCustomer ? (
           <div className="flex items-center gap-3">
             <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-sm">
@@ -56,7 +80,7 @@ function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
             </div>
             <button
               type="button"
-              aria-label={t('remove_customer_aria') ?? 'Retirer le client'}
+              aria-label={t('remove_customer_aria')}
               onClick={() => form.setCustomerId('')}
               className="shrink-0 w-8 h-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors flex items-center justify-center"
             >
@@ -64,19 +88,7 @@ function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className="shrink-0 w-9 h-9 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
-              <User size={16} />
-            </div>
-            <span className="flex-1 text-sm text-muted-foreground">Sans client · Vente au comptoir</span>
-            <button
-              type="button"
-              onClick={() => setCustomerPickerOpen(true)}
-              className="shrink-0 text-xs font-medium text-primary border border-primary/30 rounded-full px-3 py-1.5 hover:bg-primary/5 transition-colors"
-            >
-              Associer un client
-            </button>
-          </div>
+          <NoCustomerRow onAssociate={() => setCustomerPickerOpen(true)} label={t('associate_customer')} />
         )}
       </div>
       <CustomerPicker
@@ -99,6 +111,8 @@ function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
   );
 }
 
+const CHIPS_TITLE_CLASS = 'text-[0.8125rem] font-medium text-muted-foreground px-1';
+
 function TicketPaymentControls({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
@@ -108,6 +122,7 @@ function TicketPaymentControls({ form }: { form: NewSaleForm }) {
       <div className="px-4 py-4 border-t border-border">
         <SectionChips
           title={t('payment_title')}
+          titleClassName={CHIPS_TITLE_CLASS}
           options={[
             { value: 'unpaid', label: tPayment('unpaid') },
             { value: 'partial', label: tPayment('partial') },
@@ -128,6 +143,7 @@ function TicketPaymentControls({ form }: { form: NewSaleForm }) {
       <div className="px-4 pb-4">
         <SectionChips
           title={t('status_title')}
+          titleClassName={CHIPS_TITLE_CLASS}
           options={[
             { value: 'draft', label: t('status_draft') },
             { value: 'to_prepare', label: label('to_prepare') },
@@ -153,6 +169,7 @@ function TicketPaymentControls({ form }: { form: NewSaleForm }) {
 export function SaleTicket({ form }: SaleTicketProps) {
   const t = useTranslations('orders.new');
   const { data: shop } = useShop();
+  const kind = useCatalogKind();
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
@@ -162,28 +179,33 @@ export function SaleTicket({ form }: SaleTicketProps) {
       <TicketCustomerBlock form={form} />
 
       {form.items.length === 0 ? (
-        <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-          {t('items_empty')}
-        </p>
+        <>
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">
+            {t('items_empty', { kind })}
+          </p>
+          <div className="px-4 py-3 flex items-center justify-between border-t border-border">
+            <span className="text-sm text-muted-foreground">{t('total')}</span>
+            <span className="text-sm font-semibold text-muted-foreground tabular-nums">{money('0')}</span>
+          </div>
+        </>
       ) : (
-        <OrderItemsList items={form.items} onUpdateQty={form.updateQty} onRemove={form.removeItem} />
-      )}
-
-      {form.items.length > 0 && (
-        <OrderSummary
-          subtotal={form.subtotal}
-          total={form.total}
-          discount={form.discount}
-          shipping={form.shipping}
-          showDiscount={form.showDiscount}
-          showShipping={form.showShipping}
-          onDiscountChange={form.setDiscount}
-          onShippingChange={form.setShipping}
-          onShowDiscount={() => form.setShowDiscount(true)}
-          onShowShipping={() => form.setShowShipping(true)}
-          onClearDiscount={() => { form.setDiscount(''); form.setShowDiscount(false); }}
-          onClearShipping={() => { form.setShipping(''); form.setShowShipping(false); }}
-        />
+        <>
+          <OrderItemsList items={form.items} onUpdateQty={form.updateQty} onRemove={form.removeItem} />
+          <OrderSummary
+            subtotal={form.subtotal}
+            total={form.total}
+            discount={form.discount}
+            shipping={form.shipping}
+            showDiscount={form.showDiscount}
+            showShipping={form.showShipping}
+            onDiscountChange={form.setDiscount}
+            onShippingChange={form.setShipping}
+            onShowDiscount={() => form.setShowDiscount(true)}
+            onShowShipping={() => form.setShowShipping(true)}
+            onClearDiscount={() => { form.setDiscount(''); form.setShowDiscount(false); }}
+            onClearShipping={() => { form.setShipping(''); form.setShowShipping(false); }}
+          />
+        </>
       )}
 
       <TicketPaymentControls form={form} />

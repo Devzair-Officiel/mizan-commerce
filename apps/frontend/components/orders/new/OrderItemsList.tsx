@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { isDefaultVariant } from '@/lib/products';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { LineItem } from './types';
 
 interface OrderItemsListProps {
@@ -15,13 +16,14 @@ interface OrderItemsListProps {
 
 export function OrderItemsList({ items, onUpdateQty, onRemove }: OrderItemsListProps) {
   const t = useTranslations('orders.new');
+  const kind = useCatalogKind();
   if (items.length === 0) return null;
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          {t('items_title')}
+          {t('items_title', { kind })}
         </span>
       </div>
       <div className="divide-y divide-border">

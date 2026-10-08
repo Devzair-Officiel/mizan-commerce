@@ -17,6 +17,7 @@ import { SaleTicket } from '@/components/orders/new/SaleTicket';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Customer } from '@/lib/hooks/useCustomers';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 
@@ -72,10 +73,11 @@ function MobileCustomerSection({ form }: { form: ReturnType<typeof useNewSaleFor
 
 function MobileItemsSection({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
   const t = useTranslations('orders.new');
+  const kind = useCatalogKind();
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-        {t('section_items')}
+        {t('section_items', { kind })}
       </span>
       <ProductPicker
         onPick={form.addItem}
@@ -89,7 +91,7 @@ function MobileItemsSection({ form }: { form: ReturnType<typeof useNewSaleForm> 
         onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
       />
       {form.itemsError && (
-        <p className="text-[11px] text-destructive px-1">{t('items_required')}</p>
+        <p className="text-[11px] text-destructive px-1">{t('items_required', { kind })}</p>
       )}
     </div>
   );
@@ -184,9 +186,10 @@ function NewSaleFormRouter() {
 
 export default function NewOrderPage() {
   const t = useTranslations('orders.new');
+  const tList = useTranslations('orders.list');
   return (
     <>
-      <TopBar title={t('topbar')} />
+      <TopBar title={t('topbar')} back backLabel={tList('topbar')} hideSearch />
       <Suspense>
         <NewSaleFormRouter />
       </Suspense>

@@ -38,6 +38,7 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
   const label = useOrderStatusLabel();
   const cfg = STATUS_CONFIG[order.status] ?? STATUS_DRAFT;
   const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
+  const kind = shop?.catalog_kind ?? 'both';
   const waPhone = order.customer_phone?.replace(/\D/g, '') ?? '';
   const initialMessage = buildWhatsAppMessage(order, { tWa, formatMoney, formatDate, currency });
 
@@ -66,7 +67,7 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
             <p className="text-xl font-semibold text-zinc-400">{t('no_client')}</p>
           )}
           <p className="text-xs text-zinc-500">
-            #{order.order_number} · {t('items', { count: itemCount })}
+            #{order.order_number} · {t('items', { count: itemCount, kind })}
           </p>
         </div>
 

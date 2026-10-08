@@ -58,7 +58,7 @@ export default function CustomersPage() {
 
   return (
     <>
-      <TopBar title={t('title')} titleClassName="text-3xl" />
+      <TopBar title={t('title')} titleClassName="text-3xl" hideSearch />
       <div className="flex flex-col gap-4 p-4 pb-28">
 
         <div className="grid grid-cols-2 gap-3">

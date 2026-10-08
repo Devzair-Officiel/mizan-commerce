@@ -459,7 +459,7 @@
       "count_filtered": "{count, plural, one {# commande · filtré} other {# commandes · filtré}}",
       "new_order": "Nouvelle commande",
       "no_client": "Sans client",
-      "items": "{count, plural, one {# article} other {# articles}}",
+      "items": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
       "empty_filtered_title": "Aucune commande pour ce filtre",
       "empty_title": "Aucune commande",
       "empty_filtered_sub": "Retire les filtres pour voir toutes tes commandes.",
@@ -467,7 +467,7 @@
       "empty_cta": "Nouvelle vente",
       "load_more": "Charger plus",
       "column_number": "N°",
-      "column_client_items": "Client et articles",
+      "column_client_items": "{kind, select, products {Client et articles} services {Client et services} other {Client et articles}}",
       "column_date": "Date",
       "column_preparation": "Préparation",
       "column_payment": "Paiement",
@@ -510,9 +510,9 @@
       "cancelled": "Annulées"
     },
     "payment": {
-      "unpaid": "Non payé",
+      "unpaid": "Non payée",
       "partial": "Partiel",
-      "paid": "Payé"
+      "paid": "Payée"
     },
     "buckets": {
       "today": "Aujourd'hui",
@@ -536,12 +536,12 @@
       "cancel_confirm": "Annuler cette commande ?",
       "danger_zone": "Zone sensible",
       "cancel_cta": "Annuler la commande",
-      "cancel_sub": "Le stock réservé sera libéré. Cette action est réversible.",
+      "cancel_sub": "{kind, select, products {Le stock réservé sera libéré. Cette action est réversible.} services {Cette action est réversible.} other {Le stock réservé sera libéré. Cette action est réversible.}}",
       "invoice_error_generic": "Erreur lors de l'émission de la facture."
     },
     "hero": {
       "no_client": "Sans client",
-      "items": "{count, plural, one {# article} other {# articles}}",
+      "items": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
       "remaining": "{amount} restant",
       "whatsapp_cta": "Prévenir le client",
       "call_aria": "Appeler",
@@ -573,9 +573,9 @@
       "cancelled": "Rouvrir en brouillon"
     },
     "items": {
-      "title": "Articles",
+      "title": "{kind, select, products {Articles} services {Services} other {Articles}}",
       "unit_count": "{count, plural, one {# unité} other {# unités}}",
-      "empty": "Aucun article.",
+      "empty": "{kind, select, products {Aucun article.} services {Aucune prestation.} other {Aucun article.}}",
       "unit_price_short": "{amount}/u",
       "total": "Total",
       "subtotal": "Sous-total",
@@ -662,9 +662,9 @@
       "section_customer": "1 · Client",
       "customer_required": "Sélectionnez un client pour continuer.",
       "no_customer_payment_warning": "Sans client, tu ne pourras pas relancer ce paiement.",
-      "section_items": "2 · Articles & services",
-      "items_required": "Ajoutez au moins un article ou service.",
-      "items_empty": "Aucun article pour l'instant.",
+      "section_items": "{kind, select, products {2 · Articles} services {2 · Services} other {2 · Articles & services}}",
+      "items_required": "{kind, select, products {Ajoutez au moins un article.} services {Ajoutez au moins un service.} other {Ajoutez au moins un article ou service.}}",
+      "items_empty": "{kind, select, products {Aucun article pour l'instant.} services {Aucune prestation pour l'instant.} other {Aucun article pour l'instant.}}",
       "payment_title": "Paiement",
       "payment_amount_required": "Saisis un montant reçu supérieur à 0.",
       "payment_amount_exceeds": "Le montant reçu ne peut pas dépasser le total.",
@@ -679,7 +679,7 @@
       "submit_label": "Enregistrer la vente",
       "notes_label": "Notes internes (optionnel)",
       "notes_hide_aria": "Masquer les notes",
-      "notes_show": "Ajouter une note interne",
+      "notes_show": "Ajouter une note",
       "summary_title": "Résumé",
       "subtotal": "Sous-total",
       "discount": "Remise",
@@ -690,13 +690,18 @@
       "remove_aria": "Retirer {label}",
       "discount_label": "Remise",
       "shipping_label": "Frais",
-      "items_title": "Articles & services",
+      "items_title": "{kind, select, products {Articles} services {Services} other {Articles & services}}",
       "remove_item_aria": "Supprimer",
       "decrease_aria": "Diminuer",
       "increase_aria": "Augmenter",
       "service_badge": "Service",
       "free_badge": "Libre",
-      "unit_per": "{amount} / unité"
+      "unit_per": "{amount} / unité",
+      "customer_label": "Client",
+      "no_customer_name": "Sans client",
+      "no_customer_sub": "Vente au comptoir",
+      "associate_customer": "Associer un client",
+      "remove_customer_aria": "Retirer le client"
     },
     "edit": {
       "topbar": "Modifier la commande",
@@ -708,9 +713,9 @@
       "save": "Enregistrer",
       "customer_label": "Client (optionnel)",
       "no_customer": "— Sans client —",
-      "product_picker_label": "Ajouter un article (1re variante)",
-      "product_picker_placeholder": "Choisir un produit…",
-      "items_title": "Articles",
+      "product_picker_label": "{kind, select, products {Ajouter un article (1re variante)} services {Ajouter un service} other {Ajouter un article (1re variante)}}",
+      "product_picker_placeholder": "{kind, select, products {Choisir un article…} services {Choisir un service…} other {Choisir un article…}}",
+      "items_title": "{kind, select, products {Articles} services {Services} other {Articles}}",
       "subtotal": "Sous-total",
       "discount": "Remise",
       "shipping": "Livraison",
@@ -719,9 +724,9 @@
       "shipping_field": "Livraison (€, optionnel)"
     },
     "picker": {
-      "product_trigger_title": "Ajouter un article ou service",
+      "product_trigger_title": "{kind, select, products {Ajouter un article} services {Ajouter un service} other {Ajouter un article ou service}}",
       "product_trigger_sub": "Catalogue ou ligne libre",
-      "product_sheet_title": "Ajouter un article ou service",
+      "product_sheet_title": "{kind, select, products {Ajouter un article} services {Ajouter un service} other {Ajouter un article ou service}}",
       "variant_sheet_title": "Choisir un conditionnement",
       "free_sheet_title": "Ligne libre",
       "search_placeholder": "Rechercher dans le catalogue…",
@@ -729,11 +734,11 @@
       "filter_all": "Tous",
       "filter_product": "Produits",
       "filter_service": "Services",
-      "create_product": "Créer un article ou service",
-      "free_line_title": "Article ou service ponctuel",
+      "create_product": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou service}}",
+      "free_line_title": "{kind, select, products {Article ponctuel} services {Prestation ponctuelle} other {Article ou service ponctuel}}",
       "free_line_sub": "Sans enregistrer au catalogue",
       "no_results": "Aucun résultat.",
-      "no_products": "Aucun article enregistré.",
+      "no_products": "{kind, select, products {Aucun article enregistré.} services {Aucun service enregistré.} other {Aucun article enregistré.}}",
       "variant_back": "Retour au catalogue",
       "loading": "Chargement…",
       "variant_count": "{count, plural, one {# conditionnement} other {# conditionnements}}",
@@ -774,18 +779,22 @@
       "customer_error": "Erreur lors de la création.",
       "customer_creating": "Création…",
       "customer_submit": "Créer le client",
-      "product_title": "Nouvel article ou service",
+      "product_title": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
       "type_label": "Type",
       "type_product": "Produit",
       "type_service": "Service",
-      "name_label": "Nom de l'article ou service *",
+      "name_label": "{type, select, product {Nom de l'article *} service {Nom de la prestation *} other {Nom *}}",
       "name_required": "Le nom est requis.",
       "price_label": "Prix de vente *",
       "price_service": "Prix de la prestation *",
       "price_required": "Le prix de vente est requis.",
       "submit": "Créer et ajouter",
       "submitting": "Création…",
-      "error": "Erreur lors de la création."
+      "error": "Erreur lors de la création.",
+      "name_placeholder_product": "Chemise en lin blanc",
+      "name_placeholder_service": "Retouche ourlet",
+      "save_helper": "Sera enregistré dans le catalogue.",
+      "skip_save": "Ajouter sans enregistrer"
     },
     "paymentFilter": {
       "all": "Tous",
@@ -802,7 +811,13 @@
       "clear_search": "Effacer la recherche",
       "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
       "options": "Options",
-      "count": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}"
+      "count": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
+      "filter_all": "Tous",
+      "filter_product": "Produits",
+      "filter_service": "Services",
+      "visibility_active": "Actifs",
+      "visibility_inactive": "Inactifs",
+      "visibility_all": "Tous"
     },
     "stats": {
       "out_of_stock": "En rupture",
@@ -812,9 +827,9 @@
       "no_results_title": "Aucun résultat",
       "no_results_message": "Rien ne correspond à « {term} »",
       "clear_search": "Effacer la recherche",
-      "title": "Aucun article",
-      "message": "Ajoute ton premier produit ou service pour commencer à gérer ton catalogue.",
-      "new_product": "Nouvel article"
+      "title": "{kind, select, products {Aucun article} services {Aucun service} other {Aucun article}}",
+      "message": "{kind, select, products {Ajoute ton premier article pour commencer à gérer ton catalogue.} services {Ajoute ton premier service pour commencer à gérer ton catalogue.} other {Ajoute ton premier article ou service pour commencer à gérer ton catalogue.}}",
+      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}"
     },
     "row": {
       "inactive": "Inactif",
@@ -858,10 +873,10 @@
       "service_subtitle": "Prestation sans gestion de stock"
     },
     "detail": {
-      "title": "Produit",
-      "not_found": "Produit introuvable.",
+      "title": "{type, select, product {Produit} service {Service} other {Article}}",
+      "not_found": "{type, select, product {Produit introuvable.} service {Service introuvable.} other {Introuvable.}}",
       "upload_error": "Erreur lors de l'upload.",
-      "confirm_deactivate": "Désactiver ce produit ?",
+      "confirm_deactivate": "{type, select, product {Désactiver ce produit ?} service {Désactiver ce service ?} other {Désactiver cet article ?}}",
       "initial_stock_reason": "Stock initial",
       "no_default_variant": "Variant par défaut manquant.",
       "description_heading": "Description"
@@ -894,9 +909,9 @@
       "replace_photo": "Remplacer la photo",
       "add_photo": "Ajouter une photo",
       "photo_helper": "JPEG, PNG ou WebP — 5 Mo max",
-      "deactivate": "Désactiver le produit",
-      "deactivate_helper": "Le produit n'apparaîtra plus dans la liste",
-      "reactivate": "Réactiver le produit"
+      "deactivate": "{type, select, product {Désactiver le produit} service {Désactiver le service} other {Désactiver}}",
+      "deactivate_helper": "{type, select, product {Le produit n'apparaîtra plus dans la liste} service {Le service n'apparaîtra plus dans la liste} other {Cet article n'apparaîtra plus dans la liste}}",
+      "reactivate": "{type, select, product {Réactiver le produit} service {Réactiver le service} other {Réactiver}}"
     },
     "form": {
       "topbar_new_product": "Nouveau produit",
@@ -1109,7 +1124,7 @@
       "staff": "Employé"
     },
     "modules": {
-      "products": "Articles",
+      "products": "{kind, select, products {Articles} services {Services} other {Articles}}",
       "orders": "Commandes",
       "customers": "Clients",
       "payments": "Paiements",

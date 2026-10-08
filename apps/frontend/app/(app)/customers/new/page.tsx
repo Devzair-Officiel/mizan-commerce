@@ -19,7 +19,7 @@ export default function NewCustomerPage() {
 
   return (
     <>
-      <TopBar title={t('title')} />
+      <TopBar title={t('title')} hideSearch />
 
       <div className="px-4 pt-4 max-w-3xl mx-auto w-full">
         <div

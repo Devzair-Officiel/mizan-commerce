@@ -43,6 +43,7 @@ function OrdersContent() {
         title={t('topbar')}
         titleClassName="text-3xl"
         subtitle={hasLoaded ? t('count', { count: totalCount }) : undefined}
+        hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28">
         {(state.isFiltered || totalCount > 0 || isLoading) && (

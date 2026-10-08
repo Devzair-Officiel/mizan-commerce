@@ -1,5 +1,6 @@
 interface SectionChipsProps {
   title: string;
+  titleClassName?: string;
   options: { value: string; label: string }[];
   value: string;
   onChange: (v: string) => void;
@@ -7,11 +8,11 @@ interface SectionChipsProps {
 }
 
 export function SectionChips({
-  title, options, value, onChange, children,
+  title, titleClassName, options, value, onChange, children,
 }: SectionChipsProps) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+      <span className={titleClassName ?? 'text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1'}>
         {title}
       </span>
       <div className="rounded-full bg-muted p-1 flex">

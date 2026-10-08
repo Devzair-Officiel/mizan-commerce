@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { ChevronRight, Plus } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { PickView } from './picker/PickView';
 import { FreeLineView, type FreeLine } from './picker/FreeLineView';
 import { VariantView, type VariantPick } from './picker/VariantView';
@@ -18,13 +19,14 @@ interface ProductPickerProps {
 
 export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPickerProps) {
   const t = useTranslations('orders.picker');
+  const kind = useCatalogKind();
   const picker = useCatalogPicker();
 
   const title = picker.view === 'free'
     ? t('free_sheet_title')
     : picker.stage === 'variants'
       ? t('variant_sheet_title')
-      : t('product_sheet_title');
+      : t('product_sheet_title', { kind });
 
   return (
     <>
@@ -38,7 +40,7 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate }: ProductPi
           <Plus size={18} />
         </div>
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-foreground">{t('product_trigger_title')}</span>
+          <span className="text-sm font-semibold text-foreground">{t('product_trigger_title', { kind })}</span>
           <span className="text-xs text-muted-foreground">{t('product_trigger_sub')}</span>
         </div>
         <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
