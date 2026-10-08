@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useShop } from '@/lib/hooks/useShop';
 import { useCreateOrder, type OrderItemPayload } from '@/lib/hooks/useOrders';
 import { useCustomer } from '@/lib/hooks/useCustomers';
 import { useNewSaleLines, type NewSaleLines } from '@/lib/hooks/useNewSaleLines';
@@ -45,8 +46,8 @@ export interface NewSaleForm extends NewSaleLines {
   paymentError: string;
   setPaymentError: (v: string) => void;
   // order status
-  orderStatus: 'draft' | 'to_prepare' | 'shipped';
-  setOrderStatus: (v: 'draft' | 'to_prepare' | 'shipped') => void;
+  orderStatus: 'to_prepare' | 'shipped';
+  setOrderStatus: (v: 'to_prepare' | 'shipped') => void;
   // dialogs
   createCustomerOpen: boolean;
   setCreateCustomerOpen: (v: boolean) => void;
@@ -63,6 +64,7 @@ export function useNewSaleForm(): NewSaleForm {
   const searchParams = useSearchParams();
   const t = useTranslations('orders.new');
   const { mutateAsync, isPending } = useCreateOrder();
+  const { data: shop } = useShop();
 
   const defaultPayment: 'unpaid' | 'paid' = searchParams.get('customer') ? 'unpaid' : 'paid';
 
@@ -72,7 +74,9 @@ export function useNewSaleForm(): NewSaleForm {
   const [shipping, setShipping] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'partial' | 'paid'>(defaultPayment);
   const [amountPaid, setAmountPaid] = useState('');
-  const [orderStatus, setOrderStatus] = useState<'draft' | 'to_prepare' | 'shipped'>('to_prepare');
+  const [orderStatusChoice, setOrderStatus] = useState<'to_prepare' | 'shipped' | null>(null);
+  const fm = shop?.fulfillment_mode ?? null;
+  const orderStatus: 'to_prepare' | 'shipped' = orderStatusChoice ?? (fm === 'on_site' ? 'shipped' : 'to_prepare');
   const [paymentError, setPaymentError] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [showDiscount, setShowDiscount] = useState(false);

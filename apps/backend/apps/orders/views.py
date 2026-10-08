@@ -48,9 +48,7 @@ class OrderListCreateView(generics.ListAPIView):
             qs = qs.filter(customer_id=customer_filter)
         due_filter = self.request.query_params.get('due')
         if due_filter == 'true':
-            qs = qs.filter(payment_status__in=('unpaid', 'partial')).exclude(
-                status__in=('draft', 'cancelled'),
-            )
+            qs = qs.filter(payment_status__in=('unpaid', 'partial')).exclude(status='cancelled')  # noqa: E501
         return qs
 
     def post(self, request, *args, **kwargs):
@@ -104,16 +102,14 @@ class OrderListCreateView(generics.ListAPIView):
                     })
                 services.update_payment(order, amount_paid, user=request.user)
 
-            target_status = d.get('status', 'draft')
-            # Chaîne les transitions pour atteindre le statut cible depuis 'draft'.
-            transition_path = {
-                'draft':      [],
-                'to_prepare': ['to_prepare'],
-                'prepared':   ['to_prepare', 'prepared'],
-                'shipped':    ['to_prepare', 'prepared', 'shipped'],
-            }
-            for step in transition_path.get(target_status, []):
-                services.transition_status(order, step, request.user)
+            # Réserve le stock (ordre déjà en to_prepare par défaut)
+            services.reserve_stock(order, request.user)
+
+            target_status = d.get('status', 'to_prepare')
+            if target_status == 'shipped':
+                if shop.fulfillment_mode == 'delivery':
+                    services.transition_status(order, 'prepared', request.user)
+                services.transition_status(order, 'shipped', request.user)
 
             initial_note = (d.get('notes') or '').strip()
             if initial_note:
@@ -137,11 +133,11 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
         raise Exception("Suppression interdite. Utilisez l'annulation.")
 
     def update(self, request, *args, **kwargs):
-        # Seuls notes, discount et shipping sont modifiables directement
+        # Seuls discount, shipping et customer sont modifiables directement
         order = self.get_object()
-        if order.status not in ('draft',):
+        if order.status not in ('to_prepare', 'prepared'):
             return Response(
-                {'detail': 'Seules les commandes en brouillon peuvent être modifiées.'},
+                {'detail': 'Seules les commandes en cours peuvent être modifiées.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         allowed_fields = {'discount_amount', 'shipping_amount', 'customer'}
@@ -246,6 +242,7 @@ class OrderItemCreateView(APIView):
                 quantity=d['quantity'],
                 unit_price=d.get('unit_price'),
                 product_name=d.get('product_name'),
+                user=request.user,
             )
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -273,7 +270,7 @@ class OrderItemUpdateView(APIView):
         serializer = OrderItemQuantitySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            item = services.update_item_quantity(order, item, serializer.validated_data['quantity'])  # noqa: E501
+            item = services.update_item_quantity(order, item, serializer.validated_data['quantity'], user=request.user)  # noqa: E501
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(OrderItemSerializer(item).data)
@@ -283,7 +280,7 @@ class OrderItemUpdateView(APIView):
         if order is None:
             return Response({'detail': 'Introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
         try:
-            services.remove_item(order, item)
+            services.remove_item(order, item, user=request.user)
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)

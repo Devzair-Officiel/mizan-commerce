@@ -22,8 +22,6 @@ export function useOrderStatusLabel() {
         if (fm === 'on_site') return t(plural ? 'shipped_on_site_pl' : 'shipped_on_site');
         if (fm === 'delivery') return t(plural ? 'shipped_delivery_pl' : 'shipped_delivery');
         return t(plural ? 'shipped_other_pl' : 'shipped_other');
-      case 'draft':
-        return t(plural ? 'draft_pl' : 'draft');
       case 'cancelled':
         return t(plural ? 'cancelled_pl' : 'cancelled');
       default:

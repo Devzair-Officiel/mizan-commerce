@@ -491,8 +491,6 @@
       "clear_filters": "Effacer les filtres"
     },
     "statusLabel": {
-      "draft": "Brouillon",
-      "draft_pl": "Brouillons",
       "to_prepare_products": "À préparer",
       "to_prepare_products_pl": "À préparer",
       "to_prepare_services": "Confirmée",
@@ -514,7 +512,6 @@
     },
     "statusFilter": {
       "all": "Toutes",
-      "draft": "Brouillons",
       "to_prepare": "À préparer",
       "prepared": "Prêtes",
       "shipped": "Expédiées",
@@ -534,7 +531,6 @@
     "alert": {
       "shipped_unpaid": "Expédiée non payée",
       "to_ship": "À expédier",
-      "old_draft": "Brouillon ancien",
       "banner_title": "{count, plural, one {# commande nécessite ton attention} other {# commandes nécessitent ton attention}}",
       "banner_active": "Filtre actif · clique pour tout voir",
       "banner_idle": "Clique pour les afficher seules"
@@ -562,9 +558,6 @@
       "label": "Prochaine étape",
       "shipped_title": "Commande expédiée",
       "shipped_sub": "Toutes les étapes sont terminées.",
-      "draft_title": "Confirmer la commande",
-      "draft_sub": "{kind, select, services {Confirme la prestation et prépare.} other {Verrouille le stock et passe en préparation.}}",
-      "draft_cta": "Confirmer la commande",
       "to_prepare_title": "Marquer comme prête",
       "to_prepare_sub": "{kind, select, services {Quand la prestation est confirmée avec le client.} other {Quand les articles sont prêts à être expédiés.}}",
       "to_prepare_cta": "Marquer prête",
@@ -578,10 +571,9 @@
       "shipped_sub_on_site": "Le client a récupéré sa commande."
     },
     "revert": {
-      "to_prepare": "Revenir en brouillon",
       "prepared": "Revenir à « À préparer »",
       "shipped": "Revenir à « Prête »",
-      "cancelled": "Rouvrir en brouillon"
+      "cancelled": "Rouvrir la commande"
     },
     "items": {
       "title": "{kind, select, products {Articles} services {Services} other {Articles}}",
@@ -655,7 +647,6 @@
     "whatsapp": {
       "hello_named": "Bonjour {name},",
       "hello": "Bonjour,",
-      "status_draft": "Votre commande est bien enregistrée.",
       "status_to_prepare": "Votre commande est en cours de préparation.",
       "status_prepared": "Votre commande est prête.",
       "status_shipped": "Votre commande a été expédiée.",
@@ -680,10 +671,8 @@
       "payment_amount_required": "Saisis un montant reçu supérieur à 0.",
       "payment_amount_exceeds": "Le montant reçu ne peut pas dépasser le total.",
       "amount_received": "Montant reçu",
-      "status_title": "Statut",
       "per_unit": "l'unité",
       "remove_one_aria": "Retirer {name}",
-      "status_draft": "Brouillon",
       "status_to_prepare": "À préparer",
       "status_to_process": "À traiter",
       "status_confirmed": "Confirmée",
@@ -714,14 +703,18 @@
       "no_customer_name": "Sans client",
       "no_customer_sub": "Vente au comptoir",
       "associate_customer": "Associer un client",
-      "remove_customer_aria": "Retirer le client"
+      "remove_customer_aria": "Retirer le client",
+      "switch_on_site": "À préparer plus tard",
+      "switch_on_site_hint": "Sinon, la vente est enregistrée comme remise au client.",
+      "switch_both": "Déjà remise au client",
+      "switch_services": "Déjà réalisé"
     },
     "edit": {
       "topbar": "Modifier la commande",
       "topbar_with_number": "Modifier {number}",
       "loading": "Chargement…",
       "not_found": "Commande introuvable.",
-      "draft_only": "Seules les commandes en brouillon peuvent être modifiées.",
+      "draft_only": "Seules les commandes en cours peuvent être modifiées.",
       "saving": "Enregistrement…",
       "save": "Enregistrer",
       "customer_label": "Client (optionnel)",

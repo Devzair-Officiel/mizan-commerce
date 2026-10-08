@@ -9,7 +9,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
 import type { PreparedMessageTemplate } from '@/lib/hooks/usePreparedMessages';
-import { PAYMENT_PILL, STATUS_CONFIG, STATUS_DRAFT, WhatsAppIcon } from './constants';
+import { PAYMENT_PILL, STATUS_CONFIG, WhatsAppIcon } from './constants';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { buildWhatsAppMessage } from './whatsapp';
 
@@ -36,7 +36,8 @@ export function OrderHeroCard({ order, remaining }: OrderHeroCardProps) {
   const [waOpen, setWaOpen] = useState(false);
 
   const label = useOrderStatusLabel();
-  const cfg = STATUS_CONFIG[order.status] ?? STATUS_DRAFT;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG['to_prepare']!;
   const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
   const kind = shop?.catalog_kind ?? 'both';
   const waPhone = order.customer_phone?.replace(/\D/g, '') ?? '';

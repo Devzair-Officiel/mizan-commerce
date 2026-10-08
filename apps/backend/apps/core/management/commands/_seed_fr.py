@@ -96,14 +96,17 @@ def _make_order(
     for variant, qty in items:
         order_services.add_item(order, variant, qty)
 
+    order_services.reserve_stock(order, user)
+
     if final_status == "cancelled":
         order_services.transition_status(order, "cancelled", user)
-    elif final_status != "draft":
-        order_services.transition_status(order, "to_prepare", user)
-        if final_status in ("prepared", "shipped"):
+    elif final_status in ("prepared", "shipped"):
+        fm = shop.fulfillment_mode
+        if fm == "delivery":
             order_services.transition_status(order, "prepared", user)
         if final_status == "shipped":
             order_services.transition_status(order, "shipped", user)
+    # else: to_prepare est l'état final (déjà là par défaut)
 
     if pay == "full":
         order.refresh_from_db()
@@ -285,7 +288,7 @@ def _seed_today_orders(shop, user, sv, svc_v, by_name, now, today) -> list[Order
         ("Karima Bensouda", [(sv[0], 2)], "to_prepare", None),
         (None, [(sv[1], 1)], "to_prepare", None),
         ("Hamza Tazi", [(sv[3], 2), (sv[5], 1)], "shipped", "full"),
-        ("Fatima Zahra Idrissi", [(sv[4], 1)], "draft", None),
+        ("Fatima Zahra Idrissi", [(sv[4], 1)], "to_prepare", None),
         ("Mehdi Ouali", [(sv[6], 1), (sv[8], 1)], "shipped", "full"),
     ]
     orders = []
@@ -312,7 +315,7 @@ def _seed_special_past_orders(shop, user, sv, svc_v, by_name, today) -> list[Ord
         o(1, 14, 30, "Yassine Chafai", [(sv[7], 1)], "prepared"),
         o(1, 16, 0, "Samira Harrach", [(sv[8], 2)], "prepared", "full"),
         # J-2
-        o(2, 9, 30, "Dounia Tazi", [(sv[5], 1)], "draft"),
+        o(2, 9, 30, "Dounia Tazi", [(sv[5], 1)], "to_prepare"),
         o(2, 15, 0, "Omar Berrada", [(sv[1], 1), (sv[2], 1)], "shipped", "full"),
         # J-3
         o(
@@ -377,11 +380,11 @@ def seed_orders_fr(shop, user, safe_v, svc_v, customers, stdout) -> list[Order]:
             pk__in=[o.pk for o in all_orders],
             payment_status__in=("unpaid", "partial"),
         )
-        .exclude(status__in=("draft", "cancelled"))
+        .exclude(status="cancelled")
         .count()
     )
     today_ca = Order.objects.filter(shop=shop, created_at__date=today).exclude(
-        status__in=("draft", "cancelled")
+        status="cancelled"
     ).aggregate(t=Sum("total_amount"))["t"] or Decimal("0")
     stdout.write(
         f"    → {len(all_orders)} commandes : {dict(statuses)}"
@@ -432,6 +435,10 @@ def seed_reminders_fr(shop, user, customers) -> None:
 
 def run_seed_fr(shop, youssef, sara, stdout) -> None:
     """Orchestre le seeding complet de la boutique FR."""
+    # Boutique FR : parcours livraison complet (to_prepare → prepared → shipped)  # noqa: E501
+    if shop.fulfillment_mode != 'delivery':
+        shop.fulfillment_mode = 'delivery'
+        shop.save(update_fields=['fulfillment_mode', 'updated_at'])
     safe_v, svc_v = seed_products_fr(shop, youssef)
     customers = seed_customers_fr(shop)
     v_count = ProductVariant.objects.filter(shop=shop).count()

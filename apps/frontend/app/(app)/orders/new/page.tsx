@@ -14,9 +14,10 @@ import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput
 import { SubmitCTA } from '@/components/orders/new/SubmitCTA';
 import { DesktopCatalogPanel } from '@/components/orders/new/DesktopCatalogPanel';
 import { DesktopSaleTicket } from '@/components/orders/new/DesktopSaleTicket';
+import { StatusSwitch } from '@/components/orders/new/StatusSwitch';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
-import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
+import { useShop } from '@/lib/hooks/useShop';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Customer } from '@/lib/hooks/useCustomers';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
@@ -100,7 +101,8 @@ function NewSaleFormMobile() {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
   const form = useNewSaleForm();
-  const label = useOrderStatusLabel();
+  const { data: shop } = useShop();
+  const catalogKind = useCatalogKind();
 
   return (
     <div className="flex flex-col gap-5 p-4 pb-32">
@@ -145,15 +147,11 @@ function NewSaleFormMobile() {
         )}
       </SectionChips>
 
-      <SectionChips
-        title={t('status_title')}
-        options={[
-          { value: 'draft', label: t('status_draft') },
-          { value: 'to_prepare', label: label('to_prepare') },
-          { value: 'shipped', label: label('shipped') },
-        ]}
+      <StatusSwitch
         value={form.orderStatus}
-        onChange={(v) => form.setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
+        onChange={form.setOrderStatus}
+        fm={shop?.fulfillment_mode ?? null}
+        catalogKind={catalogKind}
       />
 
       <NotesSection

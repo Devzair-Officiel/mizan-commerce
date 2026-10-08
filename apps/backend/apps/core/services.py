@@ -52,7 +52,7 @@ def _build_today_revenue(shop: Shop, day_start: datetime, day_end: datetime) -> 
         shop=shop,
         created_at__gte=day_start,
         created_at__lt=day_end,
-    ).exclude(status__in=("draft", "cancelled"))
+    ).exclude(status="cancelled")
     revenue = qs.aggregate(total=Sum("total_amount"))["total"] or Decimal("0")
     return {"revenue": str(revenue), "orders_count": qs.count()}
 
@@ -65,7 +65,7 @@ def _build_yesterday_revenue(shop: Shop, today_local: date, tz: ZoneInfo) -> str
         shop=shop,
         created_at__gte=y_start,
         created_at__lt=y_end,
-    ).exclude(status__in=("draft", "cancelled")).aggregate(
+    ).exclude(status="cancelled").aggregate(
         total=Sum("total_amount"),
     )["total"] or Decimal("0")
     return str(revenue)
@@ -85,7 +85,7 @@ def _build_last_7_days(shop: Shop, today_local: date, tz: ZoneInfo) -> list:
             created_at__gte=w_start_dt,
             created_at__lt=w_end_dt,
         )
-        .exclude(status__in=("draft", "cancelled"))
+        .exclude(status="cancelled")
         .annotate(day=TruncDate("created_at", tzinfo=tz))
         .values("day")
         .annotate(total=Sum("total_amount"))

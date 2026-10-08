@@ -22,7 +22,7 @@ import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHis
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { PaymentBottomSheet } from '@/components/orders/detail/PaymentBottomSheet';
 import { InvoiceBottomSheet } from '@/components/orders/detail/InvoiceBottomSheet';
-import { REVERT_TRANSITION, STATUS_ALLOWS_CANCEL } from '@/components/orders/detail/constants';
+import { getRevertTransition, STATUS_ALLOWS_CANCEL } from '@/components/orders/detail/constants';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -113,14 +113,15 @@ export default function OrderDetailPage() {
     }
   }
 
-  const revert = REVERT_TRANSITION[order.status];
+  const fm = shop?.fulfillment_mode ?? null;
+  const revert = getRevertTransition(order.status, fm);
 
   return (
     <>
       <TopBar
         title={order.order_number}
         action={
-          order.status === 'draft' && (
+          (order.status === 'to_prepare' || order.status === 'prepared') && (
             <button onClick={() => router.push(`/orders/${id}/edit`)} className="text-sm font-medium text-primary">
               {t('edit')}
             </button>

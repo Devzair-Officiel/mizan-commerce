@@ -491,8 +491,6 @@
       "clear_filters": "Clear filters"
     },
     "statusLabel": {
-      "draft": "Draft",
-      "draft_pl": "Drafts",
       "to_prepare_products": "To prepare",
       "to_prepare_products_pl": "To prepare",
       "to_prepare_services": "Confirmed",
@@ -514,7 +512,6 @@
     },
     "statusFilter": {
       "all": "All",
-      "draft": "Drafts",
       "to_prepare": "To prepare",
       "prepared": "Ready",
       "shipped": "Shipped",
@@ -534,7 +531,6 @@
     "alert": {
       "shipped_unpaid": "Shipped, unpaid",
       "to_ship": "To ship",
-      "old_draft": "Old draft",
       "banner_title": "{count, plural, one {# order needs your attention} other {# orders need your attention}}",
       "banner_active": "Filter active · click to see all",
       "banner_idle": "Click to show only these"
@@ -562,9 +558,6 @@
       "label": "Next step",
       "shipped_title": "Order shipped",
       "shipped_sub": "All steps are complete.",
-      "draft_title": "Confirm the order",
-      "draft_sub": "{kind, select, services {Confirm the service and get ready.} other {Locks stock and moves to preparation.}}",
-      "draft_cta": "Confirm the order",
       "to_prepare_title": "Mark as ready",
       "to_prepare_sub": "{kind, select, services {When the service is confirmed with the customer.} other {When the items are ready to ship.}}",
       "to_prepare_cta": "Mark ready",
@@ -578,10 +571,9 @@
       "shipped_sub_on_site": "The customer has collected their order."
     },
     "revert": {
-      "to_prepare": "Back to draft",
       "prepared": "Back to “To prepare”",
       "shipped": "Back to “Ready”",
-      "cancelled": "Reopen as draft"
+      "cancelled": "Reopen order"
     },
     "items": {
       "title": "{kind, select, products {Items} services {Services} other {Items}}",
@@ -655,7 +647,6 @@
     "whatsapp": {
       "hello_named": "Hello {name},",
       "hello": "Hello,",
-      "status_draft": "Your order has been recorded.",
       "status_to_prepare": "Your order is being prepared.",
       "status_prepared": "Your order is ready.",
       "status_shipped": "Your order has been shipped.",
@@ -676,15 +667,12 @@
       "section_items": "{kind, select, products {2 · Items} services {2 · Services} other {2 · Items & services}}",
       "items_required": "{kind, select, products {Add at least one item.} services {Add at least one service.} other {Add at least one item or service.}}",
       "items_empty": "{kind, select, products {No items yet.} services {No services yet.} other {No items yet.}}",
-
       "payment_title": "Payment",
       "payment_amount_required": "Enter an amount greater than 0.",
       "payment_amount_exceeds": "The amount received cannot exceed the total.",
       "amount_received": "Amount received",
-      "status_title": "Status",
       "per_unit": "per unit",
       "remove_one_aria": "Remove {name}",
-      "status_draft": "Draft",
       "status_to_prepare": "To prepare",
       "status_to_process": "To process",
       "status_confirmed": "Confirmed",
@@ -715,14 +703,18 @@
       "no_customer_name": "No customer",
       "no_customer_sub": "Counter sale",
       "associate_customer": "Add a customer",
-      "remove_customer_aria": "Remove customer"
+      "remove_customer_aria": "Remove customer",
+      "switch_on_site": "Prepare later",
+      "switch_on_site_hint": "Otherwise, the sale is recorded as delivered to the customer.",
+      "switch_both": "Already delivered",
+      "switch_services": "Already completed"
     },
     "edit": {
       "topbar": "Edit order",
       "topbar_with_number": "Edit {number}",
       "loading": "Loading…",
       "not_found": "Order not found.",
-      "draft_only": "Only draft orders can be edited.",
+      "draft_only": "Only orders in progress can be edited.",
       "saving": "Saving…",
       "save": "Save",
       "customer_label": "Customer (optional)",

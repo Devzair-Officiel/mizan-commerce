@@ -4,12 +4,12 @@ import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { TicketCustomerBlock } from '@/components/orders/new/TicketCustomerBlock';
 import { SectionChips } from '@/components/orders/new/SectionChips';
+import { StatusSwitch } from '@/components/orders/new/StatusSwitch';
 import { SummaryAmountInput } from '@/components/orders/new/OrderSummary';
 import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
-import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { isDefaultVariant } from '@/lib/products';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
@@ -113,7 +113,8 @@ function DesktopSummaryBlock({ form, money, hasItems }: { form: NewSaleForm; mon
 function DesktopTicketControls({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
-  const label = useOrderStatusLabel();
+  const { data: shop } = useShop();
+  const catalogKind = useCatalogKind();
   const linkClass = 'text-[0.8125rem] font-semibold text-primary hover:underline';
 
   return (
@@ -136,15 +137,11 @@ function DesktopTicketControls({ form }: { form: NewSaleForm }) {
         </SectionChips>
       </div>
       <div className="px-5 pb-4">
-        <SectionChips
-          title={t('status_title')}
-          options={[
-            { value: 'draft', label: t('status_draft') },
-            { value: 'to_prepare', label: label('to_prepare') },
-            { value: 'shipped', label: label('shipped') },
-          ]}
+        <StatusSwitch
           value={form.orderStatus}
-          onChange={(v) => form.setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
+          onChange={form.setOrderStatus}
+          fm={shop?.fulfillment_mode ?? null}
+          catalogKind={catalogKind}
         />
       </div>
       <div className="px-5 pb-4">

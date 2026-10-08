@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useShop } from '@/lib/hooks/useShop';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
-import { NEXT_STEP } from './constants';
+import { getNextStep } from './constants';
 
 interface OrderNextStepCardProps {
   status: string;
@@ -38,20 +38,22 @@ export function OrderNextStepCard({ status, isPending, onTransition }: OrderNext
   const label = useOrderStatusLabel();
   const { data: shop } = useShop();
   const ck = shop?.catalog_kind ?? 'both';
-  const nextStep = NEXT_STEP[status] ?? null;
+  const fm = shop?.fulfillment_mode ?? null;
+  const nextStep = getNextStep(status, fm);
 
   if (status === 'shipped') return <ShippedCard />;
   if (!nextStep) return null;
 
-  const stepTitle = nextStep.key === 'prepared'
+  const goesToShipped = nextStep.next === 'shipped';
+  const stepTitle = goesToShipped
     ? t('prepared_mark', { label: label('shipped') })
-    : t(`${nextStep.key}_title` as const);
-  const stepSub = nextStep.key === 'draft' ? t('draft_sub', { kind: ck })
-    : nextStep.key === 'to_prepare' ? t('to_prepare_sub', { kind: ck })
-    : t('prepared_sub');
-  const stepCta = nextStep.key === 'prepared'
+    : t('to_prepare_title');
+  const stepSub = goesToShipped
+    ? t('prepared_sub')
+    : t('to_prepare_sub', { kind: ck });
+  const stepCta = goesToShipped
     ? t('prepared_cta_mark', { label: label('shipped') })
-    : t(`${nextStep.key}_cta` as const);
+    : t('to_prepare_cta');
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3 shadow-sm">

@@ -109,7 +109,7 @@ class OrderCreateSerializer(serializers.Serializer):
     shipping_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)  # noqa: E501
     items = OrderItemCreateSerializer(many=True, required=True)
     status = serializers.ChoiceField(
-        choices=['draft', 'to_prepare', 'prepared', 'shipped'], required=False, default='draft',  # noqa: E501
+        choices=['to_prepare', 'shipped'], required=False, default='to_prepare',
     )
     payment_status = serializers.ChoiceField(
         choices=['unpaid', 'partial', 'paid'], required=False, default='unpaid',
@@ -136,7 +136,7 @@ class OrderItemQuantitySerializer(serializers.Serializer):
 
 
 class StatusTransitionSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=['draft', 'to_prepare', 'prepared', 'shipped', 'cancelled'])  # noqa: E501
+    status = serializers.ChoiceField(choices=['to_prepare', 'prepared', 'shipped', 'cancelled'])  # noqa: E501
 
 
 class PaymentUpdateSerializer(serializers.Serializer):

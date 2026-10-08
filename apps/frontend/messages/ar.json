@@ -491,8 +491,6 @@
       "clear_filters": "مسح الفلاتر"
     },
     "statusLabel": {
-      "draft": "مسودة",
-      "draft_pl": "مسودات",
       "to_prepare_products": "قيد التحضير",
       "to_prepare_products_pl": "قيد التحضير",
       "to_prepare_services": "مؤكَّدة",
@@ -514,7 +512,6 @@
     },
     "statusFilter": {
       "all": "الكل",
-      "draft": "مسودات",
       "to_prepare": "للتحضير",
       "prepared": "جاهزة",
       "shipped": "مُرسلة",
@@ -534,7 +531,6 @@
     "alert": {
       "shipped_unpaid": "مُرسلة وغير مدفوعة",
       "to_ship": "للإرسال",
-      "old_draft": "مسودة قديمة",
       "banner_title": "{count, plural, zero {لا توجد طلبات تحتاج انتباهك} one {طلب واحد يحتاج انتباهك} two {طلبان يحتاجان انتباهك} few {# طلبات تحتاج انتباهك} many {# طلبًا تحتاج انتباهك} other {# طلب يحتاج انتباهك}}",
       "banner_active": "الفلتر مفعّل · انقر لعرض الكل",
       "banner_idle": "انقر لعرضها وحدها"
@@ -562,9 +558,6 @@
       "label": "الخطوة التالية",
       "shipped_title": "تم إرسال الطلب",
       "shipped_sub": "اكتملت كل المراحل.",
-      "draft_title": "تأكيد الطلب",
-      "draft_sub": "{kind, select, services {أكّد الخدمة وانتقل إلى التحضير.} other {يحجز المخزون وينتقل إلى التحضير.}}",
-      "draft_cta": "تأكيد الطلب",
       "to_prepare_title": "اعتبارها جاهزة",
       "to_prepare_sub": "{kind, select, services {عند تأكيد الخدمة مع العميل.} other {عندما تكون المنتجات جاهزة للإرسال.}}",
       "to_prepare_cta": "تعليم كجاهزة",
@@ -578,10 +571,9 @@
       "shipped_sub_on_site": "استلم العميل طلبه."
     },
     "revert": {
-      "to_prepare": "العودة إلى مسودة",
       "prepared": "العودة إلى «للتحضير»",
       "shipped": "العودة إلى «جاهزة»",
-      "cancelled": "إعادة فتح كمسودة"
+      "cancelled": "إعادة فتح الطلب"
     },
     "items": {
       "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
@@ -655,7 +647,6 @@
     "whatsapp": {
       "hello_named": "مرحبًا {name}،",
       "hello": "مرحبًا،",
-      "status_draft": "تم تسجيل طلبك.",
       "status_to_prepare": "طلبك قيد التحضير.",
       "status_prepared": "طلبك جاهز.",
       "status_shipped": "تم إرسال طلبك.",
@@ -680,10 +671,8 @@
       "payment_amount_required": "أدخل مبلغًا أكبر من 0.",
       "payment_amount_exceeds": "لا يمكن أن يتجاوز المبلغ المستلم الإجمالي.",
       "amount_received": "المبلغ المستلم",
-      "status_title": "الحالة",
       "per_unit": "للوحدة",
       "remove_one_aria": "إزالة {name}",
-      "status_draft": "مسودة",
       "status_to_prepare": "للتحضير",
       "status_to_process": "للمعالجة",
       "status_confirmed": "مؤكَّدة",
@@ -714,14 +703,18 @@
       "no_customer_name": "بدون زبون",
       "no_customer_sub": "بيع في المحل",
       "associate_customer": "إضافة زبون",
-      "remove_customer_aria": "إزالة الزبون"
+      "remove_customer_aria": "إزالة الزبون",
+      "switch_on_site": "تحضير لاحقاً",
+      "switch_on_site_hint": "وإلا، تُسجَّل عملية البيع كمُسلَّمة للعميل.",
+      "switch_both": "تم التسليم بالفعل",
+      "switch_services": "تم الإنجاز بالفعل"
     },
     "edit": {
       "topbar": "تعديل الطلب",
       "topbar_with_number": "تعديل {number}",
       "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
-      "draft_only": "يمكن تعديل الطلبات في حالة المسودة فقط.",
+      "draft_only": "يمكن تعديل الطلبات الجارية فقط.",
       "saving": "جارٍ الحفظ…",
       "save": "حفظ",
       "customer_label": "الزبون (اختياري)",
