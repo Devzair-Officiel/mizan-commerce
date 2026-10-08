@@ -115,7 +115,7 @@ function NewSaleFormMobile() {
 
       <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4">
         <SectionChips title={t('payment_title')}
-          titleClassName="text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+          titleClassName="text-[0.8125rem] font-medium text-muted-foreground"
           options={[
             { value: 'unpaid', label: tPayment('unpaid') },
             { value: 'partial', label: tPayment('partial') },

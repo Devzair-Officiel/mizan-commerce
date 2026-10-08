@@ -41,9 +41,6 @@ export function OrderSummary({
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('summary_title')}</span>
-      </div>
       <div className="flex flex-col">
         <SummaryRow label={t('subtotal')}>
           <span className="text-sm font-medium text-foreground tabular-nums">{money(subtotal)}</span>

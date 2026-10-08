@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { StickyNote, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 
 interface NotesSectionProps {
@@ -44,10 +44,9 @@ export function NotesSection({
     <button
       type="button"
       onClick={onShow}
-      className="self-start flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors px-1 py-1"
+      className="self-start text-xs font-medium text-primary hover:underline px-1 py-1"
     >
-      <StickyNote size={16} />
-      <span>{t('notes_show')}</span>
+      {t('notes_show')}
     </button>
   );
 }

@@ -34,6 +34,21 @@ function TopBarBackLink({ onClick, label }: { onClick: () => void; label: string
   );
 }
 
+function TopBarBackButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex h-11 w-11 items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors"
+    >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="rtl:rotate-180">
+        <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </button>
+  );
+}
+
 function TopBarDesktopSearch() {
   const tc = useTranslations('layout.common');
   const { isOpen, open, close, anchorRef, setDesktopSearchActive } = useSearchOverlay();
@@ -96,7 +111,7 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, title
         {/* Left slot — mobile only */}
         <div className="shrink-0 lg:hidden">
           {back ? (
-            <TopBarBackLink onClick={handleBack} label={backText} />
+            <TopBarBackButton onClick={handleBack} label={backText} />
           ) : (
             <BurgerButton />
           )}

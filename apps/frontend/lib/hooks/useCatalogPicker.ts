@@ -8,6 +8,7 @@ export interface CatalogPickerState {
   view: 'pick' | 'free';
   stage: 'list' | 'variants';
   pickedProductId: string | null;
+  pickedProductVariantCount: number | null;
   search: string;
   filter: PickFilter;
   products: Product[];
@@ -28,6 +29,7 @@ export function useCatalogPicker(): CatalogPickerState {
   const [view, setView] = useState<'pick' | 'free'>('pick');
   const [stage, setStage] = useState<'list' | 'variants'>('list');
   const [pickedProductId, setPickedProductId] = useState<string | null>(null);
+  const [pickedProductVariantCount, setPickedProductVariantCount] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<PickFilter>('all');
   const { data } = useProducts({ search });
@@ -42,6 +44,7 @@ export function useCatalogPicker(): CatalogPickerState {
     setView('pick');
     setStage('list');
     setPickedProductId(null);
+    setPickedProductVariantCount(null);
   }
 
   function openPicker() {
@@ -50,6 +53,7 @@ export function useCatalogPicker(): CatalogPickerState {
 
   function handlePickProduct(p: Product) {
     setPickedProductId(p.id);
+    setPickedProductVariantCount(p.variant_count);
     setStage('variants');
   }
 
@@ -71,6 +75,7 @@ export function useCatalogPicker(): CatalogPickerState {
     setView('pick');
     setStage('list');
     setPickedProductId(null);
+    setPickedProductVariantCount(null);
   }
 
   return {
@@ -78,6 +83,7 @@ export function useCatalogPicker(): CatalogPickerState {
     view,
     stage,
     pickedProductId,
+    pickedProductVariantCount,
     search,
     filter,
     products,

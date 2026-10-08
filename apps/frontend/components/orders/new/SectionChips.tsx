@@ -24,7 +24,7 @@ export function SectionChips({
               type="button"
               onClick={() => onChange(v)}
               aria-pressed={active}
-              className={`flex-1 rounded-full px-4 py-2 text-sm transition-all duration-200 ease-out active:scale-[0.98] ${
+              className={`flex-1 rounded-full px-4 h-10 text-sm whitespace-nowrap transition-all duration-200 ease-out active:scale-[0.98] max-sm:px-1.5 max-sm:text-[0.8125rem] ${
                 active
                   ? 'bg-card text-foreground font-semibold shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'

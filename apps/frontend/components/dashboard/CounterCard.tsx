@@ -20,16 +20,16 @@ const ICON_VARIANTS: Record<NonNullable<CounterCardProps['iconVariant']>, string
 
 function CardInner({ label, value, valueColor, sub, subColor, icon, iconVariant }: Omit<CounterCardProps, 'href'>) {
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-card px-5 py-4.5 gap-3.5 h-full">
+    <div className="flex flex-col rounded-2xl border border-border bg-card px-3.5 py-3.5 gap-3.5 h-full sm:px-5 sm:py-4.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-[0.8125rem] font-medium text-muted-foreground">{label}</p>
         {icon && (
           <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${ICON_VARIANTS[iconVariant ?? 'default']}`}>
             {icon}
           </div>
         )}
       </div>
-      <p className={`text-[2rem] font-bold leading-tight tabular-nums ${valueColor ?? 'text-foreground'}`}>{value}</p>
+      <p className={`max-[379px]:text-2xl text-[1.625rem] sm:text-[2rem] font-bold leading-tight tabular-nums ${valueColor ?? 'text-foreground'}`}>{value}</p>
       {sub != null && (
         <p className={`text-[0.8125rem] ${subColor ?? 'text-muted-foreground'}`}>{sub}</p>
       )}

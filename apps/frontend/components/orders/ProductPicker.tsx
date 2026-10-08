@@ -68,10 +68,10 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = '
                 onSubmit={(line) => { onFreeLine(line); picker.close(); }}
               />
             ) : picker.stage === 'variants' && picker.pickedProductId ? (
-              <VariantView
-                productId={picker.pickedProductId}
-                onBack={() => { picker.backToList(); }}
+              <VariantView productId={picker.pickedProductId}
+                onBack={picker.backToList}
                 onPick={(pick) => picker.handlePickVariant(pick, onPick)}
+                autoPickSingle={picker.pickedProductVariantCount === 1}
               />
             ) : (
               <PickView

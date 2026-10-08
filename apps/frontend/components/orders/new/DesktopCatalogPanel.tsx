@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus, Check, Search, X, Tag } from 'lucide-react';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
@@ -8,6 +8,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useProduct } from '@/lib/hooks/useProducts';
 import { QuickAddProductForm } from '@/components/orders/new/QuickAddProductForm';
+import { isDefaultVariant } from '@/lib/products';
 import { FreeLineView } from '@/components/orders/picker/FreeLineView';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import type { Product, ProductDetail } from '@/lib/hooks/useProducts';
@@ -54,11 +55,27 @@ function DesktopProductSubtext({ p, t }: { p: Product; t: T }) {
   return null;
 }
 
-function DesktopInlineVariants({ productId, formItems, onPick, money, t }: {
+function DesktopInlineVariants({ productId, formItems, onPick, money, t, autoPickSingle, onAutoPickDone }: {
   productId: string; formItems: NewSaleForm['items'];
   onPick: (pick: VariantPick) => void; money: (v: number | string) => string; t: T;
+  autoPickSingle?: boolean; onAutoPickDone?: () => void;
 }) {
   const { data: product, isLoading } = useProduct(productId);
+
+  useEffect(() => {
+    if (!autoPickSingle || isLoading || !product) return;
+    const active = product.variants.filter((v) => v.is_active);
+    const [singleVariant] = active;
+    if (active.length !== 1 || !singleVariant) { onAutoPickDone?.(); return; }
+    const out = product.type === 'product' && parseFloat(singleVariant.stock_quantity) <= 0;
+    if (!out) {
+      onPick({ variantId: singleVariant.id, productName: product.name, variantName: singleVariant.packaging_name, productType: product.type, unitPrice: singleVariant.selling_price });
+    }
+    onAutoPickDone?.();
+  }, [autoPickSingle, isLoading, product, onPick, onAutoPickDone]);
+
+  if (autoPickSingle) return null;
+
   if (isLoading || !product) return <p className="px-5 py-3 text-xs text-muted-foreground">{t('loading')}</p>;
   const active = product.variants.filter((v) => v.is_active);
   return (
@@ -70,8 +87,10 @@ function DesktopInlineVariants({ productId, formItems, onPick, money, t }: {
         return (
           <div key={v.id} className="flex items-center gap-3 px-5 py-2.5">
             <div className="flex-1 min-w-0">
-              <span className="text-sm text-foreground">{v.packaging_name}</span>
-              <span className={`ms-2 text-[0.8125rem] tabular-nums ${out ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {!isDefaultVariant(v.packaging_name) && (
+                <span className="text-sm text-foreground">{v.packaging_name}</span>
+              )}
+              <span className={`${isDefaultVariant(v.packaging_name) ? '' : 'ms-2 '}text-[0.8125rem] tabular-nums ${out ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {money(v.selling_price)}
                 {product.type === 'product' && (
                   <> · {out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}</>
@@ -116,7 +135,8 @@ function DesktopProductRow({ p, formItems, expandedId, setExpandedId, onPick, mo
         <DesktopAddButton name={p.name} qty={totalQty}
           onClick={() => setExpandedId(isExpanded ? null : p.id)} t={t} />
       </div>
-      {isExpanded && <DesktopInlineVariants productId={p.id} formItems={formItems} onPick={onPick} money={money} t={t} />}
+      {isExpanded && <DesktopInlineVariants productId={p.id} formItems={formItems} onPick={onPick} money={money} t={t}
+        autoPickSingle={p.variant_count === 1} onAutoPickDone={() => setExpandedId(null)} />}
     </div>
   );
 }
