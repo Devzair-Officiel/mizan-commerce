@@ -145,7 +145,10 @@
     },
     "burgerMenu": {
       "activity_section": "النشاط",
-      "account_section": "الحساب"
+      "account_section": "الحساب",
+      "role_owner": "مالك",
+      "role_admin": "مدير",
+      "role_staff": "عضو"
     },
     "search": {
       "title": "بحث",
@@ -211,7 +214,9 @@
       "card_days": "{days, plural, =0 {تنتهي اليوم} one {يوم واحد متبقٍ} other {# أيام متبقية}}",
       "card_expired": "انتهت التجربة",
       "card_expired_cta": "عرض الخطط",
-      "card_cta": "ترقية"
+      "card_cta": "ترقية",
+      "menu_trial_title": "تجربة Boutique+",
+      "menu_trial_sub": "{days, plural, =0 {تنتهي اليوم} one {يوم واحد متبقٍ} other {# أيام متبقية}} — إدارة الاشتراك"
     }
   },
   "dashboard": {

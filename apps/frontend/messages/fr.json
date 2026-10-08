@@ -145,7 +145,10 @@
     },
     "burgerMenu": {
       "activity_section": "Activité",
-      "account_section": "Compte"
+      "account_section": "Compte",
+      "role_owner": "propriétaire",
+      "role_admin": "administrateur",
+      "role_staff": "membre"
     },
     "search": {
       "title": "Recherche",
@@ -211,7 +214,9 @@
       "card_days": "{days, plural, =0 {Expiration aujourd'hui} one {# jour restant} other {# jours restants}}",
       "card_expired": "Essai terminé",
       "card_expired_cta": "Voir les formules",
-      "card_cta": "Passer à Pro"
+      "card_cta": "Passer à Pro",
+      "menu_trial_title": "Essai Boutique+",
+      "menu_trial_sub": "Encore {days, plural, =0 {aujourd'hui} one {# jour} other {# jours}} — gérer mon abonnement"
     }
   },
   "dashboard": {

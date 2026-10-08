@@ -32,7 +32,7 @@ export function LanguageSwitcher() {
     <div
       role="group"
       aria-label={tc('language')}
-      className="flex gap-1 rounded-2xl bg-muted p-1"
+      className="flex gap-1 rounded-[0.875rem] bg-muted p-1"
     >
       {LOCALES.map((loc) => {
         const active = current === loc;
@@ -43,7 +43,7 @@ export function LanguageSwitcher() {
             onClick={() => switchLocale(loc)}
             aria-pressed={active}
             lang={loc}
-            className={`flex-1 h-9 flex items-center justify-center rounded-xl px-2 text-[13px] font-medium transition-all ${
+            className={`flex-1 h-9.5 flex items-center justify-center rounded-[0.625rem] px-2 text-[13px] font-medium transition-all ${
               active
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50'

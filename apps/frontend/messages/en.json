@@ -145,7 +145,10 @@
     },
     "burgerMenu": {
       "activity_section": "Activity",
-      "account_section": "Account"
+      "account_section": "Account",
+      "role_owner": "owner",
+      "role_admin": "administrator",
+      "role_staff": "member"
     },
     "search": {
       "title": "Search",
@@ -211,7 +214,9 @@
       "card_days": "{days, plural, =0 {Expires today} one {# day left} other {# days left}}",
       "card_expired": "Trial ended",
       "card_expired_cta": "See plans",
-      "card_cta": "Upgrade"
+      "card_cta": "Upgrade",
+      "menu_trial_title": "Boutique+ Trial",
+      "menu_trial_sub": "{days, plural, =0 {Expires today} one {# day left} other {# days left}} — manage subscription"
     }
   },
   "dashboard": {
