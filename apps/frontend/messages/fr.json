@@ -119,10 +119,11 @@
       "group_track": "Suivi",
       "articles": "Articles",
       "catalogue": "Catalogue",
-      "services": "Services"
+      "services": "Services",
+      "articles_and_services": "Articles et services"
     },
     "breadcrumb": {
-      "products": "{kind, select, products {Articles} services {Services} other {Catalogue}}",
+      "products": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "customers": "Clients",
       "orders": "Commandes",
       "settings": "Paramètres",
@@ -158,7 +159,7 @@
       "min_chars": "Tapez au moins 2 caractères pour rechercher.",
       "searching": "Recherche…",
       "no_results": "Aucun résultat pour « {query} ».",
-      "section_products": "{kind, select, products {Produits} services {Services} other {Produits et services}}",
+      "section_products": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "section_customers": "Clients",
       "section_orders": "Commandes",
       "out_of_stock": "Rupture",
@@ -828,7 +829,7 @@
   },
   "articles": {
     "topbar": {
-      "title": "{kind, select, products {Articles} services {Services} other {Mes articles}}"
+      "title": "{kind, select, products {Articles} services {Services} other {Articles et services}}"
     },
     "list": {
       "search_placeholder": "{kind, select, products {Rechercher un article…} services {Rechercher un service…} other {Rechercher un article…}}",
@@ -1148,7 +1149,7 @@
       "staff": "Employé"
     },
     "modules": {
-      "products": "{kind, select, products {Articles} services {Services} other {Articles}}",
+      "products": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "orders": "Commandes",
       "customers": "Clients",
       "payments": "Paiements",

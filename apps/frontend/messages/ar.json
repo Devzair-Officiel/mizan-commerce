@@ -119,10 +119,11 @@
       "group_track": "المتابعة",
       "articles": "العناصر",
       "catalogue": "الفهرس",
-      "services": "الخدمات"
+      "services": "الخدمات",
+      "articles_and_services": "المنتجات والخدمات"
     },
     "breadcrumb": {
-      "products": "{kind, select, products {المنتجات} services {الخدمات} other {الفهرس}}",
+      "products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
       "customers": "العملاء",
       "orders": "الطلبات",
       "settings": "الإعدادات",
@@ -828,7 +829,7 @@
   },
   "articles": {
     "topbar": {
-      "title": "{kind, select, products {المنتجات} services {الخدمات} other {منتجاتي}}"
+      "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}"
     },
     "list": {
       "search_placeholder": "{kind, select, products {ابحث عن منتج…} services {ابحث عن خدمة…} other {ابحث عن منتج…}}",
@@ -1148,7 +1149,7 @@
       "staff": "موظف"
     },
     "modules": {
-      "products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
+      "products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
       "orders": "الطلبات",
       "customers": "العملاء",
       "payments": "المدفوعات",

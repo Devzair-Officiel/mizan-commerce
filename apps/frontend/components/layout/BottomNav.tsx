@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Sparkles } from 'lucide-react';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useNavBadges } from '@/lib/hooks/useNavBadges';
 import { confirmLeave } from '@/lib/dirtyGuard';
@@ -87,7 +88,7 @@ export function BottomNav() {
         <NavItem href="/orders" label={t('orders')} active={isNavActive('/orders', pathname)}
           icon={<ShoppingBagIcon />} badge={badges?.orders_to_prepare} confirmMsg={confirmMsg} />
         <NavItem href="/products" label={catalogLabel} active={isNavActive('/products', pathname)}
-          icon={<PackageIcon />} confirmMsg={confirmMsg} />
+          icon={kind === 'services' ? <Sparkles size={20} /> : <PackageIcon />} confirmMsg={confirmMsg} />
       </div>
     </nav>
   );
