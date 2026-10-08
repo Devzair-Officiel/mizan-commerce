@@ -170,7 +170,7 @@
       "quick_actions": "Quick actions",
       "qa_new_order": "New order",
       "qa_new_customer": "New customer",
-      "qa_new_product": "{kind, select, services {New service} other {New product}}",
+      "qa_new_product": "{kind, select, products {New item} services {New service} other {Add}}",
       "qa_to_prepare": "Orders to prepare",
       "qa_to_prepare_count": "Orders to prepare ({count})",
       "qa_unpaid": "Unpaid orders"
@@ -507,7 +507,8 @@
       "shipped_other": "Done",
       "shipped_other_pl": "Done",
       "cancelled": "Cancelled",
-      "cancelled_pl": "Cancelled"
+      "cancelled_pl": "Cancelled",
+      "unknown": "Unknown status"
     },
     "statusFilter": {
       "all": "All",
@@ -811,6 +812,18 @@
       "all": "All",
       "due": "Outstanding",
       "paid": "Paid"
+    },
+    "filterSheet": {
+      "title": "Filters",
+      "close": "Close",
+      "status_title": "Status",
+      "payment_title": "Payment",
+      "reset": "Reset",
+      "apply": "View orders"
+    },
+    "filterBar": {
+      "filters_btn": "Filters",
+      "remove_filter": "Remove filter {name}"
     }
   },
   "articles": {
@@ -820,7 +833,7 @@
     "list": {
       "search_placeholder": "{kind, select, products {Search items…} services {Search services…} other {Search items…}}",
       "clear_search": "Clear search",
-      "new_product": "{kind, select, products {New item} services {New service} other {New item or service}}",
+      "new_product": "{kind, select, products {New item} services {New service} other {Add}}",
       "options": "Options",
       "count": "{kind, select, products {{count, plural, one {# item} other {# items}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# item} other {# items}}}}",
       "filter_all": "All",
@@ -848,7 +861,7 @@
       "formats": "{count, plural, one {# format} other {# formats}}",
       "service": "Service",
       "out_of_stock": "Out of stock",
-      "low_stock_with": "Low stock · {formats}",
+      "low_stock_with": "Low stock, {formats}",
       "in_stock_with": "{formats} in stock"
     },
     "badges": {

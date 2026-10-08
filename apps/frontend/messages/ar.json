@@ -170,7 +170,7 @@
       "quick_actions": "إجراءات سريعة",
       "qa_new_order": "طلب جديد",
       "qa_new_customer": "عميل جديد",
-      "qa_new_product": "{kind, select, services {خدمة جديدة} other {منتج جديد}}",
+      "qa_new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {إضافة}}",
       "qa_to_prepare": "طلبات للتجهيز",
       "qa_to_prepare_count": "طلبات للتجهيز ({count})",
       "qa_unpaid": "غير مدفوعة"
@@ -507,7 +507,8 @@
       "shipped_other": "مكتملة",
       "shipped_other_pl": "مكتملة",
       "cancelled": "ملغاة",
-      "cancelled_pl": "ملغاة"
+      "cancelled_pl": "ملغاة",
+      "unknown": "حالة غير معروفة"
     },
     "statusFilter": {
       "all": "الكل",
@@ -811,6 +812,18 @@
       "all": "الكل",
       "due": "للتحصيل",
       "paid": "مدفوعة"
+    },
+    "filterSheet": {
+      "title": "تصفية",
+      "close": "إغلاق",
+      "status_title": "الحالة",
+      "payment_title": "الدفع",
+      "reset": "إعادة ضبط",
+      "apply": "عرض الطلبات"
+    },
+    "filterBar": {
+      "filters_btn": "تصفية",
+      "remove_filter": "إزالة الفلتر {name}"
     }
   },
   "articles": {
@@ -820,7 +833,7 @@
     "list": {
       "search_placeholder": "{kind, select, products {ابحث عن منتج…} services {ابحث عن خدمة…} other {ابحث عن منتج…}}",
       "clear_search": "مسح البحث",
-      "new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {منتج أو خدمة جديدة}}",
+      "new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {إضافة}}",
       "options": "خيارات",
       "count": "{kind, select, products {{count, plural, one {# منتج} other {# منتجات}}} services {{count, plural, one {# خدمة} other {# خدمات}}} other {{count, plural, one {# عنصر} other {# عناصر}}}}",
       "filter_all": "الكل",
@@ -848,7 +861,7 @@
       "formats": "{count, plural, zero {لا توجد صيغ} one {صيغة واحدة} two {صيغتان} few {# صيغ} many {# صيغة} other {# صيغة}}",
       "service": "خدمة",
       "out_of_stock": "نفد",
-      "low_stock_with": "مخزون منخفض · {formats}",
+      "low_stock_with": "مخزون منخفض, {formats}",
       "in_stock_with": "{formats} في المخزون"
     },
     "badges": {

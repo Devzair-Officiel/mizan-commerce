@@ -8,6 +8,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { StatusFilters } from '@/components/orders/list/StatusFilters';
 import { OrdersFilters } from '@/components/orders/list/OrdersFilters';
+import { OrdersFiltersMobile } from '@/components/orders/list/OrdersFiltersMobile';
 import { EmptyState } from '@/components/orders/list/EmptyState';
 import { OrdersDesktopView } from '@/components/orders/list/OrdersDesktopView';
 import { OrdersMobileList } from '@/components/orders/list/OrdersMobileList';
@@ -44,15 +45,7 @@ function OrdersContent() {
       />
       <div className="flex flex-col gap-4 p-4 pb-28">
         {(state.isFiltered || totalCount > 0 || isLoading) && (
-          <>
-            <StatusFilters value={state.statusFilter} onChange={state.handleStatusFilter} />
-            <OrdersFilters
-              search={state.searchInput}
-              onSearchChange={state.setSearchInput}
-              paymentFilter={state.paymentFilter}
-              onPaymentFilterChange={state.handlePaymentFilter}
-            />
-          </>
+          <FiltersSection state={state} />
         )}
 
         {!isLoading && hasLoaded && totalCount === 0 && (
@@ -88,6 +81,32 @@ function OrdersContent() {
             isLoading={mobileLoading}
           />
         )}
+      </div>
+    </>
+  );
+}
+
+function FiltersSection({ state }: { state: ReturnType<typeof useOrdersPageState> }) {
+  return (
+    <>
+      <div className="lg:hidden">
+        <OrdersFiltersMobile
+          statusFilter={state.statusFilter}
+          onStatusFilter={state.handleStatusFilter}
+          paymentFilter={state.paymentFilter}
+          onPaymentFilter={state.handlePaymentFilter}
+          search={state.searchInput}
+          onSearch={state.setSearchInput}
+        />
+      </div>
+      <div className="hidden lg:flex lg:flex-col lg:gap-2">
+        <StatusFilters value={state.statusFilter} onChange={state.handleStatusFilter} />
+        <OrdersFilters
+          search={state.searchInput}
+          onSearchChange={state.setSearchInput}
+          paymentFilter={state.paymentFilter}
+          onPaymentFilterChange={state.handlePaymentFilter}
+        />
       </div>
     </>
   );

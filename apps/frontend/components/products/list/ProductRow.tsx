@@ -2,8 +2,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { ChevronRight, Sparkles } from 'lucide-react';
-import { formatPriceRange, type Product } from '@/lib/hooks/useProducts';
+import type { Product } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
+import { useFormatMoney } from '@/lib/hooks/useFormat';
 
 const THUMB_COLORS = [
   'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
@@ -28,9 +29,11 @@ export function ProductRow({ product, first }: { product: Product; first: boolea
   const t = useTranslations('articles.row');
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
-  const currencySymbol = currency === 'EUR' ? '€' : currency;
-  const range = formatPriceRange(product.min_selling_price, product.max_selling_price);
-  const priceLabel = range ?? '—';
+  const formatMoney = useFormatMoney();
+  const money = (v: string | null) => (v ? formatMoney(v, currency) : null);
+  const min = money(product.min_selling_price);
+  const max = money(product.max_selling_price);
+  const priceLabel = min && max ? (min === max ? min : `${min} – ${max}`) : '—';
   return (
     <Link
       href={`/products/${product.id}`}
@@ -42,7 +45,7 @@ export function ProductRow({ product, first }: { product: Product; first: boolea
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground capitalize truncate">{product.name}</span>
+          <span className="font-semibold text-foreground truncate">{product.name}</span>
           {!product.is_active && (
             <span className="shrink-0 rounded-full bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
               {t('inactive')}
@@ -53,7 +56,7 @@ export function ProductRow({ product, first }: { product: Product; first: boolea
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
-        <span className="text-sm font-semibold text-foreground tabular-nums">{priceLabel} {currencySymbol}</span>
+        <span className="text-sm font-semibold text-foreground tabular-nums">{priceLabel}</span>
         <ChevronRight size={16} className="text-muted-foreground" />
       </div>
     </Link>

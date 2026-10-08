@@ -25,7 +25,10 @@ export function useOrderStatusLabel() {
       case 'cancelled':
         return t(plural ? 'cancelled_pl' : 'cancelled');
       default:
-        return status;
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[useOrderStatusLabel] Unknown status: "${status}"`);
+        }
+        return t('unknown');
     }
   };
 }

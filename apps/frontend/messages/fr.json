@@ -170,7 +170,7 @@
       "quick_actions": "Actions rapides",
       "qa_new_order": "Nouvelle commande",
       "qa_new_customer": "Nouveau client",
-      "qa_new_product": "{kind, select, services {Nouveau service} other {Nouvel article}}",
+      "qa_new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Ajouter}}",
       "qa_to_prepare": "Commandes à préparer",
       "qa_to_prepare_count": "Commandes à préparer ({count})",
       "qa_unpaid": "Impayés"
@@ -507,7 +507,8 @@
       "shipped_other": "Terminée",
       "shipped_other_pl": "Terminées",
       "cancelled": "Annulée",
-      "cancelled_pl": "Annulées"
+      "cancelled_pl": "Annulées",
+      "unknown": "Statut inconnu"
     },
     "statusFilter": {
       "all": "Toutes",
@@ -811,6 +812,18 @@
       "all": "Tous",
       "due": "À encaisser",
       "paid": "Payées"
+    },
+    "filterSheet": {
+      "title": "Filtres",
+      "close": "Fermer",
+      "status_title": "Statut",
+      "payment_title": "Paiement",
+      "reset": "Réinitialiser",
+      "apply": "Voir les commandes"
+    },
+    "filterBar": {
+      "filters_btn": "Filtres",
+      "remove_filter": "Retirer le filtre {name}"
     }
   },
   "articles": {
@@ -820,7 +833,7 @@
     "list": {
       "search_placeholder": "{kind, select, products {Rechercher un article…} services {Rechercher un service…} other {Rechercher un article…}}",
       "clear_search": "Effacer la recherche",
-      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
+      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Ajouter}}",
       "options": "Options",
       "count": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
       "filter_all": "Tous",
@@ -848,7 +861,7 @@
       "formats": "{count, plural, one {# format} other {# formats}}",
       "service": "Service",
       "out_of_stock": "Rupture",
-      "low_stock_with": "Stock faible · {formats}",
+      "low_stock_with": "Stock faible, {formats}",
       "in_stock_with": "{formats} en stock"
     },
     "badges": {

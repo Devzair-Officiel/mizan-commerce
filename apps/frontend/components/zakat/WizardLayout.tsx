@@ -84,8 +84,8 @@ export function WizardLayout({
           {isPending ? 'Enregistrement…' : nextLabel}
         </Button>
       </footer>
-      <FloatingActionBar>
-        <Button onClick={onNext} disabled={!canGoNext || isPending} className="flex-1">
+      <FloatingActionBar variant="button">
+        <Button onClick={onNext} disabled={!canGoNext || isPending} className="w-full h-12 rounded-full shadow-lg">
           {isPending ? 'Enregistrement…' : nextLabel}
         </Button>
       </FloatingActionBar>

@@ -20,6 +20,7 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
   Ne jamais utiliser `-500` sur fond clair (contraste insuffisant WCAG).
 - **Exception — icônes sur fond de swatch fixe** : les icônes incrustées dans un swatch de couleur (ThemeToggle, ColorPicker) sont évaluées contre la couleur du swatch lui-même, pas contre le thème actif. Pas de paire `dark:` requise sur ces icônes précises.
 - Rayons : `rounded-2xl` cartes, `rounded-full` boutons d'action, `rounded-xl` chips.
+- **Libellés de bouton** : un libellé de bouton ne revient jamais à la ligne — `whitespace-nowrap` obligatoire. Si le label est trop long à 360 px, le raccourcir (troncature `truncate` en dernier recours). Le composant `<Button>` applique déjà `whitespace-nowrap` ; les `<button>` natifs doivent l'ajouter manuellement.
 
 ## 3. Hiérarchie typo
 - Heading section : `text-xs font-semibold uppercase tracking-wide text-muted-foreground`

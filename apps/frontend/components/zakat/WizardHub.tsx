@@ -200,8 +200,8 @@ export function WizardHub({
       <footer className="hidden lg:block lg:py-3">
         <Button onClick={onFinalize} disabled={isPending} className="w-full">{finalizeLabel}</Button>
       </footer>
-      <FloatingActionBar>
-        <Button onClick={onFinalize} disabled={isPending} className="flex-1">{finalizeLabel}</Button>
+      <FloatingActionBar variant="button">
+        <Button onClick={onFinalize} disabled={isPending} className="w-full h-12 rounded-full shadow-lg">{finalizeLabel}</Button>
       </FloatingActionBar>
     </div>
   );

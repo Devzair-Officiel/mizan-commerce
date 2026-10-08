@@ -145,8 +145,8 @@ export function CustomerForm({ defaultValues, onSubmit, isSubmitting }: Customer
           {isSubmitting ? t('submitting') : t('submit')}
         </Button>
       </div>
-      <FloatingActionBar>
-        <Button type="submit" className="flex-1 h-11 rounded-full text-sm font-semibold" disabled={!canSubmit}>
+      <FloatingActionBar variant="button">
+        <Button type="submit" className="w-full h-12 rounded-full shadow-lg text-sm font-semibold" disabled={!canSubmit}>
           {isSubmitting ? t('submitting') : t('submit')}
         </Button>
       </FloatingActionBar>
