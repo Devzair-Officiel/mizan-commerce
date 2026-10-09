@@ -145,13 +145,13 @@ class Command(BaseCommand):
         )
         self.stdout.write(f"    + Staff : {sara.email} (4 modules)")
 
-        run_seed_fr(shop_fr, youssef, sara, stdout=self.stdout)
-
-        shop_fr.catalog_kind = 'products'
+        shop_fr.catalog_kind = 'both'
         shop_fr.fulfillment_mode = 'on_site'
         if shop_fr.onboarding_completed_at is None:
             shop_fr.onboarding_completed_at = timezone.now()
         shop_fr.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
+
+        run_seed_fr(shop_fr, youssef, sara, stdout=self.stdout)
 
         # ── Messages WhatsApp boutique FR ────────────────────────────
         if not PreparedMessage.objects.filter(shop=shop_fr).exists():

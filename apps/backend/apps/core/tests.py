@@ -411,6 +411,24 @@ class SeedDataTest(TestCase):
         )
         self.assertTrue(low.exists())
 
+    def test_fr_shop_is_both_on_site(self):
+        """La boutique FR est catalog_kind='both' et fulfillment_mode='on_site'."""
+        shop = self._shop("La Boutique de Youssef")
+        self.assertEqual(shop.catalog_kind, "both")
+        self.assertEqual(shop.fulfillment_mode, "on_site")
+
+    def test_fr_shop_has_no_prepared_order(self):
+        """Boutique on_site : aucune commande 'prepared' (statut absent du parcours)."""
+        shop = self._shop("La Boutique de Youssef")
+        self.assertFalse(Order.objects.filter(shop=shop, status="prepared").exists())
+
+    def test_fr_shop_has_service_product(self):
+        """La boutique FR a au moins un produit de type service actif."""
+        shop = self._shop("La Boutique de Youssef")
+        self.assertTrue(
+            Product.objects.filter(shop=shop, type="service", is_active=True).exists()
+        )
+
 
 def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501
     p = Product.objects.create(shop=shop, name=name)

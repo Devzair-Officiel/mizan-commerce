@@ -302,10 +302,10 @@ def _seed_special_past_orders(shop, user, sv, svc_v, by_name, today) -> list[Ord
         return _make_order(shop, user, dt(days, h, m), c, items, status, pay)
 
     return [
-        # J-1 : 1 to_prepare (impayée partielle) + 2 prepared
+        # J-1 : 3 to_prepare (dont 2 impayées)
         o(1, 10, 0, "Leila Benomar", [(sv[0], 1)], "to_prepare", Decimal("15.00")),
-        o(1, 14, 30, "Yassine Chafai", [(sv[7], 1)], "prepared"),
-        o(1, 16, 0, "Samira Harrach", [(sv[8], 2)], "prepared", "full"),
+        o(1, 14, 30, "Yassine Chafai", [(sv[7], 1)], "to_prepare"),
+        o(1, 16, 0, "Samira Harrach", [(sv[8], 2)], "to_prepare", "full"),
         # J-2
         o(2, 9, 30, "Dounia Tazi", [(sv[5], 1)], "to_prepare"),
         o(2, 15, 0, "Omar Berrada", [(sv[1], 1), (sv[2], 1)], "shipped", "full"),
@@ -427,10 +427,6 @@ def seed_reminders_fr(shop, user, customers) -> None:
 
 def run_seed_fr(shop, youssef, sara, stdout) -> None:
     """Orchestre le seeding complet de la boutique FR."""
-    # Boutique FR : parcours livraison complet (to_prepare → prepared → shipped)  # noqa: E501
-    if shop.fulfillment_mode != 'delivery':
-        shop.fulfillment_mode = 'delivery'
-        shop.save(update_fields=['fulfillment_mode', 'updated_at'])
     safe_v, svc_v = seed_products_fr(shop, youssef)
     customers = seed_customers_fr(shop)
     v_count = ProductVariant.objects.filter(shop=shop).count()
