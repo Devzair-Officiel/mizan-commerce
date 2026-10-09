@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Check, Search, X, Tag } from 'lucide-react';
+import { Plus, Check, Search, X, Tag, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { productDetailQueryOptions } from '@/lib/hooks/useProducts';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
@@ -24,7 +26,15 @@ const FILTER_KEYS = [
   { value: 'service' as PickFilter, key: 'filter_service' as const },
 ];
 
-function DesktopAddButton({ name, qty, onClick, t }: { name: string; qty: number; onClick: () => void; t: T }) {
+function DesktopAddButton({ name, qty, onClick, isLoading, t }: { name: string; qty: number; onClick: () => void; isLoading?: boolean; t: T }) {
+  if (isLoading) {
+    return (
+      <button type="button" disabled
+        className="shrink-0 w-16 h-9 rounded-full border border-border text-muted-foreground flex items-center justify-center">
+        <Loader2 size={14} className="animate-spin" />
+      </button>
+    );
+  }
   if (qty > 0) {
     return (
       <button type="button" onClick={onClick}
@@ -55,26 +65,11 @@ function DesktopProductSubtext({ p, t }: { p: Product; t: T }) {
   return null;
 }
 
-function DesktopInlineVariants({ productId, formItems, onPick, money, t, autoPickSingle, onAutoPickDone }: {
+function DesktopInlineVariants({ productId, formItems, onPick, money, t }: {
   productId: string; formItems: NewSaleForm['items'];
   onPick: (pick: VariantPick) => void; money: (v: number | string) => string; t: T;
-  autoPickSingle?: boolean; onAutoPickDone?: () => void;
 }) {
   const { data: product, isLoading } = useProduct(productId);
-
-  useEffect(() => {
-    if (!autoPickSingle || isLoading || !product) return;
-    const active = product.variants.filter((v) => v.is_active);
-    const [singleVariant] = active;
-    if (active.length !== 1 || !singleVariant) { onAutoPickDone?.(); return; }
-    const out = product.type === 'product' && parseFloat(singleVariant.stock_quantity) <= 0;
-    if (!out) {
-      onPick({ variantId: singleVariant.id, productName: product.name, variantName: singleVariant.packaging_name, productType: product.type, unitPrice: singleVariant.selling_price });
-    }
-    onAutoPickDone?.();
-  }, [autoPickSingle, isLoading, product, onPick, onAutoPickDone]);
-
-  if (autoPickSingle) return null;
 
   if (isLoading || !product) return <p className="px-5 py-3 text-xs text-muted-foreground">{t('loading')}</p>;
   const active = product.variants.filter((v) => v.is_active);
@@ -110,6 +105,8 @@ function DesktopProductRow({ p, formItems, expandedId, setExpandedId, onPick, mo
   setExpandedId: (id: string | null) => void; onPick: (pick: VariantPick) => void;
   money: (v: number | string) => string; t: T; catalogKind: string;
 }) {
+  const queryClient = useQueryClient();
+  const [addState, setAddState] = useState<'idle' | 'loading' | 'out_of_stock'>('idle');
   const totalQty = formItems.filter((i) => i.product_name === p.name).reduce((a, c) => a + c.quantity, 0);
   const priceLabel = p.min_selling_price
     ? (p.min_selling_price === p.max_selling_price
@@ -117,6 +114,48 @@ function DesktopProductRow({ p, formItems, expandedId, setExpandedId, onPick, mo
         : `${money(p.min_selling_price)} – ${money(p.max_selling_price!)}`)
     : '—';
   const isExpanded = expandedId === p.id;
+
+  useEffect(() => {
+    if (addState !== 'out_of_stock') return;
+    const timer = setTimeout(() => setAddState('idle'), 3000);
+    return () => clearTimeout(timer);
+  }, [addState]);
+
+  async function handleAddClick() {
+    if (p.variant_count > 1) {
+      setExpandedId(isExpanded ? null : p.id);
+      return;
+    }
+    if (addState === 'loading') return;
+    const existing = formItems.find((i) => i.product_name === p.name && i.variant !== null);
+    if (existing?.variant) {
+      onPick({
+        variantId: existing.variant,
+        productName: existing.product_name,
+        variantName: existing.variant_name,
+        productType: existing.product_type ?? 'product',
+        unitPrice: existing.unit_price,
+      });
+      return;
+    }
+    setAddState('loading');
+    try {
+      const detail = await queryClient.fetchQuery(productDetailQueryOptions(p.id));
+      const active = detail.variants.filter((v) => v.is_active);
+      const [single] = active;
+      if (!single) return;
+      if (detail.type === 'product' && parseFloat(single.stock_quantity) <= 0) {
+        setAddState('out_of_stock');
+        return;
+      }
+      onPick({ variantId: single.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
+    } catch {
+      // ignore network errors — user can retry
+    } finally {
+      setAddState((s) => s === 'loading' ? 'idle' : s);
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center gap-3 px-5 py-3">
@@ -132,11 +171,15 @@ function DesktopProductRow({ p, formItems, expandedId, setExpandedId, onPick, mo
           <DesktopProductSubtext p={p} t={t} />
         </div>
         <span className="shrink-0 text-sm font-semibold tabular-nums">{priceLabel}</span>
-        <DesktopAddButton name={p.name} qty={totalQty}
-          onClick={() => setExpandedId(isExpanded ? null : p.id)} t={t} />
+        <DesktopAddButton name={p.name} qty={totalQty} isLoading={addState === 'loading'}
+          onClick={handleAddClick} t={t} />
       </div>
-      {isExpanded && <DesktopInlineVariants productId={p.id} formItems={formItems} onPick={onPick} money={money} t={t}
-        autoPickSingle={p.variant_count === 1} onAutoPickDone={() => setExpandedId(null)} />}
+      {addState === 'out_of_stock' && (
+        <p className="px-5 pb-2 text-xs text-destructive">{t('out_of_stock_pick')}</p>
+      )}
+      {isExpanded && p.variant_count > 1 && (
+        <DesktopInlineVariants productId={p.id} formItems={formItems} onPick={onPick} money={money} t={t} />
+      )}
     </div>
   );
 }

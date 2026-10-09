@@ -73,7 +73,7 @@ export interface OrderCreateData {
   discount_amount?: string;
   shipping_amount?: string;
   items?: OrderItemPayload[];
-  status?: 'draft' | 'to_prepare' | 'prepared' | 'shipped';
+  status?: 'to_prepare' | 'prepared' | 'shipped';
   payment_status?: 'unpaid' | 'partial' | 'paid';
   amount_paid?: string;
 }

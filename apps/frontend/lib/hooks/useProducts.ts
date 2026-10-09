@@ -201,10 +201,16 @@ export function useProductsSummary() {
   });
 }
 
-export function useProduct(id: string) {
-  return useQuery({
+export function productDetailQueryOptions(id: string) {
+  return {
     queryKey: qk.products.detail(id),
     queryFn: () => apiFetch<ProductDetail>(`/products/${id}/`),
+  };
+}
+
+export function useProduct(id: string) {
+  return useQuery({
+    ...productDetailQueryOptions(id),
     enabled: !!id,
   });
 }

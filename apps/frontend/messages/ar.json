@@ -755,6 +755,7 @@
       "variant_count": "{count, plural, zero {لا أشكال} one {شكل واحد} two {شكلان} few {# أشكال} many {# شكل} other {# شكل}}",
       "no_variants": "لا يوجد شكل نشط.",
       "out_of_stock": "نفد",
+      "out_of_stock_pick": "نفد المخزون. أضف مخزوناً أولاً.",
       "stock_label": "المخزون: {qty}",
       "variant_formats": "{count} أحجام",
       "service_badge": "خدمة",

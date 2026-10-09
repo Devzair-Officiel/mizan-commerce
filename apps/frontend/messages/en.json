@@ -755,6 +755,7 @@
       "variant_count": "{count, plural, one {# format} other {# formats}}",
       "no_variants": "No active format.",
       "out_of_stock": "Out of stock",
+      "out_of_stock_pick": "Out of stock. Add stock first.",
       "stock_label": "Stock: {qty}",
       "variant_formats": "{count} formats",
       "service_badge": "Service",

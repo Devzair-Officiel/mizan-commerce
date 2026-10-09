@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useProduct, type ProductVariant } from '@/lib/hooks/useProducts';
@@ -17,7 +16,6 @@ interface VariantViewProps {
   productId: string;
   onBack: () => void;
   onPick: (pick: VariantPick) => void;
-  autoPickSingle?: boolean;
 }
 
 function BackButton({ onBack, label }: { onBack: () => void; label: string }) {
@@ -30,29 +28,13 @@ function BackButton({ onBack, label }: { onBack: () => void; label: string }) {
   );
 }
 
-export function VariantView({ productId, onBack, onPick, autoPickSingle }: VariantViewProps) {
+export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
   const t = useTranslations('orders.picker');
   const { data: product, isLoading } = useProduct(productId);
   const { data: shop } = useShop();
   const formatMoney = useFormatMoney();
   const currency = shop?.currency ?? 'EUR';
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
-
-  useEffect(() => {
-    if (!autoPickSingle || isLoading || !product) return;
-    const active = product.variants.filter((v) => v.is_active);
-    const [singleVariant] = active;
-    if (active.length !== 1 || !singleVariant) return;
-    if (product.type === 'product' && parseFloat(singleVariant.stock_quantity) <= 0) return;
-    onPick({ variantId: singleVariant.id, productName: product.name, variantName: singleVariant.packaging_name, productType: product.type, unitPrice: singleVariant.selling_price });
-  }, [autoPickSingle, isLoading, product, onPick]);
-
-  if (autoPickSingle) {
-    if (!product) return null;
-    const active = product.variants.filter((v) => v.is_active);
-    const [singleVariant] = active;
-    if (singleVariant && !(product.type === 'product' && parseFloat(singleVariant.stock_quantity) <= 0)) return null;
-  }
 
   if (isLoading || !product) {
     return (

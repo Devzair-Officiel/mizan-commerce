@@ -62,6 +62,7 @@ docker compose up -d
 - Pas de `default export` sauf pour les pages Next.js (où le framework l'impose).
 - Composants : **un seul composant exporté par fichier**, nom du fichier = nom du composant. Un petit sous-composant privé (icône, élément de liste, moins de ~25 lignes) peut rester dans le fichier qui l'utilise.
 - État serveur : **TanStack Query** uniquement (jamais `useEffect` + `fetch` à la main).
+- **Jamais d'action utilisateur** (ajout, enregistrement, envoi) déclenchée dans un `useEffect` : uniquement dans le gestionnaire d'événement.
 - Formulaires : **React Hook Form + Zod**. Le schéma Zod sert aussi de type TS via `z.infer<>`.
 - UI : composants shadcn/ui en priorité avant d'en créer un. Tailwind utility-first, pas de CSS custom sauf cas exceptionnel.
 - **Classes Tailwind** : préférer les classes de l'échelle (`min-h-14`, `w-18`, `h-4.5`…) aux valeurs arbitraires en px (`min-h-[56px]`, `w-[72px]`…) quand un équivalent existe. Positions logiques : `inset-s-*`/`inset-e-*` au lieu de `start-*`/`end-*` (sauf grille : `col-start-*` inchangé).

@@ -755,6 +755,7 @@
       "variant_count": "{count, plural, one {# format} other {# formats}}",
       "no_variants": "Aucun format actif.",
       "out_of_stock": "Rupture",
+      "out_of_stock_pick": "En rupture de stock. Fais d'abord une entrée de stock.",
       "stock_label": "Stock : {qty}",
       "variant_formats": "{count} formats",
       "service_badge": "Service",
