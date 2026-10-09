@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
@@ -18,8 +18,10 @@ import {
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
 import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { apiFetch } from '@/lib/api-client';
+import { isDefaultVariant } from '@/lib/products';
 
 interface EditItem {
   id?: string;
@@ -38,7 +40,7 @@ export default function EditOrderPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title={t('topbar')} />
+        <TopBar title={t('topbar')} back />
         <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
       </>
     );
@@ -46,16 +48,16 @@ export default function EditOrderPage() {
   if (!order) {
     return (
       <>
-        <TopBar title={t('topbar')} />
+        <TopBar title={t('topbar')} back />
         <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
       </>
     );
   }
-  if (order.status !== 'draft') {
+  if (!['to_prepare', 'prepared'].includes(order.status)) {
     return (
       <>
-        <TopBar title={t('topbar')} />
-        <p className="p-4 text-sm text-muted-foreground">{t('draft_only')}</p>
+        <TopBar title={t('topbar')} back />
+        <p className="p-4 text-sm text-muted-foreground">{t('read_only')}</p>
       </>
     );
   }
@@ -69,6 +71,7 @@ function EditController({ order }: { order: Order }) {
   const { data: customers } = useCustomers();
   const { data: products }  = useProducts();
   const { data: shop } = useShop();
+  const kind = useCatalogKind();
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
@@ -126,6 +129,14 @@ function EditController({ order }: { order: Order }) {
   const total     = subtotal - discountN + shippingN;
   const isPending = updateOrder.isPending || addItem.isPending || updateItem.isPending || removeItem.isPending;
 
+  const customerSelectItems = useMemo(() => {
+    const base = (customers?.results ?? []).map((c) => ({ value: c.id, label: c.name }));
+    if (order.customer && order.customer_name && !base.some((it) => it.value === order.customer)) {
+      return [...base, { value: order.customer, label: order.customer_name }];
+    }
+    return base;
+  }, [customers?.results, order.customer, order.customer_name]);
+
   async function handleSave() {
     await updateOrder.mutateAsync({
       customer: customerId || null,
@@ -149,7 +160,7 @@ function EditController({ order }: { order: Order }) {
 
   return (
     <>
-      <TopBar title={t('topbar_with_number', { number: order.order_number })} action={
+      <TopBar title={t('topbar_with_number', { number: order.order_number })} back action={
         <Button size="sm" onClick={handleSave} disabled={isPending || items.length === 0}>
           {isPending ? t('saving') : t('save')}
         </Button>
@@ -165,6 +176,7 @@ function EditController({ order }: { order: Order }) {
               value={customerId}
               onValueChange={setCustomerId}
               placeholder={t('no_customer')}
+              selectItems={customerSelectItems}
             >
               <FloatingSelectItem value="">{t('no_customer')}</FloatingSelectItem>
               {customers?.results.map((c) => (
@@ -179,10 +191,10 @@ function EditController({ order }: { order: Order }) {
           <div className="flex-1">
             <FloatingSelectBase
               id="product-picker"
-              label={t('product_picker_label')}
+              label={t('product_picker_label', { kind })}
               value=""
               onValueChange={(v) => { if (v) void addProductByDefaultVariant(v); }}
-              placeholder={t('product_picker_placeholder')}
+              placeholder={t('product_picker_placeholder', { kind })}
             >
               {products?.results.filter((p) => p.is_active).map((p) => {
                 const priceLabel = p.min_selling_price ? money(p.min_selling_price) : '—';
@@ -198,7 +210,7 @@ function EditController({ order }: { order: Order }) {
         {items.length > 0 && (
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-4 py-2.5 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('items_title')}</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('items_title', { kind })}</span>
             </div>
             <div className="divide-y divide-border">
               {items.map((item) => {
@@ -207,7 +219,7 @@ function EditController({ order }: { order: Order }) {
                   <div key={k} className="flex items-center gap-3 px-4 py-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{item.product_name}</p>
-                      {item.variant_name && item.variant_name !== 'Par défaut' && (
+                      {item.variant_name && !isDefaultVariant(item.variant_name) && (
                         <p className="text-[11px] text-muted-foreground truncate">{item.variant_name}</p>
                       )}
                     </div>

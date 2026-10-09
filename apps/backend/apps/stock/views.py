@@ -9,6 +9,7 @@ HasStockModule = HasModulePermission.for_module('stock')
 from apps.products.models import ProductVariant  # noqa: E402
 from .models import StockMovement  # noqa: E402
 from .serializers import StockMovementSerializer, StockInSerializer, StockOutSerializer  # noqa: E402
+from .services import create_movement  # noqa: E402
 
 
 class StockMovementListView(generics.ListAPIView):
@@ -47,14 +48,17 @@ class StockInView(APIView):
         except ProductVariant.DoesNotExist:
             return Response({'detail': 'Variante introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
-        movement = StockMovement.objects.create(
-            shop=shop,
-            variant=variant,
-            movement_type='in',
-            quantity=d['quantity'],
-            reason=d['reason'],
-            created_by=request.user,
-        )
+        try:
+            movement = create_movement(
+                shop=shop,
+                variant=variant,
+                movement_type='in',
+                quantity=d['quantity'],
+                reason=d['reason'],
+                created_by=request.user,
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)  # noqa: E501
 
 
@@ -79,12 +83,15 @@ class StockOutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        movement = StockMovement.objects.create(
-            shop=shop,
-            variant=variant,
-            movement_type=d['movement_type'],
-            quantity=d['quantity'],
-            reason=d['reason'],
-            created_by=request.user,
-        )
+        try:
+            movement = create_movement(
+                shop=shop,
+                variant=variant,
+                movement_type=d['movement_type'],
+                quantity=d['quantity'],
+                reason=d['reason'],
+                created_by=request.user,
+            )
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)  # noqa: E501

@@ -7,8 +7,10 @@ import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import { AlertCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { FloatingInput, FloatingSelect, FloatingTextarea } from '@/components/ui/floating-fields';
 import { ApiError } from '@/lib/api-client';
+import { DEFAULT_VARIANT_NAME } from '@/lib/products';
 import {
   UNIT_LABELS,
   type ProductDetail,
@@ -124,7 +126,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         description: values.description,
       };
       const variant: ProductVariantFormData | null = isEditing ? null : {
-        packaging_name: 'Par défaut',
+        packaging_name: DEFAULT_VARIANT_NAME,
         unit: isProduct ? (values.unit ?? 'piece') : 'piece',
         base_quantity: '1',
         selling_price: values.selling_price ?? '',
@@ -162,7 +164,7 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
   return (
     <form
       onSubmit={handleSubmit(handleValid)}
-      className="flex flex-col gap-4 p-4 pb-32 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6 lg:pb-8"
+      className="flex flex-col gap-4 p-4 pb-44 lg:max-w-2xl lg:mx-auto lg:px-8 lg:py-6 lg:pb-8"
     >
       {apiError && (
         <div
@@ -332,15 +334,16 @@ export function ProductForm({ type, defaultValues, isEditing = false, onSubmit, 
         </div>
       </CollapsibleSection>
 
-      <div className="sticky bottom-24 lg:bottom-2 -mx-4 lg:mx-0 px-4 lg:px-0 mt-2">
-        <Button
-          type="submit"
-          className="w-full rounded-full shadow-lg h-12 text-sm font-semibold"
-          disabled={!canSubmit}
-        >
+      <div className="hidden lg:block mt-2">
+        <Button type="submit" className="w-full rounded-full shadow-lg h-12 text-sm font-semibold" disabled={!canSubmit}>
           {isSubmitting ? t('saving') : isProduct ? t('submit_product') : t('submit_service')}
         </Button>
       </div>
+      <FloatingActionBar variant="button">
+        <Button type="submit" className="w-full h-12 rounded-full shadow-lg text-sm font-semibold" disabled={!canSubmit}>
+          {isSubmitting ? t('saving') : isProduct ? t('submit_product') : t('submit_service')}
+        </Button>
+      </FloatingActionBar>
     </form>
   );
 }

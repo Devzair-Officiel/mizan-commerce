@@ -7,6 +7,8 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
 import { qk } from '@/lib/query-keys';
+import { ConfirmDialog } from '@/components/ui/dialog';
+import { useMarkReminderDone } from '@/lib/hooks/useReminders';
 
 interface Reminder {
   id: string;
@@ -49,6 +51,7 @@ export default function RemindersPage() {
   const [category,    setCategory]    = useState('free');
   const [description, setDescription] = useState('');
   const [filter,      setFilter]      = useState<'pending' | 'done'>('pending');
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: qk.reminders.byFilter(filter),
@@ -67,10 +70,7 @@ export default function RemindersPage() {
 
   function invalidateAll() { qc.invalidateQueries({ queryKey: qk.reminders.all }); }
 
-  const markDone = useMutation({
-    mutationFn: (id: string) => apiFetch<Reminder>(`/reminders/${id}/done/`, { method: 'POST' }),
-    onSuccess: () => { invalidateAll(); resetForm(); },
-  });
+  const markDone = useMarkReminderDone();
   const reopen = useMutation({
     mutationFn: (id: string) => apiFetch<Reminder>(`/reminders/${id}/reopen/`, { method: 'POST' }),
     onSuccess: () => { invalidateAll(); resetForm(); },
@@ -162,13 +162,13 @@ export default function RemindersPage() {
 
           <div className="flex flex-col gap-2 mt-1">
             {editing && editing.status === 'pending' && (
-              <Button variant="outline" className="w-full text-green-600 border-green-200 hover:bg-green-50"
-                onClick={() => markDone.mutate(editing.id)} disabled={markDone.isPending}>
+              <Button variant="outline" className="w-full text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/20"
+                onClick={() => markDone.mutate(editing.id, { onSuccess: resetForm })} disabled={markDone.isPending}>
                 {markDone.isPending ? '…' : 'Marquer comme terminé'}
               </Button>
             )}
             {editing && editing.status !== 'pending' && (
-              <Button variant="outline" className="w-full text-amber-600 border-amber-200 hover:bg-amber-50"
+              <Button variant="outline" className="w-full text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/20"
                 onClick={() => reopen.mutate(editing.id)} disabled={reopen.isPending}>
                 {reopen.isPending ? '…' : 'Remettre en attente'}
               </Button>
@@ -177,15 +177,24 @@ export default function RemindersPage() {
               {isPending ? 'Enregistrement…' : editing ? 'Mettre à jour' : 'Créer le rappel'}
             </Button>
             {editing && (
-              <Button variant="outline" className="w-full text-red-500 border-red-200 hover:bg-red-50"
+              <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
                 disabled={remove.isPending}
-                onClick={() => { if (confirm('Supprimer ce rappel ?')) remove.mutate(editing.id); }}>
+                onClick={() => setConfirmRemove(true)}>
                 {remove.isPending ? 'Suppression…' : 'Supprimer le rappel'}
               </Button>
             )}
             <Button variant="outline" className="w-full" onClick={resetForm}>Annuler</Button>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={confirmRemove}
+          onOpenChange={setConfirmRemove}
+          title="Supprimer ce rappel ?"
+          onConfirm={() => { if (editing) return remove.mutateAsync(editing.id); }}
+          variant="destructive"
+          confirmLabel="Supprimer"
+        />
       </>
     );
   }
@@ -206,7 +215,16 @@ export default function RemindersPage() {
           </button>
         </div>
 
-        {isLoading && <p className="text-sm text-muted-foreground text-center py-8">Chargement…</p>}
+        {isLoading && (
+          <div className="flex flex-col gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-4">
+                <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+                <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {!isLoading && displayed.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">

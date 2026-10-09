@@ -8,7 +8,6 @@ from apps.products.models import ProductVariant
 
 class Order(models.Model):
     STATUS_CHOICES = [
-        ('draft', 'Brouillon'),
         ('to_prepare', 'À préparer'),
         ('prepared', 'Préparé'),
         ('shipped', 'Expédié'),
@@ -27,7 +26,7 @@ class Order(models.Model):
         null=True, blank=True, related_name='orders'
     )
     order_number = models.CharField(max_length=20)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to_prepare')  # noqa: E501
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')  # noqa: E501
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -56,6 +55,14 @@ class Order(models.Model):
             models.Index(fields=['shop', '-created_at']),
         ]
         ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    status__in=['to_prepare', 'prepared', 'shipped', 'cancelled'],
+                ),
+                name='orders_status_valid',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.order_number} — {self.shop}'

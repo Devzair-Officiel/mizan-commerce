@@ -33,16 +33,14 @@ export function OrderSummary({
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
 
+  const fulfillmentMode = shop?.fulfillment_mode ?? null;
   const discountN = parseFloat(discount) || 0;
   const shippingN = parseFloat(shipping) || 0;
   const showAddLine =
-    (!showDiscount && discountN === 0) || (!showShipping && shippingN === 0);
+    (!showDiscount && discountN === 0) || (!showShipping && shippingN === 0 && fulfillmentMode !== 'on_site');
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-border">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('summary_title')}</span>
-      </div>
       <div className="flex flex-col">
         <SummaryRow label={t('subtotal')}>
           <span className="text-sm font-medium text-foreground tabular-nums">{money(subtotal)}</span>
@@ -82,7 +80,7 @@ export function OrderSummary({
                 {t('add_discount')}
               </button>
             )}
-            {!showShipping && shippingN === 0 && (
+            {!showShipping && shippingN === 0 && fulfillmentMode !== 'on_site' && (
               <button
                 type="button"
                 onClick={onShowShipping}
@@ -111,7 +109,7 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function SummaryAmountInput({
+export function SummaryAmountInput({
   value, onChange, ariaLabel, clearAriaLabel, currencySymbol, onClear,
 }: {
   value: string;

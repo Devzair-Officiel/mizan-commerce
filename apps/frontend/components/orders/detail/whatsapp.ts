@@ -5,7 +5,6 @@ type MoneyFmt = (v: string | number, currency: string, opts?: Intl.NumberFormatO
 type DateFmt = (v: string | number | Date, opts?: Intl.DateTimeFormatOptions) => string;
 
 const STATUS_KEY: Record<string, string> = {
-  draft:      'status_draft',
   to_prepare: 'status_to_prepare',
   prepared:   'status_prepared',
   shipped:    'status_shipped',

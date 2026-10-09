@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Order } from '@/lib/hooks/useOrders';
 
 interface OrderItemsCardProps {
@@ -18,6 +19,7 @@ export function OrderItemsCard({
 }: OrderItemsCardProps) {
   const t = useTranslations('orders.items');
   const { data: shop } = useShop();
+  const kind = useCatalogKind();
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
@@ -30,14 +32,14 @@ export function OrderItemsCard({
       <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {t('title')}
+            {t('title', { kind })}
           </h2>
           <span className="text-xs text-zinc-400 tabular-nums">
             {t('unit_count', { count: itemCount })}
           </span>
         </div>
         {order.items.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-zinc-400">{t('empty')}</p>
+          <p className="px-4 py-6 text-center text-sm text-zinc-400">{t('empty', { kind })}</p>
         ) : (
           <ul className="divide-y divide-zinc-100">
             {order.items.map((item) => (

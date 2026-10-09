@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Pencil, Trash2 } from 'lucide-react';
 import { ApiError } from '@/lib/api-client';
@@ -8,6 +9,7 @@ import {
   type ProductVariant,
 } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 interface VariantRowProps {
   variant: ProductVariant;
@@ -23,16 +25,16 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
   const currency = shop?.currency ?? 'EUR';
   const currencySymbol = currency === 'EUR' ? '€' : currency;
   const del = useDeleteProductVariant(productId);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function handleDelete() {
-    if (!confirm(t('confirm_remove', { name: variant.packaging_name }))) return;
     try {
       await del.mutateAsync(variant.id);
     } catch (err) {
-      const msg = err instanceof ApiError && typeof err.data === 'object' && err.data !== null
-        ? (err.data as { detail?: string }).detail ?? t('remove_failed')
-        : t('remove_failed');
-      alert(msg);
+      const detail = err instanceof ApiError && typeof err.data === 'object' && err.data !== null
+        ? (err.data as { detail?: string }).detail
+        : undefined;
+      throw new Error(detail ?? t('remove_failed'));
     }
   }
 
@@ -45,6 +47,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
   const unitPrice = formatUnitPrice(variant.selling_price, variant.base_quantity, variant.unit);
 
   return (
+    <>
     <div className="flex items-start gap-3 px-4 py-3">
       <div className="flex-1 min-w-0 flex flex-col gap-1">
         <div className="flex items-center gap-2 min-w-0">
@@ -79,22 +82,22 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
         {unitPrice && (
           <span className="text-[11px] text-muted-foreground tabular-nums">{unitPrice}</span>
         )}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onEdit}
             aria-label={t('edit_aria')}
-            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <Pencil size={14} />
           </button>
           {canDelete && (
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               aria-label={t('remove_aria')}
               disabled={del.isPending}
-              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
+              className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
             >
               <Trash2 size={14} />
             </button>
@@ -102,5 +105,14 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      open={confirmDelete}
+      onOpenChange={setConfirmDelete}
+      title={t('confirm_remove', { name: variant.packaging_name })}
+      onConfirm={handleDelete}
+      variant="destructive"
+      confirmLabel="Supprimer"
+    />
+    </>
   );
 }

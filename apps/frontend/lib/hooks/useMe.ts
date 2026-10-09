@@ -6,7 +6,7 @@ import type { ThemeMode } from '@/lib/themes';
 export type ShopRole = 'owner' | 'admin' | 'staff';
 
 export type CatalogKind = 'products' | 'services' | 'both';
-export type DashboardMode = 'minimal' | 'complete';
+export type FulfillmentMode = 'on_site' | 'delivery' | 'both' | null;
 
 export type ModuleKey =
   | 'products'
@@ -30,7 +30,7 @@ export interface Membership {
   is_admin: boolean;
   permissions: ModuleKey[];
   catalog_kind: CatalogKind;
-  dashboard_mode: DashboardMode;
+  fulfillment_mode: FulfillmentMode;
   onboarding_completed_at: string | null;
 }
 
@@ -44,6 +44,8 @@ export interface Me {
   theme_mode: ThemeMode | null;
   primary_color: string | null;
   background_theme: string | null;
+  primary_color_custom_hex: string | null;
+  background_custom_hex: string | null;
   membership: Membership | null;
 }
 
@@ -53,11 +55,17 @@ export interface MeUpdateData {
   theme_mode?: ThemeMode;
   primary_color?: string;
   background_theme?: string;
+  primary_color_custom_hex?: string;
+  background_custom_hex?: string;
 }
 
 export type AppearancePreferencesUpdate = Pick<
   MeUpdateData,
-  'theme_mode' | 'primary_color' | 'background_theme'
+  | 'theme_mode'
+  | 'primary_color'
+  | 'background_theme'
+  | 'primary_color_custom_hex'
+  | 'background_custom_hex'
 >;
 
 export interface ChangePasswordData {

@@ -79,7 +79,17 @@ class OrderListSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)  # noqa: E501
-    item_count = serializers.IntegerField(source='items.count', read_only=True)
+    item_count = serializers.SerializerMethodField()
+    items_preview = serializers.SerializerMethodField()
+
+    def get_item_count(self, obj: Order) -> int:
+        return len(obj.items.all())
+
+    def get_items_preview(self, obj: Order) -> list:
+        return [
+            {'name': item.product_name, 'quantity': item.quantity}
+            for item in list(obj.items.all())[:3]
+        ]
 
     class Meta:
         model = Order
@@ -88,7 +98,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             'payment_status', 'payment_status_display',
             'customer', 'customer_name',
             'total_amount', 'amount_paid',
-            'item_count', 'created_at',
+            'item_count', 'items_preview', 'created_at',
         )
 
 
@@ -99,7 +109,7 @@ class OrderCreateSerializer(serializers.Serializer):
     shipping_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)  # noqa: E501
     items = OrderItemCreateSerializer(many=True, required=True)
     status = serializers.ChoiceField(
-        choices=['draft', 'to_prepare', 'prepared', 'shipped'], required=False, default='draft',  # noqa: E501
+        choices=['to_prepare', 'shipped'], required=False, default='to_prepare',
     )
     payment_status = serializers.ChoiceField(
         choices=['unpaid', 'partial', 'paid'], required=False, default='unpaid',
@@ -126,7 +136,7 @@ class OrderItemQuantitySerializer(serializers.Serializer):
 
 
 class StatusTransitionSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=['draft', 'to_prepare', 'prepared', 'shipped', 'cancelled'])  # noqa: E501
+    status = serializers.ChoiceField(choices=['to_prepare', 'prepared', 'shipped', 'cancelled'])  # noqa: E501
 
 
 class PaymentUpdateSerializer(serializers.Serializer):

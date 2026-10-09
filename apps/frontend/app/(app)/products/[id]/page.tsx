@@ -11,6 +11,7 @@ import { ActionRow } from '@/components/products/detail/ActionRow';
 import { HeroCard } from '@/components/products/detail/HeroCard';
 import { StatsGrid } from '@/components/products/detail/StatsGrid';
 import { ProductDetailSkeleton } from '@/components/products/detail/Skeleton';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import {
   useProduct,
   useDeactivateProduct,
@@ -31,6 +32,7 @@ export default function ProductDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -45,19 +47,19 @@ export default function ProductDetailPage() {
   }
 
   async function handleDeactivate() {
-    if (!confirm(t('confirm_deactivate'))) return;
     await deactivate.mutateAsync(id);
     router.push('/products');
   }
 
-  if (isLoading) return <><TopBar title={t('title')} /><ProductDetailSkeleton /></>;
-  if (!product) return <><TopBar title={t('title')} /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
+  const type = product?.type ?? 'product';
+  if (isLoading) return <><TopBar title={t('title', { type: 'product' })} back /><ProductDetailSkeleton /></>;
+  if (!product) return <><TopBar title={t('title', { type: 'product' })} back /><p className="p-4 text-sm text-destructive">{t('not_found', { type: 'product' })}</p></>;
 
   const isProduct = product.type === 'product';
 
   return (
     <>
-      <TopBar title={product.name} />
+      <TopBar title={product.name} back />
 
       <BottomSheet open={showMore} onClose={() => setShowMore(false)} title={tHero('more_actions')}>
         <div className="flex flex-col gap-1.5">
@@ -80,16 +82,16 @@ export default function ProductDetailPage() {
           {product.is_active ? (
             <ActionRow
               icon={<PowerOff size={18} />}
-              label={tActions('deactivate')}
-              description={tActions('deactivate_helper')}
-              onClick={async () => { setShowMore(false); await handleDeactivate(); }}
+              label={tActions('deactivate', { type })}
+              description={tActions('deactivate_helper', { type })}
+              onClick={() => { setShowMore(false); setConfirmDeactivate(true); }}
               disabled={deactivate.isPending}
               tone="danger"
             />
           ) : (
             <ActionRow
               icon={<Power size={18} />}
-              label={tActions('reactivate')}
+              label={tActions('reactivate', { type })}
               onClick={async () => { setShowMore(false); await reactivate.mutateAsync(id); }}
               disabled={reactivate.isPending}
               tone="success"
@@ -118,6 +120,14 @@ export default function ProductDetailPage() {
         <StatsGrid product={product} />
 
         <VariantsManager product={product} />
+
+        <ConfirmDialog
+          open={confirmDeactivate}
+          onOpenChange={setConfirmDeactivate}
+          title={t('confirm_deactivate', { type })}
+          onConfirm={handleDeactivate}
+          variant="destructive"
+        />
 
         {product.description && (
           <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">

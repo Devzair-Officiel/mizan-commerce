@@ -1,5 +1,6 @@
 import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin  # noqa: E501
+from django.core.validators import RegexValidator
 from django.db import models
 
 
@@ -12,8 +13,8 @@ class UserManager(BaseUserManager):
         # valeurs applicatives. Les lignes historiques restent nulles via la
         # migration et peuvent ainsi importer leur ancien thème local.
         extra_fields.setdefault('theme_mode', 'system')
-        extra_fields.setdefault('primary_color', 'mint')
-        extra_fields.setdefault('background_theme', 'default')
+        extra_fields.setdefault('primary_color', 'sage')
+        extra_fields.setdefault('background_theme', 'cream')
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -55,16 +56,19 @@ class User(AbstractBaseUser, PermissionsMixin):
             ('amber', 'Ambre'),
             ('forest', 'Forêt'),
             ('mint', 'Menthe'),
+            ('sage', 'Sauge'),
             ('cyan', 'Cyan'),
             ('slate', 'Ardoise'),
             ('taupe', 'Taupe'),
             ('charcoal', 'Anthracite'),
+            ('custom', 'Personnalisée'),
         )
     ]
 
     BACKGROUND_THEME_CHOICES = [
         (value, label) for value, label in (
             ('default', 'Défaut'),
+            ('cream', 'Crème'),
             ('warm', 'Chaud'),
             ('sky', 'Ciel'),
             ('blush', 'Blush'),
@@ -76,6 +80,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             ('sage', 'Sauge'),
             ('peach', 'Pêche'),
             ('lilac', 'Lilas'),
+            ('custom', 'Personnalisée'),
         )
     ]
 
@@ -100,6 +105,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     background_theme = models.CharField(
         max_length=20, choices=BACKGROUND_THEME_CHOICES, null=True, blank=True,
+    )
+    primary_color_custom_hex = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(  # noqa: E501
+            r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #3b82f6.',
+        )],
+    )
+    background_custom_hex = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(  # noqa: E501
+            r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #ffffff.',
+        )],
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

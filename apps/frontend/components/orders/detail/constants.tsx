@@ -1,18 +1,12 @@
 import {
-  ArrowRight, CreditCard, FileEdit, Flag, ListChecks, PackageCheck,
+  ArrowRight, CreditCard, Flag, ListChecks, PackageCheck,
   StickyNote, Truck, XCircle,
 } from 'lucide-react';
 import type { OrderActivityEvent } from '@/lib/hooks/useOrders';
 
 export interface StatusConfig { icon: React.ReactNode; badge: string }
 
-export const STATUS_DRAFT: StatusConfig = {
-  icon: <FileEdit size={15} />,
-  badge: 'bg-zinc-100 text-zinc-600',
-};
-
 export const STATUS_CONFIG: Record<string, StatusConfig> = {
-  draft:      STATUS_DRAFT,
   to_prepare: { icon: <ListChecks size={15} />,   badge: 'bg-blue-100 text-blue-700' },
   prepared:   { icon: <PackageCheck size={15} />, badge: 'bg-amber-100 text-amber-700' },
   shipped:    { icon: <Truck size={15} />,        badge: 'bg-green-100 text-green-700' },
@@ -31,7 +25,7 @@ export const PAYMENT_PILL: Record<string, string> = {
   paid:    'bg-green-50 text-green-700 border border-green-100',
 };
 
-export type NextStepKey = 'draft' | 'to_prepare' | 'prepared';
+export type NextStepKey = 'to_prepare' | 'prepared';
 
 export interface NextStep {
   key: NextStepKey;
@@ -41,42 +35,30 @@ export interface NextStep {
   btnClass: string;
 }
 
-export const NEXT_STEP: Record<string, NextStep | null> = {
-  draft: {
-    key: 'draft',
-    next: 'to_prepare',
-    icon: <ListChecks size={18} />,
-    accent: 'bg-blue-50 text-blue-700 border border-blue-100',
-    btnClass: 'bg-blue-600 hover:bg-blue-700 text-white',
-  },
-  to_prepare: {
-    key: 'to_prepare',
-    next: 'prepared',
-    icon: <PackageCheck size={18} />,
-    accent: 'bg-amber-50 text-amber-700 border border-amber-100',
-    btnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
-  },
-  prepared: {
-    key: 'prepared',
-    next: 'shipped',
-    icon: <Truck size={18} />,
-    accent: 'bg-green-50 text-green-700 border border-green-100',
-    btnClass: 'bg-green-600 hover:bg-green-700 text-white',
-  },
-  shipped: null,
-  cancelled: null,
-};
+export function getNextStep(status: string, fm: string | null): NextStep | null {
+  if (status === 'to_prepare') {
+    return fm === 'delivery'
+      ? { key: 'to_prepare', next: 'prepared', icon: <PackageCheck size={18} />, accent: 'bg-amber-50 text-amber-700 border border-amber-100', btnClass: 'bg-amber-500 hover:bg-amber-600 text-white' }
+      : { key: 'to_prepare', next: 'shipped', icon: <Truck size={18} />, accent: 'bg-green-50 text-green-700 border border-green-100', btnClass: 'bg-green-600 hover:bg-green-700 text-white' };
+  }
+  if (status === 'prepared') {
+    return { key: 'prepared', next: 'shipped', icon: <Truck size={18} />, accent: 'bg-green-50 text-green-700 border border-green-100', btnClass: 'bg-green-600 hover:bg-green-700 text-white' };
+  }
+  return null;
+}
 
-export type RevertKey = 'to_prepare' | 'prepared' | 'shipped' | 'cancelled';
+export type RevertKey = 'prepared' | 'shipped' | 'cancelled';
 
-export const REVERT_TRANSITION: Record<string, { status: string; key: RevertKey }> = {
-  to_prepare: { status: 'draft',      key: 'to_prepare' },
-  prepared:   { status: 'to_prepare', key: 'prepared' },
-  shipped:    { status: 'prepared',   key: 'shipped' },
-  cancelled:  { status: 'draft',      key: 'cancelled' },
-};
+export function getRevertTransition(status: string, fm: string | null): { status: string; key: RevertKey } | null {
+  if (status === 'prepared') return { status: 'to_prepare', key: 'prepared' };
+  if (status === 'shipped') return fm === 'delivery'
+    ? { status: 'prepared', key: 'shipped' }
+    : { status: 'to_prepare', key: 'prepared' };
+  if (status === 'cancelled') return { status: 'to_prepare', key: 'cancelled' };
+  return null;
+}
 
-export const STATUS_ALLOWS_CANCEL = new Set(['draft', 'to_prepare', 'prepared']);
+export const STATUS_ALLOWS_CANCEL = new Set(['to_prepare', 'prepared']);
 
 export type ActivityEventDisplay = {
   icon: React.ReactNode;

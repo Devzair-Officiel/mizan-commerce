@@ -7,8 +7,12 @@ import {
   BACKGROUNDS,
   PRIMARY_STORAGE_KEY,
   BG_STORAGE_KEY,
+  PRIMARY_CUSTOM_HEX_KEY,
+  BG_CUSTOM_HEX_KEY,
   DEFAULT_PRIMARY_ID,
   DEFAULT_BG_ID,
+  DEFAULT_PRIMARY_CUSTOM_HEX,
+  DEFAULT_BG_CUSTOM_HEX,
   applyThemeVars,
   type PrimaryColorDef,
   type BackgroundDef,
@@ -17,8 +21,12 @@ import {
 interface ColorThemeContextType {
   primaryId: string;
   bgId: string;
+  primaryCustomHex: string;
+  bgCustomHex: string;
   setPrimaryId: (id: string) => void;
   setBgId: (id: string) => void;
+  setPrimaryCustomHex: (hex: string) => void;
+  setBgCustomHex: (hex: string) => void;
   primaryColors: PrimaryColorDef[];
   backgrounds: BackgroundDef[];
 }
@@ -59,10 +67,20 @@ export function ColorThemeProvider({ children }: { children: ReactNode }) {
     () => readStorage(BG_STORAGE_KEY, DEFAULT_BG_ID),
     () => DEFAULT_BG_ID,
   );
+  const primaryCustomHex = useSyncExternalStore(
+    subscribeThemeStore,
+    () => readStorage(PRIMARY_CUSTOM_HEX_KEY, DEFAULT_PRIMARY_CUSTOM_HEX),
+    () => DEFAULT_PRIMARY_CUSTOM_HEX,
+  );
+  const bgCustomHex = useSyncExternalStore(
+    subscribeThemeStore,
+    () => readStorage(BG_CUSTOM_HEX_KEY, DEFAULT_BG_CUSTOM_HEX),
+    () => DEFAULT_BG_CUSTOM_HEX,
+  );
 
   useEffect(() => {
-    applyThemeVars(primaryId, bgId, resolvedTheme === 'dark');
-  }, [primaryId, bgId, resolvedTheme]);
+    applyThemeVars(primaryId, bgId, resolvedTheme === 'dark', primaryCustomHex, bgCustomHex);
+  }, [primaryId, bgId, resolvedTheme, primaryCustomHex, bgCustomHex]);
 
   const setPrimaryId = useCallback((id: string) => {
     localStorage.setItem(PRIMARY_STORAGE_KEY, id);
@@ -74,8 +92,22 @@ export function ColorThemeProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   }, []);
 
+  const setPrimaryCustomHex = useCallback((hex: string) => {
+    localStorage.setItem(PRIMARY_CUSTOM_HEX_KEY, hex);
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+  }, []);
+
+  const setBgCustomHex = useCallback((hex: string) => {
+    localStorage.setItem(BG_CUSTOM_HEX_KEY, hex);
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+  }, []);
+
   return (
-    <ColorThemeContext.Provider value={{ primaryId, bgId, setPrimaryId, setBgId, primaryColors: PRIMARY_COLORS, backgrounds: BACKGROUNDS }}>
+    <ColorThemeContext.Provider value={{
+      primaryId, bgId, primaryCustomHex, bgCustomHex,
+      setPrimaryId, setBgId, setPrimaryCustomHex, setBgCustomHex,
+      primaryColors: PRIMARY_COLORS, backgrounds: BACKGROUNDS,
+    }}>
       {children}
     </ColorThemeContext.Provider>
   );

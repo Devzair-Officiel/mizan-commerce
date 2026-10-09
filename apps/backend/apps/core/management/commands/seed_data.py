@@ -1,10 +1,10 @@
 """
 Seed l'environnement de développement avec des données réalistes.
-Idempotente : relancer ne crée pas de doublons (django_get_or_create sur les factories).
+Idempotente : relancer ne crée pas de doublons (get_or_create sur les factories).
 
 Usage :
     docker compose exec backend python manage.py seed_data
-    docker compose exec backend python manage.py seed_data --reset  # vide d'abord les tables métier
+    docker compose exec backend python manage.py seed_data --reset
 """  # noqa: E501
 
 from django.core.management.base import BaseCommand
@@ -35,6 +35,8 @@ class Command(BaseCommand):
         from apps.stock.models import StockMovement
         from apps.customers.models import Customer
         from apps.subscriptions.models import Subscription, SubscriptionPlan
+        from ._seed_fr import run_seed_fr
+        from ._seed_services import run_seed_services
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
             """Pose un abonnement déterministe sur la boutique. Idempotent."""
@@ -43,35 +45,15 @@ class Command(BaseCommand):
             Subscription.objects.update_or_create(
                 shop=shop,
                 defaults={
-                    'plan': plan,
-                    'status': status,
-                    'current_period_start': now,
-                    'current_period_end': period_end,
+                    "plan": plan,
+                    "status": status,
+                    "current_period_start": now,
+                    "current_period_end": period_end,
                 },
             )
-
-        def seed_product(*, shop, name, packaging_name='Par défaut', unit='piece',
-                         selling_price, purchase_price=None, low_stock_threshold=None, sku=''):  # noqa: E501
-            """Crée un Product + sa variante par défaut. Idempotent sur (shop, name)."""
-            product, _ = Product.objects.get_or_create(shop=shop, name=name)
-            ProductVariant.objects.get_or_create(
-                product=product, packaging_name=packaging_name,
-                defaults={
-                    'shop': shop,
-                    'unit': unit,
-                    'base_quantity': 1,
-                    'selling_price': selling_price,
-                    'purchase_price': purchase_price,
-                    'low_stock_threshold': low_stock_threshold,
-                    'sku': sku,
-                    'position': 0,
-                    'is_active': True,
-                },
-            )
-            return product
 
         from apps.orders.models import Order, OrderItem
-        from apps.notes.models import Note
+        from apps.notes.models import Note, Reminder
         from apps.ocr.models import OcrResult, UploadedDocument
         from apps.comms.models import PreparedMessage
         from apps.public_pages.models import (
@@ -82,8 +64,12 @@ class Command(BaseCommand):
         )
 
         if options["reset"]:
-            from apps.products.models import ProductVariant
-            from apps.loyalty.models import LoyaltyCard, LoyaltyProgram, LoyaltyTransaction  # noqa: E501
+            from apps.loyalty.models import (
+                LoyaltyCard,
+                LoyaltyProgram,
+                LoyaltyTransaction,
+            )
+
             LoyaltyTransaction.objects.all().delete()
             LoyaltyCard.objects.all().delete()
             LoyaltyProgram.objects.all().delete()
@@ -94,6 +80,8 @@ class Command(BaseCommand):
             PreparedMessage.objects.all().delete()
             OcrResult.objects.all().delete()
             UploadedDocument.objects.all().delete()
+            Reminder.objects.all().delete()
+            Note.objects.all().delete()
             OrderItem.objects.all().delete()
             Order.objects.all().delete()
             StockMovement.objects.all().delete()
@@ -102,12 +90,18 @@ class Command(BaseCommand):
             Customer.objects.all().delete()
             self.stdout.write(self.style.WARNING("  Tables métier vidées."))
 
-        self.stdout.write(self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n"))  # noqa: E501
+        self.stdout.write(
+            self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n")
+        )
 
         # ── Superadmin ──────────────────────────────────────────────
         admin, created = User.objects.get_or_create(
             email="admin@mizan.dev",
-            defaults={"is_staff": True, "is_superuser": True, "full_name": "Admin Mizan"},  # noqa: E501
+            defaults={
+                "is_staff": True,
+                "is_superuser": True,
+                "full_name": "Admin Mizan",
+            },
         )
         if created:
             admin.set_password("Admin1234!")
@@ -123,17 +117,20 @@ class Command(BaseCommand):
             phone="+33601020304",
             password="Mizan1234!",
         )
-        shop_fr = ShopFactory(name="La Boutique de Youssef", currency="EUR", country="FR")  # noqa: E501
+        shop_fr = ShopFactory(
+            name="La Boutique de Youssef", currency="EUR", country="FR"
+        )
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
-        # Commerçant établi → Pro actif. Le trial a déjà été consommé.
-        seed_subscription(shop=shop_fr, plan_code=SubscriptionPlan.CODE_PRO,
-                          status=Subscription.STATUS_ACTIVE)
+        seed_subscription(
+            shop=shop_fr,
+            plan_code=SubscriptionPlan.CODE_PRO,
+            status=Subscription.STATUS_ACTIVE,
+        )
         if youssef.trial_consumed_at is None:
             youssef.trial_consumed_at = timezone.now()
-            youssef.save(update_fields=['trial_consumed_at', 'updated_at'])
+            youssef.save(update_fields=["trial_consumed_at", "updated_at"])
         self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Pro)")
 
-        # Employé de la boutique FR — accès produits / commandes / clients / stock
         sara = UserFactory(
             email="sara@example.com",
             full_name="Sara Naji",
@@ -148,70 +145,18 @@ class Command(BaseCommand):
         )
         self.stdout.write(f"    + Staff : {sara.email} (4 modules)")
 
-        products_fr = [
-            seed_product(shop=shop_fr, name="Chemise en lin blanc",
-                         purchase_price="12.50", selling_price="29.99",
-                         low_stock_threshold=3, sku="CHE-LIN-001"),
-            seed_product(shop=shop_fr, name="Pantalon chino beige",
-                         purchase_price="18.00", selling_price="44.99",
-                         low_stock_threshold=2, sku="PAN-CHI-002"),
-            seed_product(shop=shop_fr, name="Sandales cuir naturel",
-                         purchase_price="22.00", selling_price="59.90",
-                         low_stock_threshold=2, sku="SAN-CUI-003"),
-            seed_product(shop=shop_fr, name="Ceinture tressée marron",
-                         purchase_price="8.00", selling_price="19.99",
-                         low_stock_threshold=5, sku="CEI-TRE-004"),
-            seed_product(shop=shop_fr, name="Sac en toile naturelle",
-                         purchase_price="14.00", selling_price="35.00",
-                         low_stock_threshold=3, sku="SAC-TOI-005"),
-        ]
-        stock_qtys_fr = [15, 8, 6, 20, 2]  # SAC-TOI-005 à 2 < seuil 3 → stock faible
-        for product, qty in zip(products_fr, stock_qtys_fr):
-            variant = product.variants.first()
-            if variant and not variant.stock_movements.exists():
-                StockMovementFactory(
-                    shop=shop_fr, variant=variant,
-                    movement_type="in", quantity=qty,
-                    reason="Stock initial — seeding",
-                    created_by=youssef,
-                )
+        shop_fr.catalog_kind = 'both'
+        shop_fr.fulfillment_mode = 'on_site'
+        if shop_fr.onboarding_completed_at is None:
+            shop_fr.onboarding_completed_at = timezone.now()
+        shop_fr.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
 
-        customers_fr = [
-            ("Karima Bensouda", "+33612345678", "Lyon", "Cliente fidèle depuis 2 ans."),
-            ("Hamza Tazi", "+33698765432", "Paris", ""),
-            ("Nadia El Fassi", "+33655443322", "Marseille", "Préfère la livraison en point relais."),  # noqa: E501
-        ]
-        for name, phone, city, notes in customers_fr:
-            CustomerFactory(shop=shop_fr, name=name, phone=phone, city=city, country="FR", notes=notes)  # noqa: E501
+        run_seed_fr(shop_fr, youssef, sara, stdout=self.stdout)
 
-        self.stdout.write(f"    → {len(products_fr)} produits, {len(customers_fr)} clients")  # noqa: E501
-
-        # Commandes boutique FR
-        from apps.orders import services as order_services
-        if not Order.objects.filter(shop=shop_fr).exists():
-            karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
-            o1 = order_services.create_order(shop_fr, youssef, customer=karima, shipping=Decimal('5.00'))  # noqa: E501
-            order_services.add_item(o1, products_fr[0].variants.first(), 2)
-            order_services.add_item(o1, products_fr[3].variants.first(), 1)
-            order_services.transition_status(o1, 'to_prepare', youssef)
-            order_services.update_payment(o1, o1.total_amount)
-
-            o2 = order_services.create_order(shop_fr, youssef)
-            order_services.add_item(o2, products_fr[1].variants.first(), 1)
-            order_services.add_item(o2, products_fr[2].variants.first(), 1)
-            Note.objects.create(shop=shop_fr, order=o2, author=youssef, content='Livraison urgente')  # noqa: E501
-
-            o3 = order_services.create_order(shop_fr, youssef, customer=karima)
-            order_services.add_item(o3, products_fr[4].variants.first(), 3)
-            order_services.transition_status(o3, 'to_prepare', youssef)
-            order_services.transition_status(o3, 'prepared', youssef)
-            order_services.update_payment(o3, Decimal('50.00'))
-            self.stdout.write("    → 3 commandes créées")
-
-        # Messages WhatsApp préparés boutique FR
+        # ── Messages WhatsApp boutique FR ────────────────────────────
         if not PreparedMessage.objects.filter(shop=shop_fr).exists():
-            karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
-            hamza = Customer.objects.get(shop=shop_fr, name='Hamza Tazi')
+            karima = Customer.objects.get(shop=shop_fr, name="Karima Bensouda")
+            hamza = Customer.objects.get(shop=shop_fr, name="Hamza Tazi")
             PreparedMessage.objects.create(
                 shop=shop_fr,
                 customer=karima,
@@ -250,61 +195,112 @@ class Command(BaseCommand):
             phone="+212661234567",
             password="Mizan1234!",
         )
-        shop_ma = ShopFactory(name="Boutique Chraibi — Casablanca", currency="MAD", country="MA")  # noqa: E501
+        shop_ma = ShopFactory(
+            name="Boutique Chraibi — Casablanca", currency="MAD", country="MA"
+        )
         ShopMemberFactory(shop=shop_ma, user=amira, role="owner")
-        # Commerçante récente → en essai 14j Boutique+ (URS-100).
         seed_subscription(
-            shop=shop_ma, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            shop=shop_ma,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
             status=Subscription.STATUS_TRIALING,
             period_end=timezone.now() + timedelta(days=14),
         )
         if amira.trial_consumed_at is None:
             amira.trial_consumed_at = timezone.now()
-            amira.save(update_fields=['trial_consumed_at', 'updated_at'])
+            amira.save(update_fields=["trial_consumed_at", "updated_at"])
         self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name} (essai Boutique+ 14j)")
 
+        def seed_product_ma(
+            *, name, selling_price, purchase_price, low_stock_threshold, sku
+        ):
+            product, _ = Product.objects.get_or_create(shop=shop_ma, name=name)
+            ProductVariant.objects.get_or_create(
+                product=product,
+                packaging_name="Par défaut",
+                defaults={
+                    "shop": shop_ma,
+                    "unit": "piece",
+                    "base_quantity": 1,
+                    "selling_price": Decimal(str(selling_price)),
+                    "purchase_price": Decimal(str(purchase_price)),
+                    "low_stock_threshold": Decimal(str(low_stock_threshold)),
+                    "sku": sku,
+                    "position": 0,
+                    "is_active": True,
+                },
+            )
+            return product
+
         products_ma = [
-            seed_product(shop=shop_ma, name="Caftan brodé bleu nuit",
-                         purchase_price="180.00", selling_price="450.00",
-                         low_stock_threshold=1, sku="CAF-BRO-001"),
-            seed_product(shop=shop_ma, name="Djellaba femme ivoire",
-                         purchase_price="90.00", selling_price="220.00",
-                         low_stock_threshold=2, sku="DJE-FEM-002"),
-            seed_product(shop=shop_ma, name="Babouche artisanale dorée",
-                         purchase_price="40.00", selling_price="95.00",
-                         low_stock_threshold=3, sku="BAB-ART-003"),
+            seed_product_ma(
+                name="Caftan brodé bleu nuit",
+                selling_price="450.00",
+                purchase_price="180.00",
+                low_stock_threshold=1,
+                sku="CAF-BRO-001",
+            ),
+            seed_product_ma(
+                name="Djellaba femme ivoire",
+                selling_price="220.00",
+                purchase_price="90.00",
+                low_stock_threshold=2,
+                sku="DJE-FEM-002",
+            ),
+            seed_product_ma(
+                name="Babouche artisanale dorée",
+                selling_price="95.00",
+                purchase_price="40.00",
+                low_stock_threshold=3,
+                sku="BAB-ART-003",
+            ),
         ]
         stock_qtys_ma = [3, 5, 12]
         for product, qty in zip(products_ma, stock_qtys_ma):
             variant = product.variants.first()
             if variant and not variant.stock_movements.exists():
                 StockMovementFactory(
-                    shop=shop_ma, variant=variant,
-                    movement_type="in", quantity=qty,
+                    shop=shop_ma,
+                    variant=variant,
+                    movement_type="in",
+                    quantity=qty,
                     reason="Stock initial — seeding",
                     created_by=amira,
                 )
 
         customers_ma = [
             ("Zineb Alaoui", "+212662345678", "Rabat", ""),
-            ("Sofia Benali", "+212673456789", "Marrakech", "Commande souvent pour des occasions spéciales."),  # noqa: E501
+            (
+                "Sofia Benali",
+                "+212673456789",
+                "Marrakech",
+                "Commande souvent pour des occasions spéciales.",
+            ),
         ]
         for name, phone, city, notes in customers_ma:
-            CustomerFactory(shop=shop_ma, name=name, phone=phone, city=city, country="MA", notes=notes)  # noqa: E501
+            CustomerFactory(
+                shop=shop_ma,
+                name=name,
+                phone=phone,
+                city=city,
+                country="MA",
+                notes=notes,
+            )
+        self.stdout.write(
+            f"    → {len(products_ma)} produits, {len(customers_ma)} clients"
+        )
 
-        self.stdout.write(f"    → {len(products_ma)} produits, {len(customers_ma)} clients")  # noqa: E501
+        from apps.orders import services as order_services
 
         if not Order.objects.filter(shop=shop_ma).exists():
-            zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
+            zineb = Customer.objects.get(shop=shop_ma, name="Zineb Alaoui")
             o4 = order_services.create_order(shop_ma, amira, customer=zineb)
             order_services.add_item(o4, products_ma[0].variants.first(), 1)
-            order_services.transition_status(o4, 'to_prepare', amira)
-            order_services.update_payment(o4, Decimal('200.00'))
+            order_services.advance_order_to(o4, "to_prepare", amira)
+            order_services.update_payment(o4, Decimal("200.00"))
             self.stdout.write("    → 1 commande créée")
 
-        # Messages WhatsApp préparés boutique MA
         if not PreparedMessage.objects.filter(shop=shop_ma).exists():
-            sofia = Customer.objects.get(shop=shop_ma, name='Sofia Benali')
+            sofia = Customer.objects.get(shop=shop_ma, name="Sofia Benali")
             PreparedMessage.objects.create(
                 shop=shop_ma,
                 customer=sofia,
@@ -321,82 +317,146 @@ class Command(BaseCommand):
             )
             self.stdout.write("    → 1 message WhatsApp préparé")
 
+        # ── Boutique 3 — Vide (démo état initial) ───────────────────
+        vide = UserFactory(
+            email="vide@example.com",
+            full_name="Boutique Neuve",
+            password="Mizan1234!",
+        )
+        shop_vide = ShopFactory(name="Boutique Neuve", currency="EUR", country="FR")
+        ShopMemberFactory(shop=shop_vide, user=vide, role="owner")
+        seed_subscription(
+            shop=shop_vide,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            status=Subscription.STATUS_TRIALING,
+            period_end=timezone.now() + timedelta(days=14),
+        )
+        if vide.trial_consumed_at is None:
+            vide.trial_consumed_at = timezone.now()
+            vide.save(update_fields=["trial_consumed_at", "updated_at"])
+        # Onboarding terminé → atterrit sur l'accueil vide (pas le wizard)
+        if shop_vide.onboarding_completed_at is None:
+            shop_vide.onboarding_completed_at = timezone.now()
+            shop_vide.save(update_fields=["onboarding_completed_at", "updated_at"])
+        # Email non vérifié : email_verified_at reste None → bandeau de confirmation
+        self.stdout.write(
+            f"  ✓ Boutique VIDE : {shop_vide.name} (essai Boutique+ 14j, email non vérifié)"  # noqa: E501
+        )
+
+        # ── Boutique 4 — Samira (Services, EUR) ─────────────────────
+        samira = UserFactory(
+            email='services@example.com',
+            full_name='Samira Oukassi',
+            phone='+33699887766',
+            password='Mizan1234!',
+        )
+        shop_services = ShopFactory(name='Atelier Samira', currency='EUR', country='FR')
+        ShopMemberFactory(shop=shop_services, user=samira, role='owner')
+        seed_subscription(
+            shop=shop_services,
+            plan_code=SubscriptionPlan.CODE_PRO,
+            status=Subscription.STATUS_ACTIVE,
+        )
+        if samira.trial_consumed_at is None:
+            samira.trial_consumed_at = timezone.now()
+            samira.save(update_fields=['trial_consumed_at', 'updated_at'])
+        shop_services.catalog_kind = 'services'
+        shop_services.fulfillment_mode = None
+        if shop_services.onboarding_completed_at is None:
+            shop_services.onboarding_completed_at = timezone.now()
+        shop_services.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
+        self.stdout.write(f'  ✓ Boutique Services : {shop_services.name}')
+        run_seed_services(shop_services, samira, stdout=self.stdout)
+
         # ── Pages publiques ─────────────────────────────────────────
-        # Boutique FR : page active et publiée, avec sections, contacts et catalogue.
         page_fr, fr_created = PublicPage.objects.get_or_create(
             shop=shop_fr,
             defaults={
-                'slug': 'boutique-youssef',
-                'is_active': True,
-                'is_published': True,
-                'display_name': shop_fr.name,
-                'tagline': 'Mode artisanale, élégance simple.',
-                'description': (
+                "slug": "boutique-youssef",
+                "is_active": True,
+                "is_published": True,
+                "display_name": shop_fr.name,
+                "tagline": "Mode artisanale, élégance simple.",
+                "description": (
                     "Bienvenue dans la boutique de Youssef. Chemises en lin, "
                     "pantalons chino, accessoires en cuir : des pièces choisies "
                     "pour durer et bien tomber."
                 ),
-                'theme': PublicPage.THEME_CLASSIC,
-                'primary_color': '#0ea5e9',
+                "theme": PublicPage.THEME_CLASSIC,
+                "primary_color": "#0ea5e9",
             },
         )
         if fr_created:
             sections_fr = [
-                (PublicPageSection.Type.HEADER, 0, ''),
-                (PublicPageSection.Type.DESCRIPTION, 1, ''),
-                (PublicPageSection.Type.PRODUCTS, 2, ''),
-                (PublicPageSection.Type.SERVICES, 3, ''),
-                (PublicPageSection.Type.CONTACT, 4, ''),
+                (PublicPageSection.Type.HEADER, 0, ""),
+                (PublicPageSection.Type.DESCRIPTION, 1, ""),
+                (PublicPageSection.Type.PRODUCTS, 2, ""),
+                (PublicPageSection.Type.SERVICES, 3, ""),
+                (PublicPageSection.Type.CONTACT, 4, ""),
             ]
             for section_type, position, content in sections_fr:
                 PublicPageSection.objects.create(
-                    page=page_fr, type=section_type, position=position, content=content,
+                    page=page_fr,
+                    type=section_type,
+                    position=position,
+                    content=content,
                 )
-            for position, product in enumerate(products_fr[:4]):
+            products_fr_first4 = list(
+                Product.objects.filter(shop=shop_fr).order_by("created_at")[:4]
+            )
+            for position, product in enumerate(products_fr_first4):
                 PublicCatalogVisibility.objects.create(
-                    page=page_fr, product=product, position=position,
+                    page=page_fr,
+                    product=product,
+                    position=position,
                     badge_new=(position == 0),
                 )
             ContactButton.objects.create(
-                page=page_fr, type=ContactButton.Type.WHATSAPP,
-                value=youssef.phone, is_primary=True, position=0,
+                page=page_fr,
+                type=ContactButton.Type.WHATSAPP,
+                value=youssef.phone,
+                is_primary=True,
+                position=0,
             )
             ContactButton.objects.create(
-                page=page_fr, type=ContactButton.Type.PHONE,
-                value=youssef.phone, position=1,
+                page=page_fr,
+                type=ContactButton.Type.PHONE,
+                value=youssef.phone,
+                position=1,
             )
             self.stdout.write(f"  ✓ Page publique : /boutique/{page_fr.slug}")
 
-        # Boutique MA : page créée mais en brouillon (active mais non publiée).
         page_ma, ma_created = PublicPage.objects.get_or_create(
             shop=shop_ma,
             defaults={
-                'slug': 'boutique-chraibi',
-                'is_active': True,
-                'is_published': False,
-                'display_name': shop_ma.name,
-                'tagline': 'L\'élégance marocaine, brodée main.',
-                'theme': PublicPage.THEME_MODERN,
-                'primary_color': '#b45309',
+                "slug": "boutique-chraibi",
+                "is_active": True,
+                "is_published": False,
+                "display_name": shop_ma.name,
+                "tagline": "L'élégance marocaine, brodée main.",
+                "theme": PublicPage.THEME_MODERN,
+                "primary_color": "#b45309",
             },
         )
         if ma_created:
             PublicPageSection.objects.create(
-                page=page_ma, type=PublicPageSection.Type.HEADER, position=0,
+                page=page_ma,
+                type=PublicPageSection.Type.HEADER,
+                position=0,
             )
-            self.stdout.write(f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}")  # noqa: E501
+            self.stdout.write(
+                f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}"
+            )
 
-        # ── OCR : facture fournisseur en attente (démo, pas de vrai upload S3) ──
-        # Le seeding ne pousse pas de binaire vers l'Object Storage : on utilise
-        # un object_key fictif, purement destiné à l'exploration de l'UI.
+        # ── OCR ─────────────────────────────────────────────────────
         if not UploadedDocument.objects.filter(shop=shop_fr).exists():
             demo_doc = UploadedDocument.objects.create(
                 shop=shop_fr,
                 uploaded_by_user=youssef,
                 document_type=UploadedDocument.DOCUMENT_TYPE_SUPPLIER_INVOICE,
-                object_key=f'ocr/{shop_fr.pk}/supplier-invoices/seed-demo.jpg',
-                original_filename='facture-fournisseur-demo.jpg',
-                mime_type='image/jpeg',
+                object_key=f"ocr/{shop_fr.pk}/supplier-invoices/seed-demo.jpg",
+                original_filename="facture-fournisseur-demo.jpg",
+                mime_type="image/jpeg",
                 size_bytes=245_678,
             )
             OcrResult.objects.create(
@@ -404,29 +464,63 @@ class Command(BaseCommand):
                 uploaded_document=demo_doc,
                 status=OcrResult.STATUS_PENDING,
             )
-            self.stdout.write("    → 1 document OCR (pending, object_key fictif)")
+            self.stdout.write("    → 1 document OCR (pending)")
 
         # ── Loyalty ─────────────────────────────────────────────────
         from apps.loyalty.factories import LoyaltyProgramFactory
         from apps.loyalty import services as loyalty_services
 
-        LoyaltyProgramFactory(shop=shop_fr, is_active=True, points_per_unit=1, redemption_threshold=100)  # noqa: E501
-        LoyaltyProgramFactory(shop=shop_ma, is_active=True, points_per_unit=2, redemption_threshold=150)  # noqa: E501
+        LoyaltyProgramFactory(
+            shop=shop_fr, is_active=True, points_per_unit=1, redemption_threshold=100
+        )
+        LoyaltyProgramFactory(
+            shop=shop_ma, is_active=True, points_per_unit=2, redemption_threshold=150
+        )
 
-        karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
+        karima = Customer.objects.get(shop=shop_fr, name="Karima Bensouda")
         card_karima = loyalty_services.get_or_create_card(shop_fr, karima)
         if card_karima.total_points_earned == 0:
-            loyalty_services.earn_points(card_karima, 80, created_by=youssef, note='Achat chemise et ceinture')  # noqa: E501
-            loyalty_services.earn_points(card_karima, 35, created_by=youssef, note='Achat sac × 3')  # noqa: E501
+            loyalty_services.earn_points(
+                card_karima, 80, created_by=youssef, note="Achat chemise et ceinture"
+            )
+            loyalty_services.earn_points(
+                card_karima, 35, created_by=youssef, note="Achat sac × 3"
+            )
 
-        zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
+        zineb = Customer.objects.get(shop=shop_ma, name="Zineb Alaoui")
         card_zineb = loyalty_services.get_or_create_card(shop_ma, zineb)
         if card_zineb.total_points_earned == 0:
-            loyalty_services.earn_points(card_zineb, 100, created_by=amira, note='Achat caftan brodé')  # noqa: E501
+            loyalty_services.earn_points(
+                card_zineb, 100, created_by=amira, note="Achat caftan brodé"
+            )
 
-        self.stdout.write("  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)")  # noqa: E501
+        self.stdout.write(
+            "  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)"
+        )
+
+        # ── Récapitulatif ────────────────────────────────────────────
+        from apps.orders.models import Order as Ord
+
+        fr_orders = Ord.objects.filter(shop=shop_fr)
+        fr_status = {
+            s: fr_orders.filter(status=s).count()
+            for s in ("to_prepare", "prepared", "shipped", "cancelled")
+        }
+        fr_unpaid = (
+            fr_orders.filter(payment_status__in=("unpaid", "partial"))
+            .exclude(status="cancelled")
+            .count()
+        )
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
-        self.stdout.write("  youssef@example.com / Mizan1234!")
-        self.stdout.write("  amira@example.ma    / Mizan1234!")
-        self.stdout.write("  admin@mizan.dev     / Admin1234!")
+        self.stdout.write("  Comptes :")
+        self.stdout.write("    youssef@example.com / Mizan1234!  (Pro actif)")
+        self.stdout.write("    sara@example.com    / Mizan1234!  (Staff FR)")
+        self.stdout.write("    amira@example.ma    / Mizan1234!  (essai Boutique+ MA)")
+        self.stdout.write(
+            "    vide@example.com    / Mizan1234!  (essai Boutique+, accueil vide)"
+        )
+        self.stdout.write("    services@example.com / Mizan1234!  (Pro actif, services)")  # noqa: E501
+        self.stdout.write("    admin@mizan.dev     / Admin1234!  (superadmin)")
+        self.stdout.write(f"  Boutique FR — commandes : {fr_status}")
+        self.stdout.write(f"  Boutique FR — impayées/partielles actives : {fr_unpaid}")

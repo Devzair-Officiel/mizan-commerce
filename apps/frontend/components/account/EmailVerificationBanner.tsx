@@ -21,13 +21,13 @@ export function EmailVerificationBanner() {
       : 'Confirmez votre adresse email pour sécuriser votre compte.';
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-100 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-100">
-      {justVerified ? (
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-400" aria-hidden />
-      ) : (
-        <MailWarning className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
-      )}
-      <p className="flex-1 font-medium leading-tight">{message}</p>
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/60">
+        {justVerified
+          ? <CheckCircle2 className="h-4 w-4 text-emerald-700 dark:text-emerald-400" aria-hidden />
+          : <MailWarning className="h-4 w-4 text-amber-700 dark:text-amber-400" aria-hidden />}
+      </span>
+      <p className="flex-1 text-sm font-semibold text-foreground leading-tight">{message}</p>
       {!justVerified && (
         <Button
           type="button"

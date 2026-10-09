@@ -15,7 +15,10 @@
       "error_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
       "no_account": "ليس لديك حساب؟",
       "signup_link": "إنشاء حساب",
-      "forgot_password_link": "نسيت كلمة المرور؟"
+      "forgot_password_link": "نسيت كلمة المرور؟",
+      "headline_lead": "مرحباً",
+      "headline_accent": "بعودتك",
+      "subtitle": "سجّل الدخول لإدارة متجرك."
     },
     "register": {
       "title": "إنشاء حساب",
@@ -27,10 +30,19 @@
       "shop_name_required": "اسم المتجر مطلوب",
       "password_min": "8 أحرف على الأقل",
       "error_generic": "حدث خطأ. يرجى التحقق من معلوماتك.",
+      "error_email_taken": "هذا البريد الإلكتروني مستخدم بالفعل.",
+      "error_password_weak": "كلمة المرور هذه ليست قوية بما يكفي.",
+      "error_recaptcha": "فشل التحقق من الروبوت. يرجى المحاولة مجدداً.",
       "have_account": "لديك حساب بالفعل؟",
       "signin_link": "تسجيل الدخول",
       "check_email_title": "تحقق من بريدك الإلكتروني",
-      "check_email_body": "تم إرسال رابط تفعيل إلى عنوان بريدك الإلكتروني. انقر على الرابط لتفعيل حسابك."
+      "check_email_body": "تم إرسال رابط تفعيل إلى عنوان بريدك الإلكتروني. انقر على الرابط لتفعيل حسابك.",
+      "headline_lead": "أنشئ متجرك في",
+      "headline_accent": "دقيقتين",
+      "subtitle": "تجربة مجانية لباقة Boutique+ لمدة 14 يوماً، دون بطاقة بنكية.",
+      "trust_line": "لا حاجة إلى بطاقة بنكية، ويمكنك الإلغاء في أي وقت",
+      "password_placeholder": "8 أحرف على الأقل",
+      "shop_name_placeholder": "مثال: بقالة البركة"
     },
     "forgotPassword": {
       "title": "نسيت كلمة المرور",
@@ -38,7 +50,11 @@
       "submit": "إرسال الرابط",
       "submitting": "جاري الإرسال…",
       "error_generic": "حدث خطأ. يرجى المحاولة مرة أخرى.",
-      "sent": "إذا كان هناك حساب مرتبط بهذا البريد الإلكتروني، فقد تم إرسال رابط لإعادة التعيين."
+      "sent": "إذا كان هناك حساب مرتبط بهذا البريد الإلكتروني، فقد تم إرسال رابط لإعادة التعيين.",
+      "headline_lead": "استعد الوصول",
+      "headline_accent": "إلى حسابك",
+      "subtitle": "أدخل بريدك الإلكتروني وسنرسل إليك رابطاً لإعادة تعيين كلمة المرور.",
+      "sent_title": "تحقّق من بريدك الإلكتروني"
     },
     "resetPassword": {
       "title": "كلمة مرور جديدة",
@@ -50,13 +66,22 @@
       "submitting": "جاري الحفظ…",
       "done": "تم إعادة تعيين كلمة المرور بنجاح.",
       "signin_cta": "تسجيل الدخول",
-      "invalid_link": "رابط غير صالح."
+      "invalid_link": "رابط غير صالح.",
+      "headline_lead": "اختر",
+      "headline_accent": "كلمة مرور جديدة",
+      "subtitle": "أدخل كلمة مرور من 8 أحرف على الأقل.",
+      "done_title": "تم تحديث كلمة المرور",
+      "invalid_link_title": "رابط غير صالح"
     },
     "verifyEmail": {
       "title": "التحقق من البريد الإلكتروني",
       "loading": "جاري التحقق…",
       "success": "تم التحقق من بريدك الإلكتروني. يمكنك الآن تسجيل الدخول.",
-      "signin_cta": "تسجيل الدخول"
+      "signin_cta": "تسجيل الدخول",
+      "headline_lead": "جارٍ التحقق من",
+      "headline_accent": "بريدك الإلكتروني",
+      "success_title": "تم التحقق من بريدك الإلكتروني",
+      "error_title": "رابط غير صالح"
     }
   },
   "layout": {
@@ -71,7 +96,8 @@
       "appearance": "المظهر",
       "shop_fallback": "ميزان كوميرس",
       "light_mode": "الوضع الفاتح",
-      "dark_mode": "الوضع الداكن"
+      "dark_mode": "الوضع الداكن",
+      "confirm_leave": "المغادرة دون حفظ؟ سيتم فقدان ما أدخلته."
     },
     "nav": {
       "dashboard": "الرئيسية",
@@ -86,10 +112,18 @@
       "settings": "إعدادات المتجر",
       "stock_in": "إدخال مخزون",
       "stock_out": "إخراج مخزون",
-      "new_sale": "بيع جديد"
+      "new_sale": "طلب جديد",
+      "stock": "المخزون",
+      "group_sell": "البيع",
+      "group_catalog": "الكتالوج",
+      "group_track": "المتابعة",
+      "articles": "العناصر",
+      "catalogue": "الفهرس",
+      "services": "الخدمات",
+      "articles_and_services": "المنتجات والخدمات"
     },
     "breadcrumb": {
-      "products": "المنتجات",
+      "products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
       "customers": "العملاء",
       "orders": "الطلبات",
       "settings": "الإعدادات",
@@ -104,37 +138,43 @@
       "orders_edit": "تعديل الطلب",
       "customers_new": "عميل جديد",
       "customers_edit": "تعديل العميل",
-      "products_new": "منتج جديد",
-      "products_edit": "تعديل المنتج"
+      "products_new": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {منتج أو خدمة جديدة}}",
+      "products_edit": "{kind, select, products {تعديل المنتج} services {تعديل الخدمة} other {تعديل}}"
     },
     "bottomNav": {
-      "quick_actions": "إجراءات سريعة",
-      "quick_actions_sub": "اختر ما تريد إنشاءه",
-      "close_menu": "إغلاق القائمة",
-      "new_customer": "عميل جديد",
-      "new_customer_sub": "تسجيل جهة اتصال",
-      "new_order": "طلب جديد",
-      "new_order_sub": "إنشاء عملية بيع",
-      "new_product": "منتج جديد",
-      "new_product_sub": "إضافة منتج أو خدمة"
+      "sell": "بيع"
     },
     "burgerMenu": {
       "activity_section": "النشاط",
-      "account_section": "الحساب"
+      "account_section": "الحساب",
+      "role_owner": "مالك",
+      "role_admin": "مدير",
+      "role_staff": "عضو"
     },
     "search": {
       "title": "بحث",
-      "placeholder": "ابحث عن منتج أو عميل أو طلب…",
-      "aria_label": "ابحث عن منتج أو عميل أو طلب",
+      "placeholder": "ابحث عن طلب، عميل…",
+      "aria_label": "ابحث عن طلب، عميل",
       "close": "إغلاق البحث",
       "min_chars": "اكتب حرفين على الأقل للبحث.",
       "searching": "جاري البحث…",
-      "no_results": "لا توجد نتائج لـ «\u00a0{query}\u00a0».",
-      "section_products": "المنتجات",
+      "no_results": "لا توجد نتائج لـ « {query} ».",
+      "section_products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
       "section_customers": "العملاء",
       "section_orders": "الطلبات",
       "out_of_stock": "نفد المخزون",
-      "formats": "{count, plural, one {# نمط} other {# أنماط}}"
+      "formats": "{count, plural, one {# نمط} other {# أنماط}}",
+      "clear": "مسح",
+      "cancel": "إلغاء",
+      "see_more": "عرض {count} نتيجة",
+      "create_customer": "إنشاء عميل « {name} »",
+      "quick_actions": "إجراءات سريعة",
+      "qa_new_order": "طلب جديد",
+      "qa_new_customer": "عميل جديد",
+      "qa_new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {إضافة}}",
+      "qa_to_prepare": "طلبات للتجهيز",
+      "qa_to_prepare_count": "طلبات للتجهيز ({count})",
+      "qa_unpaid": "غير مدفوعة"
     },
     "orderStatus": {
       "draft": "مسودة",
@@ -154,12 +194,30 @@
       "background": "الخلفية",
       "background_desc": "لون خلفية التطبيق",
       "switch_to_light": "التبديل إلى الوضع الفاتح",
-      "switch_to_dark": "التبديل إلى الوضع الداكن"
+      "switch_to_dark": "التبديل إلى الوضع الداكن",
+      "custom_label": "مخصص",
+      "primary_color_picker_title": "اللون الرئيسي",
+      "background_picker_title": "خلفية مخصصة",
+      "apply": "تطبيق"
     },
     "guard": {
       "forbidden_title": "تم رفض الوصول",
       "forbidden_body": "لا تملك الصلاحيات اللازمة للوصول إلى هذه الصفحة. تواصل مع مدير المتجر إذا احتجت إلى ذلك.",
       "back_home": "العودة إلى الرئيسية"
+    },
+    "trial": {
+      "banner_expired": "انتهت تجربة Boutique+. انتقل إلى خطة مدفوعة لاستعادة جميع الميزات.",
+      "banner_expired_cta": "عرض الخطط",
+      "banner_today": "تنتهي تجربة Boutique+ اليوم.",
+      "banner_tomorrow": "تنتهي تجربة Boutique+ غداً.",
+      "banner_days": "تنتهي تجربة Boutique+ خلال {days} أيام.",
+      "banner_cta": "إدارة",
+      "card_days": "{days, plural, =0 {تنتهي اليوم} one {يوم واحد متبقٍ} other {# أيام متبقية}}",
+      "card_expired": "انتهت التجربة",
+      "card_expired_cta": "عرض الخطط",
+      "card_cta": "ترقية",
+      "menu_trial_title": "تجربة Boutique+",
+      "menu_trial_sub": "{days, plural, =0 {تنتهي اليوم} one {يوم واحد متبقٍ} other {# أيام متبقية}} — إدارة الاشتراك"
     }
   },
   "dashboard": {
@@ -168,55 +226,106 @@
     "error_title": "خطأ في التحميل",
     "error_no_shop": "لا يوجد متجر مرتبط بهذا الحساب.",
     "error_server": "تعذر الاتصال بالخادم.",
-    "fresh": {
-      "refresh_aria": "تحديث",
-      "refreshing": "جاري التحديث…",
-      "just_now": "الآن",
-      "minutes_ago": "منذ {count} د",
-      "hours_ago": "منذ {count} س",
-      "days_ago": "منذ {count} ي"
-    },
-    "kpi": {
-      "revenue_today": "الإيرادات",
-      "sales": "المبيعات",
-      "avg_ticket": "متوسط الفاتورة",
-      "today_label": "اليوم",
-      "delta_same": "= البارحة",
-      "delta_change": "{sign}{pct}٪ مقارنة بالأمس"
-    },
-    "sparkline": {
-      "title": "الإيرادات — آخر 7 أيام",
-      "bar_tooltip": "{revenue} — {date}"
-    },
-    "sections": {
-      "to_prepare_title": "قيد التحضير",
-      "to_prepare_empty": "كل شيء محدث",
-      "to_prepare_empty_sub": "لا توجد طلبات للتحضير.",
-      "unpaid_title": "مدفوعات معلقة",
-      "unpaid_empty": "لا توجد مستحقات",
-      "unpaid_empty_sub": "جميع المدفوعات محدثة.",
-      "low_stock_title": "مخزون منخفض",
-      "low_stock_empty": "المخزون جيد",
-      "low_stock_empty_sub": "لا يوجد منتج نفد أو تحت الحد الأدنى.",
-      "reminders_title": "تذكيرات اليوم",
-      "reminders_empty": "لا توجد تذكيرات",
-      "reminders_empty_sub": "لا شيء مجدول اليوم."
-    },
-    "rows": {
-      "see_all": "عرض الكل ({count}) →",
-      "out_of_stock": "نفد المخزون",
-      "remaining": "بقي {qty}"
-    },
-    "zakat_banner": {
-      "title": "{days, plural, =0 {الزكاة اليوم} one {الزكاة بعد # يوم} other {الزكاة بعد # أيام}}",
-      "sub": "تحضير حساب الزكاة السنوية."
-    },
-    "shortcuts": {
-      "new_order": "طلب جديد",
+    "counters": {
+      "revenue": "إيرادات اليوم",
       "orders": "الطلبات",
-      "articles": "المقالات",
-      "customers": "العملاء"
-    }
+      "unpaid": "المستحقات",
+      "low_stock": "مخزون منخفض",
+      "revenue_delta_same": "= البارحة",
+      "revenue_delta": "{sign}{pct}٪ مقارنة بالأمس",
+      "low_stock_out": "{count} نفد مخزونه",
+      "section_today": "مهام اليوم",
+      "prepare_sub": "طلبات، الأقدم {age}",
+      "unpaid_sub": "{count, plural, one {# طلب} other {# طلبات}} معلّقة",
+      "low_stock_sub": "منها {count} نفد",
+      "reminders_next": "اليوم، التالي في {time}",
+      "reminders_late": "{count} متأخر",
+      "low_stock_unit": "منتجات"
+    },
+    "prepare": {
+      "title": "طلبات قيد التحضير",
+      "oldest_age": "الأقدم: {age}",
+      "empty": "كل شيء محدث",
+      "empty_sub": "لا توجد طلبات للتحضير.",
+      "see_all": "عرض {count} طلب →",
+      "see_all_link": "عرض الكل",
+      "date_today": "اليوم",
+      "date_yesterday": "أمس",
+      "payment_paid": "مدفوعة",
+      "payment_partial": "جزئي",
+      "payment_unpaid": "غير مدفوعة",
+      "no_customer": "بدون عميل"
+    },
+    "unpaid": {
+      "title": "المستحقات",
+      "total_due": "{amount} للتحصيل",
+      "empty": "لا توجد مستحقات",
+      "empty_sub": "جميع المدفوعات محدثة.",
+      "due": "متبقي {amount}",
+      "relancer": "تذكير",
+      "see_all": "عرض {count} طلب →",
+      "total_due_label": "المبلغ المستحق",
+      "order_ref": "الطلب {number}، {age}",
+      "no_customer": "بدون عميل",
+      "relancer_aria": "متابعة مع {name} على واتساب"
+    },
+    "revenue": {
+      "title": "المبيعات",
+      "aria_label": "الإيرادات خلال آخر 7 أيام",
+      "today": "اليوم",
+      "footer": "إجمالي 7 أيام: {amount}",
+      "orders_summary": "{count, plural, one {# مبيعة} other {# مبيعات}}، متوسط السلة {avg}",
+      "header_meta": "آخر 7 أيام",
+      "today_label": "اليوم",
+      "footer_label": "إجمالي 7 أيام"
+    },
+    "low_stock": {
+      "title": "مخزون منخفض",
+      "empty": "المخزون جيد",
+      "empty_sub": "لا يوجد منتج نفد أو تحت الحد الأدنى.",
+      "rupture": "نفد",
+      "remaining": "بقي {qty}",
+      "out_of_stock_sub": "{count} نفد",
+      "see_all": "عرض {count} منتج →",
+      "see_stock": "عرض المخزون",
+      "restock": "إعادة تموين"
+    },
+    "reminders": {
+      "title": "تذكيرات اليوم",
+      "empty": "لا توجد تذكيرات",
+      "empty_sub": "لا شيء مجدول اليوم.",
+      "overdue": "متأخر",
+      "mark_done_aria": "تحديد كمنجز",
+      "see_all": "عرض الكل",
+      "overdue_label": "متأخر",
+      "date_yesterday": "أمس"
+    },
+    "notice": {
+      "email_title": "تأكيد عنوان بريدك الإلكتروني",
+      "email_sub": "لتأمين حسابك.",
+      "email_cta": "إرسال الرابط",
+      "email_sent": "تم إرسال الرابط — تحقق من بريدك.",
+      "email_verified": "تم التحقق — أعد تحميل الصفحة.",
+      "email_resend": "إعادة الإرسال",
+      "zakat_title": "{days, plural, =0 {الزكاة اليوم} one {الزكاة بعد # يوم} other {الزكاة بعد # أيام}}",
+      "zakat_sub": "تحضير حساب الزكاة السنوية.",
+      "zakat_cta": "عرض"
+    },
+    "welcome": {
+      "title": "مرحباً بك في متجرك",
+      "sub": "ابدأ بتسجيل أول طلب.",
+      "cta": "طلب جديد",
+      "add_products": "{kind, select, products {أضف منتجاتك} services {أضف خدماتك} other {أضف منتجاتك}}",
+      "add_customers": "سجّل أول عملائك",
+      "products_done": "{kind, select, products {{count, plural, one {# منتج مضاف} other {# منتجات مضافة}}} services {{count, plural, one {# خدمة مضافة} other {# خدمات مضافة}}} other {{count, plural, one {# عنصر مضاف} other {# عناصر مضافة}}}}",
+      "customers_done": "{count, plural, one {# عميل مسجّل} other {# عملاء مسجّلون}}"
+    },
+    "greeting_morning": "صباح الخير",
+    "greeting_morning_named": "صباح الخير، {name}",
+    "greeting_afternoon": "مساء الخير",
+    "greeting_afternoon_named": "مساء الخير، {name}",
+    "greeting_evening": "مساء الخير",
+    "greeting_evening_named": "مساء الخير، {name}"
   },
   "customers": {
     "list": {
@@ -361,15 +470,49 @@
       "count_filtered": "{count, plural, zero {لا توجد طلبات · مُصفّى} one {طلب واحد · مُصفّى} two {طلبان · مُصفّى} few {# طلبات · مُصفّى} many {# طلبًا · مُصفّى} other {# طلب · مُصفّى}}",
       "new_order": "طلب جديد",
       "no_client": "بدون زبون",
-      "items": "{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+      "items": "{kind, select, products {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}} services {{count, plural, zero {لا خدمات} one {خدمة واحدة} two {خدمتان} few {# خدمات} many {# خدمة} other {# خدمة}}} other {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}}}",
       "empty_filtered_title": "لا توجد طلبات لهذا الفلتر",
       "empty_title": "لا توجد طلبات",
-      "empty_filtered_sub": "جرّب حالة أخرى أو ألغِ الفلتر.",
-      "empty_sub": "أنشئ طلبك الأول للبدء."
+      "empty_filtered_sub": "أزل الفلاتر لرؤية جميع طلباتك.",
+      "empty_sub": "كل عملية بيع تسجّلها تظهر هنا مع حالة التحضير والدفع.",
+      "empty_cta": "طلب جديد",
+      "load_more": "تحميل المزيد",
+      "column_number": "رقم",
+      "column_client_items": "{kind, select, products {الزبون والمنتجات} services {الزبون والخدمات} other {الزبون والمقالات}}",
+      "column_date": "التاريخ",
+      "column_preparation": "التحضير",
+      "column_payment": "الدفع",
+      "column_total": "المجموع",
+      "pagination_range": "{from}–{to} من {total}",
+      "pagination_prev": "السابقة",
+      "pagination_next": "التالية",
+      "search_placeholder": "بحث…",
+      "search_label": "البحث في الطلبات",
+      "clear_filters": "مسح الفلاتر"
+    },
+    "statusLabel": {
+      "to_prepare_products": "قيد التحضير",
+      "to_prepare_products_pl": "قيد التحضير",
+      "to_prepare_services": "مؤكَّدة",
+      "to_prepare_services_pl": "مؤكَّدة",
+      "to_prepare_both": "للمعالجة",
+      "to_prepare_both_pl": "للمعالجة",
+      "prepared": "جاهزة",
+      "prepared_pl": "جاهزة",
+      "shipped_services": "منجزة",
+      "shipped_services_pl": "منجزة",
+      "shipped_on_site": "سُلِّمت للعميل",
+      "shipped_on_site_pl": "سُلِّمت للعميل",
+      "shipped_delivery": "مُرسلة",
+      "shipped_delivery_pl": "مُرسلة",
+      "shipped_other": "مكتملة",
+      "shipped_other_pl": "مكتملة",
+      "cancelled": "ملغاة",
+      "cancelled_pl": "ملغاة",
+      "unknown": "حالة غير معروفة"
     },
     "statusFilter": {
       "all": "الكل",
-      "draft": "مسودات",
       "to_prepare": "للتحضير",
       "prepared": "جاهزة",
       "shipped": "مُرسلة",
@@ -389,7 +532,6 @@
     "alert": {
       "shipped_unpaid": "مُرسلة وغير مدفوعة",
       "to_ship": "للإرسال",
-      "old_draft": "مسودة قديمة",
       "banner_title": "{count, plural, zero {لا توجد طلبات تحتاج انتباهك} one {طلب واحد يحتاج انتباهك} two {طلبان يحتاجان انتباهك} few {# طلبات تحتاج انتباهك} many {# طلبًا تحتاج انتباهك} other {# طلب يحتاج انتباهك}}",
       "banner_active": "الفلتر مفعّل · انقر لعرض الكل",
       "banner_idle": "انقر لعرضها وحدها"
@@ -402,12 +544,12 @@
       "cancel_confirm": "إلغاء هذا الطلب؟",
       "danger_zone": "منطقة حساسة",
       "cancel_cta": "إلغاء الطلب",
-      "cancel_sub": "سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.",
+      "cancel_sub": "{kind, select, products {سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.} services {يمكن التراجع عن هذا الإجراء.} other {سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.}}",
       "invoice_error_generic": "حدث خطأ أثناء إصدار الفاتورة."
     },
     "hero": {
       "no_client": "بدون زبون",
-      "items": "{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+      "items": "{kind, select, products {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}} services {{count, plural, zero {لا خدمات} one {خدمة واحدة} two {خدمتان} few {# خدمات} many {# خدمة} other {# خدمة}}} other {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}}}",
       "remaining": "متبقّي {amount}",
       "whatsapp_cta": "إشعار الزبون",
       "call_aria": "اتصال",
@@ -417,26 +559,31 @@
       "label": "الخطوة التالية",
       "shipped_title": "تم إرسال الطلب",
       "shipped_sub": "اكتملت كل المراحل.",
-      "draft_title": "تأكيد الطلب",
-      "draft_sub": "يحجز المخزون وينتقل إلى التحضير.",
-      "draft_cta": "تأكيد الطلب",
       "to_prepare_title": "اعتبارها جاهزة",
-      "to_prepare_sub": "عندما تكون المنتجات جاهزة للإرسال.",
+      "to_prepare_sub": "{kind, select, services {عند تأكيد الخدمة مع العميل.} other {عندما تكون المنتجات جاهزة للإرسال.}}",
       "to_prepare_cta": "تعليم كجاهزة",
       "prepared_title": "اعتبارها مُرسلة",
       "prepared_sub": "عند مغادرة الطلب للمتجر.",
-      "prepared_cta": "تعليم كمُرسلة"
+      "prepared_cta": "تعليم كمُرسلة",
+      "prepared_mark": "تعليم كـ {label}",
+      "prepared_cta_mark": "{label}",
+      "shipped_title_dynamic": "{label}",
+      "action_to_prepare": "تحديد كجاهزة",
+      "action_shipped_on_site": "تحديد كمستلمة من العميل",
+      "action_shipped_services": "تحديد كمنجزة",
+      "action_shipped_delivery": "تحديد كمُرسَلة",
+      "shipped_sub_services": "تم إنجاز الخدمة.",
+      "shipped_sub_on_site": "استلم العميل طلبه."
     },
     "revert": {
-      "to_prepare": "العودة إلى مسودة",
       "prepared": "العودة إلى «للتحضير»",
       "shipped": "العودة إلى «جاهزة»",
-      "cancelled": "إعادة فتح كمسودة"
+      "cancelled": "إعادة فتح الطلب"
     },
     "items": {
-      "title": "المنتجات",
+      "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
       "unit_count": "{count, plural, zero {لا وحدات} one {وحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
-      "empty": "لا توجد منتجات.",
+      "empty": "{kind, select, products {لا توجد منتجات.} services {لا توجد خدمات.} other {لا توجد منتجات.}}",
       "unit_price_short": "{amount}/و",
       "total": "الإجمالي",
       "subtotal": "المجموع الفرعي",
@@ -505,7 +652,6 @@
     "whatsapp": {
       "hello_named": "مرحبًا {name}،",
       "hello": "مرحبًا،",
-      "status_draft": "تم تسجيل طلبك.",
       "status_to_prepare": "طلبك قيد التحضير.",
       "status_prepared": "طلبك جاهز.",
       "status_shipped": "تم إرسال طلبك.",
@@ -522,54 +668,65 @@
       "topbar": "طلب جديد",
       "section_customer": "1 · الزبون",
       "customer_required": "اختر زبونًا للمتابعة.",
-      "section_items": "2 · المنتجات والخدمات",
-      "items_required": "أضف منتجًا أو خدمة على الأقل.",
+      "no_customer_payment_warning": "بدون عميل، لن تتمكن من متابعة هذه المدفوعات.",
+      "section_items": "{kind, select, products {2 · المنتجات} services {2 · الخدمات} other {2 · المنتجات والخدمات}}",
+      "items_required": "{kind, select, products {أضف منتجًا على الأقل.} services {أضف خدمة على الأقل.} other {أضف منتجًا أو خدمة على الأقل.}}",
+      "items_empty": "{kind, select, products {لا توجد منتجات حالياً.} services {لا توجد خدمات حالياً.} other {لا توجد مقالات حالياً.}}",
       "payment_title": "الدفع",
       "payment_amount_required": "أدخل مبلغًا أكبر من 0.",
       "payment_amount_exceeds": "لا يمكن أن يتجاوز المبلغ المستلم الإجمالي.",
       "amount_received": "المبلغ المستلم",
-      "status_title": "الحالة الأولية",
-      "status_draft": "مسودة",
+      "per_unit": "للوحدة",
+      "remove_one_aria": "إزالة {name}",
       "status_to_prepare": "للتحضير",
       "status_to_process": "للمعالجة",
       "status_confirmed": "مؤكَّدة",
       "status_shipped": "مُرسلة",
       "submit_creating": "جارٍ الإنشاء…",
-      "submit_label": "إنشاء الطلب",
+      "submit_label": "تسجيل الطلب",
       "notes_label": "ملاحظات داخلية (اختياري)",
       "notes_hide_aria": "إخفاء الملاحظات",
-      "notes_show": "إضافة ملاحظة داخلية",
+      "notes_show": "+ إضافة ملاحظة",
       "summary_title": "الملخّص",
       "subtotal": "المجموع الفرعي",
       "discount": "تخفيض",
       "shipping": "رسوم",
       "total": "الإجمالي",
-      "add_discount": "+ إضافة تخفيض",
-      "add_shipping": "+ إضافة رسوم",
+      "add_discount": "+ تخفيض",
+      "add_shipping": "+ رسوم الشحن",
       "remove_aria": "إزالة {label}",
       "discount_label": "تخفيض",
       "shipping_label": "رسوم",
-      "items_title": "المنتجات والخدمات",
+      "items_title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
       "remove_item_aria": "حذف",
       "decrease_aria": "إنقاص",
       "increase_aria": "زيادة",
       "service_badge": "خدمة",
       "free_badge": "حر",
-      "unit_per": "{amount} / للوحدة"
+      "unit_per": "{amount} / للوحدة",
+      "customer_label": "الزبون",
+      "no_customer_name": "بدون زبون",
+      "no_customer_sub": "بيع في المحل",
+      "associate_customer": "إضافة زبون",
+      "remove_customer_aria": "إزالة الزبون",
+      "switch_on_site": "تحضير لاحقاً",
+      "switch_on_site_hint": "وإلا، تُسجَّل عملية البيع كمُسلَّمة للعميل.",
+      "switch_both": "تم التسليم بالفعل",
+      "switch_services": "تم الإنجاز بالفعل"
     },
     "edit": {
       "topbar": "تعديل الطلب",
       "topbar_with_number": "تعديل {number}",
       "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
-      "draft_only": "يمكن تعديل الطلبات في حالة المسودة فقط.",
+      "read_only": "لا يمكن تعديل طلب تم تسليمه أو إلغاؤه.",
       "saving": "جارٍ الحفظ…",
       "save": "حفظ",
       "customer_label": "الزبون (اختياري)",
       "no_customer": "— بدون زبون —",
-      "product_picker_label": "إضافة منتج (الإصدار الأول)",
-      "product_picker_placeholder": "اختر منتجًا…",
-      "items_title": "المنتجات",
+      "product_picker_label": "{kind, select, products {إضافة منتج (الإصدار الأول)} services {إضافة خدمة} other {إضافة منتج (الإصدار الأول)}}",
+      "product_picker_placeholder": "{kind, select, products {اختر منتجًا…} services {اختر خدمة…} other {اختر منتجًا…}}",
+      "items_title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
       "subtotal": "المجموع الفرعي",
       "discount": "تخفيض",
       "shipping": "شحن",
@@ -578,26 +735,27 @@
       "shipping_field": "شحن (اختياري)"
     },
     "picker": {
-      "product_trigger_title": "إضافة منتج أو خدمة",
+      "product_trigger_title": "{kind, select, products {إضافة منتج} services {إضافة خدمة} other {إضافة منتج أو خدمة}}",
       "product_trigger_sub": "من الفهرس أو سطر حر",
-      "product_sheet_title": "إضافة منتج أو خدمة",
-      "variant_sheet_title": "اختيار التعبئة",
+      "product_sheet_title": "{kind, select, products {إضافة منتج} services {إضافة خدمة} other {إضافة منتج أو خدمة}}",
+      "variant_sheet_title": "اختيار الشكل",
       "free_sheet_title": "سطر حر",
       "search_placeholder": "ابحث في الفهرس…",
       "search_clear_aria": "مسح البحث",
       "filter_all": "الكل",
       "filter_product": "منتجات",
       "filter_service": "خدمات",
-      "create_product": "إنشاء منتج أو خدمة",
-      "free_line_title": "منتج أو خدمة عابرة",
+      "create_product": "{kind, select, products {إنشاء منتج} services {إنشاء خدمة} other {إنشاء منتج أو خدمة}}",
+      "free_line_title": "{kind, select, products {منتج عابر} services {خدمة عابرة} other {منتج أو خدمة عابرة}}",
       "free_line_sub": "دون حفظ في الفهرس",
       "no_results": "لا نتائج.",
-      "no_products": "لا توجد منتجات مسجّلة.",
+      "no_products": "{kind, select, products {لا توجد منتجات مسجّلة.} services {لا توجد خدمات مسجّلة.} other {لا توجد منتجات مسجّلة.}}",
       "variant_back": "العودة إلى الفهرس",
       "loading": "جارٍ التحميل…",
-      "variant_count": "{count, plural, zero {لا تعبئات} one {تعبئة واحدة} two {تعبئتان} few {# تعبئات} many {# تعبئة} other {# تعبئة}}",
-      "no_variants": "لا توجد تعبئة نشطة.",
+      "variant_count": "{count, plural, zero {لا أشكال} one {شكل واحد} two {شكلان} few {# أشكال} many {# شكل} other {# شكل}}",
+      "no_variants": "لا يوجد شكل نشط.",
       "out_of_stock": "نفد",
+      "out_of_stock_pick": "نفد المخزون. أضف مخزوناً أولاً.",
       "stock_label": "المخزون: {qty}",
       "variant_formats": "{count} أحجام",
       "service_badge": "خدمة",
@@ -608,7 +766,17 @@
       "free_name_required": "الاسم مطلوب.",
       "free_price_required": "السعر مطلوب.",
       "free_qty_required": "يجب أن تكون الكمية 1 على الأقل.",
-      "free_submit": "إضافة إلى الطلب"
+      "free_submit": "إضافة إلى الطلب",
+      "add_aria": "إضافة {name}",
+      "panel_items": "{kind, select, products {العناصر} services {الخدمات} other {العناصر والخدمات}}",
+      "panel_create": "{kind, select, products {إنشاء عنصر} services {إنشاء خدمة} other {إنشاء عنصر أو خدمة}}",
+      "desktop_search_placeholder": "{kind, select, products {الاسم أو المرجع أو الباركود} services {اسم الخدمة} other {الاسم أو المرجع أو الباركود}}",
+      "free_line_desktop": "{kind, select, products {صنف طارئ، دون حفظ} services {خدمة طارئة، دون حفظ} other {صنف طارئ، دون حفظ}}",
+      "empty_catalog_title": "فهرسك فارغ",
+      "empty_catalog_text": "{kind, select, products {أنشئ البضاعة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.} services {أنشئ الخدمة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.} other {أنشئ البضاعة أو الخدمة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.}}",
+      "empty_catalog_free_question": "{kind, select, products {بضاعة لن تعيد بيعها؟} services {خدمة لن تفوترها إلا مرة واحدة؟} other {صنف أو خدمة طارئة؟}}",
+      "empty_catalog_free_link": "أضفه دون حفظ",
+      "view_cart": "{count, plural, one {عرض الطلب (# عنصر)} other {عرض الطلب (# عناصر)}}"
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",
@@ -630,30 +798,56 @@
       "customer_error": "حدث خطأ أثناء الإنشاء.",
       "customer_creating": "جارٍ الإنشاء…",
       "customer_submit": "إنشاء الزبون",
-      "product_title": "منتج أو خدمة جديدة",
+      "product_title": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {منتج أو خدمة جديدة}}",
       "type_label": "النوع",
-      "type_product": "منتج",
+      "type_product": "بضاعة",
       "type_service": "خدمة",
-      "name_label": "اسم المنتج أو الخدمة *",
+      "name_label": "الاسم",
       "name_required": "الاسم مطلوب.",
-      "price_label": "سعر البيع *",
-      "price_service": "سعر الخدمة *",
+      "price_label": "سعر البيع",
       "price_required": "سعر البيع مطلوب.",
-      "submit": "إنشاء وإضافة",
+      "submit": "إضافة إلى الطلب",
       "submitting": "جارٍ الإنشاء…",
-      "error": "حدث خطأ أثناء الإنشاء."
+      "error": "حدث خطأ أثناء الإنشاء.",
+      "name_placeholder_product": "قميص كتاني أبيض",
+      "name_placeholder_service": "تقصير بنطلون",
+      "save_helper": "{type, select, product {المخزون والأحجام والصورة تُكمَل لاحقًا.} service {الوصف يُكمَل لاحقًا.} other {سيُحفظ في الفهرس.}}",
+      "back_to_catalog": "العودة إلى الفهرس"
+    },
+    "paymentFilter": {
+      "all": "الكل",
+      "due": "للتحصيل",
+      "paid": "مدفوعة"
+    },
+    "filterSheet": {
+      "title": "تصفية",
+      "close": "إغلاق",
+      "status_title": "الحالة",
+      "payment_title": "الدفع",
+      "reset": "إعادة ضبط",
+      "apply": "عرض الطلبات"
+    },
+    "filterBar": {
+      "filters_btn": "تصفية",
+      "remove_filter": "إزالة الفلتر {name}"
     }
   },
   "articles": {
     "topbar": {
-      "title": "منتجاتي"
+      "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}"
     },
     "list": {
-      "search_placeholder": "ابحث عن منتج…",
+      "search_placeholder": "{kind, select, products {ابحث عن منتج…} services {ابحث عن خدمة…} other {ابحث عن منتج…}}",
       "clear_search": "مسح البحث",
-      "new_product": "منتج جديد",
+      "new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {إضافة}}",
       "options": "خيارات",
-      "count": "{count, plural, zero {لا يوجد منتج} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}"
+      "count": "{kind, select, products {{count, plural, one {# منتج} other {# منتجات}}} services {{count, plural, one {# خدمة} other {# خدمات}}} other {{count, plural, one {# عنصر} other {# عناصر}}}}",
+      "filter_all": "الكل",
+      "filter_product": "منتجات",
+      "filter_service": "خدمات",
+      "visibility_active": "نشطة",
+      "visibility_inactive": "غير نشطة",
+      "visibility_all": "الكل"
     },
     "stats": {
       "out_of_stock": "نفد المخزون",
@@ -663,9 +857,9 @@
       "no_results_title": "لا توجد نتائج",
       "no_results_message": "لا شيء يطابق « {term} »",
       "clear_search": "مسح البحث",
-      "title": "لا توجد منتجات",
-      "message": "أضف أول منتج أو خدمة لبدء إدارة كتالوجك.",
-      "new_product": "منتج جديد"
+      "title": "{kind, select, products {لا توجد منتجات} services {لا توجد خدمات} other {لا توجد منتجات}}",
+      "message": "{kind, select, products {أضف أول منتج لبدء إدارة كتالوجك.} services {أضف أول خدمة لبدء إدارة كتالوجك.} other {أضف أول منتج أو خدمة لبدء إدارة كتالوجك.}}",
+      "new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {منتج أو خدمة جديدة}}"
     },
     "row": {
       "inactive": "غير نشط",
@@ -673,7 +867,7 @@
       "formats": "{count, plural, zero {لا توجد صيغ} one {صيغة واحدة} two {صيغتان} few {# صيغ} many {# صيغة} other {# صيغة}}",
       "service": "خدمة",
       "out_of_stock": "نفد",
-      "low_stock_with": "مخزون منخفض · {formats}",
+      "low_stock_with": "مخزون منخفض, {formats}",
       "in_stock_with": "{formats} في المخزون"
     },
     "badges": {
@@ -709,10 +903,10 @@
       "service_subtitle": "خدمة بدون إدارة المخزون"
     },
     "detail": {
-      "title": "منتج",
-      "not_found": "المنتج غير موجود.",
+      "title": "{type, select, product {منتج} service {خدمة} other {عنصر}}",
+      "not_found": "{type, select, product {المنتج غير موجود.} service {الخدمة غير موجودة.} other {غير موجود.}}",
       "upload_error": "خطأ أثناء الرفع.",
-      "confirm_deactivate": "تعطيل هذا المنتج؟",
+      "confirm_deactivate": "{type, select, product {تعطيل هذا المنتج؟} service {تعطيل هذه الخدمة؟} other {تعطيل هذا العنصر؟}}",
       "initial_stock_reason": "المخزون الأولي",
       "no_default_variant": "الصيغة الافتراضية مفقودة.",
       "description_heading": "الوصف"
@@ -745,9 +939,9 @@
       "replace_photo": "استبدال الصورة",
       "add_photo": "إضافة صورة",
       "photo_helper": "JPEG أو PNG أو WebP — 5 ميجا كحد أقصى",
-      "deactivate": "تعطيل المنتج",
-      "deactivate_helper": "لن يظهر المنتج في القائمة",
-      "reactivate": "إعادة تفعيل المنتج"
+      "deactivate": "{type, select, product {تعطيل المنتج} service {تعطيل الخدمة} other {تعطيل}}",
+      "deactivate_helper": "{type, select, product {لن يظهر المنتج في القائمة} service {لن تظهر الخدمة في القائمة} other {لن يظهر هذا العنصر في القائمة}}",
+      "reactivate": "{type, select, product {إعادة تفعيل المنتج} service {إعادة تفعيل الخدمة} other {إعادة تفعيل}}"
     },
     "form": {
       "topbar_new_product": "منتج جديد",
@@ -960,7 +1154,7 @@
       "staff": "موظف"
     },
     "modules": {
-      "products": "المنتجات",
+      "products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
       "orders": "الطلبات",
       "customers": "العملاء",
       "payments": "المدفوعات",
@@ -1004,5 +1198,34 @@
       "update_error": "تعذّر حفظ هذه التغييرات.",
       "delete_error": "تعذّر إزالة هذا العضو."
     }
+  },
+  "ui": {
+    "close": "إغلاق",
+    "panel": "لوحة"
+  },
+  "settings": {
+    "preferences": {
+      "title": "تفضيلات متقدمة",
+      "subtitle": "نوع النشاط وطريقة الاستلام.",
+      "catalog_kind_label": "نوع النشاط",
+      "catalog_kind_products": "منتجات",
+      "catalog_kind_services": "خدمات",
+      "catalog_kind_both": "الاثنان",
+      "fulfillment_mode_label": "طريقة الاستلام",
+      "fulfillment_on_site": "في المحل",
+      "fulfillment_delivery": "توصيل",
+      "fulfillment_both": "الاثنان"
+    }
+  },
+  "onboarding": {
+    "step2_title": "كيف يستلم عملاؤك مشترياتهم؟",
+    "step2_sub": "يؤثر هذا على تسميات الحالات وخيارات الشحن.",
+    "step2_label": "طريقة الاستلام",
+    "step2_on_site_title": "في المحل",
+    "step2_on_site_desc": "الحالة النهائية: «سُلِّمت للعميل». بدون رسوم شحن.",
+    "step2_delivery_title": "توصيل",
+    "step2_delivery_desc": "الحالة النهائية: «مُرسلة». رسوم الشحن متاحة.",
+    "step2_both_title": "الاثنان",
+    "step2_both_desc": "الحالة النهائية: «مكتملة». رسوم الشحن متاحة."
   }
 }

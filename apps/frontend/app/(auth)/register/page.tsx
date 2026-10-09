@@ -77,7 +77,17 @@ function RegisterFormView() {
       body: JSON.stringify({ ...data, recaptcha_token }),
     });
     if (!res.ok) {
-      setError('root', { message: t('error_generic') });
+      const body = await res.json().catch(() => ({}));
+      const apiErrors = body?.errors ?? {};
+      if (apiErrors.email) {
+        setError('email', { message: t('error_email_taken') });
+      } else if (apiErrors.password) {
+        setError('password', { message: t('error_password_weak') });
+      } else if (apiErrors.recaptcha_token) {
+        setError('root', { message: t('error_recaptcha') });
+      } else {
+        setError('root', { message: t('error_generic') });
+      }
       return;
     }
     router.replace('/dashboard');

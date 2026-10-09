@@ -17,6 +17,7 @@ import { CustomerHeroCard } from '@/components/customers/detail/CustomerHeroCard
 import { CustomerNotesSheet } from '@/components/customers/detail/CustomerNotesSheet';
 import { CustomerStatsGrid } from '@/components/customers/detail/CustomerStatsGrid';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function CustomerDetailPage() {
   const t = useTranslations('customers.detail');
@@ -36,6 +37,7 @@ export default function CustomerDetailPage() {
   const [showAddress, setShowAddress] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [activityFilter, setActivityFilter] = useState<ActivityType | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [pendingOnly, setPendingOnly] = useState(false);
   const [nowMs] = useState(() => Date.now());
 
@@ -64,7 +66,6 @@ export default function CustomerDetailPage() {
   }, [customer, nowMs, t]);
 
   async function handleDeactivate() {
-    if (!confirm(t('deactivate_confirm'))) return;
     await deactivate.mutateAsync(id);
     router.push('/customers');
   }
@@ -85,12 +86,12 @@ export default function CustomerDetailPage() {
     try { localStorage.setItem(todayKey, '1'); } catch { /* ignore */ }
   }
 
-  if (isLoading) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
-  if (!customer) return <><TopBar title={t('topbar_short')} /><p className="p-4 text-sm text-red-500">{t('not_found')}</p></>;
+  if (isLoading) return <><TopBar title={t('topbar_short')} back /><p className="p-4 text-sm text-muted-foreground">{t('loading')}</p></>;
+  if (!customer) return <><TopBar title={t('topbar_short')} back /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 
   return (
     <>
-      <TopBar title={customer.name} />
+      <TopBar title={customer.name} back />
 
       <CustomerFlashNotification
         visible={flashVisible}
@@ -110,7 +111,7 @@ export default function CustomerDetailPage() {
         onShowAddress={() => setShowAddress(true)}
         onSchedule={handleMarquerRelancer}
         onEdit={() => router.push(`/customers/${id}/edit`)}
-        onDeactivate={handleDeactivate}
+        onDeactivate={() => setConfirmDeactivate(true)}
         onReactivate={async () => { await reactivate.mutateAsync(id); }}
       />
 
@@ -146,6 +147,14 @@ export default function CustomerDetailPage() {
           activityFilter={activityFilter}
           pendingOnly={pendingOnly}
           onFilterChange={setActivityFilter}
+        />
+
+        <ConfirmDialog
+          open={confirmDeactivate}
+          onOpenChange={setConfirmDeactivate}
+          title={t('deactivate_confirm')}
+          onConfirm={handleDeactivate}
+          variant="destructive"
         />
       </div>
     </>

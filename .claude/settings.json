@@ -10,14 +10,31 @@
             "Bash(docker compose exec -T frontend npm run test:*)",
             "Bash(docker compose exec -T frontend npm run build:*)",
             "Bash(docker compose ps:*)",
-            "Bash(docker compose logs:*)"
+            "Bash(docker compose logs:*)",
+            "Bash(docker compose up -d *)",
+            "Bash(git add *)",
+            "Bash(git commit *)",
+            "Bash(ls *)",
+            "Bash(find *)",
+            "Bash(grep *)",
+            "Bash(head *)",
+            "Bash(tail *)",
+            "Bash(wc *)"
+        ],
+        "ask": [
+            "Bash(git push *)",
+            "Bash(git reset *)",
+            "Bash(docker compose down *)",
+            "Bash(docker compose exec -T frontend npm install *)",
+            "Bash(docker compose exec backend pip install *)"
         ],
         "deny": [
             "Read(./.env*)",
             "Bash(rm -rf:*)",
             "Bash(docker compose down -v:*)",
             "Edit(./.claude/settings.json)",
-            "Edit(./.claude/hooks/*)"
+            "Edit(./.claude/hooks/*)",
+            "Read(~/.ssh/**)"
         ]
     },
     "hooks": {

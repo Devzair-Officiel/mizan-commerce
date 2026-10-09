@@ -13,7 +13,10 @@ import { isThemeMode, type ThemeMode } from '@/lib/themes';
  */
 export function useAccountTheme() {
   const { theme, setTheme } = useTheme();
-  const { primaryId, bgId, setPrimaryId, setBgId } = useColorTheme();
+  const {
+    primaryId, bgId, primaryCustomHex, bgCustomHex,
+    setPrimaryId, setBgId, setPrimaryCustomHex, setBgCustomHex,
+  } = useColorTheme();
   const updatePreferences = useUpdateAppearancePreferences();
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
@@ -43,9 +46,39 @@ export function useAccountTheme() {
     );
   }, [bgId, setBgId, updatePreferences]);
 
+  const setAccountPrimaryCustomHex = useCallback(async (hex: string): Promise<void> => {
+    const previousId = primaryId;
+    const previousHex = primaryCustomHex;
+    setPrimaryId('custom');
+    setPrimaryCustomHex(hex);
+    try {
+      await updatePreferences.mutateAsync({ primary_color: 'custom', primary_color_custom_hex: hex });
+    } catch (err) {
+      setPrimaryId(previousId);
+      setPrimaryCustomHex(previousHex);
+      throw err;
+    }
+  }, [primaryId, primaryCustomHex, setPrimaryId, setPrimaryCustomHex, updatePreferences]);
+
+  const setAccountBgCustomHex = useCallback(async (hex: string): Promise<void> => {
+    const previousId = bgId;
+    const previousHex = bgCustomHex;
+    setBgId('custom');
+    setBgCustomHex(hex);
+    try {
+      await updatePreferences.mutateAsync({ background_theme: 'custom', background_custom_hex: hex });
+    } catch (err) {
+      setBgId(previousId);
+      setBgCustomHex(previousHex);
+      throw err;
+    }
+  }, [bgId, bgCustomHex, setBgId, setBgCustomHex, updatePreferences]);
+
   return {
     setThemeMode,
     setPrimaryId: setAccountPrimaryId,
     setBgId: setAccountBgId,
+    setAccountPrimaryCustomHex,
+    setAccountBgCustomHex,
   };
 }

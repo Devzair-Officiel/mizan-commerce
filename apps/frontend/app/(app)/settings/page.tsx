@@ -29,7 +29,7 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
     default_tax_rate: shop.default_tax_rate ?? '0',
     default_payment_terms_days: String(shop.default_payment_terms_days ?? 30),
     catalog_kind: shop.catalog_kind ?? 'both',
-    dashboard_mode: shop.dashboard_mode ?? 'complete',
+    fulfillment_mode: shop.fulfillment_mode ?? null,
   };
 }
 
@@ -73,7 +73,7 @@ export default function SettingsPage() {
     <>
       <TopBar title="Paramètres boutique" />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32 max-w-3xl mx-auto w-full">
         <IdentitySection shop={shop} register={register} errors={errors} />
         <ManagementSection
           showPublicPage={can('public_pages')}

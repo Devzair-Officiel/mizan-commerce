@@ -10,6 +10,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
 import { TOGGLEABLE_MODULES, type ModuleKey } from '@/lib/hooks/useMe';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import {
   useCreateShopMember,
   useUpdateShopMember,
@@ -272,13 +273,23 @@ interface PermissionsPickerProps {
 
 function PermissionsPicker({ value, onChange }: PermissionsPickerProps) {
   const t = useTranslations('team');
+  const kind = useCatalogKind();
   const selected = useMemo(() => new Set(value), [value]);
+
+  const visibleModules = kind === 'services'
+    ? TOGGLEABLE_MODULES.filter((m) => m !== 'stock')
+    : TOGGLEABLE_MODULES;
 
   function toggle(module: ModuleKey) {
     const next = new Set(selected);
     if (next.has(module)) next.delete(module);
     else next.add(module);
     onChange(Array.from(next));
+  }
+
+  function moduleLabel(m: ModuleKey): string {
+    if (m === 'products') return t('modules.products', { kind });
+    return t(`modules.${m}` as const);
   }
 
   return (
@@ -290,7 +301,7 @@ function PermissionsPicker({ value, onChange }: PermissionsPickerProps) {
         {t('form.permissions_help')}
       </p>
       <div className="grid grid-cols-2 gap-2 pt-1">
-        {TOGGLEABLE_MODULES.map((m) => {
+        {visibleModules.map((m) => {
           const active = selected.has(m);
           return (
             <button
@@ -304,7 +315,7 @@ function PermissionsPicker({ value, onChange }: PermissionsPickerProps) {
                   : 'border-border text-foreground hover:bg-muted'
               }`}
             >
-              {t(`modules.${m}`)}
+              {moduleLabel(m)}
             </button>
           );
         })}

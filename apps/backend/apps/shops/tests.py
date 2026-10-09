@@ -73,19 +73,17 @@ class OnboardingViewTest(TestCase):
         self.client.force_authenticate(user=self.owner)
         response = self.client.post(self.url, {
             'catalog_kind': 'services',
-            'dashboard_mode': 'minimal',
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.shop.refresh_from_db()
         self.assertEqual(self.shop.catalog_kind, 'services')
-        self.assertEqual(self.shop.dashboard_mode, 'minimal')
+        self.assertIsNone(self.shop.fulfillment_mode)
         self.assertIsNotNone(self.shop.onboarding_completed_at)
 
     def test_staff_forbidden(self):
         self.client.force_authenticate(user=self.staff)
         response = self.client.post(self.url, {
             'catalog_kind': 'products',
-            'dashboard_mode': 'complete',
         })
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -93,21 +91,55 @@ class OnboardingViewTest(TestCase):
         self.client.force_authenticate(user=self.owner)
         response = self.client.post(self.url, {
             'catalog_kind': 'invalid',
-            'dashboard_mode': 'complete',
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_second_call_keeps_initial_completion_date(self):
         self.client.force_authenticate(user=self.owner)
-        self.client.post(self.url, {'catalog_kind': 'products', 'dashboard_mode': 'minimal'})  # noqa: E501
+        self.client.post(self.url, {'catalog_kind': 'products', 'fulfillment_mode': 'on_site'})  # noqa: E501
         self.shop.refresh_from_db()
         first_completion = self.shop.onboarding_completed_at
 
-        response = self.client.post(self.url, {'catalog_kind': 'both', 'dashboard_mode': 'complete'})  # noqa: E501
+        response = self.client.post(self.url, {'catalog_kind': 'both', 'fulfillment_mode': 'delivery'})  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.shop.refresh_from_db()
         # Préférences mises à jour, mais date d'origine préservée — utile si
         # on veut un jour mesurer "combien de temps après création le wizard a été fait".  # noqa: E501
         self.assertEqual(self.shop.catalog_kind, 'both')
-        self.assertEqual(self.shop.dashboard_mode, 'complete')
+        self.assertEqual(self.shop.fulfillment_mode, 'delivery')
         self.assertEqual(self.shop.onboarding_completed_at, first_completion)
+
+    def test_fulfillment_mode_stored(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(self.url, {
+            'catalog_kind': 'products',
+            'fulfillment_mode': 'on_site',
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.shop.refresh_from_db()
+        self.assertEqual(self.shop.fulfillment_mode, 'on_site')
+
+    def test_fulfillment_mode_forced_null_for_services(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(self.url, {
+            'catalog_kind': 'services',
+            'fulfillment_mode': 'delivery',
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.shop.refresh_from_db()
+        self.assertIsNone(self.shop.fulfillment_mode)
+
+    def test_later_leaves_fulfillment_null(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(self.url, {'catalog_kind': 'both'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.shop.refresh_from_db()
+        self.assertIsNone(self.shop.fulfillment_mode)
+
+    def test_fulfillment_mode_in_shop_response(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.post(self.url, {
+            'catalog_kind': 'products', 'fulfillment_mode': 'delivery',
+        })
+        self.assertIn('fulfillment_mode', response.data)
+        self.assertNotIn('dashboard_mode', response.data)

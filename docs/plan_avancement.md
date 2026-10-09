@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-05
+**Dernière mise à jour** : 2026-10-07 (correctif police Geist + Noto Sans Arabic)
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
 
 ---
@@ -377,6 +377,20 @@
 
 ## Transversal — à faire en continu
 
+### Design système
+
+- [x] **Palette Sauge + Crème** — Remplacer la palette par défaut (menthe saturée hors-gamut + blanc pur) par la palette adoucie validée design : primaire Sauge `oklch(0.52 0.075 170)` (#367762), fond Crème `oklch(0.975 0.010 85)` (#FAF6EF). Inclut le mécanisme `overrides` par thème dans `buildThemeVars` (formule → overrides fond → overrides primaire) et les valeurs sombre calibrées (cards détachées du fond, contrastes vérifiés). Aucun autre thème impacté.
+- [~] **Correctif police** — `--font-sans` ne se référence plus lui-même ; Geist + Noto Sans Arabic pour l'arabe
+- [~] Étape 2 — Jeu de données de démo réaliste (seed)
+- [~] Étape 3 — Shell grand écran : sidebar groupée, en-tête de page, largeur max, bandeau unique
+- [x] Étape 4 — Nouvel accueil : compteurs « À faire », listes, carte Ventes, écran de démarrage
+- [~] Étape 5 — Commandes et Nouvelle vente : vente sans client, vue caisse, libellés de statuts
+  - [x] 5a — page Commandes (liste, filtres, pagination/infinite scroll)
+  - [x] 5b — Nouvelle vente (vue caisse desktop, client facultatif, paiement par défaut)
+  - [x] 5c — Simplification statuts : suppression `draft`, création directe `to_prepare`, parcours livraison/sur-place/autre, `StatusSwitch` adaptatif, stock delta sur édition
+- [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
+- [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
+
 ### Tests
 
 - [ ] Tests unitaires backend (pytest) sur chaque modèle et endpoint
@@ -424,6 +438,44 @@
 - [ ] **Test de restauration mensuel** (un backup non testé n'est pas un backup)
 - [ ] Versioning Object Storage activé si possible
 - [ ] Plan de rollback documenté
+
+### Dette technique connue
+
+- [ ] `seed_data.handle()` fait ~470 lignes et `_seed_new_products` 68 lignes ;
+      découper en sous-commandes ou helpers dédiés hors périmètre de la refonte UX.
+
+- [ ] Remplacer les window.alert() résiduels par un composant toast une fois
+      disponible : apps/frontend/app/(app)/zakat/new/page.tsx:112 (conflit
+      409 sur finalisation), apps/frontend/app/(app)/zakat/[id]/page.tsx:44
+      (échec de réouverture)
+
+- [ ] Mettre en place Vitest côté frontend (aucun test, aucun script
+      npm run test actuellement) — voir CLAUDE.md pour la note associée
+
+- [ ] Auditer et corriger l'i18n de ConfirmDialog (components/ui/dialog.tsx) :
+      les valeurs par défaut du composant (confirmLabel='Confirmer',
+      cancelLabel='Annuler') et plusieurs appelants codent le texte en dur
+      en français plutôt que de passer par next-intl. Repéré sur au moins :
+      VariantRow.tsx (confirmLabel="Supprimer"), notes/page.tsx
+      (title="Supprimer cette note ?"), zakat/[id]/page.tsx (title +
+      confirmLabel), customers/[id]/page.tsx:152 (confirmLabel absent,
+      tombe sur le défaut français), invoices/[id]/page.tsx:134,144
+      (confirmLabel), color-picker.tsx:49 ('Une erreur est survenue.').
+      ConfirmDialog est utilisé dans 16 endroits au total — liste non
+      exhaustive, à auditer en entier avant correction.
+
+- [ ] Empty state texte seul sur reminders/page.tsx:231-234 — pas de pattern
+      canonique (icône + titre + sous-titre) contrairement à notes/page.tsx,
+      qui a reçu ce traitement lors du chantier UX. À aligner.
+
+- [ ] Variante par défaut identifiée par son nom stocké en français (`'Par défaut'`) :
+      remplacer par un booléen `is_default` sur `ProductVariant`, avec migration des données.
+      Centralisé dans `lib/products.ts` (`DEFAULT_VARIANT_NAME` + `isDefaultVariant()`) en attendant.
+
+- [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
+      par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la
+      surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de
+      cette liste au fur et à mesure qu'il est découpé.
 
 ---
 

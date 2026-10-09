@@ -34,11 +34,13 @@ docker compose exec backend ruff format .     # Format
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
 
-# Frontend (depuis apps/frontend)
-npm run dev      # Dev server
-npm run test     # Vitest
-npm run lint     # ESLint
-npm run build    # Build de prod
+# Frontend (depuis la racine du repo)
+docker compose exec -T frontend npm run dev      # Dev server
+docker compose exec -T frontend npm run typecheck  # Typecheck obligatoire avant tout commit frontend : le build ne vérifie pas les types
+docker compose exec -T frontend npm run i18n:check  # Obligatoire avant tout commit qui touche aux messages (fr/en/ar)
+docker compose exec -T frontend npm run lint     # ESLint
+docker compose exec -T frontend npm run build    # Build de prod
+# npm run test n'existe pas encore — aucune infra Vitest en place
 
 # Stack complète
 docker compose up -d
@@ -58,17 +60,20 @@ docker compose up -d
 
 - TypeScript strict, **pas de `any`**. Si un type est compliqué, demander avant de tricher.
 - Pas de `default export` sauf pour les pages Next.js (où le framework l'impose).
-- Composants : un composant par fichier, nom du fichier = nom du composant.
+- Composants : **un seul composant exporté par fichier**, nom du fichier = nom du composant. Un petit sous-composant privé (icône, élément de liste, moins de ~25 lignes) peut rester dans le fichier qui l'utilise.
 - État serveur : **TanStack Query** uniquement (jamais `useEffect` + `fetch` à la main).
+- **Jamais d'action utilisateur** (ajout, enregistrement, envoi) déclenchée dans un `useEffect` : uniquement dans le gestionnaire d'événement.
 - Formulaires : **React Hook Form + Zod**. Le schéma Zod sert aussi de type TS via `z.infer<>`.
 - UI : composants shadcn/ui en priorité avant d'en créer un. Tailwind utility-first, pas de CSS custom sauf cas exceptionnel.
+- **Classes Tailwind** : préférer les classes de l'échelle (`min-h-14`, `w-18`, `h-4.5`…) aux valeurs arbitraires en px (`min-h-[56px]`, `w-[72px]`…) quand un équivalent existe. Positions logiques : `inset-s-*`/`inset-e-*` au lieu de `start-*`/`end-*` (sauf grille : `col-start-*` inchangé).
+- **i18n — texte dépendant du type de catalogue** : utiliser un seul paramètre ICU `{kind, select, products {...} services {...} other {...}}` (jamais de clés séparées `_products`/`_services`, jamais de ternaires côté composant). Hook source : `useCatalogKind()` dans `lib/hooks/useCatalogKind.ts`. Pluriels imbriqués : `{kind, select, products {{count, plural, one {# article} other {# articles}}} ...}`.
 
 ## Architecture rules — universelles
 
 - **Avant d'écrire du code, lire** : si un fichier proche fait une chose similaire, suivre son pattern. Cohérence > élégance.
 - **Factoriser après duplication, pas avant** : règle du "rule of three". Deux fois c'est OK, trois fois → extraire.
 - **Une seule abstraction à la fois** : pas de wrapper d'un wrapper. Si on n'utilise une abstraction qu'à un seul endroit, c'est probablement prématuré.
-- Pas de fonction qui dépasse ~50 lignes. Pas de classe qui dépasse ~300 lignes. Si ça dépasse, signaler avant de continuer.
+- Pas de fonction qui dépasse ~50 lignes. Un composant React se découpe au-delà de ~80 lignes. Pas de classe qui dépasse ~300 lignes. Si ça dépasse, signaler avant de continuer.
 - Modifier le minimum de fichiers nécessaire. Ne pas refactorer du code non lié à la tâche.
 
 ## Security — non négociable
@@ -99,6 +104,7 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - **À chaque création ou modification d'endpoint** : utiliser les outils MCP Postman pour ajouter ou mettre à jour l'endpoint dans le workspace en ligne. Un dossier Postman = une app Django. Chaque requête doit inclure : une description courte, les headers nécessaires, un body d'exemple réaliste, et un script de test qui stocke les IDs retournés dans les variables d'environnement (ex: `pm.environment.set('product_id', json.id)`). Pour les méthodes POST/PUT/PATCH, ajouter les variables correspondantes à l'environnement `mizan-local`.
 - **Pour synchroniser Postman** après une session de développement, envoyer dans la session Postman dédiée : `"Scanne les urls.py du backend et mets à jour la collection Mizan dans Postman"`
 - **À chaque nouvelle app Django** : créer `apps/backend/apps/<app>/factories.py` avec des factories `factory_boy` + `faker` pour tous les modèles de l'app. Ajouter le seeding correspondant dans `apps/core/management/commands/seed_data.py`. Tester avec : `docker compose exec backend python manage.py seed_data`.
+- **Avant tout commit backend** : lancer `pytest` complet (pas seulement l'app modifiée), puis `ruff check .`. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type.
 
 ## Self-check before responding
 

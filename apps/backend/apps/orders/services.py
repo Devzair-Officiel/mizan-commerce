@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.core.audit import log_action
 from apps.products.models import ProductVariant
-from apps.stock.models import StockMovement
+from apps.stock.services import create_movement
 from .models import Order, OrderItem
 from .timeline import (  # ré-exports pour la rétro-compat des imports `services.*`
     EVENT_CREATED,
@@ -19,31 +19,86 @@ from .timeline import (  # ré-exports pour la rétro-compat des imports `servic
 )
 
 __all__ = [
-    'ALLOWED_TRANSITIONS',
     'EVENT_CREATED',
     'EVENT_NOTE',
     'EVENT_PAYMENT_CHANGE',
     'EVENT_STATUS_CHANGE',
     'OrderTimelineEvent',
     'add_item',
+    'advance_order_to',
+    'allowed_transitions',
+    'build_items_preview_batch',
     'create_order',
     'generate_order_number',
     'get_order_timeline',
     'recalculate_totals',
     'remove_item',
+    'reserve_stock',
     'transition_status',
     'update_item_quantity',
     'update_payment',
 ]
 
-# Transitions de statut autorisées (avance + retour arrière)
-ALLOWED_TRANSITIONS = {
-    'draft':      ['to_prepare', 'cancelled'],
-    'to_prepare': ['prepared', 'cancelled', 'draft'],
-    'prepared':   ['shipped', 'cancelled', 'to_prepare'],
-    'shipped':    ['prepared'],
-    'cancelled':  ['draft'],
-}
+
+def allowed_transitions(order: Order) -> list[str]:
+    """Transitions autorisées selon le statut et le mode de livraison."""  # noqa: E501
+    fm = order.shop.fulfillment_mode
+    if order.status == 'to_prepare':
+        forward = 'prepared' if fm == 'delivery' else 'shipped'
+        return [forward, 'cancelled']
+    if order.status == 'prepared':
+        return ['shipped', 'cancelled', 'to_prepare']
+    if order.status == 'shipped':
+        return ['prepared'] if fm == 'delivery' else ['to_prepare']
+    if order.status == 'cancelled':
+        return ['to_prepare']
+    return []
+
+
+def advance_order_to(order: Order, target_status: str, user) -> Order:
+    """Avance order jusqu'à target_status en enchaînant les transitions autorisées.
+
+    No-op si l'order est déjà au statut cible. Lève ValueError si target_status
+    est inaccessible depuis le statut courant pour ce fulfillment_mode.
+    """
+    if order.status == target_status:
+        return order
+
+    fm = order.shop.fulfillment_mode
+
+    def _allowed(s: str) -> list[str]:
+        if s == 'to_prepare':
+            return ['prepared' if fm == 'delivery' else 'shipped', 'cancelled']
+        if s == 'prepared':
+            return ['shipped', 'cancelled', 'to_prepare']
+        if s == 'shipped':
+            return ['prepared'] if fm == 'delivery' else ['to_prepare']
+        if s == 'cancelled':
+            return ['to_prepare']
+        return []
+
+    from collections import deque
+    queue: deque[list[str]] = deque([[order.status]])
+    visited: set[str] = {order.status}
+    path: list[str] | None = None
+    while queue and path is None:
+        current_path = queue.popleft()
+        for next_s in _allowed(current_path[-1]):
+            if next_s == target_status:
+                path = current_path + [next_s]
+                break
+            if next_s not in visited:
+                visited.add(next_s)
+                queue.append(current_path + [next_s])
+
+    if path is None:
+        raise ValueError(
+            f"Transition impossible : impossible d'atteindre '{target_status}' "
+            f"depuis '{order.status}' (fulfillment_mode={fm!r})."
+        )
+    for next_s in path[1:]:
+        order = transition_status(order, next_s, user)
+    return order
 
 
 def generate_order_number(shop) -> str:
@@ -100,14 +155,16 @@ def add_item(
     quantity: int,
     unit_price: Decimal | None = None,
     product_name: str | None = None,
+    user=None,
 ) -> OrderItem:
     """
-    Ajoute une ligne à la commande.
-    - Si variant est fourni : nom et prix par défaut viennent du catalogue.
-    - Si variant est None (ligne libre) : product_name et unit_price sont requis.
+    Ajoute une ligne à la commande (autorisé en to_prepare et prepared).
+    Si le stock est déjà réservé, crée immédiatement le mouvement delta.
     """
-    if order.status != 'draft':
-        raise ValueError("Impossible d'ajouter un article à une commande qui n'est plus en brouillon.")  # noqa: E501
+    order = Order.objects.select_for_update().get(pk=order.pk)
+
+    if order.status not in ('to_prepare', 'prepared'):
+        raise ValueError("Impossible d'ajouter un article à une commande non modifiable.")  # noqa: E501
 
     if variant is None:
         if not product_name or unit_price is None:
@@ -129,31 +186,78 @@ def add_item(
         unit_price=price,
         quantity=quantity,
     )
+
+    if order.stock_reserved and variant and variant.product.type == 'product':
+        create_movement(
+            shop=order.shop,
+            variant=variant,
+            movement_type='reservation',
+            quantity=quantity,
+            reason=f'Ajout article commande {order.order_number}',
+            order_id=order.id,
+            created_by=user,
+        )
+
     recalculate_totals(order)
     return item
 
 
 @transaction.atomic
-def update_item_quantity(order: Order, item: OrderItem, quantity: int) -> OrderItem:
-    if order.status != 'draft':
-        raise ValueError("Impossible de modifier un article d'une commande qui n'est plus en brouillon.")  # noqa: E501
+def update_item_quantity(order: Order, item: OrderItem, quantity: int, user=None) -> OrderItem:  # noqa: E501
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    item = OrderItem.objects.select_related('variant__product').select_for_update(of=('self',)).get(pk=item.pk)  # noqa: E501
+
+    if order.status not in ('to_prepare', 'prepared'):
+        raise ValueError("Impossible de modifier un article d'une commande non modifiable.")  # noqa: E501
+
+    old_qty = item.quantity
+    delta = quantity - old_qty
     item.quantity = quantity
     item.save(update_fields=['quantity'])
     recalculate_totals(order)
+
+    if order.stock_reserved and delta != 0 and item.variant and item.variant.product.type == 'product':  # noqa: E501
+        create_movement(
+            shop=order.shop,
+            variant=item.variant,
+            movement_type='reservation' if delta > 0 else 'release',
+            quantity=abs(delta),
+            reason=f'Modification article commande {order.order_number}',
+            order_id=order.id,
+            created_by=user,
+        )
+
     return item
 
 
 @transaction.atomic
-def remove_item(order: Order, item: OrderItem) -> None:
-    if order.status != 'draft':
-        raise ValueError("Impossible de retirer un article d'une commande qui n'est plus en brouillon.")  # noqa: E501
+def remove_item(order: Order, item: OrderItem, user=None) -> None:
+    order = Order.objects.select_for_update().get(pk=order.pk)
+    item = OrderItem.objects.select_related('variant__product').select_for_update(of=('self',)).get(pk=item.pk)  # noqa: E501
+
+    if order.status not in ('to_prepare', 'prepared'):
+        raise ValueError("Impossible de retirer un article d'une commande non modifiable.")  # noqa: E501
+
+    if order.stock_reserved and item.variant and item.variant.product.type == 'product':
+        create_movement(
+            shop=order.shop,
+            variant=item.variant,
+            movement_type='release',
+            quantity=item.quantity,
+            reason=f'Suppression article commande {order.order_number}',
+            order_id=order.id,
+            created_by=user,
+        )
+
     item.delete()
     recalculate_totals(order)
 
 
 @transaction.atomic
 def transition_status(order: Order, new_status: str, user) -> Order:
-    allowed = ALLOWED_TRANSITIONS.get(order.status, [])
+    Order.objects.select_for_update().get(pk=order.pk)  # acquire row lock
+    order.refresh_from_db()  # re-read fresh state into the original object
+    allowed = allowed_transitions(order)
     if new_status not in allowed:
         raise ValueError(
             f"Transition interdite : {order.status} → {new_status}. "
@@ -162,18 +266,15 @@ def transition_status(order: Order, new_status: str, user) -> Order:
 
     previous_status = order.status
 
-    # Avance : draft → to_prepare → réserver le stock
-    if new_status == 'to_prepare' and order.status == 'draft':
-        _reserve_stock(order, user)
-
-    # Retour arrière : to_prepare → draft → libérer la réservation
-    if new_status == 'draft' and order.status == 'to_prepare':
-        _release_stock(order, user)
-
     # Annulation : libérer le stock réservé
     if new_status == 'cancelled':
         _release_stock(order, user)
         order.cancelled_at = timezone.now()
+
+    # Réactivation depuis annulé → re-réserver le stock
+    if new_status == 'to_prepare' and previous_status == 'cancelled':
+        reserve_stock(order, user)
+        order.cancelled_at = None
 
     order.status = new_status
     order.updated_by = user
@@ -196,13 +297,13 @@ def transition_status(order: Order, new_status: str, user) -> Order:
     return order
 
 
-def _reserve_stock(order: Order, user) -> None:
+def reserve_stock(order: Order, user) -> None:
     """Crée un mouvement 'reservation' pour chaque ligne produit (skip services et lignes libres)."""  # noqa: E501
     if order.stock_reserved:
         return
     for item in order.items.select_related('variant__product').all():
         if item.variant and item.variant.product.type == 'product':
-            StockMovement.objects.create(
+            create_movement(
                 shop=order.shop,
                 variant=item.variant,
                 movement_type='reservation',
@@ -216,12 +317,12 @@ def _reserve_stock(order: Order, user) -> None:
 
 
 def _release_stock(order: Order, user) -> None:
-    """Libère le stock réservé en cas d'annulation (skip services et lignes libres)."""
+    """Libère le stock réservé (skip services et lignes libres)."""
     if not order.stock_reserved:
         return
     for item in order.items.select_related('variant__product').all():
         if item.variant and item.variant.product.type == 'product':
-            StockMovement.objects.create(
+            create_movement(
                 shop=order.shop,
                 variant=item.variant,
                 movement_type='release',
@@ -232,6 +333,23 @@ def _release_stock(order: Order, user) -> None:
             )
     order.stock_reserved = False
     order.save(update_fields=['stock_reserved', 'updated_at'])
+
+
+def build_items_preview_batch(order_ids: list) -> dict:
+    """Fetche items pour une liste d'IDs commande.
+
+    Retourne {str(order_id): [{'name': ..., 'quantity': ...}, ...]}.
+    """
+    items_by_order: dict = {}
+    qs = OrderItem.objects.filter(order_id__in=order_ids).values(
+        'order_id', 'product_name', 'quantity',
+    )
+    for item in qs:
+        oid = str(item['order_id'])
+        items_by_order.setdefault(oid, []).append(
+            {'name': item['product_name'], 'quantity': item['quantity']},
+        )
+    return items_by_order
 
 
 @transaction.atomic

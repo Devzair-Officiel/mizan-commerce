@@ -172,7 +172,7 @@ export default function ProfilePage() {
   return (
     <>
       <TopBar title="Mon profil" />
-      <div className="flex flex-col gap-8 px-4 pb-8 pt-4">
+      <div className="flex flex-col gap-8 px-4 pb-8 pt-4 max-w-3xl mx-auto w-full">
         <EmailVerificationBanner />
 
         <section className="flex flex-col gap-3">

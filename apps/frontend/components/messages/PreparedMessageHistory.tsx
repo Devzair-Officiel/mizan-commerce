@@ -10,6 +10,7 @@ import {
   type PreparedMessageStatus,
 } from '@/lib/hooks/usePreparedMessages';
 import { useFormatDateTime } from '@/lib/hooks/useFormat';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 interface PreparedMessageHistoryProps {
   customerId?: string;
@@ -69,18 +70,19 @@ interface MessageRowProps {
 function MessageRow({ message, formatDateTime }: MessageRowProps) {
   const t = useTranslations('messages.history');
   const [expanded, setExpanded] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeletePreparedMessage(message.id);
 
   const timestamp = message.sent_manually_at ?? message.created_at;
   const isPrepared = message.status === 'prepared';
 
-  async function handleDelete(e: React.MouseEvent) {
+  function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm(t('delete_confirm'))) return;
-    await del.mutateAsync();
+    setConfirmDelete(true);
   }
 
   return (
+    <>
     <button
       type="button"
       onClick={() => setExpanded((v) => !v)}
@@ -99,28 +101,31 @@ function MessageRow({ message, formatDateTime }: MessageRowProps) {
           </span>
         </div>
         {isPrepared && (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             aria-label={t('delete_aria')}
             onClick={handleDelete}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleDelete(e as unknown as React.MouseEvent);
-              }
-            }}
-            className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:text-destructive active:scale-95 transition-transform cursor-pointer"
+            className="shrink-0 inline-flex items-center justify-center h-11 w-11 -mr-2 rounded-full text-muted-foreground hover:text-destructive active:scale-95 transition-transform"
           >
             <Trash2 size={14} />
-          </span>
+          </button>
         )}
       </div>
       <p
-        className={`mt-1.5 text-sm text-foreground whitespace-pre-wrap break-words ${expanded ? '' : 'line-clamp-2'}`}
+        className={`mt-1.5 text-sm text-foreground whitespace-pre-wrap wrap-break-word ${expanded ? '' : 'line-clamp-2'}`}
       >
         {message.message}
       </p>
     </button>
+
+    <ConfirmDialog
+      open={confirmDelete}
+      onOpenChange={setConfirmDelete}
+      title={t('delete_confirm')}
+      onConfirm={() => del.mutateAsync()}
+      variant="destructive"
+      confirmLabel="Supprimer"
+    />
+    </>
   );
 }

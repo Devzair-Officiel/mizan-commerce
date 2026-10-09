@@ -15,6 +15,9 @@ export interface OrdersListFilters {
   status?: string;
   payment_status?: string;
   customer?: string;
+  page?: number;
+  search?: string;
+  due?: boolean;
 }
 
 export interface OrdersCustomerFilters {
@@ -44,6 +47,7 @@ export const qk = {
   orders: {
     all: ['orders'] as const,
     list: (filters: OrdersListFilters) => ['orders', filters] as const,
+    listInfinite: (filters: Omit<OrdersListFilters, 'page'>) => ['orders', 'infinite', filters] as const,
     byCustomer: (customerId: string, filters: OrdersCustomerFilters) =>
       ['orders', 'customer', customerId, filters] as const,
     detail: (id: string) => ['orders', id] as const,
@@ -152,5 +156,9 @@ export const qk = {
   ocr: {
     all: ['ocr'] as const,
     result: (id: string) => ['ocr', 'result', id] as const,
+  },
+
+  navBadges: {
+    all: ['nav-badges'] as const,
   },
 } as const;

@@ -374,14 +374,14 @@ Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
 | customer_id | UUID | FK → customers.id, SET_NULL | NULL = vente rapide sans client (URS-023) |
 | order_number | VARCHAR(20) | NOT NULL | Numéro lisible (ex: `2026-001`). UNIQUE par boutique. |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'draft' | `draft`, `to_prepare`, `prepared`, `shipped`, `cancelled` |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'to_prepare' | `to_prepare`, `prepared` (livraison uniquement), `shipped`, `cancelled` |
 | payment_status | VARCHAR(20) | NOT NULL, DEFAULT 'unpaid' | `unpaid`, `partial`, `paid` |
 | subtotal | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Somme des lignes |
 | discount_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Remise globale |
 | shipping_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Frais de livraison |
 | total_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | `subtotal − discount + shipping` |
 | amount_paid | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Acompte ou paiement total |
-| stock_reserved | BOOLEAN | NOT NULL, DEFAULT false | Drapeau : mouvements `reservation` déjà créés pour cette commande (évite les doubles réservations lors des transitions `draft` ↔ `to_prepare`). |
+| stock_reserved | BOOLEAN | NOT NULL, DEFAULT false | Drapeau : mouvements `reservation` déjà créés pour cette commande (évite les doubles réservations). |
 | created_by_id | UUID | FK → users.id, SET_NULL | Auteur de la création |
 | updated_by_id | UUID | FK → users.id, SET_NULL | Dernier utilisateur ayant modifié le statut ou le paiement |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -393,7 +393,7 @@ Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `
 
 **Notes** :
 - Le champ `notes` (texte libre inline) a été retiré ; les notes de commande passent désormais par la table `notes` (relation `order_id`), migration `orders.0002_drop_notes_field`.
-- Passage `draft → to_prepare` : réserve le stock des variantes de type `product` (mouvements `reservation`). Retour `to_prepare → draft` et annulation : libère (`release`).
+- Création directement à `to_prepare` : `reserve_stock()` est appelé explicitement par la vue après ajout des articles. Annulation libère (`release`). `cancelled → to_prepare` re-réserve.
 - Une commande annulée propage l'annulation à sa facture liée si elle existe (`sync_invoice_from_order`).
 
 ---

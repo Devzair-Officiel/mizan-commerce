@@ -1,9 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { ChevronRight, Search, X, PackagePlus, FilePlus2 } from 'lucide-react';
+import { Search, X, PackagePlus, FilePlus2, Loader2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Product } from '@/lib/hooks/useProducts';
 
 export type PickFilter = 'all' | 'product' | 'service';
@@ -17,6 +18,8 @@ interface PickViewProps {
   onPick: (p: Product) => void;
   onCreate: () => void;
   onFreeLine: () => void;
+  loadingProductId?: string | null;
+  outOfStockProductId?: string | null;
 }
 
 const FILTER_KEYS: { value: PickFilter; key: 'filter_all' | 'filter_product' | 'filter_service' }[] = [
@@ -27,8 +30,10 @@ const FILTER_KEYS: { value: PickFilter; key: 'filter_all' | 'filter_product' | '
 
 export function PickView({
   search, setSearch, filter, setFilter, products, onPick, onCreate, onFreeLine,
+  loadingProductId, outOfStockProductId,
 }: PickViewProps) {
   const t = useTranslations('orders.picker');
+  const kind = useCatalogKind();
   return (
     <>
       <div className="relative mb-3">
@@ -89,7 +94,7 @@ export function PickView({
           <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
             <PackagePlus size={16} />
           </span>
-          <span className="text-left">{t('create_product')}</span>
+          <span className="text-left">{t('create_product', { kind })}</span>
         </button>
         <button
           type="button"
@@ -100,7 +105,7 @@ export function PickView({
             <FilePlus2 size={16} />
           </span>
           <span className="flex-1 min-w-0 flex flex-col gap-0.5 text-left">
-            <span className="font-medium text-foreground">{t('free_line_title')}</span>
+            <span className="font-medium text-foreground">{t('free_line_title', { kind })}</span>
             <span className="text-xs text-muted-foreground">{t('free_line_sub')}</span>
           </span>
         </button>
@@ -109,17 +114,24 @@ export function PickView({
       <div className="flex flex-col divide-y divide-border -mx-5 px-5">
         {products.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {search || filter !== 'all' ? t('no_results') : t('no_products')}
+            {search || filter !== 'all' ? t('no_results') : t('no_products', { kind })}
           </p>
         ) : (
-          products.map((p) => <ProductRow key={p.id} product={p} onPick={onPick} />)
+          products.map((p) => (
+            <ProductRow key={p.id} product={p} onPick={onPick}
+              isLoading={loadingProductId === p.id}
+              isOutOfStock={outOfStockProductId === p.id} />
+          ))
         )}
       </div>
     </>
   );
 }
 
-function ProductRow({ product, onPick }: { product: Product; onPick: (p: Product) => void }) {
+function ProductRow({ product, onPick, isLoading, isOutOfStock }: {
+  product: Product; onPick: (p: Product) => void;
+  isLoading?: boolean; isOutOfStock?: boolean;
+}) {
   const t = useTranslations('orders.picker');
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
@@ -134,28 +146,37 @@ function ProductRow({ product, onPick }: { product: Product; onPick: (p: Product
   const variantCount = product.variant_count ?? 1;
 
   return (
-    <button
-      type="button"
-      onClick={() => onPick(product)}
-      className="flex items-center gap-3 px-1 py-3 text-left text-foreground transition-colors active:bg-muted"
-    >
-      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-sm font-medium truncate">{product.name}</span>
-          {product.type === 'service' && (
-            <span className="shrink-0 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-              {t('service_badge')}
-            </span>
-          )}
-          {variantCount > 1 && (
-            <span className="shrink-0 rounded-full bg-primary/10 text-primary border border-primary/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
-              {t('variant_formats', { count: variantCount })}
-            </span>
-          )}
+    <div>
+      <button
+        type="button"
+        onClick={() => onPick(product)}
+        disabled={isLoading}
+        aria-label={t('add_aria', { name: product.name })}
+        className="flex items-center gap-3 px-1 min-h-16 py-2 text-left text-foreground transition-colors active:bg-muted w-full disabled:opacity-60"
+      >
+        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-medium truncate">{product.name}</span>
+            {product.type === 'service' && (
+              <span className="shrink-0 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
+                {t('service_badge')}
+              </span>
+            )}
+            {variantCount > 1 && (
+              <span className="shrink-0 rounded-full bg-primary/10 text-primary border border-primary/20 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide">
+                {t('variant_formats', { count: variantCount })}
+              </span>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums">{priceLabel}</span>
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums">{priceLabel}</span>
-      </div>
-      <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
-    </button>
+        <div className="shrink-0 h-10 w-16 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl font-bold">
+          {isLoading ? <Loader2 size={18} className="animate-spin" /> : '+'}
+        </div>
+      </button>
+      {isOutOfStock && (
+        <p className="px-1 pb-2 text-xs text-destructive">{t('out_of_stock_pick')}</p>
+      )}
+    </div>
   );
 }

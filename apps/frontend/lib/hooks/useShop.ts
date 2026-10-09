@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
-import type { CatalogKind, DashboardMode } from './useMe';
+import type { CatalogKind, FulfillmentMode } from './useMe';
 
 export type NisabMethod = 'gold' | 'silver';
 
@@ -22,7 +22,7 @@ export interface Shop {
   default_tax_rate: string;
   default_payment_terms_days: number;
   catalog_kind: CatalogKind;
-  dashboard_mode: DashboardMode;
+  fulfillment_mode: FulfillmentMode;
   onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -41,12 +41,12 @@ export interface ShopUpdateData {
   default_tax_rate?: string;
   default_payment_terms_days?: number;
   catalog_kind?: CatalogKind;
-  dashboard_mode?: DashboardMode;
+  fulfillment_mode?: FulfillmentMode;
 }
 
 export interface OnboardingPayload {
   catalog_kind: CatalogKind;
-  dashboard_mode: DashboardMode;
+  fulfillment_mode: FulfillmentMode;
 }
 
 export function useShop() {
@@ -101,11 +101,12 @@ export function useCompleteOnboarding() {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => {
-      // `me.membership` contient onboarding_completed_at — il faut l'invalider
-      // pour que le gating dans (app)/layout débloque l'accès au dashboard.
+    onSuccess: async () => {
+      // On attend que `me` soit rechargé avant de résoudre mutateAsync.
+      // `invalidateQueries` seul est fire-and-forget : OnboardingGate lirait
+      // l'ancienne valeur (null) et renverrait vers /onboarding en boucle.
+      await qc.refetchQueries({ queryKey: qk.me.all });
       qc.invalidateQueries({ queryKey: qk.shop.all });
-      qc.invalidateQueries({ queryKey: qk.me.all });
     },
   });
 }

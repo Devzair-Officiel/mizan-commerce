@@ -21,6 +21,7 @@ export interface OrderSummary {
   total_amount: string;
   amount_paid: string;
   item_count: number;
+  items_preview: { name: string; quantity: number }[];
   created_at: string;
 }
 
@@ -72,19 +73,44 @@ export interface OrderCreateData {
   discount_amount?: string;
   shipping_amount?: string;
   items?: OrderItemPayload[];
-  status?: 'draft' | 'to_prepare' | 'prepared' | 'shipped';
+  status?: 'to_prepare' | 'prepared' | 'shipped';
   payment_status?: 'unpaid' | 'partial' | 'paid';
   amount_paid?: string;
 }
 
-export function useOrders(filters: OrdersListFilters = {}) {
+export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?: boolean }) {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
   if (filters.payment_status) params.set('payment_status', filters.payment_status);
   if (filters.customer) params.set('customer', filters.customer);
+  if (filters.page && filters.page > 1) params.set('page', String(filters.page));
+  if (filters.search) params.set('search', filters.search);
+  if (filters.due) params.set('due', 'true');
   return useQuery({
     queryKey: qk.orders.list(filters),
     queryFn: () => apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${params}`),
+    enabled: options?.enabled,
+  });
+}
+
+export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {}, options?: { enabled?: boolean }) {
+  const buildParams = (pg: number) => {
+    const p = new URLSearchParams();
+    if (filters.status) p.set('status', filters.status);
+    if (filters.payment_status) p.set('payment_status', filters.payment_status);
+    if (filters.search) p.set('search', filters.search);
+    if (filters.due) p.set('due', 'true');
+    if (pg > 1) p.set('page', String(pg));
+    return p;
+  };
+  return useInfiniteQuery({
+    queryKey: qk.orders.listInfinite(filters),
+    queryFn: ({ pageParam = 1 }) =>
+      apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${buildParams(pageParam as number)}`),
+    initialPageParam: 1 as number,
+    getNextPageParam: (last, _, lastPageParam) =>
+      last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: options?.enabled,
   });
 }
 
@@ -134,6 +160,7 @@ export function useCreateOrder() {
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
@@ -147,6 +174,7 @@ export function useTransitionOrder(id: string) {
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
       qc.invalidateQueries({ queryKey: qk.invoices.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },

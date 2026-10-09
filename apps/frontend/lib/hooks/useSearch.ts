@@ -10,6 +10,7 @@ export interface SearchProduct {
   type: ProductType;
   variant_count: number;
   is_out_of_stock: boolean;
+  min_price: string | null;
 }
 
 export interface SearchCustomer {
@@ -23,14 +24,21 @@ export interface SearchOrder {
   id: string;
   order_number: string;
   status: string;
+  payment_status: string;
   total_amount: string;
+  created_at: string;
   customer_name: string | null;
 }
 
+export interface SearchSection<T> {
+  total: number;
+  items: T[];
+}
+
 export interface SearchResults {
-  products: SearchProduct[];
-  customers: SearchCustomer[];
-  orders: SearchOrder[];
+  products: SearchSection<SearchProduct>;
+  customers: SearchSection<SearchCustomer>;
+  orders: SearchSection<SearchOrder>;
 }
 
 export function useSearch(q: string) {
@@ -39,5 +47,6 @@ export function useSearch(q: string) {
     queryFn: () => apiFetch<SearchResults>(`/search/?q=${encodeURIComponent(q)}`),
     enabled: q.trim().length >= 2,
     staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 }

@@ -77,7 +77,6 @@ const nextConfig: NextConfig = {
   // Typecheck et lint sont lancés en dev/CI avant chaque commit.
   // Les rejouer pendant `next build` sature la RAM du VPS et fait swap pendant ~45 min.
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
       {

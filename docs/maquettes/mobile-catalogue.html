@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mizan — Ajout d’articles mobile</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.mz{--bg:#FAF6EF;--card:#FFFDFA;--fg:#1D2A25;--muted:#F0EDE4;--mfg:#656E6B;--border:#E1DED4;--primary:#367762;--pfg:#FFFFFF;--soft:#DAEDE6;--softfg:#183A2F;--amber:#B45309;--amberbg:#FDF1DC;--red:#B91C1C;--redbg:#FBE7E4;--green:#2F7A3E;--greenbg:#E3F1E3;--bar:#C9DDD4;--scrim:rgba(29,42,37,0.38);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.mz.dark{--bg:#1A211E;--card:#252E2A;--fg:#EAE7E2;--muted:#2F3834;--mfg:#A6ADA9;--border:rgba(255,255,255,0.10);--primary:#83C0AA;--pfg:#1A211E;--soft:#2F3B36;--softfg:#D3E8DF;--amber:#F2B95C;--amberbg:rgba(242,185,92,0.13);--red:#F28B82;--redbg:rgba(242,139,130,0.13);--green:#7BCB8A;--greenbg:rgba(123,203,138,0.13);--bar:#3F5048;--scrim:rgba(0,0,0,0.55)}
+.mz *{box-sizing:border-box}
+.mz button,.mz input{font:inherit}
+.mz button{cursor:pointer}
+.mz :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.mz input::placeholder{color:var(--mfg)}
+a{color:var(--primary)}a:hover{color:var(--fg)}
+</style>
+<div class="mz" style="min-height: 100vh; position: relative; background: var(--bg); color: var(--fg)">
+<div aria-hidden="true" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; opacity: 0.9">
+<div style="height: 28px; width: 60%; border-radius: 8px; background: var(--muted)"></div>
+<div style="height: 70px; border-radius: 16px; background: var(--card); border: 1px solid var(--border)"></div>
+<div style="height: 180px; border-radius: 16px; background: var(--card); border: 1px solid var(--border)"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: var(--scrim)"></div>
+<section role="dialog" aria-modal="true" aria-labelledby="titre-feuille" style="position: absolute; inset-inline: 0; bottom: 0; top: 56px; display: flex; flex-direction: column; background: var(--card); border-radius: 24px 24px 0 0">
+<div style="display: flex; justify-content: center; padding-top: 10px"><span style="width: 40px; height: 4px; border-radius: 999px; background: var(--border)"></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 4px 16px"><h2 id="titre-feuille" style="margin: 0; font-size: 17px; font-weight: 600">Ajouter à la vente</h2><a href="mobile-vente.html" aria-label="Fermer" style="width: 44px; height: 44px; border-radius: 999px; color: var(--fg); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></a></div>
+<div style="padding: 6px 16px 10px; display: flex; flex-direction: column; gap: 10px">
+<div style="position: relative"><label for="recherche-feuille" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">Rechercher un article</label><span style="position: absolute; inset-inline-start: 14px; top: 14px; color: var(--mfg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></span><input id="recherche-feuille" type="search" placeholder="Nom, référence ou code-barres" style="width: 100%; height: 48px; padding: 0 16px 0 44px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); font-size: 16px"></div>
+<div role="group" aria-label="Filtrer" style="display: flex; gap: 8px; overflow-x: auto"><button type="button" aria-pressed="true" style="height: 36px; padding: 0 14px; flex: none; border-radius: 12px; border: 1px solid transparent; background: var(--soft); color: var(--softfg); font-size: 14px; font-weight: 600">Tous</button><button type="button" aria-pressed="false" style="height: 36px; padding: 0 14px; flex: none; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 14px; font-weight: 500">Articles</button><button type="button" aria-pressed="false" style="height: 36px; padding: 0 14px; flex: none; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 14px; font-weight: 500">Services</button></div>
+</div>
+<div style="flex: 1; overflow-y: auto; border-top: 1px solid var(--border)">
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 64px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Chemise en lin blanc</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">3 tailles, 12 en stock</div></div>
+<span style="font-size: 15px; font-weight: 600">45,00 €</span><button type="button" aria-label="Ajouter une autre Chemise en lin blanc, 1 dans la vente" style="width: 64px; height: 40px; flex: none; border: none; border-radius: 999px; background: var(--soft); color: var(--softfg); font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"></path></svg>1</button></div>
+<div style="border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 64px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Pantalon chino beige</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">8 en stock</div></div>
+<span style="font-size: 15px; font-weight: 600">49,00 €</span><button type="button" aria-label="Ajouter Pantalon chino beige" style="width: 64px; height: 40px; flex: none; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--primary); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div style="border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 64px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Sandales cuir naturel</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">2 pointures, <span style="color: var(--red); font-weight: 500">41 en rupture</span></div></div>
+<span style="font-size: 15px; font-weight: 600">69,00 €</span><button type="button" aria-label="Ajouter Sandales cuir naturel" style="width: 64px; height: 40px; flex: none; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--primary); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div style="border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 64px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Ceinture tressée marron</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">15 en stock</div></div>
+<span style="font-size: 15px; font-weight: 600">22,00 €</span><button type="button" aria-label="Ajouter une autre Ceinture tressée marron, 1 dans la vente" style="width: 64px; height: 40px; flex: none; border: none; border-radius: 999px; background: var(--soft); color: var(--softfg); font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 4px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"></path></svg>1</button></div>
+<div style="border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 64px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Sac en toile naturelle</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">6 en stock</div></div>
+<span style="font-size: 15px; font-weight: 600">25,00 €</span><button type="button" aria-label="Ajouter Sac en toile naturelle" style="width: 64px; height: 40px; flex: none; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--primary); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div style="border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 10px 16px; min-height: 64px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Retouche ourlet</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Service</div></div>
+<span style="font-size: 15px; font-weight: 600">8,00 €</span><button type="button" aria-label="Ajouter Retouche ourlet" style="width: 64px; height: 40px; flex: none; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--primary); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 16px; border-top: 1px solid var(--border)">
+<button type="button" style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0; border: none; background: transparent; color: var(--primary); font-size: 15px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Créer un article ou un service</button>
+<button type="button" style="display: flex; align-items: center; height: 44px; padding: 0; border: none; background: transparent; color: var(--mfg); font-size: 14px; font-weight: 500">Article ponctuel, sans l'enregistrer</button>
+</div>
+</div>
+<div style="padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--card)">
+<a href="mobile-vente.html" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 999px; background: var(--primary); color: var(--pfg); text-decoration: none; font-size: 16px; font-weight: 600">Voir la vente (2 articles)</a>
+</div>
+</section>
+</div>
+</body>
+</html>

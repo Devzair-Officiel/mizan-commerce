@@ -164,10 +164,11 @@ class OnboardingView(APIView):
         serializer = OnboardingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         shop.catalog_kind = serializer.validated_data['catalog_kind']
-        shop.dashboard_mode = serializer.validated_data['dashboard_mode']
+        fm = serializer.validated_data.get('fulfillment_mode')
+        shop.fulfillment_mode = None if shop.catalog_kind == Shop.CATALOG_SERVICES else fm  # noqa: E501
         if shop.onboarding_completed_at is None:
             shop.onboarding_completed_at = timezone.now()
-        shop.save(update_fields=['catalog_kind', 'dashboard_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
+        shop.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
         return Response(ShopSerializer(shop, context={'request': request}).data)
 
 

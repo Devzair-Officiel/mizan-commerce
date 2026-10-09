@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { CreditCard, Users, SlidersHorizontal, UserPlus } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useCustomers } from '@/lib/hooks/useCustomers';
@@ -13,15 +14,16 @@ import { CustomerRow } from '@/components/customers/list/CustomerRow';
 import { FilterSortSheet } from '@/components/customers/list/FilterSortSheet';
 import type { FilterKey, SortKey } from '@/components/customers/list/types';
 
-export default function CustomersPage() {
+function CustomersContent() {
   const t = useTranslations('customers.list');
+  const searchParams = useSearchParams();
   const { data, isLoading } = useCustomers(undefined, true);
   const { data: shop } = useShop();
   const formatMoney = useFormatMoney();
   const currency = shop?.currency ?? 'EUR';
   const [sort, setSort]     = useState<SortKey>('name_asc');
   const [filter, setFilter] = useState<FilterKey>('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const all = useMemo(() => data?.results ?? [], [data]);
@@ -58,8 +60,8 @@ export default function CustomersPage() {
 
   return (
     <>
-      <TopBar title={t('title')} titleClassName="text-3xl" />
-      <div className="flex flex-col gap-4 p-4 lg:px-8 lg:py-6 pb-28">
+      <TopBar title={t('title')} hideSearch />
+      <div className="flex flex-col gap-4 p-4 pb-28">
 
         <div className="grid grid-cols-2 gap-3">
           <StatCard
@@ -132,5 +134,13 @@ export default function CustomersPage() {
         onSearch={setSearch}
       />
     </>
+  );
+}
+
+export default function CustomersPage() {
+  return (
+    <Suspense>
+      <CustomersContent />
+    </Suspense>
   );
 }

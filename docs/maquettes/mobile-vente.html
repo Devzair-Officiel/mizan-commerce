@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mizan — Nouvelle vente mobile</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.mz{--bg:#FAF6EF;--card:#FFFDFA;--fg:#1D2A25;--muted:#F0EDE4;--mfg:#656E6B;--border:#E1DED4;--primary:#367762;--pfg:#FFFFFF;--soft:#DAEDE6;--softfg:#183A2F;--amber:#B45309;--amberbg:#FDF1DC;--red:#B91C1C;--redbg:#FBE7E4;--green:#2F7A3E;--greenbg:#E3F1E3;--bar:#C9DDD4;--scrim:rgba(29,42,37,0.38);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.mz.dark{--bg:#1A211E;--card:#252E2A;--fg:#EAE7E2;--muted:#2F3834;--mfg:#A6ADA9;--border:rgba(255,255,255,0.10);--primary:#83C0AA;--pfg:#1A211E;--soft:#2F3B36;--softfg:#D3E8DF;--amber:#F2B95C;--amberbg:rgba(242,185,92,0.13);--red:#F28B82;--redbg:rgba(242,139,130,0.13);--green:#7BCB8A;--greenbg:rgba(123,203,138,0.13);--bar:#3F5048;--scrim:rgba(0,0,0,0.55)}
+.mz *{box-sizing:border-box}
+.mz button,.mz input{font:inherit}
+.mz button{cursor:pointer}
+.mz :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.mz input::placeholder{color:var(--mfg)}
+a{color:var(--primary)}a:hover{color:var(--fg)}
+</style>
+<div class="mz" style="min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--fg)">
+<header style="position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 4px; padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px 4px; background: var(--bg)">
+<a href="mobile-accueil.html" aria-label="Retour" style="width: 44px; height: 44px; flex: none; border-radius: 999px; color: var(--fg); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></a>
+<h1 style="margin: 0; font-size: 19px; font-weight: 600">Nouvelle vente</h1>
+</header>
+<main style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding: 6px 16px 24px">
+
+<section aria-label="Client" style="display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<span style="width: 40px; height: 40px; flex: none; border-radius: 999px; background: var(--muted); color: var(--mfg); display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"></circle><path d="M5 20a7 7 0 0 1 14 0"></path></svg></span>
+<div style="flex: 1; min-width: 0"><div style="font-size: 15px; font-weight: 600">Sans client</div><div style="font-size: 13px; color: var(--mfg)">Vente au comptoir</div></div>
+<button type="button" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 14px; font-weight: 600">Associer</button>
+</section>
+
+<section aria-labelledby="titre-lignes" style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border)"><h2 id="titre-lignes" style="margin: 0; font-size: 15px; font-weight: 600">Articles</h2><span style="font-size: 13px; color: var(--mfg)">2 articles</span></div>
+<div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><div style="min-width: 0"><div style="font-size: 15px; font-weight: 600">Chemise en lin blanc</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Taille M, 45,00 € l'unité</div></div><span style="font-size: 15px; font-weight: 600">45,00 €</span></div>
+<div style="display: flex; align-items: center; height: 40px; border: 1px solid var(--border); border-radius: 999px; flex: none">
+<button type="button" aria-label="Retirer une Chemise en lin blanc" style="width: 40px; height: 38px; border: none; border-radius: 999px; background: transparent; color: var(--fg); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+<span style="min-width: 18px; text-align: center; font-size: 15px; font-weight: 600">1</span>
+<button type="button" aria-label="Ajouter une Chemise en lin blanc" style="width: 40px; height: 38px; border: none; border-radius: 999px; background: transparent; color: var(--fg); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+</div>
+<div style="border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px"><div style="min-width: 0"><div style="font-size: 15px; font-weight: 600">Ceinture tressée marron</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">22,00 € l'unité</div></div><span style="font-size: 15px; font-weight: 600">22,00 €</span></div>
+<div style="display: flex; align-items: center; height: 40px; border: 1px solid var(--border); border-radius: 999px; flex: none">
+<button type="button" aria-label="Retirer une Ceinture tressée marron" style="width: 40px; height: 38px; border: none; border-radius: 999px; background: transparent; color: var(--fg); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+<span style="min-width: 18px; text-align: center; font-size: 15px; font-weight: 600">1</span>
+<button type="button" aria-label="Ajouter une Ceinture tressée marron" style="width: 40px; height: 38px; border: none; border-radius: 999px; background: transparent; color: var(--fg); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+</div>
+</div>
+<div style="padding: 12px 16px 16px; border-top: 1px solid var(--border)">
+<a href="mobile-catalogue.html" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 52px; border-radius: 14px; border: 1.5px dashed var(--border); color: var(--primary); text-decoration: none; font-size: 15px; font-weight: 600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un article</a>
+</div>
+</section>
+
+<section style="background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; font-size: 15px"><span style="color: var(--mfg)">Sous-total</span><span>67,00 €</span></div>
+<button type="button" style="align-self: flex-start; padding: 6px 0; border: none; background: transparent; color: var(--primary); font-size: 14px; font-weight: 600">+ Remise</button>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px">
+<div id="lib-paiement" style="font-size: 13px; font-weight: 500; color: var(--mfg)">Paiement</div>
+<div role="group" aria-labelledby="lib-paiement" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: var(--muted)">
+<button type="button" aria-pressed="false" style="height: 40px; border: none; border-radius: 10px; background: transparent; color: var(--mfg); font-size: 14px; font-weight: 500">Non payée</button>
+<button type="button" aria-pressed="false" style="height: 40px; border: none; border-radius: 10px; background: transparent; color: var(--mfg); font-size: 14px; font-weight: 500">Partiel</button>
+<button type="button" aria-pressed="true" style="height: 40px; border: none; border-radius: 10px; background: var(--card); color: var(--fg); font-size: 14px; font-weight: 600">Payée</button>
+</div>
+</section>
+
+<section style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<div style="flex: 1; min-width: 0"><div id="lib-plustard" style="font-size: 15px; font-weight: 600">À préparer plus tard</div><div style="margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--mfg)">Sinon, la vente est enregistrée comme remise au client.</div></div>
+<button type="button" role="switch" aria-checked="false" aria-labelledby="lib-plustard" style="width: 52px; height: 32px; flex: none; border: none; border-radius: 999px; background: var(--muted); box-shadow: inset 0 0 0 1px var(--border); padding: 3px; display: flex; align-items: center"><span style="width: 26px; height: 26px; border-radius: 999px; background: var(--card); box-shadow: 0 1px 3px rgba(0,0,0,0.18)"></span></button>
+</section>
+
+<button type="button" style="align-self: flex-start; padding: 8px 0; border: none; background: transparent; color: var(--primary); font-size: 14px; font-weight: 600">+ Ajouter une note</button>
+</main>
+
+<div style="position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; gap: 16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--card); border-top: 1px solid var(--border)">
+<div style="flex: none"><div style="font-size: 12px; color: var(--mfg)">Total</div><div style="font-size: 21px; font-weight: 700; line-height: 1.1">67,00 €</div></div>
+<button type="button" style="flex: 1; height: 52px; border: none; border-radius: 999px; background: var(--primary); color: var(--pfg); font-size: 16px; font-weight: 600">Enregistrer la vente</button>
+</div>
+</div>
+</body>
+</html>

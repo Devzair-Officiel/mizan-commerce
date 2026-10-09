@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, FileText } from 'lucide-react';
@@ -21,6 +22,7 @@ import {
   useReopenZakat,
   useDeleteZakatCalculation,
 } from '@/lib/hooks/useZakat';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function ZakatDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +30,7 @@ export default function ZakatDetailPage() {
   const { data: calc, isLoading } = useZakatCalculation(id);
   const reopen = useReopenZakat();
   const remove = useDeleteZakatCalculation();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleEdit = async () => {
     if (!calc) return;
@@ -44,9 +47,6 @@ export default function ZakatDetailPage() {
 
   const handleDelete = async () => {
     if (!calc) return;
-    if (!window.confirm(
-      'Supprimer définitivement ce calcul de l\'historique ? Cette action est irréversible.',
-    )) return;
     await remove.mutateAsync(calc.id);
     router.push('/zakat');
   };
@@ -54,8 +54,15 @@ export default function ZakatDetailPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Détail du calcul" />
-        <p className="text-sm text-muted-foreground text-center py-12">Chargement…</p>
+        <TopBar title="Détail du calcul" back />
+        <div className="flex flex-col gap-3 p-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+            </div>
+          ))}
+        </div>
       </>
     );
   }
@@ -63,7 +70,7 @@ export default function ZakatDetailPage() {
   if (!calc) {
     return (
       <>
-        <TopBar title="Détail du calcul" />
+        <TopBar title="Détail du calcul" back />
         <div className="flex flex-col gap-3 px-4 py-8 items-center">
           <p className="text-sm text-muted-foreground">Calcul introuvable.</p>
           <Link href="/zakat" className="text-sm text-primary underline">
@@ -81,7 +88,7 @@ export default function ZakatDetailPage() {
 
   return (
     <>
-      <TopBar title="Détail du calcul" />
+      <TopBar title="Détail du calcul" back />
       <div className="flex flex-col gap-4 p-4 pb-24">
         <Link
           href="/zakat"
@@ -137,13 +144,23 @@ export default function ZakatDetailPage() {
         <DetailActions
           isFinalized={calc.status === 'finalized'}
           onEdit={handleEdit}
-          onDelete={handleDelete}
+          onDelete={() => setConfirmDelete(true)}
           isEditing={reopen.isPending}
           isDeleting={remove.isPending}
         />
 
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3">
-          <p className="text-xs text-amber-700">
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Supprimer ce calcul ?"
+          description="Cette action est irréversible. Le calcul sera définitivement supprimé de l'historique."
+          onConfirm={handleDelete}
+          variant="destructive"
+          confirmLabel="Supprimer"
+        />
+
+        <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
+          <p className="text-xs text-amber-700 dark:text-amber-400">
             Ce calcul est fourni à titre indicatif. Pour valider votre obligation, consultez un
             érudit ou un spécialiste de la zakat commerciale.
           </p>

@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -48,50 +48,49 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Fallback Menthe clair — écrasé par ColorThemeProvider via style.setProperty
+   Fallback Sauge + Crème (clair) — écrasé par ColorThemeProvider via style.setProperty.
+   NOTE : les sélecteurs [data-color-theme=...] ci-dessous sont des reliquats
+   de l'ancien système de thème ; data-color-theme n'est plus posé nulle part
+   (le script inline utilise data-primary / data-bg). Ils n'ont aucun effet.
    ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: oklch(0.98 0.004 168);
-  --foreground: oklch(0.14 0.055 170);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.14 0.055 170);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.14 0.055 170);
-  --primary: oklch(0.63 0.19 168);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.92 0.05 168);
-  --secondary-foreground: oklch(0.14 0.055 170);
-  --muted: oklch(0.94 0.02 168);
-  --muted-foreground: oklch(0.48 0.06 168);
-  --accent: oklch(0.78 0.15 155);
-  --accent-foreground: oklch(0.14 0.055 155);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.89 0.03 168);
-  --input: oklch(0.89 0.03 168);
-  --ring: oklch(0.63 0.19 168);
+  --bottom-nav-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  --sell-overflow: 1.75rem;
+
+  --background:           oklch(0.975 0.010 85);
+  --foreground:           oklch(0.27 0.02 170);
+  --card:                 oklch(0.995 0.005 85);
+  --card-foreground:      oklch(0.27 0.02 170);
+  --popover:              oklch(0.995 0.005 85);
+  --popover-foreground:   oklch(0.27 0.02 170);
+  --primary:              oklch(0.52 0.075 170);
+  --primary-foreground:   oklch(1 0 0);
+  --secondary:            oklch(0.93 0.0225 170);
+  --secondary-foreground: oklch(0.30 0.0450 170);
+  --muted:                oklch(0.945 0.012 90);
+  --muted-foreground:     oklch(0.53 0.012 170);
+  --accent:               oklch(0.93 0.0263 170);
+  --accent-foreground:    oklch(0.30 0.0525 170);
+  --destructive:          oklch(0.577 0.245 27.325);
+  --border:               oklch(0.90 0.014 90);
+  --input:                oklch(0.90 0.014 90);
+  --ring:                 oklch(0.52 0.075 170);
   --radius: 0.625rem;
-  --sidebar: oklch(0.95 0.02 168);
-  --sidebar-foreground: oklch(0.14 0.055 170);
-  --sidebar-primary: oklch(0.63 0.19 168);
+  --sidebar:                    oklch(0.945 0.012 90);
+  --sidebar-foreground:         oklch(0.27 0.02 170);
+  --sidebar-primary:            oklch(0.52 0.075 170);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.92 0.05 168);
-  --sidebar-accent-foreground: oklch(0.14 0.055 170);
-  --sidebar-border: oklch(0.89 0.03 168);
-  --sidebar-ring: oklch(0.63 0.19 168);
+  --sidebar-accent:             oklch(0.93 0.0225 170);
+  --sidebar-accent-foreground:  oklch(0.30 0.0450 170);
+  --sidebar-border:             oklch(0.90 0.014 90);
+  --sidebar-ring:               oklch(0.52 0.075 170);
+  --bg-gradient: linear-gradient(to bottom, oklch(0.985 0.006 85) 0%, oklch(0.965 0.012 85) 100%);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Gradients par thème — appliqués synchronement via data-color-theme
-   L'attribut est posé par le script inline dans <head> avant hydration
+   Reliquats data-color-theme — sans effet (data-color-theme n'est plus posé).
+   Conservés pour ne pas casser un éventuel usage externe non identifié.
    ───────────────────────────────────────────────────────────────────────── */
-
-/* Gradients subtils — très légère teinte en haut, fond vers le background */
-
-/* Dégradé subtil : légère teinte en haut → couleur de fond exacte en bas, sans coupure */
-
-/* Dégradé : clair en haut → légèrement plus foncé/teinté en bas */
-
-:root,
 [data-color-theme="menthe"] {
   --bg-gradient: linear-gradient(to bottom, oklch(0.99 0.002 168) 0%, oklch(0.955 0.012 168) 100%);
 }
@@ -112,7 +111,10 @@
   --bg-gradient: linear-gradient(to bottom, oklch(0.995 0.002 5) 0%, oklch(0.955 0.012 345) 100%);
 }
 
-.dark,
+.dark {
+  --bg-gradient: linear-gradient(to bottom, oklch(0.26 0.012 170) 0%, oklch(0.22 0.012 170) 100%);
+}
+
 .dark [data-color-theme="menthe"] {
   --bg-gradient: linear-gradient(to bottom, oklch(0.16 0.042 168) 0%, oklch(0.10 0.065 168) 100%);
 }
@@ -140,8 +142,28 @@
   * {
     @apply border-border outline-ring/50;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="option"],
+  [role="menuitem"],
+  [role="menuitemradio"],
+  [role="tab"],
+  select,
+  summary,
+  label[for],
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
+  }
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
   html {
     @apply font-sans;
+    /* Échelle fluide : 16px jusqu'à 1440px, 18px à 1920px, linéaire entre les deux.
+       Mobile (≤1440px) et 1280px restent à 16px (clamp min). */
+    font-size: clamp(1rem, calc(0.4167vw + 0.625rem), 1.125rem);
     /* Fond solide de secours visible si le pseudo-élément ne charge pas encore */
     background: var(--background);
   }
@@ -165,6 +187,7 @@
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* ─────────────────────────────────────────────────────────────────────────
    Overrides dark mode pour les classes zinc hardcodées dans les pages

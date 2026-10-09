@@ -1,261 +1,166 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
 import { CustomerPicker } from '@/components/orders/CustomerPicker';
-import { ProductPicker, type FreeLine, type VariantPick } from '@/components/orders/ProductPicker';
+import { ProductPicker } from '@/components/orders/ProductPicker';
 import { OrderItemsList } from '@/components/orders/new/OrderItemsList';
 import { OrderSummary } from '@/components/orders/new/OrderSummary';
 import { SectionChips } from '@/components/orders/new/SectionChips';
 import { NotesSection } from '@/components/orders/new/NotesSection';
 import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
-import { SubmitCTA } from '@/components/orders/new/SubmitCTA';
-import type { LineItem } from '@/components/orders/new/types';
-import { useCreateOrder, type OrderItemPayload } from '@/lib/hooks/useOrders';
-import { useCustomer, type Customer } from '@/lib/hooks/useCustomers';
-import { apiFetch } from '@/lib/api-client';
+import { MobileSubmitBar } from '@/components/orders/new/MobileSubmitBar';
+import { DesktopCatalogPanel } from '@/components/orders/new/DesktopCatalogPanel';
+import { DesktopSaleTicket } from '@/components/orders/new/DesktopSaleTicket';
+import { StatusSwitch } from '@/components/orders/new/StatusSwitch';
+import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
+import { registerDirtyChecker, unregisterDirtyChecker } from '@/lib/dirtyGuard';
+import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
+import { useShop } from '@/lib/hooks/useShop';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import type { Customer } from '@/lib/hooks/useCustomers';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 
-function NewOrderForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const t = useTranslations('orders.new');
-  const tPayment = useTranslations('orders.payment');
-  const { mutateAsync, isPending } = useCreateOrder();
-
-  const [customerId, setCustomerId] = useState(searchParams.get('customer') ?? '');
-  const [notes,      setNotes]      = useState('');
-  const [discount,   setDiscount]   = useState('');
-  const [shipping,   setShipping]   = useState('');
-  const [items, setItems] = useState<LineItem[]>([]);
-  const [itemsError, setItemsError] = useState(false);
-  const [customerError, setCustomerError] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'partial' | 'paid'>('unpaid');
-  const [amountPaid, setAmountPaid] = useState('');
-  const [orderStatus, setOrderStatus] = useState<'draft' | 'to_prepare' | 'shipped'>('to_prepare');
-  const [paymentError, setPaymentError] = useState('');
-  const [showNotes, setShowNotes] = useState(false);
-  const [showDiscount, setShowDiscount] = useState(false);
-  const [showShipping, setShowShipping] = useState(false);
-  const [createCustomerOpen, setCreateCustomerOpen] = useState(false);
-  const [createProductOpen, setCreateProductOpen] = useState(false);
-  const { data: selectedCustomer } = useCustomer(customerId);
-
-  function addItem(pick: VariantPick) {
-    setItemsError(false);
-    const existing = items.find((i) => i.variant === pick.variantId);
-    if (existing) {
-      setItems(items.map((i) => i.lineId === existing.lineId ? { ...i, quantity: i.quantity + 1 } : i));
-    } else {
-      setItems([...items, {
-        lineId: crypto.randomUUID(),
-        variant: pick.variantId,
-        product_name: pick.productName,
-        variant_name: pick.variantName,
-        product_type: pick.productType,
-        quantity: 1,
-        unit_price: pick.unitPrice,
-      }]);
-    }
-  }
-
-  async function addProductFromQuickAdd(productId: string) {
-    const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
-    const first = detail.variants.find((v) => v.is_active);
-    if (!first) return;
-    addItem({
-      variantId: first.id,
-      productName: detail.name,
-      variantName: first.packaging_name,
-      productType: detail.type,
-      unitPrice: first.selling_price,
-    });
-  }
-
-  function addFreeLine(line: FreeLine) {
-    setItemsError(false);
-    setItems((prev) => [...prev, {
-      lineId: crypto.randomUUID(),
-      variant: null,
-      product_name: line.product_name,
-      variant_name: '',
-      product_type: null,
-      quantity: line.quantity,
-      unit_price: line.unit_price,
-    }]);
-  }
-
-  function updateQty(lineId: string, qty: number) {
-    if (qty < 1) { setItems(items.filter((i) => i.lineId !== lineId)); return; }
-    setItems(items.map((i) => i.lineId === lineId ? { ...i, quantity: qty } : i));
-  }
-
-  function removeItem(lineId: string) {
-    setItems(items.filter((i) => i.lineId !== lineId));
-  }
-
-  const subtotal  = items.reduce((acc, i) => acc + parseFloat(i.unit_price) * i.quantity, 0);
-  const discountN = parseFloat(discount) || 0;
-  const shippingN = parseFloat(shipping) || 0;
-  const total     = subtotal - discountN + shippingN;
-
-  const hasProducts = items.some((i) => i.product_type === 'product');
-  const hasNonProducts = items.some((i) => i.product_type !== 'product');
-  const toPrepareLabel = hasProducts && hasNonProducts
-    ? t('status_to_process')
-    : hasNonProducts && !hasProducts
-      ? t('status_confirmed')
-      : t('status_to_prepare');
-
-  async function handleSubmit() {
-    setPaymentError('');
-    let invalid = false;
-    if (!customerId) { setCustomerError(true); invalid = true; }
-    if (items.length === 0) { setItemsError(true); invalid = true; }
-    if (invalid) return;
-    if (paymentStatus === 'partial') {
-      const n = parseFloat(amountPaid);
-      if (!n || n <= 0) { setPaymentError(t('payment_amount_required')); return; }
-      if (n > total)    { setPaymentError(t('payment_amount_exceeds')); return; }
-    }
-    const payloadItems: OrderItemPayload[] = items.map((i) =>
-      i.variant
-        ? { variant: i.variant, quantity: i.quantity, unit_price: i.unit_price }
-        : { product_name: i.product_name, unit_price: i.unit_price, quantity: i.quantity },
-    );
-    const order = await mutateAsync({
-      customer: customerId || null,
-      notes,
-      discount_amount: discount || '0',
-      shipping_amount: shipping || '0',
-      items: payloadItems,
-      status: orderStatus,
-      payment_status: paymentStatus,
-      amount_paid: paymentStatus === 'partial' ? amountPaid : '0',
-    });
-    router.push(`/orders/${order.id}`);
-  }
-
+function NewSaleFormDesktop({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
   return (
-    <div className="flex flex-col gap-5 p-4 pb-32">
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          {t('section_customer')}
-        </span>
-        <CustomerPicker
-          value={customerId}
-          selectedCustomer={selectedCustomer}
-          onChange={(id) => { setCustomerId(id); if (id) setCustomerError(false); }}
-          onRequestCreate={() => setCreateCustomerOpen(true)}
-        />
-        <QuickAddCustomer
-          hideTrigger
-          open={createCustomerOpen}
-          onOpenChange={setCreateCustomerOpen}
-          onCreated={(c: Customer) => { setCustomerId(c.id); setCustomerError(false); }}
-        />
-        {customerError && (
-          <p className="text-[11px] text-destructive px-1">{t('customer_required')}</p>
-        )}
+    <div className="flex gap-6 p-6 pb-10 items-start">
+      <div className="flex-1 min-w-0">
+        <DesktopCatalogPanel form={form} />
       </div>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-          {t('section_items')}
-        </span>
-        <ProductPicker
-          onPick={addItem}
-          onFreeLine={addFreeLine}
-          onRequestCreate={() => setCreateProductOpen(true)}
-        />
-        <QuickAddProduct
-          hideTrigger
-          open={createProductOpen}
-          onOpenChange={setCreateProductOpen}
-          onCreated={(p: ProductDetail) => { void addProductFromQuickAdd(p.id); }}
-        />
-        {itemsError && (
-          <p className="text-[11px] text-destructive px-1">{t('items_required')}</p>
-        )}
+      <div className="w-105 shrink-0">
+        <DesktopSaleTicket form={form} />
       </div>
-
-      <OrderItemsList items={items} onUpdateQty={updateQty} onRemove={removeItem} />
-
-      {items.length > 0 && (
-        <OrderSummary
-          subtotal={subtotal}
-          total={total}
-          discount={discount}
-          shipping={shipping}
-          showDiscount={showDiscount}
-          showShipping={showShipping}
-          onDiscountChange={setDiscount}
-          onShippingChange={setShipping}
-          onShowDiscount={() => setShowDiscount(true)}
-          onShowShipping={() => setShowShipping(true)}
-          onClearDiscount={() => { setDiscount(''); setShowDiscount(false); }}
-          onClearShipping={() => { setShipping(''); setShowShipping(false); }}
-        />
-      )}
-
-      <SectionChips
-        title={t('payment_title')}
-        options={[
-          { value: 'unpaid',  label: tPayment('unpaid'), activeClass: 'bg-red-500 text-white' },
-          { value: 'partial', label: tPayment('partial'), activeClass: 'bg-amber-500 text-white' },
-          { value: 'paid',    label: tPayment('paid'),    activeClass: 'bg-green-600 text-white' },
-        ]}
-        value={paymentStatus}
-        onChange={(v) => { setPaymentStatus(v as 'unpaid' | 'partial' | 'paid'); setPaymentError(''); }}
-      >
-        {paymentStatus === 'partial' && (
-          <PaymentPartialInput
-            amountPaid={amountPaid}
-            paymentError={paymentError}
-            onAmountPaidChange={(v) => { setAmountPaid(v); setPaymentError(''); }}
-          />
-        )}
-      </SectionChips>
-
-      <SectionChips
-        title={t('status_title')}
-        options={[
-          { value: 'draft',      label: t('status_draft'), activeClass: 'bg-zinc-500 text-white' },
-          { value: 'to_prepare', label: toPrepareLabel,    activeClass: 'bg-blue-600 text-white' },
-          { value: 'shipped',    label: t('status_shipped'), activeClass: 'bg-green-600 text-white' },
-        ]}
-        value={orderStatus}
-        onChange={(v) => setOrderStatus(v as 'draft' | 'to_prepare' | 'shipped')}
-      />
-
-      <NotesSection
-        notes={notes}
-        showNotes={showNotes}
-        onNotesChange={setNotes}
-        onShow={() => setShowNotes(true)}
-        onHide={() => setShowNotes(false)}
-      />
-
-      <SubmitCTA
-        isPending={isPending}
-        hasItems={items.length > 0}
-        total={total}
-        onClick={handleSubmit}
+      <QuickAddCustomer
+        hideTrigger
+        open={form.createCustomerOpen}
+        onOpenChange={form.setCreateCustomerOpen}
+        onCreated={(c: Customer) => { form.setCustomerId(c.id); }}
       />
     </div>
   );
 }
 
+function MobileCustomerCard({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
+  const t = useTranslations('orders.new');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const hasCustomer = !!form.customerId;
+  const label = hasCustomer ? (form.selectedCustomer?.name ?? '') : t('no_customer_name');
+  const sub = hasCustomer ? (form.selectedCustomer?.phone ?? '') : t('no_customer_sub');
+
+  return (
+    <div className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center gap-3">
+      <div className="flex-1 min-w-0 flex flex-col">
+        <span className="text-base font-semibold text-foreground truncate">{label}</span>
+        {sub ? <span className="text-xs text-muted-foreground truncate">{sub}</span> : null}
+      </div>
+      <button type="button" onClick={() => setPickerOpen(true)}
+        className="shrink-0 h-9 px-4 rounded-full border border-border text-sm font-medium text-foreground active:bg-muted transition-colors">
+        {t('associate_customer')}
+      </button>
+      <CustomerPicker hideTrigger open={pickerOpen} onOpenChange={setPickerOpen}
+        value={form.customerId} selectedCustomer={form.selectedCustomer}
+        onChange={(id) => { form.setCustomerId(id); setPickerOpen(false); }}
+        onRequestCreate={() => { setPickerOpen(false); form.setCreateCustomerOpen(true); }} />
+      <QuickAddCustomer hideTrigger open={form.createCustomerOpen} onOpenChange={form.setCreateCustomerOpen}
+        onCreated={(c: Customer) => { form.setCustomerId(c.id); }} />
+    </div>
+  );
+}
+
+function MobileItemsCard({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
+  const t = useTranslations('orders.new');
+  const kind = useCatalogKind();
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      {form.items.length > 0 && (
+        <OrderItemsList noCard items={form.items} onUpdateQty={form.updateQty} onRemove={form.removeItem} />
+      )}
+      <div className={`p-3 ${form.items.length > 0 ? 'border-t border-border' : ''}`}>
+        <ProductPicker variant="dashed" onPick={form.addItem} onFreeLine={form.addFreeLine}
+          onRequestCreate={() => form.setCreateProductOpen(true)} itemCount={form.items.length} />
+        <QuickAddProduct hideTrigger open={form.createProductOpen} onOpenChange={form.setCreateProductOpen}
+          onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }} />
+      </div>
+      {form.itemsError && (
+        <p className="text-xs text-destructive px-4 pb-2">{t('items_required', { kind })}</p>
+      )}
+    </div>
+  );
+}
+
+function NewSaleFormMobile({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
+  const t = useTranslations('orders.new');
+  const tPayment = useTranslations('orders.payment');
+  const { data: shop } = useShop();
+  const catalogKind = useCatalogKind();
+
+  return (
+    <div className="flex flex-col gap-4 p-4 pb-44">
+      <MobileCustomerCard form={form} />
+      <MobileItemsCard form={form} />
+
+      <OrderSummary
+        subtotal={form.subtotal} total={form.total}
+        discount={form.discount} shipping={form.shipping}
+        showDiscount={form.showDiscount} showShipping={form.showShipping}
+        onDiscountChange={form.setDiscount} onShippingChange={form.setShipping}
+        onShowDiscount={() => form.setShowDiscount(true)} onShowShipping={() => form.setShowShipping(true)}
+        onClearDiscount={() => { form.setDiscount(''); form.setShowDiscount(false); }}
+        onClearShipping={() => { form.setShipping(''); form.setShowShipping(false); }}
+      />
+
+      <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4">
+        <SectionChips title={t('payment_title')}
+          titleClassName="text-[0.8125rem] font-medium text-muted-foreground"
+          options={[
+            { value: 'unpaid', label: tPayment('unpaid') },
+            { value: 'partial', label: tPayment('partial') },
+            { value: 'paid', label: tPayment('paid') },
+          ]}
+          value={form.paymentStatus}
+          onChange={(v) => { form.setPaymentStatus(v as 'unpaid' | 'partial' | 'paid'); form.setPaymentError(''); }}
+        >
+          {form.paymentStatus === 'partial' && (
+            <PaymentPartialInput amountPaid={form.amountPaid} paymentError={form.paymentError}
+              onAmountPaidChange={(v) => { form.setAmountPaid(v); form.setPaymentError(''); }} />
+          )}
+        </SectionChips>
+        <StatusSwitch value={form.orderStatus} onChange={form.setOrderStatus}
+          fm={shop?.fulfillment_mode ?? null} catalogKind={catalogKind} />
+        <NotesSection notes={form.notes} showNotes={form.showNotes} onNotesChange={form.setNotes}
+          onShow={() => form.setShowNotes(true)} onHide={() => form.setShowNotes(false)} />
+      </div>
+
+      <MobileSubmitBar total={form.total} isPending={form.isPending} onClick={form.handleSubmit} />
+    </div>
+  );
+}
+
+function NewSaleFormRouter() {
+  const form = useNewSaleForm();
+  const isDesktop = useIsDesktop();
+  useEffect(() => {
+    registerDirtyChecker(() => form.items.length > 0 || !!form.customerId);
+    return unregisterDirtyChecker;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.items.length, form.customerId]);
+
+  if (isDesktop === true) {
+    return <NewSaleFormDesktop form={form} />;
+  }
+  return <NewSaleFormMobile form={form} />;
+}
+
 export default function NewOrderPage() {
   const t = useTranslations('orders.new');
+  const tList = useTranslations('orders.list');
   return (
     <>
-      <TopBar title={t('topbar')} />
+      <TopBar title={t('topbar')} back backLabel={tList('topbar')} hideSearch />
       <Suspense>
-        <NewOrderForm />
+        <NewSaleFormRouter />
       </Suspense>
     </>
   );

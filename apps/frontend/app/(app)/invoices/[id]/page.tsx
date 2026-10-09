@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ShoppingBag, User } from 'lucide-react';
@@ -11,17 +12,27 @@ import { PartyCard } from '@/components/invoices/detail/PartyCard';
 import { LinesList } from '@/components/invoices/detail/LinesList';
 import { TotalsCard } from '@/components/invoices/detail/TotalsCard';
 import { StatusActions } from '@/components/invoices/detail/StatusActions';
+import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: invoice, isLoading } = useInvoice(id);
   const updateStatus = useUpdateInvoiceStatus(id);
+  const [confirmPaid, setConfirmPaid] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   if (isLoading) {
     return (
       <>
-        <TopBar title="Facture" />
-        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+        <TopBar title="Facture" back />
+        <div className="flex flex-col gap-3 p-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl border border-border bg-card p-4">
+              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
+              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
+            </div>
+          ))}
+        </div>
       </>
     );
   }
@@ -29,7 +40,7 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <>
-        <TopBar title="Facture" />
+        <TopBar title="Facture" back />
         <p className="p-4 text-sm text-destructive">Facture introuvable.</p>
       </>
     );
@@ -39,18 +50,16 @@ export default function InvoiceDetailPage() {
   const showPaymentBreakdown = payment.state === 'partial';
 
   async function handleMarkPaid() {
-    if (!confirm('Marquer cette facture comme payée ?')) return;
     await updateStatus.mutateAsync('paid');
   }
 
   async function handleCancel() {
-    if (!confirm('Annuler cette facture ? Le numéro reste réservé et la trace est conservée.')) return;
     await updateStatus.mutateAsync('cancelled');
   }
 
   return (
     <>
-      <TopBar title={invoice.number} />
+      <TopBar title={invoice.number} back />
       <div className="flex flex-col gap-4 p-4 pb-24">
         <HeroCard invoice={invoice} payment={payment} />
 
@@ -119,8 +128,27 @@ export default function InvoiceDetailPage() {
         <StatusActions
           invoice={invoice}
           isPending={updateStatus.isPending}
-          onMarkPaid={handleMarkPaid}
-          onCancel={handleCancel}
+          onMarkPaid={() => setConfirmPaid(true)}
+          onCancel={() => setConfirmCancel(true)}
+        />
+
+        <ConfirmDialog
+          open={confirmPaid}
+          onOpenChange={setConfirmPaid}
+          title="Marquer comme payée ?"
+          description="Cette facture sera enregistrée comme intégralement réglée."
+          onConfirm={handleMarkPaid}
+          confirmLabel="Confirmer"
+        />
+
+        <ConfirmDialog
+          open={confirmCancel}
+          onOpenChange={setConfirmCancel}
+          title="Annuler cette facture ?"
+          description="Le numéro reste réservé et la trace est conservée."
+          onConfirm={handleCancel}
+          variant="destructive"
+          confirmLabel="Annuler la facture"
         />
       </div>
     </>

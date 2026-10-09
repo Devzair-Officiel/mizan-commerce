@@ -62,6 +62,7 @@ function StockAddForm() {
       });
       qc.invalidateQueries({ queryKey: qk.products.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
+      qc.invalidateQueries({ queryKey: qk.navBadges.all });
       router.back();
     } catch {
       setError("Erreur lors de l'ajout de stock.");
@@ -141,7 +142,7 @@ function StockAddForm() {
 export default function StockAddPage() {
   return (
     <>
-      <TopBar title="Entrée stock" />
+      <TopBar title="Entrée stock" back />
       <Suspense><StockAddForm /></Suspense>
     </>
   );

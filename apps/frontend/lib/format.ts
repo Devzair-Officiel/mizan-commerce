@@ -42,13 +42,14 @@ export function formatNumber(
 // ── Monnaie ─────────────────────────────────────────────────────────────────
 
 /**
- * Format monétaire "1 234,56 EUR" / "1,234.56 EUR" / "1٬234٫56 EUR" selon la locale.
+ * Format monétaire "1 234,56 €" / "€1,234.56" / "1٬234٫56 د.م." selon la locale.
  *
- * On utilise `style: 'decimal'` + suffixe manuel plutôt que `style: 'currency'`
- * car la devise vient de `shop.currency` (chaîne libre — EUR, MAD, XOF…) et
- * doit s'afficher à l'identique partout. `style: 'currency'` introduirait des
- * variations (symbole vs code, position du symbole) que les commerçants ne
- * veulent pas voir bouger d'un écran à l'autre.
+ * On utilise `style: 'currency'` avec `currencyDisplay: 'narrowSymbol'` pour
+ * afficher le symbole natif (€, $, د.م.) plutôt que le code ISO, ce qui est
+ * plus lisible pour les commerçants. La position du symbole (avant/après) est
+ * déterminée par les conventions locales de la devise.
+ *
+ * Fallback : si la devise est inconnue de Intl (ex: XOF), on revient au code ISO.
  */
 export function formatMoney(
   value: string | number,
@@ -60,11 +61,22 @@ export function formatMoney(
   if (!Number.isFinite(num)) return `0 ${currency}`;
   const max = options?.maximumFractionDigits ?? 2;
   const min = Math.min(options?.minimumFractionDigits ?? 2, max);
-  const formatted = new Intl.NumberFormat(bcp47(locale), {
-    minimumFractionDigits: min,
-    maximumFractionDigits: max,
-  }).format(num);
-  return `${formatted} ${currency}`;
+  try {
+    return new Intl.NumberFormat(bcp47(locale), {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+      minimumFractionDigits: min,
+      maximumFractionDigits: max,
+    }).format(num);
+  } catch {
+    // Devise non reconnue par Intl (ex: XOF) → fallback code ISO
+    const formatted = new Intl.NumberFormat(bcp47(locale), {
+      minimumFractionDigits: min,
+      maximumFractionDigits: max,
+    }).format(num);
+    return `${formatted} ${currency}`;
+  }
 }
 
 // ── Dates ───────────────────────────────────────────────────────────────────

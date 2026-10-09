@@ -6,6 +6,7 @@ import { Plus, StickyNote, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { useCreateOrderNote, useDeleteNote, useOrderNotes } from '@/lib/hooks/useNotes';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import { useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
 
 interface OrderNotesCardProps {
@@ -22,6 +23,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
   const deleteNote = useDeleteNote(orderId);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteInput, setNoteInput] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   async function handleAddNote() {
     const trimmed = noteInput.trim();
@@ -32,18 +34,17 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
   }
 
   async function handleDeleteNote(noteId: string) {
-    if (!confirm(t('delete_confirm'))) return;
     await deleteNote.mutateAsync(noteId);
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
-        <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <StickyNote size={14} />
           {t('title')}
           {notesData && notesData.count > 0 && (
-            <span className="text-zinc-400 normal-case font-normal tracking-normal">
+            <span className="text-muted-foreground normal-case font-normal tracking-normal">
               ({notesData.count})
             </span>
           )}
@@ -61,7 +62,7 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
       </div>
 
       {showNoteForm && (
-        <div className="p-3 border-b border-zinc-100 flex flex-col gap-2">
+        <div className="p-3 border-b border-border flex flex-col gap-2">
           <FloatingTextarea
             id="note-content"
             label={t('field_label')}
@@ -90,26 +91,26 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
       )}
 
       {notesData?.results.length ? (
-        <ul className="divide-y divide-zinc-100">
+        <ul className="divide-y divide-border">
           {notesData.results.map((note) => {
             const fullTimestamp = formatDateTime(note.created_at, {
               day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
             });
             return (
               <li key={note.id} className="px-4 py-3 flex flex-col gap-1.5">
-                <p className="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed">
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                   {note.content}
                 </p>
-                <div className="flex items-center justify-between text-xs text-zinc-400">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
                     {note.author_name ?? t('anonymous')} ·{' '}
                     <span title={fullTimestamp}>{relativeTime(note.created_at)}</span>
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleDeleteNote(note.id)}
+                    onClick={() => setPendingDeleteId(note.id)}
                     aria-label={t('delete_aria')}
-                    className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
+                    className="inline-flex items-center justify-center h-11 w-11 -mr-2.5 text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -119,10 +120,19 @@ export function OrderNotesCard({ orderId }: OrderNotesCardProps) {
           })}
         </ul>
       ) : !showNoteForm && (
-        <p className="px-4 py-6 text-center text-sm text-zinc-400">
+        <p className="px-4 py-6 text-center text-sm text-muted-foreground">
           {t('empty')}
         </p>
       )}
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(open) => { if (!open) setPendingDeleteId(null); }}
+        title={t('delete_confirm')}
+        onConfirm={() => { if (pendingDeleteId) handleDeleteNote(pendingDeleteId); }}
+        variant="destructive"
+        confirmLabel="Supprimer"
+      />
     </div>
   );
 }

@@ -4,37 +4,39 @@ import { useTranslations } from 'next-intl';
 import { Trash2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { isDefaultVariant } from '@/lib/products';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { LineItem } from './types';
 
 interface OrderItemsListProps {
   items: LineItem[];
   onUpdateQty: (lineId: string, qty: number) => void;
   onRemove: (lineId: string) => void;
+  noCard?: boolean;
 }
 
-export function OrderItemsList({ items, onUpdateQty, onRemove }: OrderItemsListProps) {
+export function OrderItemsList({ items, onUpdateQty, onRemove, noCard }: OrderItemsListProps) {
   const t = useTranslations('orders.new');
+  const kind = useCatalogKind();
   if (items.length === 0) return null;
 
-  return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+  const inner = (
+    <>
       <div className="px-4 py-2.5 border-b border-border">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          {t('items_title')}
+          {t('items_title', { kind })}
         </span>
       </div>
       <div className="divide-y divide-border">
         {items.map((item) => (
-          <OrderItemRow
-            key={item.lineId}
-            item={item}
-            onUpdateQty={onUpdateQty}
-            onRemove={onRemove}
-          />
+          <OrderItemRow key={item.lineId} item={item} onUpdateQty={onUpdateQty} onRemove={onRemove} />
         ))}
       </div>
-    </div>
+    </>
   );
+
+  if (noCard) return <>{inner}</>;
+  return <div className="rounded-2xl border border-border bg-card overflow-hidden">{inner}</div>;
 }
 
 function OrderItemRow({
@@ -70,7 +72,7 @@ function OrderItemRow({
               </span>
             )}
           </div>
-          {item.variant_name && item.variant_name !== 'Par défaut' && (
+          {item.variant_name && !isDefaultVariant(item.variant_name) && (
             <span className="text-[11px] text-muted-foreground truncate">{item.variant_name}</span>
           )}
           <span className="text-xs text-muted-foreground tabular-nums">
@@ -92,14 +94,14 @@ function OrderItemRow({
             type="button"
             onClick={() => onUpdateQty(item.lineId, item.quantity - 1)}
             aria-label={t('decrease_aria')}
-            className="w-9 h-9 rounded-full border border-border text-foreground text-base flex items-center justify-center active:bg-muted active:scale-95 transition-all"
+            className="w-10 h-10 rounded-full border border-border text-foreground text-base flex items-center justify-center active:bg-muted active:scale-95 transition-all"
           >−</button>
           <span className="w-7 text-center text-sm font-semibold tabular-nums">{item.quantity}</span>
           <button
             type="button"
             onClick={() => onUpdateQty(item.lineId, item.quantity + 1)}
             aria-label={t('increase_aria')}
-            className="w-9 h-9 rounded-full border border-border text-foreground text-base flex items-center justify-center active:bg-muted active:scale-95 transition-all"
+            className="w-10 h-10 rounded-full border border-border text-foreground text-base flex items-center justify-center active:bg-muted active:scale-95 transition-all"
           >+</button>
         </div>
         <span className="text-sm font-bold text-foreground tabular-nums">

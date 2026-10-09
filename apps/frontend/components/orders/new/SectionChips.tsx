@@ -1,33 +1,33 @@
 interface SectionChipsProps {
   title: string;
-  options: { value: string; label: string; activeClass?: string }[];
+  titleClassName?: string;
+  options: { value: string; label: string }[];
   value: string;
   onChange: (v: string) => void;
   children?: React.ReactNode;
 }
 
 export function SectionChips({
-  title, options, value, onChange, children,
+  title, titleClassName, options, value, onChange, children,
 }: SectionChipsProps) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+      <span className={titleClassName ?? 'text-[0.8125rem] font-medium text-muted-foreground px-1'}>
         {title}
       </span>
-      <div className="flex flex-wrap gap-2">
-        {options.map(({ value: v, label, activeClass }) => {
+      <div className="rounded-full bg-muted p-1 flex">
+        {options.map(({ value: v, label }) => {
           const active = value === v;
-          const activeStyle = activeClass ?? 'bg-primary text-primary-foreground';
           return (
             <button
               key={v}
               type="button"
               onClick={() => onChange(v)}
               aria-pressed={active}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-out active:scale-[0.98] ${
+              className={`flex-1 rounded-full px-4 h-10 text-sm whitespace-nowrap transition-all duration-200 ease-out active:scale-[0.98] max-sm:px-1.5 max-sm:text-[0.8125rem] ${
                 active
-                  ? activeStyle
-                  : 'bg-muted text-muted-foreground active:bg-muted/70'
+                  ? 'bg-card text-foreground font-semibold shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {label}

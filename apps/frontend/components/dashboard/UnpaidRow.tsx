@@ -1,0 +1,77 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { MessageCircle } from 'lucide-react';
+import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
+
+function WaIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+    </svg>
+  );
+}
+import { useFormatMoney, useRelativeTime } from '@/lib/hooks/useFormat';
+import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
+
+interface Props { order: UnpaidOrder; currency: string; }
+
+export function UnpaidRow({ order, currency }: Props) {
+  const t = useTranslations('dashboard.unpaid');
+  const formatMoney = useFormatMoney();
+  const relativeTime = useRelativeTime();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  return (
+    <div className="flex items-center gap-3 px-5 py-3.5">
+      <Link href={`/orders/${order.id}`} className="flex-1 min-w-0 hover:opacity-80 transition-opacity">
+        <p className="text-sm font-semibold text-foreground truncate">
+          {order.customer_name ?? <span className="text-muted-foreground">{t('no_customer')}</span>}
+        </p>
+        <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
+          {t('order_ref', { number: order.order_number, age: relativeTime(order.created_at) })}
+        </p>
+      </Link>
+      <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0 sm:w-20 sm:text-right">
+        {formatMoney(order.amount_due, currency)}
+      </span>
+      {order.customer_phone ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            aria-label={t('relancer_aria', { name: order.customer_name ?? '' })}
+            className="sm:hidden h-11 w-11 rounded-full border border-border bg-card text-primary flex items-center justify-center shrink-0 hover:bg-muted transition-colors"
+          >
+            <WaIcon size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className="max-sm:hidden h-9 px-3.5 rounded-full border border-border bg-card text-[0.8125rem] font-medium text-foreground flex items-center gap-1.5 shrink-0 hover:bg-muted transition-colors"
+          >
+            <MessageCircle size={14} className="text-primary" />
+            {t('relancer')}
+          </button>
+        </>
+      ) : (
+        <div className="h-11 w-11 sm:h-9 sm:w-9 shrink-0 invisible" />
+      )}
+      {dialogOpen && (
+        <PreparedMessageDialog
+          open
+          onClose={() => setDialogOpen(false)}
+          templateType="unpaid_followup"
+          contextType="order"
+          contextId={order.id}
+          customerId={order.customer_id}
+          recipientPhone={order.customer_phone}
+          initialMessage=""
+          WhatsAppIcon={WaIcon}
+        />
+      )}
+    </div>
+  );
+}

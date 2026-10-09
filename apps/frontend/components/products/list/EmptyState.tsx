@@ -1,5 +1,8 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 import { Package, Plus, Search } from 'lucide-react';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 
 interface EmptyStateProps {
   onAdd: () => void;
@@ -9,6 +12,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ onAdd, searchTerm, onClearSearch }: EmptyStateProps) {
   const t = useTranslations('articles.empty');
+  const kind = useCatalogKind();
 
   if (searchTerm) {
     return (
@@ -34,16 +38,16 @@ export function EmptyState({ onAdd, searchTerm, onClearSearch }: EmptyStateProps
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <Package size={26} />
       </div>
-      <p className="text-base font-semibold text-foreground">{t('title')}</p>
+      <p className="text-base font-semibold text-foreground">{t('title', { kind })}</p>
       <p className="text-sm text-muted-foreground max-w-xs">
-        {t('message')}
+        {t('message', { kind })}
       </p>
       <button
         onClick={onAdd}
         className="mt-1 flex h-10 items-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm active:scale-95 transition-transform"
       >
         <Plus size={16} strokeWidth={2.4} />
-        {t('new_product')}
+        {t('new_product', { kind })}
       </button>
     </div>
   );

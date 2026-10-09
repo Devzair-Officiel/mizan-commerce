@@ -21,7 +21,7 @@ export default function EditProductPage() {
   if (isLoading || !product) {
     return (
       <>
-        <TopBar title={t('topbar_edit')} />
+        <TopBar title={t('topbar_edit')} back hideSearch />
         <p className="p-4 text-sm text-zinc-400">{t('loading')}</p>
       </>
     );
@@ -29,7 +29,7 @@ export default function EditProductPage() {
 
   return (
     <>
-      <TopBar title={product.type === 'service' ? t('topbar_edit_service') : t('topbar_edit_product')} />
+      <TopBar title={product.type === 'service' ? t('topbar_edit_service') : t('topbar_edit_product')} back hideSearch />
       <ProductForm
         type={product.type}
         defaultValues={product}

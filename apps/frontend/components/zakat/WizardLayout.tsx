@@ -3,6 +3,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import type { ReactNode } from 'react';
 
 export const WIZARD_STEPS = [
@@ -78,18 +79,16 @@ export function WizardLayout({
         {children}
       </main>
 
-      {/* Pied : navigation persistante. Sur mobile on remonte au-dessus du FAB "+"
-          (BottomNav h-14 + FAB qui dépasse ≈ 74px), sans fond ni bordure pour ne pas
-          recouvrir le contenu de l'étape. En desktop le footer est en flux normal. */}
-      <footer className="fixed bottom-24 left-0 right-0 z-40 px-4 lg:static lg:bottom-auto lg:px-0 lg:py-3">
-        <Button
-          onClick={onNext}
-          disabled={!canGoNext || isPending}
-          className="w-full"
-        >
+      <footer className="hidden lg:block lg:py-3">
+        <Button onClick={onNext} disabled={!canGoNext || isPending} className="w-full">
           {isPending ? 'Enregistrement…' : nextLabel}
         </Button>
       </footer>
+      <FloatingActionBar variant="button">
+        <Button onClick={onNext} disabled={!canGoNext || isPending} className="w-full h-12 rounded-full shadow-lg">
+          {isPending ? 'Enregistrement…' : nextLabel}
+        </Button>
+      </FloatingActionBar>
     </div>
   );
 }
