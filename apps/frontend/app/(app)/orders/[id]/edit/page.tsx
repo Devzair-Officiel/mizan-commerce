@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
@@ -129,6 +129,14 @@ function EditController({ order }: { order: Order }) {
   const total     = subtotal - discountN + shippingN;
   const isPending = updateOrder.isPending || addItem.isPending || updateItem.isPending || removeItem.isPending;
 
+  const customerSelectItems = useMemo(() => {
+    const base = (customers?.results ?? []).map((c) => ({ value: c.id, label: c.name }));
+    if (order.customer && order.customer_name && !base.some((it) => it.value === order.customer)) {
+      return [...base, { value: order.customer, label: order.customer_name }];
+    }
+    return base;
+  }, [customers?.results, order.customer, order.customer_name]);
+
   async function handleSave() {
     await updateOrder.mutateAsync({
       customer: customerId || null,
@@ -168,6 +176,7 @@ function EditController({ order }: { order: Order }) {
               value={customerId}
               onValueChange={setCustomerId}
               placeholder={t('no_customer')}
+              selectItems={customerSelectItems}
             >
               <FloatingSelectItem value="">{t('no_customer')}</FloatingSelectItem>
               {customers?.results.map((c) => (

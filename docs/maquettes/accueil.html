@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Mizan — Accueil avec données</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.mz{--bg:#FAF6EF;--card:#FFFDFA;--fg:#1D2A25;--muted:#F0EDE4;--mfg:#656E6B;--border:#E1DED4;--primary:#367762;--pfg:#FFFFFF;--soft:#DAEDE6;--softfg:#183A2F;--amber:#B45309;--amberbg:#FDF1DC;--red:#B91C1C;--redbg:#FBE7E4;--green:#2F7A3E;--greenbg:#E3F1E3;--bar:#C9DDD4;font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.mz.dark{--bg:#1A211E;--card:#252E2A;--fg:#EAE7E2;--muted:#2F3834;--mfg:#A6ADA9;--border:rgba(255,255,255,0.10);--primary:#83C0AA;--pfg:#1A211E;--soft:#2F3B36;--softfg:#D3E8DF;--amber:#F2B95C;--amberbg:rgba(242,185,92,0.13);--red:#F28B82;--redbg:rgba(242,139,130,0.13);--green:#7BCB8A;--greenbg:rgba(123,203,138,0.13);--bar:#3F5048}
+.mz *{box-sizing:border-box}
+.mz button{font:inherit;cursor:pointer}
+.mz :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+a{color:var(--primary)}a:hover{color:var(--fg)}
+</style>
+<div class="mz" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: var(--bg); color: var(--fg)">
+
+<aside style="flex: 1 1 248px; display: flex; flex-direction: column; gap: 22px; padding: 20px 14px; background: var(--card); border-right: 1px solid var(--border)">
+<div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px">
+<div style="width: 34px; height: 34px; border-radius: 12px; background: var(--primary); color: var(--pfg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px">M</div>
+<div style="min-width: 0">
+<div style="font-size: 15px; font-weight: 600">Mizan</div>
+<div style="font-size: 12px; color: var(--mfg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">La Boutique de Youssef</div>
+</div>
+</div>
+<a href="#" style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 999px; background: var(--primary); color: var(--pfg); font-size: 14px; font-weight: 600; text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Nouvelle vente</a>
+<nav aria-label="Navigation principale" style="display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<a href="accueil.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 600; background: var(--soft); color: var(--softfg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--primary)"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M10 21v-6h4v6"></path></svg>Accueil</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 0 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mfg)">Vendre</div>
+<a href="commandes.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M6 7h12l1 14H5L6 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg>Commandes<span style="margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--muted); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">3</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7"></path><path d="M18 14.5a6.5 6.5 0 0 1 3.5 5.5"></path></svg>Clients</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M14 3H6v18h12V7l-4-4Z"></path><path d="M14 3v4h4"></path><path d="M9 12h6M9 16h6"></path></svg>Factures</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 0 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mfg)">Catalogue</div>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M3 12V3h9l9 9-9 9-9-9Z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg>Articles</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z"></path><path d="M3 7.5v9L12 21l9-4.5v-9"></path><path d="M12 12v9"></path></svg>Stock<span style="margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--redbg); color: var(--red); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">2</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<div style="padding: 0 12px 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mfg)">Suivi</div>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"></path><path d="M10 21h4"></path></svg>Rappels<span style="margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--muted); font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">2</span></a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M5 3h14v12l-6 6H5V3Z"></path><path d="M13 21v-6h6"></path></svg>Notes</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--fg); text-decoration: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="M12 3v18M7 21h10M5 7h14"></path><path d="m5 7-3 7a3 3 0 0 0 6 0L5 7Z"></path><path d="m19 7-3 7a3 3 0 0 0 6 0l-3-7Z"></path></svg>Zakat</a>
+</div>
+</nav>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+<div style="padding: 12px; border-radius: 12px; background: var(--muted); font-size: 12px; line-height: 1.5">
+<div style="font-weight: 600">Essai Boutique+</div>
+<div style="color: var(--mfg)">Encore 13 jours. <a href="#" style="font-weight: 600; text-decoration: none">Gérer</a></div>
+</div>
+<button type="button" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px; border: none; border-radius: 12px; background: transparent; color: var(--fg); text-align: left">
+<span style="width: 32px; height: 32px; flex: none; border-radius: 999px; background: var(--soft); color: var(--softfg); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">YB</span>
+<span style="flex: 1; min-width: 0"><span style="display: block; font-size: 13px; font-weight: 600">Youssef Benali</span><span style="display: block; font-size: 12px; color: var(--mfg)">Propriétaire</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--mfg)"><path d="m8 9 4-4 4 4M8 15l4 4 4-4"></path></svg>
+</button>
+</div>
+</aside>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px 40px 56px">
+<div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+<div>
+<h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.01em">Bonjour Youssef</h1>
+<p style="margin: 4px 0 0; font-size: 14px; color: var(--mfg)">Mercredi 7 octobre</p>
+</div>
+<button type="button" style="display: flex; align-items: center; gap: 10px; height: 44px; width: 320px; max-width: 100%; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--mfg); font-size: 14px; text-align: left"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>Rechercher une commande, un client…</button>
+</header>
+
+<section aria-labelledby="afaire">
+<h2 id="afaire" style="margin: 0 0 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mfg)">À faire aujourd'hui</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px">
+<a href="commandes.html" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); color: var(--fg); text-decoration: none">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 500; color: var(--mfg)">À préparer</span><span style="width: 32px; height: 32px; border-radius: 999px; background: var(--muted); color: var(--mfg); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l1 14H5L6 7Z"></path><path d="M9 7a3 3 0 0 1 6 0"></path></svg></span></div>
+<div><div style="font-size: 32px; font-weight: 700; line-height: 1.1">3</div><div style="margin-top: 4px; font-size: 13px; color: var(--mfg)">commandes, la plus ancienne d'hier</div></div>
+</a>
+<a href="#" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); color: var(--fg); text-decoration: none">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 500; color: var(--mfg)">Impayés</span><span style="width: 32px; height: 32px; border-radius: 999px; background: var(--amberbg); color: var(--amber); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span></div>
+<div><div style="font-size: 32px; font-weight: 700; line-height: 1.1; color: var(--amber)">186,50 €</div><div style="margin-top: 4px; font-size: 13px; color: var(--mfg)">sur 4 commandes</div></div>
+</a>
+<a href="#" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); color: var(--fg); text-decoration: none">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 500; color: var(--mfg)">Stock faible</span><span style="width: 32px; height: 32px; border-radius: 999px; background: var(--redbg); color: var(--red); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2.5 20h19L12 4Z"></path><path d="M12 10v4M12 17.5v.01"></path></svg></span></div>
+<div><div style="font-size: 32px; font-weight: 700; line-height: 1.1">2</div><div style="margin-top: 4px; font-size: 13px; color: var(--mfg)">articles, <span style="color: var(--red); font-weight: 600">dont 1 en rupture</span></div></div>
+</a>
+<a href="#" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); color: var(--fg); text-decoration: none">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 500; color: var(--mfg)">Rappels</span><span style="width: 32px; height: 32px; border-radius: 999px; background: var(--muted); color: var(--mfg); display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"></path><path d="M10 21h4"></path></svg></span></div>
+<div><div style="font-size: 32px; font-weight: 700; line-height: 1.1">2</div><div style="margin-top: 4px; font-size: 13px; color: var(--mfg)">aujourd'hui, le prochain à 14:00</div></div>
+</a>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px">
+
+<div style="flex: 2 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+
+<section style="background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Commandes à préparer</h2>
+<a href="commandes.html" style="font-size: 13px; font-weight: 600; text-decoration: none">Tout voir</a>
+</div>
+<a href="#" style="display: flex; align-items: center; gap: 16px; padding: 14px 20px; color: var(--fg); text-decoration: none">
+<div style="flex: 1; min-width: 0"><div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 14px; font-weight: 600">Karima Bensouda</span><span style="font-size: 13px; color: var(--mfg)">#0131</span></div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Chemise en lin blanc ×2, Ceinture tressée marron</div></div>
+<div style="font-size: 13px; color: var(--mfg); white-space: nowrap">Aujourd'hui, 10:42</div>
+<span style="display: inline-flex; align-items: center; justify-content: center; min-width: 84px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--greenbg); color: var(--green)">Payée</span>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600">89,00 €</div>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-top: 1px solid var(--border); color: var(--fg); text-decoration: none">
+<div style="flex: 1; min-width: 0"><div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 14px; font-weight: 600">Hamza Tazi</span><span style="font-size: 13px; color: var(--mfg)">#0130</span></div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Pantalon chino beige</div></div>
+<div style="font-size: 13px; color: var(--mfg); white-space: nowrap">Aujourd'hui, 09:15</div>
+<span style="display: inline-flex; align-items: center; justify-content: center; min-width: 84px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--amberbg); color: var(--amber)">Non payée</span>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600">49,00 €</div>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-top: 1px solid var(--border); color: var(--fg); text-decoration: none">
+<div style="flex: 1; min-width: 0"><div style="display: flex; align-items: baseline; gap: 8px"><span style="font-size: 14px; font-weight: 600">Nadia El Fassi</span><span style="font-size: 13px; color: var(--mfg)">#0128</span></div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Sac en toile naturelle ×3</div></div>
+<div style="font-size: 13px; color: var(--mfg); white-space: nowrap">Hier, 16:05</div>
+<span style="display: inline-flex; align-items: center; justify-content: center; min-width: 84px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--amberbg); color: var(--amber)">Partiel</span>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600">75,00 €</div>
+</a>
+</section>
+
+<section style="background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Impayés</h2>
+<span style="font-size: 13px; color: var(--mfg)">Total dû <span style="font-weight: 600; color: var(--amber)">186,50 €</span></span>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 20px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 600">Samir Haddad</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Commande #0119, il y a 8 jours</div></div>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600; color: var(--amber)">62,50 €</div>
+<a href="#" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 13px; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--primary)"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.6 19L4 20Z"></path></svg>Relancer</a>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-top: 1px solid var(--border)">
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 600">Leïla Moreau</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Commande #0124, il y a 5 jours</div></div>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600; color: var(--amber)">50,00 €</div>
+<a href="#" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 13px; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--primary)"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.6 19L4 20Z"></path></svg>Relancer</a>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-top: 1px solid var(--border)">
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 600">Hamza Tazi</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Commande #0130, aujourd'hui</div></div>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600; color: var(--amber)">49,00 €</div>
+<a href="#" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 13px; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--primary)"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.6 19L4 20Z"></path></svg>Relancer</a>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-top: 1px solid var(--border)">
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 600">Nadia El Fassi</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Commande #0128, reste à payer sur 75,00 €</div></div>
+<div style="width: 80px; text-align: right; font-size: 14px; font-weight: 600; color: var(--amber)">25,00 €</div>
+<a href="#" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--fg); font-size: 13px; font-weight: 500; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--primary)"><path d="M4 20l1.4-4.2A8 8 0 1 1 8.6 19L4 20Z"></path></svg>Relancer</a>
+</div>
+</section>
+
+</div>
+
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+
+<section style="background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Ventes</h2>
+<span style="font-size: 13px; color: var(--mfg)">7 derniers jours</span>
+</div>
+<div style="padding: 20px; display: flex; flex-direction: column; gap: 20px">
+<div>
+<div style="font-size: 13px; color: var(--mfg)">Aujourd'hui</div>
+<div style="margin-top: 2px; font-size: 32px; font-weight: 700; line-height: 1.15">248,00 €</div>
+<div style="margin-top: 4px; font-size: 13px; color: var(--mfg)">6 ventes, panier moyen 41,33 €</div>
+</div>
+<div role="img" aria-label="Chiffre d'affaires par jour sur 7 jours : jeudi 182,50 €, vendredi 96 €, samedi 310 €, dimanche 0 €, lundi 128 €, mardi 215,50 €, aujourd'hui 248 €" style="display: flex; align-items: flex-end; gap: 8px; height: 124px">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 57px; border-radius: 6px; background: var(--bar)"></div><span style="font-size: 12px; color: var(--mfg)">jeu.</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 30px; border-radius: 6px; background: var(--bar)"></div><span style="font-size: 12px; color: var(--mfg)">ven.</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 96px; border-radius: 6px; background: var(--bar)"></div><span style="font-size: 12px; color: var(--mfg)">sam.</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 3px; border-radius: 2px; background: var(--border)"></div><span style="font-size: 12px; color: var(--mfg)">dim.</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 40px; border-radius: 6px; background: var(--bar)"></div><span style="font-size: 12px; color: var(--mfg)">lun.</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 67px; border-radius: 6px; background: var(--bar)"></div><span style="font-size: 12px; color: var(--mfg)">mar.</span></div>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px"><div style="width: 100%; height: 77px; border-radius: 6px; background: var(--primary)"></div><span style="font-size: 12px; font-weight: 600">auj.</span></div>
+</div>
+<div style="display: flex; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border); font-size: 13px"><span style="color: var(--mfg)">Total sur 7 jours</span><span style="font-weight: 600">1 180,00 €</span></div>
+</div>
+</section>
+
+<section style="background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Stock faible</h2>
+<a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">Voir le stock</a>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px">
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 600">Sandales cuir naturel</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Pointure 41</div></div>
+<span style="display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--redbg); color: var(--red)">Rupture</span>
+<a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">Réassort</a>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--border)">
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 600">Chemise en lin blanc</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">Taille M, seuil d'alerte 5</div></div>
+<span style="font-size: 13px; font-weight: 600; color: var(--amber)">2 restants</span>
+<a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">Réassort</a>
+</div>
+</section>
+
+<section style="background: var(--card); border: 1px solid var(--border); border-radius: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600">Rappels du jour</h2>
+<a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">Tout voir</a>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 12px">
+<button type="button" aria-label="Marquer « Appeler le fournisseur de lin » comme terminé" style="width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; border: none; border-radius: 999px; background: transparent"><span style="width: 20px; height: 20px; border-radius: 999px; border: 1.5px solid var(--mfg)"></span></button>
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 500">Appeler le fournisseur de lin</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">14:00</div></div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 10px 20px 10px 12px; border-top: 1px solid var(--border)">
+<button type="button" aria-label="Marquer « Rappeler Karima pour la taille L » comme terminé" style="width: 36px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center; padding: 0; border: none; border-radius: 999px; background: transparent"><span style="width: 20px; height: 20px; border-radius: 999px; border: 1.5px solid var(--mfg)"></span></button>
+<div style="flex: 1; min-width: 0"><div style="font-size: 14px; font-weight: 500">Rappeler Karima pour la taille L</div><div style="margin-top: 2px; font-size: 13px; color: var(--mfg)">17:30, Karima Bensouda</div></div>
+</div>
+</section>
+
+</div>
+</div>
+
+</div>
+</main>
+</div>
+</body>
+</html>
