@@ -21,7 +21,7 @@ interface OrderHeroCardProps {
 function templateForOrder(order: Order): PreparedMessageTemplate {
   if (order.status === 'shipped') return 'tracking';
   if (order.payment_status === 'unpaid' || order.payment_status === 'partial') {
-    return order.status === 'draft' ? 'order_confirmation' : 'unpaid_followup';
+    return 'unpaid_followup';
   }
   return 'order_confirmation';
 }

@@ -53,11 +53,11 @@ export default function EditOrderPage() {
       </>
     );
   }
-  if (order.status !== 'draft') {
+  if (!['to_prepare', 'prepared'].includes(order.status)) {
     return (
       <>
         <TopBar title={t('topbar')} back />
-        <p className="p-4 text-sm text-muted-foreground">{t('draft_only')}</p>
+        <p className="p-4 text-sm text-muted-foreground">{t('read_only')}</p>
       </>
     );
   }

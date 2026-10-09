@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/api-client';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 import type { LineItem } from '@/components/orders/new/types';
@@ -22,7 +22,7 @@ export function useNewSaleLines(): NewSaleLines {
   const [items, setItems] = useState<LineItem[]>([]);
   const [itemsError, setItemsError] = useState(false);
 
-  function addItem(pick: VariantPick) {
+  const addItem = useCallback((pick: VariantPick) => {
     setItemsError(false);
     setItems((prev) => {
       const existing = prev.find((i) => i.variant === pick.variantId);
@@ -41,9 +41,9 @@ export function useNewSaleLines(): NewSaleLines {
         unit_price: pick.unitPrice,
       }];
     });
-  }
+  }, []);
 
-  function addFreeLine(line: FreeLine) {
+  const addFreeLine = useCallback((line: FreeLine) => {
     setItemsError(false);
     setItems((prev) => [...prev, {
       lineId: crypto.randomUUID(),
@@ -54,21 +54,21 @@ export function useNewSaleLines(): NewSaleLines {
       quantity: line.quantity,
       unit_price: line.unit_price,
     }]);
-  }
+  }, []);
 
-  function updateQty(lineId: string, qty: number) {
+  const updateQty = useCallback((lineId: string, qty: number) => {
     if (qty < 1) {
       setItems((prev) => prev.filter((i) => i.lineId !== lineId));
       return;
     }
     setItems((prev) => prev.map((i) => i.lineId === lineId ? { ...i, quantity: qty } : i));
-  }
+  }, []);
 
-  function removeItem(lineId: string) {
+  const removeItem = useCallback((lineId: string) => {
     setItems((prev) => prev.filter((i) => i.lineId !== lineId));
-  }
+  }, []);
 
-  async function addProductFromQuickAdd(productId: string) {
+  const addProductFromQuickAdd = useCallback(async (productId: string) => {
     const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
     const first = detail.variants.find((v) => v.is_active);
     if (!first) return;
@@ -79,7 +79,7 @@ export function useNewSaleLines(): NewSaleLines {
       productType: detail.type,
       unitPrice: first.selling_price,
     });
-  }
+  }, [addItem]);
 
   const subtotal = items.reduce((acc, i) => acc + parseFloat(i.unit_price) * i.quantity, 0);
   const hasProducts = items.some((i) => i.product_type === 'product');

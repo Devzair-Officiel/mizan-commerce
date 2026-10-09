@@ -23,14 +23,7 @@ import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Customer } from '@/lib/hooks/useCustomers';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 
-function NewSaleFormDesktop() {
-  const form = useNewSaleForm();
-  useEffect(() => {
-    registerDirtyChecker(() => form.items.length > 0 || !!form.customerId);
-    return unregisterDirtyChecker;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.items.length, form.customerId]);
-
+function NewSaleFormDesktop({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
   return (
     <div className="flex gap-6 p-6 pb-10 items-start">
       <div className="flex-1 min-w-0">
@@ -97,15 +90,9 @@ function MobileItemsCard({ form }: { form: ReturnType<typeof useNewSaleForm> }) 
   );
 }
 
-function NewSaleFormMobile() {
+function NewSaleFormMobile({ form }: { form: ReturnType<typeof useNewSaleForm> }) {
   const t = useTranslations('orders.new');
   const tPayment = useTranslations('orders.payment');
-  const form = useNewSaleForm();
-  useEffect(() => {
-    registerDirtyChecker(() => form.items.length > 0 || !!form.customerId);
-    return unregisterDirtyChecker;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.items.length, form.customerId]);
   const { data: shop } = useShop();
   const catalogKind = useCatalogKind();
 
@@ -152,12 +139,18 @@ function NewSaleFormMobile() {
 }
 
 function NewSaleFormRouter() {
+  const form = useNewSaleForm();
   const isDesktop = useIsDesktop();
+  useEffect(() => {
+    registerDirtyChecker(() => form.items.length > 0 || !!form.customerId);
+    return unregisterDirtyChecker;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.items.length, form.customerId]);
 
   if (isDesktop === true) {
-    return <NewSaleFormDesktop />;
+    return <NewSaleFormDesktop form={form} />;
   }
-  return <NewSaleFormMobile />;
+  return <NewSaleFormMobile form={form} />;
 }
 
 export default function NewOrderPage() {

@@ -35,7 +35,6 @@ function ShippedCard() {
 
 export function OrderNextStepCard({ status, isPending, onTransition }: OrderNextStepCardProps) {
   const t = useTranslations('orders.nextStep');
-  const label = useOrderStatusLabel();
   const { data: shop } = useShop();
   const ck = shop?.catalog_kind ?? 'both';
   const fm = shop?.fulfillment_mode ?? null;
@@ -45,15 +44,18 @@ export function OrderNextStepCard({ status, isPending, onTransition }: OrderNext
   if (!nextStep) return null;
 
   const goesToShipped = nextStep.next === 'shipped';
-  const stepTitle = goesToShipped
-    ? t('prepared_mark', { label: label('shipped') })
-    : t('to_prepare_title');
+  const actionText = !goesToShipped
+    ? t('action_to_prepare')
+    : ck === 'services'
+      ? t('action_shipped_services')
+      : fm === 'delivery'
+        ? t('action_shipped_delivery')
+        : t('action_shipped_on_site');
+  const stepTitle = actionText;
   const stepSub = goesToShipped
     ? t('prepared_sub')
     : t('to_prepare_sub', { kind: ck });
-  const stepCta = goesToShipped
-    ? t('prepared_cta_mark', { label: label('shipped') })
-    : t('to_prepare_cta');
+  const stepCta = actionText;
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3 shadow-sm">
