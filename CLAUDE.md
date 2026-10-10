@@ -70,6 +70,7 @@ docker compose up -d
 - UI : composants shadcn/ui en priorité avant d'en créer un. Tailwind utility-first, pas de CSS custom sauf cas exceptionnel.
 - **Classes Tailwind** : préférer les classes de l'échelle (`min-h-14`, `w-18`, `h-4.5`…) aux valeurs arbitraires en px (`min-h-[56px]`, `w-[72px]`…) quand un équivalent existe. Positions logiques : `inset-s-*`/`inset-e-*` au lieu de `start-*`/`end-*` (sauf grille : `col-start-*` inchangé).
 - **i18n — texte dépendant du type de catalogue** : utiliser un seul paramètre ICU `{kind, select, products {...} services {...} other {...}}` (jamais de clés séparées `_products`/`_services`, jamais de ternaires côté composant). Hook source : `useCatalogKind()` dans `lib/hooks/useCatalogKind.ts`. Pluriels imbriqués : `{kind, select, products {{count, plural, one {# article} other {# articles}}} ...}`.
+- **Interface en français : vouvoiement.** « Ajoutez », « votre boutique », jamais « Ajoute », « ta boutique ». Contrôlé par `npm run i18n:check` sur `fr.json` (exceptions explicites dans `scripts/check-i18n.mjs`).
 
 ## Architecture rules — universelles
 

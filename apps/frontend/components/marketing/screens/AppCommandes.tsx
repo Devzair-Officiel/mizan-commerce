@@ -53,7 +53,7 @@ export function AppCommandes() {
         <div style={{ background: 'rgba(224,144,28,0.09)', border: `1px solid rgba(224,144,28,0.22)`, borderRadius: 20, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
           <AIcon name="alert" size={30} color={A.orange} sw={2} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 23, color: '#9a6310' }}>1 commande nécessite ton attention</div>
+            <div style={{ fontWeight: 800, fontSize: 23, color: '#9a6310' }}>1 commande nécessite votre attention</div>
             <div style={{ fontWeight: 600, fontSize: 18, color: '#b07a26', marginTop: 2 }}>Appuie pour l&apos;afficher.</div>
           </div>
           <AIcon name="arrow" size={24} color={A.orange} sw={2.2} />

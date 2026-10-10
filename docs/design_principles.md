@@ -9,6 +9,9 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 - **1 décision par écran**. Si l'écran demande 2 choix simultanés → BottomSheet.
 - **Le moindre détail compte** : alignement pixel, tabular-nums pour les chiffres,
   espacement régulier (gap-3/4/5, pas de valeurs arbitraires).
+- **Interface en français : vouvoiement.** Impératifs (« Ajoutez », « Contactez »),
+  possessifs et pronoms (« votre boutique », « vos clients ») : jamais de tutoiement.
+  Vérifié par `npm run i18n:check` sur `fr.json`.
 
 ## 2. Tokens (jamais de couleur brute pour l'identité)
 - Identité : `--primary`, `--card`, `--background`, `--muted`, `--foreground`,
