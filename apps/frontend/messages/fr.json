@@ -707,7 +707,7 @@
       "submit_label": "Enregistrer la commande",
       "notes_label": "Notes internes (optionnel)",
       "notes_hide_aria": "Masquer les notes",
-      "notes_show": "+ Ajouter une note",
+      "add_note": "+ Ajouter une note",
       "summary_title": "Résumé",
       "subtotal": "Sous-total",
       "discount": "Remise",
@@ -738,6 +738,7 @@
     "edit": {
       "topbar": "Modifier la commande",
       "topbar_with_number": "Modifier la commande {number}",
+      "topbar_short_with_number": "Modifier {number}",
       "loading": "Chargement…",
       "not_found": "Commande introuvable.",
       "read_only": "Une commande remise ou annulée ne peut plus être modifiée.",

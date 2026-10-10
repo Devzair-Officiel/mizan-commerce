@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import IsShopAdmin
+from apps.subscriptions.permissions import HasPlanForFeature
 
 from .models import Shop, ShopMember
 from .permissions import IsShopMember
@@ -25,6 +26,20 @@ from .services import (
     update_member_permissions,
     upload_shop_logo,
 )
+
+
+HasMultiUserPlan = HasPlanForFeature.for_feature('multi_user')
+
+# Ajouter ou modifier un employé demande Boutique+. La lecture et le retrait restent
+# ouverts : une boutique repassée en Pro doit pouvoir voir et retirer ses employés.
+_MEMBER_WRITE_METHODS = ('POST', 'PATCH', 'PUT')
+
+
+def _member_permissions(method: str) -> list:
+    permissions = [IsAuthenticated(), IsShopAdmin()]
+    if method in _MEMBER_WRITE_METHODS:
+        permissions.insert(1, HasMultiUserPlan())
+    return permissions
 
 
 def get_user_shop(user):
@@ -54,8 +69,11 @@ class ShopDetailView(generics.RetrieveUpdateAPIView):
 
 class ShopMemberListView(generics.ListCreateAPIView):
     """GET liste les membres de la boutique courante.
-    POST crée un nouveau staff (admin only — création directe avec email/password)."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    POST crée un nouveau staff (admin only — création directe avec email/password,
+    formule Boutique+)."""
+
+    def get_permissions(self) -> list:
+        return _member_permissions(self.request.method)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -87,9 +105,11 @@ class ShopMemberListView(generics.ListCreateAPIView):
 
 class ShopMemberDetailView(generics.GenericAPIView):
     """PATCH met à jour rôle/permissions d'un membre.
-    DELETE retire le membre de la boutique. Admin only."""
-    permission_classes = (IsAuthenticated, IsShopAdmin)
+    DELETE retire le membre de la boutique. Admin only ; PATCH demande Boutique+."""
     serializer_class = ShopMemberUpdateSerializer
+
+    def get_permissions(self) -> list:
+        return _member_permissions(self.request.method)
 
     def get_object(self):
         shop = get_user_shop(self.request.user)

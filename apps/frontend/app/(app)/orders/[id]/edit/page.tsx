@@ -38,10 +38,11 @@ export default function EditOrderPage() {
   const tDetail = useTranslations('orders.detail');
   const { data: order, isLoading } = useOrder(id);
   const title = order ? t('topbar_with_number', { number: order.order_number }) : t('topbar');
+  const shortTitle = order ? t('topbar_short_with_number', { number: order.order_number }) : undefined;
 
   return (
     <>
-      <TopBar title={title} back backLabel={tDetail('topbar')} onBack={() => router.push(`/orders/${id}`)} hideSearch />
+      <TopBar title={title} shortTitle={shortTitle} back backLabel={tDetail('topbar')} onBack={() => router.push(`/orders/${id}`)} hideSearch />
       {isLoading ? (
         <OrderMessage text={t('loading')} />
       ) : !order ? (

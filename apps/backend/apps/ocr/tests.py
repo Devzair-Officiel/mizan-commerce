@@ -13,6 +13,8 @@ from apps.accounts.models import User
 from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
+from apps.subscriptions.models import SubscriptionPlan
+from apps.subscriptions.test_utils import attach_subscription
 
 from .models import OcrResult, UploadedDocument
 
@@ -28,10 +30,14 @@ PNG_BYTES = b'\x89PNG\r\n\x1a\n' + b'\x00' * 16
 WEBP_BYTES = b'RIFF\x00\x00\x00\x00WEBP' + b'\x00' * 8
 
 
-def make_user_shop(email: str) -> tuple[User, Shop]:
+def make_user_shop(
+    email: str, plan_code: str = SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+) -> tuple[User, Shop]:
+    """Boutique de test en Boutique+ par défaut : l'import de facture en dépend."""
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}')
     ShopMember.objects.create(shop=shop, user=user, role='owner')
+    attach_subscription(shop, plan_code=plan_code)
     return user, shop
 
 
@@ -1376,6 +1382,49 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
         self.assertTrue(OcrResult.objects.filter(pk=response.data['ocr_result_id'], status='pending').exists())  # noqa: E501
         # Le message ne contient aucune trace technique.
         self.assertNotIn('broker', response.data['detail'].lower())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Formule : l'import de facture fournisseur est réservé à Boutique+
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class OcrPlanGatingTest(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop(
+            'owner@example.com', plan_code=SubscriptionPlan.CODE_PRO,
+        )
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=make_document(self.shop, self.owner),
+            status=OcrResult.STATUS_DONE,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+    def _upload(self):
+        document = SimpleUploadedFile(
+            'facture.jpg', JPEG_BYTES, content_type='image/jpeg',
+        )
+        with (
+            patch('apps.ocr.services.upload_fileobj'),
+            patch('apps.ocr.views.process_invoice_ocr.delay'),
+        ):
+            return self.client.post('/api/ocr/invoices/', {'document': document}, format='multipart')  # noqa: E501
+
+    def test_pro_is_denied_on_every_endpoint(self) -> None:
+        self.assertEqual(self._upload().status_code, status.HTTP_403_FORBIDDEN)
+        detail = f'/api/ocr/results/{self.ocr.pk}/'
+        self.assertEqual(self.client.get(detail).status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.post(f'{detail}validate/', {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(OcrResult.objects.filter(shop=self.shop).count(), 1)
+
+    def test_boutique_plus_is_allowed(self) -> None:
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(self._upload().status_code, status.HTTP_201_CREATED)
+        detail = f'/api/ocr/results/{self.ocr.pk}/'
+        self.assertEqual(self.client.get(detail).status_code, status.HTTP_200_OK)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

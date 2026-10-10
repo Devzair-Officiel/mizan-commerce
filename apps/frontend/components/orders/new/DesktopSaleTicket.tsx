@@ -6,6 +6,7 @@ import { TicketCustomerBlock } from '@/components/orders/new/TicketCustomerBlock
 import { SectionChips } from '@/components/orders/new/SectionChips';
 import { StatusSwitch } from '@/components/orders/new/StatusSwitch';
 import { SummaryAmountInput } from '@/components/orders/new/OrderSummary';
+import { AddLink } from '@/components/orders/new/AddLink';
 import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { useShop } from '@/lib/hooks/useShop';
@@ -61,7 +62,6 @@ function DesktopSummaryBlock({ form, money, hasItems }: { form: NewSaleForm; mon
   const shippingN = parseFloat(form.shipping) || 0;
   const showAddDiscount = !form.showDiscount && discountN === 0;
   const showAddShipping = !form.showShipping && shippingN === 0 && fulfillmentMode !== 'on_site';
-  const linkClass = 'text-[0.8125rem] font-semibold text-primary hover:underline';
 
   return (
     <div className="px-5 pt-4 pb-3 border-t border-border flex flex-col gap-2.5">
@@ -90,14 +90,10 @@ function DesktopSummaryBlock({ form, money, hasItems }: { form: NewSaleForm; mon
           {(showAddDiscount || showAddShipping) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {showAddDiscount && (
-                <button type="button" onClick={() => form.setShowDiscount(true)} className={linkClass}>
-                  {t('add_discount')}
-                </button>
+                <AddLink onClick={() => form.setShowDiscount(true)}>{t('add_discount')}</AddLink>
               )}
               {showAddShipping && (
-                <button type="button" onClick={() => form.setShowShipping(true)} className={linkClass}>
-                  {t('add_shipping')}
-                </button>
+                <AddLink onClick={() => form.setShowShipping(true)}>{t('add_shipping')}</AddLink>
               )}
             </div>
           )}
@@ -116,7 +112,6 @@ function DesktopTicketControls({ form }: { form: NewSaleForm }) {
   const tPayment = useTranslations('orders.payment');
   const { data: shop } = useShop();
   const catalogKind = useCatalogKind();
-  const linkClass = 'text-[0.8125rem] font-semibold text-primary hover:underline';
 
   return (
     <>
@@ -158,10 +153,7 @@ function DesktopTicketControls({ form }: { form: NewSaleForm }) {
             )}
           </div>
         ) : (
-          <button type="button" onClick={() => form.setShowNotes(true)}
-            className={linkClass}>
-            + {t('notes_show')}
-          </button>
+          <AddLink onClick={() => form.setShowNotes(true)}>{t('add_note')}</AddLink>
         )}
       </div>
     </>

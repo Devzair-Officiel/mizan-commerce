@@ -5,7 +5,11 @@ import { useTranslations } from 'next-intl';
 import { PenLine, Plus } from 'lucide-react';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 
-const BUTTON = 'inline-flex items-center gap-2 h-10 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted active:bg-muted transition-colors';
+/**
+ * Côte à côte quand les deux tiennent ; sinon chacun passe sur sa ligne et prend toute
+ * la largeur (sous lg). Le libellé n'est jamais coupé : il revient à la ligne en dernier recours.
+ */
+const BUTTON = 'inline-flex grow lg:grow-0 items-center justify-center gap-2 min-h-10 py-2 px-4 rounded-full border border-border bg-card text-sm font-semibold text-center text-foreground hover:bg-muted active:bg-muted transition-colors';
 
 /** « Créer un article » et « Article ponctuel », sous la recherche du catalogue (grand écran et mobile). */
 export function CatalogAddActions({ onCreate, onFreeLine }: { onCreate: () => void; onFreeLine: () => void }) {

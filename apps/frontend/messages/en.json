@@ -707,7 +707,7 @@
       "submit_label": "Record order",
       "notes_label": "Internal notes (optional)",
       "notes_hide_aria": "Hide notes",
-      "notes_show": "+ Add a note",
+      "add_note": "+ Add a note",
       "summary_title": "Summary",
       "subtotal": "Subtotal",
       "discount": "Discount",
@@ -738,6 +738,7 @@
     "edit": {
       "topbar": "Edit order",
       "topbar_with_number": "Edit order {number}",
+      "topbar_short_with_number": "Edit {number}",
       "loading": "Loading…",
       "not_found": "Order not found.",
       "read_only": "A delivered or cancelled order can no longer be edited.",

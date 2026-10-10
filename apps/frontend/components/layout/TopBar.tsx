@@ -11,6 +11,8 @@ import { useSearchOverlay, DesktopSearchPopover } from './SearchOverlay';
 
 interface TopBarProps {
   title: string;
+  /** Titre affiché sous lg, quand `title` ne tient pas sur un écran de téléphone. */
+  shortTitle?: string;
   subtitle?: string;
   action?: React.ReactNode;
   back?: boolean;
@@ -86,7 +88,7 @@ function TopBarDesktopSearch() {
   );
 }
 
-export function TopBar({ title, subtitle, action, back, backLabel, onBack, hideSearch }: TopBarProps) {
+export function TopBar({ title, shortTitle, subtitle, action, back, backLabel, onBack, hideSearch }: TopBarProps) {
   const tc = useTranslations('layout.common');
   const router = useRouter();
   const { open: openSearch } = useSearchOverlay();
@@ -126,7 +128,12 @@ export function TopBar({ title, subtitle, action, back, backLabel, onBack, hideS
           <h1
             className={`min-w-0 text-start text-xl font-semibold leading-tight text-foreground truncate lg:text-[28px] lg:tracking-tight lg:leading-snug`}
           >
-            {title}
+            {shortTitle ? (
+              <>
+                <span className="lg:hidden">{shortTitle}</span>
+                <span className="hidden lg:inline">{title}</span>
+              </>
+            ) : title}
           </h1>
           {subtitle && (
             <p className="text-[0.8125rem] text-muted-foreground mt-0.5 truncate">{subtitle}</p>

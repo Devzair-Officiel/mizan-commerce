@@ -5,6 +5,8 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
+from apps.subscriptions.models import SubscriptionPlan
+from apps.subscriptions.test_utils import attach_subscription
 
 
 def make_user_with_shop(email, password='Pass123!Strong'):
@@ -36,6 +38,54 @@ class ShopDetailViewTest(TestCase):
     def test_unauthenticated_denied(self):
         response = self.client.get(reverse('shop-detail'))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class TeamPlanGatingTest(TestCase):
+    """Ajout et modification d'un employé : Boutique+. Lecture et retrait : ouverts."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner, self.shop = make_user_with_shop('owner@example.com')
+        staff = User.objects.create_user(
+            email='sara@example.com', password='Pass123!Strong',
+        )
+        self.staff = ShopMember.objects.create(shop=self.shop, user=staff, role='staff')
+        self.client.force_authenticate(user=self.owner)
+
+    def _create(self):
+        return self.client.post(reverse('shop-members'), {
+            'email': 'nouveau@example.com', 'full_name': 'Nouvel Employé',
+            'password': 'Pass123!Strong', 'permissions': [],
+        }, format='json')
+
+    def _update(self):
+        url = reverse('shop-member-detail', kwargs={'pk': self.staff.pk})
+        return self.client.patch(url, {'role': 'admin'}, format='json')
+
+    def test_pro_cannot_add_or_update_member(self):
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        self.assertEqual(self._create().status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self._update().status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(User.objects.filter(email='nouveau@example.com').exists())
+        self.staff.refresh_from_db()
+        self.assertEqual(self.staff.role, 'staff')
+
+    def test_pro_can_still_list_and_remove_members(self):
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        response = self.client.get(reverse('shop-members'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 2)
+        url = reverse('shop-member-detail', kwargs={'pk': self.staff.pk})
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ShopMember.objects.filter(pk=self.staff.pk).exists())
+
+    def test_boutique_plus_can_add_and_update_member(self):
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(self._create().status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self._update().status_code, status.HTTP_200_OK)
+        self.staff.refresh_from_db()
+        self.assertEqual(self.staff.role, 'admin')
 
 
 class MultiTenantIsolationTest(TestCase):

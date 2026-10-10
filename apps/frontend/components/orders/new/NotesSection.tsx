@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
+import { AddLink } from '@/components/orders/new/AddLink';
 
 interface NotesSectionProps {
   notes: string;
@@ -41,12 +42,6 @@ export function NotesSection({
     );
   }
   return (
-    <button
-      type="button"
-      onClick={onShow}
-      className="self-start text-xs font-medium text-primary hover:underline px-1 py-1"
-    >
-      {t('notes_show')}
-    </button>
+    <AddLink onClick={onShow}>{t('add_note')}</AddLink>
   );
 }

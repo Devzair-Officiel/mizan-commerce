@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { X } from 'lucide-react';
+import { AddLink } from '@/components/orders/new/AddLink';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 
@@ -70,24 +71,12 @@ export function OrderSummary({
           </SummaryRow>
         )}
         {showAddLine && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 border-b border-border">
+          <div className="flex flex-wrap items-center gap-x-4 px-4 border-b border-border">
             {!showDiscount && discountN === 0 && (
-              <button
-                type="button"
-                onClick={onShowDiscount}
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                {t('add_discount')}
-              </button>
+              <AddLink onClick={onShowDiscount}>{t('add_discount')}</AddLink>
             )}
             {!showShipping && shippingN === 0 && fulfillmentMode !== 'on_site' && (
-              <button
-                type="button"
-                onClick={onShowShipping}
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                {t('add_shipping')}
-              </button>
+              <AddLink onClick={onShowShipping}>{t('add_shipping')}</AddLink>
             )}
           </div>
         )}

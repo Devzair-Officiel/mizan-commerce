@@ -743,3 +743,52 @@ class OrderFacetsAPITest(TestCase):
         self.client.force_authenticate(user=None)
         response = self.client.get(reverse('order-facets'))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class FixStaleLineTotalsMigrationTest(TestCase):
+    """Migration 0009 : lignes et totaux recalculés, factures listées, non modifiées."""
+
+    def setUp(self):
+        from importlib import import_module
+        self.migration = import_module(
+            'apps.orders.migrations.0009_fix_stale_line_totals',
+        )
+        self.user, self.shop, _p, self.variant, _c = setup('migration@example.com')
+
+    def _run(self) -> dict:
+        from contextlib import redirect_stdout
+        from io import StringIO
+
+        from django.apps import apps
+        with redirect_stdout(StringIO()) as out:
+            result = self.migration.fix_stale_line_totals(apps, None)
+        self.output = out.getvalue()
+        return result
+
+    def test_fixes_stale_lines_and_totals_once(self):
+        from apps.invoices.services import issue_invoice_from_order
+        from .models import OrderItem
+        order = services.create_order(self.shop, self.user, shipping=Decimal('5'))
+        stale = services.add_item(order, self.variant, 2)
+        services.add_item(order, self.variant, 1)
+        clean = services.create_order(self.shop, self.user)
+        services.add_item(clean, self.variant, 1)
+        # Ancien bug : la quantité change sans line_total ni totaux.
+        OrderItem.objects.filter(pk=stale.pk).update(quantity=3)
+        invoice = issue_invoice_from_order(shop=self.shop, order=order)
+        invoice_total = invoice.total_ttc
+
+        result = self._run()
+
+        self.assertEqual((result['lines'], result['orders']), (1, 1))
+        stale.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(stale.line_total, Decimal('60.00'))
+        self.assertEqual(order.subtotal, Decimal('80.00'))
+        self.assertEqual(order.total_amount, Decimal('85.00'))
+        self.assertEqual([i[0] for i in result['invoices']], [invoice.number])
+        self.assertIn(invoice.number, self.output)
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.total_ttc, invoice_total)  # facture figée
+
+        self.assertEqual(self._run(), {'lines': 0, 'orders': 0, 'invoices': []})

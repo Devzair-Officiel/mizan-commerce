@@ -479,6 +479,14 @@
 - [ ] « Ce mois-ci » (page Commandes) compte les commandes créées dans le mois faute de
       date de remise : ajouter une date de clôture (`completed_at`) sur `Order`.
 
+- [ ] **Employés d'une boutique repassée en Pro (ou Gratuit)** : le serveur bloque l'ajout
+      et la modification d'un membre sans Boutique+ (`HasPlanForFeature('multi_user')`),
+      mais les comptes employés existants gardent l'accès à la boutique. À décider :
+      suspendre leur connexion tant que la formule ne couvre plus `multi_user` (sans
+      supprimer les comptes, réactivés au retour en Boutique+), ou les passer en lecture
+      seule. Côté écran, la page Équipe affiche seulement la carte de mise à niveau :
+      la lecture et le retrait, ouverts côté serveur, n'y sont pas encore proposés.
+
 - [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la
       surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de

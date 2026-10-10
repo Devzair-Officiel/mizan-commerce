@@ -707,7 +707,7 @@
       "submit_label": "تسجيل الطلب",
       "notes_label": "ملاحظات داخلية (اختياري)",
       "notes_hide_aria": "إخفاء الملاحظات",
-      "notes_show": "+ إضافة ملاحظة",
+      "add_note": "+ إضافة ملاحظة",
       "summary_title": "الملخّص",
       "subtotal": "المجموع الفرعي",
       "discount": "تخفيض",
@@ -738,6 +738,7 @@
     "edit": {
       "topbar": "تعديل الطلب",
       "topbar_with_number": "تعديل الطلب {number}",
+      "topbar_short_with_number": "تعديل {number}",
       "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
       "read_only": "لا يمكن تعديل طلب تم تسليمه أو إلغاؤه.",
