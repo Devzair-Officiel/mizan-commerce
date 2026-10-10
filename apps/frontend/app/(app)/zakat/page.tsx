@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { ArrowRight, CheckCircle2, FileText, RefreshCw, Sparkles } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { HistoryChart } from '@/components/zakat/HistoryChart';
 import {
   formatMoney,
@@ -95,11 +96,9 @@ export default function ZakatPage() {
 
         {/* CTA principal — masqué quand un brouillon existe ou que l'année est déjà bouclée. */}
         {!draft && !currentYearFinalized && (
-          <Link href="/zakat/new" className="block">
-            <Button className="w-full">
-              <Sparkles size={16} className="mr-2" />
-              Calculer ma zakat
-            </Button>
+          <Link href="/zakat/new" className={cn(buttonVariants(), 'w-full')}>
+            <Sparkles size={16} className="mr-2" />
+            Calculer ma zakat
           </Link>
         )}
 

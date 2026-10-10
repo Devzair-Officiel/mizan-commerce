@@ -1165,7 +1165,8 @@
       "title": "Messages WhatsApp",
       "loading": "Chargement…",
       "delete_confirm": "Supprimer ce message ?",
-      "delete_aria": "Supprimer le message"
+      "delete_aria": "Supprimer le message",
+      "delete_cta": "Supprimer"
     }
   },
   "team": {

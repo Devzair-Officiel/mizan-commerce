@@ -27,7 +27,7 @@ export function CustomerOrdersTable({ orders, currency }: { orders: OrderSummary
       </thead>
       <tbody>
         {orders.map((o) => (
-          <tr key={o.id} onClick={(e) => { if (!(e.target as HTMLElement).closest('a')) router.push(`/orders/${o.id}`); }}
+          <tr key={o.id} onClick={(e) => { if (!(e.target as HTMLElement).closest('a, button')) router.push(`/orders/${o.id}`); }}
             className={cn('cursor-pointer border-t border-border transition-colors hover:bg-muted/50', o.status === 'cancelled' && 'text-muted-foreground')}>
             <td className={cn(TD, 'font-semibold')}><Link href={`/orders/${o.id}`} className="focus-visible:underline focus-visible:outline-none">{o.order_number}</Link></td>
             <td className={cn(TD, 'whitespace-nowrap')}>{formatDate(o.created_at, { day: 'numeric', month: 'short', year: 'numeric' })}</td>

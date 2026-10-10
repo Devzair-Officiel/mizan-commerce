@@ -1165,7 +1165,8 @@
       "title": "رسائل واتساب",
       "loading": "جارٍ التحميل…",
       "delete_confirm": "حذف هذه الرسالة؟",
-      "delete_aria": "حذف الرسالة"
+      "delete_aria": "حذف الرسالة",
+      "delete_cta": "حذف"
     }
   },
   "team": {

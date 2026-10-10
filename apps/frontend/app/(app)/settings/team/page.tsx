@@ -7,6 +7,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { FeatureGate } from '@/components/subscription/FeatureGate';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useMe } from '@/lib/hooks/useMe';
 import {
   useShopMembers,
@@ -117,6 +118,7 @@ interface MemberCardProps {
 
 function MemberCard({ member, isSelf, onEdit, onDelete }: MemberCardProps) {
   const t = useTranslations('team');
+  const kind = useCatalogKind();
   const isOwner = member.role === 'owner';
   const isStaff = member.role === 'staff';
 
@@ -150,7 +152,7 @@ function MemberCard({ member, isSelf, onEdit, onDelete }: MemberCardProps) {
                 key={p}
                 className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[11px] font-medium"
               >
-                {t(`modules.${p}`)}
+                {p === 'products' ? t('modules.products', { kind }) : t(`modules.${p}`)}
               </li>
             ))}
           </ul>

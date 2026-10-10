@@ -1165,7 +1165,8 @@
       "title": "WhatsApp messages",
       "loading": "Loading…",
       "delete_confirm": "Delete this message?",
-      "delete_aria": "Delete message"
+      "delete_aria": "Delete message",
+      "delete_cta": "Delete"
     }
   },
   "team": {
