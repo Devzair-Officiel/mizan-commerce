@@ -1206,7 +1206,9 @@
       "create_error": "Impossible de créer ce membre. Vérifiez l'email et le mot de passe.",
       "update_error": "Impossible d'enregistrer ces changements.",
       "delete_error": "Impossible de retirer ce membre."
-    }
+    },
+    "readonly_title": "Membres actuels",
+    "readonly_note": "Sans la formule Boutique+, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés."
   },
   "ui": {
     "close": "Fermer",
@@ -1253,5 +1255,10 @@
     "step2_delivery_desc": "Statut final : « Expédiée ». Frais de livraison disponibles.",
     "step2_both_title": "Les deux",
     "step2_both_desc": "Statut final : « Terminée ». Frais de livraison disponibles."
+  },
+  "suspended": {
+    "title": "Accès suspendu",
+    "text": "La boutique n'a plus la formule Boutique+. Contacte le propriétaire pour rétablir ton accès.",
+    "logout": "Se déconnecter"
   }
 }

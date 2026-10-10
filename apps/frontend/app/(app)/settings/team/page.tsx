@@ -19,7 +19,7 @@ import { MemberFormSheet, type FormMode } from '@/components/team/MemberFormShee
 export default function TeamPage() {
   const t = useTranslations('team');
   return (
-    <FeatureGate feature="multi_user" title={t('title')}>
+    <FeatureGate feature="multi_user" title={t('title')} belowCard={<ReadOnlyMembers />}>
       <TeamContent />
     </FeatureGate>
   );
@@ -27,11 +27,7 @@ export default function TeamPage() {
 
 function TeamContent() {
   const t = useTranslations('team');
-  const { data: me } = useMe();
-  const { data: members, isLoading } = useShopMembers();
-
   const [formMode, setFormMode] = useState<FormMode | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ShopMember | null>(null);
 
   return (
     <>
@@ -49,24 +45,7 @@ function TeamContent() {
           {t('add_member')}
         </Button>
 
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('loading')}</p>
-        ) : members && members.length > 0 ? (
-          <ul className="flex flex-col gap-3">
-            {members.map((member) => (
-              <li key={member.id}>
-                <MemberCard
-                  member={member}
-                  isSelf={member.user === me?.id}
-                  onEdit={() => setFormMode({ kind: 'edit', member })}
-                  onDelete={() => setDeleteTarget(member)}
-                />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-muted-foreground">{t('no_members')}</p>
-        )}
+        <MemberList onEdit={(member) => setFormMode({ kind: 'edit', member })} />
       </div>
 
       {formMode && (
@@ -76,11 +55,52 @@ function TeamContent() {
           mode={formMode}
         />
       )}
+    </>
+  );
+}
 
-      <DeleteSheet
-        target={deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-      />
+/** Hors Boutique+ : les membres restent visibles et peuvent être retirés, pas modifiés. */
+function ReadOnlyMembers() {
+  const t = useTranslations('team');
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-[0.9375rem] font-semibold text-foreground">{t('readonly_title')}</h2>
+        <p className="text-sm text-muted-foreground">{t('readonly_note')}</p>
+      </div>
+      <MemberList />
+    </section>
+  );
+}
+
+/* ─────────────── Member list ─────────────── */
+
+/** Sans `onEdit`, la liste est en lecture seule : seul le retrait reste proposé. */
+function MemberList({ onEdit }: { onEdit?: (member: ShopMember) => void }) {
+  const t = useTranslations('team');
+  const { data: me } = useMe();
+  const { data: members, isLoading } = useShopMembers();
+  const [deleteTarget, setDeleteTarget] = useState<ShopMember | null>(null);
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
+  if (!members || members.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t('no_members')}</p>;
+  }
+  return (
+    <>
+      <ul className="flex flex-col gap-3">
+        {members.map((member) => (
+          <li key={member.id}>
+            <MemberCard
+              member={member}
+              isSelf={member.user === me?.id}
+              onEdit={onEdit ? () => onEdit(member) : undefined}
+              onDelete={() => setDeleteTarget(member)}
+            />
+          </li>
+        ))}
+      </ul>
+      <DeleteSheet target={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </>
   );
 }
@@ -90,7 +110,8 @@ function TeamContent() {
 interface MemberCardProps {
   member: ShopMember;
   isSelf: boolean;
-  onEdit: () => void;
+  /** Absent en lecture seule : ni bouton « Modifier » ni modules affichés. */
+  onEdit?: () => void;
   onDelete: () => void;
 }
 
@@ -121,7 +142,7 @@ function MemberCard({ member, isSelf, onEdit, onDelete }: MemberCardProps) {
         <RoleBadge role={member.role} />
       </div>
 
-      {isStaff ? (
+      {!onEdit ? null : isStaff ? (
         member.permissions.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5">
             {member.permissions.map((p) => (
@@ -146,16 +167,18 @@ function MemberCard({ member, isSelf, onEdit, onDelete }: MemberCardProps) {
 
       {!isSelf && !isOwner && (
         <div className="flex gap-2 pt-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onEdit}
-            className="flex-1"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            {t('actions.edit')}
-          </Button>
+          {onEdit && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+              className="flex-1"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              {t('actions.edit')}
+            </Button>
+          )}
           <Button
             type="button"
             variant="destructive"

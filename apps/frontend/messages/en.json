@@ -1206,7 +1206,9 @@
       "create_error": "Could not create this member. Check the email and password.",
       "update_error": "Could not save these changes.",
       "delete_error": "Could not remove this member."
-    }
+    },
+    "readonly_title": "Current members",
+    "readonly_note": "Without the Boutique+ plan, these members can no longer sign in. Their accounts and access are kept."
   },
   "ui": {
     "close": "Close",
@@ -1253,5 +1255,10 @@
     "step2_delivery_desc": "Final status: “Shipped”. Shipping fees available.",
     "step2_both_title": "Both",
     "step2_both_desc": "Final status: “Done”. Shipping fees available."
+  },
+  "suspended": {
+    "title": "Access suspended",
+    "text": "The shop no longer has the Boutique+ plan. Contact the owner to restore your access.",
+    "logout": "Sign out"
   }
 }

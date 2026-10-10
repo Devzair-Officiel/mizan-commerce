@@ -131,6 +131,8 @@ export const qk = {
 
   me: {
     all: ['me'] as const,
+    /** Écran « Accès suspendu » : l'accès est-il revenu ? */
+    access: ['me', 'access'] as const,
   },
 
   zakat: {

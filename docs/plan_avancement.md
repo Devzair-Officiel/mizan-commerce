@@ -91,7 +91,7 @@
 - [x] Endpoints CRUD `Shop` (filtré par membership)
 - [x] Page paramètres boutique (modifier nom, devise, pays)
 
-### Gestion d'équipe & RBAC (URS-005, URS-061)
+### Gestion d'équipe & RBAC (URS-102)
 
 - [x] Modèle `ShopMember` : rôles `owner` (créateur, indélébile) / `admin` (accès complet) / `staff` (accès filtré par modules)
 - [x] Champ `permissions` JSONField sur `ShopMember` : liste de modules accessibles pour les `staff`
@@ -105,6 +105,8 @@
 - [x] Filtrage des entrées de navigation (`BurgerMenu`, `DesktopSidebar`, `BottomNav` + FAB) selon les permissions
 - [x] Page `/settings/team` : liste des membres, ajout, édition rôle/permissions, suppression (auto-protection + protection owner)
 - [x] Traductions complètes fr / en / ar pour la gestion d'équipe et les écrans 403
+- [x] Formule Boutique+ (URS-102) : ajout et modification d'un membre refusés côté serveur ; hors formule, page Équipe = carte de mise à niveau + liste en lecture seule (retrait possible)
+- [x] Suspension des employés et admins d'une boutique sans Boutique+ : `ShopMemberJWTAuthentication` (point unique, code `staff_suspended_plan`), écran `/suspended`, accès rétabli automatiquement au retour en Boutique+
 
 ### Tableau de bord (URS-006, URS-007)
 
@@ -421,7 +423,7 @@
 
 - [x] Modèles `Subscription`, `SubscriptionPlan` + seed des 3 plans
 - [x] Essai 14j Boutique+ à l'inscription (URS-100) + tâche Celery d'expiration
-- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages
+- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
@@ -478,14 +480,6 @@
 
 - [ ] « Ce mois-ci » (page Commandes) compte les commandes créées dans le mois faute de
       date de remise : ajouter une date de clôture (`completed_at`) sur `Order`.
-
-- [ ] **Employés d'une boutique repassée en Pro (ou Gratuit)** : le serveur bloque l'ajout
-      et la modification d'un membre sans Boutique+ (`HasPlanForFeature('multi_user')`),
-      mais les comptes employés existants gardent l'accès à la boutique. À décider :
-      suspendre leur connexion tant que la formule ne couvre plus `multi_user` (sans
-      supprimer les comptes, réactivés au retour en Boutique+), ou les passer en lecture
-      seule. Côté écran, la page Équipe affiche seulement la carte de mise à niveau :
-      la lecture et le retrait, ouverts côté serveur, n'y sont pas encore proposés.
 
 - [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la

@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.core.permissions import TOGGLEABLE_MODULES
 from apps.core.storage import delete_object, upload_fileobj
+from apps.subscriptions.permissions import shop_has_feature
 
 from .models import Shop, ShopMember
 
@@ -156,3 +157,14 @@ def remove_member(member: ShopMember) -> None:
     if member.role == ShopMember.ROLE_OWNER:
         raise ValidationError("Impossible de retirer le propriétaire de la boutique.")
     member.delete()
+
+
+def is_member_suspended(member: ShopMember) -> bool:
+    """Un employé ou un admin perd l'accès tant que la boutique n'a pas Boutique+.
+
+    Le propriétaire n'est jamais suspendu. Les comptes et les droits sont conservés :
+    l'accès revient dès que la formule inclut de nouveau `multi_user`.
+    """
+    if member.role == ShopMember.ROLE_OWNER:
+        return False
+    return not shop_has_feature(member.shop, 'multi_user')

@@ -10,9 +10,10 @@ import { hasFeature } from '@/lib/hooks/usePlanGating';
  * Page réservée à une formule : sans elle, la carte de mise à niveau remplace le contenu.
  * Le contenu n'est monté qu'une fois la formule connue, pour ne pas lancer de requêtes
  * que le serveur refuserait. Si la formule ne peut pas être lue, le serveur reste juge.
+ * `belowCard` : ce qui reste permis hors formule, affiché sous la carte.
  */
-export function FeatureGate({ feature, title, back, children }: {
-  feature: UpgradeFeature; title: string; back?: boolean; children: ReactNode;
+export function FeatureGate({ feature, title, back, belowCard, children }: {
+  feature: UpgradeFeature; title: string; back?: boolean; belowCard?: ReactNode; children: ReactNode;
 }) {
   const { data: subscription, isLoading } = useSubscription();
 
@@ -21,8 +22,9 @@ export function FeatureGate({ feature, title, back, children }: {
     return (
       <>
         <TopBar title={title} back={back} />
-        <div className="px-4 pt-4 pb-32 lg:pb-4">
+        <div className="px-4 pt-4 pb-32 lg:pb-4 flex flex-col gap-6">
           <UpgradeCard feature={feature} />
+          {belowCard}
         </div>
       </>
     );
