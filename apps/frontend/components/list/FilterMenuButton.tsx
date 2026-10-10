@@ -2,9 +2,10 @@
 
 import { useRef } from 'react';
 import { Menu } from '@base-ui/react/menu';
-import { Check, ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import { FilterOptionContent } from './FilterOptionContent';
 import { FilterOptionLabel } from './FilterOptionLabel';
 
 export interface FilterOption<T extends string> {
@@ -83,16 +84,7 @@ function FilterMenuItem({ option, selected }: { option: FilterOption<string>; se
       'flex cursor-pointer items-center gap-3 rounded-lg py-2 ps-3 pe-2.5 text-sm text-foreground transition-colors data-highlighted:bg-muted',
       selected && 'font-semibold',
     )}>
-      <span className={cn(option.count === 0 && 'opacity-50')}><FilterOptionLabel option={option} /></span>
-      {option.count !== undefined && (
-        <span className="ms-auto text-[0.8125rem] font-normal tabular-nums text-muted-foreground">{option.count}</span>
-      )}
-      <Menu.RadioItemIndicator keepMounted className={cn(
-        'flex size-4 shrink-0 items-center justify-center text-primary data-unchecked:invisible',
-        option.count === undefined && 'ms-auto',
-      )}>
-        <Check size={16} strokeWidth={2.25} aria-hidden />
-      </Menu.RadioItemIndicator>
+      <FilterOptionContent option={option} selected={selected} />
     </Menu.RadioItem>
   );
 }

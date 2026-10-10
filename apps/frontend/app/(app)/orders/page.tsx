@@ -46,9 +46,7 @@ function OrdersContent() {
         hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
-        {isDesktop === true && (
-          <OrdersStatCards currency={currency} active={state.activeCards} onToggle={state.toggleCard} />
-        )}
+        <OrdersStatCards currency={currency} active={state.activeCards} onToggle={state.toggleCard} />
         {(state.isFiltered || totalCount > 0 || isLoading) && (
           <>
             <div className="lg:hidden"><OrdersFiltersMobile state={state} /></div>

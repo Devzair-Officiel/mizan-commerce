@@ -835,21 +835,15 @@
       "paid": "مدفوعة"
     },
     "filterSheet": {
-      "title": "تصفية",
-      "close": "إغلاق",
       "status_title": "الحالة",
       "payment_title": "الدفع",
-      "reset": "إعادة ضبط",
       "apply": "عرض الطلبات",
+      "show_results": "{count, plural, zero {لا توجد طلبات} one {عرض طلب واحد} two {عرض طلبين} few {عرض # طلبات} many {عرض # طلبًا} other {عرض # طلب}}",
       "sort_title": "ترتيب حسب",
       "sort_newest": "الأحدث",
       "sort_oldest": "الأقدم",
       "sort_amount_desc": "المبلغ، من الأعلى",
       "sort_amount_asc": "المبلغ، من الأدنى"
-    },
-    "filterBar": {
-      "filters_btn": "تصفية",
-      "remove_filter": "إزالة الفلتر {name}"
     }
   },
   "articles": {
@@ -1229,7 +1223,10 @@
       "pagination_page": "الصفحة {page}",
       "pagination_label": "ترقيم الصفحات",
       "filter_label": "{name}:",
-      "remove_filter": "إزالة فلتر {name}"
+      "remove_filter": "إزالة فلتر {name}",
+      "filters": "تصفية",
+      "reset": "إعادة ضبط",
+      "active_filters": "{count, plural, zero {لا فلاتر نشطة} one {فلتر نشط واحد} two {فلتران نشطان} few {# فلاتر نشطة} many {# فلترًا نشطًا} other {# فلتر نشط}}"
     }
   },
   "settings": {

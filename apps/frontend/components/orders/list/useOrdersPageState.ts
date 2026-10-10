@@ -9,6 +9,28 @@ export type OrdersStatCardKey = 'to_prepare' | 'due' | 'month';
 
 export const DEFAULT_ORDERING = '-created_at';
 
+/** Filtres et tri d'une sélection : appliquée (URL) ou en brouillon (fenêtre mobile). */
+export interface OrdersSelection {
+  status: StatusFilterKey;
+  payment: PaymentFilter;
+  month: boolean;
+  ordering: string;
+}
+
+export const EMPTY_FILTERS = { status: '', payment: 'all', month: false } as const;
+
+/** Paramètres de liste d'une sélection, partagés par la liste et les facettes. */
+export function selectionFilters(s: OrdersSelection, search: string): Omit<OrdersListFilters, 'page'> {
+  return {
+    status: s.status || undefined,
+    due: s.payment === 'due' || undefined,
+    payment_status: s.payment === 'paid' ? 'paid' : undefined,
+    period: s.month ? 'month' : undefined,
+    search: search || undefined,
+    ordering: s.ordering === DEFAULT_ORDERING ? undefined : s.ordering,
+  };
+}
+
 function asStatus(value: string): StatusFilterKey {
   return STATUSES.some((s) => s.value === value) ? (value as StatusFilterKey) : '';
 }
@@ -28,7 +50,15 @@ export function useOrdersPageState() {
   });
   const handlePeriod = (month: boolean) => list.setParams({ period: month ? 'month' : null });
   /** Retire statut, paiement et période en une seule navigation ; garde recherche et tri. */
-  const resetFilters = () => list.setParams({ status: null, due: null, payment_status: null, period: null });
+  const selection: OrdersSelection = { status: statusFilter, payment: paymentFilter, month: isMonth, ordering: list.ordering };
+  /** Applique filtres et tri en une seule navigation (validation de la fenêtre mobile). */
+  const applySelection = (s: OrdersSelection) => list.setParams({
+    status: s.status || null,
+    due: s.payment === 'due' ? 'true' : null,
+    payment_status: s.payment === 'paid' ? 'paid' : null,
+    period: s.month ? 'month' : null,
+    ordering: s.ordering === DEFAULT_ORDERING ? null : s.ordering,
+  });
 
   // Les indicateurs basculent leur filtre : un second clic le retire.
   const activeCards: Record<OrdersStatCardKey, boolean> = {
@@ -40,22 +70,15 @@ export function useOrdersPageState() {
     if (card === 'month') handlePeriod(!isMonth);
   };
 
-  const filters: Omit<OrdersListFilters, 'page'> = {
-    status: statusFilter || undefined,
-    due: isDue || undefined,
-    payment_status: isPaid ? 'paid' : undefined,
-    period: isMonth ? 'month' : undefined,
-    search: list.search || undefined,
-    ordering: list.ordering === DEFAULT_ORDERING ? undefined : list.ordering,
-  };
+  const filters = selectionFilters(selection, list.search);
   const isFiltered = !!statusFilter || isDue || isPaid || isMonth || !!list.search;
 
   return {
-    statusFilter, paymentFilter, isMonth, isFiltered, filters, activeCards,
-    page: list.page, ordering: list.ordering,
+    statusFilter, paymentFilter, isMonth, isFiltered, filters, activeCards, selection,
+    page: list.page, ordering: list.ordering, search: list.search,
     searchInput: list.searchInput, setSearchInput: list.setSearch,
     setPage: list.setPage, setOrdering: list.setOrdering, clearFilters: list.clearFilters,
-    handleStatusFilter, handlePaymentFilter, handlePeriod, resetFilters, toggleCard,
+    handleStatusFilter, handlePaymentFilter, handlePeriod, applySelection, toggleCard,
   };
 }
 

@@ -7,18 +7,13 @@ import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
 import type { DataTableColumn } from '@/components/list/dataTableTypes';
 import { bucketOf } from './bucket';
-import { PAYMENT_BADGE, STATUS_BAR } from './constants';
+import { STATUS_BAR } from './constants';
+import { OrderPaymentBadge } from './OrderPaymentBadge';
 
 function itemsPreview(order: OrderSummary): string {
   return order.items_preview
     .map((item) => (item.quantity > 1 ? `${item.name} ×${item.quantity}` : item.name))
     .join(', ');
-}
-
-/** Reste dû en centimes entiers, pour éviter les arrondis flottants. */
-function amountDue(order: OrderSummary): number {
-  const cents = (v: string) => Math.round(Number(v) * 100);
-  return (cents(order.total_amount) - cents(order.amount_paid)) / 100;
 }
 
 function ClientCell({ order, noClient }: { order: OrderSummary; noClient: string }) {
@@ -48,7 +43,6 @@ function useDateLabel() {
 
 export function useOrderColumns(currency: string): DataTableColumn<OrderSummary>[] {
   const t = useTranslations('orders.list');
-  const tPayment = useTranslations('orders.payment');
   const kind = useCatalogKind();
   const formatMoney = useFormatMoney();
   const label = useOrderStatusLabel();
@@ -70,18 +64,9 @@ export function useOrderColumns(currency: string): DataTableColumn<OrderSummary>
         </span>
       ) },
     { key: 'payment_status', header: t('column_payment'), sortable: true,
-      cell: (o) => o.status === 'cancelled' ? <span className={muted}>{label('cancelled')}</span> : (
-        <>
-          <span className={`inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-semibold ${PAYMENT_BADGE[o.payment_status] ?? ''}`}>
-            {tPayment(o.payment_status as 'unpaid' | 'partial' | 'paid')}
-          </span>
-          {o.payment_status === 'partial' && amountDue(o) > 0 && (
-            <span className="mt-0.75 block text-xs text-muted-foreground">
-              {t('amount_due', { amount: formatMoney(amountDue(o), currency) })}
-            </span>
-          )}
-        </>
-      ) },
+      cell: (o) => o.status === 'cancelled'
+        ? <span className={muted}>{label('cancelled')}</span>
+        : <OrderPaymentBadge order={o} currency={currency} /> },
     { key: 'total_amount', header: t('column_total'), align: 'end', sortable: true, firstDirection: 'desc',
       cell: (o) => <span className="whitespace-nowrap text-sm font-semibold tabular-nums">{formatMoney(o.total_amount, currency)}</span> },
   ];

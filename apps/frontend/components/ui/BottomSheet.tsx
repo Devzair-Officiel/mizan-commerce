@@ -12,7 +12,13 @@ interface BottomSheetProps {
   onClose: () => void;
   title?: string;
   fullHeight?: boolean;
+  /** Pied fixe sous la zone défilante (actions de validation). */
+  footer?: ReactNode;
   children: ReactNode;
+}
+
+function SheetFooter({ children }: { children: ReactNode }) {
+  return <div className="shrink-0 border-t border-border px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{children}</div>;
 }
 
 function DesktopDialog({
@@ -22,6 +28,7 @@ function DesktopDialog({
   sheetRef,
   onClose,
   t,
+  footer,
   children,
 }: {
   visible: boolean;
@@ -30,6 +37,7 @@ function DesktopDialog({
   sheetRef: React.RefObject<HTMLDivElement | null>;
   onClose: () => void;
   t: ReturnType<typeof useTranslations<'ui'>>;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -75,6 +83,7 @@ function DesktopDialog({
         <div className="px-5 py-4 overflow-y-auto">
           {children}
         </div>
+        {footer && <SheetFooter>{footer}</SheetFooter>}
       </div>
     </div>
   );
@@ -88,6 +97,7 @@ function MobileSheet({
   onClose,
   fullHeight,
   t,
+  footer,
   children,
 }: {
   visible: boolean;
@@ -97,6 +107,7 @@ function MobileSheet({
   onClose: () => void;
   fullHeight?: boolean;
   t: ReturnType<typeof useTranslations<'ui'>>;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -135,15 +146,16 @@ function MobileSheet({
         )}
         <div className={fullHeight
           ? 'flex flex-col flex-1 min-h-0 overflow-hidden'
-          : 'px-5 py-4 pb-safe overflow-y-auto'}>
+          : `px-5 py-4 overflow-y-auto ${footer ? '' : 'pb-safe'}`}>
           {children}
         </div>
+        {footer && <SheetFooter>{footer}</SheetFooter>}
       </div>
     </div>
   );
 }
 
-export function BottomSheet({ open, onClose, title, fullHeight, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, fullHeight, footer, children }: BottomSheetProps) {
   const [visible, setVisible] = useState(false);
   const [tracked, setTracked] = useState(open);
   const titleId = useId();
@@ -182,7 +194,7 @@ export function BottomSheet({ open, onClose, title, fullHeight, children }: Bott
   if (!open) return null;
 
   if (isDesktop === true) {
-    return <DesktopDialog visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t}>{children}</DesktopDialog>;
+    return <DesktopDialog visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t} footer={footer}>{children}</DesktopDialog>;
   }
-  return <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t}>{children}</MobileSheet>;
+  return <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t} footer={footer}>{children}</MobileSheet>;
 }

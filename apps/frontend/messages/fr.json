@@ -835,21 +835,15 @@
       "paid": "Payées"
     },
     "filterSheet": {
-      "title": "Filtres",
-      "close": "Fermer",
       "status_title": "Statut",
       "payment_title": "Paiement",
-      "reset": "Réinitialiser",
       "apply": "Voir les commandes",
+      "show_results": "{count, plural, =0 {Aucune commande} one {Voir # commande} other {Voir les # commandes}}",
       "sort_title": "Trier par",
       "sort_newest": "Plus récentes",
       "sort_oldest": "Plus anciennes",
       "sort_amount_desc": "Montant décroissant",
       "sort_amount_asc": "Montant croissant"
-    },
-    "filterBar": {
-      "filters_btn": "Filtres",
-      "remove_filter": "Retirer le filtre {name}"
     }
   },
   "articles": {
@@ -1229,7 +1223,10 @@
       "pagination_page": "Page {page}",
       "pagination_label": "Pagination",
       "filter_label": "{name} :",
-      "remove_filter": "Retirer le filtre {name}"
+      "remove_filter": "Retirer le filtre {name}",
+      "filters": "Filtres",
+      "reset": "Réinitialiser",
+      "active_filters": "{count, plural, one {# filtre actif} other {# filtres actifs}}"
     }
   },
   "settings": {

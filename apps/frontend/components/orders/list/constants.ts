@@ -8,26 +8,13 @@ export const STATUS_BAR: Record<string, string> = {
   cancelled:  'bg-red-500',
 };
 
-export const STATUS_TEXT: Record<string, string> = {
-  to_prepare: 'text-amber-700 dark:text-amber-400',
-  prepared:   'text-primary',
-  shipped:    'text-green-700 dark:text-green-400',
-  cancelled:  'text-red-600 dark:text-red-400',
-};
-
 export type PaymentKey = 'unpaid' | 'partial' | 'paid';
 
-/** Badge de paiement : colonne Paiement du tableau et menu Paiement. */
+/** Badge de paiement : colonne Paiement du tableau, liste mobile et menu Paiement. */
 export const PAYMENT_BADGE: Record<string, string> = {
   unpaid:  'bg-amber-500/10 text-amber-700 dark:text-amber-400',
   partial: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
   paid:    'bg-green-500/10 text-green-700 dark:text-green-400',
-};
-
-export const PAYMENT_COLOR: Record<string, string> = {
-  unpaid:  'text-red-500 dark:text-red-400',
-  partial: 'text-amber-600 dark:text-amber-400',
-  paid:    'text-green-600 dark:text-green-400',
 };
 
 export type StatusFilterKey = '' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled';
