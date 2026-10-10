@@ -20,15 +20,15 @@ export default function AppError({
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
       <AlertTriangle className="size-10 text-destructive" aria-hidden />
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+      <h1 className="text-2xl font-semibold text-foreground">
         Une erreur est survenue
       </h1>
-      <p className="max-w-md text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="max-w-md text-sm text-muted-foreground">
         Nous n&apos;avons pas pu charger cette page. Réessayez dans un instant — si
         l&apos;erreur persiste, contactez le support.
       </p>
       {error.digest ? (
-        <p className="text-xs text-zinc-400">Référence : {error.digest}</p>
+        <p className="text-xs text-muted-foreground">Référence : {error.digest}</p>
       ) : null}
       <Button variant="default" onClick={reset}>
         Réessayer

@@ -85,7 +85,7 @@ export default function SettingsPage() {
         <PreferencesSection register={register} />
 
         {isSuccess && !isDirty && (
-          <p className="text-sm text-green-600 text-center">Modifications enregistrées ✓</p>
+          <p className="text-sm text-green-700 dark:text-green-400 text-center">Modifications enregistrées ✓</p>
         )}
 
         <StickyActionBar

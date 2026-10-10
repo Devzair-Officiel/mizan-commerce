@@ -95,7 +95,7 @@ function ProfileForm() {
       <FloatingInput id="phone" label="Téléphone (optionnel)" {...register('phone')} />
 
       {isSuccess && !isDirty && (
-        <p className="text-sm text-green-600 text-center">Profil mis à jour ✓</p>
+        <p className="text-sm text-green-700 dark:text-green-400 text-center">Profil mis à jour ✓</p>
       )}
 
       <Button type="submit" disabled={isPending || !isDirty} className="w-full mt-1">
@@ -158,7 +158,7 @@ function PasswordForm() {
       {errors.root && <p className="text-[11px] text-destructive px-1">{errors.root.message}</p>}
 
       {isSubmitSuccessful && !errors.root && (
-        <p className="text-sm text-green-600 text-center">Mot de passe modifié ✓</p>
+        <p className="text-sm text-green-700 dark:text-green-400 text-center">Mot de passe modifié ✓</p>
       )}
 
       <Button type="submit" disabled={isPending} className="w-full mt-1">

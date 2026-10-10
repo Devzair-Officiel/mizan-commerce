@@ -70,7 +70,7 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {money(v.selling_price)}
                   {product.type === 'product' && (
-                    <>{' · '}<span className={out ? 'text-destructive' : v.is_low_stock ? 'text-amber-600' : ''}>{out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}</span></>
+                    <>{' · '}<span className={out ? 'text-destructive' : v.is_low_stock ? 'text-amber-700 dark:text-amber-400' : ''}>{out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}</span></>
                   )}
                 </span>
               </div>

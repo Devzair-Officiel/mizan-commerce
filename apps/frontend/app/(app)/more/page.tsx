@@ -27,24 +27,24 @@ export default function MorePage() {
     <>
       <TopBar title="Plus" />
       <div className="flex flex-col gap-4 p-4">
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
           {MENU_ITEMS.map(({ href, label }, i) => (
             <Link
               key={href}
               href={href}
-              className={`flex items-center justify-between px-4 py-3.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 ${
-                i < MENU_ITEMS.length - 1 ? 'border-b border-zinc-100' : ''
+              className={`flex items-center justify-between px-4 py-3.5 text-sm font-medium text-foreground hover:bg-muted ${
+                i < MENU_ITEMS.length - 1 ? 'border-b border-border' : ''
               }`}
             >
               {label}
-              <span className="text-zinc-400">›</span>
+              <span className="text-muted-foreground">›</span>
             </Link>
           ))}
         </div>
 
         <Button
-          variant="outline"
-          className="w-full text-red-500 border-red-200 hover:bg-red-50"
+          variant="destructive"
+          className="w-full"
           onClick={handleLogout}
         >
           Se déconnecter

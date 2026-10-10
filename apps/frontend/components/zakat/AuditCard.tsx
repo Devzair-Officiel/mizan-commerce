@@ -9,9 +9,9 @@ interface AuditCardProps {
 }
 
 const TIER_STYLES = {
-  high: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  medium: 'bg-amber-50 border-amber-200 text-amber-700',
-  low: 'bg-orange-50 border-orange-200 text-orange-700',
+  high: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-400',
+  medium: 'bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-400',
+  low: 'bg-orange-500/10 border-orange-500/25 text-orange-700 dark:text-orange-400',
 } as const;
 
 const TIER_LABEL = {
@@ -24,9 +24,9 @@ function CheckRow({ check }: { check: AuditCheck }) {
   const Icon = check.status === 'ok' ? CheckCircle2 : check.status === 'warn' ? AlertTriangle : Info;
   const iconColor =
     check.status === 'ok'
-      ? 'text-emerald-600'
+      ? 'text-emerald-700 dark:text-emerald-400'
       : check.status === 'warn'
-        ? 'text-amber-600'
+        ? 'text-amber-700 dark:text-amber-400'
         : 'text-muted-foreground';
   return (
     <div className="flex items-start gap-2.5 py-2 border-b border-border/60 last:border-0">

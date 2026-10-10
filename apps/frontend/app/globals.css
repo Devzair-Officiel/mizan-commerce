@@ -71,7 +71,9 @@
   --muted-foreground:     oklch(0.53 0.012 170);
   --accent:               oklch(0.93 0.0263 170);
   --accent-foreground:    oklch(0.30 0.0525 170);
-  --destructive:          oklch(0.577 0.245 27.325);
+  /* Rouge de signal (design_principles §2) : red-700 en clair ; en sombre (.dark), un rouge un peu plus
+     clair que red-400 pour garder 4.5:1 sur la teinte du bouton destructive (bg-destructive/10). */
+  --destructive:          oklch(0.505 0.213 27.518);
   --border:               oklch(0.90 0.014 90);
   --input:                oklch(0.90 0.014 90);
   --ring:                 oklch(0.52 0.075 170);
@@ -113,6 +115,7 @@
 
 .dark {
   --bg-gradient: linear-gradient(to bottom, oklch(0.26 0.012 170) 0%, oklch(0.22 0.012 170) 100%);
+  --destructive: oklch(0.75 0.16 21);
 }
 
 .dark [data-color-theme="menthe"] {
@@ -190,70 +193,14 @@
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Overrides dark mode pour les classes zinc hardcodées dans les pages
-   ───────────────────────────────────────────────────────────────────────── */
-.dark .bg-white { background-color: var(--card); }
-.dark .bg-zinc-50 { background-color: var(--background); }
-.dark .bg-zinc-100 { background-color: var(--muted); }
-.dark .border-zinc-200 { border-color: var(--border); }
-.dark .border-zinc-100 { border-color: var(--border); }
-.dark .text-zinc-900 { color: var(--foreground); }
-.dark .text-zinc-800 { color: var(--foreground); }
-.dark .text-zinc-600 { color: var(--muted-foreground); }
-.dark .text-zinc-500 { color: var(--muted-foreground); }
-.dark .text-zinc-400 { color: var(--muted-foreground); }
-.dark .hover\:bg-zinc-50:hover { background-color: var(--muted); }
-.dark .hover\:bg-zinc-100:hover { background-color: var(--accent); }
-.dark .active\:bg-zinc-100:active { background-color: var(--accent); }
-.dark .active\:bg-zinc-50:active { background-color: var(--muted); }
-.dark select { background-color: var(--card); color: var(--foreground); border-color: var(--border); }
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Overrides thèmes colorés pour les classes zinc hardcodées (light mode)
-   ───────────────────────────────────────────────────────────────────────── */
-.bg-white { background-color: var(--card); }
-.bg-zinc-50 { background-color: var(--background); }
-.bg-zinc-100 { background-color: var(--muted); }
-.border-zinc-200 { border-color: var(--border); }
-.border-zinc-100 { border-color: var(--border); }
-.text-zinc-900 { color: var(--foreground); }
-.text-zinc-800 { color: var(--foreground); }
-.text-zinc-600 { color: var(--muted-foreground); }
-.text-zinc-500 { color: var(--muted-foreground); }
-.text-zinc-400 { color: var(--muted-foreground); }
-.hover\:bg-zinc-50:hover { background-color: var(--muted); }
-.hover\:bg-zinc-100:hover { background-color: var(--secondary); }
-.active\:bg-zinc-100:active { background-color: var(--secondary); }
-.active\:bg-zinc-50:active { background-color: var(--muted); }
-select { background-color: var(--card); color: var(--foreground); border-color: var(--border); }
-
-/* ─────────────────────────────────────────────────────────────────────────
    Boutique publique — opt-out total du thème admin.
    La vitrine vue par les clients reste claire et neutre quel que soit le
-   mode (dark / theme couleur) configuré dans l'admin du commerçant.
-   Doit rester en fin de fichier pour gagner en source-order sur les
-   overrides ci-dessus.
+   mode (dark / theme couleur) configuré dans l'admin du commerçant :
+   ses composants utilisent des classes de palette fixes (neutral-*, bg-white),
+   jamais les tokens du thème (scripts/check-tokens.mjs les exempte).
    ───────────────────────────────────────────────────────────────────────── */
 [data-public-page] {
   color-scheme: light;
   background-color: #ffffff;
   color: #18181b;
 }
-[data-public-page] .bg-white,
-.dark [data-public-page] .bg-white { background-color: #ffffff; }
-[data-public-page] .bg-zinc-50,
-.dark [data-public-page] .bg-zinc-50 { background-color: #fafafa; }
-[data-public-page] .bg-zinc-100,
-.dark [data-public-page] .bg-zinc-100 { background-color: #f4f4f5; }
-[data-public-page] .border-zinc-200,
-.dark [data-public-page] .border-zinc-200 { border-color: #e4e4e7; }
-[data-public-page] .border-zinc-100,
-.dark [data-public-page] .border-zinc-100 { border-color: #f4f4f5; }
-[data-public-page] .text-zinc-900,
-.dark [data-public-page] .text-zinc-900 { color: #18181b; }
-[data-public-page] .text-zinc-600,
-.dark [data-public-page] .text-zinc-600 { color: #52525b; }
-[data-public-page] .text-zinc-500,
-.dark [data-public-page] .text-zinc-500 { color: #71717a; }
-[data-public-page] .text-zinc-400,
-.dark [data-public-page] .text-zinc-400 { color: #a1a1aa; }

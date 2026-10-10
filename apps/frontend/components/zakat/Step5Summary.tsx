@@ -138,11 +138,11 @@ export function Step5Summary({ calc }: Step5Props) {
           className={`rounded-2xl border px-4 py-3 flex flex-col gap-2 ${
             isAboveNisab
               ? 'border-primary/30 bg-primary/5'
-              : 'border-emerald-200 bg-emerald-50'
+              : 'border-emerald-500/25 bg-emerald-500/10'
           }`}
         >
           <div className="flex items-center gap-2">
-            <Scale className={isAboveNisab ? 'text-primary' : 'text-emerald-700'} size={16} />
+            <Scale className={isAboveNisab ? 'text-primary' : 'text-emerald-700 dark:text-emerald-400'} size={16} />
             <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
               Seuil de Nisab
             </p>
@@ -155,23 +155,23 @@ export function Step5Summary({ calc }: Step5Props) {
               {formatMoney(nisabThreshold, calc.currency)}
             </p>
           </div>
-          <p className={`text-xs ${isAboveNisab ? 'text-muted-foreground' : 'text-emerald-800'}`}>
+          <p className={`text-xs ${isAboveNisab ? 'text-muted-foreground' : 'text-emerald-800 dark:text-emerald-200'}`}>
             {isAboveNisab
               ? 'Votre base dépasse le seuil — la zakat est due.'
               : 'Votre base reste sous le seuil — la zakat n\'est pas obligatoire cette année.'}
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex gap-3">
-          <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 flex gap-3">
+          <AlertTriangle className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" size={18} />
           <div className="flex flex-col gap-1.5 flex-1">
-            <p className="text-sm font-medium text-amber-900">Seuil de Nisab non configuré</p>
-            <p className="text-xs text-amber-800">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Seuil de Nisab non configuré</p>
+            <p className="text-xs text-amber-800 dark:text-amber-200">
               Sans Nisab, impossible de savoir si la zakat est obligatoire pour vous cette année.
             </p>
             <Link
               href="/settings"
-              className="self-start mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-900 hover:text-amber-700 transition-colors"
+              className="self-start mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-900 dark:text-amber-100 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
             >
               Configurer dans les paramètres
               <ArrowRight size={12} />

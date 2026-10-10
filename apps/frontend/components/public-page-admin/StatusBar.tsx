@@ -48,7 +48,7 @@ export function StatusBar({ page }: Props) {
               className="shrink-0 text-muted-foreground hover:text-foreground"
             >
               {copied
-                ? <Check className="h-3.5 w-3.5 text-emerald-600" />
+                ? <Check className="h-3.5 w-3.5 text-green-700 dark:text-green-400" />
                 : <Copy className="h-3.5 w-3.5" />}
             </button>
             {page.is_live && (
@@ -92,13 +92,13 @@ export function StatusBar({ page }: Props) {
 
 function StatusBadge({ isLive }: { isLive: boolean }) {
   return isLive ? (
-    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-semibold">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-0.5 text-[11px] font-semibold">
+      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
       En ligne
     </span>
   ) : (
-    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-neutral-200 text-neutral-700 px-2 py-0.5 text-[11px] font-semibold">
-      <span className="h-1.5 w-1.5 rounded-full bg-neutral-500" />
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-[11px] font-semibold">
+      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
       Brouillon
     </span>
   );

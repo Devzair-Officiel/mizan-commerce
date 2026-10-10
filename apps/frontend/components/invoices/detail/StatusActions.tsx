@@ -21,7 +21,7 @@ export function StatusActions({ invoice, isPending, onMarkPaid, onCancel }: Stat
         <Button
           onClick={onMarkPaid}
           disabled={isPending}
-          className="w-full bg-green-600 hover:bg-green-700 text-white inline-flex items-center justify-center gap-2"
+          className="w-full"
         >
           <CheckCircle2 size={16} />
           Marquer comme payée

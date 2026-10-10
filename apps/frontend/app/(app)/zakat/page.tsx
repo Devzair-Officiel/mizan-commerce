@@ -32,11 +32,11 @@ export default function ZakatPage() {
       <TopBar title="Zakat commerciale" />
       <div className="flex flex-col gap-4 p-4 pb-24">
         {/* Bandeau pédagogique permanent — la zakat reste un avis spirituel */}
-        <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/25 px-4 py-3">
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">
             Estimation indicative
           </p>
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-amber-700 dark:text-amber-400">
             Ce calcul est un outil d&apos;aide à la décision. Consultez un érudit ou un spécialiste pour
             validation finale.
           </p>
@@ -77,19 +77,19 @@ export default function ZakatPage() {
         {!draft && currentYearFinalized && (
           <Link
             href={`/zakat/${currentYearFinalized.id}`}
-            className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 hover:bg-emerald-100/60 transition-colors"
+            className="flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 hover:bg-emerald-500/15 transition-colors"
           >
-            <CheckCircle2 className="text-emerald-600 shrink-0" size={20} />
+            <CheckCircle2 className="text-emerald-700 dark:text-emerald-400 shrink-0" size={20} />
             <div className="flex-1 flex flex-col">
-              <p className="text-sm font-medium text-emerald-900">
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
                 Zakat {currentYear} déjà bouclée
               </p>
-              <p className="text-xs text-emerald-800 tabular-nums">
+              <p className="text-xs text-emerald-800 dark:text-emerald-200 tabular-nums">
                 {formatMoney(currentYearFinalized.zakat_amount, currentYearFinalized.currency)} —
                 voir le justificatif
               </p>
             </div>
-            <ArrowRight className="text-emerald-700 shrink-0" size={18} />
+            <ArrowRight className="text-emerald-700 dark:text-emerald-400 shrink-0" size={18} />
           </Link>
         )}
 

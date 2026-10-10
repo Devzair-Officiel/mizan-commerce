@@ -14,10 +14,10 @@ import {
 type PaymentDisplay = 'paid' | 'partial' | 'unpaid' | 'cancelled';
 
 const PILL_CLASS: Record<PaymentDisplay, string> = {
-  paid: 'bg-green-50 text-green-700 border border-green-100',
-  partial: 'bg-amber-50 text-amber-700 border border-amber-100',
-  unpaid: 'bg-blue-50 text-blue-700 border border-blue-100',
-  cancelled: 'bg-red-50 text-red-600 border border-red-100',
+  paid: 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/25',
+  partial: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25',
+  unpaid: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/25',
+  cancelled: 'bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/25',
 };
 
 const PILL_ICON: Record<PaymentDisplay, React.ReactNode> = {

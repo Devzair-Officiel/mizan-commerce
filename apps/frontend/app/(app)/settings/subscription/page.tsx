@@ -110,7 +110,7 @@ export default function SubscriptionPage() {
               </p>
               <p className="text-lg font-semibold text-foreground">
                 {subscription.plan.name}
-                {isTrialing && <span className="ml-2 text-xs font-medium text-amber-600">Essai</span>}
+                {isTrialing && <span className="ml-2 text-xs font-medium text-amber-700 dark:text-amber-400">Essai</span>}
               </p>
               {isTrialing && subscription.days_remaining !== null && (
                 <p className="mt-1 text-sm text-muted-foreground">

@@ -125,7 +125,7 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
             {contact.label.trim() || meta.label}
           </p>
           {contact.is_primary && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-semibold">
               <Star className="h-2.5 w-2.5 fill-current" />
               Principal
             </span>
@@ -140,7 +140,7 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
             type="button"
             aria-label="Définir comme principal"
             onClick={() => update.mutate({ id: contact.id, data: { is_primary: true } })}
-            className="p-1.5 text-muted-foreground hover:text-amber-600"
+            className="p-1.5 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400"
           >
             <Star className="h-4 w-4" />
           </button>

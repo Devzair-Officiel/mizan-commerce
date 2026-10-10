@@ -17,8 +17,8 @@ function SwitchTrack({ checked }: { checked: boolean }) {
       }`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-6' : 'translate-x-1'
+        className={`inline-block h-4 w-4 transform rounded-full shadow transition-transform ${
+          checked ? 'translate-x-6 bg-primary-foreground' : 'translate-x-1 bg-background dark:bg-foreground'
         }`}
       />
     </span>

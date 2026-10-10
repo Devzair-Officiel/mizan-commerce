@@ -44,7 +44,7 @@ export function TotalsCard({ invoice, showPaymentBreakdown, amountPaid, remainin
             <span>Payé</span>
             <span className="tabular-nums">{formatInvoiceMoney(amountPaid, invoice.currency)}</span>
           </div>
-          <div className="flex justify-between text-sm font-semibold text-amber-700">
+          <div className="flex justify-between text-sm font-semibold text-amber-700 dark:text-amber-400">
             <span>Reste à payer</span>
             <span className="tabular-nums">{formatInvoiceMoney(remaining, invoice.currency)}</span>
           </div>

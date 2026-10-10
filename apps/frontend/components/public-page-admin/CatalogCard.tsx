@@ -201,8 +201,8 @@ function ToggleChip({
 }) {
   const activeStyles = {
     neutral: 'bg-primary text-primary-foreground border-primary',
-    rose: 'bg-rose-500 text-white border-rose-500',
-    emerald: 'bg-emerald-500 text-white border-emerald-500',
+    rose: 'bg-rose-500/15 text-rose-700 border-rose-500/40 dark:text-rose-300',
+    emerald: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/40 dark:text-emerald-300',
   };
   return (
     <button

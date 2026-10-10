@@ -156,8 +156,8 @@ function SectionRow({ section, index, total, allSections }: RowProps) {
           aria-label={section.is_visible ? 'Masquer' : 'Afficher'}
           className={`shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-full transition-colors ${
             section.is_visible
-              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-              : 'bg-neutral-200 text-neutral-600 hover:bg-neutral-300'
+              ? 'bg-green-500/10 text-green-700 hover:bg-green-500/20 dark:text-green-400'
+              : 'bg-muted text-muted-foreground hover:bg-accent'
           }`}
         >
           {section.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}

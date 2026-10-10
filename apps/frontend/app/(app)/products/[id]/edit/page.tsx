@@ -22,7 +22,7 @@ export default function EditProductPage() {
     return (
       <>
         <TopBar title={t('topbar_edit')} back hideSearch />
-        <p className="p-4 text-sm text-zinc-400">{t('loading')}</p>
+        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
       </>
     );
   }

@@ -14,6 +14,10 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 - Identité : `--primary`, `--card`, `--background`, `--muted`, `--foreground`,
   `--muted-foreground`, `--border`, `--destructive` (via Tailwind: `bg-primary`,
   `text-foreground`, etc.).
+- Neutres : jamais de gris de palette (`zinc-*`, `neutral-*`, `slate-*`, `gray-*`, `stone-*`) ni de
+  `bg-white`/hexadécimal dans l'app : `bg-card`, `bg-muted`, `text-muted-foreground`, `border-border`…
+  Garde-fou : `npm run tokens:check` (exceptions documentées dans `scripts/check-tokens.mjs` :
+  vitrine publique à thème clair fixe, pastilles de ThemeToggle/ColorPicker).
 - Signaux sémantiques uniquement (red/amber/green) : danger, attente, succès.
   Toujours en paire light/dark. Pour du texte normal (≥ 12px) : `text-amber-700 dark:text-amber-400`
   et `text-red-700 dark:text-red-400`. Pour les grandes métriques ou les badges : `text-amber-600`/`text-red-600`.
@@ -60,7 +64,7 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 ## 7. Grand écran (≥ lg)
 
 - **Sidebar** : 240 px fixe, `inset-s-0` (logique RTL). Groupes de navigation avec titres `text-xs font-semibold uppercase tracking-wide text-muted-foreground`. Entrée active : `bg-secondary text-secondary-foreground font-semibold`, icône `text-primary`. Menu compte ancré en bas, ouvre un Base UI Menu `side="top"`.
-- **Contenu** : conteneur `max-w-400 mx-auto px-6 pt-8`. Le conteneur fournit le padding latéral desktop ; TopBar et pages utilisent `p-4` / `px-4`, jamais de `lg:px-*` dans une page. Pages formulaires (settings, profil, édition client/produit) : ajouter `max-w-3xl mx-auto w-full` sur leur div ou form racine pour éviter l'étirement sur très grand écran.
+- **Contenu** : conteneur `max-w-400 mx-auto pt-8`, marges latérales progressives `lg:px-8 xl:px-12 2xl:px-16` (32 / 48 / 64 px) pour que le contenu respire sur grand écran. Le conteneur fournit le padding latéral desktop ; TopBar et pages utilisent `p-4` / `px-4`, jamais de `lg:px-*` dans une page. Pages formulaires (settings, profil, édition client/produit) : ajouter `max-w-3xl mx-auto w-full` sur leur div ou form racine pour éviter l'étirement sur très grand écran.
 - **TopBar desktop** : non-sticky, pas de blur/border, titre `text-[28px] font-semibold tracking-tight` aligné à gauche, lien retour au-dessus du titre, barre de recherche `h-11 w-80 rounded-full bg-card border border-border` à droite. Le breadcrumb reste mobile uniquement (`lg:hidden`).
 - **Propriétés logiques** : toujours `ms/me/ps/pe/start/end` (jamais `ml/mr/pl/pr/left/right`) pour le support RTL.
 - **Action de création** : chaque page de liste porte sa propre action de création dans l'en-tête, à droite du titre (« Nouvelle commande », « Nouveau client »…), voir §9. « Nouvelle commande » reste dans la sidebar comme raccourci global. Une seule CTA principale par écran : pas d'autre bouton primaire dans la page.

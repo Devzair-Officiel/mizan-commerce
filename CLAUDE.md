@@ -40,6 +40,7 @@ docker compose exec backend python manage.py seed_data --reset   # seed_data --r
 docker compose exec -T frontend npm run dev      # Dev server
 docker compose exec -T frontend npm run typecheck  # Typecheck obligatoire avant tout commit frontend : le build ne vérifie pas les types
 docker compose exec -T frontend npm run i18n:check  # Obligatoire avant tout commit qui touche aux messages (fr/en/ar)
+docker compose exec -T frontend npm run tokens:check  # Obligatoire avant tout commit frontend : couleurs via tokens (pas de gris de palette ni d'hexadécimal dans un className)
 docker compose exec -T frontend npm run lint     # ESLint
 docker compose exec -T frontend npm run build    # Build de prod
 # npm run test n'existe pas encore — aucune infra Vitest en place
