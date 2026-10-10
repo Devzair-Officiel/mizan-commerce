@@ -143,7 +143,11 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        return Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items')  # noqa: E501
+        return (
+            Order.objects.filter(shop=shop)
+            .select_related('customer', 'created_by', 'updated_by')
+            .prefetch_related('items')
+        )
 
     def perform_destroy(self, instance):
         raise Exception("Suppression interdite. Utilisez l'annulation.")

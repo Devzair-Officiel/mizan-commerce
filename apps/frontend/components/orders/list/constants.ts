@@ -8,6 +8,14 @@ export const STATUS_BAR: Record<string, string> = {
   cancelled:  'bg-red-500',
 };
 
+/** Badge de statut (fond + texte) : en-tête du détail d'une commande. Pastille : `STATUS_BAR`. */
+export const STATUS_BADGE: Record<string, string> = {
+  to_prepare: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  prepared:   'bg-primary/10 text-primary',
+  shipped:    'bg-green-500/10 text-green-700 dark:text-green-400',
+  cancelled:  'bg-red-500/10 text-red-700 dark:text-red-400',
+};
+
 export type PaymentKey = 'unpaid' | 'partial' | 'paid';
 
 /** Badge de paiement : colonne Paiement du tableau, liste mobile et menu Paiement. */

@@ -1,99 +1,72 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
-import type { Order } from '@/lib/hooks/useOrders';
+import { isDefaultVariant } from '@/lib/products';
+import type { Order, OrderItem } from '@/lib/hooks/useOrders';
 
-interface OrderItemsCardProps {
-  order: Order;
-  totalAmount: number;
-  subtotalAmount: number;
-  discountAmount: number;
-  shippingAmount: number;
+function ItemRow({ item, money }: { item: OrderItem; money: (v: string) => string }) {
+  const t = useTranslations('orders.items');
+  const unit = t('unit_price', { amount: money(item.unit_price) });
+  const showVariant = item.variant_name && !isDefaultVariant(item.variant_name);
+  return (
+    <li className="flex items-center gap-3.5 px-4 py-3 lg:px-5">
+      <span className="flex h-7 min-w-9 shrink-0 items-center justify-center rounded-full bg-muted px-2 text-[0.8125rem] font-semibold tabular-nums">
+        ×{item.quantity}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{item.product_name}</p>
+        <p className="mt-0.5 text-[0.8125rem] text-muted-foreground tabular-nums">
+          {showVariant ? t('variant_unit', { variant: item.variant_name, unit }) : unit}
+        </p>
+      </div>
+      <span className="shrink-0 text-sm font-semibold tabular-nums">{money(item.line_total)}</span>
+    </li>
+  );
 }
 
-export function OrderItemsCard({
-  order, totalAmount, subtotalAmount, discountAmount, shippingAmount,
-}: OrderItemsCardProps) {
+function TotalLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+/** Carte « Articles » : lignes de la commande, puis sous-total, remise, livraison et total. */
+export function OrderItemsCard({ order }: { order: Order }) {
   const t = useTranslations('orders.items');
   const { data: shop } = useShop();
   const kind = useCatalogKind();
-  const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
-  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
-
-  const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
-  const hasAdjustments = discountAmount > 0 || shippingAmount > 0;
+  const money = (v: string) => formatMoney(v, shop?.currency ?? 'EUR', { maximumFractionDigits: 2 });
+  const units = order.items.reduce((acc, i) => acc + i.quantity, 0);
+  const discount = parseFloat(order.discount_amount) > 0;
+  const shipping = parseFloat(order.shipping_amount) > 0;
 
   return (
-    <>
-      <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            {t('title', { kind })}
-          </h2>
-          <span className="text-xs text-zinc-400 tabular-nums">
-            {t('unit_count', { count: itemCount })}
-          </span>
-        </div>
-        {order.items.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-zinc-400">{t('empty', { kind })}</p>
-        ) : (
-          <ul className="divide-y divide-zinc-100">
-            {order.items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-700 tabular-nums">
-                  ×{item.quantity}
-                </span>
-                <div className="flex flex-1 flex-col min-w-0 gap-0.5">
-                  <span className="text-sm font-medium text-zinc-900 truncate">{item.product_name}</span>
-                  <span className="text-xs text-zinc-400 tabular-nums">
-                    {t('unit_price_short', { amount: money(item.unit_price) })}
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-zinc-900 tabular-nums shrink-0">
-                  {money(item.line_total)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {!hasAdjustments && order.items.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-3 bg-zinc-50/60 border-t border-zinc-100">
-            <span className="text-sm font-semibold text-zinc-900">{t('total')}</span>
-            <span className="text-base font-bold text-zinc-900 tabular-nums">
-              {money(totalAmount)}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {hasAdjustments && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-2 shadow-sm">
-          <div className="flex justify-between text-sm text-zinc-500">
-            <span>{t('subtotal')}</span>
-            <span className="tabular-nums">{money(subtotalAmount)}</span>
-          </div>
-          {discountAmount > 0 && (
-            <div className="flex justify-between text-sm text-zinc-500">
-              <span>{t('discount')}</span>
-              <span className="tabular-nums">− {money(discountAmount)}</span>
-            </div>
-          )}
-          {shippingAmount > 0 && (
-            <div className="flex justify-between text-sm text-zinc-500">
-              <span>{t('shipping')}</span>
-              <span className="tabular-nums">+ {money(shippingAmount)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-base font-bold text-zinc-900 pt-2 border-t border-zinc-100">
-            <span>{t('total')}</span>
-            <span className="tabular-nums">{money(totalAmount)}</span>
-          </div>
-        </div>
+    <SectionCard title={t('title', { kind })}
+      rightSlot={<span className="text-muted-foreground tabular-nums">{t('unit_count', { count: units })}</span>}>
+      {order.items.length === 0 ? (
+        <p className="px-5 py-6 text-center text-sm text-muted-foreground">{t('empty', { kind })}</p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {order.items.map((item) => <ItemRow key={item.id} item={item} money={money} />)}
+        </ul>
       )}
-    </>
+      <div className="flex flex-col gap-2 border-t border-border px-4 pt-3 pb-4 text-sm lg:px-5">
+        {(discount || shipping) && <TotalLine label={t('subtotal')} value={money(order.subtotal)} />}
+        {discount && <TotalLine label={t('discount')} value={`−${money(order.discount_amount)}`} />}
+        {shipping && <TotalLine label={t('shipping')} value={`+${money(order.shipping_amount)}`} />}
+        <div className={`flex items-baseline justify-between gap-3 ${discount || shipping ? 'border-t border-border pt-2.5' : ''}`}>
+          <span className="font-semibold">{t('total')}</span>
+          <span className="text-xl font-bold tabular-nums">{money(order.total_amount)}</span>
+        </div>
+      </div>
+    </SectionCard>
   );
 }

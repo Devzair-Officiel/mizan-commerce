@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { type ReactNode } from 'react';
 
-interface DashboardCardProps {
+interface SectionCardProps {
   title: string;
   rightLink?: { label: string; href: string };
   rightSlot?: ReactNode;
   children: ReactNode;
 }
 
-export function DashboardCard({ title, rightLink, rightSlot, children }: DashboardCardProps) {
+export function SectionCard({ title, rightLink, rightSlot, children }: SectionCardProps) {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">

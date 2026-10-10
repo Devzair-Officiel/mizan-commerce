@@ -48,10 +48,17 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     customer_name = serializers.CharField(source='customer.name', read_only=True)
     customer_phone = serializers.CharField(source='customer.phone', read_only=True)
+    customer_city = serializers.CharField(source='customer.city', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)  # noqa: E501
     invoice = OrderInvoiceSummarySerializer(read_only=True)
+    created_by_name = serializers.SerializerMethodField()
     updated_by_name = serializers.SerializerMethodField()
+
+    def get_created_by_name(self, obj: Order) -> str | None:
+        if obj.created_by_id is None:
+            return None
+        return obj.created_by.full_name or obj.created_by.email
 
     def get_updated_by_name(self, obj: Order) -> str | None:
         if obj.updated_by_id is None:
@@ -63,14 +70,14 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'order_number', 'status', 'status_display',
             'payment_status', 'payment_status_display',
-            'customer', 'customer_name', 'customer_phone',
+            'customer', 'customer_name', 'customer_phone', 'customer_city',
             'subtotal', 'discount_amount', 'shipping_amount', 'total_amount', 'amount_paid',  # noqa: E501
-            'stock_reserved', 'updated_by_name',
+            'stock_reserved', 'created_by_name', 'updated_by_name',
             'items', 'invoice', 'created_at', 'updated_at', 'cancelled_at',
         )
         read_only_fields = (
             'id', 'order_number', 'subtotal', 'total_amount',
-            'stock_reserved', 'updated_by_name',
+            'stock_reserved', 'created_by_name', 'updated_by_name',
             'created_at', 'updated_at', 'cancelled_at',
         )
 

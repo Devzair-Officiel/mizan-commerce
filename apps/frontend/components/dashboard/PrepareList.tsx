@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ShoppingCart } from 'lucide-react';
 import { useFormatMoney, useFormatDate, useFormatDateTime } from '@/lib/hooks/useFormat';
 import { useShop } from '@/lib/hooks/useShop';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SectionCard } from '@/components/ui/SectionCard';
 import type { OrderToPrepare } from '@/lib/hooks/useDashboard';
 
 interface Props {
@@ -71,7 +71,7 @@ export function PrepareList({ count, items }: Props) {
   }
 
   return (
-    <DashboardCard title={t('title')} rightLink={{ label: t('see_all_link'), href: '/orders?status=to_prepare' }}>
+    <SectionCard title={t('title')} rightLink={{ label: t('see_all_link'), href: '/orders?status=to_prepare' }}>
       <div className="divide-y divide-border">
         {items.map((o) => (
           <Link key={o.id} href={`/orders/${o.id}`}
@@ -109,6 +109,6 @@ export function PrepareList({ count, items }: Props) {
           {t('see_all', { count })}
         </Link>
       )}
-    </DashboardCard>
+    </SectionCard>
   );
 }

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { formatStock } from '@/lib/hooks/useProducts';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { isDefaultVariant } from '@/lib/products';
 import type { ProductSummary } from '@/lib/hooks/useDashboard';
 
@@ -26,7 +26,7 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
   }
 
   return (
-    <DashboardCard title={t('title')} rightLink={{ label: t('see_stock'), href: '/stock' }}>
+    <SectionCard title={t('title')} rightLink={{ label: t('see_stock'), href: '/stock' }}>
       <div className="divide-y divide-border">
         {items.map((p) => {
           const isOut = parseFloat(p.stock_quantity) <= 0;
@@ -66,6 +66,6 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
           {t('see_all', { count })}
         </Link>
       )}
-    </DashboardCard>
+    </SectionCard>
   );
 }

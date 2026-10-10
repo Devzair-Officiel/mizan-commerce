@@ -114,3 +114,15 @@ Cinq zones, dans cet ordre, espacées de `gap-5` sur desktop :
 5. **Liste** — cartes au vocabulaire du tableau : pastille + libellé de statut, badge de paiement identique (composant partagé avec la cellule, ex. `OrderPaymentBadge`, avec « X € dus » sous un paiement partiel), ligne inactive en `text-muted-foreground`. Groupées par date quand le tri est par date, liste simple sinon, avec « Charger plus ».
 
 Le tri et les filtres utilisent les mêmes paramètres d'URL que le desktop.
+
+## 10. Gabarit des pages de détail
+
+Référence : Détail d'une commande (`docs/maquettes/detail-commande-a-traiter.html`, `detail-commande-remise.html`). Composants dans `components/orders/detail/`, cartes sur `components/ui/SectionCard.tsx` (titre en casse normale `text-[0.9375rem] font-semibold`, slot ou lien à droite).
+
+1. **En-tête desktop** — lien retour vers la liste (« Commandes ») au-dessus du titre. Titre « Commande {numéro} » + badge de statut (pastille + libellé, mêmes couleurs que la liste). Sous-titre : « Créée {aujourd'hui | hier | le date} à {heure} par {auteur} ». À droite, dans cet ordre : « Modifier » (outline, seulement si l'objet est modifiable), « ⋯ » (44 px, `aria-label` « Plus d'actions »), puis l'action principale. Pas de recherche globale.
+2. **Action principale adaptative** — un seul bouton primaire, calculé par un hook (`useOrderPrimaryAction`) selon l'état : étape suivante du parcours, sinon « Encaisser {reste} », « Réactiver » (avec confirmation), « Émettre la facture », sinon rien. Une carte dont le geste est déjà l'action principale n'en montre pas de doublon (`collectIsPrimary`, `issueIsPrimary`).
+3. **Menu « ⋯ »** — les actions secondaires sont déclarées **une seule fois** (`useOrderMenuActions`) et rendues en Base UI Menu sur desktop, en BottomSheet sur mobile. Chaque action n'apparaît que si elle est possible et jamais si elle est déjà l'action principale. Actions destructives après un séparateur, en rouge, toujours avec `ConfirmDialog`. Pas de « zone sensible » ni de lien d'action en bas de page.
+4. **Deux colonnes** — `grid-cols-[minmax(0,1fr)_20rem]`, `25rem` dès `xl`, `gap-5`. **À gauche l'objet** (suivi du statut, contenu, notes, historique) ; **à droite les personnes et l'argent** (client, paiement, facture, messages), colonne `sticky top-6`. Suivi en stepper horizontal : coche verte = passé, anneau ambre = en cours, cercle vide = à venir, étape rouge si annulé ; l'heure de chaque étape vient de l'historique. Une erreur récente se corrige sur place (« Remise par erreur ? Revenir à … »).
+5. **Équivalent mobile (< lg)** — `TopBar` : flèche retour, numéro en titre, « ⋯ » à droite (feuille d'actions). Badge de statut en tête du contenu. Une seule pile, réordonnée par `max-lg:order-*` (colonnes en `contents`) : Suivi, Client, Articles, Paiement, Facture, Notes, Historique. L'action principale passe dans un `FloatingActionBar variant="button"` (`h-12` pleine largeur) ; le contenu réserve `pb-28` en dessous.
+
+Couleurs : tokens et paires de signal uniquement (`text-amber-700 dark:text-amber-400`, fonds `bg-*-500/10`). Pas de séparateur « · » : une virgule ou une ligne à part.

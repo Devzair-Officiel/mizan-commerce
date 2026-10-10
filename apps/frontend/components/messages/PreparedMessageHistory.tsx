@@ -11,10 +11,13 @@ import {
 } from '@/lib/hooks/usePreparedMessages';
 import { useFormatDateTime } from '@/lib/hooks/useFormat';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { SectionCard } from '@/components/ui/SectionCard';
 
 interface PreparedMessageHistoryProps {
   customerId?: string;
   orderId?: string;
+  /** Version carte de section (détail d'une commande) : titre en casse normale, aperçu sur une ligne. */
+  compact?: boolean;
 }
 
 const STATUS_CLASSES: Record<PreparedMessageStatus, string> = {
@@ -23,11 +26,24 @@ const STATUS_CLASSES: Record<PreparedMessageStatus, string> = {
   archived: 'bg-muted text-muted-foreground',
 };
 
-export function PreparedMessageHistory({ customerId, orderId }: PreparedMessageHistoryProps) {
+export function PreparedMessageHistory({ customerId, orderId, compact }: PreparedMessageHistoryProps) {
   const t = useTranslations('messages.history');
   const formatDateTime = useFormatDateTime();
   const { data, isLoading } = usePreparedMessages({ customerId, orderId });
   const messages = data?.results ?? [];
+
+  if (compact) {
+    if (messages.length === 0) return null;
+    return (
+      <SectionCard title={t('title')} rightSlot={<span className="text-muted-foreground tabular-nums">{messages.length}</span>}>
+        <div className="divide-y divide-border">
+          {messages.map((msg) => (
+            <MessageRow key={msg.id} message={msg} formatDateTime={formatDateTime} compact />
+          ))}
+        </div>
+      </SectionCard>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -65,9 +81,10 @@ export function PreparedMessageHistory({ customerId, orderId }: PreparedMessageH
 interface MessageRowProps {
   message: PreparedMessage;
   formatDateTime: (value: string | number | Date, options?: Intl.DateTimeFormatOptions) => string;
+  compact?: boolean;
 }
 
-function MessageRow({ message, formatDateTime }: MessageRowProps) {
+function MessageRow({ message, formatDateTime, compact }: MessageRowProps) {
   const t = useTranslations('messages.history');
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -86,7 +103,7 @@ function MessageRow({ message, formatDateTime }: MessageRowProps) {
     <button
       type="button"
       onClick={() => setExpanded((v) => !v)}
-      className="w-full px-4 py-3 text-left active:bg-muted/40 transition-colors"
+      className={`w-full px-4 py-3 text-start active:bg-muted/40 transition-colors ${compact ? 'lg:px-5' : ''}`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -112,7 +129,7 @@ function MessageRow({ message, formatDateTime }: MessageRowProps) {
         )}
       </div>
       <p
-        className={`mt-1.5 text-sm text-foreground whitespace-pre-wrap wrap-break-word ${expanded ? '' : 'line-clamp-2'}`}
+        className={`mt-1.5 text-sm text-foreground whitespace-pre-wrap wrap-break-word ${expanded ? '' : compact ? 'line-clamp-1' : 'line-clamp-2'}`}
       >
         {message.message}
       </p>

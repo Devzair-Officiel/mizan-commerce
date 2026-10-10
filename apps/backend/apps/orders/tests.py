@@ -319,6 +319,22 @@ class OrderAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'shipped')
 
+    def test_detail_exposes_creator_and_customer_city(self):
+        self.user.full_name = 'Youssef Benali'
+        self.user.save(update_fields=['full_name'])
+        self.customer.city = 'Lyon'
+        self.customer.save(update_fields=['city'])
+        order = services.create_order(self.shop, self.user, customer=self.customer)
+        response = self.client.get(reverse('order-detail', kwargs={'pk': order.pk}))
+        self.assertEqual(response.data['created_by_name'], 'Youssef Benali')
+        self.assertEqual(response.data['customer_city'], 'Lyon')
+
+    def test_detail_without_customer_has_no_city(self):
+        order = services.create_order(self.shop, self.user)
+        response = self.client.get(reverse('order-detail', kwargs={'pk': order.pk}))
+        self.assertIsNone(response.data.get('customer_city'))
+        self.assertEqual(response.data['created_by_name'], self.user.email)
+
     def test_cannot_delete_order(self):
         order = services.create_order(self.shop, self.user)
         response = self.client.delete(reverse('order-detail', kwargs={'pk': order.pk}))

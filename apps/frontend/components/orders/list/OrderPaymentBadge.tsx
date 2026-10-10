@@ -11,12 +11,15 @@ function amountDue(order: OrderSummary): number {
   return (cents(order.total_amount) - cents(order.amount_paid)) / 100;
 }
 
-/** Badge de paiement d'une commande, suivi de « X € dus » si le paiement est partiel (tableau et liste mobile). */
-export function OrderPaymentBadge({ order, currency }: { order: OrderSummary; currency: string }) {
+/**
+ * Badge de paiement d'une commande, suivi de « X € dus » si le paiement est partiel
+ * (tableau et liste mobile). `showDue={false}` : badge seul (carte Paiement du détail).
+ */
+export function OrderPaymentBadge({ order, currency, showDue = true }: { order: OrderSummary; currency: string; showDue?: boolean }) {
   const t = useTranslations('orders.list');
   const tPayment = useTranslations('orders.payment');
   const formatMoney = useFormatMoney();
-  const due = order.payment_status === 'partial' ? amountDue(order) : 0;
+  const due = showDue && order.payment_status === 'partial' ? amountDue(order) : 0;
   return (
     <>
       <span className={`inline-flex h-6 items-center whitespace-nowrap rounded-full px-2.5 text-xs font-semibold ${PAYMENT_BADGE[order.payment_status] ?? ''}`}>

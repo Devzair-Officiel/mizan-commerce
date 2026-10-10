@@ -2,62 +2,60 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { ArrowRight, CheckCircle2, Receipt } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ChevronRight, Download, Receipt } from 'lucide-react';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { buttonVariants } from '@/components/ui/button';
 import type { Order } from '@/lib/hooks/useOrders';
+import { cn } from '@/lib/utils';
+
+const OUTLINE = cn(buttonVariants({ variant: 'outline' }), 'h-10 rounded-full bg-card px-4 font-medium');
 
 interface OrderInvoiceCardProps {
   order: Order;
-  isPending: boolean;
   onIssue: () => void;
+  /** L'émission est déjà l'action principale de la page : la carte n'en montre qu'un rappel. */
+  issueIsPrimary: boolean;
 }
 
-export function OrderInvoiceCard({ order, isPending, onIssue }: OrderInvoiceCardProps) {
+/** Carte « Facture » : facture liée (lien + PDF) ou bouton d'émission. Masquée si annulée ou vide. */
+export function OrderInvoiceCard({ order, onIssue, issueIsPrimary }: OrderInvoiceCardProps) {
   const t = useTranslations('orders.invoiceCard');
   if (order.status === 'cancelled' || order.items.length === 0) return null;
+  const invoice = order.invoice;
 
-  const invoiceTitle = order.invoice
-    ? order.invoice.status === 'paid' ? t('invoice_paid')
-      : order.invoice.status === 'cancelled' ? t('invoice_cancelled')
-        : t('invoice_issued')
-    : '';
+  if (!invoice) {
+    return (
+      <SectionCard title={t('title')}>
+        <div className="px-4 py-4 lg:px-5">
+          <p className="text-sm text-muted-foreground">{t('not_issued')}</p>
+          {!issueIsPrimary && (
+            <button type="button" onClick={onIssue} className={cn(OUTLINE, 'mt-3')}>
+              <Receipt aria-hidden />{t('issue_cta')}
+            </button>
+          )}
+        </div>
+      </SectionCard>
+    );
+  }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          <Receipt size={14} />
-          {t('title')}
-        </h2>
-        {order.invoice && (
-          <span className="text-xs font-medium text-zinc-500">
-            {t('number_label', { number: order.invoice.number })}
-          </span>
-        )}
+    <SectionCard title={t('title')}>
+      <Link href={`/invoices/${invoice.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/50 lg:px-5">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+          <Receipt size={18} aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{t('number_label', { number: invoice.number })}</span>
+          <span className="mt-0.5 block text-[0.8125rem] text-muted-foreground">{t('status', { status: invoice.status })}</span>
+        </span>
+        <ChevronRight size={18} className="shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
+      </Link>
+      <div className="border-t border-border px-4 py-3 lg:px-5">
+        <a href={`/api/proxy/invoices/${invoice.id}/pdf/`} target="_blank" rel="noopener"
+          className="inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-primary hover:underline">
+          <Download size={14} aria-hidden />{t('download_cta')}
+        </a>
       </div>
-
-      {order.invoice ? (
-        <Link
-          href={`/invoices/${order.invoice.id}`}
-          className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 hover:border-primary/40 transition-colors"
-        >
-          <CheckCircle2 className="text-green-600 shrink-0" size={18} />
-          <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-            <p className="text-sm font-medium text-zinc-900">{invoiceTitle}</p>
-            <p className="text-xs text-zinc-500">{t('invoice_sub')}</p>
-          </div>
-          <ArrowRight size={16} className="text-zinc-400 shrink-0" />
-        </Link>
-      ) : (
-        <Button
-          onClick={onIssue}
-          disabled={isPending}
-          className="w-full inline-flex items-center justify-center gap-2"
-        >
-          <Receipt size={16} />
-          {t('issue_cta')}
-        </Button>
-      )}
-    </div>
+    </SectionCard>
   );
 }

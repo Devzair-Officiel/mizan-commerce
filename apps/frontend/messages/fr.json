@@ -553,63 +553,67 @@
     },
     "detail": {
       "topbar": "Commande",
-      "loading": "Chargement…",
       "not_found": "Commande introuvable.",
       "edit": "Modifier",
       "cancel_confirm": "Annuler cette commande ?",
-      "danger_zone": "Zone sensible",
       "cancel_cta": "Annuler la commande",
       "cancel_sub": "{kind, select, products {Le stock réservé sera libéré. Cette action est réversible.} services {Cette action est réversible.} other {Le stock réservé sera libéré. Cette action est réversible.}}",
-      "invoice_error_generic": "Erreur lors de l'émission de la facture."
-    },
-    "hero": {
-      "no_client": "Sans client",
-      "items": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
-      "remaining": "{amount} restant",
-      "whatsapp_cta": "Prévenir le client",
-      "call_aria": "Appeler",
-      "customer_aria": "Voir la fiche client"
+      "invoice_error_generic": "Erreur lors de l'émission de la facture.",
+      "title": "Commande {number}",
+      "created": "Créée {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}{hasAuthor, select, yes { par {author}} other {}}",
+      "day_time": "{when, select, today {Aujourd'hui} yesterday {Hier} other {{date}}}, {time}",
+      "more_actions": "Plus d'actions",
+      "actions_title": "Actions",
+      "revert_to": "Revenir à « {label} »",
+      "reactivate": "Réactiver la commande",
+      "reactivate_confirm": "Réactiver cette commande ?",
+      "reactivate_sub": "{kind, select, services {La commande repasse à « {label} ».} other {La commande repasse à « {label} » et le stock est de nouveau réservé.}}",
+      "collect": "Encaisser {amount}",
+      "issue_invoice": "Émettre la facture",
+      "download_invoice": "Télécharger la facture",
+      "send_whatsapp": "Envoyer un message WhatsApp"
     },
     "nextStep": {
-      "label": "Prochaine étape",
-      "shipped_title": "Commande expédiée",
-      "shipped_sub": "Toutes les étapes sont terminées.",
-      "to_prepare_title": "Marquer comme prête",
-      "to_prepare_sub": "{kind, select, services {Quand la prestation est confirmée avec le client.} other {Quand les articles sont prêts à être expédiés.}}",
-      "to_prepare_cta": "Marquer prête",
-      "prepared_title": "Marquer comme expédiée",
-      "prepared_sub": "Quand la commande quitte la boutique.",
-      "prepared_cta": "Marquer expédiée",
-      "prepared_mark": "Marquer comme {label}",
-      "prepared_cta_mark": "{label}",
-      "shipped_title_dynamic": "{label}",
       "action_to_prepare": "Marquer comme prête",
       "action_shipped_on_site": "Marquer comme remise au client",
       "action_shipped_services": "Marquer comme réalisée",
-      "action_shipped_delivery": "Marquer comme expédiée",
-      "shipped_sub_services": "La prestation a été réalisée.",
-      "shipped_sub_on_site": "Le client a récupéré sa commande."
+      "action_shipped_delivery": "Marquer comme expédiée"
     },
-    "revert": {
-      "prepared": "Revenir à « À préparer »",
-      "shipped": "Revenir à « Prête »",
-      "cancelled": "Rouvrir la commande"
+    "stepper": {
+      "title": "Suivi",
+      "created": "Créée",
+      "in_progress": "En cours",
+      "upcoming": "À venir",
+      "mistake": "{mode, select, services {Réalisée par erreur ?} delivery {Expédiée par erreur ?} other {Remise par erreur ?}}",
+      "mode": "{mode, select, services {Prestation} on_site {Vente sur place} delivery {Livraison} both {Sur place ou en livraison} other {}}"
+    },
+    "customerCard": {
+      "title": "Client",
+      "see_profile": "Voir la fiche",
+      "whatsapp": "WhatsApp",
+      "call": "Appeler",
+      "none": "Sans client, vente au comptoir.",
+      "associate": "Associer un client"
     },
     "items": {
       "title": "{kind, select, products {Articles} services {Services} other {Articles}}",
       "unit_count": "{count, plural, one {# unité} other {# unités}}",
       "empty": "{kind, select, products {Aucun article.} services {Aucun service.} other {Aucun article.}}",
-      "unit_price_short": "{amount}/u",
       "total": "Total",
       "subtotal": "Sous-total",
       "discount": "Remise",
-      "shipping": "Livraison"
+      "shipping": "Livraison",
+      "unit_price": "{amount} l'unité",
+      "variant_unit": "{variant}, {unit}"
     },
     "paymentCard": {
       "title": "Paiement",
-      "remaining": "Reste à payer : {amount}",
-      "collect_cta": "Encaisser un paiement",
-      "correct_cta": "Corriger un paiement reçu"
+      "remaining": "Reste {amount}",
+      "collect_cta": "Encaisser",
+      "correct_cta": "Corriger un paiement",
+      "of_total": "sur {amount}",
+      "progress_label": "Montant payé",
+      "remind_cta": "Relancer"
     },
     "paymentSheet": {
       "title": "Encaisser un paiement",
@@ -622,13 +626,12 @@
       "settled_hint": "La commande est déjà soldée. Utilisez un montant négatif pour corriger un paiement reçu."
     },
     "invoiceCard": {
-      "title": "Facturation",
-      "number_label": "N° {number}",
-      "invoice_paid": "Facture payée",
-      "invoice_cancelled": "Facture annulée",
-      "invoice_issued": "Facture émise",
-      "invoice_sub": "Voir le détail et télécharger le PDF.",
-      "issue_cta": "Émettre une facture"
+      "title": "Facture",
+      "number_label": "Facture {number}",
+      "issue_cta": "Émettre la facture",
+      "not_issued": "Pas encore émise.",
+      "status": "{status, select, paid {Payée} cancelled {Annulée} other {Émise}}",
+      "download_cta": "Télécharger le PDF"
     },
     "invoiceSheet": {
       "title": "Émettre une facture",
@@ -652,14 +655,17 @@
       "delete_confirm": "Supprimer cette note ?",
       "delete_aria": "Supprimer la note",
       "anonymous": "Anonyme",
-      "empty": "Aucune note pour cette commande."
+      "empty": "Aucune note pour cette commande.",
+      "meta": "{author}, {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}",
+      "delete_cta": "Supprimer"
     },
     "activity": {
-      "title": "Activité",
-      "event_created": "Commande créée",
-      "event_status": "Statut : {from} → {to}",
-      "event_payment": "Paiement : {from} → {to}",
-      "event_note": "Note ajoutée"
+      "title": "Historique",
+      "event_created": "Commande créée{hasActor, select, yes { par {actor}} other {}}",
+      "event_status": "Passée à « {to} »{hasActor, select, yes { par {actor}} other {}}",
+      "event_note": "Note ajoutée{hasActor, select, yes { par {actor}} other {}}",
+      "event_payment_in": "Paiement de {amount} enregistré{hasActor, select, yes { par {actor}} other {}}",
+      "event_payment_fix": "Paiement corrigé de −{amount}{hasActor, select, yes { par {actor}} other {}}"
     },
     "rel": {
       "just_now": "à l'instant"

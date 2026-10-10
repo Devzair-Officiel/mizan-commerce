@@ -553,63 +553,67 @@
     },
     "detail": {
       "topbar": "Order",
-      "loading": "Loading…",
       "not_found": "Order not found.",
       "edit": "Edit",
       "cancel_confirm": "Cancel this order?",
-      "danger_zone": "Danger zone",
       "cancel_cta": "Cancel the order",
       "cancel_sub": "{kind, select, products {Reserved stock will be released. This action is reversible.} services {This action is reversible.} other {Reserved stock will be released. This action is reversible.}}",
-      "invoice_error_generic": "Error issuing the invoice."
-    },
-    "hero": {
-      "no_client": "No customer",
-      "items": "{kind, select, products {{count, plural, one {# item} other {# items}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# item} other {# items}}}}",
-      "remaining": "{amount} remaining",
-      "whatsapp_cta": "Notify the customer",
-      "call_aria": "Call",
-      "customer_aria": "View customer profile"
+      "invoice_error_generic": "Error issuing the invoice.",
+      "title": "Order {number}",
+      "created": "Created {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}{hasAuthor, select, yes { by {author}} other {}}",
+      "day_time": "{when, select, today {Today} yesterday {Yesterday} other {{date}}}, {time}",
+      "more_actions": "More actions",
+      "actions_title": "Actions",
+      "revert_to": "Back to “{label}”",
+      "reactivate": "Reactivate the order",
+      "reactivate_confirm": "Reactivate this order?",
+      "reactivate_sub": "{kind, select, services {The order goes back to “{label}”.} other {The order goes back to “{label}” and the stock is reserved again.}}",
+      "collect": "Collect {amount}",
+      "issue_invoice": "Issue the invoice",
+      "download_invoice": "Download the invoice",
+      "send_whatsapp": "Send a WhatsApp message"
     },
     "nextStep": {
-      "label": "Next step",
-      "shipped_title": "Order shipped",
-      "shipped_sub": "All steps are complete.",
-      "to_prepare_title": "Mark as ready",
-      "to_prepare_sub": "{kind, select, services {When the service is confirmed with the customer.} other {When the items are ready to ship.}}",
-      "to_prepare_cta": "Mark ready",
-      "prepared_title": "Mark as shipped",
-      "prepared_sub": "When the order leaves the shop.",
-      "prepared_cta": "Mark shipped",
-      "prepared_mark": "Mark as {label}",
-      "prepared_cta_mark": "{label}",
-      "shipped_title_dynamic": "{label}",
       "action_to_prepare": "Mark as ready",
       "action_shipped_on_site": "Mark as collected",
       "action_shipped_services": "Mark as completed",
-      "action_shipped_delivery": "Mark as shipped",
-      "shipped_sub_services": "The service has been completed.",
-      "shipped_sub_on_site": "The customer has collected their order."
+      "action_shipped_delivery": "Mark as shipped"
     },
-    "revert": {
-      "prepared": "Back to “To prepare”",
-      "shipped": "Back to “Ready”",
-      "cancelled": "Reopen order"
+    "stepper": {
+      "title": "Tracking",
+      "created": "Created",
+      "in_progress": "In progress",
+      "upcoming": "Upcoming",
+      "mistake": "{mode, select, services {Marked completed by mistake?} delivery {Marked shipped by mistake?} other {Handed over by mistake?}}",
+      "mode": "{mode, select, services {Service} on_site {In-store sale} delivery {Delivery} both {In store or delivery} other {}}"
+    },
+    "customerCard": {
+      "title": "Customer",
+      "see_profile": "View profile",
+      "whatsapp": "WhatsApp",
+      "call": "Call",
+      "none": "No customer, counter sale.",
+      "associate": "Link a customer"
     },
     "items": {
       "title": "{kind, select, products {Items} services {Services} other {Items}}",
       "unit_count": "{count, plural, one {# unit} other {# units}}",
       "empty": "{kind, select, products {No items.} services {No services.} other {No items.}}",
-      "unit_price_short": "{amount}/u",
       "total": "Total",
       "subtotal": "Subtotal",
       "discount": "Discount",
-      "shipping": "Shipping"
+      "shipping": "Shipping",
+      "unit_price": "{amount} each",
+      "variant_unit": "{variant}, {unit}"
     },
     "paymentCard": {
       "title": "Payment",
-      "remaining": "Remaining: {amount}",
-      "collect_cta": "Collect a payment",
-      "correct_cta": "Correct a received payment"
+      "remaining": "{amount} left",
+      "collect_cta": "Collect",
+      "correct_cta": "Correct a payment",
+      "of_total": "of {amount}",
+      "progress_label": "Amount paid",
+      "remind_cta": "Remind"
     },
     "paymentSheet": {
       "title": "Collect a payment",
@@ -622,13 +626,12 @@
       "settled_hint": "The order is already settled. Use a negative amount to correct a received payment."
     },
     "invoiceCard": {
-      "title": "Invoicing",
-      "number_label": "No. {number}",
-      "invoice_paid": "Invoice paid",
-      "invoice_cancelled": "Invoice cancelled",
-      "invoice_issued": "Invoice issued",
-      "invoice_sub": "View details and download PDF.",
-      "issue_cta": "Issue an invoice"
+      "title": "Invoice",
+      "number_label": "Invoice {number}",
+      "issue_cta": "Issue the invoice",
+      "not_issued": "Not issued yet.",
+      "status": "{status, select, paid {Paid} cancelled {Cancelled} other {Issued}}",
+      "download_cta": "Download PDF"
     },
     "invoiceSheet": {
       "title": "Issue an invoice",
@@ -652,14 +655,17 @@
       "delete_confirm": "Delete this note?",
       "delete_aria": "Delete note",
       "anonymous": "Anonymous",
-      "empty": "No notes for this order."
+      "empty": "No notes for this order.",
+      "meta": "{author}, {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}",
+      "delete_cta": "Delete"
     },
     "activity": {
-      "title": "Activity",
-      "event_created": "Order created",
-      "event_status": "Status: {from} → {to}",
-      "event_payment": "Payment: {from} → {to}",
-      "event_note": "Note added"
+      "title": "History",
+      "event_created": "Order created{hasActor, select, yes { by {actor}} other {}}",
+      "event_status": "Moved to “{to}”{hasActor, select, yes { by {actor}} other {}}",
+      "event_note": "Note added{hasActor, select, yes { by {actor}} other {}}",
+      "event_payment_in": "Payment of {amount} recorded{hasActor, select, yes { by {actor}} other {}}",
+      "event_payment_fix": "Payment corrected by −{amount}{hasActor, select, yes { by {actor}} other {}}"
     },
     "rel": {
       "just_now": "just now"

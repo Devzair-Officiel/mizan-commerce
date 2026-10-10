@@ -553,63 +553,67 @@
     },
     "detail": {
       "topbar": "الطلب",
-      "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
       "edit": "تعديل",
       "cancel_confirm": "إلغاء هذا الطلب؟",
-      "danger_zone": "منطقة حساسة",
       "cancel_cta": "إلغاء الطلب",
       "cancel_sub": "{kind, select, products {سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.} services {يمكن التراجع عن هذا الإجراء.} other {سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.}}",
-      "invoice_error_generic": "حدث خطأ أثناء إصدار الفاتورة."
-    },
-    "hero": {
-      "no_client": "بدون زبون",
-      "items": "{kind, select, products {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}} services {{count, plural, zero {لا خدمات} one {خدمة واحدة} two {خدمتان} few {# خدمات} many {# خدمة} other {# خدمة}}} other {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}}}",
-      "remaining": "متبقّي {amount}",
-      "whatsapp_cta": "إشعار الزبون",
-      "call_aria": "اتصال",
-      "customer_aria": "عرض ملف الزبون"
+      "invoice_error_generic": "حدث خطأ أثناء إصدار الفاتورة.",
+      "title": "الطلب {number}",
+      "created": "أُنشئ {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}{hasAuthor, select, yes { بواسطة {author}} other {}}",
+      "day_time": "{when, select, today {اليوم} yesterday {أمس} other {{date}}}، {time}",
+      "more_actions": "إجراءات أخرى",
+      "actions_title": "الإجراءات",
+      "revert_to": "الرجوع إلى «{label}»",
+      "reactivate": "إعادة تفعيل الطلب",
+      "reactivate_confirm": "إعادة تفعيل هذا الطلب؟",
+      "reactivate_sub": "{kind, select, services {يعود الطلب إلى «{label}».} other {يعود الطلب إلى «{label}» ويُحجز المخزون من جديد.}}",
+      "collect": "تحصيل {amount}",
+      "issue_invoice": "إصدار الفاتورة",
+      "download_invoice": "تحميل الفاتورة",
+      "send_whatsapp": "إرسال رسالة واتساب"
     },
     "nextStep": {
-      "label": "الخطوة التالية",
-      "shipped_title": "تم إرسال الطلب",
-      "shipped_sub": "اكتملت كل المراحل.",
-      "to_prepare_title": "اعتبارها جاهزة",
-      "to_prepare_sub": "{kind, select, services {عند تأكيد الخدمة مع العميل.} other {عندما تكون المنتجات جاهزة للإرسال.}}",
-      "to_prepare_cta": "تعليم كجاهزة",
-      "prepared_title": "اعتبارها مُرسلة",
-      "prepared_sub": "عند مغادرة الطلب للمتجر.",
-      "prepared_cta": "تعليم كمُرسلة",
-      "prepared_mark": "تعليم كـ {label}",
-      "prepared_cta_mark": "{label}",
-      "shipped_title_dynamic": "{label}",
       "action_to_prepare": "تحديد كجاهزة",
       "action_shipped_on_site": "تحديد كمستلمة من العميل",
       "action_shipped_services": "تحديد كمنجزة",
-      "action_shipped_delivery": "تحديد كمُرسَلة",
-      "shipped_sub_services": "تم إنجاز الخدمة.",
-      "shipped_sub_on_site": "استلم العميل طلبه."
+      "action_shipped_delivery": "تحديد كمُرسَلة"
     },
-    "revert": {
-      "prepared": "العودة إلى «للتحضير»",
-      "shipped": "العودة إلى «جاهزة»",
-      "cancelled": "إعادة فتح الطلب"
+    "stepper": {
+      "title": "المتابعة",
+      "created": "أُنشئ",
+      "in_progress": "جارٍ",
+      "upcoming": "لاحقًا",
+      "mistake": "{mode, select, services {أُنجز بالخطأ؟} delivery {أُرسل بالخطأ؟} other {سُلِّم بالخطأ؟}}",
+      "mode": "{mode, select, services {خدمة} on_site {بيع في المحل} delivery {توصيل} both {في المحل أو بالتوصيل} other {}}"
+    },
+    "customerCard": {
+      "title": "الزبون",
+      "see_profile": "عرض الملف",
+      "whatsapp": "واتساب",
+      "call": "اتصال",
+      "none": "بدون زبون، بيع مباشر في المحل.",
+      "associate": "ربط زبون"
     },
     "items": {
       "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
       "unit_count": "{count, plural, zero {لا وحدات} one {وحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
       "empty": "{kind, select, products {لا توجد منتجات.} services {لا توجد خدمات.} other {لا توجد منتجات.}}",
-      "unit_price_short": "{amount}/و",
       "total": "الإجمالي",
       "subtotal": "المجموع الفرعي",
       "discount": "تخفيض",
-      "shipping": "شحن"
+      "shipping": "شحن",
+      "unit_price": "{amount} للوحدة",
+      "variant_unit": "{variant}، {unit}"
     },
     "paymentCard": {
       "title": "الدفع",
-      "remaining": "المتبقّي: {amount}",
-      "collect_cta": "تحصيل دفعة",
-      "correct_cta": "تصحيح دفعة مستلمة"
+      "remaining": "المتبقّي {amount}",
+      "collect_cta": "تحصيل",
+      "correct_cta": "تصحيح دفعة",
+      "of_total": "من {amount}",
+      "progress_label": "المبلغ المدفوع",
+      "remind_cta": "تذكير"
     },
     "paymentSheet": {
       "title": "تحصيل دفعة",
@@ -622,13 +626,12 @@
       "settled_hint": "تمت تسوية الطلب فعلاً. استخدم مبلغًا سالبًا لتصحيح دفعة مستلمة."
     },
     "invoiceCard": {
-      "title": "الفوترة",
-      "number_label": "رقم {number}",
-      "invoice_paid": "فاتورة مدفوعة",
-      "invoice_cancelled": "فاتورة ملغاة",
-      "invoice_issued": "فاتورة صادرة",
-      "invoice_sub": "اعرض التفاصيل وحمّل ملف PDF.",
-      "issue_cta": "إصدار فاتورة"
+      "title": "الفاتورة",
+      "number_label": "الفاتورة {number}",
+      "issue_cta": "إصدار الفاتورة",
+      "not_issued": "لم تُصدَر بعد.",
+      "status": "{status, select, paid {مدفوعة} cancelled {ملغاة} other {صادرة}}",
+      "download_cta": "تحميل PDF"
     },
     "invoiceSheet": {
       "title": "إصدار فاتورة",
@@ -652,14 +655,17 @@
       "delete_confirm": "حذف هذه الملاحظة؟",
       "delete_aria": "حذف الملاحظة",
       "anonymous": "مجهول",
-      "empty": "لا توجد ملاحظات لهذا الطلب."
+      "empty": "لا توجد ملاحظات لهذا الطلب.",
+      "meta": "{author}، {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}",
+      "delete_cta": "حذف"
     },
     "activity": {
-      "title": "النشاط",
-      "event_created": "تم إنشاء الطلب",
-      "event_status": "الحالة: {from} ← {to}",
-      "event_payment": "الدفع: {from} ← {to}",
-      "event_note": "تمت إضافة ملاحظة"
+      "title": "السجل",
+      "event_created": "تم إنشاء الطلب{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_status": "انتقل إلى «{to}»{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_note": "أُضيفت ملاحظة{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_payment_in": "سُجّلت دفعة بقيمة {amount}{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_payment_fix": "صُحّح الدفع بمقدار −{amount}{hasActor, select, yes { بواسطة {actor}} other {}}"
     },
     "rel": {
       "just_now": "الآن"

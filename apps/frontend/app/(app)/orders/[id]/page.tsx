@@ -1,230 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { XCircle } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { Button } from '@/components/ui/button';
-import { useOrder, useTransitionOrder, useUpdatePayment } from '@/lib/hooks/useOrders';
-import { useIssueInvoice } from '@/lib/hooks/useInvoices';
-import { useShop } from '@/lib/hooks/useShop';
-import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
-import { ApiError } from '@/lib/api-client';
-import { OrderHeroCard } from '@/components/orders/detail/OrderHeroCard';
-import { OrderNextStepCard } from '@/components/orders/detail/OrderNextStepCard';
-import { OrderItemsCard } from '@/components/orders/detail/OrderItemsCard';
-import { OrderPaymentCard } from '@/components/orders/detail/OrderPaymentCard';
-import { OrderInvoiceCard } from '@/components/orders/detail/OrderInvoiceCard';
-import { OrderNotesCard } from '@/components/orders/detail/OrderNotesCard';
-import { OrderActivityTimeline } from '@/components/orders/detail/OrderActivityTimeline';
-import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
-import { ConfirmDialog } from '@/components/ui/dialog';
-import { PaymentBottomSheet } from '@/components/orders/detail/PaymentBottomSheet';
-import { InvoiceBottomSheet } from '@/components/orders/detail/InvoiceBottomSheet';
-import { getRevertTransition, STATUS_ALLOWS_CANCEL } from '@/components/orders/detail/constants';
+import { OrderDetailView } from '@/components/orders/detail/OrderDetailView';
+import { useOrderDetailState } from '@/components/orders/detail/useOrderDetailState';
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const t = useTranslations('orders.detail');
-  const tRevert = useTranslations('orders.revert');
-  const { data: order, isLoading } = useOrder(id);
-  const { data: shop } = useShop();
-  const kind = useCatalogKind();
-  const transition = useTransitionOrder(id);
-  const updatePayment = useUpdatePayment(id);
-  const issueInvoice = useIssueInvoice();
+  const state = useOrderDetailState(id);
 
-  const [paymentPreset, setPaymentPreset] = useState('');
-  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
-  const [showInvoiceSheet, setShowInvoiceSheet] = useState(false);
-  const [invoiceError, setInvoiceError] = useState<string | null>(null);
-  const [confirmCancel, setConfirmCancel] = useState(false);
-
-  if (isLoading) return (
-    <>
-      <TopBar title={t('topbar')} back />
-      <div className="flex flex-col gap-3 p-4">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-xl border border-border bg-card p-4">
-            <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
-            <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
-          </div>
-        ))}
-      </div>
-    </>
-  );
-  if (!order) return <><TopBar title={t('topbar')} back /><p className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
-
-  const totalAmount = parseFloat(order.total_amount);
-  const subtotalAmount = parseFloat(order.subtotal);
-  const paidAmount = parseFloat(order.amount_paid);
-  const discountAmount = parseFloat(order.discount_amount);
-  const shippingAmount = parseFloat(order.shipping_amount);
-  const remaining = (totalAmount - paidAmount).toFixed(2);
-  const canCancel = STATUS_ALLOWS_CANCEL.has(order.status);
-
-  async function handleTransition(status: string) {
-    await transition.mutateAsync(status);
-  }
-
-  function openPaymentSheet(preset: number) {
-    setPaymentPreset(preset % 1 === 0 ? String(preset) : preset.toFixed(2));
-    setShowPaymentSheet(true);
-  }
-
-  async function handleSubmitPayment(amountInput: string) {
-    if (!order) return;
-    const val = parseFloat(amountInput);
-    if (!amountInput || Number.isNaN(val) || val === 0) return;
-    const newPaid = Math.max(0, parseFloat(order.amount_paid) + val).toFixed(2);
-    await updatePayment.mutateAsync(newPaid);
-    setShowPaymentSheet(false);
-  }
-
-  function openInvoiceSheet() {
-    setInvoiceError(null);
-    setShowInvoiceSheet(true);
-  }
-
-  async function handleIssueInvoice({ taxRate, termsDays, notes }: { taxRate: string; termsDays: string; notes: string }) {
-    if (!order) return;
-    setInvoiceError(null);
-    try {
-      const invoice = await issueInvoice.mutateAsync({
-        order_id: order.id,
-        tax_rate: taxRate || undefined,
-        payment_terms_days: termsDays ? Number(termsDays) : undefined,
-        notes,
-      });
-      setShowInvoiceSheet(false);
-      router.push(`/invoices/${invoice.id}`);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        const existingId = (err.data as { existing_id?: string } | null)?.existing_id;
-        if (existingId) {
-          setShowInvoiceSheet(false);
-          router.push(`/invoices/${existingId}`);
-          return;
-        }
-      }
-      setInvoiceError(err instanceof Error ? err.message : t('invoice_error_generic'));
-    }
-  }
-
-  const fm = shop?.fulfillment_mode ?? null;
-  const revert = getRevertTransition(order.status, fm);
+  if (state.order) return <OrderDetailView order={state.order} state={state} />;
 
   return (
     <>
-      <TopBar
-        back
-        title={order.order_number}
-        action={
-          (order.status === 'to_prepare' || order.status === 'prepared') && (
-            <button onClick={() => router.push(`/orders/${id}/edit`)} className="text-sm font-medium text-primary">
-              {t('edit')}
-            </button>
-          )
-        }
-      />
-      <div className="flex flex-col gap-4 p-4">
-        <OrderHeroCard order={order} remaining={remaining} />
-
-        <OrderNextStepCard
-          status={order.status}
-          isPending={transition.isPending}
-          onTransition={handleTransition}
-        />
-
-        <OrderItemsCard
-          order={order}
-          totalAmount={totalAmount}
-          subtotalAmount={subtotalAmount}
-          discountAmount={discountAmount}
-          shippingAmount={shippingAmount}
-        />
-
-        <OrderPaymentCard
-          order={order}
-          totalAmount={totalAmount}
-          paidAmount={paidAmount}
-          remaining={remaining}
-          isPending={updatePayment.isPending}
-          onCollect={openPaymentSheet}
-        />
-
-        <OrderInvoiceCard
-          order={order}
-          isPending={issueInvoice.isPending}
-          onIssue={openInvoiceSheet}
-        />
-
-        <OrderNotesCard orderId={id} />
-
-        <PreparedMessageHistory orderId={id} />
-
-        <OrderActivityTimeline orderId={id} />
-
-        {revert && (
-          <button
-            onClick={() => handleTransition(revert.status)}
-            disabled={transition.isPending}
-            className="text-xs text-muted-foreground underline underline-offset-2 text-center py-1 disabled:opacity-40"
-          >
-            ↩ {tRevert(revert.key)}
-          </button>
-        )}
-
-        {canCancel && (
-          <div className="mt-4 pt-4 border-t border-border flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t('danger_zone')}
-            </p>
-            <Button
-              variant="outline"
-              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10 inline-flex items-center justify-center gap-2"
-              onClick={() => setConfirmCancel(true)}
-              disabled={transition.isPending}
-            >
-              <XCircle size={16} />
-              {t('cancel_cta')}
-            </Button>
-            <p className="text-xs text-muted-foreground px-1">{t('cancel_sub', { kind })}</p>
-          </div>
-        )}
-      </div>
-
-      <PaymentBottomSheet
-        open={showPaymentSheet}
-        onClose={() => setShowPaymentSheet(false)}
-        initialAmount={paymentPreset}
-        totalAmount={totalAmount}
-        paidAmount={paidAmount}
-        remaining={remaining}
-        isPending={updatePayment.isPending}
-        onSubmit={handleSubmitPayment}
-      />
-
-      <InvoiceBottomSheet
-        open={showInvoiceSheet}
-        onClose={() => setShowInvoiceSheet(false)}
-        defaultTaxRate={shop?.default_tax_rate ?? '0'}
-        defaultTermsDays={String(shop?.default_payment_terms_days ?? 30)}
-        isPending={issueInvoice.isPending}
-        error={invoiceError}
-        onSubmit={handleIssueInvoice}
-      />
-
-      <ConfirmDialog
-        open={confirmCancel}
-        onOpenChange={setConfirmCancel}
-        title={t('cancel_confirm')}
-        onConfirm={() => handleTransition('cancelled')}
-        variant="destructive"
-        confirmLabel={t('cancel_cta')}
-      />
+      <TopBar title={t('topbar')} back hideSearch />
+      {state.isLoading ? (
+        <div className="flex flex-col gap-4 p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-2xl border border-border bg-card p-5">
+              <div className="mb-3 h-4 w-1/3 animate-pulse rounded-md bg-muted" />
+              <div className="h-3 w-2/3 animate-pulse rounded-md bg-muted" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
+      )}
     </>
   );
 }
