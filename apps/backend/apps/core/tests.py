@@ -1,14 +1,18 @@
+import io
+import os
 from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import F, Q
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
+from unittest import mock
 
 from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
@@ -342,11 +346,11 @@ class SeedDataTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        import io
-
-        call_command(
-            "seed_data", reset=True, stdout=io.StringIO(), stderr=io.StringIO()
-        )  # noqa: E501
+        with override_settings(DEBUG=True):
+            call_command(
+                "seed_data", reset=True,
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
 
     def _shop(self, name):
         return Shop.objects.get(name=name)
@@ -428,6 +432,43 @@ class SeedDataTest(TestCase):
         self.assertTrue(
             Product.objects.filter(shop=shop, type="service", is_active=True).exists()
         )
+
+
+class SeedDataSecurityTest(TestCase):
+    """Garde DEBUG, isolation des boutiques externes, idempotence du --reset."""
+
+    def test_refused_when_debug_false(self):
+        """seed_data lève CommandError si DEBUG=False et ALLOW_SEED non défini."""
+        with mock.patch.dict(os.environ, {"ALLOW_SEED": ""}):
+            with override_settings(DEBUG=False):
+                with self.assertRaises(CommandError):
+                    call_command(
+                        "seed_data",
+                        stdout=io.StringIO(), stderr=io.StringIO(),
+                    )
+
+    def test_non_demo_shop_survives_reset(self):
+        """Une boutique créée hors seed n'est pas touchée par --reset."""
+        user = User.objects.create_user(
+            email="ext@test.local", password="Pass123!Strong"
+        )
+        shop = Shop.objects.create(name="Boutique Externe", currency="EUR")
+        ShopMember.objects.create(shop=shop, user=user, role="owner")
+        with override_settings(DEBUG=True):
+            call_command(
+                "seed_data", reset=True,
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
+        self.assertTrue(Shop.objects.filter(pk=shop.pk).exists())
+        self.assertTrue(User.objects.filter(pk=user.pk).exists())
+
+    def test_double_reset_idempotent(self):
+        """Deux seed_data --reset successifs ne lèvent pas d'exception."""
+        out = io.StringIO()
+        with override_settings(DEBUG=True):
+            call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
+            call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
+        self.assertTrue(Shop.objects.filter(name="La Boutique de Youssef").exists())
 
 
 def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501

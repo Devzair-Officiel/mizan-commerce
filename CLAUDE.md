@@ -33,6 +33,8 @@ docker compose exec backend ruff check .      # Lint
 docker compose exec backend ruff format .     # Format
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_data           # Dev uniquement (DEBUG=True requis)
+docker compose exec backend python manage.py seed_data --reset   # seed_data --reset : développement uniquement, ne touche qu'aux comptes de démo (@example.*)
 
 # Frontend (depuis la racine du repo)
 docker compose exec -T frontend npm run dev      # Dev server

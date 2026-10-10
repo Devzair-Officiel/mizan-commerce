@@ -7,8 +7,21 @@ Usage :
     docker compose exec backend python manage.py seed_data --reset
 """  # noqa: E501
 
-from django.core.management.base import BaseCommand
+import os
+
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+
+# Emails des comptes de démo — seules les boutiques appartenant à ces comptes
+# sont supprimées par --reset.
+SEED_DEMO_EMAILS: frozenset[str] = frozenset({
+    "youssef@example.com",
+    "sara@example.com",
+    "amira@example.ma",
+    "vide@example.com",
+    "services@example.com",
+})
 
 
 class Command(BaseCommand):
@@ -23,6 +36,12 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if not settings.DEBUG and os.environ.get("ALLOW_SEED") != "1":
+            raise CommandError(
+                "seed_data ne s'exécute qu'en environnement DEBUG. "
+                "Définir ALLOW_SEED=1 pour forcer."
+            )
+
         from datetime import timedelta
         from decimal import Decimal
         from django.utils import timezone
@@ -32,7 +51,6 @@ class Command(BaseCommand):
         from apps.customers.factories import CustomerFactory
         from apps.accounts.models import User
         from apps.products.models import Product, ProductVariant
-        from apps.stock.models import StockMovement
         from apps.customers.models import Customer
         from apps.subscriptions.models import Subscription, SubscriptionPlan
         from ._seed_fr import run_seed_fr
@@ -52,8 +70,7 @@ class Command(BaseCommand):
                 },
             )
 
-        from apps.orders.models import Order, OrderItem
-        from apps.notes.models import Note, Reminder
+        from apps.orders.models import Order
         from apps.ocr.models import OcrResult, UploadedDocument
         from apps.comms.models import PreparedMessage
         from apps.public_pages.models import (
@@ -64,36 +81,17 @@ class Command(BaseCommand):
         )
 
         if options["reset"]:
-            from apps.loyalty.models import (
-                LoyaltyCard,
-                LoyaltyProgram,
-                LoyaltyTransaction,
-            )
-            from apps.shops.models import Shop, ShopMember
-            from apps.subscriptions.models import Subscription
+            from apps.shops.models import Shop
 
-            LoyaltyTransaction.objects.all().delete()
-            LoyaltyCard.objects.all().delete()
-            LoyaltyProgram.objects.all().delete()
-            ContactButton.objects.all().delete()
-            PublicCatalogVisibility.objects.all().delete()
-            PublicPageSection.objects.all().delete()
-            PublicPage.objects.all().delete()
-            PreparedMessage.objects.all().delete()
-            OcrResult.objects.all().delete()
-            UploadedDocument.objects.all().delete()
-            Reminder.objects.all().delete()
-            Note.objects.all().delete()
-            OrderItem.objects.all().delete()
-            Order.objects.all().delete()
-            StockMovement.objects.all().delete()
-            ProductVariant.objects.all().delete()
-            Product.objects.all().delete()
-            Customer.objects.all().delete()
-            Subscription.objects.all().delete()
-            ShopMember.objects.all().delete()
-            Shop.objects.all().delete()
-            msg = "  Tables métier vidées (boutiques comprises)."
+            # Supprime uniquement les boutiques dont le propriétaire est un
+            # compte de démo — les autres boutiques ne sont pas touchées.
+            demo_shops = Shop.objects.filter(
+                members__user__email__in=SEED_DEMO_EMAILS,
+                members__role="owner",
+            )
+            count = demo_shops.count()
+            demo_shops.delete()  # CASCADE supprime toutes les données liées
+            msg = f"  {count} boutiques de démo supprimées (cascade)."
             self.stdout.write(self.style.WARNING(msg))
 
         self.stdout.write(
