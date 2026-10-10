@@ -1235,6 +1235,11 @@
       "fulfillment_on_site": "في المحل",
       "fulfillment_delivery": "توصيل",
       "fulfillment_both": "الاثنان"
+    },
+    "upgrade": {
+      "title": "متاح مع باقة Boutique+",
+      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} other {هذه الميزة جزء من باقة Boutique+.}}",
+      "cta": "عرض الباقات"
     }
   },
   "onboarding": {

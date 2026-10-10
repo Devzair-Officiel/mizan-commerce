@@ -1,6 +1,7 @@
 'use client';
 
 import { TopBar } from '@/components/layout/TopBar';
+import { FeatureGate } from '@/components/subscription/FeatureGate';
 import { CreatePageCard } from '@/components/public-page-admin/CreatePageCard';
 import { CatalogCard } from '@/components/public-page-admin/CatalogCard';
 import { ContactsCard } from '@/components/public-page-admin/ContactsCard';
@@ -12,6 +13,14 @@ import { StatusBar } from '@/components/public-page-admin/StatusBar';
 import { usePublicPage } from '@/lib/hooks/usePublicPageAdmin';
 
 export default function PublicPageSettings() {
+  return (
+    <FeatureGate feature="public_pages" title="Page publique">
+      <PublicPageContent />
+    </FeatureGate>
+  );
+}
+
+function PublicPageContent() {
   const { data, isLoading, isError } = usePublicPage();
 
   return (

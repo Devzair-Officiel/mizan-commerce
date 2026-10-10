@@ -1235,6 +1235,11 @@
       "fulfillment_on_site": "Sur place",
       "fulfillment_delivery": "En livraison",
       "fulfillment_both": "Les deux"
+    },
+    "upgrade": {
+      "title": "Disponible avec la formule Boutique+",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} other {Cette fonction fait partie de la formule Boutique+.}}",
+      "cta": "Voir les formules"
     }
   },
   "onboarding": {

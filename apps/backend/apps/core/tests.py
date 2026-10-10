@@ -433,6 +433,29 @@ class SeedDataTest(TestCase):
             Product.objects.filter(shop=shop, type="service", is_active=True).exists()
         )
 
+    def test_fr_shop_is_boutique_plus(self):
+        """La boutique FR (employée + page publique) est en formule Boutique+."""
+        from apps.subscriptions.models import SubscriptionPlan
+
+        shop = self._shop("La Boutique de Youssef")
+        self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+
+    def test_seeded_shops_have_plan_for_their_features(self):
+        """Une boutique de démo n'utilise pas de fonction absente de sa formule."""
+        from apps.public_pages.models import PublicPage
+        from apps.core.management.commands.seed_data import SEED_DEMO_EMAILS
+        from apps.subscriptions.permissions import FEATURE_MIN_PLAN, _tier_index
+
+        def allows(shop, feature):
+            return shop.effective_plan.tier >= _tier_index(FEATURE_MIN_PLAN[feature])
+
+        demo_shops = Shop.objects.filter(members__user__email__in=SEED_DEMO_EMAILS)
+        for shop in demo_shops.distinct():
+            if ShopMember.objects.filter(shop=shop).exclude(role="owner").exists():
+                self.assertTrue(allows(shop, "multi_user"), shop.name)
+            if PublicPage.objects.filter(shop=shop).exists():
+                self.assertTrue(allows(shop, "public_pages"), shop.name)
+
 
 class SeedDataSecurityTest(TestCase):
     """Garde DEBUG, isolation des boutiques externes, idempotence du --reset."""

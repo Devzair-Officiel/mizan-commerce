@@ -7,6 +7,7 @@ import {
   Loader2, Sparkles,
 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
+import { FeatureGate } from '@/components/subscription/FeatureGate';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { FloatingInput } from '@/components/ui/floating-fields';
@@ -38,6 +39,15 @@ import {
 const ACCEPTED_MIME = 'image/jpeg,image/png,image/webp';
 
 export default function ImportInvoicePage() {
+  const t = useTranslations('stock.importInvoice');
+  return (
+    <FeatureGate feature="ocr" title={t('title')} back>
+      <ImportInvoiceContent />
+    </FeatureGate>
+  );
+}
+
+function ImportInvoiceContent() {
   const t = useTranslations('stock.importInvoice');
   const [file, setFile] = useState<File | null>(null);
   const [ocrResultId, setOcrResultId] = useState<string | null>(null);

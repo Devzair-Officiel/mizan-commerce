@@ -125,15 +125,16 @@ class Command(BaseCommand):
             name="La Boutique de Youssef", currency="EUR", country="FR"
         )
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
+        # Boutique+ : la boutique a une employée (multi_user) et une page publique.
         seed_subscription(
             shop=shop_fr,
-            plan_code=SubscriptionPlan.CODE_PRO,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
             status=Subscription.STATUS_ACTIVE,
         )
         if youssef.trial_consumed_at is None:
             youssef.trial_consumed_at = timezone.now()
             youssef.save(update_fields=["trial_consumed_at", "updated_at"])
-        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Pro)")
+        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Boutique+)")
 
         sara = UserFactory(
             email="sara@example.com",

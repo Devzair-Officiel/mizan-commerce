@@ -1235,6 +1235,11 @@
       "fulfillment_on_site": "In-store pickup",
       "fulfillment_delivery": "Delivery",
       "fulfillment_both": "Both"
+    },
+    "upgrade": {
+      "title": "Available with the Boutique+ plan",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} other {This feature is part of the Boutique+ plan.}}",
+      "cta": "See plans"
     }
   },
   "onboarding": {

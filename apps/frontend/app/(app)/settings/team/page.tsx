@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
+import { FeatureGate } from '@/components/subscription/FeatureGate';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useMe } from '@/lib/hooks/useMe';
@@ -16,6 +17,15 @@ import { ApiError } from '@/lib/api-client';
 import { MemberFormSheet, type FormMode } from '@/components/team/MemberFormSheet';
 
 export default function TeamPage() {
+  const t = useTranslations('team');
+  return (
+    <FeatureGate feature="multi_user" title={t('title')}>
+      <TeamContent />
+    </FeatureGate>
+  );
+}
+
+function TeamContent() {
   const t = useTranslations('team');
   const { data: me } = useMe();
   const { data: members, isLoading } = useShopMembers();
