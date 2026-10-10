@@ -1,14 +1,15 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { useProduct, type ProductVariant } from '@/lib/hooks/useProducts';
+import { productPickQueryOptions, type ProductVariant } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { isDefaultVariant } from '@/lib/products';
 
 export type VariantPick = {
-  variantId: string; productName: string; variantName: string;
+  variantId: string; productId: string; productName: string; variantName: string;
   productType: 'product' | 'service'; unitPrice: string;
 };
 
@@ -30,7 +31,7 @@ function BackButton({ onBack, label }: { onBack: () => void; label: string }) {
 
 export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
   const t = useTranslations('orders.picker');
-  const { data: product, isLoading } = useProduct(productId);
+  const { data: product, isLoading, isError } = useQuery(productPickQueryOptions(productId));
   const { data: shop } = useShop();
   const formatMoney = useFormatMoney();
   const currency = shop?.currency ?? 'EUR';
@@ -40,12 +41,14 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
     return (
       <div className="flex flex-col gap-3">
         <BackButton onBack={onBack} label={t('variant_back')} />
-        <p className="py-6 text-center text-sm text-muted-foreground">{t('loading')}</p>
+        {isError
+          ? <p role="alert" className="py-6 text-center text-sm text-destructive">{t('add_error')}</p>
+          : <p className="py-6 text-center text-sm text-muted-foreground">{t('loading')}</p>}
       </div>
     );
   }
 
-  const handlePick = (variant: ProductVariant) => onPick({ variantId: variant.id, productName: product.name, variantName: variant.packaging_name, productType: product.type, unitPrice: variant.selling_price });
+  const handlePick = (variant: ProductVariant) => onPick({ variantId: variant.id, productId: product.id, productName: product.name, variantName: variant.packaging_name, productType: product.type, unitPrice: variant.selling_price });
   const activeVariants = product.variants.filter((v) => v.is_active);
 
   return (

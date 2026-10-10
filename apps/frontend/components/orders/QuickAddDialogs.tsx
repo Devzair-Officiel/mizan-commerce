@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
@@ -14,34 +13,14 @@ import { qk } from '@/lib/query-keys';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { QuickAddProductForm } from '@/components/orders/new/QuickAddProductForm';
 
-function AddButton({ onClick, ariaLabel }: { onClick: () => void; ariaLabel: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center justify-center w-11 h-11 rounded-2xl border border-border bg-card text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0 self-stretch"
-      aria-label={ariaLabel}
-    >
-      <Plus size={18} />
-    </button>
-  );
+interface QuickAddProps<T> {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (created: T) => void;
 }
 
-export function QuickAddCustomer({
-  onCreated,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
-  hideTrigger,
-}: {
-  onCreated: (customer: Customer) => void;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  hideTrigger?: boolean;
-}) {
+export function QuickAddCustomer({ open, onOpenChange: setOpen, onCreated }: QuickAddProps<Customer>) {
   const t = useTranslations('orders.quickAdd');
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const { mutateAsync, isPending } = useCreateCustomer();
@@ -79,7 +58,6 @@ export function QuickAddCustomer({
 
   return (
     <>
-      {!hideTrigger && <AddButton onClick={() => setOpen(true)} ariaLabel={t('trigger_aria')} />}
       <BottomSheet open={open} onClose={handleClose} title={t('customer_title')}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-0.5">
@@ -101,22 +79,9 @@ export function QuickAddCustomer({
   );
 }
 
-export function QuickAddProduct({
-  onCreated,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
-  hideTrigger,
-}: {
-  onCreated: (product: ProductDetail) => void;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  hideTrigger?: boolean;
-}) {
+export function QuickAddProduct({ open, onOpenChange: setOpen, onCreated }: QuickAddProps<ProductDetail>) {
   const t = useTranslations('orders.quickAdd');
   const kind = useCatalogKind();
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = controlledOnOpenChange ?? setInternalOpen;
 
   function handleClose() {
     setOpen(false);
@@ -124,7 +89,6 @@ export function QuickAddProduct({
 
   return (
     <>
-      {!hideTrigger && <AddButton onClick={() => setOpen(true)} ariaLabel={t('trigger_aria')} />}
       <BottomSheet open={open} onClose={handleClose} title={t('product_title', { kind })}>
         <QuickAddProductForm
           onCreated={(product) => { onCreated(product); handleClose(); }}

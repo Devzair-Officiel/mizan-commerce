@@ -1,266 +1,58 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
-import { Button } from '@/components/ui/button';
-import { FloatingInput, FloatingSelectBase, FloatingSelectItem } from '@/components/ui/floating-fields';
-import { QuickAddCustomer, QuickAddProduct } from '@/components/orders/QuickAddDialogs';
-import {
-  useOrder,
-  useUpdateOrder,
-  useAddOrderItem,
-  useUpdateOrderItem,
-  useRemoveOrderItem,
-  type Order,
-} from '@/lib/hooks/useOrders';
-import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
-import { useProducts, type ProductDetail } from '@/lib/hooks/useProducts';
-import { useShop } from '@/lib/hooks/useShop';
-import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
-import { useFormatMoney } from '@/lib/hooks/useFormat';
-import { apiFetch } from '@/lib/api-client';
-import { isDefaultVariant } from '@/lib/products';
+import { NewSaleScreen } from '@/components/orders/new/NewSaleScreen';
+import { useOrder, type Order } from '@/lib/hooks/useOrders';
+import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
 
-interface EditItem {
-  id?: string;
-  variant: string | null;
-  product_name: string;
-  variant_name: string;
-  quantity: number;
-  unit_price: string;
+const EDITABLE = ['to_prepare', 'prepared'];
+
+/** Même écran que la Nouvelle commande, en mode modification (sans paiement ni statut). */
+function EditSaleForm({ order }: { order: Order }) {
+  const form = useNewSaleForm({ mode: 'edit', order });
+  return <NewSaleScreen form={form} />;
+}
+
+function OrderMessage({ text, orderId, tone = 'muted' }: { text: string; orderId?: string; tone?: 'muted' | 'error' }) {
+  const t = useTranslations('orders.edit');
+  return (
+    <div className="flex flex-col items-start gap-3 p-4">
+      <p className={`text-sm ${tone === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>{text}</p>
+      {orderId && (
+        <Link href={`/orders/${orderId}`} className="text-sm font-semibold text-primary hover:underline">
+          {t('back_to_order')}
+        </Link>
+      )}
+    </div>
+  );
 }
 
 export default function EditOrderPage() {
   const { id } = useParams<{ id: string }>();
-  const t = useTranslations('orders.edit');
-  const { data: order, isLoading } = useOrder(id);
-
-  if (isLoading) {
-    return (
-      <>
-        <TopBar title={t('topbar')} back />
-        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
-      </>
-    );
-  }
-  if (!order) {
-    return (
-      <>
-        <TopBar title={t('topbar')} back />
-        <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
-      </>
-    );
-  }
-  if (!['to_prepare', 'prepared'].includes(order.status)) {
-    return (
-      <>
-        <TopBar title={t('topbar')} back />
-        <p className="p-4 text-sm text-muted-foreground">{t('read_only')}</p>
-      </>
-    );
-  }
-
-  return <EditController order={order} />;
-}
-
-function EditController({ order }: { order: Order }) {
   const router = useRouter();
   const t = useTranslations('orders.edit');
-  const { data: customers } = useCustomers();
-  const { data: products }  = useProducts();
-  const { data: shop } = useShop();
-  const kind = useCatalogKind();
-  const currency = shop?.currency ?? 'EUR';
-  const formatMoney = useFormatMoney();
-  const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
-
-  const updateOrder  = useUpdateOrder(order.id);
-  const addItem      = useAddOrderItem(order.id);
-  const updateItem   = useUpdateOrderItem(order.id);
-  const removeItem   = useRemoveOrderItem(order.id);
-
-  const [customerId,  setCustomerId]  = useState(order.customer ?? '');
-  const [discount,    setDiscount]    = useState(order.discount_amount ?? '0');
-  const [shipping,    setShipping]    = useState(order.shipping_amount ?? '0');
-  const [items,       setItems]       = useState<EditItem[]>(() =>
-    order.items.map((i) => ({
-      id: i.id,
-      variant: i.variant,
-      product_name: i.product_name,
-      variant_name: i.variant_name,
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-    })),
-  );
-  const [originalIds] = useState<Set<string>>(() => new Set(order.items.map((i) => i.id)));
-
-  async function addProductByDefaultVariant(productId: string) {
-    const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
-    const first = detail.variants.find((v) => v.is_active);
-    if (!first) return;
-    const existing = items.find((i) => i.variant === first.id);
-    if (existing) {
-      setItems(items.map((i) => i.variant === first.id ? { ...i, quantity: i.quantity + 1 } : i));
-    } else {
-      setItems([...items, {
-        variant: first.id,
-        product_name: detail.name,
-        variant_name: first.packaging_name,
-        quantity: 1,
-        unit_price: first.selling_price,
-      }]);
-    }
-  }
-
-  function updateQty(lineKey: string, qty: number) {
-    if (qty < 1) { setItems(items.filter((i) => keyOf(i) !== lineKey)); return; }
-    setItems(items.map((i) => keyOf(i) === lineKey ? { ...i, quantity: qty } : i));
-  }
-
-  function keyOf(item: EditItem): string {
-    return item.id ?? `new:${item.variant ?? 'free'}`;
-  }
-
-  const subtotal  = items.reduce((acc, i) => acc + parseFloat(i.unit_price) * i.quantity, 0);
-  const discountN = parseFloat(discount) || 0;
-  const shippingN = parseFloat(shipping) || 0;
-  const total     = subtotal - discountN + shippingN;
-  const isPending = updateOrder.isPending || addItem.isPending || updateItem.isPending || removeItem.isPending;
-
-  const customerSelectItems = useMemo(() => {
-    const base = (customers?.results ?? []).map((c) => ({ value: c.id, label: c.name }));
-    if (order.customer && order.customer_name && !base.some((it) => it.value === order.customer)) {
-      return [...base, { value: order.customer, label: order.customer_name }];
-    }
-    return base;
-  }, [customers?.results, order.customer, order.customer_name]);
-
-  async function handleSave() {
-    await updateOrder.mutateAsync({
-      customer: customerId || null,
-      discount_amount: discount || '0', shipping_amount: shipping || '0',
-    });
-    const currentIds = new Set(items.filter((i) => i.id).map((i) => i.id as string));
-    await Promise.all([...originalIds].filter((id) => !currentIds.has(id)).map((itemId) => removeItem.mutateAsync(itemId)));
-    await Promise.all(items.filter((i) => {
-      if (!i.id) return false;
-      return order.items.find((o) => o.id === i.id)?.quantity !== i.quantity;
-    }).map((i) => updateItem.mutateAsync({ itemId: i.id!, quantity: i.quantity })));
-    await Promise.all(items.filter((i) => !i.id).map((i) =>
-      addItem.mutateAsync(
-        i.variant
-          ? { variant: i.variant, quantity: i.quantity, unit_price: i.unit_price }
-          : { product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price },
-      ),
-    ));
-    router.push(`/orders/${order.id}`);
-  }
+  const tDetail = useTranslations('orders.detail');
+  const { data: order, isLoading } = useOrder(id);
+  const title = order ? t('topbar_with_number', { number: order.order_number }) : t('topbar');
 
   return (
     <>
-      <TopBar title={t('topbar_with_number', { number: order.order_number })} back action={
-        <Button size="sm" onClick={handleSave} disabled={isPending || items.length === 0}>
-          {isPending ? t('saving') : t('save')}
-        </Button>
-      } />
-
-      <div className="flex flex-col gap-3 p-4 pb-8">
-
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <FloatingSelectBase
-              id="customer"
-              label={t('customer_label')}
-              value={customerId}
-              onValueChange={setCustomerId}
-              placeholder={t('no_customer')}
-              selectItems={customerSelectItems}
-            >
-              <FloatingSelectItem value="">{t('no_customer')}</FloatingSelectItem>
-              {customers?.results.map((c) => (
-                <FloatingSelectItem key={c.id} value={c.id}>{c.name}</FloatingSelectItem>
-              ))}
-            </FloatingSelectBase>
-          </div>
-          <QuickAddCustomer onCreated={(c: Customer) => setCustomerId(c.id)} />
-        </div>
-
-        <div className="flex gap-2">
-          <div className="flex-1">
-            <FloatingSelectBase
-              id="product-picker"
-              label={t('product_picker_label', { kind })}
-              value=""
-              onValueChange={(v) => { if (v) void addProductByDefaultVariant(v); }}
-              placeholder={t('product_picker_placeholder', { kind })}
-            >
-              {products?.results.filter((p) => p.is_active).map((p) => {
-                const priceLabel = p.min_selling_price ? money(p.min_selling_price) : '—';
-                return (
-                  <FloatingSelectItem key={p.id} value={p.id}>{p.name} — {priceLabel}</FloatingSelectItem>
-                );
-              })}
-            </FloatingSelectBase>
-          </div>
-          <QuickAddProduct onCreated={(p: ProductDetail) => { void addProductByDefaultVariant(p.id); }} />
-        </div>
-
-        {items.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('items_title', { kind })}</span>
-            </div>
-            <div className="divide-y divide-border">
-              {items.map((item) => {
-                const k = keyOf(item);
-                return (
-                  <div key={k} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{item.product_name}</p>
-                      {item.variant_name && !isDefaultVariant(item.variant_name) && (
-                        <p className="text-[11px] text-muted-foreground truncate">{item.variant_name}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button onClick={() => updateQty(k, item.quantity - 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center active:bg-muted">−</button>
-                      <span className="w-5 text-center text-sm font-medium tabular-nums">{item.quantity}</span>
-                      <button onClick={() => updateQty(k, item.quantity + 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center active:bg-muted">+</button>
-                    </div>
-                    <span className="text-sm font-semibold text-foreground w-16 text-right tabular-nums shrink-0">
-                      {money(parseFloat(item.unit_price) * item.quantity)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="px-4 py-3 bg-muted/40 flex flex-col gap-1 border-t border-border">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{t('subtotal')}</span><span className="tabular-nums">{money(subtotal)}</span>
-              </div>
-              {discountN > 0 && (
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('discount')}</span><span className="tabular-nums">− {money(discountN)}</span>
-                </div>
-              )}
-              {shippingN > 0 && (
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('shipping')}</span><span className="tabular-nums">+ {money(shippingN)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm font-bold text-foreground pt-1 border-t border-border mt-0.5">
-                <span>{t('total')}</span><span className="tabular-nums">{money(total)}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <FloatingInput id="discount" label={t('discount_field')} type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} />
-          <FloatingInput id="shipping" label={t('shipping_field')} type="number" step="0.01" min="0" value={shipping} onChange={(e) => setShipping(e.target.value)} />
-        </div>
-      </div>
+      <TopBar title={title} back backLabel={tDetail('topbar')} onBack={() => router.push(`/orders/${id}`)} hideSearch />
+      {isLoading ? (
+        <OrderMessage text={t('loading')} />
+      ) : !order ? (
+        <OrderMessage text={t('not_found')} tone="error" />
+      ) : !EDITABLE.includes(order.status) ? (
+        <OrderMessage text={t('read_only')} orderId={order.id} />
+      ) : (
+        <Suspense>
+          <EditSaleForm order={order} />
+        </Suspense>
+      )}
     </>
   );
 }

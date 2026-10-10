@@ -14,6 +14,7 @@ import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { isDefaultVariant } from '@/lib/products';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import type { LineItem } from '@/components/orders/new/types';
+import { useSubmitLabel } from '@/components/orders/new/useSubmitLabel';
 
 type T = ReturnType<typeof useTranslations<'orders.new'>>;
 
@@ -174,9 +175,10 @@ export function DesktopSaleTicket({ form }: { form: NewSaleForm }) {
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+  const submitLabel = useSubmitLabel(form.mode, form.isPending);
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden lg:sticky top-8">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <TicketCustomerBlock form={form} />
       {form.items.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-muted-foreground">{t('items_empty', { kind })}</p>
@@ -188,11 +190,12 @@ export function DesktopSaleTicket({ form }: { form: NewSaleForm }) {
         </div>
       )}
       <DesktopSummaryBlock form={form} money={money} hasItems={form.items.length > 0} />
-      <DesktopTicketControls form={form} />
-      <div className="px-5 pb-5">
+      {/* Paiement, statut et note se gèrent depuis le détail une fois la commande créée. */}
+      {form.mode === 'create' && <DesktopTicketControls form={form} />}
+      <div className={`px-5 pb-5 ${form.mode === 'edit' ? 'pt-1' : ''}`}>
         <button type="button" onClick={() => void form.handleSubmit()} disabled={form.isPending}
           className="w-full h-13 rounded-full bg-primary text-primary-foreground flex items-center justify-between px-6 text-[0.9375rem] font-semibold disabled:opacity-60 transition-opacity">
-          <span>{form.isPending ? t('submit_creating') : t('submit_label')}</span>
+          <span>{submitLabel}</span>
           <span className="tabular-nums font-bold">{money(form.total)}</span>
         </button>
       </div>

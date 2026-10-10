@@ -7,9 +7,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
-import { productDetailQueryOptions } from '@/lib/hooks/useProducts';
+import { productPickQueryOptions } from '@/lib/hooks/useProducts';
 import type { Product } from '@/lib/hooks/useProducts';
-import { PickView } from './picker/PickView';
+import { PickView, type PickFeedback } from './picker/PickView';
 import { FreeLineView, type FreeLine } from './picker/FreeLineView';
 import { VariantView, type VariantPick } from './picker/VariantView';
 
@@ -29,37 +29,38 @@ function usePickerProductClick(
 ) {
   const queryClient = useQueryClient();
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
-  const [outOfStockProductId, setOutOfStockProductId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<PickFeedback | null>(null);
 
+  // Les messages (rupture, erreur réseau) s'effacent seuls après quelques secondes.
   useEffect(() => {
-    if (!outOfStockProductId) return;
-    const timer = setTimeout(() => setOutOfStockProductId(null), 3000);
+    if (!feedback) return;
+    const timer = setTimeout(() => setFeedback(null), 3000);
     return () => clearTimeout(timer);
-  }, [outOfStockProductId]);
+  }, [feedback]);
 
   async function handleProductClick(p: Product) {
     if (p.variant_count > 1) { onMultiVariantPick(p); return; }
     if (addingProductId) return;
     setAddingProductId(p.id);
-    setOutOfStockProductId(null);
+    setFeedback(null);
     try {
-      const detail = await queryClient.fetchQuery(productDetailQueryOptions(p.id));
+      const detail = await queryClient.fetchQuery(productPickQueryOptions(p.id));
       const active = detail.variants.filter((v) => v.is_active);
       const [single] = active;
       if (!single) return;
       if (detail.type === 'product' && parseFloat(single.stock_quantity) <= 0) {
-        setOutOfStockProductId(p.id);
+        setFeedback({ productId: p.id, kind: 'out_of_stock' });
         return;
       }
-      onSingleVariantPick({ variantId: single.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
+      onSingleVariantPick({ variantId: single.id, productId: detail.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
     } catch {
-      // ignore network errors
+      setFeedback({ productId: p.id, kind: 'error' });
     } finally {
       setAddingProductId((id) => id === p.id ? null : id);
     }
   }
 
-  return { handleProductClick, addingProductId, outOfStockProductId };
+  return { handleProductClick, addingProductId, feedback };
 }
 
 function PickerTrigger({ variant, openPicker }: { variant: 'default' | 'dashed'; openPicker: () => void }) {
@@ -92,7 +93,7 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = '
   const t = useTranslations('orders.picker');
   const kind = useCatalogKind();
   const picker = useCatalogPicker();
-  const { handleProductClick, addingProductId, outOfStockProductId } = usePickerProductClick(
+  const { handleProductClick, addingProductId, feedback } = usePickerProductClick(
     picker.handlePickProduct,
     onPick,
   );
@@ -128,7 +129,7 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = '
                 onCreate={() => picker.handleCreate(onRequestCreate)}
                 onFreeLine={picker.goToFreeLine}
                 loadingProductId={addingProductId}
-                outOfStockProductId={outOfStockProductId}
+                feedback={feedback}
               />
             )}
           </div>

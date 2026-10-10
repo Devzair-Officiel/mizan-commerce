@@ -162,6 +162,17 @@ class OrderServiceTest(TestCase):
         self.variant.refresh_from_db()
         self.assertEqual(self.variant.stock_quantity, 45)  # 48 - (5-2)=3
 
+    def test_update_item_quantity_recalculates_line_and_order_totals(self):
+        """Changer la quantité met à jour le total de la ligne et de la commande."""
+        order = services.create_order(self.shop, self.user)
+        item = services.add_item(order, self.variant, 1, unit_price=Decimal('10.00'))
+        services.update_item_quantity(order, item, 3, user=self.user)
+        item.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(item.line_total, Decimal('30.00'))
+        self.assertEqual(order.subtotal, Decimal('30.00'))
+        self.assertEqual(order.total_amount, Decimal('30.00'))
+
     def test_remove_item_releases_delta_stock(self):
         """Retirer un article d'une commande réservée libère le stock."""
         order = services.create_order(self.shop, self.user)

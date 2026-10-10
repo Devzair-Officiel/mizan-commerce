@@ -208,6 +208,14 @@ export function productDetailQueryOptions(id: string) {
   };
 }
 
+/**
+ * Fiche chargée au moment d'un ajout à la commande : échoue tout de suite hors ligne
+ * (au lieu d'attendre le retour du réseau), pour afficher un message près du bouton.
+ */
+export function productPickQueryOptions(id: string) {
+  return { ...productDetailQueryOptions(id), networkMode: 'always' as const, retry: false };
+}
+
 export function useProduct(id: string) {
   return useQuery({
     ...productDetailQueryOptions(id),

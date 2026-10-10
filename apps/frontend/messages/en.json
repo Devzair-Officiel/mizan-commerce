@@ -737,23 +737,13 @@
     },
     "edit": {
       "topbar": "Edit order",
-      "topbar_with_number": "Edit {number}",
+      "topbar_with_number": "Edit order {number}",
       "loading": "Loading…",
       "not_found": "Order not found.",
       "read_only": "A delivered or cancelled order can no longer be edited.",
       "saving": "Saving…",
-      "save": "Save",
-      "customer_label": "Customer (optional)",
-      "no_customer": "— No customer —",
-      "product_picker_label": "{kind, select, products {Add an item (first variant)} services {Add a service} other {Add an item (first variant)}}",
-      "product_picker_placeholder": "{kind, select, products {Pick an item…} services {Pick a service…} other {Pick an item…}}",
-      "items_title": "{kind, select, products {Items} services {Services} other {Items}}",
-      "subtotal": "Subtotal",
-      "discount": "Discount",
-      "shipping": "Shipping",
-      "total": "Total",
-      "discount_field": "Discount (optional)",
-      "shipping_field": "Shipping (optional)"
+      "submit_label": "Save changes",
+      "back_to_order": "Back to the order"
     },
     "picker": {
       "product_trigger_title": "{kind, select, products {Add an item} services {Add a service} other {Add an item or service}}",
@@ -766,9 +756,6 @@
       "filter_all": "All",
       "filter_product": "Products",
       "filter_service": "Services",
-      "create_product": "{kind, select, products {Create an item} services {Create a service} other {Create an item or service}}",
-      "free_line_title": "{kind, select, products {One-off item} services {One-off service} other {One-off item or service}}",
-      "free_line_sub": "Without saving to the catalog",
       "no_results": "No results.",
       "no_products": "{kind, select, products {No items saved.} services {No services saved.} other {No items saved.}}",
       "variant_back": "Back to catalog",
@@ -792,12 +779,14 @@
       "panel_items": "{kind, select, products {Items} services {Services} other {Items and services}}",
       "panel_create": "{kind, select, products {Create an item} services {Create a service} other {Create an item or service}}",
       "desktop_search_placeholder": "{kind, select, products {Name, reference or barcode} services {Service name} other {Name, reference or barcode}}",
-      "free_line_desktop": "{kind, select, products {One-off item, without saving} services {One-off service, without saving} other {One-off item, without saving}}",
       "empty_catalog_title": "Your catalog is empty",
       "empty_catalog_text": "{kind, select, products {Create the item here: it's added to the order and stays in your catalog for next time.} services {Create the service here: it's added to the order and stays in your catalog for next time.} other {Create the item or service here: it's added to the order and stays in your catalog for next time.}}",
       "empty_catalog_free_question": "{kind, select, products {An item you won't be reselling?} services {A service you'll only invoice once?} other {A one-time item or service?}}",
       "empty_catalog_free_link": "Add it without saving",
-      "view_cart": "{count, plural, one {View order (# item)} other {View order (# items)}}"
+      "view_cart": "{count, plural, one {View order (# item)} other {View order (# items)}}",
+      "free_line_button": "{kind, select, products {One-off item} services {One-off service} other {One-off item}}",
+      "free_line_help": "Added to this order without saving it to the catalog",
+      "add_error": "Couldn't add it. Check your connection and try again."
     },
     "customerPicker": {
       "trigger_select": "Pick a customer",
@@ -812,7 +801,6 @@
       "no_customers": "No customers saved."
     },
     "quickAdd": {
-      "trigger_aria": "Add",
       "customer_title": "New customer",
       "customer_label": "Customer name *",
       "customer_required": "Name is required.",

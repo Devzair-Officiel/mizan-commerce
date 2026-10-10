@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/api-client';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
+import type { OrderItemPayload } from '@/lib/hooks/useOrders';
 import type { LineItem } from '@/components/orders/new/types';
 import type { VariantPick, FreeLine } from '@/components/orders/ProductPicker';
 
@@ -18,8 +19,16 @@ export interface NewSaleLines {
   clearItemsError: () => void;
 }
 
-export function useNewSaleLines(): NewSaleLines {
-  const [items, setItems] = useState<LineItem[]>([]);
+/** Corps d'API d'une ligne : variante du catalogue, ou ligne ponctuelle (nom + prix). */
+export function toItemPayload(i: LineItem): OrderItemPayload {
+  return i.variant
+    ? { variant: i.variant, quantity: i.quantity, unit_price: i.unit_price }
+    : { product_name: i.product_name, unit_price: i.unit_price, quantity: i.quantity };
+}
+
+/** Lignes du ticket. `initial` : lignes de la commande en cours de modification. */
+export function useNewSaleLines(initial: LineItem[] = []): NewSaleLines {
+  const [items, setItems] = useState<LineItem[]>(initial);
   const [itemsError, setItemsError] = useState(false);
 
   const addItem = useCallback((pick: VariantPick) => {
@@ -34,6 +43,7 @@ export function useNewSaleLines(): NewSaleLines {
       return [...prev, {
         lineId: crypto.randomUUID(),
         variant: pick.variantId,
+        product: pick.productId,
         product_name: pick.productName,
         variant_name: pick.variantName,
         product_type: pick.productType,
@@ -48,6 +58,7 @@ export function useNewSaleLines(): NewSaleLines {
     setItems((prev) => [...prev, {
       lineId: crypto.randomUUID(),
       variant: null,
+      product: null,
       product_name: line.product_name,
       variant_name: '',
       product_type: null,
@@ -74,6 +85,7 @@ export function useNewSaleLines(): NewSaleLines {
     if (!first) return;
     addItem({
       variantId: first.id,
+      productId: detail.id,
       productName: detail.name,
       variantName: first.packaging_name,
       productType: detail.type,

@@ -220,7 +220,8 @@ def update_item_quantity(order: Order, item: OrderItem, quantity: int, user=None
     old_qty = item.quantity
     delta = quantity - old_qty
     item.quantity = quantity
-    item.save(update_fields=['quantity'])
+    # line_total est recalculé par OrderItem.save() : à enregistrer avec la quantité.
+    item.save(update_fields=['quantity', 'line_total'])
     recalculate_totals(order)
 
     if order.stock_reserved and delta != 0 and item.variant and item.variant.product.type == 'product':  # noqa: E501

@@ -737,23 +737,13 @@
     },
     "edit": {
       "topbar": "تعديل الطلب",
-      "topbar_with_number": "تعديل {number}",
+      "topbar_with_number": "تعديل الطلب {number}",
       "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
       "read_only": "لا يمكن تعديل طلب تم تسليمه أو إلغاؤه.",
       "saving": "جارٍ الحفظ…",
-      "save": "حفظ",
-      "customer_label": "الزبون (اختياري)",
-      "no_customer": "— بدون زبون —",
-      "product_picker_label": "{kind, select, products {إضافة منتج (الإصدار الأول)} services {إضافة خدمة} other {إضافة منتج (الإصدار الأول)}}",
-      "product_picker_placeholder": "{kind, select, products {اختر منتجًا…} services {اختر خدمة…} other {اختر منتجًا…}}",
-      "items_title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
-      "subtotal": "المجموع الفرعي",
-      "discount": "تخفيض",
-      "shipping": "شحن",
-      "total": "الإجمالي",
-      "discount_field": "تخفيض (اختياري)",
-      "shipping_field": "شحن (اختياري)"
+      "submit_label": "حفظ التعديلات",
+      "back_to_order": "العودة إلى الطلب"
     },
     "picker": {
       "product_trigger_title": "{kind, select, products {إضافة منتج} services {إضافة خدمة} other {إضافة منتج أو خدمة}}",
@@ -766,9 +756,6 @@
       "filter_all": "الكل",
       "filter_product": "منتجات",
       "filter_service": "خدمات",
-      "create_product": "{kind, select, products {إنشاء منتج} services {إنشاء خدمة} other {إنشاء منتج أو خدمة}}",
-      "free_line_title": "{kind, select, products {منتج عابر} services {خدمة عابرة} other {منتج أو خدمة عابرة}}",
-      "free_line_sub": "دون حفظ في الفهرس",
       "no_results": "لا نتائج.",
       "no_products": "{kind, select, products {لا توجد منتجات مسجّلة.} services {لا توجد خدمات مسجّلة.} other {لا توجد منتجات مسجّلة.}}",
       "variant_back": "العودة إلى الفهرس",
@@ -792,12 +779,14 @@
       "panel_items": "{kind, select, products {العناصر} services {الخدمات} other {العناصر والخدمات}}",
       "panel_create": "{kind, select, products {إنشاء عنصر} services {إنشاء خدمة} other {إنشاء عنصر أو خدمة}}",
       "desktop_search_placeholder": "{kind, select, products {الاسم أو المرجع أو الباركود} services {اسم الخدمة} other {الاسم أو المرجع أو الباركود}}",
-      "free_line_desktop": "{kind, select, products {صنف طارئ، دون حفظ} services {خدمة طارئة، دون حفظ} other {صنف طارئ، دون حفظ}}",
       "empty_catalog_title": "فهرسك فارغ",
       "empty_catalog_text": "{kind, select, products {أنشئ البضاعة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.} services {أنشئ الخدمة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.} other {أنشئ البضاعة أو الخدمة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.}}",
       "empty_catalog_free_question": "{kind, select, products {بضاعة لن تعيد بيعها؟} services {خدمة لن تفوترها إلا مرة واحدة؟} other {صنف أو خدمة طارئة؟}}",
       "empty_catalog_free_link": "أضفه دون حفظ",
-      "view_cart": "{count, plural, one {عرض الطلب (# عنصر)} other {عرض الطلب (# عناصر)}}"
+      "view_cart": "{count, plural, one {عرض الطلب (# عنصر)} other {عرض الطلب (# عناصر)}}",
+      "free_line_button": "{kind, select, products {منتج عابر} services {خدمة عابرة} other {منتج عابر}}",
+      "free_line_help": "يُضاف إلى هذا الطلب دون حفظه في الفهرس",
+      "add_error": "تعذّرت الإضافة. تحقّق من الاتصال وأعد المحاولة."
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",
@@ -812,7 +801,6 @@
       "no_customers": "لا يوجد زبائن مسجّلون."
     },
     "quickAdd": {
-      "trigger_aria": "إضافة",
       "customer_title": "زبون جديد",
       "customer_label": "اسم الزبون *",
       "customer_required": "الاسم مطلوب.",

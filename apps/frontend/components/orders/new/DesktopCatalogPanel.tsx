@@ -1,188 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Check, Search, X, Tag, Loader2 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
-import { productDetailQueryOptions } from '@/lib/hooks/useProducts';
+import { Search, X, Tag } from 'lucide-react';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
-import { useProduct } from '@/lib/hooks/useProducts';
+import { useScrollShadow } from '@/lib/hooks/useScrollShadow';
 import { QuickAddProductForm } from '@/components/orders/new/QuickAddProductForm';
-import { isDefaultVariant } from '@/lib/products';
+import { DesktopProductRow } from '@/components/orders/new/DesktopProductRow';
+import { CatalogAddActions } from '@/components/orders/picker/CatalogAddActions';
 import { FreeLineView } from '@/components/orders/picker/FreeLineView';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
-import type { Product, ProductDetail } from '@/lib/hooks/useProducts';
-import type { VariantPick } from '@/components/orders/picker/VariantView';
+import type { ProductDetail } from '@/lib/hooks/useProducts';
 
 type PanelMode = 'list' | 'create' | 'free';
 type PickFilter = 'all' | 'product' | 'service';
 type T = ReturnType<typeof useTranslations<'orders.picker'>>;
+
+/**
+ * Le panneau ne dépasse jamais la hauteur visible : son haut est à ~9,7rem sous la barre
+ * du haut à l'ouverture, d'où 11rem retirés pour que son bas reste à l'écran ; seule la liste défile.
+ */
+const PANEL = 'rounded-2xl border border-border bg-card overflow-hidden flex flex-col max-h-[calc(100dvh-11rem)]';
 
 const FILTER_KEYS = [
   { value: 'all' as PickFilter, key: 'filter_all' as const },
   { value: 'product' as PickFilter, key: 'filter_product' as const },
   { value: 'service' as PickFilter, key: 'filter_service' as const },
 ];
-
-function DesktopAddButton({ name, qty, onClick, isLoading, t }: { name: string; qty: number; onClick: () => void; isLoading?: boolean; t: T }) {
-  if (isLoading) {
-    return (
-      <button type="button" disabled
-        className="shrink-0 w-16 h-9 rounded-full border border-border text-muted-foreground flex items-center justify-center">
-        <Loader2 size={14} className="animate-spin" />
-      </button>
-    );
-  }
-  if (qty > 0) {
-    return (
-      <button type="button" onClick={onClick}
-        className="shrink-0 w-16 h-9 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center gap-1 text-xs font-semibold">
-        <Check size={13} strokeWidth={2.5} />{qty}
-      </button>
-    );
-  }
-  return (
-    <button type="button" aria-label={t('add_aria', { name })} onClick={onClick}
-      className="shrink-0 w-16 h-9 rounded-full border border-border text-primary flex items-center justify-center hover:bg-primary/5 transition-colors">
-      <Plus size={18} strokeWidth={2} />
-    </button>
-  );
-}
-
-function DesktopProductSubtext({ p, t }: { p: Product; t: T }) {
-  if (p.type === 'service') return null;
-  if (p.variant_count > 1) {
-    return (
-      <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
-        {t('variant_formats', { count: p.variant_count })}
-        {p.is_out_of_stock && <> · <span className="text-destructive">{t('out_of_stock')}</span></>}
-      </p>
-    );
-  }
-  if (p.is_out_of_stock) return <p className="text-[0.8125rem] text-destructive mt-0.5">{t('out_of_stock')}</p>;
-  return null;
-}
-
-function DesktopInlineVariants({ productId, formItems, onPick, money, t }: {
-  productId: string; formItems: NewSaleForm['items'];
-  onPick: (pick: VariantPick) => void; money: (v: number | string) => string; t: T;
-}) {
-  const { data: product, isLoading } = useProduct(productId);
-
-  if (isLoading || !product) return <p className="px-5 py-3 text-xs text-muted-foreground">{t('loading')}</p>;
-  const active = product.variants.filter((v) => v.is_active);
-  return (
-    <div className="divide-y divide-border/60 bg-muted/30">
-      {active.map((v) => {
-        const out = product.type === 'product' && parseFloat(v.stock_quantity) <= 0;
-        const qtyInCart = formItems.filter((i) => i.variant === v.id).reduce((a, c) => a + c.quantity, 0);
-        const pick: VariantPick = { variantId: v.id, productName: product.name, variantName: v.packaging_name, productType: product.type, unitPrice: v.selling_price };
-        return (
-          <div key={v.id} className="flex items-center gap-3 px-5 py-2.5">
-            <div className="flex-1 min-w-0">
-              {!isDefaultVariant(v.packaging_name) && (
-                <span className="text-sm text-foreground">{v.packaging_name}</span>
-              )}
-              <span className={`${isDefaultVariant(v.packaging_name) ? '' : 'ms-2 '}text-[0.8125rem] tabular-nums ${out ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {money(v.selling_price)}
-                {product.type === 'product' && (
-                  <> · {out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}</>
-                )}
-              </span>
-            </div>
-            <DesktopAddButton name={`${product.name} – ${v.packaging_name}`} qty={qtyInCart} onClick={() => onPick(pick)} t={t} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function DesktopProductRow({ p, formItems, expandedId, setExpandedId, onPick, money, t, catalogKind }: {
-  p: Product; formItems: NewSaleForm['items']; expandedId: string | null;
-  setExpandedId: (id: string | null) => void; onPick: (pick: VariantPick) => void;
-  money: (v: number | string) => string; t: T; catalogKind: string;
-}) {
-  const queryClient = useQueryClient();
-  const [addState, setAddState] = useState<'idle' | 'loading' | 'out_of_stock'>('idle');
-  const totalQty = formItems.filter((i) => i.product_name === p.name).reduce((a, c) => a + c.quantity, 0);
-  const priceLabel = p.min_selling_price
-    ? (p.min_selling_price === p.max_selling_price
-        ? money(p.min_selling_price)
-        : `${money(p.min_selling_price)} – ${money(p.max_selling_price!)}`)
-    : '—';
-  const isExpanded = expandedId === p.id;
-
-  useEffect(() => {
-    if (addState !== 'out_of_stock') return;
-    const timer = setTimeout(() => setAddState('idle'), 3000);
-    return () => clearTimeout(timer);
-  }, [addState]);
-
-  async function handleAddClick() {
-    if (p.variant_count > 1) {
-      setExpandedId(isExpanded ? null : p.id);
-      return;
-    }
-    if (addState === 'loading') return;
-    const existing = formItems.find((i) => i.product_name === p.name && i.variant !== null);
-    if (existing?.variant) {
-      onPick({
-        variantId: existing.variant,
-        productName: existing.product_name,
-        variantName: existing.variant_name,
-        productType: existing.product_type ?? 'product',
-        unitPrice: existing.unit_price,
-      });
-      return;
-    }
-    setAddState('loading');
-    try {
-      const detail = await queryClient.fetchQuery(productDetailQueryOptions(p.id));
-      const active = detail.variants.filter((v) => v.is_active);
-      const [single] = active;
-      if (!single) return;
-      if (detail.type === 'product' && parseFloat(single.stock_quantity) <= 0) {
-        setAddState('out_of_stock');
-        return;
-      }
-      onPick({ variantId: single.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
-    } catch {
-      // ignore network errors — user can retry
-    } finally {
-      setAddState((s) => s === 'loading' ? 'idle' : s);
-    }
-  }
-
-  return (
-    <div>
-      <div className="flex items-center gap-3 px-5 py-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground truncate">{p.name}</span>
-            {p.type === 'service' && catalogKind === 'both' && (
-              <span className="shrink-0 h-5 px-2 rounded-full bg-muted text-muted-foreground text-[11px] font-medium flex items-center">
-                {t('service_badge')}
-              </span>
-            )}
-          </div>
-          <DesktopProductSubtext p={p} t={t} />
-        </div>
-        <span className="shrink-0 text-sm font-semibold tabular-nums">{priceLabel}</span>
-        <DesktopAddButton name={p.name} qty={totalQty} isLoading={addState === 'loading'}
-          onClick={handleAddClick} t={t} />
-      </div>
-      {addState === 'out_of_stock' && (
-        <p className="px-5 pb-2 text-xs text-destructive">{t('out_of_stock_pick')}</p>
-      )}
-      {isExpanded && p.variant_count > 1 && (
-        <DesktopInlineVariants productId={p.id} formItems={formItems} onPick={onPick} money={money} t={t} />
-      )}
-    </div>
-  );
-}
 
 function DesktopCatalogHeader({ title, kind, filter, setFilter, t }: {
   title: string; kind: string; filter: PickFilter; setFilter: (v: PickFilter) => void; t: T;
@@ -212,36 +58,17 @@ function DesktopCatalogSearch({ search, setSearch, placeholder, t }: {
   search: string; setSearch: (v: string) => void; placeholder: string; t: T;
 }) {
   return (
-    <div className="px-5 pb-4">
-      <div className="relative">
-        <Search size={16} className="absolute inset-s-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <input type="search" inputMode="search" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
-          value={search} onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
-          className="w-full h-11 rounded-full border border-border bg-background ps-10 pe-9 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
-        {search && (
-          <button type="button" onClick={() => setSearch('')} aria-label={t('search_clear_aria')}
-            className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X size={13} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function DesktopCatalogFooter({ createLabel, freeLabel, onCreate, onFree }: {
-  createLabel: string; freeLabel: string; onCreate: () => void; onFree: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 px-5 py-3.5 border-t border-border">
-      <button type="button" onClick={onCreate}
-        className="inline-flex items-center gap-2 h-10 px-4 rounded-full border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-        <Plus size={15} className="text-primary" />{createLabel}
-      </button>
-      <button type="button" onClick={onFree}
-        className="text-[0.8125rem] text-muted-foreground hover:text-foreground transition-colors px-1">
-        {freeLabel}
-      </button>
+    <div className="relative">
+      <Search size={16} className="absolute inset-s-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+      <input type="search" inputMode="search" autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+        value={search} onChange={(e) => setSearch(e.target.value)} placeholder={placeholder}
+        className="w-full h-11 rounded-full border border-border bg-background ps-10 pe-9 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
+      {search && (
+        <button type="button" onClick={() => setSearch('')} aria-label={t('search_clear_aria')}
+          className="absolute inset-e-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+          <X size={13} />
+        </button>
+      )}
     </div>
   );
 }
@@ -252,11 +79,11 @@ function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, t }:
   t: T;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-5 py-4 border-b border-border">
+    <div className={PANEL}>
+      <div className="px-5 py-4 border-b border-border shrink-0">
         <h2 className="text-[0.9375rem] font-semibold text-foreground">{panelTitle}</h2>
       </div>
-      <div className="p-6 flex flex-col">
+      <div className="p-6 flex flex-col overflow-y-auto">
         <div className="flex items-start gap-4">
           <div className="w-11 h-11 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0">
             <Tag size={18} />
@@ -284,6 +111,21 @@ function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, t }:
   );
 }
 
+/** Liste du catalogue : seule partie qui défile, avec une ombre en bas tant qu'il reste du contenu. */
+function DesktopCatalogList({ children }: { children: ReactNode }) {
+  const { ref, hasMore } = useScrollShadow();
+  return (
+    <div className="relative flex-1 min-h-0 flex flex-col border-t border-border">
+      <div ref={ref} className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        <div className="divide-y divide-border">{children}</div>
+      </div>
+      {hasMore && (
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-linear-to-t from-black/8 to-transparent dark:from-black/40" />
+      )}
+    </div>
+  );
+}
+
 export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.picker');
   const { data: shop } = useShop();
@@ -295,13 +137,11 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
   const [mode, setMode] = useState<PanelMode>('list');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const backToList = () => { setMode('list'); picker.backToList(); };
-
   const panelTitle = t('panel_items', { kind: catalogKind });
-  const createLabel = t('panel_create', { kind: catalogKind });
 
   if (mode === 'create') {
     return (
-      <div className="rounded-2xl border border-border bg-card overflow-hidden p-5">
+      <div className={`${PANEL} p-5 overflow-y-auto`}>
         <QuickAddProductForm
           onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); backToList(); }}
           onClose={backToList}
@@ -312,49 +152,44 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
   }
   if (mode === 'free') {
     return (
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border">
+      <div className={PANEL}>
+        <div className="px-5 py-3.5 border-b border-border shrink-0">
           <span className="text-[0.9375rem] font-semibold">{t('free_sheet_title')}</span>
         </div>
-        <div className="px-5 py-4">
+        <div className="px-5 py-4 overflow-y-auto">
           <FreeLineView onCancel={backToList} onSubmit={(line) => { form.addFreeLine(line); backToList(); }} />
         </div>
       </div>
     );
   }
-
-  const isEmptyCatalog = picker.products.length === 0;
-
-  if (isEmptyCatalog) {
-    return (
-      <DesktopEmptyCatalogPanel form={form} catalogKind={catalogKind} panelTitle={panelTitle}
-        setMode={setMode} t={t} />
-    );
+  // Une recherche sans résultat n'est pas un catalogue vide : la recherche reste affichée.
+  if (picker.products.length === 0 && !picker.search) {
+    return <DesktopEmptyCatalogPanel form={form} catalogKind={catalogKind} panelTitle={panelTitle} setMode={setMode} t={t} />;
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <DesktopCatalogHeader title={panelTitle} kind={catalogKind} filter={picker.filter}
-        setFilter={(v) => { picker.setFilter(v); setExpandedId(null); }} t={t} />
-      <DesktopCatalogSearch search={picker.search}
-        setSearch={(v) => { picker.setSearch(v); setExpandedId(null); }}
-        placeholder={t('desktop_search_placeholder', { kind: catalogKind })} t={t} />
-      <div className="border-t border-border divide-y divide-border">
+    <div className={PANEL}>
+      <div className="shrink-0">
+        <DesktopCatalogHeader title={panelTitle} kind={catalogKind} filter={picker.filter}
+          setFilter={(v) => { picker.setFilter(v); setExpandedId(null); }} t={t} />
+        <div className="flex flex-col gap-3 px-5 pb-4">
+          <DesktopCatalogSearch search={picker.search}
+            setSearch={(v) => { picker.setSearch(v); setExpandedId(null); }}
+            placeholder={t('desktop_search_placeholder', { kind: catalogKind })} t={t} />
+          <CatalogAddActions onCreate={() => setMode('create')} onFreeLine={() => setMode('free')} />
+        </div>
+      </div>
+      <DesktopCatalogList>
         {picker.filtered.length === 0 ? (
           <p className="px-5 py-6 text-center text-sm text-muted-foreground">{t('no_results')}</p>
         ) : (
           picker.filtered.map((p) => (
-            <DesktopProductRow key={p.id} p={p} formItems={form.items} expandedId={expandedId}
-              setExpandedId={setExpandedId} onPick={form.addItem} money={money} t={t} catalogKind={catalogKind} />
+            <DesktopProductRow key={p.id} p={p} items={form.items} isExpanded={expandedId === p.id}
+              onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
+              onPick={form.addItem} money={money} showServiceBadge={catalogKind === 'both'} />
           ))
         )}
-      </div>
-      <DesktopCatalogFooter
-        createLabel={createLabel}
-        freeLabel={t('free_line_desktop', { kind: catalogKind })}
-        onCreate={() => setMode('create')}
-        onFree={() => setMode('free')}
-      />
+      </DesktopCatalogList>
     </div>
   );
 }

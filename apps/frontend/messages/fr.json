@@ -737,23 +737,13 @@
     },
     "edit": {
       "topbar": "Modifier la commande",
-      "topbar_with_number": "Modifier {number}",
+      "topbar_with_number": "Modifier la commande {number}",
       "loading": "Chargement…",
       "not_found": "Commande introuvable.",
       "read_only": "Une commande remise ou annulée ne peut plus être modifiée.",
       "saving": "Enregistrement…",
-      "save": "Enregistrer",
-      "customer_label": "Client (optionnel)",
-      "no_customer": "— Sans client —",
-      "product_picker_label": "{kind, select, products {Ajouter un article (1re variante)} services {Ajouter un service} other {Ajouter un article (1re variante)}}",
-      "product_picker_placeholder": "{kind, select, products {Choisir un article…} services {Choisir un service…} other {Choisir un article…}}",
-      "items_title": "{kind, select, products {Articles} services {Services} other {Articles}}",
-      "subtotal": "Sous-total",
-      "discount": "Remise",
-      "shipping": "Livraison",
-      "total": "Total",
-      "discount_field": "Remise (€, optionnel)",
-      "shipping_field": "Livraison (€, optionnel)"
+      "submit_label": "Enregistrer les modifications",
+      "back_to_order": "Retour à la commande"
     },
     "picker": {
       "product_trigger_title": "{kind, select, products {Ajouter un article} services {Ajouter un service} other {Ajouter un article ou service}}",
@@ -766,9 +756,6 @@
       "filter_all": "Tous",
       "filter_product": "Produits",
       "filter_service": "Services",
-      "create_product": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou service}}",
-      "free_line_title": "{kind, select, products {Article ponctuel} services {Service ponctuel} other {Article ou service ponctuel}}",
-      "free_line_sub": "Sans enregistrer au catalogue",
       "no_results": "Aucun résultat.",
       "no_products": "{kind, select, products {Aucun article enregistré.} services {Aucun service enregistré.} other {Aucun article enregistré.}}",
       "variant_back": "Retour au catalogue",
@@ -792,12 +779,14 @@
       "panel_items": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "panel_create": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou un service}}",
       "desktop_search_placeholder": "{kind, select, products {Nom de l'article, référence ou code-barres} services {Nom du service} other {Nom de l'article, référence ou code-barres}}",
-      "free_line_desktop": "{kind, select, products {Article ponctuel, sans l'enregistrer} services {Service ponctuel, sans l'enregistrer} other {Article ponctuel, sans l'enregistrer}}",
       "empty_catalog_title": "Ton catalogue est vide",
       "empty_catalog_text": "{kind, select, products {Crée l'article ici : il s'ajoute à la commande et reste dans ton catalogue pour les prochaines fois.} services {Crée le service ici : il s'ajoute à la commande et reste dans ton catalogue pour les prochaines fois.} other {Crée l'article ou le service ici : il s'ajoute à la commande et reste dans ton catalogue pour les prochaines fois.}}",
       "empty_catalog_free_question": "{kind, select, products {Un article que tu ne revendras pas ?} services {Un service que tu ne factureras qu'une fois ?} other {Un article ou un service ponctuel ?}}",
       "empty_catalog_free_link": "Ajoute-le sans l'enregistrer",
-      "view_cart": "{count, plural, one {Voir la commande (# article)} other {Voir la commande (# articles)}}"
+      "view_cart": "{count, plural, one {Voir la commande (# article)} other {Voir la commande (# articles)}}",
+      "free_line_button": "{kind, select, products {Article ponctuel} services {Service ponctuel} other {Article ponctuel}}",
+      "free_line_help": "Ajouté à cette commande sans l'enregistrer dans le catalogue",
+      "add_error": "Ajout impossible. Vérifie ta connexion et réessaie."
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",
@@ -812,7 +801,6 @@
       "no_customers": "Aucun client enregistré."
     },
     "quickAdd": {
-      "trigger_aria": "Ajouter",
       "customer_title": "Nouveau client",
       "customer_label": "Nom du client *",
       "customer_required": "Le nom est requis.",
