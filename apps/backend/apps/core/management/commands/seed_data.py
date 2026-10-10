@@ -69,6 +69,8 @@ class Command(BaseCommand):
                 LoyaltyProgram,
                 LoyaltyTransaction,
             )
+            from apps.shops.models import Shop, ShopMember
+            from apps.subscriptions.models import Subscription
 
             LoyaltyTransaction.objects.all().delete()
             LoyaltyCard.objects.all().delete()
@@ -88,7 +90,11 @@ class Command(BaseCommand):
             ProductVariant.objects.all().delete()
             Product.objects.all().delete()
             Customer.objects.all().delete()
-            self.stdout.write(self.style.WARNING("  Tables métier vidées."))
+            Subscription.objects.all().delete()
+            ShopMember.objects.all().delete()
+            Shop.objects.all().delete()
+            msg = "  Tables métier vidées (boutiques comprises)."
+            self.stdout.write(self.style.WARNING(msg))
 
         self.stdout.write(
             self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n")
