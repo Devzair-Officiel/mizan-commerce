@@ -21,6 +21,9 @@ redis==8.0.0
 django-storages[s3]==1.14.6
 boto3==1.43.22
 
+# Numéros de téléphone : normalisation E.164 (portage de libphonenumber de Google)
+phonenumbers==9.0.41
+
 # Génération PDF (factures)
 reportlab==4.5.1
 

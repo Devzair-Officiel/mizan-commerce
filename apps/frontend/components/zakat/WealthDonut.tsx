@@ -59,7 +59,8 @@ export function WealthDonut({ calc }: WealthDonutProps) {
       </p>
       <div className="flex items-center gap-4">
         <div className="relative h-32 w-32 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
+          {/* Taille connue dès le premier rendu : sans elle, recharts avertit (largeur -1). */}
+          <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 128, height: 128 }}>
             <PieChart>
               <Pie
                 data={slices}

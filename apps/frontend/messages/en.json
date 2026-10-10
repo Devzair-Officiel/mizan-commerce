@@ -396,9 +396,9 @@
       "first_name": "First name",
       "name": "Last name",
       "section_contact": "Contact",
-      "section_contact_help": "The phone number is used for WhatsApp messages and calls from the customer page.",
+      "section_contact_help": "The phone number is used for WhatsApp messages and calls.",
       "phone": "Phone",
-      "phone_help": "Include the country code.",
+      "phone_help": "Type the number as usual, the country code is added.",
       "email": "Email",
       "section_address": "Address",
       "section_address_help": "Used for deliveries and shown on invoices.",
@@ -410,13 +410,16 @@
       "section_notes_help": "Only visible to you and your team, never to the customer.",
       "notes": "Notes",
       "submit_create": "Create customer",
-      "submit_edit": "Save changes",
+      "submit_edit": "Save",
       "name_required": "Enter the customer's name.",
       "name_taken": "A customer with this name already exists in your shop.",
       "email_invalid": "This email address is not valid.",
+      "phone_invalid": "Invalid phone number",
       "too_long": "{max} characters maximum.",
       "field_invalid": "Value rejected: check this field.",
-      "save_failed": "Saving failed. Try again in a moment."
+      "save_failed": "Saving failed. Try again in a moment.",
+      "toast_saved": "Customer saved",
+      "toast_created": "Customer created"
     },
     "detail": {
       "topbar_short": "Customer",
@@ -1274,7 +1277,9 @@
     "form": {
       "unsaved": "Unsaved changes",
       "cancel": "Cancel",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "required": "Required",
+      "optional": "Optional"
     },
     "country": {
       "placeholder": "Choose a country",
@@ -1287,6 +1292,9 @@
       "placeholder": "Number and street",
       "clear": "Clear address",
       "empty": "No address found ({country}). Broaden your search or change the country."
+    },
+    "toast": {
+      "region": "Notifications"
     }
   },
   "settings": {

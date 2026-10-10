@@ -247,7 +247,7 @@ _CUSTOMERS_FR = [
     ("Samira Harrach", "+33667890123", "Strasbourg", "Régulière depuis le printemps."),
     ("Omar Berrada", "+33678901234", "Montpellier", ""),
     ("Dounia Tazi", "+33689012345", "Nantes", "Grande taille — préfère L et XL."),
-    ("Amine Benchekroun", "+33690123456", "Grenoble", ""),
+    ("Amine Benchekroun", "+33680123456", "Grenoble", ""),
     ("Rania Saadi", "+33601234567", "Lille", "Achète souvent pour offrir."),
 ]
 

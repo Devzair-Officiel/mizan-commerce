@@ -1,5 +1,9 @@
 from rest_framework import serializers
+
 from .models import Customer
+from .services import InvalidPhoneNumber, format_phone_display, normalize_phone
+
+PHONE_INVALID = 'Numéro de téléphone invalide'
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -7,6 +11,10 @@ class CustomerSerializer(serializers.ModelSerializer):
     last_order_at = serializers.DateTimeField(read_only=True, default=None)
     pending_amount = serializers.SerializerMethodField()
     paid_amount = serializers.SerializerMethodField()
+    phone_display = serializers.SerializerMethodField()
+
+    def get_phone_display(self, obj: Customer) -> str:
+        return format_phone_display(obj.phone)
 
     def get_pending_amount(self, obj) -> str:
         val = getattr(obj, 'pending_amount', None)
@@ -29,10 +37,17 @@ class CustomerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Un client avec ce nom existe déjà.')
         return value
 
+    def validate_phone(self, value: str) -> str:
+        shop = self.context.get('shop')
+        try:
+            return normalize_phone(value, shop.country if shop else '')
+        except InvalidPhoneNumber:
+            raise serializers.ValidationError(PHONE_INVALID) from None
+
     class Meta:
         model = Customer
         fields = (
-            'id', 'name', 'first_name', 'phone', 'email',
+            'id', 'name', 'first_name', 'phone', 'phone_display', 'email',
             'address_line', 'city', 'postal_code', 'country',
             'notes', 'is_active',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
@@ -46,6 +61,10 @@ class CustomerListSerializer(serializers.ModelSerializer):
     pending_amount = serializers.SerializerMethodField()
     paid_amount = serializers.SerializerMethodField()
     last_order_at = serializers.DateTimeField(read_only=True)
+    phone_display = serializers.SerializerMethodField()
+
+    def get_phone_display(self, obj: Customer) -> str:
+        return format_phone_display(obj.phone)
 
     def get_pending_amount(self, obj) -> str:
         return str(obj.pending_amount)
@@ -56,6 +75,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = (
-            'id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at',
+            'id', 'name', 'phone', 'phone_display', 'email', 'city', 'is_active',
+            'created_at',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
         )

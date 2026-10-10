@@ -92,7 +92,14 @@ class PreparedMessageCreateSerializer(serializers.Serializer):
             PreparedMessage.TemplateType.TRACKING,
             PreparedMessage.TemplateType.UNPAID_FOLLOWUP,
         )
-        if needs_context:
+        # Relance depuis la fiche client : un message composé pour ses commandes dues.
+        customer_followup = (
+            template_type == PreparedMessage.TemplateType.UNPAID_FOLLOWUP
+            and context_type == PreparedMessage.ContextType.CUSTOMER
+            and context_id
+            and (data.get('custom_message') or '').strip()
+        )
+        if needs_context and not customer_followup:
             if context_type != PreparedMessage.ContextType.ORDER or not context_id:
                 raise serializers.ValidationError(
                     {'context_id': 'Une commande est requise pour ce template.'}

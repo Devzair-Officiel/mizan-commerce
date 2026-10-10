@@ -61,7 +61,8 @@ export function HistoryChart({ calculations }: HistoryChartProps) {
         Évolution annuelle
       </p>
       <div className="h-44 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        {/* Dimensions non nulles dès le premier rendu : sans elles, recharts avertit (largeur -1). */}
+        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 176 }}>
           <BarChart data={data} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="hsl(var(--border))" vertical={false} strokeDasharray="3 3" />
             <XAxis

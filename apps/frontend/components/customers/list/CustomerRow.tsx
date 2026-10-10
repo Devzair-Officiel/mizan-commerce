@@ -42,7 +42,7 @@ export function CustomerRow({ customer, first, currency }: CustomerRowProps) {
           )}
         </div>
         <p className="mt-0.5 truncate text-sm text-muted-foreground">
-          <span dir="ltr">{customer.phone || t('phone_missing')}</span>
+          <span dir="ltr">{customer.phone_display || customer.phone || t('phone_missing')}</span>
           {city && <> · {city}</>}
         </p>
       </div>

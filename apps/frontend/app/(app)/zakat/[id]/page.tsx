@@ -23,6 +23,7 @@ import {
   useDeleteZakatCalculation,
 } from '@/lib/hooks/useZakat';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { notify } from '@/lib/notify';
 
 export default function ZakatDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +42,7 @@ export default function ZakatDetailPage() {
       const message = err instanceof ApiError && err.data && typeof err.data === 'object'
         ? ((err.data as { detail?: string }).detail ?? 'Impossible de rouvrir ce calcul.')
         : 'Impossible de rouvrir ce calcul.';
-      window.alert(message);
+      notify.error(message);
     }
   };
 

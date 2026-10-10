@@ -2,7 +2,8 @@ import { chromium } from 'playwright';
 import { watchConsole } from './watch.mjs';
 
 export const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
-const EMAIL = process.env.AUDIT_EMAIL ?? 'youssef@example.com';
+// Compte dédié aux audits (seed) : sa boutique « Boutique Audit » reçoit tout ce que les audits créent.
+const EMAIL = process.env.AUDIT_EMAIL ?? 'e2e@example.com';
 const PASSWORD = process.env.AUDIT_PASSWORD ?? 'Mizan1234!';
 
 export const VIEWPORTS = [
@@ -24,8 +25,9 @@ export function launch() {
  * avec `setLocale` / `setTheme`, pris en compte au prochain chargement de page.
  * Le thème vient du compte (`/auth/me/`) : la réponse est réécrite pour forcer
  * clair ou sombre sans toucher aux préférences enregistrées.
+ * `email` : un autre compte de démo, en lecture (vérifier qu'une boutique est restée intacte).
  */
-export async function openSession(browser, viewport) {
+export async function openSession(browser, viewport, { email = EMAIL } = {}) {
   const ctx = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     isMobile: viewport.mobile,
@@ -36,15 +38,19 @@ export async function openSession(browser, viewport) {
   await setLocale('fr');
   await ctx.route(/\/api\/proxy\/auth\/me\/?(\?.*)?$/, async (route) => {
     if (route.request().method() !== 'GET') return route.continue();
-    const response = await route.fetch();
-    const me = await response.json();
-    await route.fulfill({ response, json: { ...me, theme_mode: theme } });
+    try {
+      const response = await route.fetch();
+      const me = await response.json();
+      await route.fulfill({ response, json: { ...me, theme_mode: theme } });
+    } catch {
+      // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
+    }
   });
   const page = await ctx.newPage();
   const watch = watchConsole(page);
   watch.setLabel(`${viewport.name} connexion`);
   await page.goto(`${BASE}/login`);
-  await page.fill('#email', EMAIL);
+  await page.fill('#email', email);
   await page.fill('input[type=password]', PASSWORD);
   await Promise.all([
     page.waitForURL((u) => !u.pathname.startsWith('/login')),

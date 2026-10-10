@@ -195,3 +195,103 @@ class CustomerListServerSideTest(TestCase):
         self.assertNotIn('Intrus', self._names(situation='pending'))
         self.assertEqual(self.client.get(reverse('customer-facets')).data['situation']['all'], 5)  # noqa: E501
         self.assertEqual(self.client.get(reverse('customer-summary')).data['due']['amount'], '70.00')  # noqa: E501
+
+
+class CustomerPhoneTest(TestCase):
+    """Numéros enregistrés au format E.164, avec le pays de la boutique par défaut."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup('phone@example.com')
+        self.shop.country = 'FR'
+        self.shop.save()
+        self.client.force_authenticate(user=self.user)
+
+    def create(self, phone: str):
+        return self.client.post(
+            reverse('customer-list'), {'name': 'Client tel', 'phone': phone},
+        )
+
+    def test_french_national_number(self):
+        response = self.create('06 12 34 56 78')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['phone'], '+33612345678')
+        self.assertEqual(response.data['phone_display'], '+33 6 12 34 56 78')
+
+    def test_moroccan_number_with_moroccan_shop(self):
+        self.shop.country = 'MA'
+        self.shop.save()
+        response = self.create('0661-23-45-67')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['phone'], '+212661234567')
+
+    def test_international_number_keeps_its_country(self):
+        response = self.create('+212 661 23 45 67')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['phone'], '+212661234567')
+
+    def test_invalid_number_is_refused(self):
+        response = self.create('12345')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data['errors']['phone'], ['Numéro de téléphone invalide'],
+        )
+        self.assertFalse(Customer.objects.filter(shop=self.shop).exists())
+
+    def test_empty_number_stays_empty(self):
+        response = self.create('')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['phone'], '')
+
+    def test_update_normalizes(self):
+        c = Customer.objects.create(shop=self.shop, name='À modifier')
+        response = self.client.patch(
+            reverse('customer-detail', kwargs={'pk': c.pk}), {'phone': '0698765432'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        c.refresh_from_db()
+        self.assertEqual(c.phone, '+33698765432')
+
+
+class NormalizePhonesMigrationTest(TestCase):
+    """Migration 0004 : normalise l'existant, sans effet si on la relance."""
+
+    def run_migration(self) -> str:
+        import importlib
+        import io
+        from contextlib import redirect_stdout
+
+        from django.apps import apps
+
+        module = importlib.import_module(
+            'apps.customers.migrations.0004_normalize_customer_phones',
+        )
+        out = io.StringIO()
+        with redirect_stdout(out):
+            module.normalize_customer_phones(apps, None)
+        return out.getvalue()
+
+    def test_normalizes_and_is_idempotent(self):
+        _, fr = setup('mig-fr@example.com')
+        fr.country = 'FR'
+        fr.save()
+        _, ma = setup('mig-ma@example.com')
+        ma.country = 'MA'
+        ma.save()
+        national = Customer.objects.create(shop=fr, name='A', phone='06 12 34 56 78')
+        moroccan = Customer.objects.create(shop=ma, name='B', phone='0661234567')
+        done = Customer.objects.create(shop=fr, name='C', phone='+212661234567')
+        broken = Customer.objects.create(shop=fr, name='D', phone='abc 12')
+
+        output = self.run_migration()
+        for c in (national, moroccan, done, broken):
+            c.refresh_from_db()
+        self.assertEqual(national.phone, '+33612345678')
+        self.assertEqual(moroccan.phone, '+212661234567')
+        self.assertEqual(done.phone, '+212661234567')
+        self.assertEqual(broken.phone, 'abc 12')
+        self.assertIn("'abc 12'", output)
+
+        self.run_migration()
+        national.refresh_from_db()
+        self.assertEqual(national.phone, '+33612345678')

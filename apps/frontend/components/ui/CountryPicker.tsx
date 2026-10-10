@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
+import { countryFlag } from '@/lib/countryFlag';
 import { useCountryNames } from '@/lib/hooks/useCountryNames';
 import { BottomSheet } from './BottomSheet';
 
@@ -15,12 +16,6 @@ const COUNTRY_CODES = [
   'DE', 'ES', 'IT', 'PT', 'GB', 'NL', 'US', 'CA', 'BR', 'MX',
   'CN', 'JP', 'IN', 'AU',
 ];
-
-function flag(code: string) {
-  return code.toUpperCase().replace(/./g, c =>
-    String.fromCodePoint(127397 + c.charCodeAt(0))
-  );
-}
 
 interface CountryPickerProps {
   value: string;
@@ -50,7 +45,7 @@ export function CountryPicker({ value, onChange, id, 'aria-describedby': describ
           className={`${FIELD_CONTROL} flex items-center gap-2 pe-11 text-start`}>
           {value ? (
             <>
-              <span className="text-lg leading-none" aria-hidden>{flag(value)}</span>
+              <span className="text-lg leading-none" aria-hidden>{countryFlag(value)}</span>
               <span className="flex-1 truncate">{countryName(value)}</span>
             </>
           ) : (
@@ -77,7 +72,7 @@ export function CountryPicker({ value, onChange, id, 'aria-describedby': describ
           {filtered.map((code) => (
             <button key={code} type="button" onClick={() => { onChange(code); close(); }} aria-pressed={value === code}
               className={`flex min-h-12 items-center gap-3 px-1 text-sm transition-colors active:bg-muted ${value === code ? 'font-semibold text-primary' : 'text-foreground'}`}>
-              <span className="w-8 text-center text-2xl leading-none" aria-hidden>{flag(code)}</span>
+              <span className="w-8 text-center text-2xl leading-none" aria-hidden>{countryFlag(code)}</span>
               <span className="flex-1 text-start">{countryName(code)}</span>
               {value === code && <span className="size-2 shrink-0 rounded-full bg-primary" aria-hidden />}
             </button>

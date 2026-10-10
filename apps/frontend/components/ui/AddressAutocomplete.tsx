@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { Loader2, MapPin, X } from 'lucide-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -64,10 +64,13 @@ interface AddressAutocompleteProps {
   /** Relie le champ au libellé et à l'aide du formulaire. */
   id?: string;
   'aria-describedby'?: string;
+  'aria-invalid'?: true;
+  /** Ref du champ texte (focus sur erreur). */
+  ref?: Ref<HTMLInputElement>;
 }
 
 export function AddressAutocomplete({
-  value, onChange, onSelect, countryCode, id, 'aria-describedby': describedBy,
+  value, onChange, onSelect, countryCode, id, 'aria-describedby': describedBy, 'aria-invalid': invalid, ref,
 }: AddressAutocompleteProps) {
   const t = useTranslations('ui.address');
   const countryNames = useCountryNames();
@@ -134,8 +137,8 @@ export function AddressAutocomplete({
   return (
     <div ref={containerRef} className="relative">
       <div
-        className={`flex h-11 items-center gap-2 rounded-xl border bg-card ps-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/20 ${
-          open ? 'border-primary' : 'border-border'
+        className={`flex h-11 items-center gap-2 rounded-xl border bg-background ps-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/20 ${
+          invalid ? 'border-red-600 dark:border-red-400' : open ? 'border-primary' : 'border-border'
         }`}
       >
         {loading ? (
@@ -147,9 +150,11 @@ export function AddressAutocomplete({
           />
         )}
         <input
+          ref={ref}
           type="text"
           id={id}
           aria-describedby={describedBy}
+          aria-invalid={invalid}
           dir={value ? 'auto' : undefined}
           autoComplete="off"
           value={value}

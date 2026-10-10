@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Iterable, TypedDict
 
+import phonenumbers
 from django.db.models import (
     Count, DecimalField, Exists, F, Max, OuterRef, Q, QuerySet, Sum, Value,
 )
@@ -25,6 +26,46 @@ SITUATIONS = ('all', 'active', 'pending', 'deactivated')
 
 _MONEY = DecimalField(max_digits=12, decimal_places=2)
 _NOT_CANCELLED = ~Q(orders__status='cancelled')
+
+
+class InvalidPhoneNumber(ValueError):
+    """Numéro qui ne correspond à aucun numéro attribuable."""
+
+
+def normalize_phone(raw: str, default_region: str = '') -> str:
+    """Numéro au format E.164 (`+33612345678`), vide si la saisie est vide.
+
+    Un numéro national (`06 12 34 56 78`) prend l'indicatif de `default_region`
+    (le pays de la boutique) ; un numéro qui commence par `+` ou `00` garde le sien.
+    Lève `InvalidPhoneNumber` si le numéro n'est pas valide.
+    """
+    value = raw.strip()
+    if not value:
+        return ''
+    try:
+        number = phonenumbers.parse(value, default_region.upper() or None)
+    except phonenumbers.NumberParseException as exc:
+        raise InvalidPhoneNumber(value) from exc
+    if not phonenumbers.is_valid_number(number):
+        raise InvalidPhoneNumber(value)
+    return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+
+
+def format_phone_display(value: str) -> str:
+    """Forme lisible d'un numéro E.164 (`+33 6 12 34 56 78`).
+
+    Un numéro resté hors format (ancienne saisie impossible à normaliser) est
+    renvoyé tel quel.
+    """
+    if not value.startswith('+'):
+        return value
+    try:
+        number = phonenumbers.parse(value, None)
+    except phonenumbers.NumberParseException:
+        return value
+    return phonenumbers.format_number(
+        number, phonenumbers.PhoneNumberFormat.INTERNATIONAL,
+    )
 
 
 def customers_with_stats(shop) -> QuerySet[Customer]:

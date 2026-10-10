@@ -396,9 +396,9 @@
       "first_name": "Prénom",
       "name": "Nom",
       "section_contact": "Contact",
-      "section_contact_help": "Le téléphone sert aux messages WhatsApp et aux appels depuis la fiche.",
+      "section_contact_help": "Le téléphone sert aux messages WhatsApp et aux appels.",
       "phone": "Téléphone",
-      "phone_help": "Avec l'indicatif du pays.",
+      "phone_help": "Tapez le numéro comme d'habitude, l'indicatif est ajouté.",
       "email": "E-mail",
       "section_address": "Adresse",
       "section_address_help": "Utilisée pour les livraisons et reprise sur les factures.",
@@ -410,13 +410,16 @@
       "section_notes_help": "Visibles uniquement par vous et votre équipe, jamais par le client.",
       "notes": "Notes",
       "submit_create": "Créer le client",
-      "submit_edit": "Enregistrer les modifications",
+      "submit_edit": "Enregistrer",
       "name_required": "Indiquez le nom du client.",
       "name_taken": "Un client porte déjà ce nom dans votre boutique.",
       "email_invalid": "Cette adresse e-mail n'est pas valide.",
+      "phone_invalid": "Numéro de téléphone invalide",
       "too_long": "{max} caractères au maximum.",
       "field_invalid": "Valeur refusée : vérifiez ce champ.",
-      "save_failed": "L'enregistrement a échoué. Réessayez dans un instant."
+      "save_failed": "L'enregistrement a échoué. Réessayez dans un instant.",
+      "toast_saved": "Client enregistré",
+      "toast_created": "Client créé"
     },
     "detail": {
       "topbar_short": "Client",
@@ -1274,7 +1277,9 @@
     "form": {
       "unsaved": "Modifications non enregistrées",
       "cancel": "Annuler",
-      "saving": "Enregistrement…"
+      "saving": "Enregistrement…",
+      "required": "Obligatoire",
+      "optional": "Facultatif"
     },
     "country": {
       "placeholder": "Choisir un pays",
@@ -1287,6 +1292,9 @@
       "placeholder": "Numéro et rue",
       "clear": "Effacer l'adresse",
       "empty": "Aucune adresse trouvée ({country}). Élargissez la recherche ou changez de pays."
+    },
+    "toast": {
+      "region": "Notifications"
     }
   },
   "settings": {

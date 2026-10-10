@@ -23,7 +23,7 @@ function NewCustomerContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-198">
       <TopBar title={t('title')} back backLabel={tNav('customers')} onBack={back} hideSearch />
       <CustomerForm
         mode="create"

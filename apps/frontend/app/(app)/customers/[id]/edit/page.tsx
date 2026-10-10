@@ -26,7 +26,7 @@ export default function EditCustomerPage() {
 
   if (isLoading || !customer) {
     return (
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="mx-auto w-full max-w-198">
         <TopBar title={t('title')} back onBack={back} hideSearch />
         {isLoading
           ? <div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" />
@@ -40,7 +40,7 @@ export default function EditCustomerPage() {
     count: customer.order_count,
   });
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-198">
       <TopBar title={t('title')} subtitle={subtitle} back backLabel={customer.name} onBack={back} hideSearch />
       <CustomerForm mode="edit" defaultValues={customer} onSubmit={handleSubmit} isSubmitting={isPending} onLeave={back} />
     </div>

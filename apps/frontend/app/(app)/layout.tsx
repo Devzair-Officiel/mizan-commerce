@@ -3,6 +3,7 @@ import { BurgerMenuProvider, BurgerMenuDrawer } from '@/components/layout/Burger
 import { ThemeDrawerProvider, ThemeDrawerPanel } from '@/components/layout/ThemeDrawer';
 import { SearchProvider } from '@/components/layout/SearchOverlay';
 import { AppContent } from '@/components/layout/AppContent';
+import { AppToaster } from '@/components/layout/AppToaster';
 import { DesktopSidebar } from '@/components/layout/DesktopSidebar';
 import { LegacyTokenCleaner } from '@/components/layout/LegacyTokenCleaner';
 import { OnboardingGate } from '@/components/layout/OnboardingGate';
@@ -27,6 +28,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </main>
             </div>
             <BottomNav />
+            <AppToaster />
           </AppContent>
           <BurgerMenuDrawer />
         </SearchProvider>

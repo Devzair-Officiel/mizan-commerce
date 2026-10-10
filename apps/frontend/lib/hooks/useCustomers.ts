@@ -13,6 +13,8 @@ export interface CustomerSummary {
   id: string;
   name: string;
   phone: string;
+  /** Le numéro, lisible (+33 6 12 34 56 78). `phone` (E.164) sert aux liens tel: et wa.me. */
+  phone_display: string;
   email: string;
   city: string;
   is_active: boolean;

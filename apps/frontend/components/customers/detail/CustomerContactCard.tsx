@@ -33,7 +33,7 @@ export function CustomerContactCard({ customer, actions }: { customer: Customer;
         </div>
       ) : (
         <div className="flex flex-col py-1.5">
-          {customer.phone && <a href={`tel:${customer.phone}`} className={LINE}><Line icon={<Phone size={16} />}><span dir="ltr">{customer.phone}</span></Line></a>}
+          {customer.phone && <a href={`tel:${customer.phone}`} className={LINE}><Line icon={<Phone size={16} />}><span dir="ltr">{customer.phone_display || customer.phone}</span></Line></a>}
           {customer.email && <a href={`mailto:${customer.email}`} className={LINE}><Line icon={<Mail size={16} />}>{customer.email}</Line></a>}
           {address && <button type="button" onClick={actions.openAddress} className={LINE}><Line icon={<MapPin size={16} />}>{address}</Line></button>}
         </div>

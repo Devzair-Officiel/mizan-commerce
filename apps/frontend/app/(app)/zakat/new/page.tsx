@@ -21,6 +21,7 @@ import {
   type ZakatCalculation,
 } from '@/lib/hooks/useZakat';
 import { ApiError } from '@/lib/api-client';
+import { notify } from '@/lib/notify';
 import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function NewZakatWizardPage() {
@@ -116,7 +117,7 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         const data = err.data as { detail?: string; existing_id?: string; year?: number };
-        window.alert(
+        notify.error(
           data.detail ??
             `Un calcul finalisé existe déjà pour ${data.year}. Vous allez être redirigé vers ce calcul.`,
         );

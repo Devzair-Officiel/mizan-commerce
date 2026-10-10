@@ -13,7 +13,7 @@ function ClientCell({ customer, noPhone }: { customer: CustomerSummary; noPhone:
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold capitalize">{customer.name}</span>
         <span className="mt-0.5 block truncate text-[0.8125rem] text-muted-foreground" dir="ltr">
-          {customer.phone || noPhone}
+          {customer.phone_display || customer.phone || noPhone}
         </span>
       </span>
     </span>
