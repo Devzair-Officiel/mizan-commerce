@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl';
 import { Search, X, Loader2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
-import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Product } from '@/lib/hooks/useProducts';
 import { CatalogAddActions } from './CatalogAddActions';
 
@@ -36,7 +35,6 @@ export function PickView({
   loadingProductId, feedback,
 }: PickViewProps) {
   const t = useTranslations('orders.picker');
-  const kind = useCatalogKind();
   return (
     <>
       <div className="relative mb-3">
@@ -95,7 +93,7 @@ export function PickView({
       <div className="flex flex-col divide-y divide-border -mx-5 px-5">
         {products.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">
-            {search || filter !== 'all' ? t('no_results') : t('no_products', { kind })}
+            {t('no_results')}
           </p>
         ) : (
           products.map((p) => (

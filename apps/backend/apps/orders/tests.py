@@ -406,6 +406,20 @@ class OrderListFilterAPITest(TestCase):
             services.update_payment(order, order.total_amount / 2, user=u)
         return order
 
+    def test_customer_filter(self):
+        mine = services.create_order(self.shop, self.user, customer=self.customer)
+        services.create_order(self.shop, self.user)
+        response = self.client.get(
+            reverse('order-list'), {'customer': str(self.customer.pk)},
+        )
+        self.assertEqual([o['id'] for o in response.data['results']], [str(mine.pk)])
+
+    def test_customer_filter_invalid_id_returns_empty_list(self):
+        services.create_order(self.shop, self.user, customer=self.customer)
+        response = self.client.get(reverse('order-list'), {'customer': 'pas-un-uuid'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 0)
+
     def test_due_excludes_cancelled(self):
         order = services.create_order(self.shop, self.user)
         services.add_item(order, self.variant, 1)

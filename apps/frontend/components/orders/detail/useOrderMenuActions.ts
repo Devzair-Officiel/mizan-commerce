@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Download, Receipt, Undo2, XCircle } from 'lucide-react';
+import type { DetailMenuActions } from '@/components/detail/types';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
@@ -9,12 +10,7 @@ import { getRevertStatus, STATUS_ALLOWS_CANCEL, WhatsAppIcon } from './constants
 import type { OrderAction, OrderActionKey } from './useOrderPrimaryAction';
 import type { OrderDetailActions } from './useOrderDetailState';
 
-export interface OrderMenuActions {
-  /** Actions ordinaires, dans l'ordre d'affichage. */
-  items: OrderAction[];
-  /** Action dangereuse, après un séparateur. */
-  danger: OrderAction | null;
-}
+export type OrderMenuActions = DetailMenuActions<OrderActionKey>;
 
 /**
  * Déclaration unique des actions secondaires, lue par le menu desktop et la

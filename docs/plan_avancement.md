@@ -394,6 +394,8 @@
 - [~] C2 — Détail d'une commande (desktop + mobile)
 - [~] Mode sombre via tokens (fin des gris de palette, garde-fou `npm run tokens:check`) et marges latérales grand écran (`lg:px-8 xl:px-12 2xl:px-16`)
 - [~] C2 — Nouvelle commande desktop et modification sur le même écran
+- [~] C3 — Clients : liste (gabarit)
+- [~] C3 — Fiche client (gabarit de détail)
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

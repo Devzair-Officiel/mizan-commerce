@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
@@ -193,8 +194,11 @@ export function BottomSheet({ open, onClose, title, fullHeight, footer, children
 
   if (!open) return null;
 
-  if (isDesktop === true) {
-    return <DesktopDialog visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t} footer={footer}>{children}</DesktopDialog>;
-  }
-  return <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t} footer={footer}>{children}</MobileSheet>;
+  // Portail : un ancêtre avec `backdrop-filter` (barre du haut) ferait du `fixed` un positionnement relatif à lui.
+  return createPortal(
+    isDesktop === true
+      ? <DesktopDialog visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t} footer={footer}>{children}</DesktopDialog>
+      : <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t} footer={footer}>{children}</MobileSheet>,
+    document.body,
+  );
 }

@@ -15,6 +15,8 @@ export interface OrdersSelection {
   payment: PaymentFilter;
   month: boolean;
   ordering: string;
+  /** Client choisi depuis sa fiche (« Voir toutes ») ; la réinitialisation le garde. */
+  customer: string;
 }
 
 export const EMPTY_FILTERS = { status: '', payment: 'all', month: false } as const;
@@ -26,6 +28,7 @@ export function selectionFilters(s: OrdersSelection, search: string): Omit<Order
     due: s.payment === 'due' || undefined,
     payment_status: s.payment === 'paid' ? 'paid' : undefined,
     period: s.month ? 'month' : undefined,
+    customer: s.customer || undefined,
     search: search || undefined,
     ordering: s.ordering === DEFAULT_ORDERING ? undefined : s.ordering,
   };
@@ -41,6 +44,7 @@ export function useOrdersPageState() {
   const isDue = list.param('due') === 'true';
   const isPaid = list.param('payment_status') === 'paid';
   const isMonth = list.param('period') === 'month';
+  const customer = list.param('customer');
   const paymentFilter: PaymentFilter = isDue ? 'due' : isPaid ? 'paid' : 'all';
 
   const handleStatusFilter = (v: StatusFilterKey) => list.setParams({ status: v || null });
@@ -49,8 +53,9 @@ export function useOrdersPageState() {
     payment_status: v === 'paid' ? 'paid' : null,
   });
   const handlePeriod = (month: boolean) => list.setParams({ period: month ? 'month' : null });
+  const clearCustomer = () => list.setParams({ customer: null });
   /** Retire statut, paiement et période en une seule navigation ; garde recherche et tri. */
-  const selection: OrdersSelection = { status: statusFilter, payment: paymentFilter, month: isMonth, ordering: list.ordering };
+  const selection: OrdersSelection = { status: statusFilter, payment: paymentFilter, month: isMonth, ordering: list.ordering, customer };
   /** Applique filtres et tri en une seule navigation (validation de la fenêtre mobile). */
   const applySelection = (s: OrdersSelection) => list.setParams({
     status: s.status || null,
@@ -71,14 +76,14 @@ export function useOrdersPageState() {
   };
 
   const filters = selectionFilters(selection, list.search);
-  const isFiltered = !!statusFilter || isDue || isPaid || isMonth || !!list.search;
+  const isFiltered = !!statusFilter || isDue || isPaid || isMonth || !!customer || !!list.search;
 
   return {
-    statusFilter, paymentFilter, isMonth, isFiltered, filters, activeCards, selection,
+    statusFilter, paymentFilter, isMonth, customer, isFiltered, filters, activeCards, selection,
     page: list.page, ordering: list.ordering, search: list.search,
     searchInput: list.searchInput, setSearchInput: list.setSearch,
     setPage: list.setPage, setOrdering: list.setOrdering, clearFilters: list.clearFilters,
-    handleStatusFilter, handlePaymentFilter, handlePeriod, applySelection, toggleCard,
+    handleStatusFilter, handlePaymentFilter, handlePeriod, clearCustomer, applySelection, toggleCard,
   };
 }
 

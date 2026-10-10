@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { Search, X, Tag } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
@@ -10,6 +10,7 @@ import { useScrollShadow } from '@/lib/hooks/useScrollShadow';
 import { QuickAddProductForm } from '@/components/orders/new/QuickAddProductForm';
 import { DesktopProductRow } from '@/components/orders/new/DesktopProductRow';
 import { CatalogAddActions } from '@/components/orders/picker/CatalogAddActions';
+import { EmptyCatalogState } from '@/components/orders/picker/EmptyCatalogState';
 import { FreeLineView } from '@/components/orders/picker/FreeLineView';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
@@ -73,10 +74,8 @@ function DesktopCatalogSearch({ search, setSearch, placeholder, t }: {
   );
 }
 
-function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, t }: {
-  form: NewSaleForm; catalogKind: string; panelTitle: string;
-  setMode: (m: PanelMode) => void;
-  t: T;
+function DesktopEmptyCatalogPanel({ form, panelTitle, setMode }: {
+  form: NewSaleForm; panelTitle: string; setMode: (m: PanelMode) => void;
 }) {
   return (
     <div className={PANEL}>
@@ -84,28 +83,7 @@ function DesktopEmptyCatalogPanel({ form, catalogKind, panelTitle, setMode, t }:
         <h2 className="text-[0.9375rem] font-semibold text-foreground">{panelTitle}</h2>
       </div>
       <div className="p-6 flex flex-col overflow-y-auto">
-        <div className="flex items-start gap-4">
-          <div className="w-11 h-11 rounded-full bg-secondary text-primary flex items-center justify-center shrink-0">
-            <Tag size={18} />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-base font-semibold text-foreground">{t('empty_catalog_title')}</span>
-            <span className="text-sm text-muted-foreground">{t('empty_catalog_text', { kind: catalogKind })}</span>
-          </div>
-        </div>
-        <div className="mt-5">
-          <QuickAddProductForm
-            onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }}
-            onClose={() => {}}
-          />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-x-1.5 items-baseline text-[0.8125rem]">
-          <span className="text-muted-foreground">{t('empty_catalog_free_question', { kind: catalogKind })}</span>
-          <button type="button" onClick={() => setMode('free')}
-            className="text-primary font-semibold hover:underline">
-            {t('empty_catalog_free_link')}
-          </button>
-        </div>
+        <EmptyCatalogState onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }} onFreeLine={() => setMode('free')} />
       </div>
     </div>
   );
@@ -164,7 +142,7 @@ export function DesktopCatalogPanel({ form }: { form: NewSaleForm }) {
   }
   // Une recherche sans résultat n'est pas un catalogue vide : la recherche reste affichée.
   if (picker.products.length === 0 && !picker.search) {
-    return <DesktopEmptyCatalogPanel form={form} catalogKind={catalogKind} panelTitle={panelTitle} setMode={setMode} t={t} />;
+    return <DesktopEmptyCatalogPanel form={form} panelTitle={panelTitle} setMode={setMode} />;
   }
 
   return (

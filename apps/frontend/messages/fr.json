@@ -330,36 +330,58 @@
   "customers": {
     "list": {
       "title": "Clients",
-      "active_count": "Clients actifs",
-      "pending_total": "Paiements en attente",
-      "loading": "Chargement…",
-      "count_filtered": "{count, plural, one {# client affiché} other {# clients affichés}} · filtré",
-      "count_registered": "{count, plural, one {# client enregistré} other {# clients enregistrés}}",
+      "count": "{count, plural, one {# client} other {# clients}}",
       "new_cta": "Nouveau client",
-      "filter_sort": "Filtrer / Trier",
-      "empty_filtered": "Aucun client correspondant.",
+      "search_label": "Rechercher un client",
+      "search_placeholder": "Nom, téléphone, e-mail ou ville",
+      "clear_filters": "Effacer les filtres",
+      "situation_title": "Situation",
+      "situation": {
+        "all": "Tous",
+        "active": "Actifs",
+        "pending": "Avec un impayé",
+        "deactivated": "Désactivés"
+      },
+      "column_client": "Client",
+      "column_city": "Ville",
+      "column_orders": "Commandes",
+      "column_last_order": "Dernière commande",
+      "column_paid": "Total payé",
+      "column_pending": "Reste à payer",
+      "none": "Aucun",
+      "no_orders": "Aucune commande",
+      "pending_short": "à payer",
       "deactivated_badge": "Désactivé",
       "phone_missing": "Téléphone non renseigné",
-      "pending_to_collect": "à régler"
+      "load_more": "Charger plus",
+      "empty_title": "Aucun client",
+      "empty_sub": "Ajoutez vos clients pour suivre leurs commandes et ce qu'il leur reste à payer.",
+      "empty_filtered_title": "Aucun client pour ce filtre",
+      "empty_filtered_sub": "Retirez les filtres ou modifiez la recherche pour voir tous vos clients.",
+      "sort": {
+        "name": "{dir, select, asc {Trié par nom, de A à Z} other {Trié par nom, de Z à A}}",
+        "pending_amount": "{dir, select, asc {Trié par reste à payer, plus petits d'abord} other {Trié par reste à payer, plus grands d'abord}}",
+        "paid_amount": "{dir, select, asc {Trié par total payé, plus petits d'abord} other {Trié par total payé, plus grands d'abord}}",
+        "order_count": "{dir, select, asc {Trié par commandes, moins nombreuses d'abord} other {Trié par commandes, plus nombreuses d'abord}}",
+        "last_order_at": "{dir, select, asc {Trié par dernière commande, plus anciennes d'abord} other {Trié par dernière commande, plus récentes d'abord}}",
+        "created_at": "{dir, select, asc {Trié par ancienneté, plus anciens d'abord} other {Trié par ancienneté, plus récents d'abord}}"
+      },
+      "stats": {
+        "active_label": "Clients actifs",
+        "due_label": "À encaisser",
+        "due_sub": "sur {count, plural, one {# client} other {# clients}}",
+        "new_label": "Nouveaux ce mois-ci"
+      }
     },
     "filterSheet": {
-      "title": "Filtrer / Trier",
-      "aria_label": "Filtrer et trier",
-      "close": "Fermer",
-      "search_label": "Recherche locale",
-      "search_placeholder": "Rechercher un client, téléphone, ville…",
-      "search_clear": "Effacer",
+      "apply": "Voir les clients",
+      "show_results": "{count, plural, =0 {Aucun client} one {Voir # client} other {Voir les # clients}}",
       "sort_title": "Trier par",
-      "sort_name_asc": "Nom A → Z",
-      "sort_amount_desc": "Montant décroissant",
-      "sort_recent": "Dernière commande",
-      "filter_title": "Afficher",
-      "filter_all": "Tous les clients",
-      "filter_active": "Clients actifs",
-      "filter_pending": "Avec paiement en attente",
-      "filter_deactivated": "Désactivés",
-      "reset": "Réinitialiser",
-      "apply": "Voir les résultats"
+      "sort_name": "Nom, de A à Z",
+      "sort_pending": "Reste à payer, plus grands d'abord",
+      "sort_last_order": "Dernière commande, plus récentes d'abord",
+      "sort_paid": "Total payé, plus grands d'abord",
+      "sort_newest": "Clients les plus récents"
     },
     "new": {
       "title": "Nouveau client",
@@ -392,40 +414,44 @@
       "topbar_short": "Client",
       "loading": "Chargement…",
       "not_found": "Client introuvable.",
-      "badge_to_remind": "À relancer",
-      "badge_new": "Nouveau client",
-      "badge_regular": "Client régulier",
-      "deactivate_confirm": "Désactiver ce client ? Il n'apparaîtra plus dans la liste.",
+      "deactivate_confirm": "Désactiver ce client ? Il n'apparaîtra plus parmi les clients actifs ; vous pourrez le réactiver depuis sa fiche.",
       "reminder_title": "Relancer {name}",
-      "reminder_fallback_name": "le client"
-    },
-    "hero": {
-      "phone_aria": "Appeler",
-      "more_aria": "Plus d'actions",
-      "whatsapp": "WhatsApp"
-    },
-    "stats": {
-      "to_collect": "À encaisser",
-      "filter_active": "Filtre actif — touchez à nouveau pour tout voir",
-      "filter_hint": "Touchez pour filtrer",
-      "up_to_date": "À jour",
-      "new_order": "Nouvelle commande"
-    },
-    "actionsSheet": {
-      "title": "Actions client",
-      "email_label": "Email",
-      "address_label": "Adresse",
-      "notes_label": "Notes",
-      "reminder_created_today": "Rappel créé aujourd'hui",
-      "reminder_schedule": "Programmer un rappel",
-      "reminder_tomorrow_9": "Demain à 9h00",
-      "edit_record": "Modifier la fiche",
-      "deactivate_label": "Désactiver le client",
-      "deactivate_desc": "Le client n'apparaîtra plus dans la liste",
-      "reactivate_label": "Réactiver le client"
-    },
-    "notesSheet": {
-      "title": "Notes"
+      "reminder_fallback_name": "le client",
+      "badge_unpaid": "Impayé",
+      "badge_deactivated": "Désactivé",
+      "since": "Client depuis {date}",
+      "edit": "Modifier",
+      "new_order": "Nouvelle commande",
+      "followup": "Relancer",
+      "reminder_schedule": "Marquer à relancer",
+      "reminder_created_today": "Rappel créé pour demain",
+      "add_note": "Ajouter une note",
+      "edit_address": "Modifier l'adresse",
+      "deactivate": "Désactiver le client",
+      "reactivate": "Réactiver le client",
+      "deactivate_cta": "Désactiver",
+      "cancel": "Annuler",
+      "situation_title": "Situation",
+      "paid_total": "Total payé",
+      "pending_total": "Reste à payer",
+      "order_count": "Commandes",
+      "last_order": "Dernière commande",
+      "no_order": "Aucune commande",
+      "contact_title": "Coordonnées",
+      "contact_empty": "Aucune coordonnée enregistrée.",
+      "contact_add": "Ajouter des coordonnées",
+      "whatsapp": "WhatsApp",
+      "call": "Appeler",
+      "orders_title": "Commandes",
+      "orders_empty": "Aucune commande pour ce client.",
+      "see_all_orders": "Voir toutes ({count})",
+      "col_number": "N°",
+      "col_date": "Date",
+      "col_status": "Statut",
+      "col_payment": "Paiement",
+      "col_total": "Total",
+      "record_note": "Note de la fiche client",
+      "notes_empty": "Aucune note pour ce client."
     },
     "addressSheet": {
       "title": "Adresse",
@@ -438,7 +464,7 @@
       "sub": "Demain à 9h00 — {name}"
     },
     "timeline": {
-      "title": "Activité récente",
+      "title": "Activité",
       "chip_all": "Tout",
       "chip_orders": "Commandes",
       "chip_payments": "Paiements",
@@ -447,7 +473,8 @@
       "empty_title": "Aucune activité",
       "empty_sub": "L'activité du client apparaîtra ici.",
       "load_more": "Voir plus ({remaining} restantes)",
-      "loading": "Chargement…"
+      "loading": "Chargement…",
+      "chip_pending": "À encaisser"
     },
     "activity": {
       "order_created": "Commande créée",
@@ -460,6 +487,14 @@
       "shipment_title": "Expédition mise à jour",
       "shipment_sub": "Commande {number} · Expédiée",
       "note_title": "Note ajoutée"
+    },
+    "whatsapp": {
+      "hello_named": "Bonjour {name},",
+      "hello": "Bonjour,",
+      "intro": "Sauf erreur de notre part, il reste à régler :",
+      "order_line": "• Commande n°{number} du {date} : {amount}",
+      "total_line": "Total restant : {amount}",
+      "signoff": "Merci d'avance, à bientôt."
     }
   },
   "orders": {
@@ -503,7 +538,9 @@
         "due_sub": "sur {count, plural, one {# commande} other {# commandes}}",
         "month_label": "Ce mois-ci",
         "month_sub": "{count, plural, one {# commande {state}} other {# commandes {state}}}"
-      }
+      },
+      "customer_filter": "Client",
+      "customer_chip": "Client : {name}"
     },
     "statusLabel": {
       "to_prepare_products": "À préparer",
@@ -562,8 +599,6 @@
       "title": "Commande {number}",
       "created": "Créée {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}{hasAuthor, select, yes { par {author}} other {}}",
       "day_time": "{when, select, today {Aujourd'hui} yesterday {Hier} other {{date}}}, {time}",
-      "more_actions": "Plus d'actions",
-      "actions_title": "Actions",
       "revert_to": "Revenir à « {label} »",
       "reactivate": "Réactiver la commande",
       "reactivate_confirm": "Réactiver cette commande ?",
@@ -571,7 +606,8 @@
       "collect": "Encaisser {amount}",
       "issue_invoice": "Émettre la facture",
       "download_invoice": "Télécharger la facture",
-      "send_whatsapp": "Envoyer un message WhatsApp"
+      "send_whatsapp": "Envoyer un message WhatsApp",
+      "notes_empty": "Aucune note pour cette commande."
     },
     "nextStep": {
       "action_to_prepare": "Marquer comme prête",
@@ -644,20 +680,6 @@
       "issuing": "Émission…",
       "submit": "Émettre la facture",
       "footnote": "Une fois émise, la facture est immuable. Seul le statut peut être modifié."
-    },
-    "notes": {
-      "title": "Notes",
-      "add_cta": "Ajouter",
-      "field_label": "Nouvelle note",
-      "saving": "Enregistrement…",
-      "save": "Enregistrer",
-      "cancel": "Annuler",
-      "delete_confirm": "Supprimer cette note ?",
-      "delete_aria": "Supprimer la note",
-      "anonymous": "Anonyme",
-      "empty": "Aucune note pour cette commande.",
-      "meta": "{author}, {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}",
-      "delete_cta": "Supprimer"
     },
     "activity": {
       "title": "Historique",
@@ -758,7 +780,6 @@
       "filter_product": "Produits",
       "filter_service": "Services",
       "no_results": "Aucun résultat.",
-      "no_products": "{kind, select, products {Aucun article enregistré.} services {Aucun service enregistré.} other {Aucun article enregistré.}}",
       "variant_back": "Retour au catalogue",
       "loading": "Chargement…",
       "variant_count": "{count, plural, one {# format} other {# formats}}",
@@ -791,7 +812,6 @@
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",
-      "trigger_select_sub": "Choisissez un client pour démarrer",
       "trigger_selected": "Client sélectionné",
       "remove_aria": "Retirer le client",
       "sheet_title": "Sélectionner un client",
@@ -1224,6 +1244,23 @@
       "filters": "Filtres",
       "reset": "Réinitialiser",
       "active_filters": "{count, plural, one {# filtre actif} other {# filtres actifs}}"
+    },
+    "detail": {
+      "more_actions": "Plus d'actions",
+      "actions_title": "Actions"
+    },
+    "notes": {
+      "title": "Notes",
+      "add_cta": "Ajouter",
+      "field_label": "Nouvelle note",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "delete_confirm": "Supprimer cette note ?",
+      "delete_aria": "Supprimer la note",
+      "anonymous": "Anonyme",
+      "meta": "{author}, {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}",
+      "delete_cta": "Supprimer"
     }
   },
   "settings": {

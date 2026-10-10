@@ -8,6 +8,9 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useFormatDateTime, useFormatMoney } from '@/lib/hooks/useFormat';
 import { PAYMENT_TITLE_KEY, PAYMENT_TONE } from './constants';
 
+/** Isole le n° de commande (« 2026-033 ») pour qu'il ne soit pas réordonné dans une phrase en arabe. */
+const isolate = (value: string): string => `\u2068${value}\u2069`;
+
 export function ActivityRow({ item, customerId }: { item: ActivityEvent; customerId: string }) {
   const t = useTranslations('customers.activity');
   const { data: shop } = useShop();
@@ -24,7 +27,7 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
         <EventBody
           title={t('order_created')}
           subtitle={t('order_sub', {
-            number: item.data.order_number,
+            number: isolate(item.data.order_number),
             amount: formatMoney(item.data.total_amount, currency, { maximumFractionDigits: 2 }),
           })}
           date={date}
@@ -43,7 +46,7 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
           title={titleKey ? t(titleKey) : t('payment_fallback')}
           subtitle={t('payment_sub', {
             amount: formatMoney(item.data.amount_paid, currency, { maximumFractionDigits: 2 }),
-            number: item.data.order_number,
+            number: isolate(item.data.order_number),
           })}
           date={date}
         />
@@ -57,7 +60,7 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
         <EventIcon className="bg-blue-500/10 text-blue-600 dark:text-blue-400"><Truck size={16} /></EventIcon>
         <EventBody
           title={t('shipment_title')}
-          subtitle={t('shipment_sub', { number: item.data.order_number })}
+          subtitle={t('shipment_sub', { number: isolate(item.data.order_number) })}
           date={date}
         />
       </EventLink>

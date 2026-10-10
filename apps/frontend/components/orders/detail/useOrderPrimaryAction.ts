@@ -1,8 +1,8 @@
 'use client';
 
-import type { ComponentType } from 'react';
 import { useTranslations } from 'next-intl';
 import { Banknote, Check, Receipt, RotateCcw } from 'lucide-react';
+import type { DetailAction } from '@/components/detail/types';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
@@ -13,17 +13,8 @@ export type OrderActionKey =
   | 'advance' | 'collect' | 'reactivate' | 'issue_invoice'
   | 'revert' | 'download_invoice' | 'whatsapp' | 'cancel';
 
-/** Une action de la page : bouton principal, entrée du menu « ⋯ » ou de la feuille mobile. */
-export interface OrderAction {
-  key: OrderActionKey;
-  label: string;
-  icon: ComponentType<{ size?: number; className?: string }>;
-  onSelect?: () => void;
-  /** Lien à ouvrir dans un nouvel onglet (PDF de la facture) au lieu d'un geste. */
-  href?: string;
-  destructive?: boolean;
-  disabled?: boolean;
-}
+/** Une action de la commande : bouton principal, entrée du menu « ⋯ » ou de la feuille mobile. */
+export type OrderAction = DetailAction<OrderActionKey>;
 
 type NextStepT = ReturnType<typeof useTranslations<'orders.nextStep'>>;
 

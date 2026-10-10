@@ -54,3 +54,41 @@ export function useDeleteNote(orderId: string) {
     },
   });
 }
+
+export function useCustomerNotes(customerId: string) {
+  return useQuery({
+    queryKey: qk.notes.byCustomer(customerId),
+    queryFn: () => apiFetch<PaginatedResponse<Note>>(`/notes/?customer=${customerId}`),
+    enabled: !!customerId,
+  });
+}
+
+/** Rafraîchit les notes du client et son activité (les notes y figurent). */
+function useInvalidateCustomerNotes(customerId: string) {
+  const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: qk.notes.byCustomer(customerId) });
+    qc.invalidateQueries({ queryKey: [...qk.customers.detail(customerId), 'activity'] });
+  };
+}
+
+export function useCreateCustomerNote(customerId: string) {
+  const invalidate = useInvalidateCustomerNotes(customerId);
+  return useMutation({
+    mutationFn: (content: string) =>
+      apiFetch<Note>('/notes/', {
+        method: 'POST',
+        body: JSON.stringify({ customer: customerId, content }),
+      }),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteCustomerNote(customerId: string) {
+  const invalidate = useInvalidateCustomerNotes(customerId);
+  return useMutation({
+    mutationFn: (noteId: string) =>
+      apiFetch<void>(`/notes/${noteId}/`, { method: 'DELETE' }),
+    onSuccess: invalidate,
+  });
+}

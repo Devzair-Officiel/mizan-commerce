@@ -116,10 +116,7 @@ export function CustomerPicker({
               <div className="shrink-0 w-11 h-11 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
                 <User size={18} />
               </div>
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">{t('trigger_select')}</span>
-                <span className="text-xs text-muted-foreground">{t('trigger_select_sub')}</span>
-              </div>
+              <span className="flex-1 min-w-0 text-sm font-medium text-foreground">{t('trigger_select')}</span>
               <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
             </>
           )}

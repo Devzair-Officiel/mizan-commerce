@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping
 from datetime import datetime
 from decimal import Decimal
@@ -435,7 +436,10 @@ def filter_orders(
         if params.get('due') == 'true':
             qs = filter_due(qs)
     if params.get('customer'):
-        qs = qs.filter(customer_id=params['customer'])
+        try:
+            qs = qs.filter(customer_id=uuid.UUID(params['customer']))
+        except ValueError:
+            qs = qs.none()
     if params.get('period') == 'month':
         start, end = current_month_bounds(shop)
         qs = qs.filter(created_at__gte=start, created_at__lt=end)

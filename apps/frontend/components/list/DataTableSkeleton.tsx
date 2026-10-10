@@ -1,4 +1,5 @@
-export function OrdersTableSkeleton() {
+/** Tableau de liste en cours de chargement (Commandes, Clients). */
+export function DataTableSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="h-10.5 border-b border-border bg-muted" />

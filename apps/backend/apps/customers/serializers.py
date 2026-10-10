@@ -4,6 +4,7 @@ from .models import Customer
 
 class CustomerSerializer(serializers.ModelSerializer):
     order_count = serializers.IntegerField(read_only=True, default=0)
+    last_order_at = serializers.DateTimeField(read_only=True, default=None)
     pending_amount = serializers.SerializerMethodField()
     paid_amount = serializers.SerializerMethodField()
 
@@ -34,20 +35,27 @@ class CustomerSerializer(serializers.ModelSerializer):
             'id', 'name', 'first_name', 'phone', 'email',
             'address_line', 'city', 'postal_code', 'country',
             'notes', 'is_active',
-            'order_count', 'pending_amount', 'paid_amount',
+            'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
 
 class CustomerListSerializer(serializers.ModelSerializer):
+    order_count = serializers.IntegerField(read_only=True)
     pending_amount = serializers.SerializerMethodField()
+    paid_amount = serializers.SerializerMethodField()
+    last_order_at = serializers.DateTimeField(read_only=True)
 
     def get_pending_amount(self, obj) -> str:
-        from decimal import Decimal
-        val = getattr(obj, 'pending_amount', None)
-        return str(val if val is not None else Decimal('0.00'))
+        return str(obj.pending_amount)
+
+    def get_paid_amount(self, obj) -> str:
+        return str(obj.paid_amount)
 
     class Meta:
         model = Customer
-        fields = ('id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at', 'pending_amount')  # noqa: E501
+        fields = (
+            'id', 'name', 'phone', 'email', 'city', 'is_active', 'created_at',
+            'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
+        )

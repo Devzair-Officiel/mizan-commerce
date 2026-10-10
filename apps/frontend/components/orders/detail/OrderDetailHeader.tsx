@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ChevronLeft, Pencil } from 'lucide-react';
+import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
+import { DetailPrimaryButton } from '@/components/detail/DetailPrimaryButton';
 import { buttonVariants } from '@/components/ui/button';
 import type { Order } from '@/lib/hooks/useOrders';
 import { cn } from '@/lib/utils';
 import { STATUS_ALLOWS_EDIT } from './constants';
-import { OrderActionsMenu } from './OrderActionsMenu';
-import { OrderPrimaryButton } from './OrderPrimaryButton';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { useDayTime } from './useDayTime';
 import type { OrderAction } from './useOrderPrimaryAction';
@@ -53,8 +53,8 @@ export function OrderDetailHeader({ order, primary, menu }: OrderDetailHeaderPro
             <Pencil aria-hidden />{t('edit')}
           </Link>
         )}
-        <OrderActionsMenu actions={menu} variant="menu" />
-        {primary && <OrderPrimaryButton action={primary} />}
+        <DetailActionsMenu actions={menu} variant="menu" />
+        {primary && <DetailPrimaryButton action={primary} />}
       </div>
     </header>
   );

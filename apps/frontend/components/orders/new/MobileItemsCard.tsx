@@ -18,7 +18,8 @@ export function MobileItemsCard({ form }: { form: NewSaleForm }) {
       )}
       <div className={`p-3 ${form.items.length > 0 ? 'border-t border-border' : ''}`}>
         <ProductPicker variant="dashed" onPick={form.addItem} onFreeLine={form.addFreeLine}
-          onRequestCreate={() => form.setCreateProductOpen(true)} itemCount={form.items.length} />
+          onRequestCreate={() => form.setCreateProductOpen(true)} itemCount={form.items.length}
+          onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }} />
         <QuickAddProduct open={form.createProductOpen} onOpenChange={form.setCreateProductOpen}
           onCreated={(p: ProductDetail) => { void form.addProductFromQuickAdd(p.id); }} />
       </div>

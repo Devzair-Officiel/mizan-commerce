@@ -330,36 +330,58 @@
   "customers": {
     "list": {
       "title": "العملاء",
-      "active_count": "عملاء نشطون",
-      "pending_total": "مدفوعات معلقة",
-      "loading": "جاري التحميل…",
-      "count_filtered": "{count, plural, one {# عميل معروض} other {# عملاء معروضون}} · مرشّح",
-      "count_registered": "{count, plural, one {# عميل مسجل} other {# عملاء مسجلون}}",
+      "count": "{count, plural, zero {لا عملاء} one {عميل واحد} two {عميلان} few {# عملاء} many {# عميلًا} other {# عميل}}",
       "new_cta": "عميل جديد",
-      "filter_sort": "تصفية / فرز",
-      "empty_filtered": "لا يوجد عميل مطابق.",
+      "search_label": "البحث عن عميل",
+      "search_placeholder": "الاسم أو الهاتف أو البريد أو المدينة",
+      "clear_filters": "مسح عوامل التصفية",
+      "situation_title": "الوضع",
+      "situation": {
+        "all": "الكل",
+        "active": "النشطون",
+        "pending": "عليهم مستحقات",
+        "deactivated": "المعطّلون"
+      },
+      "column_client": "العميل",
+      "column_city": "المدينة",
+      "column_orders": "الطلبات",
+      "column_last_order": "آخر طلب",
+      "column_paid": "إجمالي المدفوع",
+      "column_pending": "المتبقي",
+      "none": "لا شيء",
+      "no_orders": "لا طلبات",
+      "pending_short": "متبقٍّ",
       "deactivated_badge": "معطل",
       "phone_missing": "لم يتم إدخال الهاتف",
-      "pending_to_collect": "للتحصيل"
+      "load_more": "تحميل المزيد",
+      "empty_title": "لا يوجد عملاء",
+      "empty_sub": "أضف عملاءك لمتابعة طلباتهم وما تبقى عليهم.",
+      "empty_filtered_title": "لا يوجد عملاء لهذا التصفية",
+      "empty_filtered_sub": "أزل عوامل التصفية أو غيّر البحث لعرض جميع عملائك.",
+      "sort": {
+        "name": "{dir, select, asc {مرتبة حسب الاسم، من أ إلى ي} other {مرتبة حسب الاسم، من ي إلى أ}}",
+        "pending_amount": "{dir, select, asc {مرتبة حسب المتبقي، الأصغر أولًا} other {مرتبة حسب المتبقي، الأكبر أولًا}}",
+        "paid_amount": "{dir, select, asc {مرتبة حسب المدفوع، الأصغر أولًا} other {مرتبة حسب المدفوع، الأكبر أولًا}}",
+        "order_count": "{dir, select, asc {مرتبة حسب الطلبات، الأقل أولًا} other {مرتبة حسب الطلبات، الأكثر أولًا}}",
+        "last_order_at": "{dir, select, asc {مرتبة حسب آخر طلب، الأقدم أولًا} other {مرتبة حسب آخر طلب، الأحدث أولًا}}",
+        "created_at": "{dir, select, asc {مرتبة حسب تاريخ الإضافة، الأقدم أولًا} other {مرتبة حسب تاريخ الإضافة، الأحدث أولًا}}"
+      },
+      "stats": {
+        "active_label": "عملاء نشطون",
+        "due_label": "للتحصيل",
+        "due_sub": "من {count, plural, zero {لا عملاء} one {عميل واحد} two {عميلين} few {# عملاء} many {# عميلًا} other {# عميل}}",
+        "new_label": "جدد هذا الشهر"
+      }
     },
     "filterSheet": {
-      "title": "تصفية / فرز",
-      "aria_label": "تصفية وفرز",
-      "close": "إغلاق",
-      "search_label": "بحث محلي",
-      "search_placeholder": "ابحث عن عميل أو هاتف أو مدينة…",
-      "search_clear": "مسح",
+      "apply": "عرض العملاء",
+      "show_results": "{count, plural, zero {لا يوجد عملاء} one {عرض عميل واحد} two {عرض عميلين} few {عرض # عملاء} many {عرض # عميلًا} other {عرض # عميل}}",
       "sort_title": "ترتيب حسب",
-      "sort_name_asc": "الاسم أ → ي",
-      "sort_amount_desc": "المبلغ تنازليًا",
-      "sort_recent": "آخر طلب",
-      "filter_title": "إظهار",
-      "filter_all": "جميع العملاء",
-      "filter_active": "عملاء نشطون",
-      "filter_pending": "مع دفعة معلقة",
-      "filter_deactivated": "معطلون",
-      "reset": "إعادة تعيين",
-      "apply": "عرض النتائج"
+      "sort_name": "الاسم، من أ إلى ي",
+      "sort_pending": "المتبقي، الأكبر أولًا",
+      "sort_last_order": "آخر طلب، الأحدث أولًا",
+      "sort_paid": "إجمالي المدفوع، الأكبر أولًا",
+      "sort_newest": "أحدث العملاء"
     },
     "new": {
       "title": "عميل جديد",
@@ -392,40 +414,44 @@
       "topbar_short": "عميل",
       "loading": "جاري التحميل…",
       "not_found": "العميل غير موجود.",
-      "badge_to_remind": "للمتابعة",
-      "badge_new": "عميل جديد",
-      "badge_regular": "عميل دائم",
-      "deactivate_confirm": "تعطيل هذا العميل؟ لن يظهر بعد ذلك في القائمة.",
+      "deactivate_confirm": "تعطيل هذا العميل؟ لن يظهر بعد الآن ضمن العملاء النشطين، ويمكنك إعادة تفعيله من صفحته.",
       "reminder_title": "متابعة {name}",
-      "reminder_fallback_name": "العميل"
-    },
-    "hero": {
-      "phone_aria": "اتصال",
-      "more_aria": "إجراءات إضافية",
-      "whatsapp": "واتساب"
-    },
-    "stats": {
-      "to_collect": "للتحصيل",
-      "filter_active": "التصفية نشطة — اضغط مجددًا لعرض الكل",
-      "filter_hint": "اضغط للتصفية",
-      "up_to_date": "محدّث",
-      "new_order": "طلب جديد"
-    },
-    "actionsSheet": {
-      "title": "إجراءات العميل",
-      "email_label": "البريد الإلكتروني",
-      "address_label": "العنوان",
-      "notes_label": "ملاحظات",
-      "reminder_created_today": "تم إنشاء تذكير اليوم",
-      "reminder_schedule": "جدولة تذكير",
-      "reminder_tomorrow_9": "غدًا الساعة 9:00",
-      "edit_record": "تعديل البطاقة",
-      "deactivate_label": "تعطيل العميل",
-      "deactivate_desc": "لن يظهر العميل في القائمة",
-      "reactivate_label": "إعادة تنشيط العميل"
-    },
-    "notesSheet": {
-      "title": "ملاحظات"
+      "reminder_fallback_name": "العميل",
+      "badge_unpaid": "غير مدفوع",
+      "badge_deactivated": "معطّل",
+      "since": "عميل منذ {date}",
+      "edit": "تعديل",
+      "new_order": "طلب جديد",
+      "followup": "تذكير بالدفع",
+      "reminder_schedule": "وضع علامة للمتابعة",
+      "reminder_created_today": "تم إنشاء تذكير للغد",
+      "add_note": "إضافة ملاحظة",
+      "edit_address": "تعديل العنوان",
+      "deactivate": "تعطيل العميل",
+      "reactivate": "إعادة تفعيل العميل",
+      "deactivate_cta": "تعطيل",
+      "cancel": "إلغاء",
+      "situation_title": "الوضع",
+      "paid_total": "إجمالي المدفوع",
+      "pending_total": "المتبقي للدفع",
+      "order_count": "الطلبات",
+      "last_order": "آخر طلب",
+      "no_order": "لا توجد طلبات",
+      "contact_title": "بيانات الاتصال",
+      "contact_empty": "لا توجد بيانات اتصال.",
+      "contact_add": "إضافة بيانات اتصال",
+      "whatsapp": "واتساب",
+      "call": "اتصال",
+      "orders_title": "الطلبات",
+      "orders_empty": "لا توجد طلبات لهذا العميل.",
+      "see_all_orders": "عرض الكل ({count})",
+      "col_number": "رقم",
+      "col_date": "التاريخ",
+      "col_status": "الحالة",
+      "col_payment": "الدفع",
+      "col_total": "الإجمالي",
+      "record_note": "ملاحظة من بطاقة العميل",
+      "notes_empty": "لا توجد ملاحظات لهذا العميل."
     },
     "addressSheet": {
       "title": "العنوان",
@@ -438,7 +464,7 @@
       "sub": "غدًا الساعة 9:00 — {name}"
     },
     "timeline": {
-      "title": "النشاط الأخير",
+      "title": "النشاط",
       "chip_all": "الكل",
       "chip_orders": "الطلبات",
       "chip_payments": "المدفوعات",
@@ -447,7 +473,8 @@
       "empty_title": "لا يوجد نشاط",
       "empty_sub": "سيظهر نشاط العميل هنا.",
       "load_more": "عرض المزيد ({remaining} متبقية)",
-      "loading": "جاري التحميل…"
+      "loading": "جاري التحميل…",
+      "chip_pending": "للتحصيل"
     },
     "activity": {
       "order_created": "تم إنشاء الطلب",
@@ -460,6 +487,14 @@
       "shipment_title": "تحديث الشحنة",
       "shipment_sub": "طلب {number} · تم الشحن",
       "note_title": "تمت إضافة ملاحظة"
+    },
+    "whatsapp": {
+      "hello_named": "مرحبًا {name}،",
+      "hello": "مرحبًا،",
+      "intro": "ما لم نكن مخطئين، لا يزال المبلغ التالي مستحقًا:",
+      "order_line": "• الطلب رقم {number} بتاريخ {date}: {amount}",
+      "total_line": "الإجمالي المستحق: {amount}",
+      "signoff": "شكرًا مسبقًا، إلى اللقاء."
     }
   },
   "orders": {
@@ -503,7 +538,9 @@
         "due_sub": "على {count, plural, one {# طلب} other {# طلبات}}",
         "month_label": "هذا الشهر",
         "month_sub": "{count, plural, one {# طلب {state}} other {# طلبات {state}}}"
-      }
+      },
+      "customer_filter": "العميل",
+      "customer_chip": "العميل: {name}"
     },
     "statusLabel": {
       "to_prepare_products": "قيد التحضير",
@@ -562,8 +599,6 @@
       "title": "الطلب {number}",
       "created": "أُنشئ {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}{hasAuthor, select, yes { بواسطة {author}} other {}}",
       "day_time": "{when, select, today {اليوم} yesterday {أمس} other {{date}}}، {time}",
-      "more_actions": "إجراءات أخرى",
-      "actions_title": "الإجراءات",
       "revert_to": "الرجوع إلى «{label}»",
       "reactivate": "إعادة تفعيل الطلب",
       "reactivate_confirm": "إعادة تفعيل هذا الطلب؟",
@@ -571,7 +606,8 @@
       "collect": "تحصيل {amount}",
       "issue_invoice": "إصدار الفاتورة",
       "download_invoice": "تحميل الفاتورة",
-      "send_whatsapp": "إرسال رسالة واتساب"
+      "send_whatsapp": "إرسال رسالة واتساب",
+      "notes_empty": "لا توجد ملاحظات لهذا الطلب."
     },
     "nextStep": {
       "action_to_prepare": "تحديد كجاهزة",
@@ -644,20 +680,6 @@
       "issuing": "جارٍ الإصدار…",
       "submit": "إصدار الفاتورة",
       "footnote": "بعد الإصدار تصبح الفاتورة غير قابلة للتعديل. يمكن تغيير حالتها فقط."
-    },
-    "notes": {
-      "title": "ملاحظات",
-      "add_cta": "إضافة",
-      "field_label": "ملاحظة جديدة",
-      "saving": "جارٍ الحفظ…",
-      "save": "حفظ",
-      "cancel": "إلغاء",
-      "delete_confirm": "حذف هذه الملاحظة؟",
-      "delete_aria": "حذف الملاحظة",
-      "anonymous": "مجهول",
-      "empty": "لا توجد ملاحظات لهذا الطلب.",
-      "meta": "{author}، {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}",
-      "delete_cta": "حذف"
     },
     "activity": {
       "title": "السجل",
@@ -758,7 +780,6 @@
       "filter_product": "منتجات",
       "filter_service": "خدمات",
       "no_results": "لا نتائج.",
-      "no_products": "{kind, select, products {لا توجد منتجات مسجّلة.} services {لا توجد خدمات مسجّلة.} other {لا توجد منتجات مسجّلة.}}",
       "variant_back": "العودة إلى الفهرس",
       "loading": "جارٍ التحميل…",
       "variant_count": "{count, plural, zero {لا أشكال} one {شكل واحد} two {شكلان} few {# أشكال} many {# شكل} other {# شكل}}",
@@ -791,7 +812,6 @@
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",
-      "trigger_select_sub": "اختر زبونًا للبدء",
       "trigger_selected": "تم اختيار الزبون",
       "remove_aria": "إزالة الزبون",
       "sheet_title": "اختيار زبون",
@@ -1224,6 +1244,23 @@
       "filters": "تصفية",
       "reset": "إعادة ضبط",
       "active_filters": "{count, plural, zero {لا فلاتر نشطة} one {فلتر نشط واحد} two {فلتران نشطان} few {# فلاتر نشطة} many {# فلترًا نشطًا} other {# فلتر نشط}}"
+    },
+    "detail": {
+      "more_actions": "إجراءات أخرى",
+      "actions_title": "الإجراءات"
+    },
+    "notes": {
+      "title": "ملاحظات",
+      "add_cta": "إضافة",
+      "field_label": "ملاحظة جديدة",
+      "saving": "جارٍ الحفظ…",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "delete_confirm": "حذف هذه الملاحظة؟",
+      "delete_aria": "حذف الملاحظة",
+      "anonymous": "مجهول",
+      "meta": "{author}، {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}",
+      "delete_cta": "حذف"
     }
   },
   "settings": {

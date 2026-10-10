@@ -1,4 +1,3 @@
-from django.db.models import Count, Sum, F, Q, ExpressionWrapper, DecimalField
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -9,36 +8,23 @@ from apps.core.pagination import FlexiblePageNumberPagination
 from apps.core.permissions import HasModulePermission, get_shop
 
 HasCustomersModule = HasModulePermission.for_module('customers')
+from . import services  # noqa: E402
+from .filters import CustomerOrderingFilter  # noqa: E402
 from .models import Customer  # noqa: E402
 from .serializers import CustomerSerializer, CustomerListSerializer  # noqa: E402
-from .services import ALL_TYPES, get_customer_timeline  # noqa: E402
-
-
-def _customer_qs_with_stats(shop):
-    return Customer.objects.filter(shop=shop).annotate(
-        order_count=Count('orders', filter=~Q(orders__status='cancelled'), distinct=True),  # noqa: E501
-        pending_amount=ExpressionWrapper(
-            Sum(
-                F('orders__total_amount') - F('orders__amount_paid'),
-                filter=Q(orders__payment_status__in=['unpaid', 'partial']) & ~Q(orders__status='cancelled'),  # noqa: E501
-            ),
-            output_field=DecimalField(max_digits=12, decimal_places=2),
-        ),
-        paid_amount=ExpressionWrapper(
-            Sum(
-                'orders__amount_paid',
-                filter=~Q(orders__status='cancelled'),
-            ),
-            output_field=DecimalField(max_digits=12, decimal_places=2),
-        ),
-    )
+from .services import (  # noqa: E402
+    ALL_TYPES, CUSTOMER_SEARCH_FIELDS, customers_with_stats, get_customer_timeline,
+)
 
 
 class CustomerListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated, HasCustomersModule)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('name', 'phone', 'email', 'city')
-    ordering_fields = ('name', 'created_at')
+    filter_backends = (filters.SearchFilter, CustomerOrderingFilter)
+    search_fields = CUSTOMER_SEARCH_FIELDS
+    ordering_fields = (
+        'name', 'pending_amount', 'paid_amount', 'order_count', 'last_order_at',
+        'created_at',
+    )
     ordering = ('name',)
 
     def get_serializer_class(self):
@@ -51,13 +37,34 @@ class CustomerListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = _customer_qs_with_stats(shop)
-        if self.request.query_params.get('all') != '1':
-            qs = qs.filter(is_active=True)
-        return qs
+        return services.filter_customers(
+            customers_with_stats(shop), shop, self.request.query_params,
+        )
 
     def perform_create(self, serializer):
         serializer.save(shop=get_shop(self.request.user))
+
+
+class CustomerSummaryView(APIView):
+    """Indicateurs de la page Clients (actifs, à encaisser, nouveaux ce mois-ci)."""
+    permission_classes = (IsAuthenticated, HasCustomersModule)
+
+    def get(self, request: Request) -> Response:
+        return Response(services.build_customers_summary(get_shop(request.user)))
+
+
+class CustomerFacetsView(APIView):
+    """Nombre de clients par situation, pour le filtre de la liste.
+
+    Reçoit les mêmes paramètres que la liste (recherche comprise).
+    """
+    permission_classes = (IsAuthenticated, HasCustomersModule)
+    search_fields = CUSTOMER_SEARCH_FIELDS
+
+    def get(self, request: Request) -> Response:
+        shop = get_shop(request.user)
+        qs = filters.SearchFilter().filter_queryset(request, customers_with_stats(shop), self)  # noqa: E501
+        return Response(services.build_customer_facets(shop, qs, request.query_params))
 
 
 class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -70,7 +77,7 @@ class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
         return ctx
 
     def get_queryset(self):
-        return _customer_qs_with_stats(get_shop(self.request.user))
+        return customers_with_stats(get_shop(self.request.user))
 
     def perform_destroy(self, instance):
         # Soft delete

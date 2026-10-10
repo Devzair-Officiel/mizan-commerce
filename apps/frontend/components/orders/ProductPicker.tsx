@@ -8,7 +8,8 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { productPickQueryOptions } from '@/lib/hooks/useProducts';
-import type { Product } from '@/lib/hooks/useProducts';
+import type { Product, ProductDetail } from '@/lib/hooks/useProducts';
+import { EmptyCatalogState } from './picker/EmptyCatalogState';
 import { PickView, type PickFeedback } from './picker/PickView';
 import { FreeLineView, type FreeLine } from './picker/FreeLineView';
 import { VariantView, type VariantPick } from './picker/VariantView';
@@ -19,6 +20,8 @@ interface ProductPickerProps {
   onPick: (pick: VariantPick) => void;
   onFreeLine: (line: FreeLine) => void;
   onRequestCreate: () => void;
+  /** Article créé depuis l'état « catalogue vide » de la fenêtre. */
+  onCreated: (p: ProductDetail) => void;
   variant?: 'default' | 'dashed';
   itemCount?: number;
 }
@@ -89,7 +92,7 @@ function PickerTrigger({ variant, openPicker }: { variant: 'default' | 'dashed';
   );
 }
 
-export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = 'default', itemCount }: ProductPickerProps) {
+export function ProductPicker({ onPick, onFreeLine, onRequestCreate, onCreated, variant = 'default', itemCount }: ProductPickerProps) {
   const t = useTranslations('orders.picker');
   const kind = useCatalogKind();
   const picker = useCatalogPicker();
@@ -120,6 +123,9 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = '
                 onBack={picker.backToList}
                 onPick={(pick) => picker.handlePickVariant(pick, onPick)}
               />
+            ) : picker.products.length === 0 && !picker.search ? (
+              // Une recherche sans résultat n'est pas un catalogue vide : la recherche reste affichée.
+              <EmptyCatalogState onCreated={(p) => { onCreated(p); picker.close(); }} onFreeLine={picker.goToFreeLine} />
             ) : (
               <PickView
                 search={picker.search} setSearch={picker.setSearch}

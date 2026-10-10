@@ -6,18 +6,17 @@ import { Menu } from '@base-ui/react/menu';
 import { MoreHorizontal } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { cn } from '@/lib/utils';
-import type { OrderAction } from './useOrderPrimaryAction';
-import type { OrderMenuActions } from './useOrderMenuActions';
+import type { DetailAction, DetailMenuActions } from './types';
 
-interface OrderActionsMenuProps {
-  actions: OrderMenuActions;
+interface DetailActionsMenuProps {
+  actions: DetailMenuActions;
   /** menu : menu ancré (desktop). sheet : feuille du bas (mobile). Même liste d'actions. */
   variant: 'menu' | 'sheet';
 }
 
 const ROW = 'flex w-full items-center gap-2.5 whitespace-nowrap text-start font-medium transition-colors disabled:pointer-events-none disabled:opacity-50';
 
-function ActionContent({ action }: { action: OrderAction }) {
+function ActionContent({ action }: { action: DetailAction }) {
   const Icon = action.icon;
   return (
     <>
@@ -27,7 +26,7 @@ function ActionContent({ action }: { action: OrderAction }) {
   );
 }
 
-function MenuEntry({ action }: { action: OrderAction }) {
+function MenuEntry({ action }: { action: DetailAction }) {
   const cls = cn(ROW, 'h-10 cursor-pointer rounded-lg px-3 text-sm outline-none data-highlighted:bg-muted data-disabled:opacity-50',
     action.destructive ? 'text-destructive' : 'text-foreground');
   if (action.href) {
@@ -36,7 +35,7 @@ function MenuEntry({ action }: { action: OrderAction }) {
   return <Menu.Item onClick={action.onSelect} disabled={action.disabled} className={cls}><ActionContent action={action} /></Menu.Item>;
 }
 
-function SheetEntry({ action, onDone }: { action: OrderAction; onDone: () => void }) {
+function SheetEntry({ action, onDone }: { action: DetailAction; onDone: () => void }) {
   const cls = cn(ROW, 'h-12 gap-3 rounded-xl px-3 text-[0.9375rem] active:bg-muted', action.destructive ? 'text-destructive' : 'text-foreground');
   if (action.href) {
     return <a href={action.href} target="_blank" rel="noopener" onClick={onDone} className={cls}><ActionContent action={action} /></a>;
@@ -50,9 +49,9 @@ function SheetEntry({ action, onDone }: { action: OrderAction; onDone: () => voi
 
 const TRIGGER = 'grid size-11 shrink-0 place-items-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
-/** Bouton « ⋯ » : actions secondaires de la commande, puis l'action dangereuse après un séparateur. */
-export function OrderActionsMenu({ actions, variant }: OrderActionsMenuProps) {
-  const t = useTranslations('orders.detail');
+/** Bouton « ⋯ » : actions secondaires de la page, puis l'action dangereuse après un séparateur. */
+export function DetailActionsMenu({ actions, variant }: DetailActionsMenuProps) {
+  const t = useTranslations('ui.detail');
   const [open, setOpen] = useState(false);
   const { items, danger } = actions;
   if (items.length === 0 && !danger) return null;

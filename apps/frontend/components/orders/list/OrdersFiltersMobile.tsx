@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ListMobileToolbar, type ActiveFilter } from '@/components/list/ListMobileToolbar';
+import { useCustomer } from '@/lib/hooks/useCustomers';
 import { OrdersFilterSheet } from './OrdersFilterSheet';
 import { useOrderFilterOptions } from './useOrderFilterOptions';
 import type { OrdersPageState, OrdersSelection } from './useOrdersPageState';
@@ -15,6 +16,7 @@ export function OrdersFiltersMobile({ state }: { state: OrdersPageState }) {
   const [draft, setDraft] = useState<OrdersSelection>(state.selection);
   const { statusOptions, paymentOptions, statusLabel, sortLabel } = useOrderFilterOptions();
   const { statusFilter, paymentFilter, isMonth } = state;
+  const { data: customer } = useCustomer(state.customer);
 
   const status = statusOptions.find((o) => o.value === statusFilter) ?? { value: statusFilter, label: statusLabel(statusFilter) };
   const payment = paymentOptions.find((o) => o.value === paymentFilter);
@@ -22,6 +24,11 @@ export function OrdersFiltersMobile({ state }: { state: OrdersPageState }) {
     statusFilter && { name: tSheet('status_title'), option: status, onRemove: () => state.handleStatusFilter('') },
     paymentFilter !== 'all' && payment && { name: tSheet('payment_title'), option: payment, onRemove: () => state.handlePaymentFilter('all') },
     isMonth && { name: t('stats.month_label'), option: { value: 'month', label: t('stats.month_label') }, onRemove: () => state.handlePeriod(false) },
+    state.customer && {
+      name: t('customer_filter'),
+      option: { value: state.customer, label: t('customer_chip', { name: customer?.name ?? '…' }) },
+      onRemove: state.clearCustomer,
+    },
   ].filter((f): f is ActiveFilter => !!f);
 
   const openSheet = () => {

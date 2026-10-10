@@ -330,36 +330,58 @@
   "customers": {
     "list": {
       "title": "Customers",
-      "active_count": "Active customers",
-      "pending_total": "Pending payments",
-      "loading": "Loading…",
-      "count_filtered": "{count, plural, one {# customer shown} other {# customers shown}} · filtered",
-      "count_registered": "{count, plural, one {# customer registered} other {# customers registered}}",
+      "count": "{count, plural, one {# customer} other {# customers}}",
       "new_cta": "New customer",
-      "filter_sort": "Filter / Sort",
-      "empty_filtered": "No matching customer.",
+      "search_label": "Search customers",
+      "search_placeholder": "Name, phone, email or city",
+      "clear_filters": "Clear filters",
+      "situation_title": "Status",
+      "situation": {
+        "all": "All",
+        "active": "Active",
+        "pending": "With unpaid balance",
+        "deactivated": "Deactivated"
+      },
+      "column_client": "Customer",
+      "column_city": "City",
+      "column_orders": "Orders",
+      "column_last_order": "Last order",
+      "column_paid": "Total paid",
+      "column_pending": "Balance due",
+      "none": "None",
+      "no_orders": "No orders",
+      "pending_short": "due",
       "deactivated_badge": "Deactivated",
       "phone_missing": "No phone provided",
-      "pending_to_collect": "to collect"
+      "load_more": "Load more",
+      "empty_title": "No customers",
+      "empty_sub": "Add your customers to follow their orders and what they still owe.",
+      "empty_filtered_title": "No customers for this filter",
+      "empty_filtered_sub": "Remove the filters or change the search to see all your customers.",
+      "sort": {
+        "name": "{dir, select, asc {Sorted by name, A to Z} other {Sorted by name, Z to A}}",
+        "pending_amount": "{dir, select, asc {Sorted by balance due, smallest first} other {Sorted by balance due, largest first}}",
+        "paid_amount": "{dir, select, asc {Sorted by total paid, smallest first} other {Sorted by total paid, largest first}}",
+        "order_count": "{dir, select, asc {Sorted by orders, fewest first} other {Sorted by orders, most first}}",
+        "last_order_at": "{dir, select, asc {Sorted by last order, oldest first} other {Sorted by last order, newest first}}",
+        "created_at": "{dir, select, asc {Sorted by date added, oldest first} other {Sorted by date added, newest first}}"
+      },
+      "stats": {
+        "active_label": "Active customers",
+        "due_label": "To collect",
+        "due_sub": "from {count, plural, one {# customer} other {# customers}}",
+        "new_label": "New this month"
+      }
     },
     "filterSheet": {
-      "title": "Filter / Sort",
-      "aria_label": "Filter and sort",
-      "close": "Close",
-      "search_label": "Local search",
-      "search_placeholder": "Search customer, phone, city…",
-      "search_clear": "Clear",
+      "apply": "Show customers",
+      "show_results": "{count, plural, =0 {No customers} one {Show # customer} other {Show # customers}}",
       "sort_title": "Sort by",
-      "sort_name_asc": "Name A → Z",
-      "sort_amount_desc": "Amount descending",
-      "sort_recent": "Last order",
-      "filter_title": "Show",
-      "filter_all": "All customers",
-      "filter_active": "Active customers",
-      "filter_pending": "With pending payment",
-      "filter_deactivated": "Deactivated",
-      "reset": "Reset",
-      "apply": "Show results"
+      "sort_name": "Name, A to Z",
+      "sort_pending": "Balance due, largest first",
+      "sort_last_order": "Last order, newest first",
+      "sort_paid": "Total paid, largest first",
+      "sort_newest": "Newest customers"
     },
     "new": {
       "title": "New customer",
@@ -392,40 +414,44 @@
       "topbar_short": "Customer",
       "loading": "Loading…",
       "not_found": "Customer not found.",
-      "badge_to_remind": "To follow up",
-      "badge_new": "New customer",
-      "badge_regular": "Regular customer",
-      "deactivate_confirm": "Deactivate this customer? They will no longer appear in the list.",
+      "deactivate_confirm": "Deactivate this customer? They will no longer appear among active customers; you can reactivate them from their page.",
       "reminder_title": "Follow up with {name}",
-      "reminder_fallback_name": "the customer"
-    },
-    "hero": {
-      "phone_aria": "Call",
-      "more_aria": "More actions",
-      "whatsapp": "WhatsApp"
-    },
-    "stats": {
-      "to_collect": "To collect",
-      "filter_active": "Filter active — tap again to see all",
-      "filter_hint": "Tap to filter",
-      "up_to_date": "Up to date",
-      "new_order": "New order"
-    },
-    "actionsSheet": {
-      "title": "Customer actions",
-      "email_label": "Email",
-      "address_label": "Address",
-      "notes_label": "Notes",
-      "reminder_created_today": "Reminder created today",
-      "reminder_schedule": "Schedule a reminder",
-      "reminder_tomorrow_9": "Tomorrow at 9:00 AM",
-      "edit_record": "Edit record",
-      "deactivate_label": "Deactivate customer",
-      "deactivate_desc": "Customer will no longer appear in the list",
-      "reactivate_label": "Reactivate customer"
-    },
-    "notesSheet": {
-      "title": "Notes"
+      "reminder_fallback_name": "the customer",
+      "badge_unpaid": "Unpaid",
+      "badge_deactivated": "Deactivated",
+      "since": "Customer since {date}",
+      "edit": "Edit",
+      "new_order": "New order",
+      "followup": "Send reminder",
+      "reminder_schedule": "Mark for follow-up",
+      "reminder_created_today": "Reminder set for tomorrow",
+      "add_note": "Add a note",
+      "edit_address": "Edit address",
+      "deactivate": "Deactivate customer",
+      "reactivate": "Reactivate customer",
+      "deactivate_cta": "Deactivate",
+      "cancel": "Cancel",
+      "situation_title": "Overview",
+      "paid_total": "Total paid",
+      "pending_total": "Balance due",
+      "order_count": "Orders",
+      "last_order": "Last order",
+      "no_order": "No orders",
+      "contact_title": "Contact details",
+      "contact_empty": "No contact details yet.",
+      "contact_add": "Add contact details",
+      "whatsapp": "WhatsApp",
+      "call": "Call",
+      "orders_title": "Orders",
+      "orders_empty": "No orders for this customer.",
+      "see_all_orders": "See all ({count})",
+      "col_number": "No.",
+      "col_date": "Date",
+      "col_status": "Status",
+      "col_payment": "Payment",
+      "col_total": "Total",
+      "record_note": "Note from the customer record",
+      "notes_empty": "No notes for this customer."
     },
     "addressSheet": {
       "title": "Address",
@@ -438,7 +464,7 @@
       "sub": "Tomorrow at 9:00 AM — {name}"
     },
     "timeline": {
-      "title": "Recent activity",
+      "title": "Activity",
       "chip_all": "All",
       "chip_orders": "Orders",
       "chip_payments": "Payments",
@@ -447,7 +473,8 @@
       "empty_title": "No activity",
       "empty_sub": "Customer activity will appear here.",
       "load_more": "See more ({remaining} remaining)",
-      "loading": "Loading…"
+      "loading": "Loading…",
+      "chip_pending": "To collect"
     },
     "activity": {
       "order_created": "Order created",
@@ -460,6 +487,14 @@
       "shipment_title": "Shipment updated",
       "shipment_sub": "Order {number} · Shipped",
       "note_title": "Note added"
+    },
+    "whatsapp": {
+      "hello_named": "Hello {name},",
+      "hello": "Hello,",
+      "intro": "Unless we are mistaken, the following is still due:",
+      "order_line": "• Order no. {number} of {date}: {amount}",
+      "total_line": "Total due: {amount}",
+      "signoff": "Thank you in advance, see you soon."
     }
   },
   "orders": {
@@ -503,7 +538,9 @@
         "due_sub": "across {count, plural, one {# order} other {# orders}}",
         "month_label": "This month",
         "month_sub": "{count, plural, one {# order {state}} other {# orders {state}}}"
-      }
+      },
+      "customer_filter": "Customer",
+      "customer_chip": "Customer: {name}"
     },
     "statusLabel": {
       "to_prepare_products": "To prepare",
@@ -562,8 +599,6 @@
       "title": "Order {number}",
       "created": "Created {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}{hasAuthor, select, yes { by {author}} other {}}",
       "day_time": "{when, select, today {Today} yesterday {Yesterday} other {{date}}}, {time}",
-      "more_actions": "More actions",
-      "actions_title": "Actions",
       "revert_to": "Back to “{label}”",
       "reactivate": "Reactivate the order",
       "reactivate_confirm": "Reactivate this order?",
@@ -571,7 +606,8 @@
       "collect": "Collect {amount}",
       "issue_invoice": "Issue the invoice",
       "download_invoice": "Download the invoice",
-      "send_whatsapp": "Send a WhatsApp message"
+      "send_whatsapp": "Send a WhatsApp message",
+      "notes_empty": "No notes for this order."
     },
     "nextStep": {
       "action_to_prepare": "Mark as ready",
@@ -644,20 +680,6 @@
       "issuing": "Issuing…",
       "submit": "Issue the invoice",
       "footnote": "Once issued, the invoice is immutable. Only its status can be changed."
-    },
-    "notes": {
-      "title": "Notes",
-      "add_cta": "Add",
-      "field_label": "New note",
-      "saving": "Saving…",
-      "save": "Save",
-      "cancel": "Cancel",
-      "delete_confirm": "Delete this note?",
-      "delete_aria": "Delete note",
-      "anonymous": "Anonymous",
-      "empty": "No notes for this order.",
-      "meta": "{author}, {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}",
-      "delete_cta": "Delete"
     },
     "activity": {
       "title": "History",
@@ -758,7 +780,6 @@
       "filter_product": "Products",
       "filter_service": "Services",
       "no_results": "No results.",
-      "no_products": "{kind, select, products {No items saved.} services {No services saved.} other {No items saved.}}",
       "variant_back": "Back to catalog",
       "loading": "Loading…",
       "variant_count": "{count, plural, one {# format} other {# formats}}",
@@ -791,7 +812,6 @@
     },
     "customerPicker": {
       "trigger_select": "Pick a customer",
-      "trigger_select_sub": "Choose a customer to start",
       "trigger_selected": "Customer selected",
       "remove_aria": "Remove customer",
       "sheet_title": "Pick a customer",
@@ -1224,6 +1244,23 @@
       "filters": "Filters",
       "reset": "Reset",
       "active_filters": "{count, plural, one {# active filter} other {# active filters}}"
+    },
+    "detail": {
+      "more_actions": "More actions",
+      "actions_title": "Actions"
+    },
+    "notes": {
+      "title": "Notes",
+      "add_cta": "Add",
+      "field_label": "New note",
+      "saving": "Saving…",
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete_confirm": "Delete this note?",
+      "delete_aria": "Delete note",
+      "anonymous": "Anonymous",
+      "meta": "{author}, {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}",
+      "delete_cta": "Delete"
     }
   },
   "settings": {

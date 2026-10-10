@@ -24,6 +24,18 @@ export interface OrdersListFilters {
   ordering?: string;
 }
 
+export interface CustomersListFilters {
+  /** Sans valeur, l'API ne renvoie que les clients actifs (sélecteur de client). */
+  situation?: 'all' | 'active' | 'pending' | 'deactivated';
+  /** Clients créés ce mois-ci, dans le fuseau de la boutique. */
+  period?: 'month';
+  search?: string;
+  /** Champ DRF, préfixé de `-` pour un tri décroissant. */
+  ordering?: string;
+  page?: number;
+  page_size?: number;
+}
+
 export interface OrdersCustomerFilters {
   status?: string | null;
   payment_status?: string | null;
@@ -63,6 +75,7 @@ export const qk = {
   notes: {
     all: ['notes'] as const,
     byOrder: (orderId: string) => ['notes', 'order', orderId] as const,
+    byCustomer: (customerId: string) => ['notes', 'customer', customerId] as const,
   },
 
   products: {
@@ -113,8 +126,10 @@ export const qk = {
 
   customers: {
     all: ['customers'] as const,
-    list: (search: string | undefined, showInactive: boolean | undefined) =>
-      ['customers', search, showInactive] as const,
+    list: (filters: CustomersListFilters) => ['customers', filters] as const,
+    listInfinite: (filters: Omit<CustomersListFilters, 'page'>) => ['customers', 'infinite', filters] as const,
+    summary: ['customers', 'summary'] as const,
+    facets: (filters: Omit<CustomersListFilters, 'page'>) => ['customers', 'facets', filters] as const,
     detail: (id: string) => ['customers', id] as const,
     activity: (
       customerId: string,

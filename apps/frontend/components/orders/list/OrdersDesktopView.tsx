@@ -2,7 +2,7 @@
 
 import { DataTable } from '@/components/list/DataTable';
 import { DataTablePagination } from '@/components/list/DataTablePagination';
-import { OrdersTableSkeleton } from './OrdersTableSkeleton';
+import { DataTableSkeleton } from '@/components/list/DataTableSkeleton';
 import { useOrderColumns } from './useOrderColumns';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
 
@@ -22,7 +22,7 @@ export function OrdersDesktopView({
   orders, isLoading, total, page, pageSize, currency, ordering, onSortChange, onPageChange,
 }: Props) {
   const columns = useOrderColumns(currency);
-  if (isLoading) return <OrdersTableSkeleton />;
+  if (isLoading) return <DataTableSkeleton />;
   if (total === 0) return null;
   return (
     <DataTable

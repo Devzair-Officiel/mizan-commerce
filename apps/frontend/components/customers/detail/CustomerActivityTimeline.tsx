@@ -11,10 +11,12 @@ interface CustomerActivityTimelineProps {
   activityFilter: ActivityType | null;
   pendingOnly: boolean;
   onFilterChange: (filter: ActivityType | null) => void;
+  /** Étiquette « À encaisser » (client avec un reste à payer) : n'affiche que les commandes dues. */
+  onTogglePending?: () => void;
 }
 
 export function CustomerActivityTimeline({
-  customerId, activityFilter, pendingOnly, onFilterChange,
+  customerId, activityFilter, pendingOnly, onFilterChange, onTogglePending,
 }: CustomerActivityTimelineProps) {
   const t = useTranslations('customers.timeline');
   const {
@@ -40,20 +42,13 @@ export function CustomerActivityTimeline({
   const totalCount = data?.pages[0]?.count ?? 0;
 
   return (
-    <div className="rounded-2xl border border-border bg-card">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2">
-          <History size={15} className="text-muted-foreground" />
-          <h2 className="font-semibold text-sm text-foreground">{t('title')}</h2>
-          {totalCount > 0 && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {totalCount}
-            </span>
-          )}
-        </div>
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 className="text-[0.9375rem] font-semibold text-foreground">{t('title')}</h2>
+        {totalCount > 0 && <span className="text-[0.8125rem] text-muted-foreground tabular-nums">{totalCount}</span>}
       </div>
 
-      <div className="overflow-x-auto px-4 pb-3 -mx-px">
+      <div className="overflow-x-auto px-4 pb-3 lg:px-5">
         <div className="flex gap-2 w-max">
           {chips.map(({ key, label }) => {
             const active = activityFilter === key;
@@ -72,10 +67,18 @@ export function CustomerActivityTimeline({
               </button>
             );
           })}
+          {onTogglePending && (
+            <button type="button" aria-pressed={pendingOnly} onClick={onTogglePending}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ease-out active:scale-[0.98] ${
+                pendingOnly ? 'bg-amber-500 text-amber-950' : 'bg-amber-400/15 text-amber-700 dark:text-amber-300'
+              }`}>
+              {t('chip_pending')}
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="border-t border-border overflow-hidden rounded-b-2xl">
+      <div className="border-t border-border">
         {isLoading ? (
           <div className="flex flex-col divide-y divide-border">
             {Array.from({ length: 4 }).map((_, i) => (
