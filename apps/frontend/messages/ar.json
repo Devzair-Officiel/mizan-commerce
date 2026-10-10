@@ -384,31 +384,39 @@
       "sort_newest": "أحدث العملاء"
     },
     "new": {
-      "title": "عميل جديد",
-      "hero_title": "جهة اتصال جديدة",
-      "hero_sub": "أدخل الاسم على الأقل. يمكن إكمال الباقي لاحقًا."
+      "title": "عميل جديد"
     },
     "edit": {
       "title": "تعديل العميل",
-      "topbar_short": "تعديل",
-      "loading": "جاري التحميل…"
+      "subtitle": "عميل منذ {date}، {count, plural, =0 {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}"
     },
     "form": {
-      "name_required": "الاسم مطلوب",
-      "email_invalid": "البريد الإلكتروني غير صالح",
       "section_identity": "الهوية",
-      "name": "الاسم",
+      "section_identity_help": "الاسم كما يظهر في طلباتك وفواتيرك ورسائلك.",
       "first_name": "الاسم الأول",
+      "name": "الاسم",
       "section_contact": "الاتصال",
+      "section_contact_help": "يُستخدم الهاتف لرسائل واتساب وللاتصال من صفحة العميل.",
       "phone": "الهاتف",
+      "phone_help": "مع رمز الدولة.",
       "email": "البريد الإلكتروني",
       "section_address": "العنوان",
+      "section_address_help": "يُستخدم للتوصيل ويظهر في الفواتير.",
+      "country": "الدولة",
+      "address": "العنوان",
       "city": "المدينة",
       "postal_code": "الرمز البريدي",
       "section_notes_internal": "ملاحظات داخلية",
-      "notes_placeholder": "ملاحظات داخلية",
-      "submit": "حفظ العميل",
-      "submitting": "جاري الحفظ…"
+      "section_notes_help": "مرئية لك ولفريقك فقط، ولا يراها العميل أبدًا.",
+      "notes": "ملاحظات",
+      "submit_create": "إنشاء العميل",
+      "submit_edit": "حفظ التعديلات",
+      "name_required": "أدخل اسم العميل.",
+      "name_taken": "يوجد عميل بهذا الاسم في متجرك.",
+      "email_invalid": "عنوان البريد الإلكتروني غير صالح.",
+      "too_long": "{max} حرفًا كحد أقصى.",
+      "field_invalid": "القيمة مرفوضة: تحقق من هذا الحقل.",
+      "save_failed": "تعذّر الحفظ. أعد المحاولة بعد قليل."
     },
     "detail": {
       "topbar_short": "عميل",
@@ -1262,6 +1270,23 @@
       "anonymous": "مجهول",
       "meta": "{author}، {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}",
       "delete_cta": "حذف"
+    },
+    "form": {
+      "unsaved": "تعديلات غير محفوظة",
+      "cancel": "إلغاء",
+      "saving": "جارٍ الحفظ…"
+    },
+    "country": {
+      "placeholder": "اختر دولة",
+      "clear": "إزالة الدولة",
+      "sheet_title": "اختر دولة",
+      "search": "ابحث عن دولة",
+      "empty": "لم يتم العثور على أي دولة."
+    },
+    "address": {
+      "placeholder": "الرقم والشارع",
+      "clear": "مسح العنوان",
+      "empty": "لم يتم العثور على أي عنوان ({country}). وسّع البحث أو غيّر الدولة."
     }
   },
   "settings": {

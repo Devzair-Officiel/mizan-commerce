@@ -1,54 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChevronDown, Search, X } from 'lucide-react';
+import { FIELD_CONTROL } from '@/components/form/fieldStyles';
+import { useCountryNames } from '@/lib/hooks/useCountryNames';
 import { BottomSheet } from './BottomSheet';
 
-export const COUNTRIES: { code: string; name: string }[] = [
-  { code: 'FR', name: 'France' },
-  { code: 'BE', name: 'Belgique' },
-  { code: 'CH', name: 'Suisse' },
-  { code: 'LU', name: 'Luxembourg' },
-  { code: 'MC', name: 'Monaco' },
-  { code: 'MA', name: 'Maroc' },
-  { code: 'DZ', name: 'Algérie' },
-  { code: 'TN', name: 'Tunisie' },
-  { code: 'SN', name: 'Sénégal' },
-  { code: 'CI', name: "Côte d'Ivoire" },
-  { code: 'CM', name: 'Cameroun' },
-  { code: 'ML', name: 'Mali' },
-  { code: 'BF', name: 'Burkina Faso' },
-  { code: 'GN', name: 'Guinée' },
-  { code: 'GA', name: 'Gabon' },
-  { code: 'CD', name: 'RD Congo' },
-  { code: 'CG', name: 'Congo' },
-  { code: 'MG', name: 'Madagascar' },
-  { code: 'RE', name: 'La Réunion' },
-  { code: 'GP', name: 'Guadeloupe' },
-  { code: 'MQ', name: 'Martinique' },
-  { code: 'GF', name: 'Guyane' },
-  { code: 'MU', name: 'Maurice' },
-  { code: 'KM', name: 'Comores' },
-  { code: 'LB', name: 'Liban' },
-  { code: 'EG', name: 'Égypte' },
-  { code: 'TR', name: 'Turquie' },
-  { code: 'SA', name: 'Arabie Saoudite' },
-  { code: 'AE', name: 'Émirats arabes unis' },
-  { code: 'QA', name: 'Qatar' },
-  { code: 'DE', name: 'Allemagne' },
-  { code: 'ES', name: 'Espagne' },
-  { code: 'IT', name: 'Italie' },
-  { code: 'PT', name: 'Portugal' },
-  { code: 'GB', name: 'Royaume-Uni' },
-  { code: 'NL', name: 'Pays-Bas' },
-  { code: 'US', name: 'États-Unis' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'BR', name: 'Brésil' },
-  { code: 'MX', name: 'Mexique' },
-  { code: 'CN', name: 'Chine' },
-  { code: 'JP', name: 'Japon' },
-  { code: 'IN', name: 'Inde' },
-  { code: 'AU', name: 'Australie' },
+/** Pays proposés, dans l'ordre d'affichage (pays francophones et du Maghreb d'abord). */
+const COUNTRY_CODES = [
+  'FR', 'BE', 'CH', 'LU', 'MC', 'MA', 'DZ', 'TN', 'SN', 'CI',
+  'CM', 'ML', 'BF', 'GN', 'GA', 'CD', 'CG', 'MG', 'RE', 'GP',
+  'MQ', 'GF', 'MU', 'KM', 'LB', 'EG', 'TR', 'SA', 'AE', 'QA',
+  'DE', 'ES', 'IT', 'PT', 'GB', 'NL', 'US', 'CA', 'BR', 'MX',
+  'CN', 'JP', 'IN', 'AU',
 ];
 
 function flag(code: string) {
@@ -60,95 +25,64 @@ function flag(code: string) {
 interface CountryPickerProps {
   value: string;
   onChange: (code: string) => void;
+  /** Relie le déclencheur au libellé et à l'aide du champ. */
+  id?: string;
+  'aria-describedby'?: string;
 }
 
-export function CountryPicker({ value, onChange }: CountryPickerProps) {
+export function CountryPicker({ value, onChange, id, 'aria-describedby': describedBy }: CountryPickerProps) {
+  const t = useTranslations('ui.country');
+  const countryName = useCountryNames();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const close = () => { setOpen(false); setSearch(''); };
 
-  const selected = COUNTRIES.find(c => c.code === value);
-
-  const filtered = search.trim()
-    ? COUNTRIES.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.code.toLowerCase().includes(search.toLowerCase())
-      )
-    : COUNTRIES;
-
-  function handleSelect(code: string) {
-    onChange(code);
-    setOpen(false);
-    setSearch('');
-  }
-
-  function handleClear(e: React.MouseEvent) {
-    e.stopPropagation();
-    onChange('');
-  }
+  const query = search.trim().toLowerCase();
+  const filtered = query
+    ? COUNTRY_CODES.filter((code) => countryName(code).toLowerCase().includes(query) || code.toLowerCase().includes(query))
+    : COUNTRY_CODES;
 
   return (
     <>
-      <div
-        onClick={() => setOpen(true)}
-        className="relative flex w-full cursor-pointer items-center gap-2 rounded-xl border border-border bg-card px-3 py-3.5 text-sm transition-colors active:bg-muted"
-      >
-        {selected ? (
-          <>
-            <span className="text-xl leading-none">{flag(selected.code)}</span>
-            <span className="flex-1 text-left text-foreground">{selected.name}</span>
-            <span
-              role="button"
-              onClick={handleClear}
-              className="text-muted-foreground p-0.5"
-            >
-              <X size={14} />
-            </span>
-          </>
+      {/* Le bouton « retirer » est à côté du déclencheur, pas dedans : un bouton n'en contient pas un autre. */}
+      <div className="relative">
+        <button type="button" id={id} aria-describedby={describedBy} aria-haspopup="dialog" onClick={() => setOpen(true)}
+          className={`${FIELD_CONTROL} flex items-center gap-2 pe-11 text-start`}>
+          {value ? (
+            <>
+              <span className="text-lg leading-none" aria-hidden>{flag(value)}</span>
+              <span className="flex-1 truncate">{countryName(value)}</span>
+            </>
+          ) : (
+            <span className="flex-1 truncate text-muted-foreground">{t('placeholder')}</span>
+          )}
+        </button>
+        {value ? (
+          <button type="button" onClick={() => onChange('')} aria-label={t('clear')}
+            className="absolute inset-y-0 inset-e-0 flex w-11 items-center justify-center rounded-e-xl text-muted-foreground hover:text-foreground">
+            <X size={14} aria-hidden />
+          </button>
         ) : (
-          <>
-            <span className="flex-1 text-left text-muted-foreground">Pays (optionnel)</span>
-            <ChevronDown size={15} className="text-muted-foreground" />
-          </>
+          <ChevronDown size={15} className="pointer-events-none absolute inset-e-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
         )}
       </div>
 
-      <BottomSheet open={open} onClose={() => { setOpen(false); setSearch(''); }} title="Choisir un pays">
-        {/* Recherche */}
+      <BottomSheet open={open} onClose={close} title={t('sheet_title')}>
         <div className="relative mb-3">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            autoFocus
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher…"
-            className="w-full rounded-xl border border-border bg-muted py-2.5 pl-9 pr-3 text-sm outline-none focus:border-primary"
-          />
-          {search && (
-            <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-              <X size={13} />
-            </button>
-          )}
+          <Search size={15} className="absolute inset-s-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('search')} aria-label={t('search')}
+            className="w-full rounded-xl border border-border bg-muted py-2.5 ps-9 pe-3 text-sm outline-none focus:border-primary" />
         </div>
-
-        {/* Liste */}
-        <div className="flex flex-col divide-y divide-border overflow-y-auto max-h-72">
-          {filtered.map(country => (
-            <button
-              key={country.code}
-              type="button"
-              onClick={() => handleSelect(country.code)}
-              className={`flex items-center gap-3 px-1 py-3 text-sm transition-colors active:bg-muted ${
-                value === country.code ? 'text-primary font-semibold' : 'text-foreground'
-              }`}
-            >
-              <span className="text-2xl leading-none w-8 text-center">{flag(country.code)}</span>
-              <span className="flex-1 text-left">{country.name}</span>
-              {value === country.code && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+        <div className="flex max-h-72 flex-col divide-y divide-border overflow-y-auto">
+          {filtered.map((code) => (
+            <button key={code} type="button" onClick={() => { onChange(code); close(); }} aria-pressed={value === code}
+              className={`flex min-h-12 items-center gap-3 px-1 text-sm transition-colors active:bg-muted ${value === code ? 'font-semibold text-primary' : 'text-foreground'}`}>
+              <span className="w-8 text-center text-2xl leading-none" aria-hidden>{flag(code)}</span>
+              <span className="flex-1 text-start">{countryName(code)}</span>
+              {value === code && <span className="size-2 shrink-0 rounded-full bg-primary" aria-hidden />}
             </button>
           ))}
-          {filtered.length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">Aucun résultat.</p>
-          )}
+          {filtered.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t('empty')}</p>}
         </div>
       </BottomSheet>
     </>

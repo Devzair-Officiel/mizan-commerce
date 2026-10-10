@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, MapPin, X } from 'lucide-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { COUNTRIES } from './CountryPicker';
+import { useTranslations } from 'next-intl';
+import { useCountryNames } from '@/lib/hooks/useCountryNames';
 import { qk } from '@/lib/query-keys';
 
 export interface AddressResult {
@@ -60,18 +61,23 @@ interface AddressAutocompleteProps {
   onChange: (value: string) => void;
   onSelect: (result: AddressResult) => void;
   countryCode?: string;
+  /** Relie le champ au libellé et à l'aide du formulaire. */
+  id?: string;
+  'aria-describedby'?: string;
 }
 
-export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: AddressAutocompleteProps) {
+export function AddressAutocomplete({
+  value, onChange, onSelect, countryCode, id, 'aria-describedby': describedBy,
+}: AddressAutocompleteProps) {
+  const t = useTranslations('ui.address');
+  const countryNames = useCountryNames();
   const [dismissed, setDismissed] = useState(true);
   const [selected, setSelected] = useState(false);
   const [debouncedValue, setDebouncedValue] = useState(value);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const normalizedCountry = countryCode?.trim().toUpperCase() || '';
-  const countryName = normalizedCountry
-    ? COUNTRIES.find((c) => c.code === normalizedCountry)?.name ?? ''
-    : '';
+  const countryName = normalizedCountry ? countryNames(normalizedCountry) : '';
 
   // Debounce de la saisie utilisateur — évite de spammer MapTiler.
   useEffect(() => {
@@ -128,7 +134,7 @@ export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: 
   return (
     <div ref={containerRef} className="relative">
       <div
-        className={`flex items-center gap-2 rounded-xl border bg-card px-3 transition-colors ${
+        className={`flex h-11 items-center gap-2 rounded-xl border bg-card ps-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/20 ${
           open ? 'border-primary' : 'border-border'
         }`}
       >
@@ -142,18 +148,22 @@ export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: 
         )}
         <input
           type="text"
+          id={id}
+          aria-describedby={describedBy}
+          dir={value ? 'auto' : undefined}
+          autoComplete="off"
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onFocus={() => { if (suggestions.length > 0) setDismissed(false); }}
-          placeholder="Adresse (optionnel)"
-          className="flex-1 bg-transparent py-3.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          placeholder={t('placeholder')}
+          className={`h-full min-w-0 flex-1 bg-transparent text-sm ${value ? '' : 'pe-3'} text-foreground outline-none placeholder:text-muted-foreground`}
         />
         {value && (
           <button
             type="button"
             onClick={handleClear}
-            className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Effacer l'adresse"
+            className="flex h-full w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label={t('clear')}
           >
             <X size={14} />
           </button>
@@ -161,19 +171,16 @@ export function AddressAutocomplete({ value, onChange, onSelect, countryCode }: 
       </div>
 
       {open && (suggestions.length > 0 || emptyForCountry) && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1.5 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+        <div className="absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
           {emptyForCountry && suggestions.length === 0 && (
-            <p className="px-4 py-3 text-xs text-muted-foreground">
-              Aucune adresse trouvée {countryName ? `en ${countryName}` : ''}. Essayez d&apos;élargir
-              la recherche ou changez de pays.
-            </p>
+            <p className="px-4 py-3 text-xs text-muted-foreground">{t('empty', { country: countryName })}</p>
           )}
           {suggestions.map((item, idx) => (
             <button
               key={`${idx}|${item.label}|${item.sub}`}
               type="button"
               onClick={() => handleSelect(item)}
-              className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors active:bg-muted hover:bg-muted/60 border-t border-border first:border-t-0"
+              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors active:bg-muted hover:bg-muted/60 border-t border-border first:border-t-0"
             >
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                 <MapPin size={13} className="text-primary" />

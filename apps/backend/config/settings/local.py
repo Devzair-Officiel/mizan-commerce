@@ -31,4 +31,13 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ),
+    # Les vérifications automatiques (audit Playwright, apps/frontend/e2e) envoient
+    # des centaines de requêtes par passage : 'user' et 'anon' sont relevées en
+    # local uniquement.
+    # 'auth' et 'resend_email' gardent les valeurs de base, couvertes par les tests.
+    'DEFAULT_THROTTLE_RATES': {
+        **REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'],
+        'anon': '10000/hour',
+        'user': '100000/hour',
+    },
 }

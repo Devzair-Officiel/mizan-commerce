@@ -384,31 +384,39 @@
       "sort_newest": "Newest customers"
     },
     "new": {
-      "title": "New customer",
-      "hero_title": "New contact",
-      "hero_sub": "At minimum, enter the name. The rest can be filled in later."
+      "title": "New customer"
     },
     "edit": {
       "title": "Edit customer",
-      "topbar_short": "Edit",
-      "loading": "Loading…"
+      "subtitle": "Customer since {date}, {count, plural, =0 {no orders} one {# order} other {# orders}}"
     },
     "form": {
-      "name_required": "Name required",
-      "email_invalid": "Invalid email",
       "section_identity": "Identity",
-      "name": "Last name",
+      "section_identity_help": "The name as it appears on your orders, invoices and messages.",
       "first_name": "First name",
+      "name": "Last name",
       "section_contact": "Contact",
+      "section_contact_help": "The phone number is used for WhatsApp messages and calls from the customer page.",
       "phone": "Phone",
+      "phone_help": "Include the country code.",
       "email": "Email",
       "section_address": "Address",
+      "section_address_help": "Used for deliveries and shown on invoices.",
+      "country": "Country",
+      "address": "Address",
       "city": "City",
       "postal_code": "Postal code",
       "section_notes_internal": "Internal notes",
-      "notes_placeholder": "Internal notes",
-      "submit": "Save customer",
-      "submitting": "Saving…"
+      "section_notes_help": "Only visible to you and your team, never to the customer.",
+      "notes": "Notes",
+      "submit_create": "Create customer",
+      "submit_edit": "Save changes",
+      "name_required": "Enter the customer's name.",
+      "name_taken": "A customer with this name already exists in your shop.",
+      "email_invalid": "This email address is not valid.",
+      "too_long": "{max} characters maximum.",
+      "field_invalid": "Value rejected: check this field.",
+      "save_failed": "Saving failed. Try again in a moment."
     },
     "detail": {
       "topbar_short": "Customer",
@@ -1262,6 +1270,23 @@
       "anonymous": "Anonymous",
       "meta": "{author}, {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}",
       "delete_cta": "Delete"
+    },
+    "form": {
+      "unsaved": "Unsaved changes",
+      "cancel": "Cancel",
+      "saving": "Saving…"
+    },
+    "country": {
+      "placeholder": "Choose a country",
+      "clear": "Remove country",
+      "sheet_title": "Choose a country",
+      "search": "Search for a country",
+      "empty": "No country found."
+    },
+    "address": {
+      "placeholder": "Number and street",
+      "clear": "Clear address",
+      "empty": "No address found ({country}). Broaden your search or change the country."
     }
   },
   "settings": {

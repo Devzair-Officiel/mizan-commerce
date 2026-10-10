@@ -74,6 +74,24 @@ services:
     depends_on:
       - backend
 
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.62.1-noble   # image officielle : Chromium + dépendances, Node inclus
+    profiles: ["audit"]                         # ne démarre pas avec la stack : `docker compose run --rm e2e`
+    user: "1000:1000"                           # node_modules créés au nom de l'utilisateur hôte
+    working_dir: /e2e
+    ipc: host                                   # recommandé par Playwright pour Chromium
+    environment:
+      - HOME=/tmp                               # cache npm accessible à l'utilisateur 1000
+      - NPM_CONFIG_UPDATE_NOTIFIER=false
+      - BASE_URL=http://frontend:3000           # frontend du réseau compose
+    volumes:
+      - ./apps/frontend/e2e:/e2e
+      - ./apps/frontend/messages:/messages:ro   # textes attendus (fr/en/ar)
+    entrypoint: ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error && exec \"$$@\"", "--"]
+    command: ["npm", "run", "audit"]
+    depends_on:
+      - frontend
+
 volumes:
   postgres_data:                                # volume nommé géré par Docker pour persister les données PostgreSQL
   paddle_models:                                # cache modèles PaddleOCR (téléchargés au premier appel du pipeline)

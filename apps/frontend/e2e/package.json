@@ -1,0 +1,14 @@
+{
+  "name": "mizan-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Audits navigateur (Playwright) : console surveillée, éléments imbriqués, parcours de formulaires",
+  "scripts": {
+    "audit": "node audit-pages.mjs && node audit-customer-form.mjs",
+    "audit:pages": "node audit-pages.mjs",
+    "audit:customer-form": "node audit-customer-form.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}

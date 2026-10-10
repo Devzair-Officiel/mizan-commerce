@@ -384,31 +384,39 @@
       "sort_newest": "Clients les plus récents"
     },
     "new": {
-      "title": "Nouveau client",
-      "hero_title": "Nouveau contact",
-      "hero_sub": "Renseignez au minimum le nom. Le reste pourra être complété plus tard."
+      "title": "Nouveau client"
     },
     "edit": {
       "title": "Modifier le client",
-      "topbar_short": "Modifier",
-      "loading": "Chargement…"
+      "subtitle": "Client depuis {date}, {count, plural, =0 {aucune commande} one {# commande} other {# commandes}}"
     },
     "form": {
-      "name_required": "Nom requis",
-      "email_invalid": "Email invalide",
       "section_identity": "Identité",
-      "name": "Nom",
+      "section_identity_help": "Le nom tel qu'il apparaît dans vos commandes, vos factures et vos messages.",
       "first_name": "Prénom",
+      "name": "Nom",
       "section_contact": "Contact",
+      "section_contact_help": "Le téléphone sert aux messages WhatsApp et aux appels depuis la fiche.",
       "phone": "Téléphone",
-      "email": "Email",
+      "phone_help": "Avec l'indicatif du pays.",
+      "email": "E-mail",
       "section_address": "Adresse",
+      "section_address_help": "Utilisée pour les livraisons et reprise sur les factures.",
+      "country": "Pays",
+      "address": "Adresse",
       "city": "Ville",
       "postal_code": "Code postal",
       "section_notes_internal": "Notes internes",
-      "notes_placeholder": "Notes internes",
-      "submit": "Enregistrer le client",
-      "submitting": "Enregistrement…"
+      "section_notes_help": "Visibles uniquement par vous et votre équipe, jamais par le client.",
+      "notes": "Notes",
+      "submit_create": "Créer le client",
+      "submit_edit": "Enregistrer les modifications",
+      "name_required": "Indiquez le nom du client.",
+      "name_taken": "Un client porte déjà ce nom dans votre boutique.",
+      "email_invalid": "Cette adresse e-mail n'est pas valide.",
+      "too_long": "{max} caractères au maximum.",
+      "field_invalid": "Valeur refusée : vérifiez ce champ.",
+      "save_failed": "L'enregistrement a échoué. Réessayez dans un instant."
     },
     "detail": {
       "topbar_short": "Client",
@@ -1262,6 +1270,23 @@
       "anonymous": "Anonyme",
       "meta": "{author}, {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}",
       "delete_cta": "Supprimer"
+    },
+    "form": {
+      "unsaved": "Modifications non enregistrées",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…"
+    },
+    "country": {
+      "placeholder": "Choisir un pays",
+      "clear": "Retirer le pays",
+      "sheet_title": "Choisir un pays",
+      "search": "Rechercher un pays",
+      "empty": "Aucun pays trouvé."
+    },
+    "address": {
+      "placeholder": "Numéro et rue",
+      "clear": "Effacer l'adresse",
+      "empty": "Aucune adresse trouvée ({country}). Élargissez la recherche ou changez de pays."
     }
   },
   "settings": {

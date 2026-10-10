@@ -95,6 +95,11 @@ export function PreviewCard({ page }: Props) {
             // puisse ouvrir sa fenêtre picture-in-picture (sinon erreur console
             // en boucle). Pas d'allow-top-navigation : l'iframe ne peut pas
             // détourner la page de l'éditeur.
+            // Pas d'`allow-same-origin` : avec `allow-scripts`, le contenu encadré pourrait lever
+            // son propre isolement. Son origine est donc opaque (`null`) : en développement, le
+            // serveur Next refuse ses ressources de dev (scripts, WebSocket de rechargement à chaud) :
+            // erreurs en console de l'aperçu, attendues, ignorées par l'audit (e2e/lib/watch.mjs).
+            // Les polices passent grâce à l'en-tête CORS de /_next/static/media (next.config.ts).
             sandbox="allow-scripts allow-popups"
           />
         </div>

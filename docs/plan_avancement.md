@@ -396,6 +396,7 @@
 - [~] C2 — Nouvelle commande desktop et modification sur le même écran
 - [~] C3 — Clients : liste (gabarit)
 - [~] C3 — Fiche client (gabarit de détail)
+- [~] Gabarit des pages de formulaire, appliqué au formulaire client
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

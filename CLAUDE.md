@@ -47,6 +47,10 @@ docker compose exec -T frontend npm run build    # Build de prod
 
 # Stack complète
 docker compose up -d
+
+# Audits navigateur Playwright (sans Node sur la machine, service `e2e` du profil « audit ») — voir apps/frontend/e2e/README.md
+docker compose run --rm e2e                              # tous les audits (console surveillée, éléments imbriqués)
+docker compose run --rm e2e npm run audit:customer-form  # un audit ciblé
 ```
 
 ## Code rules — Backend (Python / Django)
@@ -108,7 +112,7 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - **À chaque création ou modification d'endpoint** : utiliser les outils MCP Postman pour ajouter ou mettre à jour l'endpoint dans le workspace en ligne. Un dossier Postman = une app Django. Chaque requête doit inclure : une description courte, les headers nécessaires, un body d'exemple réaliste, et un script de test qui stocke les IDs retournés dans les variables d'environnement (ex: `pm.environment.set('product_id', json.id)`). Pour les méthodes POST/PUT/PATCH, ajouter les variables correspondantes à l'environnement `mizan-local`.
 - **Pour synchroniser Postman** après une session de développement, envoyer dans la session Postman dédiée : `"Scanne les urls.py du backend et mets à jour la collection Mizan dans Postman"`
 - **À chaque nouvelle app Django** : créer `apps/backend/apps/<app>/factories.py` avec des factories `factory_boy` + `faker` pour tous les modèles de l'app. Ajouter le seeding correspondant dans `apps/core/management/commands/seed_data.py`. Tester avec : `docker compose exec backend python manage.py seed_data`.
-- **Vérifications navigateur : console surveillée, aucune erreur ni avertissement React toléré.** Seule exception : les messages de développement de Next.js qui ne viennent pas de notre code (Fast Refresh, HMR, invitation React DevTools).
+- **Vérifications navigateur : console surveillée, aucune erreur ni avertissement React toléré.** Seule exception : les messages de développement de Next.js qui ne viennent pas de notre code (Fast Refresh, HMR, invitation React DevTools). L'aperçu de la page publique (iframe sandbox, origine opaque) produit en dev des erreurs de ressources de développement : attendues, ne pas assouplir le sandbox. Vérification automatisée : `docker compose run --rm e2e`.
 - **Avant tout commit backend** : lancer `pytest` complet (pas seulement l'app modifiée), puis `ruff check .`. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type.
 
 ## Self-check before responding
