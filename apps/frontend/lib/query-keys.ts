@@ -18,6 +18,10 @@ export interface OrdersListFilters {
   page?: number;
   search?: string;
   due?: boolean;
+  /** Mois en cours, dans le fuseau de la boutique. */
+  period?: 'month';
+  /** Champ DRF, préfixé de `-` pour un tri décroissant. */
+  ordering?: string;
 }
 
 export interface OrdersCustomerFilters {
@@ -48,6 +52,7 @@ export const qk = {
     all: ['orders'] as const,
     list: (filters: OrdersListFilters) => ['orders', filters] as const,
     listInfinite: (filters: Omit<OrdersListFilters, 'page'>) => ['orders', 'infinite', filters] as const,
+    summary: ['orders', 'summary'] as const,
     byCustomer: (customerId: string, filters: OrdersCustomerFilters) =>
       ['orders', 'customer', customerId, filters] as const,
     detail: (id: string) => ['orders', id] as const,

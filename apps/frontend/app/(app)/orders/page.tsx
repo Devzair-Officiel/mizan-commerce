@@ -3,11 +3,12 @@
 import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
+import { ListCreateButton } from '@/components/list/ListCreateButton';
 import { useOrders, useOrdersInfinite } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
-import { StatusFilters } from '@/components/orders/list/StatusFilters';
-import { OrdersFilters } from '@/components/orders/list/OrdersFilters';
+import { OrdersStatCards } from '@/components/orders/list/OrdersStatCards';
+import { OrdersToolbar } from '@/components/orders/list/OrdersToolbar';
 import { OrdersFiltersMobile } from '@/components/orders/list/OrdersFiltersMobile';
 import { EmptyState } from '@/components/orders/list/EmptyState';
 import { OrdersDesktopView } from '@/components/orders/list/OrdersDesktopView';
@@ -24,7 +25,7 @@ function OrdersContent() {
   const state = useOrdersPageState();
 
   const { data: pageData, isLoading: pageLoading } = useOrders(
-    { ...state.filters, page: state.urlPage },
+    { ...state.filters, page: state.page },
     { enabled: isDesktop === true },
   );
   const {
@@ -41,11 +42,18 @@ function OrdersContent() {
       <TopBar
         title={t('topbar')}
         subtitle={hasLoaded ? t('count', { count: totalCount }) : undefined}
+        action={<ListCreateButton href="/orders/new" label={t('new_order')} />}
         hideSearch
       />
-      <div className="flex flex-col gap-4 p-4 pb-28">
+      <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
+        {isDesktop === true && (
+          <OrdersStatCards currency={currency} active={state.activeCards} onToggle={state.toggleCard} />
+        )}
         {(state.isFiltered || totalCount > 0 || isLoading) && (
-          <FiltersSection state={state} />
+          <>
+            <div className="lg:hidden"><OrdersFiltersMobile state={state} /></div>
+            <div className="hidden lg:block"><OrdersToolbar state={state} /></div>
+          </>
         )}
 
         {!isLoading && hasLoaded && totalCount === 0 && (
@@ -64,49 +72,25 @@ function OrdersContent() {
             orders={pageData?.results ?? []}
             isLoading={pageLoading}
             total={totalCount}
-            urlPage={state.urlPage}
+            page={state.page}
             pageSize={PAGE_SIZE}
             currency={currency}
-            onPrev={() => state.updateURL({ page: String(state.urlPage - 1) })}
-            onNext={() => state.updateURL({ page: String(state.urlPage + 1) })}
+            ordering={state.ordering}
+            onSortChange={state.setOrdering}
+            onPageChange={state.setPage}
           />
         )}
         {isDesktop === false && (
           <OrdersMobileList
             orders={mobileOrders}
             currency={currency}
+            ordering={state.ordering}
             hasNextPage={!!hasNextPage}
             fetchNextPage={fetchNextPage}
             isFetchingNextPage={isFetchingNextPage}
             isLoading={mobileLoading}
           />
         )}
-      </div>
-    </>
-  );
-}
-
-function FiltersSection({ state }: { state: ReturnType<typeof useOrdersPageState> }) {
-  return (
-    <>
-      <div className="lg:hidden">
-        <OrdersFiltersMobile
-          statusFilter={state.statusFilter}
-          onStatusFilter={state.handleStatusFilter}
-          paymentFilter={state.paymentFilter}
-          onPaymentFilter={state.handlePaymentFilter}
-          search={state.searchInput}
-          onSearch={state.setSearchInput}
-        />
-      </div>
-      <div className="hidden lg:flex lg:flex-col lg:gap-2">
-        <StatusFilters value={state.statusFilter} onChange={state.handleStatusFilter} />
-        <OrdersFilters
-          search={state.searchInput}
-          onSearchChange={state.setSearchInput}
-          paymentFilter={state.paymentFilter}
-          onPaymentFilterChange={state.handlePaymentFilter}
-        />
       </div>
     </>
   );

@@ -480,15 +480,30 @@
       "column_number": "رقم",
       "column_client_items": "{kind, select, products {الزبون والمنتجات} services {الزبون والخدمات} other {الزبون والمقالات}}",
       "column_date": "التاريخ",
-      "column_preparation": "التحضير",
+      "column_status": "الحالة",
       "column_payment": "الدفع",
       "column_total": "المجموع",
-      "pagination_range": "{from}–{to} من {total}",
-      "pagination_prev": "السابقة",
-      "pagination_next": "التالية",
-      "search_placeholder": "بحث…",
-      "search_label": "البحث في الطلبات",
-      "clear_filters": "مسح الفلاتر"
+      "search_placeholder": "العميل أو رقم الطلب",
+      "search_label": "البحث عن طلب",
+      "clear_filters": "مسح الفلاتر",
+      "date_today": "اليوم، {time}",
+      "date_yesterday": "أمس، {time}",
+      "amount_due": "متبقٍّ {amount}",
+      "sort": {
+        "order_number": "{dir, select, asc {مرتبة حسب الرقم، تصاعديًا} other {مرتبة حسب الرقم، تنازليًا}}",
+        "customer_name": "{dir, select, asc {مرتبة حسب العميل، من أ إلى ي} other {مرتبة حسب العميل، من ي إلى أ}}",
+        "created_at": "{dir, select, asc {مرتبة حسب التاريخ، الأقدم أولًا} other {مرتبة حسب التاريخ، الأحدث أولًا}}",
+        "status": "{dir, select, asc {مرتبة حسب الحالة، بترتيب المسار} other {مرتبة حسب الحالة، بعكس ترتيب المسار}}",
+        "payment_status": "{dir, select, asc {مرتبة حسب الدفع، غير المدفوعة أولًا} other {مرتبة حسب الدفع، المدفوعة أولًا}}",
+        "total_amount": "{dir, select, asc {مرتبة حسب المجموع، الأصغر أولًا} other {مرتبة حسب المجموع، الأكبر أولًا}}"
+      },
+      "stats": {
+        "to_prepare_sub": "الأقدم {age}",
+        "to_prepare_none": "لا شيء في الانتظار",
+        "due_sub": "على {count, plural, one {# طلب} other {# طلبات}}",
+        "month_label": "هذا الشهر",
+        "month_sub": "{count, plural, one {# طلب {state}} other {# طلبات {state}}}"
+      }
     },
     "statusLabel": {
       "to_prepare_products": "قيد التحضير",
@@ -825,7 +840,12 @@
       "status_title": "الحالة",
       "payment_title": "الدفع",
       "reset": "إعادة ضبط",
-      "apply": "عرض الطلبات"
+      "apply": "عرض الطلبات",
+      "sort_title": "ترتيب حسب",
+      "sort_newest": "الأحدث",
+      "sort_oldest": "الأقدم",
+      "sort_amount_desc": "المبلغ، من الأعلى",
+      "sort_amount_asc": "المبلغ، من الأدنى"
     },
     "filterBar": {
       "filters_btn": "تصفية",
@@ -1201,7 +1221,14 @@
   },
   "ui": {
     "close": "إغلاق",
-    "panel": "لوحة"
+    "panel": "لوحة",
+    "list": {
+      "pagination_range": "{from} إلى {to} من {total}",
+      "pagination_prev": "الصفحة السابقة",
+      "pagination_next": "الصفحة التالية",
+      "pagination_page": "الصفحة {page}",
+      "pagination_label": "ترقيم الصفحات"
+    }
   },
   "settings": {
     "preferences": {

@@ -16,6 +16,7 @@ from apps.customers.models import Customer  # noqa: E402
 from apps.products.models import ProductVariant  # noqa: E402
 from apps.notes.models import Note  # noqa: E402
 from . import services  # noqa: E402
+from .filters import OrderOrderingFilter, annotate_ranks  # noqa: E402
 from .models import Order, OrderItem  # noqa: E402
 from .serializers import (  # noqa: E402
     OrderSerializer, OrderListSerializer, OrderCreateSerializer,
@@ -26,9 +27,12 @@ from .serializers import (  # noqa: E402
 
 class OrderListCreateView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    filter_backends = (filters.SearchFilter, OrderOrderingFilter)
     search_fields = ['order_number', 'customer__name', 'customer__phone']
-    ordering_fields = ('created_at', 'total_amount')
+    ordering_fields = (
+        'order_number', 'customer__name', 'created_at', 'total_amount',
+        'status', 'payment_status',
+    )
     ordering = ('-created_at',)
 
     def get_serializer_class(self):
@@ -36,7 +40,9 @@ class OrderListCreateView(generics.ListAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items')  # noqa: E501
+        qs = annotate_ranks(
+            Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items'),  # noqa: E501
+        )
         status_filter = self.request.query_params.get('status')
         payment_filter = self.request.query_params.get('payment_status')
         customer_filter = self.request.query_params.get('customer')
@@ -48,7 +54,10 @@ class OrderListCreateView(generics.ListAPIView):
             qs = qs.filter(customer_id=customer_filter)
         due_filter = self.request.query_params.get('due')
         if due_filter == 'true':
-            qs = qs.filter(payment_status__in=('unpaid', 'partial')).exclude(status='cancelled')  # noqa: E501
+            qs = services.filter_due(qs)
+        if self.request.query_params.get('period') == 'month':
+            start, end = services.current_month_bounds(shop)
+            qs = qs.filter(created_at__gte=start, created_at__lt=end)
         return qs
 
     def post(self, request, *args, **kwargs):
@@ -119,6 +128,14 @@ class OrderListCreateView(generics.ListAPIView):
 
         order.refresh_from_db()
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+class OrderSummaryView(APIView):
+    """Indicateurs de la page Commandes (à traiter, à encaisser, mois en cours)."""
+    permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
+
+    def get(self, request):
+        return Response(services.build_orders_summary(get_shop(request.user)))
 
 
 class OrderDetailView(generics.RetrieveUpdateAPIView):

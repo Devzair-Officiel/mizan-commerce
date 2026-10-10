@@ -480,15 +480,30 @@
       "column_number": "N°",
       "column_client_items": "{kind, select, products {Client et articles} services {Client et services} other {Client et articles}}",
       "column_date": "Date",
-      "column_preparation": "Préparation",
+      "column_status": "Statut",
       "column_payment": "Paiement",
       "column_total": "Total",
-      "pagination_range": "{from}–{to} sur {total}",
-      "pagination_prev": "Précédente",
-      "pagination_next": "Suivante",
-      "search_placeholder": "Rechercher…",
-      "search_label": "Rechercher des commandes",
-      "clear_filters": "Effacer les filtres"
+      "search_placeholder": "Client ou numéro de commande",
+      "search_label": "Rechercher une commande",
+      "clear_filters": "Effacer les filtres",
+      "date_today": "Aujourd'hui, {time}",
+      "date_yesterday": "Hier, {time}",
+      "amount_due": "{amount} dus",
+      "sort": {
+        "order_number": "{dir, select, asc {Trié par numéro, croissant} other {Trié par numéro, décroissant}}",
+        "customer_name": "{dir, select, asc {Trié par client, de A à Z} other {Trié par client, de Z à A}}",
+        "created_at": "{dir, select, asc {Trié par date, plus anciennes d'abord} other {Trié par date, plus récentes d'abord}}",
+        "status": "{dir, select, asc {Trié par statut, dans l'ordre du parcours} other {Trié par statut, dans l'ordre inverse du parcours}}",
+        "payment_status": "{dir, select, asc {Trié par paiement, non payées d'abord} other {Trié par paiement, payées d'abord}}",
+        "total_amount": "{dir, select, asc {Trié par total, plus petits d'abord} other {Trié par total, plus grands d'abord}}"
+      },
+      "stats": {
+        "to_prepare_sub": "la plus ancienne {age}",
+        "to_prepare_none": "Rien en attente",
+        "due_sub": "sur {count, plural, one {# commande} other {# commandes}}",
+        "month_label": "Ce mois-ci",
+        "month_sub": "{count, plural, one {# commande {state}} other {# commandes {state}}}"
+      }
     },
     "statusLabel": {
       "to_prepare_products": "À préparer",
@@ -825,7 +840,12 @@
       "status_title": "Statut",
       "payment_title": "Paiement",
       "reset": "Réinitialiser",
-      "apply": "Voir les commandes"
+      "apply": "Voir les commandes",
+      "sort_title": "Trier par",
+      "sort_newest": "Plus récentes",
+      "sort_oldest": "Plus anciennes",
+      "sort_amount_desc": "Montant décroissant",
+      "sort_amount_asc": "Montant croissant"
     },
     "filterBar": {
       "filters_btn": "Filtres",
@@ -1201,7 +1221,14 @@
   },
   "ui": {
     "close": "Fermer",
-    "panel": "Panneau"
+    "panel": "Panneau",
+    "list": {
+      "pagination_range": "{from} à {to} sur {total}",
+      "pagination_prev": "Page précédente",
+      "pagination_next": "Page suivante",
+      "pagination_page": "Page {page}",
+      "pagination_label": "Pagination"
+    }
   },
   "settings": {
     "preferences": {

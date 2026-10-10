@@ -1,66 +1,62 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams, usePathname, useRouter } from 'next/navigation';
-import type { StatusFilterKey } from './constants';
+import { useListUrlState } from '@/lib/hooks/useListUrlState';
 import type { OrdersListFilters } from '@/lib/query-keys';
+import { STATUSES, type StatusFilterKey } from './constants';
 
-function useDebouncedValue<T>(value: T, ms: number): T {
-  const [d, setD] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setD(value), ms);
-    return () => clearTimeout(id);
-  }, [value, ms]);
-  return d;
+export type PaymentFilter = 'all' | 'due' | 'paid';
+export type OrdersStatCardKey = 'to_prepare' | 'due' | 'month';
+
+export const DEFAULT_ORDERING = '-created_at';
+
+function asStatus(value: string): StatusFilterKey {
+  return STATUSES.some((s) => s.value === value) ? (value as StatusFilterKey) : '';
 }
 
 export function useOrdersPageState() {
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
+  const list = useListUrlState(DEFAULT_ORDERING);
+  const statusFilter = asStatus(list.param('status'));
+  const isDue = list.param('due') === 'true';
+  const isPaid = list.param('payment_status') === 'paid';
+  const isMonth = list.param('period') === 'month';
+  const paymentFilter: PaymentFilter = isDue ? 'due' : isPaid ? 'paid' : 'all';
 
-  const statusFilter = (searchParams.get('status') as StatusFilterKey) ?? '';
-  const isDue = searchParams.get('due') === 'true';
-  const isPaid = searchParams.get('payment_status') === 'paid';
-  const urlSearch = searchParams.get('search') ?? '';
-  const urlPage = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-  const paymentFilter: 'all' | 'due' | 'paid' = isDue ? 'due' : isPaid ? 'paid' : 'all';
+  const handleStatusFilter = (v: StatusFilterKey) => list.setParams({ status: v || null });
+  const handlePaymentFilter = (v: PaymentFilter) => list.setParams({
+    due: v === 'due' ? 'true' : null,
+    payment_status: v === 'paid' ? 'paid' : null,
+  });
+  const handlePeriod = (month: boolean) => list.setParams({ period: month ? 'month' : null });
+  /** Retire statut, paiement et période en une seule navigation ; garde recherche et tri. */
+  const resetFilters = () => list.setParams({ status: null, due: null, payment_status: null, period: null });
 
-  const [searchInput, setSearchInput] = useState(urlSearch);
-  const debouncedSearch = useDebouncedValue(searchInput, 300);
-
-  const updateURL = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [k, v] of Object.entries(updates)) {
-      if (v === null || v === '') params.delete(k);
-      else params.set(k, v);
-    }
-    router.replace(`${pathname}?${params.toString()}`);
-  }, [searchParams, pathname, router]);
-
-  useEffect(() => {
-    if (debouncedSearch === (searchParams.get('search') ?? '')) return;
-    updateURL({ search: debouncedSearch || null, page: null });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
-
-  const handleStatusFilter = (v: StatusFilterKey) => updateURL({ status: v || null, page: null });
-  const handlePaymentFilter = (v: 'all' | 'due' | 'paid') => {
-    updateURL({ due: v === 'due' ? 'true' : null, payment_status: v === 'paid' ? 'paid' : null, page: null });
+  // Les indicateurs basculent leur filtre : un second clic le retire.
+  const activeCards: Record<OrdersStatCardKey, boolean> = {
+    to_prepare: statusFilter === 'to_prepare', due: isDue, month: isMonth,
   };
-  const clearFilters = () => { setSearchInput(''); router.replace(pathname); };
+  const toggleCard = (card: OrdersStatCardKey) => {
+    if (card === 'to_prepare') handleStatusFilter(activeCards.to_prepare ? '' : 'to_prepare');
+    if (card === 'due') handlePaymentFilter(isDue ? 'all' : 'due');
+    if (card === 'month') handlePeriod(!isMonth);
+  };
 
   const filters: Omit<OrdersListFilters, 'page'> = {
     status: statusFilter || undefined,
     due: isDue || undefined,
-    payment_status: isPaid ? ('paid' as const) : undefined,
-    search: debouncedSearch || undefined,
+    payment_status: isPaid ? 'paid' : undefined,
+    period: isMonth ? 'month' : undefined,
+    search: list.search || undefined,
+    ordering: list.ordering === DEFAULT_ORDERING ? undefined : list.ordering,
   };
-  const isFiltered = !!statusFilter || isDue || isPaid || !!debouncedSearch;
+  const isFiltered = !!statusFilter || isDue || isPaid || isMonth || !!list.search;
 
   return {
-    statusFilter, isDue, isPaid, urlPage, paymentFilter,
-    searchInput, setSearchInput, isFiltered, filters,
-    updateURL, handleStatusFilter, handlePaymentFilter, clearFilters,
+    statusFilter, paymentFilter, isMonth, isFiltered, filters, activeCards,
+    page: list.page, ordering: list.ordering,
+    searchInput: list.searchInput, setSearchInput: list.setSearch,
+    setPage: list.setPage, setOrdering: list.setOrdering, clearFilters: list.clearFilters,
+    handleStatusFilter, handlePaymentFilter, handlePeriod, resetFilters, toggleCard,
   };
 }
+
+export type OrdersPageState = ReturnType<typeof useOrdersPageState>;

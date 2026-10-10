@@ -78,7 +78,13 @@ export interface OrderCreateData {
   amount_paid?: string;
 }
 
-export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?: boolean }) {
+export interface OrdersSummary {
+  to_prepare: { count: number; oldest_created_at: string | null };
+  due: { count: number; amount: string };
+  month: { revenue: string; shipped_count: number };
+}
+
+function listParams(filters: OrdersListFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
   if (filters.payment_status) params.set('payment_status', filters.payment_status);
@@ -86,6 +92,13 @@ export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?:
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
   if (filters.search) params.set('search', filters.search);
   if (filters.due) params.set('due', 'true');
+  if (filters.period) params.set('period', filters.period);
+  if (filters.ordering) params.set('ordering', filters.ordering);
+  return params;
+}
+
+export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?: boolean }) {
+  const params = listParams(filters);
   return useQuery({
     queryKey: qk.orders.list(filters),
     queryFn: () => apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${params}`),
@@ -94,15 +107,7 @@ export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?:
 }
 
 export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {}, options?: { enabled?: boolean }) {
-  const buildParams = (pg: number) => {
-    const p = new URLSearchParams();
-    if (filters.status) p.set('status', filters.status);
-    if (filters.payment_status) p.set('payment_status', filters.payment_status);
-    if (filters.search) p.set('search', filters.search);
-    if (filters.due) p.set('due', 'true');
-    if (pg > 1) p.set('page', String(pg));
-    return p;
-  };
+  const buildParams = (pg: number) => listParams({ ...filters, page: pg });
   return useInfiniteQuery({
     queryKey: qk.orders.listInfinite(filters),
     queryFn: ({ pageParam = 1 }) =>
@@ -110,6 +115,14 @@ export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {},
     initialPageParam: 1 as number,
     getNextPageParam: (last, _, lastPageParam) =>
       last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: options?.enabled,
+  });
+}
+
+export function useOrdersSummary(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: qk.orders.summary,
+    queryFn: () => apiFetch<OrdersSummary>('/orders/summary/'),
     enabled: options?.enabled,
   });
 }

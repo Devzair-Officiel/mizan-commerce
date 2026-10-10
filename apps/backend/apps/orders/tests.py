@@ -1,4 +1,7 @@
+from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -10,6 +13,7 @@ from apps.products.models import Product, ProductVariant
 from apps.customers.models import Customer
 from apps.stock.models import StockMovement
 from . import services
+from .models import Order
 
 
 def setup(email, fulfillment_mode=None):
@@ -442,3 +446,187 @@ class OrderListFilterAPITest(TestCase):
         # Les items_preview sont présents
         for item in response.data['results']:
             self.assertIn('items_preview', item)
+
+
+def make_order(shop, user, *, status_val='to_prepare', payment_val='unpaid',
+               total='0', paid='0', customer=None, created_at=None):
+    """Commande aux valeurs imposées (sans passer par le stock) pour tri et agrégats."""
+    order = services.create_order(shop, user, customer=customer)
+    fields = {
+        'status': status_val, 'payment_status': payment_val,
+        'total_amount': Decimal(total), 'amount_paid': Decimal(paid),
+    }
+    if created_at is not None:
+        fields['created_at'] = created_at
+    Order.objects.filter(pk=order.pk).update(**fields)
+    return order
+
+
+class OrderOrderingAPITest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, *_ = setup('ordering@example.com')
+        self.client.force_authenticate(user=self.user)
+        base = datetime(2026, 10, 1, 10, 0, tzinfo=dt_timezone.utc)
+        rows = [
+            ('shipped', 'partial', '30.00', 'Bachir', 2),
+            ('to_prepare', 'paid', '10.00', 'Amina', 0),
+            ('cancelled', 'unpaid', '40.00', 'Dounia', 3),
+            ('prepared', 'unpaid', '20.00', 'Chafik', 1),
+        ]
+        self.orders = {}
+        for status_val, payment_val, total, name, day in rows:
+            customer = Customer.objects.create(shop=self.shop, name=name)
+            self.orders[name] = make_order(
+                self.shop, self.user, status_val=status_val, payment_val=payment_val,
+                total=total, customer=customer, created_at=base + timedelta(days=day),
+            )
+
+    def _names(self, ordering=None):
+        url = reverse('order-list')
+        if ordering:
+            url += f'?ordering={ordering}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return [r.get('customer_name') for r in response.data['results']]
+
+    def assert_both_ways(self, field, ascending):
+        self.assertEqual(self._names(field), ascending)
+        self.assertEqual(self._names(f'-{field}'), ascending[::-1])
+
+    def test_default_is_most_recent_first(self):
+        self.assertEqual(self._names(), ['Dounia', 'Bachir', 'Chafik', 'Amina'])
+
+    def test_order_number(self):
+        # Numéros séquentiels dans l'ordre de création des lignes ci-dessus.
+        self.assert_both_ways('order_number', ['Bachir', 'Amina', 'Dounia', 'Chafik'])
+
+    def test_customer_name(self):
+        self.assert_both_ways('customer__name', ['Amina', 'Bachir', 'Chafik', 'Dounia'])
+
+    def test_customer_name_puts_orders_without_client_last(self):
+        recent = datetime(2026, 10, 9, tzinfo=dt_timezone.utc)
+        make_order(self.shop, self.user, total='5.00', created_at=recent)
+        self.assertEqual(self._names('customer__name')[-1], None)
+        self.assertEqual(self._names('-customer__name')[-1], None)
+
+    def test_created_at(self):
+        self.assert_both_ways('created_at', ['Amina', 'Chafik', 'Bachir', 'Dounia'])
+
+    def test_total_amount(self):
+        self.assert_both_ways('total_amount', ['Amina', 'Chafik', 'Bachir', 'Dounia'])
+
+    def test_status_follows_journey(self):
+        # à traiter < prête < remise < annulée (pas l'ordre alphabétique).
+        self.assert_both_ways('status', ['Amina', 'Chafik', 'Bachir', 'Dounia'])
+
+    def test_payment_status_follows_collection(self):
+        # non payée < partiel < payée ; ex æquo départagés par date décroissante.
+        self.assertEqual(self._names('payment_status'), ['Dounia', 'Chafik', 'Bachir', 'Amina'])  # noqa: E501
+        self.assertEqual(self._names('-payment_status'), ['Amina', 'Bachir', 'Dounia', 'Chafik'])  # noqa: E501
+
+    def test_unknown_field_falls_back_to_default(self):
+        self.assertEqual(self._names('amount_paid'), ['Dounia', 'Bachir', 'Chafik', 'Amina'])  # noqa: E501
+
+
+class OrderPeriodFilterAPITest(TestCase):
+    """`period=month` suit le fuseau de la boutique, pas l'UTC du serveur."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, *_ = setup('period@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.assertEqual(self.shop.timezone, 'Europe/Paris')
+        # 31 oct. 23:15 UTC = 1er nov. 00:15 à Paris → novembre.
+        self.november = make_order(
+            self.shop, self.user, created_at=datetime(2026, 10, 31, 23, 15, tzinfo=dt_timezone.utc),  # noqa: E501
+        )
+        # 31 oct. 22:30 UTC = 31 oct. 23:30 à Paris → octobre.
+        self.october = make_order(
+            self.shop, self.user, created_at=datetime(2026, 10, 31, 22, 30, tzinfo=dt_timezone.utc),  # noqa: E501
+        )
+        _, shop_b, *_ = setup('period_b@example.com')
+        user_b = User.objects.get(email='period_b@example.com')
+        make_order(shop_b, user_b, created_at=datetime(2026, 11, 2, tzinfo=dt_timezone.utc))  # noqa: E501
+
+    def _ids(self, now):
+        with patch('apps.orders.services.timezone.now', return_value=now):
+            response = self.client.get(reverse('order-list') + '?period=month')
+        return [r['id'] for r in response.data['results']]
+
+    def test_month_boundary_in_shop_timezone(self):
+        # 1er nov. 00:30 à Paris, encore le 31 oct. en UTC.
+        now = datetime(2026, 10, 31, 23, 30, tzinfo=dt_timezone.utc)
+        self.assertEqual(self._ids(now), [str(self.november.id)])
+
+    def test_previous_month(self):
+        now = datetime(2026, 10, 15, 12, 0, tzinfo=dt_timezone.utc)
+        self.assertEqual(self._ids(now), [str(self.october.id)])
+
+    def test_bounds_roll_over_december(self):
+        now = datetime(2026, 12, 31, 23, 30, tzinfo=dt_timezone.utc)  # 1er janv., Paris
+        start, end = services.current_month_bounds(self.shop, now)
+        self.assertEqual((start.year, start.month, end.year, end.month), (2027, 1, 2027, 2))  # noqa: E501
+        start, end = services.current_month_bounds(self.shop, now - timedelta(hours=1))
+        self.assertEqual((start.month, end.year, end.month), (12, 2027, 1))
+
+
+class OrderSummaryAPITest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, *_ = setup('summary@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.now = datetime(2026, 10, 20, 12, 0, tzinfo=dt_timezone.utc)
+        this_month = datetime(2026, 10, 5, 9, 0, tzinfo=dt_timezone.utc)
+        last_month = datetime(2026, 9, 28, 9, 0, tzinfo=dt_timezone.utc)
+        make_order(self.shop, self.user, total='20.00', created_at=last_month)
+        make_order(self.shop, self.user, total='15.00', created_at=this_month)
+        make_order(self.shop, self.user, status_val='shipped', payment_val='partial',
+                   total='30.00', paid='10.00', created_at=this_month)
+        make_order(self.shop, self.user, status_val='shipped', payment_val='paid',
+                   total='50.00', paid='50.00', created_at=this_month)
+        make_order(self.shop, self.user, status_val='cancelled', total='99.00',
+                   created_at=this_month)
+        # Autre boutique : ne doit rien changer aux chiffres.
+        _, shop_b, *_ = setup('summary_b@example.com')
+        user_b = User.objects.get(email='summary_b@example.com')
+        make_order(shop_b, user_b, total='500.00', created_at=datetime(2026, 1, 1, tzinfo=dt_timezone.utc))  # noqa: E501
+        make_order(shop_b, user_b, status_val='shipped', total='500.00', created_at=this_month)  # noqa: E501
+
+    def _get(self):
+        with patch('apps.orders.services.timezone.now', return_value=self.now):
+            response = self.client.get(reverse('order-summary'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.data
+
+    def test_to_prepare(self):
+        data = self._get()['to_prepare']
+        self.assertEqual(data['count'], 2)
+        self.assertEqual(data['oldest_created_at'], '2026-09-28T09:00:00+00:00')
+
+    def test_due_matches_due_filter(self):
+        data = self._get()['due']
+        # 20 + 15 (non payées) + 20 restant sur la partielle ; l'annulée est exclue.
+        self.assertEqual(data, {'count': 3, 'amount': '55.00'})
+        response = self.client.get(reverse('order-list') + '?due=true')
+        self.assertEqual(response.data['count'], data['count'])
+
+    def test_month_excludes_cancelled_and_previous_months(self):
+        data = self._get()['month']
+        self.assertEqual(data, {'revenue': '95.00', 'shipped_count': 2})
+
+    def test_empty_shop(self):
+        user, _, *_ = setup('summary_empty@example.com')
+        self.client.force_authenticate(user=user)
+        self.assertEqual(self._get(), {
+            'to_prepare': {'count': 0, 'oldest_created_at': None},
+            'due': {'count': 0, 'amount': '0'},
+            'month': {'revenue': '0', 'shipped_count': 0},
+        })
+
+    def test_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(reverse('order-summary'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

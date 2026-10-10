@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from django.db import transaction
+from django.db.models import Count, Min, Q, QuerySet, Sum
 from django.utils import timezone
 
 from apps.core.audit import log_action
@@ -28,7 +31,10 @@ __all__ = [
     'advance_order_to',
     'allowed_transitions',
     'build_items_preview_batch',
+    'build_orders_summary',
     'create_order',
+    'current_month_bounds',
+    'filter_due',
     'generate_order_number',
     'get_order_timeline',
     'recalculate_totals',
@@ -390,3 +396,47 @@ def update_payment(order: Order, amount_paid: Decimal, user=None) -> Order:
     return order
 
 
+def current_month_bounds(shop, now: datetime | None = None) -> tuple[datetime, datetime]:  # noqa: E501
+    """Début (inclus) et fin (exclue) du mois en cours, dans le fuseau de la boutique."""  # noqa: E501
+    tz = ZoneInfo(shop.timezone)
+    local = (now or timezone.now()).astimezone(tz)
+    start = datetime(local.year, local.month, 1, tzinfo=tz)
+    if local.month == 12:
+        end = datetime(local.year + 1, 1, 1, tzinfo=tz)
+    else:
+        end = datetime(local.year, local.month + 1, 1, tzinfo=tz)
+    return start, end
+
+
+def filter_due(qs: QuerySet[Order]) -> QuerySet[Order]:
+    """Commandes à encaisser : non payées ou partielles, hors annulées."""
+    return qs.filter(payment_status__in=('unpaid', 'partial')).exclude(status='cancelled')  # noqa: E501
+
+
+def build_orders_summary(shop, now: datetime | None = None) -> dict:
+    """Indicateurs de la page Commandes : à traiter, à encaisser, mois en cours."""
+    orders = Order.objects.filter(shop=shop)
+    to_prepare = orders.filter(status='to_prepare').aggregate(
+        count=Count('id'), oldest=Min('created_at'),
+    )
+    due = filter_due(orders).aggregate(
+        count=Count('id'), total=Sum('total_amount'), paid=Sum('amount_paid'),
+    )
+    month_start, month_end = current_month_bounds(shop, now)
+    month = orders.filter(created_at__gte=month_start, created_at__lt=month_end).aggregate(  # noqa: E501
+        revenue=Sum('total_amount', filter=~Q(status='cancelled')),
+        shipped_count=Count('id', filter=Q(status='shipped')),
+    )
+    due_amount = (due['total'] or Decimal('0')) - (due['paid'] or Decimal('0'))
+    oldest = to_prepare['oldest']
+    return {
+        'to_prepare': {
+            'count': to_prepare['count'],
+            'oldest_created_at': oldest.isoformat() if oldest else None,
+        },
+        'due': {'count': due['count'], 'amount': str(due_amount)},
+        'month': {
+            'revenue': str(month['revenue'] or Decimal('0')),
+            'shipped_count': month['shipped_count'],
+        },
+    }

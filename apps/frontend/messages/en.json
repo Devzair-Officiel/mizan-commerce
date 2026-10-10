@@ -480,15 +480,30 @@
       "column_number": "No.",
       "column_client_items": "{kind, select, products {Customer & items} services {Customer & services} other {Customer & items}}",
       "column_date": "Date",
-      "column_preparation": "Preparation",
+      "column_status": "Status",
       "column_payment": "Payment",
       "column_total": "Total",
-      "pagination_range": "{from}–{to} of {total}",
-      "pagination_prev": "Previous",
-      "pagination_next": "Next",
-      "search_placeholder": "Search…",
-      "search_label": "Search orders",
-      "clear_filters": "Clear filters"
+      "search_placeholder": "Customer or order number",
+      "search_label": "Search for an order",
+      "clear_filters": "Clear filters",
+      "date_today": "Today, {time}",
+      "date_yesterday": "Yesterday, {time}",
+      "amount_due": "{amount} due",
+      "sort": {
+        "order_number": "{dir, select, asc {Sorted by number, ascending} other {Sorted by number, descending}}",
+        "customer_name": "{dir, select, asc {Sorted by customer, A to Z} other {Sorted by customer, Z to A}}",
+        "created_at": "{dir, select, asc {Sorted by date, oldest first} other {Sorted by date, newest first}}",
+        "status": "{dir, select, asc {Sorted by status, in workflow order} other {Sorted by status, in reverse workflow order}}",
+        "payment_status": "{dir, select, asc {Sorted by payment, unpaid first} other {Sorted by payment, paid first}}",
+        "total_amount": "{dir, select, asc {Sorted by total, smallest first} other {Sorted by total, largest first}}"
+      },
+      "stats": {
+        "to_prepare_sub": "oldest {age}",
+        "to_prepare_none": "Nothing waiting",
+        "due_sub": "across {count, plural, one {# order} other {# orders}}",
+        "month_label": "This month",
+        "month_sub": "{count, plural, one {# order {state}} other {# orders {state}}}"
+      }
     },
     "statusLabel": {
       "to_prepare_products": "To prepare",
@@ -825,7 +840,12 @@
       "status_title": "Status",
       "payment_title": "Payment",
       "reset": "Reset",
-      "apply": "View orders"
+      "apply": "View orders",
+      "sort_title": "Sort by",
+      "sort_newest": "Newest",
+      "sort_oldest": "Oldest",
+      "sort_amount_desc": "Amount, high to low",
+      "sort_amount_asc": "Amount, low to high"
     },
     "filterBar": {
       "filters_btn": "Filters",
@@ -1201,7 +1221,14 @@
   },
   "ui": {
     "close": "Close",
-    "panel": "Panel"
+    "panel": "Panel",
+    "list": {
+      "pagination_range": "{from} to {to} of {total}",
+      "pagination_prev": "Previous page",
+      "pagination_next": "Next page",
+      "pagination_page": "Page {page}",
+      "pagination_label": "Pagination"
+    }
   },
   "settings": {
     "preferences": {
