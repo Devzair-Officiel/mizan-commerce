@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -408,9 +409,58 @@ def current_month_bounds(shop, now: datetime | None = None) -> tuple[datetime, d
     return start, end
 
 
+# Commandes à encaisser : non payées ou partielles, hors annulées.
+DUE_Q = Q(payment_status__in=('unpaid', 'partial')) & ~Q(status='cancelled')
+
+
 def filter_due(qs: QuerySet[Order]) -> QuerySet[Order]:
     """Commandes à encaisser : non payées ou partielles, hors annulées."""
-    return qs.filter(payment_status__in=('unpaid', 'partial')).exclude(status='cancelled')  # noqa: E501
+    return qs.filter(DUE_Q)
+
+
+def filter_orders(
+    qs: QuerySet[Order], shop, params: Mapping[str, str], *, skip: str | None = None,
+) -> QuerySet[Order]:
+    """Filtres de la liste Commandes, hors recherche (portée par `SearchFilter`).
+
+    `skip` ignore un groupe de filtres (`'status'` ou `'payment'`, qui couvre
+    `payment_status` et `due`) : c'est ce que compte chaque menu de facettes.
+    """
+    if skip != 'status' and params.get('status'):
+        qs = qs.filter(status=params['status'])
+    if skip != 'payment':
+        if params.get('payment_status'):
+            qs = qs.filter(payment_status=params['payment_status'])
+        if params.get('due') == 'true':
+            qs = filter_due(qs)
+    if params.get('customer'):
+        qs = qs.filter(customer_id=params['customer'])
+    if params.get('period') == 'month':
+        start, end = current_month_bounds(shop)
+        qs = qs.filter(created_at__gte=start, created_at__lt=end)
+    return qs
+
+
+def build_order_facets(shop, qs: QuerySet[Order], params: Mapping[str, str]) -> dict:
+    """Nombre de commandes par option des menus Statut et Paiement.
+
+    Chaque menu applique tous les filtres sauf le sien : le nombre affiché
+    à côté d'une option est celui que donnerait la liste en la choisissant.
+    `qs` doit déjà être limité à la boutique et à la recherche.
+    """
+    rows = (
+        filter_orders(qs, shop, params, skip='status')
+        .order_by().values('status').annotate(n=Count('id'))
+    )
+    by_status = {value: 0 for value, _ in Order.STATUS_CHOICES}
+    for row in rows:
+        by_status[row['status']] = row['n']
+    payment = filter_orders(qs, shop, params, skip='payment').aggregate(
+        all=Count('id'),
+        due=Count('id', filter=DUE_Q),
+        paid=Count('id', filter=Q(payment_status='paid')),
+    )
+    return {'status': {'all': sum(by_status.values()), **by_status}, 'payment': payment}
 
 
 def build_orders_summary(shop, now: datetime | None = None) -> dict:

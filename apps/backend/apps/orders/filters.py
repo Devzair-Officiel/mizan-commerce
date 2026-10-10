@@ -1,6 +1,9 @@
 from django.db.models import Case, F, IntegerField, OrderBy, QuerySet, Value, When
 from rest_framework import filters
 
+# Champs de recherche de la liste, partagés avec les facettes.
+ORDER_SEARCH_FIELDS = ('order_number', 'customer__name', 'customer__phone')
+
 # Ordre du parcours : à traiter < prête < remise < annulée.
 STATUS_RANK = {'to_prepare': 0, 'prepared': 1, 'shipped': 2, 'cancelled': 3}
 # Ordre d'encaissement : non payée < partiel < payée.

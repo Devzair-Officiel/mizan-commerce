@@ -7,13 +7,7 @@ import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
 import type { DataTableColumn } from '@/components/list/dataTableTypes';
 import { bucketOf } from './bucket';
-import { STATUS_BAR } from './constants';
-
-const PAYMENT_BADGE: Record<string, string> = {
-  unpaid: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  partial: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  paid: 'bg-green-500/10 text-green-700 dark:text-green-400',
-};
+import { PAYMENT_BADGE, STATUS_BAR } from './constants';
 
 function itemsPreview(order: OrderSummary): string {
   return order.items_preview

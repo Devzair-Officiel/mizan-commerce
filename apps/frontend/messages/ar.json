@@ -1227,7 +1227,9 @@
       "pagination_prev": "الصفحة السابقة",
       "pagination_next": "الصفحة التالية",
       "pagination_page": "الصفحة {page}",
-      "pagination_label": "ترقيم الصفحات"
+      "pagination_label": "ترقيم الصفحات",
+      "filter_label": "{name}:",
+      "remove_filter": "إزالة فلتر {name}"
     }
   },
   "settings": {

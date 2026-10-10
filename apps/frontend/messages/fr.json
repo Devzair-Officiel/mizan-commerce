@@ -1227,7 +1227,9 @@
       "pagination_prev": "Page précédente",
       "pagination_next": "Page suivante",
       "pagination_page": "Page {page}",
-      "pagination_label": "Pagination"
+      "pagination_label": "Pagination",
+      "filter_label": "{name} :",
+      "remove_filter": "Retirer le filtre {name}"
     }
   },
   "settings": {

@@ -630,3 +630,89 @@ class OrderSummaryAPITest(TestCase):
         self.client.force_authenticate(user=None)
         response = self.client.get(reverse('order-summary'))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+PAYMENT_KEYS = ('due', 'payment_status')
+
+
+class OrderFacetsAPITest(TestCase):
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, *_ = setup('facets@example.com')
+        self.client.force_authenticate(user=self.user)
+        amina = Customer.objects.create(shop=self.shop, name='Amina')
+        bachir = Customer.objects.create(shop=self.shop, name='Bachir')
+        rows = [
+            ('to_prepare', 'unpaid', amina),
+            ('to_prepare', 'paid', bachir),
+            ('prepared', 'partial', amina),
+            ('shipped', 'paid', amina),
+            ('shipped', 'unpaid', bachir),
+            ('cancelled', 'unpaid', amina),
+        ]
+        for status_val, payment_val, customer in rows:
+            make_order(self.shop, self.user, status_val=status_val,
+                       payment_val=payment_val, total='10.00', customer=customer)
+        # Autre boutique : ne doit apparaître dans aucun nombre.
+        user_b, shop_b, *_ = setup('facets_b@example.com')
+        for _ in range(3):
+            make_order(shop_b, user_b, status_val='shipped', payment_val='paid')
+
+    def _facets(self, query=''):
+        response = self.client.get(reverse('order-facets') + query)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response.data
+
+    def _list_count(self, params):
+        return self.client.get(reverse('order-list'), params).data['count']
+
+    def test_counts_without_filter(self):
+        self.assertEqual(self._facets(), {
+            'status': {
+                'all': 6, 'to_prepare': 2, 'prepared': 1, 'shipped': 2, 'cancelled': 1,
+            },
+            'payment': {'all': 6, 'due': 3, 'paid': 2},
+        })
+
+    def test_each_menu_ignores_its_own_filter(self):
+        data = self._facets('?status=shipped&due=true')
+        # Statut : filtré par « à encaisser » seulement (l'annulée en sort).
+        self.assertEqual(data['status'], {
+            'all': 3, 'to_prepare': 1, 'prepared': 1, 'shipped': 1, 'cancelled': 0,
+        })
+        # Paiement : filtré par « remises » seulement.
+        self.assertEqual(data['payment'], {'all': 2, 'due': 1, 'paid': 1})
+
+    def test_counts_match_list(self):
+        payment_params = {'all': {}, 'due': {'due': 'true'}, 'paid': {'payment_status': 'paid'}}  # noqa: E501
+        combos = [{}, {'search': 'Amina'}, {'status': 'to_prepare'},
+                  {'due': 'true', 'search': 'bach'}, {'period': 'month'}]
+        for base in combos:
+            data = self.client.get(reverse('order-facets'), base).data
+            others = {k: v for k, v in base.items() if k != 'status'}
+            for value, count in data['status'].items():
+                params = others if value == 'all' else {**others, 'status': value}
+                with self.subTest(base=base, status=value):
+                    self.assertEqual(count, self._list_count(params))
+            others = {k: v for k, v in base.items() if k not in PAYMENT_KEYS}
+            for value, count in data['payment'].items():
+                with self.subTest(base=base, payment=value):
+                    self.assertEqual(count, self._list_count({**others, **payment_params[value]}))  # noqa: E501
+
+    def test_search_applies_to_both_menus(self):
+        data = self._facets('?search=Bachir')
+        self.assertEqual(data['status']['all'], 2)
+        self.assertEqual(data['payment'], {'all': 2, 'due': 1, 'paid': 1})
+
+    def test_other_shop_sees_only_its_orders(self):
+        self.client.force_authenticate(user=User.objects.get(email='facets_b@example.com'))
+        data = self._facets()
+        self.assertEqual(data['status']['all'], 3)
+        self.assertEqual(data['status']['shipped'], 3)
+        self.assertEqual(data['payment'], {'all': 3, 'due': 0, 'paid': 3})
+
+    def test_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(reverse('order-facets'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

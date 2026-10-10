@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    OrderListCreateView, OrderDetailView, OrderSummaryView,
+    OrderListCreateView, OrderDetailView, OrderSummaryView, OrderFacetsView,
     OrderStatusView, OrderPaymentView, OrderActivityView,
     OrderItemCreateView, OrderItemUpdateView,
 )
@@ -8,6 +8,7 @@ from .views import (
 urlpatterns = [
     path('', OrderListCreateView.as_view(), name='order-list'),
     path('summary/', OrderSummaryView.as_view(), name='order-summary'),
+    path('facets/', OrderFacetsView.as_view(), name='order-facets'),
     path('<uuid:pk>/', OrderDetailView.as_view(), name='order-detail'),
     path('<uuid:pk>/status/', OrderStatusView.as_view(), name='order-status'),
     path('<uuid:pk>/payment/', OrderPaymentView.as_view(), name='order-payment'),

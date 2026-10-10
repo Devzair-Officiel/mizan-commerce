@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { STATUSES } from './constants';
 import { useOrderFilterOptions } from './useOrderFilterOptions';
 import type { OrdersPageState } from './useOrdersPageState';
 
@@ -14,8 +13,6 @@ const MOBILE_SORTS = [
   { ordering: '-total_amount', key: 'sort_amount_desc' },
   { ordering: 'total_amount', key: 'sort_amount_asc' },
 ] as const;
-
-const DOTS = Object.fromEntries(STATUSES.map((s) => [s.value, s.dot]));
 
 interface Props {
   state: OrdersPageState;
@@ -35,8 +32,8 @@ export function OrdersFilterSheetBody({ state, activeCount, onClose }: Props) {
         ))}
       </FilterSection>
       <FilterSection title={t('status_title')}>
-        {statusOptions.map(({ value, label }) => (
-          <FilterOption key={value} label={label} dot={DOTS[value]} isActive={state.statusFilter === value}
+        {statusOptions.map(({ value, label, dotClassName }) => (
+          <FilterOption key={value} label={label} dot={dotClassName} isActive={state.statusFilter === value}
             onClick={() => state.handleStatusFilter(value)} />
         ))}
       </FilterSection>

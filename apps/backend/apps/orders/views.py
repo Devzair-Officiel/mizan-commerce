@@ -16,7 +16,7 @@ from apps.customers.models import Customer  # noqa: E402
 from apps.products.models import ProductVariant  # noqa: E402
 from apps.notes.models import Note  # noqa: E402
 from . import services  # noqa: E402
-from .filters import OrderOrderingFilter, annotate_ranks  # noqa: E402
+from .filters import ORDER_SEARCH_FIELDS, OrderOrderingFilter, annotate_ranks  # noqa: E402
 from .models import Order, OrderItem  # noqa: E402
 from .serializers import (  # noqa: E402
     OrderSerializer, OrderListSerializer, OrderCreateSerializer,
@@ -28,7 +28,7 @@ from .serializers import (  # noqa: E402
 class OrderListCreateView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
     filter_backends = (filters.SearchFilter, OrderOrderingFilter)
-    search_fields = ['order_number', 'customer__name', 'customer__phone']
+    search_fields = ORDER_SEARCH_FIELDS
     ordering_fields = (
         'order_number', 'customer__name', 'created_at', 'total_amount',
         'status', 'payment_status',
@@ -43,22 +43,7 @@ class OrderListCreateView(generics.ListAPIView):
         qs = annotate_ranks(
             Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items'),  # noqa: E501
         )
-        status_filter = self.request.query_params.get('status')
-        payment_filter = self.request.query_params.get('payment_status')
-        customer_filter = self.request.query_params.get('customer')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        if payment_filter:
-            qs = qs.filter(payment_status=payment_filter)
-        if customer_filter:
-            qs = qs.filter(customer_id=customer_filter)
-        due_filter = self.request.query_params.get('due')
-        if due_filter == 'true':
-            qs = services.filter_due(qs)
-        if self.request.query_params.get('period') == 'month':
-            start, end = services.current_month_bounds(shop)
-            qs = qs.filter(created_at__gte=start, created_at__lt=end)
-        return qs
+        return services.filter_orders(qs, shop, self.request.query_params)
 
     def post(self, request, *args, **kwargs):
         shop = get_shop(request.user)
@@ -136,6 +121,20 @@ class OrderSummaryView(APIView):
 
     def get(self, request):
         return Response(services.build_orders_summary(get_shop(request.user)))
+
+
+class OrderFacetsView(APIView):
+    """Nombre de commandes par statut et par paiement, pour les menus de filtre.
+
+    Reçoit les mêmes paramètres que la liste (recherche comprise).
+    """
+    permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
+    search_fields = ORDER_SEARCH_FIELDS
+
+    def get(self, request):
+        shop = get_shop(request.user)
+        qs = filters.SearchFilter().filter_queryset(request, Order.objects.filter(shop=shop), self)  # noqa: E501
+        return Response(services.build_order_facets(shop, qs, request.query_params))
 
 
 class OrderDetailView(generics.RetrieveUpdateAPIView):

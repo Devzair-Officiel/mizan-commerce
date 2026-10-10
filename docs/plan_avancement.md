@@ -388,6 +388,7 @@
   - [x] 5a — page Commandes (liste, filtres, pagination/infinite scroll)
   - [x] 5b — Nouvelle vente (vue caisse desktop, client facultatif, paiement par défaut)
   - [x] 5c — Simplification statuts : suppression `draft`, création directe `to_prepare`, parcours livraison/sur-place/autre, `StatusSwitch` adaptatif, stock delta sur édition
+- [~] C1+C2 — Gabarit des pages de liste (StatCard, ListToolbar, DataTable) appliqué à Commandes desktop
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 
@@ -471,6 +472,9 @@
 - [ ] Variante par défaut identifiée par son nom stocké en français (`'Par défaut'`) :
       remplacer par un booléen `is_default` sur `ProductVariant`, avec migration des données.
       Centralisé dans `lib/products.ts` (`DEFAULT_VARIANT_NAME` + `isDefaultVariant()`) en attendant.
+
+- [ ] « Ce mois-ci » (page Commandes) compte les commandes créées dans le mois faute de
+      date de remise : ajouter une date de clôture (`completed_at`) sur `Order`.
 
 - [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la

@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk, type OrdersListFilters, type OrdersCustomerFilters } from '@/lib/query-keys';
 
@@ -123,6 +123,27 @@ export function useOrdersSummary(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: qk.orders.summary,
     queryFn: () => apiFetch<OrdersSummary>('/orders/summary/'),
+    enabled: options?.enabled,
+  });
+}
+
+/** Nombre de commandes par option des menus Statut et Paiement (mêmes filtres que la liste). */
+export interface OrdersFacets {
+  status: Record<'all' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled', number>;
+  payment: Record<'all' | 'due' | 'paid', number>;
+}
+
+export function useOrdersFacets(
+  filters: Omit<OrdersListFilters, 'page'>,
+  options?: { enabled?: boolean },
+) {
+  // Le tri ne change pas les nombres : il reste hors de la clé de cache.
+  const facetFilters = { ...filters, ordering: undefined };
+  const params = listParams(facetFilters);
+  return useQuery({
+    queryKey: qk.orders.facets(facetFilters),
+    queryFn: () => apiFetch<OrdersFacets>(`/orders/facets/?${params}`),
+    placeholderData: keepPreviousData,
     enabled: options?.enabled,
   });
 }

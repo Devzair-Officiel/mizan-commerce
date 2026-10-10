@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { ListToolbar } from '@/components/list/ListToolbar';
 import { FilterMenuButton } from '@/components/list/FilterMenuButton';
 import { parseOrdering } from '@/components/list/dataTableTypes';
+import { useOrdersFacets } from '@/lib/hooks/useOrders';
+import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { useOrderFilterOptions } from './useOrderFilterOptions';
 import type { OrdersPageState } from './useOrdersPageState';
 
@@ -20,7 +22,9 @@ const SORT_KEYS = {
 export function OrdersToolbar({ state }: { state: OrdersPageState }) {
   const t = useTranslations('orders.list');
   const tSheet = useTranslations('orders.filterSheet');
-  const { statusOptions, paymentOptions } = useOrderFilterOptions();
+  const isDesktop = useIsDesktop();
+  const { data: facets } = useOrdersFacets(state.filters, { enabled: isDesktop === true });
+  const { statusOptions, paymentOptions } = useOrderFilterOptions(facets);
   const sort = parseOrdering(state.ordering);
   const sortKey = SORT_KEYS[sort.field as keyof typeof SORT_KEYS] ?? 'created_at';
 
@@ -32,9 +36,9 @@ export function OrdersToolbar({ state }: { state: OrdersPageState }) {
       searchPlaceholder={t('search_placeholder')}
       filters={
         <>
-          <FilterMenuButton label={tSheet('status_title')} value={state.statusFilter}
+          <FilterMenuButton label={tSheet('status_title')} value={state.statusFilter} allValue=""
             options={statusOptions} onChange={state.handleStatusFilter} />
-          <FilterMenuButton label={tSheet('payment_title')} value={state.paymentFilter}
+          <FilterMenuButton label={tSheet('payment_title')} value={state.paymentFilter} allValue="all"
             options={paymentOptions} onChange={state.handlePaymentFilter} />
         </>
       }
