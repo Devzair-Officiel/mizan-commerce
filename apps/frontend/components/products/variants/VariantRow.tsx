@@ -38,7 +38,7 @@ export function VariantRow({ variant, isProduct, canDelete, productId, onEdit }:
     }
   }
 
-  const stockTone = variant.is_out_of_stock
+  const stockTone = variant.is_out_of_stock || variant.is_negative_stock
     ? 'text-destructive'
     : variant.is_low_stock
       ? 'text-amber-600 dark:text-amber-400'

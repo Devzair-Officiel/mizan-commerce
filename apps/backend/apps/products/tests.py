@@ -201,10 +201,12 @@ class ProductListTest(TestCase):
         self.assertEqual(self.facets(), {
             'state': {'all': 5, 'active': 4, 'inactive': 1},
             'type': {'all': 4, 'product': 3, 'service': 1},
-            'stock': {'all': 4, 'out': 1, 'low': 1, 'in': 1},
+            'stock': {'all': 4, 'negative': 0, 'out': 1, 'low': 1, 'in': 1},
         })
         facets = self.facets('?state=all&type=product')
-        self.assertEqual(facets['stock'], {'all': 4, 'out': 1, 'low': 1, 'in': 2})
+        self.assertEqual(
+            facets['stock'], {'all': 4, 'negative': 0, 'out': 1, 'low': 1, 'in': 2},
+        )
         self.assertEqual(facets['type'], {'all': 5, 'product': 4, 'service': 1})
 
     def test_facets_match_the_list(self):
@@ -223,7 +225,7 @@ class ProductListTest(TestCase):
         response = self.client.get(reverse('product-summary'))
         self.assertEqual(response.data, {
             'total': 4, 'products': 3, 'services': 1,
-            'out_of_stock': 1, 'low_stock': 1, 'inactive': 1,
+            'negative_stock': 0, 'out_of_stock': 1, 'low_stock': 1, 'inactive': 1,
         })
 
 
@@ -246,7 +248,10 @@ class ProductListPaginationTest(TestCase):
 
     def test_facets_count_beyond_the_first_page(self):
         response = self.client.get(reverse('product-facets'))
-        self.assertEqual(response.data['stock'], {'all': 25, 'out': 1, 'low': 0, 'in': 24})  # noqa: E501
+        self.assertEqual(
+            response.data['stock'],
+            {'all': 25, 'negative': 0, 'out': 1, 'low': 0, 'in': 24},
+        )
 
 
 class ProductListMultiTenantTest(TestCase):
@@ -301,3 +306,129 @@ class ProductImageUploadTest(TestCase):
         self.product.save(update_fields=['shop'])
         with self.assertRaises(Product.DoesNotExist):
             self._upload('c.png')
+
+
+# ─── C4 : création atomique, suppression d'un article jamais utilisé ────────
+
+
+class ProductAtomicCreateTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('atomic@example.com')
+        self.client.force_authenticate(user=self.user)
+
+    def payload(self, **variant):
+        return {
+            'name': 'Sandales', 'type': 'product', 'description': '',
+            'variant': {
+                'packaging_name': 'Par défaut', 'base_quantity': '1', 'unit': 'piece',
+                'selling_price': '30.00', 'purchase_price': '12.00', **variant,
+            },
+            'initial_stock': '6',
+        }
+
+    def test_article_format_and_initial_stock_in_one_call(self):
+        response = self.client.post(reverse('product-list'), self.payload(), format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        [variant] = response.data['variants']
+        self.assertEqual(variant['stock_quantity'], '6.000')
+        from apps.stock.models import StockMovement
+        movement = StockMovement.objects.get(variant_id=variant['id'])
+        self.assertEqual(
+            (movement.movement_type, movement.reason, str(movement.unit_purchase_price)),  # noqa: E501
+            ('in', 'Stock initial', '12.00'),
+        )
+        self.assertTrue(response.data['can_delete'])
+
+    def test_invalid_format_creates_nothing(self):
+        response = self.client.post(
+            reverse('product-list'), self.payload(selling_price='-1'), format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Product.objects.filter(shop=self.shop).exists())
+
+    def test_failure_after_the_article_rolls_back(self):
+        from unittest import mock
+
+        with mock.patch(
+            'apps.stock.services.create_movement', side_effect=RuntimeError('panne'),
+        ):
+            response = self.client.post(
+                reverse('product-list'), self.payload(), format='json',
+            )
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertFalse(Product.objects.filter(shop=self.shop).exists())
+
+    def test_service_has_no_initial_stock(self):
+        data = {**self.payload(), 'type': 'service'}
+        response = self.client.post(reverse('product-list'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('initial_stock', response.data['errors'])
+
+
+class ProductDeleteTest(TestCase):
+    MESSAGE = 'Cet article a déjà servi : désactivez-le plutôt.'
+
+    def setUp(self):
+        from apps.products.services import create_product
+
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('delete@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.product = create_product(
+            self.shop, self.user, {'name': 'Neuf'},
+            {'packaging_name': 'Par défaut', 'selling_price': '10.00'}, 4,
+        )
+        self.variant = self.product.variants.get()
+
+    def delete(self, product=None):
+        product = product or self.product
+        return self.client.delete(reverse('product-detail', args=[product.pk]))
+
+    def test_never_used_article_is_deleted_with_its_initial_stock(self):
+        self.assertEqual(self.delete().status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Product.objects.filter(pk=self.product.pk).exists())
+
+    def test_sold_article_is_refused(self):
+        from apps.orders import services as orders
+
+        order = orders.create_order(self.shop, self.user)
+        orders.add_item(order, self.variant, 1, user=self.user)
+        response = self.delete()
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data['detail'], self.MESSAGE)
+        self.assertTrue(Product.objects.filter(pk=self.product.pk).exists())
+
+    def test_article_with_another_movement_is_refused(self):
+        from apps.stock.services import create_movement
+
+        create_movement(self.shop, self.variant, 'in', 2, 'Réassort', created_by=self.user)  # noqa: E501
+        self.assertEqual(self.delete().status_code, status.HTTP_409_CONFLICT)
+        detail = self.client.get(reverse('product-detail', args=[self.product.pk]))
+        self.assertFalse(detail.data['can_delete'])
+
+    def test_other_shop_article_is_not_found(self):
+        _, other_shop = setup_user_shop('delete-other@example.com')
+        foreign = make_product(other_shop)
+        self.assertEqual(self.delete(foreign).status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Product.objects.filter(pk=foreign.pk).exists())
+
+
+class ProductNegativeStateTest(TestCase):
+    def test_negative_level_in_list_summary_and_facets(self):
+        from apps.stock.services import create_movement
+
+        client = APIClient()
+        user, shop = setup_user_shop('negative@example.com')
+        client.force_authenticate(user=user)
+        product = make_product(shop, 'Vendu')
+        create_movement(shop, product.variants.get(), 'reservation', 2, created_by=user)
+        make_product(shop, 'Vide')
+
+        listed = client.get(reverse('product-list'), {'stock': 'negative'}).data
+        self.assertEqual([r['name'] for r in listed['results']], ['Vendu'])
+        self.assertEqual(listed['results'][0]['stock_state'], 'negative')
+        summary = client.get(reverse('product-summary')).data
+        self.assertEqual((summary['negative_stock'], summary['out_of_stock']), (1, 1))
+        facets = client.get(reverse('product-facets')).data
+        self.assertEqual(facets['stock']['negative'], 1)

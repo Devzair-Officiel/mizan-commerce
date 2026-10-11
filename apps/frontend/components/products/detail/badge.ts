@@ -1,6 +1,6 @@
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 
-export type ProductBadgeKey = 'inactive' | 'out_of_stock' | 'low_stock' | 'service' | 'active';
+export type ProductBadgeKey = 'inactive' | 'negative_stock' | 'out_of_stock' | 'low_stock' | 'service' | 'active';
 export type ProductBadge = { labelKey: ProductBadgeKey; classes: string };
 
 export function getProductBadge(product: ProductDetail): ProductBadge {
@@ -8,6 +8,12 @@ export function getProductBadge(product: ProductDetail): ProductBadge {
     return {
       labelKey: 'inactive',
       classes: 'bg-muted text-muted-foreground border border-border',
+    };
+  }
+  if (product.type === 'product' && product.stock_state === 'negative') {
+    return {
+      labelKey: 'negative_stock',
+      classes: 'bg-red-500/10 text-red-700 dark:text-red-400 border border-red-400/30',
     };
   }
   if (product.type === 'product' && product.is_out_of_stock) {

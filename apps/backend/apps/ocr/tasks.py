@@ -30,6 +30,7 @@ from .ai_client import (
 )
 from .matching import (
     InvoiceMatchingResult,
+    VariantCandidate,
     match_invoice_lines_to_variants,
 )
 from .models import OcrResult
@@ -318,20 +319,25 @@ def _matching_to_jsonable(result: InvoiceMatchingResult) -> dict:
         'lines': [
             {
                 'invoice_line_index': line.invoice_line_index,
-                'candidates': [
-                    {
-                        'variant_id': candidate.variant_id,
-                        'product_id': candidate.product_id,
-                        'product_name': candidate.product_name,
-                        'packaging_name': candidate.packaging_name,
-                        'match_kind': candidate.match_kind,
-                        'similarity_score': candidate.similarity_score,
-                    }
-                    for candidate in line.candidates
-                ],
+                'candidates': [_candidate_to_jsonable(c) for c in line.candidates],
+                'association': (
+                    _candidate_to_jsonable(line.association)
+                    if line.association is not None else None
+                ),
             }
             for line in result.lines
         ],
+    }
+
+
+def _candidate_to_jsonable(candidate: VariantCandidate) -> dict:
+    return {
+        'variant_id': candidate.variant_id,
+        'product_id': candidate.product_id,
+        'product_name': candidate.product_name,
+        'packaging_name': candidate.packaging_name,
+        'match_kind': candidate.match_kind,
+        'similarity_score': candidate.similarity_score,
     }
 
 

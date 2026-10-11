@@ -1,11 +1,14 @@
 """Matching déterministe des lignes de facture OCR vers les ProductVariant.
 
-Objectif : à partir d'une facture structurée (`AiInvoiceExtraction`), proposer
-pour chaque ligne facture une liste ordonnée de candidats `ProductVariant`
-appartenant à la boutique courante.
+Objectif : à partir d'une facture structurée (`AiInvoiceExtraction`), associer
+chaque ligne facture à un `ProductVariant` de la boutique courante, dans cet
+ordre : code-barres, référence, association déjà mémorisée pour ce fournisseur
+(`SupplierLineMatch`), puis nom normalisé. Une ligne sans association unique
+reste « à associer ». En complément, chaque ligne reçoit une liste ordonnée de
+candidats (suggestions pour l'association à la main).
 
-Aucune association n'est *validée* automatiquement — c'est un enrichissement
-qui sera relu par le commerçant lors d'une étape frontend/human validation.
+Rien n'est ajouté au stock ici : l'entrée de stock validée par le commerçant
+reste la seule écriture.
 
 Le service ne contacte AUCUN service externe :
 - pas d'appel LLM
@@ -23,10 +26,13 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
+from collections import Counter
 from difflib import SequenceMatcher
 from typing import TYPE_CHECKING, NamedTuple
 
 from apps.products.models import ProductVariant
+
+from .models import SupplierLineMatch
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -43,7 +49,9 @@ __all__ = (
     'InvoiceMatchingResult',
     'MatchedInvoiceLine',
     'VariantCandidate',
+    'line_label_key',
     'match_invoice_lines_to_variants',
+    'normalize_text',
 )
 
 
@@ -59,7 +67,11 @@ MAX_CANDIDATES_PER_LINE = 3
 _KIND_BARCODE = 'barcode_exact'
 _KIND_SKU = 'sku_exact'
 _KIND_NAME = 'name_similarity'
-_KIND_CHOICES: tuple[str, ...] = (_KIND_BARCODE, _KIND_SKU, _KIND_NAME)
+_KIND_MEMORY = 'supplier_memory'
+_KIND_NAME_EXACT = 'name_exact'
+_KIND_CHOICES: tuple[str, ...] = (
+    _KIND_BARCODE, _KIND_SKU, _KIND_NAME, _KIND_MEMORY, _KIND_NAME_EXACT,
+)
 
 # Rang de priorité utilisé pour le tri stable. Plus le rang est bas, plus le
 # candidat remonte : barcode > sku > nom.
@@ -89,6 +101,8 @@ class VariantCandidate(NamedTuple):
 class MatchedInvoiceLine(NamedTuple):
     invoice_line_index: int
     candidates: list[VariantCandidate]
+    # Association déterministe (unique) ; `None` : ligne « à associer ».
+    association: VariantCandidate | None = None
 
 
 class InvoiceMatchingResult(NamedTuple):
@@ -106,6 +120,18 @@ class _NormalizedVariant(NamedTuple):
     sku: str
     name: str
     name_plus_packaging: str
+    # Seul format actif de son article : le nom seul suffit à l'associer.
+    only_format: bool
+
+
+def normalize_text(value: str | None) -> str:
+    """Forme normalisée publique (clés de `SupplierLineMatch`)."""
+    return _normalize_text(value)
+
+
+def line_label_key(description: str | None, supplier_reference: str | None) -> str:
+    """Clé du libellé d'une ligne : sa description, à défaut sa référence."""
+    return _normalize_text(description) or _normalize_text(supplier_reference)
 
 
 def _normalize_text(value: str | None) -> str:
@@ -230,6 +256,58 @@ def _match_line(
     return ordered[:MAX_CANDIDATES_PER_LINE]
 
 
+def _unique(found: list[_NormalizedVariant], kind: str) -> VariantCandidate | None:
+    return _candidate_from_variant(found[0], kind, 100) if len(found) == 1 else None
+
+
+def _associate_line(
+    invoice_line: AiInvoiceLine,
+    variants: list[_NormalizedVariant],
+    memory: dict[str, _NormalizedVariant],
+) -> VariantCandidate | None:
+    """Association unique : code-barres, référence, mémoire fournisseur, nom.
+
+    Un niveau qui trouve plusieurs formats n'associe pas (ambiguïté) : on passe
+    au suivant, puis la ligne reste « à associer ».
+    """
+    reference = _normalize_text(invoice_line.supplier_reference)
+    if reference:
+        for kind, attr in ((_KIND_BARCODE, 'barcode'), (_KIND_SKU, 'sku')):
+            found = [v for v in variants if getattr(v, attr) == reference]
+            if association := _unique(found, kind):
+                return association
+    remembered = memory.get(
+        line_label_key(invoice_line.description, invoice_line.supplier_reference),
+    )
+    if remembered is not None:
+        return _candidate_from_variant(remembered, _KIND_MEMORY, 100)
+    description = _normalize_text(invoice_line.description)
+    if not description:
+        return None
+    found = [
+        v for v in variants
+        if description == v.name_plus_packaging
+        or (v.only_format and description == v.name)
+    ]
+    return _unique(found, _KIND_NAME_EXACT)
+
+
+def _supplier_memory(
+    shop_id: UUID,
+    supplier_name: str | None,
+    variants: list[_NormalizedVariant],
+) -> dict[str, _NormalizedVariant]:
+    """Associations mémorisées pour ce fournisseur, limitées aux formats éligibles."""
+    by_pk = {str(v.variant.pk): v for v in variants}
+    rows = SupplierLineMatch.objects.filter(
+        shop_id=shop_id, supplier_key=_normalize_text(supplier_name),
+    ).values_list('label_key', 'variant_id')
+    return {
+        label: by_pk[str(variant_id)]
+        for label, variant_id in rows if str(variant_id) in by_pk
+    }
+
+
 def match_invoice_lines_to_variants(
     *,
     shop_id: UUID,
@@ -256,6 +334,8 @@ def match_invoice_lines_to_variants(
             product__type='product',
         )
     )
+    variants = list(variants_qs)
+    formats_per_product = Counter(v.product_id for v in variants)
     normalized = [
         _NormalizedVariant(
             variant=v,
@@ -265,14 +345,17 @@ def match_invoice_lines_to_variants(
             name_plus_packaging=_normalize_text(
                 f'{v.product.name} {v.packaging_name}'
             ),
+            only_format=formats_per_product[v.product_id] == 1,
         )
-        for v in variants_qs
+        for v in variants
     ]
+    memory = _supplier_memory(shop_id, extraction.supplier_name, normalized)
 
     lines = [
         MatchedInvoiceLine(
             invoice_line_index=index,
             candidates=_match_line(invoice_line, normalized),
+            association=_associate_line(invoice_line, normalized, memory),
         )
         for index, invoice_line in enumerate(extraction.lines)
     ]

@@ -245,7 +245,8 @@
       "low_stock_sub": "منها {count} نفد",
       "reminders_next": "اليوم، التالي في {time}",
       "reminders_late": "{count} متأخر",
-      "low_stock_unit": "منتجات"
+      "low_stock_unit": "منتجات",
+      "negative_sub": "منها {count} للتسوية"
     },
     "prepare": {
       "title": "طلبات قيد التحضير",
@@ -293,7 +294,8 @@
       "out_of_stock_sub": "{count} نفد",
       "see_all": "عرض {count} منتج →",
       "see_stock": "عرض المخزون",
-      "restock": "إعادة تموين"
+      "restock": "إعادة تموين",
+      "negative": "{qty}، للتسوية"
     },
     "reminders": {
       "title": "تذكيرات اليوم",
@@ -894,6 +896,7 @@
       "stock_title": "المخزون",
       "stock": {
         "all": "الكل",
+        "negative": "سالب",
         "out": "نفد المخزون",
         "low": "مخزون منخفض",
         "in": "متوفر"
@@ -934,10 +937,12 @@
         "out_label": "نفد المخزون",
         "low_label": "مخزون منخفض",
         "active_label": "{kind, select, products {المنتجات النشطة} services {الخدمات النشطة} other {المنتجات والخدمات النشطة}}"
-      }
+      },
+      "negative_stock": "{stock}، للتسوية"
     },
     "badges": {
       "inactive": "غير نشط",
+      "negative_stock": "مخزون للتسوية",
       "out_of_stock": "نفد",
       "low_stock": "مخزون منخفض",
       "service": "خدمة",

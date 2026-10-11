@@ -178,7 +178,9 @@ def _build_unpaid_orders(shop: Shop) -> dict:
 def _build_low_stock(shop: Shop) -> dict:
     qs = _qs_low_stock(shop).select_related("product").order_by("stock_quantity")
     total = qs.count()
-    out_of_stock_count = qs.filter(stock_quantity__lte=0).count()
+    # Négatif (vendu au-delà du stock, à régulariser) et rupture (zéro) sont exclusifs.
+    negative_count = qs.filter(stock_quantity__lt=0).count()
+    out_of_stock_count = qs.filter(stock_quantity=0).count()
     rows = list(
         qs.values(
             "id",
@@ -204,7 +206,12 @@ def _build_low_stock(shop: Shop) -> dict:
         }
         for row in rows
     ]
-    return {"count": total, "out_of_stock_count": out_of_stock_count, "items": items}
+    return {
+        "count": total,
+        "negative_count": negative_count,
+        "out_of_stock_count": out_of_stock_count,
+        "items": items,
+    }
 
 
 def _build_today_reminders(shop: Shop, day_start: datetime, day_end: datetime) -> dict:

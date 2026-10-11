@@ -24,6 +24,8 @@ const MOVEMENT_VISUAL: Record<
   release:     { icon: RefreshCcw,   classes: 'bg-green-500/10 text-green-600 dark:text-green-400', sign: '+' },
   out:         { icon: PackageMinus, classes: 'bg-red-500/10 text-red-600 dark:text-red-400',       sign: '−' },
   loss:        { icon: AlertCircle,  classes: 'bg-red-500/10 text-red-600 dark:text-red-400',       sign: '−' },
+  breakage:    { icon: AlertCircle,  classes: 'bg-red-500/10 text-red-600 dark:text-red-400',       sign: '−' },
+  internal_use: { icon: PackageMinus, classes: 'bg-red-500/10 text-red-600 dark:text-red-400',      sign: '−' },
   reservation: { icon: ShoppingBag,  classes: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',    sign: '−' },
   adjustment:  { icon: RefreshCcw,   classes: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', sign: '±' },
 };

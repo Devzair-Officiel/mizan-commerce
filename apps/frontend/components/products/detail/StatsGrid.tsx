@@ -13,7 +13,7 @@ export function StatsGrid({ product }: { product: ProductDetail }) {
   const priceRange = formatPriceRange(product.min_selling_price, product.max_selling_price);
   const variantCount = product.variant_count ?? product.variants.length;
   const stockTone =
-    product.is_out_of_stock
+    product.is_negative_stock || product.is_out_of_stock
       ? 'text-red-600 dark:text-red-400'
       : product.is_low_stock
         ? 'text-amber-600 dark:text-amber-400'
@@ -40,7 +40,7 @@ export function StatsGrid({ product }: { product: ProductDetail }) {
             <Boxes size={13} className="text-muted-foreground/80" />
             <p className="text-xs text-muted-foreground">{t('active_formats')}</p>
           </div>
-          {(product.is_out_of_stock || product.is_low_stock) && (
+          {(product.is_negative_stock || product.is_out_of_stock || product.is_low_stock) && (
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <AlertTriangle size={12} />
             </div>

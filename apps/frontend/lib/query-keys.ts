@@ -57,7 +57,7 @@ export interface ProductsPageFilters {
   state?: 'all' | 'active' | 'inactive';
   type?: 'product' | 'service';
   /** Niveau de stock d'un article : rupture, stock faible, en stock. */
-  stock?: 'out' | 'low' | 'in';
+  stock?: 'negative' | 'out' | 'low' | 'in';
   search?: string;
   /** Champ DRF, préfixé de `-` pour un tri décroissant. */
   ordering?: string;

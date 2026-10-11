@@ -16,7 +16,12 @@ export type StockMovementType =
   | 'reservation'
   | 'release'
   | 'adjustment'
-  | 'loss';
+  | 'loss'
+  | 'breakage'
+  | 'internal_use';
+
+/** Famille d'un mouvement (filtre « Mouvement ») : les sorties regroupent perte, casse, usage interne. */
+export type StockMovementGroup = 'in' | 'out' | 'reservation' | 'release' | 'adjustment';
 
 export interface StockMovement {
   id: string;
@@ -27,11 +32,21 @@ export interface StockMovement {
   unit: ProductUnit;
   movement_type: StockMovementType;
   movement_type_display: string;
+  type_group: StockMovementGroup;
   quantity: string;
+  /** Quantité avec son signe : positive pour une entrée, négative pour une sortie. */
+  signed_quantity: string;
   reason: string;
   order_id: string | null;
+  order_number: string | null;
+  order_status: string | null;
+  unit_purchase_price: string | null;
+  supplier_name: string;
+  invoice_number: string;
+  invoice_date: string | null;
   created_by: string | null;
   created_by_email: string | null;
+  author_name: string | null;
   created_at: string;
 }
 

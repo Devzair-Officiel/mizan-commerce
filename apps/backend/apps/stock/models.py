@@ -2,6 +2,8 @@ import uuid
 from decimal import Decimal
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import Case, F, Sum, Value, When
+from django.db.models.functions import Abs, Coalesce
 from apps.shops.models import Shop
 from apps.products.models import ProductVariant
 
@@ -11,8 +13,15 @@ MOVEMENT_SIGNS = {
     'out': -1,
     'reservation': -1,
     'loss': -1,
+    'breakage': -1,
+    'internal_use': -1,
     'adjustment': None,  # peut être + ou - selon quantity signée
 }
+
+_QUANTITY = models.DecimalField(max_digits=16, decimal_places=3)
+
+# Sorties manuelles (perte, casse, usage interne) : limitées au stock disponible.
+EXIT_TYPES: tuple[str, ...] = ('loss', 'breakage', 'internal_use')
 
 
 class StockMovement(models.Model):
@@ -22,7 +31,9 @@ class StockMovement(models.Model):
         ('reservation', 'Réservation commande'),
         ('release', 'Libération commande'),
         ('adjustment', 'Ajustement'),
-        ('loss', 'Perte / casse'),
+        ('loss', 'Perte'),
+        ('breakage', 'Casse'),
+        ('internal_use', 'Usage interne'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -36,6 +47,17 @@ class StockMovement(models.Model):
     quantity = models.DecimalField(max_digits=14, decimal_places=3)
     reason = models.TextField(blank=True)
     order_id = models.UUIDField(null=True, blank=True)
+    # Référence d'une entrée : prix d'achat payé, fournisseur et facture (facultatifs).
+    unit_purchase_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+    )
+    supplier_name = models.CharField(max_length=255, blank=True)
+    invoice_number = models.CharField(max_length=100, blank=True)
+    invoice_date = models.DateField(null=True, blank=True)
+    ocr_result = models.ForeignKey(
+        'ocr.OcrResult', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='stock_movements',
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name='stock_movements'
@@ -64,9 +86,20 @@ class StockMovement(models.Model):
             self._update_variant_cache()
 
     def _update_variant_cache(self):
-        movements = StockMovement.objects.filter(variant=self.variant)
-        total = Decimal('0')
-        for m in movements:
-            total += m.get_signed_quantity()
-
+        total = StockMovement.objects.filter(variant_id=self.variant_id).aggregate(
+            total=Coalesce(
+                Sum(signed_quantity()), Value(Decimal('0')), output_field=_QUANTITY,
+            ),
+        )['total']
         ProductVariant.objects.filter(pk=self.variant_id).update(stock_quantity=total)
+
+
+def signed_quantity() -> Case:
+    """Quantité signée d'un mouvement, en SQL (même règle que `get_signed_quantity`)."""
+    negative = [t for t, sign in MOVEMENT_SIGNS.items() if sign == -1]
+    return Case(
+        When(movement_type='adjustment', then=F('quantity')),
+        When(movement_type__in=negative, then=-Abs(F('quantity'))),
+        default=Abs(F('quantity')),
+        output_field=_QUANTITY,
+    )

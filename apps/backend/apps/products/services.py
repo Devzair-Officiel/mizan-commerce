@@ -19,6 +19,9 @@ from apps.core.storage import get_signed_url, upload_fileobj
 from .models import Product, ProductVariant
 
 if TYPE_CHECKING:
+    from decimal import Decimal
+
+    from apps.accounts.models import User
     from apps.products.models import ProductImage
     from apps.shops.models import Shop
 
@@ -26,7 +29,8 @@ if TYPE_CHECKING:
 __all__ = (
     'upload_product_image', 'get_signed_url', 'PRODUCT_SEARCH_FIELDS',
     'products_with_stats', 'filter_products', 'build_product_facets',
-    'build_products_summary',
+    'build_products_summary', 'create_product', 'product_has_served',
+    'delete_unused_product', 'ProductInUseError', 'INITIAL_STOCK_REASON',
 )
 
 PRODUCT_SEARCH_FIELDS = ('name', 'variants__sku', 'variants__barcode')
@@ -36,12 +40,15 @@ STATES = ('active', 'inactive', 'all')
 _QUANTITY = DecimalField(max_digits=16, decimal_places=3)
 _IS_ARTICLE = Q(type='product')
 
-# Niveaux de stock d'un article, exclusifs : rupture, stock faible, en stock.
-# Rupture = aucun format actif avec du stock ; faible = un format actif sous son seuil.
+# Niveaux de stock d'un article, exclusifs : négatif, rupture, stock faible, en stock.
+# Négatif = un format actif sous zéro (à régulariser) ; rupture = aucun format actif
+# avec du stock ; faible = un format actif sous son seuil.
+_NOT_NEGATIVE = _IS_ARTICLE & Q(has_negative=False)
 STOCK_LEVELS: dict[str, Q] = {
-    'out': _IS_ARTICLE & Q(has_stock=False),
-    'low': _IS_ARTICLE & Q(has_low=True),
-    'in': _IS_ARTICLE & Q(has_stock=True, has_low=False),
+    'negative': _IS_ARTICLE & Q(has_negative=True),
+    'out': _NOT_NEGATIVE & Q(has_stock=False),
+    'low': _NOT_NEGATIVE & Q(has_low=True),
+    'in': _NOT_NEGATIVE & Q(has_stock=True, has_low=False),
 }
 
 
@@ -79,6 +86,7 @@ def products_with_stats(shop: 'Shop') -> QuerySet[Product]:
             output_field=_QUANTITY,
         ),
         has_stock=Exists(_active_variants().filter(stock_quantity__gt=0)),
+        has_negative=Exists(_active_variants().filter(stock_quantity__lt=0)),
         has_low=Exists(
             _active_variants().filter(
                 low_stock_threshold__isnull=False,
@@ -157,7 +165,7 @@ def build_product_facets(qs: QuerySet[Product], params: Mapping[str, str]) -> di
 
 
 def build_products_summary(shop: 'Shop') -> dict:
-    """Indicateurs du Catalogue (articles et services actifs, rupture, stock faible)."""
+    """Indicateurs du Catalogue (actifs, négatif, rupture, stock faible)."""
     qs = products_with_stats(shop)
     active = qs.filter(is_active=True)
     products = active.filter(_IS_ARTICLE).count()
@@ -166,6 +174,7 @@ def build_products_summary(shop: 'Shop') -> dict:
         'total': products + services,
         'products': products,
         'services': services,
+        'negative_stock': active.filter(STOCK_LEVELS['negative']).count(),
         'out_of_stock': active.filter(STOCK_LEVELS['out']).count(),
         'low_stock': active.filter(STOCK_LEVELS['low']).count(),
         'inactive': qs.filter(is_active=False).count(),
@@ -201,3 +210,73 @@ def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFi
             shop=shop, product=product, object_key=object_key,
             is_primary=True, position=position,
         )
+
+
+# ─── Création et suppression d'un article ───────────────────────────────────
+
+# Motif du stock saisi à la création. Les anciennes créations l'écrivaient dans
+# la langue de l'interface : elles comptent aussi comme stock initial.
+INITIAL_STOCK_REASON = 'Stock initial'
+_INITIAL_STOCK_REASONS = (INITIAL_STOCK_REASON, 'Initial stock', 'المخزون الأولي')
+
+
+class ProductInUseError(Exception):
+    """Article déjà utilisé (commande, mouvement) : à désactiver, pas à supprimer."""
+
+    def __init__(self) -> None:
+        super().__init__('Cet article a déjà servi : désactivez-le plutôt.')
+
+
+def create_product(
+    shop: Shop,
+    user: User,
+    data: Mapping[str, object],
+    variant: Mapping[str, object] | None = None,
+    initial_stock: Decimal | None = None,
+) -> Product:
+    """Article et son premier format en une transaction, tout ou rien.
+
+    Le stock initial (articles seulement) passe par une entrée de stock, au
+    prix d'achat du format.
+    """
+    from apps.stock.services import create_movement
+
+    with transaction.atomic():
+        product = Product.objects.create(shop=shop, **data)
+        if variant is None:
+            return product
+        created = ProductVariant.objects.create(shop=shop, product=product, **variant)
+        if initial_stock and product.type == 'product':
+            create_movement(
+                shop, created, 'in', initial_stock, reason=INITIAL_STOCK_REASON,
+                created_by=user, unit_purchase_price=created.purchase_price,
+            )
+    return product
+
+
+def product_has_served(product: Product) -> bool:
+    """Une ligne de commande, ou un mouvement autre que son stock initial."""
+    from apps.orders.models import OrderItem
+    from apps.stock.models import StockMovement
+
+    if OrderItem.objects.filter(variant__product=product).exists():
+        return True
+    initial = Q(
+        movement_type='in', reason__in=_INITIAL_STOCK_REASONS, order_id__isnull=True,
+        supplier_name='', invoice_number='', ocr_result__isnull=True,
+    )
+    movements = StockMovement.objects.filter(variant__product=product)
+    return movements.exclude(initial).exists()
+
+
+def delete_unused_product(product: Product) -> None:
+    """Supprime un article qui n'a jamais servi ; sinon `ProductInUseError`.
+
+    Ses formats sont verrouillés : une vente ou une entrée en cours attend la
+    fin de la vérification.
+    """
+    with transaction.atomic():
+        list(ProductVariant.objects.select_for_update().filter(product=product))
+        if product_has_served(product):
+            raise ProductInUseError()
+        product.delete()

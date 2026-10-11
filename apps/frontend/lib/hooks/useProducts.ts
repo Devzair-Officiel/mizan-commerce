@@ -11,6 +11,9 @@ interface PaginatedResponse<T> {
 
 export type ProductType = 'product' | 'service';
 
+/** État exclusif du stock : négatif (< 0), rupture (= 0), faible (≤ seuil), en stock. */
+export type StockState = 'negative' | 'out' | 'low' | 'in';
+
 export type ProductUnit = 'piece' | 'g' | 'kg' | 'mL' | 'L' | 'm';
 
 export const UNIT_LABELS: Record<ProductUnit, string> = {
@@ -113,6 +116,8 @@ export interface ProductVariant {
   is_active: boolean;
   is_low_stock: boolean;
   is_out_of_stock: boolean;
+  is_negative_stock: boolean;
+  stock_state: StockState;
   updated_at: string;
 }
 
@@ -137,6 +142,9 @@ export interface Product {
   is_active: boolean;
   is_low_stock: boolean;
   is_out_of_stock: boolean;
+  is_negative_stock: boolean;
+  /** État exclusif du stock ; `null` pour un service. */
+  stock_state: StockState | null;
   primary_image: string | null;
   updated_at: string;
   /** Agrégats calculés à partir des variantes actives. */
@@ -223,7 +231,7 @@ export function useProductsInfinite(filters: Omit<ProductsPageFilters, 'page'>, 
 export interface ProductsFacets {
   state: Record<'all' | 'active' | 'inactive', number>;
   type: Record<'all' | ProductType, number>;
-  stock: Record<'all' | 'out' | 'low' | 'in', number>;
+  stock: Record<'all' | StockState, number>;
 }
 
 export function useProductsFacets(filters: Omit<ProductsPageFilters, 'page'>, options?: { enabled?: boolean }) {
@@ -241,6 +249,7 @@ export interface ProductsSummary {
   total: number;
   products: number;
   services: number;
+  negative_stock: number;
   out_of_stock: number;
   low_stock: number;
   inactive: number;

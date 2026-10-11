@@ -58,7 +58,8 @@ Commandes                   orders, order_items, shipments
 Facturation                 invoices, invoice_lines, invoice_sequences
 Productivité                notes, reminders
 Zakat                       zakat_calculations
-OCR / IA                    uploaded_documents, ocr_results, detection_results
+OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
+                            detection_results
 Communication               prepared_messages, telegram_accounts, telegram_publications
 Page publique               public_pages, public_page_sections,
                             public_product_visibilities, public_services, contact_buttons
@@ -317,9 +318,14 @@ Source de vérité du stock. Chaque entrée, sortie, ajustement, réservation ou
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
 | variant_id | UUID | FK → product_variants.id, CASCADE, NOT NULL | Variante concernée |
-| movement_type | VARCHAR(20) | NOT NULL | `in`, `out`, `reservation`, `release`, `adjustment`, `loss` |
+| movement_type | VARCHAR(20) | NOT NULL | `in`, `out` (ancien, sortie), `reservation`, `release`, `adjustment` (correction d'inventaire), `loss` (perte), `breakage` (casse), `internal_use` (usage interne) |
 | quantity | DECIMAL(14,3) | NOT NULL | Nombre de **formats** (bouteilles, sacs…), pas le contenu cumulé. Toujours positive **sauf** pour `adjustment` où elle peut être signée. |
-| reason | TEXT | DEFAULT `''` | Motif libre (obligatoire côté service pour `out`/`loss`/`adjustment`) |
+| reason | TEXT | DEFAULT `''` | Motif ou note libre |
+| unit_purchase_price | DECIMAL(12,2) | NULL | Prix d'achat unitaire saisi à l'entrée ; devient `product_variants.purchase_price` |
+| supplier_name | VARCHAR(255) | DEFAULT `''` | Fournisseur d'une entrée |
+| invoice_number | VARCHAR(100) | DEFAULT `''` | Numéro de la facture fournisseur |
+| invoice_date | DATE | NULL | Date de la facture fournisseur |
+| ocr_result_id | UUID | FK → ocr_results.id, SET_NULL, NULL | Facture lue dont provient l'entrée |
 | order_id | UUID | | UUID nu (pas de FK ORM), renseigné si le mouvement provient d'une commande — sert au rapprochement avec `orders.id` |
 | created_by_id | UUID | FK → users.id, SET_NULL | Auteur du mouvement |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | Date du mouvement |
@@ -330,13 +336,16 @@ Source de vérité du stock. Chaque entrée, sortie, ajustement, réservation ou
 ```
 product_variants.stock_quantity = SUM(get_signed_quantity(m))
                                   WHERE m.variant_id = X
-  avec sign(in)=+, sign(release)=+, sign(out)=-, sign(reservation)=-, sign(loss)=-
+  avec sign(in)=+, sign(release)=+,
+       sign(out)=sign(reservation)=sign(loss)=sign(breakage)=sign(internal_use)=-
        adjustment : quantity utilisée telle quelle (peut être négative)
 ```
 
-Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `StockMovement`.
+Le cache est recalculé par un agrégat SQL dans la transaction de chaque `save()` d'un `StockMovement`. Toute écriture passe par `stock.services.create_movement()`, qui verrouille la ligne du format (`select_for_update`).
 
-**Note** : les champs `ocr_result_id` et `detection_result_id` planifiés pour V6 n'existent pas dans le modèle actuel — ils seront ajoutés lorsque les intégrations OCR / détection visuelle seront implémentées.
+**Stock négatif** : une vente n'est jamais bloquée par le stock ; la réservation d'une commande peut faire passer `stock_quantity` sous zéro (état « négatif », à régulariser par une entrée ou une correction). Les sorties manuelles (`loss`, `breakage`, `internal_use`) restent limitées au stock disponible. États exclusifs d'un format : négatif (`< 0`), rupture (`= 0`), faible (`0 < q ≤ low_stock_threshold`), en stock.
+
+**Note** : le champ `detection_result_id` planifié pour V6 n'existe pas encore — il sera ajouté avec la détection visuelle.
 
 ---
 
@@ -659,6 +668,25 @@ Résultat d'OCR sur un document.
 | error_message | TEXT | | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+---
+
+### `supplier_line_matches`
+
+Association mémorisée d'une ligne de facture fournisseur à un format, faite à la main lors d'une entrée. Réutilisée par le matching déterministe des factures suivantes du même fournisseur (après code-barres et référence, avant le nom normalisé).
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| supplier_key | VARCHAR(255) | NOT NULL, DEFAULT `''` | Nom du fournisseur normalisé (sans accents, sans casse, espaces réduits) |
+| label_key | VARCHAR(500) | NOT NULL | Libellé de la ligne normalisé (à défaut, sa référence fournisseur) |
+| variant_id | UUID | FK → product_variants.id, CASCADE, NOT NULL | Format associé |
+| created_by_id | UUID | FK → users.id, SET_NULL | Auteur de l'association |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contrainte** : `UNIQUE (shop_id, supplier_key, label_key)` — une nouvelle association à la main remplace la précédente.
 
 ---
 

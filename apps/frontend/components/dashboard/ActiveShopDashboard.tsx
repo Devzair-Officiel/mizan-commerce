@@ -47,13 +47,16 @@ function getRemindersSub(
   return { sub, tone };
 }
 
-function getLowStockSub(outOfStock: number, t: TDashboard) {
-  if (outOfStock <= 0) return t('counters.low_stock_unit');
+/** « formats, dont 2 à régulariser » : le stock négatif passe avant la rupture. */
+function getLowStockSub(negative: number, outOfStock: number, t: TDashboard) {
+  if (negative <= 0 && outOfStock <= 0) return t('counters.low_stock_unit');
   return (
     <>
       {t('counters.low_stock_unit')}{', '}
       <span className="text-red-600 dark:text-red-400">
-        {t('counters.low_stock_sub', { count: outOfStock })}
+        {negative > 0
+          ? t('counters.negative_sub', { count: negative })
+          : t('counters.low_stock_sub', { count: outOfStock })}
       </span>
     </>
   );
@@ -83,8 +86,8 @@ export function ActiveShopDashboard({ data }: Props) {
   const { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders } =
     useActiveShopDashboardData(data);
 
-  const outOfStock = data.low_stock_products.out_of_stock_count;
-  const lowStockSub = getLowStockSub(outOfStock, t);
+  const { negative_count: negative, out_of_stock_count: outOfStock } = data.low_stock_products;
+  const lowStockSub = getLowStockSub(negative, outOfStock, t);
 
   return (
     <>

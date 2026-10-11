@@ -6,12 +6,12 @@ import type { ProductsPageFilters } from '@/lib/query-keys';
 
 export type ProductState = 'all' | 'active' | 'inactive';
 export type TypeFilter = 'all' | 'product' | 'service';
-export type StockLevel = 'all' | 'out' | 'low' | 'in';
+export type StockLevel = 'all' | 'negative' | 'out' | 'low' | 'in';
 export type ProductsStatCardKey = 'out' | 'low' | 'active';
 
 export const STATES: readonly ProductState[] = ['all', 'active', 'inactive'];
 export const TYPES: readonly TypeFilter[] = ['all', 'product', 'service'];
-export const STOCK_LEVELS: readonly StockLevel[] = ['all', 'out', 'low', 'in'];
+export const STOCK_LEVELS: readonly StockLevel[] = ['all', 'negative', 'out', 'low', 'in'];
 export const DEFAULT_ORDERING = 'name';
 
 /** Filtres et tri d'une sélection : appliquée (URL) ou en brouillon (fenêtre mobile). */

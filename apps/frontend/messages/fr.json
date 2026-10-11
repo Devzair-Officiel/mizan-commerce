@@ -245,7 +245,8 @@
       "low_stock_sub": "dont {count} en rupture",
       "reminders_next": "aujourd'hui, le prochain à {time}",
       "reminders_late": "{count} en retard",
-      "low_stock_unit": "articles"
+      "low_stock_unit": "articles",
+      "negative_sub": "dont {count} à régulariser"
     },
     "prepare": {
       "title": "Commandes à préparer",
@@ -293,7 +294,8 @@
       "out_of_stock_sub": "{count} en rupture",
       "see_all": "Voir {count} produits →",
       "see_stock": "Voir le stock",
-      "restock": "Réassort"
+      "restock": "Réassort",
+      "negative": "{qty}, à régulariser"
     },
     "reminders": {
       "title": "Rappels du jour",
@@ -894,6 +896,7 @@
       "stock_title": "Stock",
       "stock": {
         "all": "Tous",
+        "negative": "Négatif",
         "out": "En rupture",
         "low": "Stock faible",
         "in": "En stock"
@@ -934,10 +937,12 @@
         "out_label": "En rupture",
         "low_label": "Stock faible",
         "active_label": "{kind, select, products {Articles actifs} services {Services actifs} other {Articles et services actifs}}"
-      }
+      },
+      "negative_stock": "{stock}, à régulariser"
     },
     "badges": {
       "inactive": "Inactif",
+      "negative_stock": "Stock à régulariser",
       "out_of_stock": "Rupture",
       "low_stock": "Stock faible",
       "service": "Service",

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
 import { apiFetch } from '@/lib/api-client';
 import { DEFAULT_VARIANT_NAME } from '@/lib/products';
 import type { ProductDetail, ProductVariant, ProductVariantFormData } from '@/lib/hooks/useProducts';
@@ -39,11 +38,10 @@ async function runExtras(steps: (() => Promise<unknown>)[]): Promise<boolean> {
 }
 
 /**
- * Création et modification d'un article : l'article, puis son format unique, puis la photo et le
- * stock initial (entrée de stock, jamais une écriture directe). Résout l'identifiant et `complete`.
+ * Création et modification d'un article : l'article avec son format unique et son stock initial
+ * (un seul appel, tout ou rien), puis la photo. Résout l'identifiant et `complete`.
  */
 export function useSaveProduct() {
-  const tDetail = useTranslations('articles.detail');
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
 
@@ -58,23 +56,18 @@ export function useSaveProduct() {
   }
 
   const create = (values: ProductFormValues, photo: File | null) => run(async () => {
-    const body = { name: values.name.trim(), type: values.type, description: values.description.trim() };
-    const product = await apiFetch<ProductDetail>('/products/', { method: 'POST', body: JSON.stringify(body) });
-    const variant = await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
-      method: 'POST',
-      body: JSON.stringify({
+    const stock = values.type === 'product' ? optionalDecimal(values.initial_stock) : null;
+    // Un seul appel : l'article, son format et le stock initial sont créés ensemble ou pas du tout.
+    const body = {
+      name: values.name.trim(), type: values.type, description: values.description.trim(),
+      variant: {
         ...variantFields(values), packaging_name: DEFAULT_VARIANT_NAME, base_quantity: '1',
         unit: values.type === 'product' ? values.unit : 'piece',
-      }),
-    });
-    const stock = values.type === 'product' ? optionalDecimal(values.initial_stock) : null;
-    const complete = await runExtras([
-      ...(photo ? [() => uploadPhoto(product.id, photo)] : []),
-      ...(stock && Number(stock) > 0 ? [() => apiFetch('/stock/in/', {
-        method: 'POST',
-        body: JSON.stringify({ variant: variant.id, quantity: stock, reason: tDetail('initial_stock_reason') }),
-      })] : []),
-    ]);
+      },
+      ...(stock && Number(stock) > 0 ? { initial_stock: stock } : {}),
+    };
+    const product = await apiFetch<ProductDetail>('/products/', { method: 'POST', body: JSON.stringify(body) });
+    const complete = await runExtras(photo ? [() => uploadPhoto(product.id, photo)] : []);
     return { id: product.id, complete };
   });
 

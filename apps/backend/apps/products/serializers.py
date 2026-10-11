@@ -13,6 +13,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class ProductVariantSerializer(serializers.ModelSerializer):
     is_low_stock = serializers.BooleanField(read_only=True)
     is_out_of_stock = serializers.BooleanField(read_only=True)
+    is_negative_stock = serializers.BooleanField(read_only=True)
+    stock_state = serializers.CharField(read_only=True)
 
     class Meta:
         model = ProductVariant
@@ -21,7 +23,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             'selling_price', 'purchase_price',
             'stock_quantity', 'low_stock_threshold',
             'sku', 'barcode', 'position', 'is_active',
-            'is_low_stock', 'is_out_of_stock',
+            'is_low_stock', 'is_out_of_stock', 'is_negative_stock', 'stock_state',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'stock_quantity', 'created_at', 'updated_at')
@@ -82,6 +84,8 @@ def _variant_aggregates(product: Product) -> dict:
             'variant_count': 0,
             'is_low_stock_any': False,
             'is_out_of_stock_all': True,
+            'is_negative_any': False,
+            'stock_state': None if product.type == 'service' else 'out',
         }
     prices = [v.selling_price for v in variants]
     return {
@@ -90,7 +94,22 @@ def _variant_aggregates(product: Product) -> dict:
         'variant_count': len(variants),
         'is_low_stock_any': any(v.is_low_stock for v in variants),
         'is_out_of_stock_all': all(v.is_out_of_stock for v in variants),
+        'is_negative_any': any(v.is_negative_stock for v in variants),
+        'stock_state': _product_stock_state(product, variants),
     }
+
+
+def _product_stock_state(
+    product: Product, variants: list[ProductVariant],
+) -> str | None:
+    """État exclusif d'un article (voir `STOCK_LEVELS`) ; `None` pour un service."""
+    if product.type == 'service':
+        return None
+    if any(v.is_negative_stock for v in variants):
+        return 'negative'
+    if all(v.is_out_of_stock for v in variants):
+        return 'out'
+    return 'low' if any(v.is_low_stock for v in variants) else 'in'
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -102,7 +121,32 @@ class ProductSerializer(serializers.ModelSerializer):
     variant_count = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
+    is_negative_stock = serializers.SerializerMethodField()
+    stock_state = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
+    # Création seulement : premier format et stock initial, enregistrés avec l'article.
+    variant = ProductVariantSerializer(write_only=True, required=False)
+    initial_stock = serializers.DecimalField(
+        max_digits=16, decimal_places=3, min_value=Decimal('0'),
+        write_only=True, required=False, allow_null=True,
+    )
+
+    def validate(self, attrs: dict) -> dict:
+        creation_only = 'variant' in attrs or 'initial_stock' in attrs
+        if self.instance is not None and creation_only:
+            raise serializers.ValidationError(
+                {'variant': ['Modifiez les formats depuis leur propre adresse.']},
+            )
+        if attrs.get('initial_stock') and 'variant' not in attrs:
+            raise serializers.ValidationError(
+                {'initial_stock': ['Le stock initial demande un format.']},
+            )
+        if attrs.get('initial_stock') and attrs.get('type') == 'service':
+            raise serializers.ValidationError(
+                {'initial_stock': ["Un service n'a pas de stock."]},
+            )
+        return attrs
 
     def validate_name(self, value: str) -> str:
         shop = self.context.get('shop')
@@ -140,16 +184,27 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_is_out_of_stock(self, obj):
         return self._agg(obj)['is_out_of_stock_all']
 
+    def get_is_negative_stock(self, obj):
+        return self._agg(obj)['is_negative_any']
+
+    def get_stock_state(self, obj):
+        return self._agg(obj)['stock_state']
+
     def get_primary_image(self, obj):
         return _primary_image_url(obj)
+
+    def get_can_delete(self, obj: Product) -> bool:
+        from .services import product_has_served
+        return not product_has_served(obj)
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'type', 'description',
-            'is_active', 'is_low_stock', 'is_out_of_stock',
-            'min_selling_price', 'max_selling_price', 'variant_count',
-            'variants', 'images', 'primary_image',
+            'is_active', 'is_low_stock', 'is_out_of_stock', 'is_negative_stock',
+            'stock_state', 'min_selling_price', 'max_selling_price', 'variant_count',
+            'variants', 'images', 'primary_image', 'can_delete',
+            'variant', 'initial_stock',
             'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
@@ -163,6 +218,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     variant_count = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
+    is_negative_stock = serializers.SerializerMethodField()
+    stock_state = serializers.SerializerMethodField()
     # Annoté par `products_with_stats` : stock total des formats actifs (None pour un service).  # noqa: E501
     total_stock = serializers.DecimalField(
         max_digits=16, decimal_places=3, read_only=True, allow_null=True, default=None,
@@ -172,7 +229,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = (
             'id', 'name', 'type',
-            'is_active', 'is_low_stock', 'is_out_of_stock',
+            'is_active', 'is_low_stock', 'is_out_of_stock', 'is_negative_stock',
+            'stock_state',
             'min_selling_price', 'max_selling_price', 'variant_count', 'total_stock',
             'primary_image', 'updated_at',
         )
@@ -203,3 +261,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_primary_image(self, obj):
         return _primary_image_url(obj)
+
+    def get_is_negative_stock(self, obj):
+        return self._agg(obj)['is_negative_any']
+
+    def get_stock_state(self, obj):
+        return self._agg(obj)['stock_state']

@@ -97,3 +97,42 @@ class OcrResult(models.Model):
 
     def __str__(self) -> str:
         return f'OcrResult {self.pk} ({self.get_status_display()})'
+
+
+class SupplierLineMatch(models.Model):
+    """Association mémorisée : ligne lue chez un fournisseur → format du catalogue.
+
+    Enregistrée quand le commerçant associe une ligne de facture à la main ; la
+    facture suivante du même fournisseur réutilise l'association. Les clés sont
+    normalisées (sans accents, sans casse, espaces réduits) par
+    `matching.normalize_text`.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shop = models.ForeignKey(
+        Shop, on_delete=models.CASCADE, related_name='supplier_line_matches'
+    )
+    supplier_key = models.CharField(max_length=255, blank=True)
+    label_key = models.CharField(max_length=500)
+    variant = models.ForeignKey(
+        'products.ProductVariant', on_delete=models.CASCADE,
+        related_name='supplier_line_matches',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'supplier_line_matches'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['shop', 'supplier_key', 'label_key'],
+                name='uniq_supplier_line_match',
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.supplier_key or "—"} / {self.label_key} → {self.variant_id}'

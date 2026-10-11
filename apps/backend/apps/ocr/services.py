@@ -16,11 +16,14 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from apps.core.storage import delete_object, upload_fileobj
 from apps.products.models import ProductVariant
+from apps.stock.services import EntryLine, EntryReference, create_entry
 
-from .models import OcrResult, UploadedDocument
+from .matching import line_label_key, normalize_text
+from .models import OcrResult, SupplierLineMatch, UploadedDocument
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -29,6 +32,7 @@ if TYPE_CHECKING:
 
     from apps.accounts.models import User
     from apps.shops.models import Shop
+    from apps.stock.models import StockMovement
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +43,8 @@ __all__ = (
     'InvalidConfidenceScoreError',
     'InvalidFileSignatureError',
     'InvalidOcrTransitionError',
+    'InvoiceAlreadyRecordedError',
+    'InvoiceEntryLine',
     'OcrResultNotReviewableError',
     'ReviewConflictError',
     'ReviewPayloadValidationError',
@@ -48,6 +54,7 @@ __all__ = (
     'mark_ocr_done',
     'mark_ocr_failed',
     'mark_ocr_processing',
+    'record_invoice_entry',
     'validate_file_signature',
     'validate_invoice_review',
 )
@@ -621,3 +628,146 @@ def validate_invoice_review(
             'validated_at', 'updated_at',
         ])
         return result, True
+
+
+# ─── Entrée de stock depuis une facture (URS-045) ──────────────────────────
+#
+# La validation d'une facture lue est une entrée de stock multi-lignes
+# (`stock.services.create_entry`) avec le fournisseur et la facture attachés.
+# Dans la même transaction : les associations faites à la main sont
+# mémorisées pour ce fournisseur, et l'OcrResult passe à `validated` avec sa
+# revue (lignes entrées en stock, lignes ignorées).
+
+
+class InvoiceAlreadyRecordedError(ValueError):
+    """La facture a déjà été enregistrée dans le stock (la vue répond 409)."""
+
+
+class InvoiceEntryLine(NamedTuple):
+    line: EntryLine
+    # Ligne de la facture lue ; `None` pour une ligne ajoutée à la main.
+    invoice_line_index: int | None
+
+
+def _invoice_lines(result: OcrResult) -> list[dict]:
+    structured = result.structured_data
+    if not isinstance(structured, dict):
+        structured = {}
+    invoice = structured.get('invoice')
+    lines = invoice.get('lines') if isinstance(invoice, dict) else None
+    if not isinstance(lines, list):
+        raise ValidationError(
+            {'ocr_document': ['Cette facture ne contient aucune ligne lue.']},
+        )
+    return [line if isinstance(line, dict) else {} for line in lines]
+
+
+def _automatic_associations(result: OcrResult) -> dict[int, str | None]:
+    """Format associé automatiquement à chaque ligne lue (namespace `matching`)."""
+    matching = (result.structured_data or {}).get('matching') or {}
+    associations: dict[int, str | None] = {}
+    for line in matching.get('lines') or []:
+        if isinstance(line, dict) and isinstance(line.get('invoice_line_index'), int):
+            association = line.get('association')
+            associations[line['invoice_line_index']] = (
+                str(association.get('variant_id'))
+                if isinstance(association, dict) else None
+            )
+    return associations
+
+
+def _remember_manual_matches(
+    shop: Shop, user: User, result: OcrResult,
+    lines: list[InvoiceEntryLine], invoice_lines: list[dict],
+) -> None:
+    """Mémorise chaque ligne lue associée à la main (ou associée autrement)."""
+    invoice = (result.structured_data or {}).get('invoice') or {}
+    supplier_key = normalize_text(invoice.get('supplier_name'))[:255]
+    automatic = _automatic_associations(result)
+    for item in lines:
+        index = item.invoice_line_index
+        variant = item.line.variant
+        if index is None or automatic.get(index) == str(variant.pk):
+            continue
+        read = invoice_lines[index]
+        label = line_label_key(
+            read.get('description'), read.get('supplier_reference'),
+        )[:500]
+        if label:
+            SupplierLineMatch.objects.update_or_create(
+                shop=shop, supplier_key=supplier_key, label_key=label,
+                defaults={'variant': variant, 'created_by': user},
+            )
+
+
+def _mark_recorded(
+    result: OcrResult, user: User,
+    lines: list[InvoiceEntryLine], invoice_lines: list[dict],
+) -> None:
+    by_index = {item.invoice_line_index: item.line for item in lines}
+    review = []
+    for index, read in enumerate(invoice_lines):
+        line = by_index.get(index)
+        review.append({
+            'invoice_line_index': index,
+            'description': read.get('description') or '',
+            'quantity': line.quantity if line else None,
+            'unit_price': line.unit_purchase_price if line else None,
+            'line_total': None,
+            'decision': REVIEW_DECISION_STOCK if line else REVIEW_DECISION_IGNORE,
+            'variant_id': line.variant.pk if line else None,
+        })
+    result.structured_data = {
+        **result.structured_data, 'review': build_canonical_review(review),
+    }
+    result.status = OcrResult.STATUS_VALIDATED
+    result.validated_by_user = user
+    result.validated_at = timezone.now()
+    result.save(update_fields=[
+        'structured_data', 'status', 'validated_by_user', 'validated_at', 'updated_at',
+    ])
+
+
+def record_invoice_entry(
+    *,
+    shop: Shop,
+    user: User,
+    document_id: UUID,
+    lines: list[InvoiceEntryLine],
+    reference: EntryReference,
+) -> list[StockMovement]:
+    """Entrée de stock depuis une facture lue, tout ou rien.
+
+    L'OcrResult est verrouillé : deux validations simultanées de la même
+    facture ne peuvent pas ajouter deux fois le stock.
+    """
+    with transaction.atomic():
+        result = (
+            OcrResult.objects.select_for_update()
+            .filter(shop=shop, uploaded_document_id=document_id)
+            .order_by('-created_at').first()
+        )
+        if result is None:
+            raise ValidationError({'ocr_document': ['Facture introuvable.']})
+        if result.status == OcrResult.STATUS_VALIDATED:
+            raise InvoiceAlreadyRecordedError(
+                'Cette facture a déjà été enregistrée dans le stock.'
+            )
+        if result.status != OcrResult.STATUS_DONE:
+            raise OcrResultNotReviewableError(
+                "La lecture de cette facture n'est pas terminée."
+            )
+        invoice_lines = _invoice_lines(result)
+        if any(
+            item.invoice_line_index is not None
+            and item.invoice_line_index >= len(invoice_lines)
+            for item in lines
+        ):
+            raise ValidationError({'lines': ['Ligne de facture inconnue.']})
+        movements = create_entry(
+            shop, user, [item.line for item in lines],
+            reference._replace(ocr_result=result),
+        )
+        _remember_manual_matches(shop, user, result, lines, invoice_lines)
+        _mark_recorded(result, user, lines, invoice_lines)
+        return movements

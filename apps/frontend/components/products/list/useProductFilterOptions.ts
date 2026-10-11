@@ -17,6 +17,7 @@ const STATE_DOT: Record<ProductState, string | undefined> = {
 };
 const STOCK_DOT: Record<StockLevel, string | undefined> = {
   all: undefined,
+  negative: 'bg-red-700',
   out: 'bg-red-500',
   low: 'bg-amber-500',
   in: 'bg-green-500',

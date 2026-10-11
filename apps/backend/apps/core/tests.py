@@ -202,6 +202,26 @@ class DashboardTodayTest(TestCase):
         self.assertEqual(data["low_stock_products"]["count"], 2)
         self.assertEqual(data["low_stock_products"]["out_of_stock_count"], 1)
 
+    def test_negative_stock_counted_apart_from_out_of_stock(self):
+        """Un format vendu au-delà de son stock est négatif, pas en rupture."""
+        p = Product.objects.create(shop=self.shop, name="Vendu")
+        v = ProductVariant.objects.create(
+            shop=self.shop,
+            product=p,
+            packaging_name="Unité",
+            unit="piece",
+            base_quantity=1,
+            selling_price=Decimal("10"),
+        )
+        StockMovement.objects.create(
+            shop=self.shop, variant=v, movement_type="reservation", quantity=2
+        )
+        block = build_dashboard_today(self.shop)["low_stock_products"]
+        self.assertEqual(
+            (block["count"], block["negative_count"], block["out_of_stock_count"]),
+            (1, 1, 0),
+        )
+
     # ── overdue reminders ─────────────────────────────────────────────────────
 
     def test_overdue_reminder_appears_with_flag(self):

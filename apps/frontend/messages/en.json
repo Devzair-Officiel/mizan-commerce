@@ -245,7 +245,8 @@
       "low_stock_sub": "incl. {count} out of stock",
       "reminders_next": "today, next at {time}",
       "reminders_late": "{count} overdue",
-      "low_stock_unit": "items"
+      "low_stock_unit": "items",
+      "negative_sub": "incl. {count} to reconcile"
     },
     "prepare": {
       "title": "Orders to prepare",
@@ -293,7 +294,8 @@
       "out_of_stock_sub": "{count} out of stock",
       "see_all": "See {count} products →",
       "see_stock": "View stock",
-      "restock": "Restock"
+      "restock": "Restock",
+      "negative": "{qty}, to reconcile"
     },
     "reminders": {
       "title": "Today's reminders",
@@ -894,6 +896,7 @@
       "stock_title": "Stock",
       "stock": {
         "all": "All",
+        "negative": "Negative",
         "out": "Out of stock",
         "low": "Low stock",
         "in": "In stock"
@@ -934,10 +937,12 @@
         "out_label": "Out of stock",
         "low_label": "Low stock",
         "active_label": "{kind, select, products {Active items} services {Active services} other {Active items & services}}"
-      }
+      },
+      "negative_stock": "{stock}, to reconcile"
     },
     "badges": {
       "inactive": "Inactive",
+      "negative_stock": "Stock to reconcile",
       "out_of_stock": "Out of stock",
       "low_stock": "Low stock",
       "service": "Service",

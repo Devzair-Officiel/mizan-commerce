@@ -348,7 +348,7 @@
 - [x] Endpoint upload facture + extraction texte brut
 - [x] Modèle `UploadedDocument`, `OcrResult`
 - [x] Extraction structurée : produits, quantités, prix
-- [ ] Matching déterministe des lignes OCR vers ProductVariant
+- [~] Matching déterministe des lignes OCR vers ProductVariant
 - [ ] Affichage frontend des lignes détectées avec confiance
 - [ ] Validation humaine ligne par ligne
 - [ ] Création des `StockMovement` après validation uniquement
@@ -399,6 +399,9 @@
 - [~] Gabarit des pages de formulaire, appliqué au formulaire client
 - [~] C3 — Articles et services : liste (gabarit)
 - [~] C3 — Formulaire article (gabarit v2)
+- [~] C4 — Stock : règles et API
+- [~] C4 — Écrans du stock (niveaux, mouvements, entrées, sorties)
+- [~] C4 — Fiche article
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

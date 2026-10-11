@@ -42,10 +42,15 @@ class ProductListCreateView(generics.ListCreateAPIView):
         from apps.subscriptions.limits import enforce_product_limit
         shop = get_shop(self.request.user)
         enforce_product_limit(shop)
-        serializer.save(shop=shop)
+        data = dict(serializer.validated_data)
+        variant = data.pop('variant', None)
+        initial_stock = data.pop('initial_stock', None)
+        serializer.instance = services.create_product(
+            shop, self.request.user, data, variant, initial_stock,
+        )
 
 
-class ProductDetailView(generics.RetrieveUpdateAPIView):
+class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductSerializer
 
@@ -68,6 +73,14 @@ class ProductDetailView(generics.RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    def destroy(self, request: Request, *args, **kwargs) -> Response:
+        """Suppression d'un article qui n'a jamais servi ; sinon 409 (le désactiver)."""
+        try:
+            services.delete_unused_product(self.get_object())
+        except services.ProductInUseError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProductDeactivateView(generics.GenericAPIView):
