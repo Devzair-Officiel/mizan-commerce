@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useOrder, useTransitionOrder, useUpdatePayment, type Order } from '@/lib/hooks/useOrders';
 import { useIssueInvoice } from '@/lib/hooks/useInvoices';
 import type { PreparedMessageTemplate } from '@/lib/hooks/usePreparedMessages';
+import { useFollowupReminder } from '@/components/reminders/useFollowupReminder';
 import { ApiError } from '@/lib/api-client';
 
 export type OrderConfirmKind = 'cancel' | 'reactivate';
@@ -17,6 +18,8 @@ export interface OrderDetailActions {
   openInvoice: () => void;
   confirm: (kind: OrderConfirmKind) => void;
   openWhatsApp: (template: PreparedMessageTemplate) => void;
+  /** Rappel de relance du client de la commande (décale celui qui existe déjà). */
+  scheduleReminder: () => void;
   /** Une transition est en cours : les boutons qui en déclenchent une sont désactivés. */
   pending: boolean;
 }
@@ -93,6 +96,7 @@ export function useOrderDetailState(id: string) {
   const [confirmKind, setConfirmKind] = useState<OrderConfirmKind>('cancel');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [whatsApp, setWhatsApp] = useState<PreparedMessageTemplate | null>(null);
+  const followup = useFollowupReminder();
 
   const actions: OrderDetailActions = {
     transition: (status) => { transition.mutate(status); },
@@ -100,6 +104,9 @@ export function useOrderDetailState(id: string) {
     openInvoice: invoice.show,
     confirm: (kind) => { setConfirmKind(kind); setConfirmOpen(true); },
     openWhatsApp: setWhatsApp,
+    scheduleReminder: () => {
+      if (order?.customer) void followup.schedule({ customerId: order.customer, customerName: order.customer_name ?? '', orderId: order.id });
+    },
     pending: transition.isPending,
   };
 
@@ -112,6 +119,7 @@ export function useOrderDetailState(id: string) {
       run: (status: string) => transition.mutateAsync(status).then(() => undefined),
     },
     whatsApp: { template: whatsApp, close: () => setWhatsApp(null) },
+    followupConflict: followup.conflict,
   };
 }
 

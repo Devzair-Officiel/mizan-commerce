@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from apps.customers.models import Customer, format_display_name
 from apps.customers.services import name_search
-from apps.notes.models import Reminder
+from apps.notes.services import reminders_to_do
 from apps.orders.models import Order
 from apps.orders.services import build_items_preview_batch
 from apps.products.models import Product, ProductVariant
@@ -32,10 +32,6 @@ def _qs_low_stock(shop: Shop):
             stock_quantity__lte=F("low_stock_threshold"),
         )  # noqa: E501
     )
-
-
-def _qs_reminders_due(shop: Shop, day_end: datetime):
-    return Reminder.objects.filter(shop=shop, status="pending", due_at__lt=day_end)
 
 
 def _day_bounds(now: datetime, tz: ZoneInfo) -> tuple[datetime, datetime, date]:
@@ -224,9 +220,9 @@ def _build_low_stock(shop: Shop) -> dict:
     }
 
 
-def _build_today_reminders(shop: Shop, day_start: datetime, day_end: datetime) -> dict:
-    # Pending reminders due before end of today (includes overdue)
-    qs = _qs_reminders_due(shop, day_end).values(
+def _build_today_reminders(shop: Shop, now: datetime, day_start: datetime) -> dict:
+    # Rappels « à faire » : en retard + aujourd'hui (même définition que le badge)
+    qs = reminders_to_do(shop, now).values(
         "id",
         "title",
         "category",
@@ -273,9 +269,7 @@ def build_nav_badges(shop: Shop, member: ShopMember) -> dict[str, int]:
         count = _qs_low_stock(shop).count()
         if count > 0:
             result["low_stock"] = count
-    now = timezone.now()
-    _, day_end, _ = _day_bounds(now, ZoneInfo(shop.timezone))
-    count = _qs_reminders_due(shop, day_end).count()
+    count = reminders_to_do(shop).count()
     if count > 0:
         result["reminders_due"] = count
     return result
@@ -301,7 +295,7 @@ def build_dashboard_today(shop: Shop, now: datetime | None = None) -> dict:
         "orders_to_prepare": _build_orders_to_prepare(shop),
         "unpaid_orders": _build_unpaid_orders(shop),
         "low_stock_products": _build_low_stock(shop),
-        "today_reminders": _build_today_reminders(shop, day_start, day_end),
+        "today_reminders": _build_today_reminders(shop, now, day_start),
         "setup": _build_setup(shop),
     }
 

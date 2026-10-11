@@ -36,8 +36,7 @@ export function useCustomerActions(customer: Customer, actions: CustomerDetailAc
   if (customer.is_active && primary?.key !== 'new_order') items.push(newOrder);
   items.push(
     {
-      key: 'reminder', icon: Bell, disabled: actions.pending || actions.reminderCreated,
-      label: actions.reminderCreated ? t('reminder_created_today') : t('reminder_schedule'),
+      key: 'reminder', icon: Bell, disabled: actions.pending, label: t('reminder_schedule'),
       onSelect: () => { void actions.scheduleReminder(); },
     },
     { key: 'note', icon: StickyNote, label: t('add_note'), onSelect: actions.openNoteForm },

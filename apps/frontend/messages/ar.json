@@ -436,8 +436,6 @@
       "topbar_short": "عميل",
       "not_found": "العميل غير موجود.",
       "deactivate_confirm": "تعطيل هذا العميل؟ لن يظهر بعد الآن ضمن العملاء النشطين، ويمكنك إعادة تفعيله من صفحته.",
-      "reminder_title": "متابعة {name}",
-      "reminder_fallback_name": "العميل",
       "badge_unpaid": "غير مدفوع",
       "badge_deactivated": "معطّل",
       "since": "عميل منذ {date}",
@@ -445,7 +443,6 @@
       "new_order": "طلب جديد",
       "followup": "تذكير بالدفع",
       "reminder_schedule": "وضع علامة للمتابعة",
-      "reminder_created_today": "تم إنشاء تذكير للغد",
       "add_note": "إضافة ملاحظة",
       "edit_address": "تعديل العنوان",
       "deactivate": "تعطيل العميل",
@@ -479,10 +476,6 @@
       "copy": "نسخ العنوان",
       "copied": "تم النسخ ✓",
       "open_maps": "فتح في الخرائط"
-    },
-    "flash": {
-      "reminder_created": "تم إنشاء التذكير",
-      "sub": "غدًا الساعة 9:00 — {name}"
     },
     "timeline": {
       "title": "النشاط",
@@ -627,6 +620,7 @@
       "issue_invoice": "إصدار الفاتورة",
       "download_invoice": "تحميل الفاتورة",
       "send_whatsapp": "إرسال رسالة واتساب",
+      "reminder_schedule": "وضع علامة للمتابعة",
       "notes_empty": "لا توجد ملاحظات لهذا الطلب."
     },
     "nextStep": {
@@ -2349,10 +2343,23 @@
     "cancel": "إلغاء",
     "confirm_delete": "حذف هذا التذكير؟",
     "confirm_delete_cta": "حذف",
-    "tab_pending": "قيد الانتظار{count, plural, =0 {} other { (#)}}",
+    "tab_todo": "للإنجاز{count, plural, =0 {} other { (#)}}",
+    "tab_upcoming": "القادمة{count, plural, =0 {} other { (#)}}",
     "tab_done": "المنجزة{count, plural, =0 {} other { (#)}}",
-    "empty_pending": "لا توجد تذكيرات قيد الانتظار.",
-    "empty_done": "لا توجد تذكيرات منجزة."
+    "empty_todo": "لا شيء للإنجاز اليوم.",
+    "empty_upcoming": "لا توجد تذكيرات قادمة.",
+    "empty_done": "لا توجد تذكيرات منجزة.",
+    "followup": {
+      "title": "متابعة {name}",
+      "fallback_name": "العميل",
+      "created": "تم إنشاء التذكير: متابعة {name} في {date}",
+      "moved": "تم تأجيل التذكير إلى {date}",
+      "failed": "تعذّر حفظ التذكير. حاول مرة أخرى.",
+      "exists": "يوجد تذكير متابعة لـ{name} في {date}. هل تريد تأجيله إلى {newDate}؟",
+      "postpone": "تأجيل",
+      "create_anyway": "إنشاء رغم ذلك",
+      "cancel": "إلغاء"
+    }
   },
   "notes": {
     "title": "الملاحظات",

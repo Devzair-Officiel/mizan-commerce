@@ -13,6 +13,7 @@ docker compose run --rm e2e npm run audit:products-list       # liste Articles e
 docker compose run --rm e2e npm run audit:product-form        # formulaire article
 docker compose run --rm e2e npm run audit:product-photos      # photos d'articles au format carré
 docker compose run --rm e2e npm run audit:stock               # stock : niveaux, mouvements, entrées, sorties
+docker compose run --rm e2e npm run audit:reminders           # rappels : compteurs, mise à jour, relance déjà prévue
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
 ```
 
@@ -76,6 +77,7 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - service : cartes « Prix » et « Ventes sur 30 jours », ni formats, ni stock, ni « Entrée de stock » ;
   - nettoyage : commandes annulées, articles utilisés désactivés, service supprimé. `SHOTS=<dossier>` capture un parcours interrompu.
 - `audit-loading.mjs` — chargement en connexion lente (réseau limité par CDP : latence 1,5 s, 2 Mo/s) de la fiche article, de la fiche client et du détail d'une commande existants, à 1440px et 360px, en français et en arabe : squelette à la forme de la page visible (au moins trois cartes), aucun texte de chargement seul (« Chargement… »), puis l'objet affiché sans squelette ; console propre. Chaque page est d'abord ouverte sans limitation (compilation du serveur de dev).
+- `audit-reminders.mjs` — rappels, mêmes tailles, thèmes et langues : l'onglet « À faire » donne le même chiffre que le badge du menu et l'accueil ; terminer ou supprimer un rappel met à jour les onglets et le badge sans recharger ; « Marquer à relancer » (fiche client, fiche commande) sur un client qui a déjà une relance en attente ouvre la fenêtre « décaler » : « Décaler » garde un seul rappel, « Créer quand même » en ajoute un second, lié à la commande. Client dédié « Audit Relance » ; les rappels créés sont supprimés, la commande annulée.
 - `audit-zakat.mjs` — un calcul finalisé dont la réouverture échoue (réponse simulée) : l'erreur est notifiée, aucune `alert()` ni boîte de dialogue native. Les calculs créés sont supprimés.
 
 ## Exceptions de la console surveillée

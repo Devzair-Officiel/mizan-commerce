@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
+import { FollowupReminderDialog } from '@/components/reminders/FollowupReminderDialog';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
@@ -13,9 +14,9 @@ import { PaymentBottomSheet } from './PaymentBottomSheet';
 import type { OrderDetailState } from './useOrderDetailState';
 import { buildWhatsAppMessage } from './whatsapp';
 
-type DialogsState = Pick<OrderDetailState, 'payment' | 'invoice' | 'confirm' | 'whatsApp'>;
+type DialogsState = Pick<OrderDetailState, 'payment' | 'invoice' | 'confirm' | 'whatsApp' | 'followupConflict'>;
 
-/** Fenêtres de la page détail : encaissement, facture, confirmations, message WhatsApp. */
+/** Fenêtres de la page détail : encaissement, facture, confirmations, message WhatsApp, rappel de relance déjà prévu. */
 export function OrderDetailDialogs({ order, state }: { order: Order; state: DialogsState }) {
   const t = useTranslations('orders.detail');
   const tWa = useTranslations('orders.whatsapp');
@@ -37,6 +38,7 @@ export function OrderDetailDialogs({ order, state }: { order: Order; state: Dial
       <InvoiceBottomSheet open={invoice.open} onClose={invoice.close}
         defaultTaxRate={shop?.default_tax_rate ?? '0'} defaultTermsDays={String(shop?.default_payment_terms_days ?? 30)}
         isPending={invoice.isPending} error={invoice.error} onSubmit={invoice.submit} />
+      <FollowupReminderDialog conflict={state.followupConflict} />
       <ConfirmDialog
         open={confirm.open}
         onOpenChange={(open) => { if (!open) confirm.close(); }}

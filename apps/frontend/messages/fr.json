@@ -436,8 +436,6 @@
       "topbar_short": "Client",
       "not_found": "Client introuvable.",
       "deactivate_confirm": "Désactiver ce client ? Il n'apparaîtra plus parmi les clients actifs ; vous pourrez le réactiver depuis sa fiche.",
-      "reminder_title": "Relancer {name}",
-      "reminder_fallback_name": "le client",
       "badge_unpaid": "Impayé",
       "badge_deactivated": "Désactivé",
       "since": "Client depuis {date}",
@@ -445,7 +443,6 @@
       "new_order": "Nouvelle commande",
       "followup": "Relancer",
       "reminder_schedule": "Marquer à relancer",
-      "reminder_created_today": "Rappel créé pour demain",
       "add_note": "Ajouter une note",
       "edit_address": "Modifier l'adresse",
       "deactivate": "Désactiver le client",
@@ -479,10 +476,6 @@
       "copy": "Copier l'adresse",
       "copied": "Copié ✓",
       "open_maps": "Ouvrir dans Maps"
-    },
-    "flash": {
-      "reminder_created": "Rappel créé",
-      "sub": "Demain à 9h00 — {name}"
     },
     "timeline": {
       "title": "Activité",
@@ -627,6 +620,7 @@
       "issue_invoice": "Émettre la facture",
       "download_invoice": "Télécharger la facture",
       "send_whatsapp": "Envoyer un message WhatsApp",
+      "reminder_schedule": "Marquer à relancer",
       "notes_empty": "Aucune note pour cette commande."
     },
     "nextStep": {
@@ -2349,10 +2343,23 @@
     "cancel": "Annuler",
     "confirm_delete": "Supprimer ce rappel ?",
     "confirm_delete_cta": "Supprimer",
-    "tab_pending": "En attente{count, plural, =0 {} other { (#)}}",
+    "tab_todo": "À faire{count, plural, =0 {} other { (#)}}",
+    "tab_upcoming": "À venir{count, plural, =0 {} other { (#)}}",
     "tab_done": "Terminés{count, plural, =0 {} other { (#)}}",
-    "empty_pending": "Aucun rappel en attente.",
-    "empty_done": "Aucun rappel terminé."
+    "empty_todo": "Rien à faire aujourd'hui.",
+    "empty_upcoming": "Aucun rappel à venir.",
+    "empty_done": "Aucun rappel terminé.",
+    "followup": {
+      "title": "Relancer {name}",
+      "fallback_name": "le client",
+      "created": "Rappel créé : relancer {name} le {date}",
+      "moved": "Rappel décalé au {date}",
+      "failed": "Le rappel n'a pas pu être enregistré. Réessayez.",
+      "exists": "Un rappel de relance existe déjà pour {name} le {date}. Le décaler au {newDate} ?",
+      "postpone": "Décaler",
+      "create_anyway": "Créer quand même",
+      "cancel": "Annuler"
+    }
   },
   "notes": {
     "title": "Notes",

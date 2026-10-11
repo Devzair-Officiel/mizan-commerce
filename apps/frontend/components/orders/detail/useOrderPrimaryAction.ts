@@ -11,7 +11,7 @@ import type { OrderDetailActions } from './useOrderDetailState';
 
 export type OrderActionKey =
   | 'advance' | 'collect' | 'reactivate' | 'issue_invoice'
-  | 'revert' | 'download_invoice' | 'whatsapp' | 'cancel';
+  | 'revert' | 'download_invoice' | 'whatsapp' | 'reminder' | 'cancel';
 
 /** Une action de la commande : bouton principal, entrée du menu « ⋯ » ou de la feuille mobile. */
 export type OrderAction = DetailAction<OrderActionKey>;

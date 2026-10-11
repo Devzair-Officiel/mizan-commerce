@@ -436,8 +436,6 @@
       "topbar_short": "Customer",
       "not_found": "Customer not found.",
       "deactivate_confirm": "Deactivate this customer? They will no longer appear among active customers; you can reactivate them from their page.",
-      "reminder_title": "Follow up with {name}",
-      "reminder_fallback_name": "the customer",
       "badge_unpaid": "Unpaid",
       "badge_deactivated": "Deactivated",
       "since": "Customer since {date}",
@@ -445,7 +443,6 @@
       "new_order": "New order",
       "followup": "Send reminder",
       "reminder_schedule": "Mark for follow-up",
-      "reminder_created_today": "Reminder set for tomorrow",
       "add_note": "Add a note",
       "edit_address": "Edit address",
       "deactivate": "Deactivate customer",
@@ -479,10 +476,6 @@
       "copy": "Copy address",
       "copied": "Copied ✓",
       "open_maps": "Open in Maps"
-    },
-    "flash": {
-      "reminder_created": "Reminder created",
-      "sub": "Tomorrow at 9:00 AM — {name}"
     },
     "timeline": {
       "title": "Activity",
@@ -627,6 +620,7 @@
       "issue_invoice": "Issue the invoice",
       "download_invoice": "Download the invoice",
       "send_whatsapp": "Send a WhatsApp message",
+      "reminder_schedule": "Mark for follow-up",
       "notes_empty": "No notes for this order."
     },
     "nextStep": {
@@ -2349,10 +2343,23 @@
     "cancel": "Cancel",
     "confirm_delete": "Delete this reminder?",
     "confirm_delete_cta": "Delete",
-    "tab_pending": "Pending{count, plural, =0 {} other { (#)}}",
+    "tab_todo": "To do{count, plural, =0 {} other { (#)}}",
+    "tab_upcoming": "Upcoming{count, plural, =0 {} other { (#)}}",
     "tab_done": "Done{count, plural, =0 {} other { (#)}}",
-    "empty_pending": "No pending reminders.",
-    "empty_done": "No completed reminders."
+    "empty_todo": "Nothing to do today.",
+    "empty_upcoming": "No upcoming reminders.",
+    "empty_done": "No completed reminders.",
+    "followup": {
+      "title": "Follow up with {name}",
+      "fallback_name": "the customer",
+      "created": "Reminder set: follow up with {name} on {date}",
+      "moved": "Reminder moved to {date}",
+      "failed": "The reminder could not be saved. Please try again.",
+      "exists": "A follow-up reminder already exists for {name} on {date}. Move it to {newDate}?",
+      "postpone": "Move",
+      "create_anyway": "Create anyway",
+      "cancel": "Cancel"
+    }
   },
   "notes": {
     "title": "Notes",

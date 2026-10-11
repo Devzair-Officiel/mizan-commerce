@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
+import { FollowupReminderDialog } from '@/components/reminders/FollowupReminderDialog';
 import { WhatsAppIcon } from '@/components/orders/detail/constants';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import type { Customer } from '@/lib/hooks/useCustomers';
@@ -9,12 +10,11 @@ import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import { useOrders } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { CustomerAddressSheet } from './CustomerAddressSheet';
-import { CustomerFlashNotification } from './CustomerFlashNotification';
 import { buildFollowupMessage } from './followupMessage';
 import { hasPending } from './useCustomerActions';
 import type { CustomerDetailState } from './useCustomerDetailState';
 
-/** Fenêtres de la fiche : message WhatsApp, adresse, confirmation de désactivation, rappel créé. */
+/** Fenêtres de la fiche : message WhatsApp, adresse, confirmation de désactivation, rappel de relance déjà prévu. */
 export function CustomerDetailDialogs({ customer, state }: { customer: Customer; state: CustomerDetailState }) {
   const t = useTranslations('customers.detail');
   const tWa = useTranslations('customers.whatsapp');
@@ -34,7 +34,7 @@ export function CustomerDetailDialogs({ customer, state }: { customer: Customer;
 
   return (
     <>
-      <CustomerFlashNotification visible={state.flash.visible} customerName={customer.display_name} onDismiss={state.flash.dismiss} />
+      <FollowupReminderDialog conflict={state.followupConflict} />
       {kind && customer.phone && (
         <PreparedMessageDialog
           open

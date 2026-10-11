@@ -88,7 +88,7 @@ export interface StockLevelsFilters {
   pageSize?: number;
 }
 
-export type RemindersFilter = 'pending' | 'done';
+export type ReminderScope = 'todo' | 'upcoming' | 'done';
 
 export const qk = {
   orders: {
@@ -161,9 +161,8 @@ export const qk = {
 
   reminders: {
     all: ['reminders'] as const,
-    byFilter: (filter: RemindersFilter) => ['reminders', filter] as const,
-    pending: ['reminders', 'pending'] as const,
-    done: ['reminders', 'done'] as const,
+    list: (scope: ReminderScope) => ['reminders', scope] as const,
+    followup: (customerId: string) => ['reminders', 'followup', customerId] as const,
   },
 
   customers: {

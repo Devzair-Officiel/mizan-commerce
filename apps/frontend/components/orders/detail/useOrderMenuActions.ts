@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Download, Receipt, Undo2, XCircle } from 'lucide-react';
+import { Bell, Download, Receipt, Undo2, XCircle } from 'lucide-react';
 import type { DetailMenuActions } from '@/components/detail/types';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
@@ -36,6 +36,9 @@ export function useOrderMenuActions(
   }
   if (order.customer && order.customer_phone) {
     items.push({ key: 'whatsapp', icon: WhatsAppIcon, label: t('send_whatsapp'), onSelect: () => actions.openWhatsApp(templateFor(order)) });
+  }
+  if (order.customer) {
+    items.push({ key: 'reminder', icon: Bell, label: t('reminder_schedule'), onSelect: actions.scheduleReminder });
   }
   const danger: OrderAction | null = STATUS_ALLOWS_CANCEL.has(order.status)
     ? { key: 'cancel', icon: XCircle, label: t('cancel_cta'), destructive: true, disabled: actions.pending, onSelect: () => actions.confirm('cancel') }

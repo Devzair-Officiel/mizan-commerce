@@ -411,7 +411,7 @@
 
 - [ ] Lot 1 (bugs avant fusion)
   - [x] Suppression d'un article ou d'un format jamais utilisé (stock initial reconnu par `StockMovement.is_initial`)
-  - [ ] Rappels : mise à jour, compteurs, doublons
+  - [x] Rappels : mise à jour, compteurs, doublons
   - [ ] Historique des messages WhatsApp
   - [ ] Page bloquée sans défilement
 - [ ] Lot 2 (avant fusion)
