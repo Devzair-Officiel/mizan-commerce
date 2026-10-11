@@ -51,7 +51,7 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
         if not variant.stock_movements.exists():
             create_movement(
                 shop, variant, 'in', qty, reason='Stock initial — seeding',
-                created_by=owner,
+                created_by=owner, is_initial=True,
             )
 
     if not shop.customers.exists():

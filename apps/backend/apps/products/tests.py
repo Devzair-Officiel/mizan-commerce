@@ -415,6 +415,40 @@ class ProductDeleteTest(TestCase):
         self.assertEqual(self.delete(foreign).status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Product.objects.filter(pk=foreign.pk).exists())
 
+    def test_article_without_initial_stock_is_deleted(self):
+        from apps.products.services import create_product
+
+        bare = create_product(
+            self.shop, self.user, {'name': 'Sans stock'},
+            {'packaging_name': 'Par défaut', 'selling_price': '5.00'},
+        )
+        detail = self.client.get(reverse('product-detail', args=[bare.pk]))
+        self.assertTrue(detail.data['can_delete'])
+        self.assertEqual(self.delete(bare).status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_initial_stock_is_recognised_whatever_its_reason(self):
+        """Le stock initial se reconnaît à son indicateur, pas à son motif."""
+        from apps.stock.models import StockMovement
+
+        StockMovement.objects.filter(variant=self.variant).update(reason='Mise en rayon')  # noqa: E501
+        detail = self.client.get(reverse('product-detail', args=[self.product.pk]))
+        self.assertTrue(detail.data['can_delete'])
+        self.assertTrue(detail.data['variants'][0]['can_delete'])
+        self.assertEqual(self.delete().status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_entry_worded_as_initial_stock_is_refused(self):
+        from apps.products.services import INITIAL_STOCK_REASON
+        from apps.stock.services import EntryLine, EntryReference, create_entry
+
+        create_entry(
+            self.shop, self.user, [EntryLine(variant=self.variant, quantity=Decimal('2'))],  # noqa: E501
+            EntryReference(),
+        )
+        self.variant.stock_movements.exclude(is_initial=True).update(reason=INITIAL_STOCK_REASON)  # noqa: E501
+        detail = self.client.get(reverse('product-detail', args=[self.product.pk]))
+        self.assertFalse(detail.data['can_delete'])
+        self.assertEqual(self.delete().status_code, status.HTTP_409_CONFLICT)
+
 
 class ProductVariantDeleteTest(TestCase):
     MESSAGE = 'Ce format a déjà servi : retirez-le de la vente.'

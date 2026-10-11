@@ -85,6 +85,7 @@ def _initial_stock(shop, variant, qty, user) -> None:
         quantity=qty,
         reason="Stock initial — seeding",
         created_by=user,
+        is_initial=True,
     )
     ref = _make_dt(datetime.date.today() - datetime.timedelta(days=35), 8, 0)
     StockMovement.objects.filter(pk=mv.pk).update(created_at=ref)

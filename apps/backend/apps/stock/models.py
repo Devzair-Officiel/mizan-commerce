@@ -64,6 +64,9 @@ class StockMovement(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name='stock_movements'
     )
+    # Stock saisi à la création de l'article ou du format : seul mouvement qui
+    # n'empêche pas de les supprimer. Posé uniquement par `create_variant`.
+    is_initial = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

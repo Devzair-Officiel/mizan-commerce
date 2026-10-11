@@ -91,6 +91,7 @@ def create_movement(
     reference: EntryReference | None = None,
     unit_purchase_price: Decimal | None = None,
     limit_to_available: bool = False,
+    is_initial: bool = False,
 ) -> StockMovement:
     """
     Point d'entrée unique pour créer un mouvement de stock.
@@ -139,6 +140,7 @@ def create_movement(
             invoice_number=reference.invoice_number,
             invoice_date=reference.invoice_date,
             ocr_result=reference.ocr_result,
+            is_initial=is_initial,
         )
         variant.stock_quantity = ProductVariant.objects.values_list(
             'stock_quantity', flat=True,

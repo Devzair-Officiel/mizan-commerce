@@ -516,3 +516,42 @@ class StockMultiTenantTest(_StockApiCase):
         ):
             self.assertEqual(self.post(name, data).status_code, 400, name)
         self.assertEqual(self.stock(self.foreign), 5)
+
+
+class MarkInitialStockMigrationTest(TestCase):
+    """Migration 0011 : le stock initial des formats existants est reconnu au
+    premier mouvement, entrée sans commande ni facture, dans la minute du format."""
+
+    def setUp(self):
+        self.user, self.shop, self.product, self.variant = setup('initial-mig@example.com')  # noqa: E501
+
+    def other_variant(self, name):
+        return ProductVariant.objects.create(
+            shop=self.shop, product=self.product, packaging_name=name,
+            unit='piece', base_quantity=1, selling_price='5.00',
+        )
+
+    def move(self, variant, movement_type='in', *, after=timedelta(0), **fields):
+        movement = create_movement(self.shop, variant, movement_type, 2, **fields)
+        StockMovement.objects.filter(pk=movement.pk).update(created_at=variant.created_at + after)  # noqa: E501
+        return movement
+
+    def test_marks_only_recognisable_initial_stock(self):
+        import importlib
+
+        from django.apps import apps
+
+        migration = importlib.import_module('apps.stock.migrations.0011_mark_initial_stock')  # noqa: E501
+        first = self.move(self.variant, after=timedelta(seconds=20))
+        second = self.move(self.variant, after=timedelta(seconds=30))
+        late = self.move(self.other_variant('Tardif'), after=timedelta(minutes=5))
+        invoiced = self.move(
+            self.other_variant('Facturé'), reference=EntryReference(supplier_name='Grossiste'),  # noqa: E501
+        )
+        loss_first = self.move(self.other_variant('Perte'), 'adjustment')
+        seeded = self.move(self.other_variant('Démo'), after=-timedelta(days=35))
+        migration.mark_initial_stock(apps, None)
+        marked = set(StockMovement.objects.filter(is_initial=True).values_list('pk', flat=True))  # noqa: E501
+        self.assertEqual(marked, {first.pk, seeded.pk})
+        self.assertNotIn(second.pk, marked)
+        self.assertTrue({late.pk, invoiced.pk, loss_first.pk}.isdisjoint(marked))

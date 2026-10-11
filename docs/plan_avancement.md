@@ -407,6 +407,25 @@
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 
+### Après recette C1–C4
+
+- [ ] Lot 1 (bugs avant fusion)
+  - [x] Suppression d'un article ou d'un format jamais utilisé (stock initial reconnu par `StockMovement.is_initial`)
+  - [ ] Rappels : mise à jour, compteurs, doublons
+  - [ ] Historique des messages WhatsApp
+  - [ ] Page bloquée sans défilement
+- [ ] Lot 2 (avant fusion)
+  - [ ] Listes longues des fiches (5 + « Voir plus »)
+  - [ ] Sélecteur d'indicatif téléphonique
+  - [ ] Fin de la recette
+- [ ] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
+- [ ] Puis : session Postman, pull request, fusion
+- [ ] Lot 4 (après fusion)
+  - [ ] Page et formulaire Rappels + assignation à un employé
+  - [ ] Export de l'activité d'un client avec filtres
+  - [ ] Bloc Ventes de l'accueil sur 12 mois et depuis la création
+  - [ ] Modèles de messages WhatsApp et ton
+
 ### Tests
 
 - [ ] Tests unitaires backend (pytest) sur chaque modèle et endpoint

@@ -272,6 +272,7 @@ class Command(BaseCommand):
                     quantity=qty,
                     reason="Stock initial — seeding",
                     created_by=amira,
+                    is_initial=True,
                 )
 
         customers_ma = [

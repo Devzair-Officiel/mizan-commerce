@@ -330,6 +330,7 @@ Source de vérité du stock. Chaque entrée, sortie, ajustement, réservation ou
 | invoice_date | DATE | NULL | Date de la facture fournisseur |
 | ocr_result_id | UUID | FK → ocr_results.id, SET_NULL, NULL | Facture lue dont provient l'entrée |
 | order_id | UUID | | UUID nu (pas de FK ORM), renseigné si le mouvement provient d'une commande — sert au rapprochement avec `orders.id` |
+| is_initial | BOOLEAN | NOT NULL, DEFAULT false | Stock saisi à la création de l'article ou du format. Seul mouvement qui n'empêche pas de les supprimer (le motif n'est jamais interprété) |
 | created_by_id | UUID | FK → users.id, SET_NULL | Auteur du mouvement |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | Date du mouvement |
 

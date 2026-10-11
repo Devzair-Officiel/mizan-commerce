@@ -6,7 +6,7 @@
  * - menu « ⋯ » des formats : format qui a servi sans « Supprimer » ; format jamais utilisé supprimé
  *   après confirmation ; dernier format actif ni retirable ni supprimable ; format devenu utilisé
  *   pendant la confirmation → la fenêtre affiche le refus (409) ;
- * - article jamais utilisé : « Supprimer » dans le menu « ⋯ », confirmation, retour à la liste ;
+ * - article jamais utilisé (avec son stock initial) : « Supprimer » dans le menu « ⋯ », confirmation, retour à la liste ;
  * - article vendu : pas de « Supprimer » dans le menu, l'API refuse (409) ;
  * - service : carte Prix et ventes, ni formats, ni stock, ni entrée de stock ;
  * - console propre, aucun élément imbriqué.
@@ -168,7 +168,7 @@ async function checkFormatMenu(page, ctx, article, fixtures) {
     `${label} : format vendu pendant la confirmation → « ${f('delete_refused')} » dans la fenêtre, format conservé`);
 }
 
-/** Article jamais utilisé : « Supprimer », confirmation, retour à la liste, article supprimé. */
+/** Article jamais utilisé, avec son stock initial : « Supprimer », confirmation, retour à la liste, article supprimé. */
 async function checkDelete(page, ctx, fresh, nested) {
   const { label, locale } = ctx;
   const s = (key, values) => fmt(locale, `articles.sheet.${key}`, values);
@@ -214,7 +214,8 @@ async function run(page, ctx, fixtures, nested) {
   const stamp = `${String(Date.now()).slice(-6)} ${ctx.viewport.name} ${ctx.locale}`;
   const article = await createArticle(page, { name: `Audit fiche ${stamp}`, price: '12.00', threshold: '5', stock: 2 });
   fixtures.used.push(article.id);
-  const fresh = await createArticle(page, { name: `Audit fiche jamais utilisé ${stamp}`, price: '3.00' });
+  // Stock initial saisi à la création : l'article n'a pas servi pour autant.
+  const fresh = await createArticle(page, { name: `Audit fiche jamais utilisé ${stamp}`, price: '3.00', stock: 4 });
   try {
     await checkArticle(page, ctx, article, nested);
     await checkNewFormat(page, ctx, article, nested);

@@ -280,10 +280,9 @@ def read_image_file(image: 'ProductImage') -> tuple[bytes, str]:
 
 # ─── Création et suppression d'un article ───────────────────────────────────
 
-# Motif du stock saisi à la création. Les anciennes créations l'écrivaient dans
-# la langue de l'interface : elles comptent aussi comme stock initial.
+# Motif du stock saisi à la création (affiché dans l'historique). Le stock
+# initial se reconnaît à `StockMovement.is_initial`, jamais à ce texte.
 INITIAL_STOCK_REASON = 'Stock initial'
-_INITIAL_STOCK_REASONS = (INITIAL_STOCK_REASON, 'Initial stock', 'المخزون الأولي')
 
 
 class ProductInUseError(Exception):
@@ -338,14 +337,12 @@ def create_variant(
             create_movement(
                 product.shop, variant, 'in', initial_stock, reason=INITIAL_STOCK_REASON,  # noqa: E501
                 created_by=user, unit_purchase_price=variant.purchase_price,
+                is_initial=True,
             )
     return variant
 
 
-_INITIAL_MOVEMENT = Q(
-    movement_type='in', reason__in=_INITIAL_STOCK_REASONS, order_id__isnull=True,
-    supplier_name='', invoice_number='', ocr_result__isnull=True,
-)
+_INITIAL_MOVEMENT = Q(is_initial=True)
 
 
 def _variants_have_served(variants: QuerySet[ProductVariant]) -> bool:
