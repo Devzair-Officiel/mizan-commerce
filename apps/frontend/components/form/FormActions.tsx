@@ -13,13 +13,15 @@ interface FormActionsProps {
   submitDisabled?: boolean;
   /** Retour sans enregistrer (la page applique la garde « quitter sans enregistrer »). */
   onCancel: () => void;
+  /** Conséquence de l'enregistrement, à gauche sur desktop (« Le stock et la valeur d'achat seront mis à jour. »). */
+  note?: string;
 }
 
 /**
  * Desktop : sous la carte, sans cadre ni fond — état à gauche, « Annuler » et bouton principal à droite.
  * Mobile : bouton principal flottant au-dessus de la barre du bas. À placer dans le `<form>`.
  */
-export function FormActions({ dirty, submitting, submitLabel, submitDisabled, onCancel }: FormActionsProps) {
+export function FormActions({ dirty, submitting, submitLabel, submitDisabled, onCancel, note }: FormActionsProps) {
   const t = useTranslations('ui.form');
   const label = submitting ? t('saving') : submitLabel;
   const disabled = submitting || submitDisabled;
@@ -28,10 +30,11 @@ export function FormActions({ dirty, submitting, submitLabel, submitDisabled, on
     <>
       <div className="hidden flex-wrap items-center justify-between gap-3 px-1 lg:flex">
         <p className="text-[0.8125rem] text-muted-foreground" aria-live="polite">
+          {note && !dirty && note}
           {dirty && (
             <span className="inline-flex items-center gap-2">
               <span className="size-2 rounded-full bg-amber-500" aria-hidden />
-              {t('unsaved')}
+              {note ?? t('unsaved')}
             </span>
           )}
         </p>

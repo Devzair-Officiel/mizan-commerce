@@ -14,9 +14,11 @@ export const VIEWPORTS = [
 /**
  * Chromium refuse `crypto.randomUUID` hors contexte sécurisé : l'origine du
  * frontend dans le réseau compose (http://frontend:3000) est déclarée sûre.
+ * Le canal `chromium` (nouveau mode sans interface) est nécessaire : le
+ * « headless shell » par défaut ignore ce drapeau.
  */
 export function launch() {
-  return chromium.launch({ args: [`--unsafely-treat-insecure-origin-as-secure=${BASE}`] });
+  return chromium.launch({ channel: 'chromium', args: [`--unsafely-treat-insecure-origin-as-secure=${BASE}`] });
 }
 
 /**

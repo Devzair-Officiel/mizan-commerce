@@ -343,6 +343,7 @@ class StockLevelsTest(_StockApiCase):
             self.assertEqual(self.ids(state=state), [str(variant.pk)], state)
         self.assertEqual(self.ids(search='111'), [str(self.neg.pk)])
         self.assertEqual(self.ids(search='aba-1'), [str(self.ok.pk)])
+        self.assertEqual(self.ids(variant=str(self.low.pk)), [str(self.low.pk)])
 
     def test_row_fields(self):
         row = self.client.get(reverse('stock-levels'), {'state': 'low'}).data['results'][0]  # noqa: E501
@@ -449,6 +450,10 @@ class StockMultiTenantTest(_StockApiCase):
         self.assertEqual(self.client.get(reverse('stock-levels-summary')).data['formats'], 1)  # noqa: E501
         facets = self.client.get(reverse('stock-levels-facets')).data
         self.assertEqual(facets['state']['all'], 1)
+        foreign_level = self.client.get(
+            reverse('stock-levels'), {'variant': str(self.foreign.pk)},
+        ).data
+        self.assertEqual(foreign_level['count'], 0)
         movements = self.client.get(
             reverse('stock-movements'), {'variant': str(self.foreign.pk)},
         ).data

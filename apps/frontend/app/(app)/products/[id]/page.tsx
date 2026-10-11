@@ -67,7 +67,7 @@ export default function ProductDetailPage() {
             <ActionRow
               icon={<PackageMinus size={18} />}
               label={tActions('stock_out')}
-              onClick={() => { setShowMore(false); router.push(`/stock/out?product=${id}`); }}
+              onClick={() => { setShowMore(false); router.push(product.variants.length === 1 ? `/stock/sortie?variant=${product.variants[0]?.id}` : '/stock/sortie'); }}
             />
           )}
           <ActionRow

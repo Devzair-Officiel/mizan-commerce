@@ -10,6 +10,7 @@ docker compose run --rm e2e npm run audit:customer-form       # formulaire clien
 docker compose run --rm e2e npm run audit:zakat               # zakat : erreurs notifiées, plus d'alert()
 docker compose run --rm e2e npm run audit:products-list       # liste Articles et services
 docker compose run --rm e2e npm run audit:product-form        # formulaire article
+docker compose run --rm e2e npm run audit:stock               # stock : niveaux, mouvements, entrées, sorties
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
 ```
 
@@ -28,7 +29,8 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 - `lib/watch.mjs` — **console surveillée** : toute erreur ou tout avertissement en console et toute exception non rattrapée font échouer l'audit ; **éléments interactifs imbriqués** (bouton dans un lien, etc.).
 - `lib/session.mjs` — navigateur, connexion (compte `e2e@example.com` par défaut ; une connexion par taille d'écran : la limite `auth` du backend reste basse), langue (`NEXT_LOCALE`) et thème (réponse `/auth/me/` réécrite, préférences du compte intactes).
 - `lib/messages.mjs` — textes attendus lus dans `../messages/*.json` (montés en lecture seule) : `msg` (texte brut) et `fmt` (paramètres ICU appliqués : `{var}`, `select`, `plural` avec `=n` et `#`).
-- `lib/products.mjs` — appels du backend par le proxy (`api`, `allResults`), création d'un article de test, désactivation en fin d'audit.
+- `lib/products.mjs` — appels du backend par le proxy (`api`, `allResults`), création d'un article de test, désactivation ou suppression en fin d'audit.
+- `lib/invoice.mjs` — facture fournisseur de test (page HTML capturée en PNG), envoyée ensuite à la vraie chaîne de lecture.
 - `audit-pages.mjs` — écrans principaux à 1440px et 360px.
 - `audit-customer-form.mjs` — gabarit de formulaire sur le formulaire client, à 1440px et 360px, clair et sombre, français et arabe :
   - sections : Identité ouverte avec le badge « Obligatoire », Contact, Adresse et Notes repliées à l'ouverture, avec leur résumé si elles sont remplies (sinon leur explication) ; ouverture au clic, à Entrée et à Espace (`aria-expanded`) ;
@@ -49,6 +51,13 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - service : ni unité, ni prix d'achat, ni stock, ni référence ; résumé de la description ; création puis modification du prix ;
   - article à deux formats (« Audit formats ») : informations communes seulement, lien « Gérer les formats » ;
   - boutique de services : ni choix de type, ni unité, ni stock ; boutique de Youssef : aucun article « Audit ». Les articles créés sont désactivés à la fin (il n'existe pas de suppression d'article).
+- `audit-stock.mjs` — stock à 1440px et 360px :
+  - parcours en français et en clair : une vente de 3 sur un stock de 1 est acceptée (avertissement « il passera en négatif » dans la nouvelle commande) et met le format à −2 ; l'indicateur « Négatif » filtre la liste ; l'entrée rapide de la ligne le régularise ; entrée de 3 articles à la main ; facture avec une ligne « À associer » associée à la main, puis facture suivante du même fournisseur associée toute seule ; sortie pour casse au-delà du stock refusée (formulaire et serveur) ; correction d'inventaire avec l'écart affiché ; lien vers la commande dans les Mouvements ; suppression d'un article jamais utilisé, refus (409) pour un article vendu ;
+  - écrans du stock et entrée rapide ouverte en français et en arabe, clair et sombre : console propre, aucun élément imbriqué ;
+  - boutique de services : ni page ni entrée Stock (« Plus » compris) ;
+  - la facture passe par la **vraie lecture** (PaddleOCR puis structuration, ~10 s par facture : `celery-ocr` et `ai-service` démarrés) ;
+  - les formulaires sont ouverts par le routeur Next (`window.next.router.push`) : leur retour à la page précédente après l'enregistrement reste dans l'app et la notification reste visible ;
+  - nettoyage : commande annulée, articles désactivés (ils ont servi). `DEBUG=1` détaille les notifications, `SHOTS=<dossier>` capture un parcours interrompu.
 - `audit-zakat.mjs` — un calcul finalisé dont la réouverture échoue (réponse simulée) : l'erreur est notifiée, aucune `alert()` ni boîte de dialogue native. Les calculs créés sont supprimés.
 
 ## Exceptions de la console surveillée
@@ -58,5 +67,5 @@ Seulement les messages de l'outillage de développement qui ne viennent pas de n
 ## Notes
 
 - Version de Playwright figée dans `package.json` ; elle doit correspondre au tag de l'image dans `docker-compose.yml`.
-- `next.config.ts` autorise l'hôte `frontend` en développement (`allowedDevOrigins`) et Chromium traite `http://frontend:3000` comme origine sûre (`crypto.randomUUID`).
+- `next.config.ts` autorise l'hôte `frontend` en développement (`allowedDevOrigins`) et Chromium traite `http://frontend:3000` comme origine sûre (`crypto.randomUUID`, utilisé par la nouvelle commande). Ce drapeau n'est lu que par le canal `chromium` (nouveau mode sans interface) : le « headless shell » par défaut l'ignore.
 - Les limites de requêtes `user` et `anon` sont relevées dans `config/settings/local.py` pour que les audits ne les atteignent pas.

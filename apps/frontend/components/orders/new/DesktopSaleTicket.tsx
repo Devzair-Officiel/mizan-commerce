@@ -16,6 +16,7 @@ import { isDefaultVariant } from '@/lib/products';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import type { LineItem } from '@/components/orders/new/types';
 import { useSubmitLabel } from '@/components/orders/new/useSubmitLabel';
+import { LineStockWarning } from '@/components/orders/new/LineStockWarning';
 
 type T = ReturnType<typeof useTranslations<'orders.new'>>;
 
@@ -33,6 +34,7 @@ function DesktopTicketLine({ item, onUpdateQty, money, t }: {
       <div className="flex-1 min-w-0">
         <span className="text-sm font-semibold text-foreground block truncate">{item.product_name}</span>
         <span className="text-[0.8125rem] text-muted-foreground">{sub}</span>
+        <LineStockWarning item={item} className="mt-0.5" />
       </div>
       <div className="flex items-center h-9 border border-border rounded-full shrink-0">
         <button type="button" aria-label={decAria} onClick={() => onUpdateQty(item.lineId, item.quantity - 1)}

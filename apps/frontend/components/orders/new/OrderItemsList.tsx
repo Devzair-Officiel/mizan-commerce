@@ -6,6 +6,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { isDefaultVariant } from '@/lib/products';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import { LineStockWarning } from './LineStockWarning';
 import type { LineItem } from './types';
 
 interface OrderItemsListProps {
@@ -108,6 +109,7 @@ function OrderItemRow({
           {money(lineTotal)}
         </span>
       </div>
+      <LineStockWarning item={item} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { productPickQueryOptions } from '@/lib/hooks/useProducts';
 import { isDefaultVariant } from '@/lib/products';
 import { DesktopAddButton } from '@/components/orders/new/DesktopAddButton';
 import type { LineItem } from '@/components/orders/new/types';
-import type { VariantPick } from '@/components/orders/picker/VariantView';
+import { variantPick, type VariantPick } from '@/components/orders/picker/variantPick';
 
 /** Variantes d'un article, dépliées sous sa ligne dans le catalogue grand écran. */
 export function DesktopInlineVariants({ productId, items, onPick, money }: {
@@ -23,7 +23,7 @@ export function DesktopInlineVariants({ productId, items, onPick, money }: {
       {product.variants.filter((v) => v.is_active).map((v) => {
         const out = product.type === 'product' && parseFloat(v.stock_quantity) <= 0;
         const qtyInCart = items.filter((i) => i.variant === v.id).reduce((a, c) => a + c.quantity, 0);
-        const pick: VariantPick = { variantId: v.id, productId: product.id, productName: product.name, variantName: v.packaging_name, productType: product.type, unitPrice: v.selling_price };
+        const pick = variantPick(product, v);
         const isDefault = isDefaultVariant(v.packaging_name);
         return (
           <div key={v.id} className="flex items-center gap-3 px-5 py-2.5">

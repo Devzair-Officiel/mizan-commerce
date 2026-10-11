@@ -124,7 +124,7 @@ async function editArticle(page, t, ctx, id, nested) {
   await section.click();
   const link = page.getByRole('link', { name: t('articles.form.stock_in_link') });
   report.check((await page.locator('output').filter({ hasText: '12' }).count()) === 1
-    && (await link.getAttribute('href')).startsWith(`/stock/add?product=${id}&variant=${product.variants[0].id}`),
+    && (await link.getAttribute('href')).startsWith(`/stock/entree?variant=${product.variants[0].id}`),
   `${label} : stock actuel 12 en lecture seule, lien « ${t('articles.form.stock_in_link')} »`);
   await textbox(page, t('articles.form.threshold')).fill('3');
   await section.click();

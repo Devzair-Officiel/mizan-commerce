@@ -7,9 +7,9 @@ import { productPickQueryOptions, type Product } from '@/lib/hooks/useProducts';
 import { DesktopAddButton } from '@/components/orders/new/DesktopAddButton';
 import { DesktopInlineVariants } from '@/components/orders/new/DesktopInlineVariants';
 import type { LineItem } from '@/components/orders/new/types';
-import type { VariantPick } from '@/components/orders/picker/VariantView';
+import { variantPick, type VariantPick } from '@/components/orders/picker/variantPick';
 
-type AddState = 'idle' | 'loading' | 'out_of_stock' | 'error';
+type AddState = 'idle' | 'loading' | 'error';
 
 function ProductSubtext({ p }: { p: Product }) {
   const t = useTranslations('orders.picker');
@@ -31,9 +31,9 @@ function useSingleVariantAdd(p: Product, lines: LineItem[], onPick: (pick: Varia
   const queryClient = useQueryClient();
   const [state, setState] = useState<AddState>('idle');
 
-  // Les messages (rupture, erreur réseau) s'effacent seuls après quelques secondes.
+  // Le message d'erreur réseau s'efface seul après quelques secondes.
   useEffect(() => {
-    if (state !== 'out_of_stock' && state !== 'error') return;
+    if (state !== 'error') return;
     const timer = setTimeout(() => setState('idle'), 3000);
     return () => clearTimeout(timer);
   }, [state]);
@@ -51,8 +51,7 @@ function useSingleVariantAdd(p: Product, lines: LineItem[], onPick: (pick: Varia
       const detail = await queryClient.fetchQuery(productPickQueryOptions(p.id));
       const single = detail.variants.find((v) => v.is_active);
       if (!single) { setState('idle'); return; }
-      if (detail.type === 'product' && parseFloat(single.stock_quantity) <= 0) { setState('out_of_stock'); return; }
-      onPick({ variantId: single.id, productId: detail.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
+      onPick(variantPick(detail, single));
       setState('idle');
     } catch {
       setState('error');
@@ -92,10 +91,8 @@ export function DesktopProductRow({ p, items, isExpanded, onToggle, onPick, mone
         <DesktopAddButton name={p.name} qty={totalQty} isLoading={single.state === 'loading'}
           onClick={multi ? onToggle : () => void single.add()} />
       </div>
-      {(single.state === 'out_of_stock' || single.state === 'error') && (
-        <p role="alert" className="px-5 pb-2 text-xs text-destructive">
-          {t(single.state === 'error' ? 'add_error' : 'out_of_stock_pick')}
-        </p>
+      {single.state === 'error' && (
+        <p role="alert" className="px-5 pb-2 text-xs text-destructive">{t('add_error')}</p>
       )}
       {isExpanded && multi && <DesktopInlineVariants productId={p.id} items={items} onPick={onPick} money={money} />}
     </div>

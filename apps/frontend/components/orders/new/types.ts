@@ -12,4 +12,6 @@ export type LineItem = {
   product_type: ProductType | null;
   quantity: number;
   unit_price: string;
+  /** Stock du format quand il a été ajouté (nouvelle ligne d'article) : avertit d'un passage en négatif. */
+  stock?: string;
 };

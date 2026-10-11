@@ -286,11 +286,16 @@ def stock_levels(shop: Shop) -> QuerySet[ProductVariant]:
 def filter_levels(
     qs: QuerySet[ProductVariant], params: Mapping[str, str], *, skip: str | None = None,
 ) -> QuerySet[ProductVariant]:
-    """Filtre « état » des niveaux (hors recherche) ; `skip` pour ses facettes."""
+    """Filtres « état » et « format » des niveaux (hors recherche) ; `skip` pour
+    les facettes de l'état."""
     state = params.get('state')
     if skip != 'state' and state in STOCK_STATES:
         qs = qs.filter(STOCK_STATES[state])
-    return qs
+    try:
+        variant = uuid.UUID(params.get('variant', ''))
+    except ValueError:
+        return qs
+    return qs.filter(pk=variant)
 
 
 def build_level_facets(qs: QuerySet[ProductVariant], params: Mapping[str, str]) -> dict:

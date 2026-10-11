@@ -8,8 +8,8 @@ import type { Product } from '@/lib/hooks/useProducts';
 import { CatalogAddActions } from './CatalogAddActions';
 
 export type PickFilter = 'all' | 'product' | 'service';
-/** Message affiché sous un article après un ajout refusé : rupture de stock ou erreur réseau. */
-export type PickFeedback = { productId: string; kind: 'out_of_stock' | 'error' };
+/** Message affiché sous un article dont l'ajout a échoué (erreur réseau). */
+export type PickFeedback = { productId: string; kind: 'error' };
 
 interface PickViewProps {
   search: string;
@@ -155,7 +155,7 @@ function ProductRow({ product, onPick, isLoading, feedback }: {
       </button>
       {feedback && (
         <p role="alert" className="px-1 pb-2 text-xs text-destructive">
-          {t(feedback === 'error' ? 'add_error' : 'out_of_stock_pick')}
+          {t('add_error')}
         </p>
       )}
     </div>

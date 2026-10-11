@@ -7,11 +7,9 @@ import { productPickQueryOptions, type ProductVariant } from '@/lib/hooks/usePro
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { isDefaultVariant } from '@/lib/products';
+import { variantPick, type VariantPick } from './variantPick';
 
-export type VariantPick = {
-  variantId: string; productId: string; productName: string; variantName: string;
-  productType: 'product' | 'service'; unitPrice: string;
-};
+export type { VariantPick } from './variantPick';
 
 interface VariantViewProps {
   productId: string;
@@ -48,7 +46,7 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
     );
   }
 
-  const handlePick = (variant: ProductVariant) => onPick({ variantId: variant.id, productId: product.id, productName: product.name, variantName: variant.packaging_name, productType: product.type, unitPrice: variant.selling_price });
+  const handlePick = (variant: ProductVariant) => onPick(variantPick(product, variant));
   const activeVariants = product.variants.filter((v) => v.is_active);
 
   return (
@@ -64,8 +62,8 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
         ) : activeVariants.map((v) => {
           const out = product.type === 'product' && parseFloat(v.stock_quantity) <= 0;
           return (
-            <button key={v.id} type="button" disabled={out} onClick={() => handlePick(v)}
-              className="flex items-center gap-3 px-1 py-3 text-left transition-colors active:bg-muted disabled:opacity-50">
+            <button key={v.id} type="button" onClick={() => handlePick(v)}
+              className="flex items-center gap-3 px-1 py-3 text-left transition-colors active:bg-muted">
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                 {!isDefaultVariant(v.packaging_name) && (
                   <span className="text-sm font-medium text-foreground truncate">{v.packaging_name}</span>

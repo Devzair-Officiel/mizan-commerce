@@ -6,6 +6,8 @@ export interface DataTableColumn<T> {
   /** Identifiant de colonne, et champ de tri DRF quand `sortable`. */
   key: string;
   header: string;
+  /** En-tête lu par les lecteurs d'écran seulement (colonne d'actions). */
+  headerHidden?: boolean;
   align?: 'start' | 'end';
   sortable?: boolean;
   /** Sens du premier clic : décroissant pour les dates et les montants. */

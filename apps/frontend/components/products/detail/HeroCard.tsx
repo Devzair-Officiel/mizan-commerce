@@ -19,6 +19,8 @@ export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadEr
   const badge = getProductBadge(product);
   const isProduct = product.type === 'product';
   const id = product.id;
+  // Un seul format : l'entrée le préremplit ; sinon on le choisit sur la page.
+  const single = product.variants.length === 1 ? product.variants[0] : undefined;
 
   return (
     <div
@@ -37,7 +39,7 @@ export function HeroCard({ product, onPickPhoto, onShowMore, uploading, uploadEr
       <div className="flex w-full items-center gap-2 mt-2">
         {isProduct ? (
           <Link
-            href={`/stock/add?product=${id}`}
+            href={single ? `/stock/entree?variant=${single.id}` : '/stock/entree'}
             className="flex flex-1 items-center justify-center gap-2 h-12 rounded-full bg-primary text-primary-foreground shadow-md active:scale-95 transition-transform"
           >
             <PackagePlus size={18} />

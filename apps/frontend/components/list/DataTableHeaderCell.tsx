@@ -21,7 +21,7 @@ export function DataTableHeaderCell<T>({ column, direction, onSort }: DataTableH
   if (!column.sortable) {
     return (
       <th scope="col" className={cn('px-5 py-3 text-xs font-semibold whitespace-nowrap', LABEL_COLOR, end ? 'text-end' : 'text-start')}>
-        {column.header}
+        {column.headerHidden ? <span className="sr-only">{column.header}</span> : column.header}
       </th>
     );
   }

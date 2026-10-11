@@ -12,10 +12,24 @@ interface BottomSheetProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Phrase de contexte sous le titre (« Sandales cuir naturel, pointure 41 »). */
+  description?: string;
   fullHeight?: boolean;
   /** Pied fixe sous la zone défilante (actions de validation). */
   footer?: ReactNode;
   children: ReactNode;
+}
+
+/** Titre et description éventuelle, séparés du contenu par un filet. */
+function SheetHeader({ title, description, titleId, className }: {
+  title: string; description?: string; titleId: string; className: string;
+}) {
+  return (
+    <div className={`${className} border-b border-border shrink-0`}>
+      <p id={titleId} className="font-semibold text-base text-foreground">{title}</p>
+      {description && <p id={`${titleId}-desc`} dir="auto" className="mt-0.5 text-[0.8125rem] text-muted-foreground">{description}</p>}
+    </div>
+  );
 }
 
 function SheetFooter({ children }: { children: ReactNode }) {
@@ -25,6 +39,7 @@ function SheetFooter({ children }: { children: ReactNode }) {
 function DesktopDialog({
   visible,
   title,
+  description,
   titleId,
   sheetRef,
   onClose,
@@ -34,6 +49,7 @@ function DesktopDialog({
 }: {
   visible: boolean;
   title?: string;
+  description?: string;
   titleId: string;
   sheetRef: React.RefObject<HTMLDivElement | null>;
   onClose: () => void;
@@ -56,6 +72,7 @@ function DesktopDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-describedby={title && description ? `${titleId}-desc` : undefined}
         aria-label={title ? undefined : t('panel')}
         className="relative flex flex-col w-full max-w-lg rounded-2xl bg-card shadow-2xl max-h-[85vh] overflow-y-auto outline-none"
         style={{
@@ -73,14 +90,7 @@ function DesktopDialog({
         >
           <X size={16} />
         </button>
-        {title && (
-          <p
-            id={titleId}
-            className="px-5 pt-4 pb-3 font-semibold text-base text-foreground border-b border-border shrink-0"
-          >
-            {title}
-          </p>
-        )}
+        {title && <SheetHeader title={title} description={description} titleId={titleId} className="px-5 pt-4 pb-3 pe-12" />}
         <div className="px-5 py-4 overflow-y-auto">
           {children}
         </div>
@@ -93,6 +103,7 @@ function DesktopDialog({
 function MobileSheet({
   visible,
   title,
+  description,
   titleId,
   sheetRef,
   onClose,
@@ -103,6 +114,7 @@ function MobileSheet({
 }: {
   visible: boolean;
   title?: string;
+  description?: string;
   titleId: string;
   sheetRef: React.RefObject<HTMLDivElement | null>;
   onClose: () => void;
@@ -126,6 +138,7 @@ function MobileSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-describedby={title && description ? `${titleId}-desc` : undefined}
         aria-label={title ? undefined : t('panel')}
         className={`flex flex-col rounded-t-3xl bg-card shadow-2xl outline-none ${fullHeight ? 'h-[calc(100dvh-56px)]' : 'max-h-[75vh]'}`}
         style={{
@@ -137,14 +150,7 @@ function MobileSheet({
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="h-1 w-10 rounded-full bg-border" />
         </div>
-        {title && (
-          <p
-            id={titleId}
-            className="px-5 pt-2 pb-3 font-semibold text-base text-foreground border-b border-border shrink-0"
-          >
-            {title}
-          </p>
-        )}
+        {title && <SheetHeader title={title} description={description} titleId={titleId} className="px-5 pt-2 pb-3" />}
         <div className={fullHeight
           ? 'flex flex-col flex-1 min-h-0 overflow-hidden'
           : `px-5 py-4 overflow-y-auto ${footer ? '' : 'pb-safe'}`}>
@@ -156,7 +162,7 @@ function MobileSheet({
   );
 }
 
-export function BottomSheet({ open, onClose, title, fullHeight, footer, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, description, fullHeight, footer, children }: BottomSheetProps) {
   const [visible, setVisible] = useState(false);
   const [tracked, setTracked] = useState(open);
   const titleId = useId();
@@ -197,8 +203,8 @@ export function BottomSheet({ open, onClose, title, fullHeight, footer, children
   // Portail : un ancêtre avec `backdrop-filter` (barre du haut) ferait du `fixed` un positionnement relatif à lui.
   return createPortal(
     isDesktop === true
-      ? <DesktopDialog visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t} footer={footer}>{children}</DesktopDialog>
-      : <MobileSheet visible={visible} title={title} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t} footer={footer}>{children}</MobileSheet>,
+      ? <DesktopDialog visible={visible} title={title} description={description} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t} footer={footer}>{children}</DesktopDialog>
+      : <MobileSheet visible={visible} title={title} description={description} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t} footer={footer}>{children}</MobileSheet>,
     document.body,
   );
 }

@@ -3,7 +3,8 @@ import { apiFetch } from '@/lib/api-client';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 import type { OrderItemPayload } from '@/lib/hooks/useOrders';
 import type { LineItem } from '@/components/orders/new/types';
-import type { VariantPick, FreeLine } from '@/components/orders/ProductPicker';
+import type { FreeLine } from '@/components/orders/ProductPicker';
+import { variantPick, type VariantPick } from '@/components/orders/picker/variantPick';
 
 export interface NewSaleLines {
   items: LineItem[];
@@ -49,6 +50,7 @@ export function useNewSaleLines(initial: LineItem[] = []): NewSaleLines {
         product_type: pick.productType,
         quantity: 1,
         unit_price: pick.unitPrice,
+        stock: pick.stock,
       }];
     });
   }, []);
@@ -83,14 +85,7 @@ export function useNewSaleLines(initial: LineItem[] = []): NewSaleLines {
     const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
     const first = detail.variants.find((v) => v.is_active);
     if (!first) return;
-    addItem({
-      variantId: first.id,
-      productId: detail.id,
-      productName: detail.name,
-      variantName: first.packaging_name,
-      productType: detail.type,
-      unitPrice: first.selling_price,
-    });
+    addItem(variantPick(detail, first));
   }, [addItem]);
 
   const subtotal = items.reduce((acc, i) => acc + parseFloat(i.unit_price) * i.quantity, 0);

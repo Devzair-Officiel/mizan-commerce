@@ -4,22 +4,25 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import Link from 'next/link';
 
-// Libellés sous `layout.nav.<clé>`.
+// Libellés sous `layout.nav.<clé>` ; les entrées Stock n'existent pas pour une boutique de services.
 const MENU_ITEMS = [
-  { href: '/invoices', label: 'invoices' },
-  { href: '/stock/add', label: 'stock_in' },
-  { href: '/stock/out', label: 'stock_out' },
-  { href: '/reminders', label: 'reminders' },
-  { href: '/notes', label: 'notes' },
-  { href: '/zakat', label: 'zakat' },
-  { href: '/settings', label: 'settings' },
+  { href: '/invoices', label: 'invoices', stock: false },
+  { href: '/stock/entree', label: 'stock_in', stock: true },
+  { href: '/stock/sortie', label: 'stock_out', stock: true },
+  { href: '/reminders', label: 'reminders', stock: false },
+  { href: '/notes', label: 'notes', stock: false },
+  { href: '/zakat', label: 'zakat', stock: false },
+  { href: '/settings', label: 'settings', stock: false },
 ] as const;
 
 export default function MorePage() {
   const t = useTranslations('layout');
   const router = useRouter();
+  const kind = useCatalogKind();
+  const items = MENU_ITEMS.filter((item) => !item.stock || kind !== 'services');
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -31,12 +34,12 @@ export default function MorePage() {
       <TopBar title={t('nav.more')} />
       <div className="flex flex-col gap-4 p-4">
         <div className="rounded-xl border border-border bg-card overflow-hidden">
-          {MENU_ITEMS.map(({ href, label }, i) => (
+          {items.map(({ href, label }, i) => (
             <Link
               key={href}
               href={href}
               className={`flex items-center justify-between px-4 py-3.5 text-sm font-medium text-foreground hover:bg-muted ${
-                i < MENU_ITEMS.length - 1 ? 'border-b border-border' : ''
+                i < items.length - 1 ? 'border-b border-border' : ''
               }`}
             >
               {t(`nav.${label}`)}

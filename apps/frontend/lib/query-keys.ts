@@ -65,8 +65,26 @@ export interface ProductsPageFilters {
 }
 
 export interface StockMovementsFilters {
-  productId?: string;
-  variantId?: string;
+  /** Famille : entrée, sortie, réservation, libération, correction. */
+  type?: 'in' | 'out' | 'reservation' | 'release' | 'adjustment';
+  period?: 'today' | '7d' | '30d' | '90d';
+  product?: string;
+  variant?: string;
+  search?: string;
+  ordering?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** Filtres de l'onglet Niveaux du stock, transmis tels quels à l'API. */
+export interface StockLevelsFilters {
+  state?: 'negative' | 'out' | 'low' | 'in';
+  search?: string;
+  /** Un seul format (ligne préremplie par `?variant=`). */
+  variant?: string;
+  /** stock (défaut), name, purchase_value, last_movement ; `-` pour décroissant. */
+  ordering?: string;
+  page?: number;
   pageSize?: number;
 }
 
@@ -105,7 +123,15 @@ export const qk = {
     all: ['stock'] as const,
     movements: (filters: StockMovementsFilters) =>
       ['stock', 'movements', filters] as const,
+    movementsInfinite: (filters: Omit<StockMovementsFilters, 'page'>) =>
+      ['stock', 'movements', 'infinite', filters] as const,
     movementsAll: ['stock', 'movements'] as const,
+    levels: (filters: StockLevelsFilters) => ['stock', 'levels', filters] as const,
+    levelsInfinite: (filters: Omit<StockLevelsFilters, 'page'>) =>
+      ['stock', 'levels', 'infinite', filters] as const,
+    levelsFacets: (filters: Omit<StockLevelsFilters, 'page' | 'ordering'>) =>
+      ['stock', 'levels', 'facets', filters] as const,
+    levelsSummary: ['stock', 'levels', 'summary'] as const,
   },
 
   search: {

@@ -80,6 +80,15 @@ const nextConfig: NextConfig = {
   // Serveur de dev uniquement : l'audit Playwright (service compose `e2e`) ouvre
   // le frontend sous le nom d'hôte « frontend » ; sans cela le rechargement à chaud est bloqué.
   allowedDevOrigins: ["frontend"],
+  // Anciennes pages du stock (liens enregistrés) : la query string est transmise.
+  async redirects() {
+    return [
+      { source: "/stock/add", destination: "/stock/entree", permanent: false },
+      { source: "/stock/in", destination: "/stock/entree", permanent: false },
+      { source: "/stock/out", destination: "/stock/sortie", permanent: false },
+      { source: "/stock/import-invoice", destination: "/stock/entree?mode=facture", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

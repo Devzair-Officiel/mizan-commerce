@@ -58,7 +58,7 @@ export function ProductForm({ mode, type, mixed, currencyCode, product, variant,
         {article && <ProductPurchaseSection {...fields} currency={currency} currencyCode={currencyCode} {...section('purchase')} />}
         {article && (
           <ProductStockSection {...fields} {...section('stock')} current={product && variant
-            ? { quantity: variant.stock_quantity, stockInHref: `/stock/add?product=${product.id}&variant=${variant.id}` } : undefined} />
+            ? { quantity: variant.stock_quantity, stockInHref: `/stock/entree?variant=${variant.id}` } : undefined} />
         )}
         {article && <ProductReferenceSection {...fields} {...section('reference')} />}
         <FormCollapsibleSection title={t('section_description')} description={t('section_description_help', { type: currentType })}

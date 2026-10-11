@@ -55,7 +55,7 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
                   </span>
                 )}
                 <Link
-                  href={`/stock/add?product=${p.id}&variant=${p.variant_id}`}
+                  href={`/stock/entree?variant=${p.variant_id}`}
                   className="text-[0.8125rem] font-medium text-primary hover:underline"
                 >
                   {t('restock')}
@@ -66,7 +66,7 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
         })}
       </div>
       {count > items.length && (
-        <Link href="/products?filter=low_stock"
+        <Link href="/stock"
           className="block text-center text-[0.8125rem] font-medium text-primary px-5 py-3.5 hover:bg-muted transition-colors border-t border-border">
           {t('see_all', { count })}
         </Link>

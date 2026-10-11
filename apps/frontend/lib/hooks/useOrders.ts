@@ -197,6 +197,9 @@ export function useCreateOrder() {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
       qc.invalidateQueries({ queryKey: qk.navBadges.all });
+      // Une vente réserve le stock, une annulation le libère.
+      qc.invalidateQueries({ queryKey: qk.stock.all });
+      qc.invalidateQueries({ queryKey: qk.products.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
@@ -211,6 +214,9 @@ export function useTransitionOrder(id: string) {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
       qc.invalidateQueries({ queryKey: qk.navBadges.all });
+      // Une vente réserve le stock, une annulation le libère.
+      qc.invalidateQueries({ queryKey: qk.stock.all });
+      qc.invalidateQueries({ queryKey: qk.products.all });
       qc.invalidateQueries({ queryKey: qk.invoices.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },

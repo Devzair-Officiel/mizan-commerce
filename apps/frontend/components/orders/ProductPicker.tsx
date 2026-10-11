@@ -12,7 +12,8 @@ import type { Product, ProductDetail } from '@/lib/hooks/useProducts';
 import { EmptyCatalogState } from './picker/EmptyCatalogState';
 import { PickView, type PickFeedback } from './picker/PickView';
 import { FreeLineView, type FreeLine } from './picker/FreeLineView';
-import { VariantView, type VariantPick } from './picker/VariantView';
+import { VariantView } from './picker/VariantView';
+import { variantPick, type VariantPick } from './picker/variantPick';
 
 export type { FreeLine, VariantPick };
 
@@ -34,7 +35,7 @@ function usePickerProductClick(
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<PickFeedback | null>(null);
 
-  // Les messages (rupture, erreur réseau) s'effacent seuls après quelques secondes.
+  // Le message d'erreur réseau s'efface seul après quelques secondes.
   useEffect(() => {
     if (!feedback) return;
     const timer = setTimeout(() => setFeedback(null), 3000);
@@ -51,11 +52,7 @@ function usePickerProductClick(
       const active = detail.variants.filter((v) => v.is_active);
       const [single] = active;
       if (!single) return;
-      if (detail.type === 'product' && parseFloat(single.stock_quantity) <= 0) {
-        setFeedback({ productId: p.id, kind: 'out_of_stock' });
-        return;
-      }
-      onSingleVariantPick({ variantId: single.id, productId: detail.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
+      onSingleVariantPick(variantPick(detail, single));
     } catch {
       setFeedback({ productId: p.id, kind: 'error' });
     } finally {
