@@ -33,7 +33,7 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
   return (
     <>
       <div className="contents lg:hidden">
-        <TopBar back hideSearch title={customer.name} action={<DetailActionsMenu actions={menu} variant="sheet" />} />
+        <TopBar back hideSearch title={customer.display_name} action={<DetailActionsMenu actions={menu} variant="sheet" />} />
       </div>
       <CustomerDetailHeader customer={customer} primary={primary} menu={menu} />
       <div className={`flex flex-col gap-4 p-4 lg:pt-5 ${primary ? 'pb-28' : ''} lg:pb-8`}>

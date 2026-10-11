@@ -11,7 +11,7 @@ export function MobileCustomerCard({ form }: { form: NewSaleForm }) {
   const t = useTranslations('orders.new');
   const [pickerOpen, setPickerOpen] = useState(false);
   const hasCustomer = !!form.customerId;
-  const label = hasCustomer ? (form.selectedCustomer?.name ?? '') : t('no_customer_name');
+  const label = hasCustomer ? (form.selectedCustomer?.display_name ?? '') : t('no_customer_name');
   const sub = hasCustomer ? (form.selectedCustomer?.phone ?? '') : t('no_customer_sub');
 
   return (

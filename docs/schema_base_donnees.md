@@ -360,7 +360,8 @@ Le cache est recalculé par un agrégat SQL dans la transaction de chaque `save(
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| name | VARCHAR(150) | NOT NULL | |
+| name | VARCHAR(150) | NOT NULL | Nom de famille (ou nom seul). Unique par boutique, sans tenir compte de la casse |
+| first_name | VARCHAR(100) | DEFAULT `''` | Prénom |
 | phone | VARCHAR(30) | | |
 | email | VARCHAR(254) | | |
 | address_line | VARCHAR(255) | | |
@@ -373,6 +374,8 @@ Le cache est recalculé par un agrégat SQL dans la transaction de chaque `save(
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `(shop_id, name)`, `(shop_id, phone)`.
+
+**Nom affiché** : `display_name` (calculé, non stocké) = « prénom nom », espaces réduits, le nom seul sans prénom. C'est le seul nom exposé à l'affichage (fiche, listes, commandes, recherche, messages, factures). Tri par nom : `name` puis `first_name`. Recherche : chaque mot doit se trouver dans le prénom ou le nom (« Karima Bens » trouve Karima Bensouda).
 
 ---
 
@@ -492,7 +495,7 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 | seller_tax_id | VARCHAR(64) | DEFAULT `''` | Snapshot `shop.tax_id` (SIRET, n° TVA, NIF, EIN… format libre) |
 | seller_legal_mentions | TEXT | DEFAULT `''` | Snapshot `shop.legal_mentions` — imprimé en pied de facture |
 | seller_country | VARCHAR(2) | DEFAULT `''` | Snapshot `shop.country` |
-| buyer_name | VARCHAR(200) | DEFAULT `''` | Snapshot (concat `first_name + name`) |
+| buyer_name | VARCHAR(200) | DEFAULT `''` | Snapshot du `display_name` du client à l'émission |
 | buyer_address | TEXT | DEFAULT `''` | Snapshot |
 | buyer_city | VARCHAR(100) | DEFAULT `''` | Snapshot |
 | buyer_postal_code | VARCHAR(20) | DEFAULT `''` | Snapshot |

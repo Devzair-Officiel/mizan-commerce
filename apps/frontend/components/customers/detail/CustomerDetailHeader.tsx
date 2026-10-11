@@ -37,7 +37,7 @@ export function CustomerDetailHeader({ customer, primary, menu }: CustomerDetail
           {tNav('customers')}
         </button>
         <div className="mt-1.5 flex flex-wrap items-center gap-3">
-          <h1 className="text-[28px] font-semibold leading-snug tracking-tight capitalize">{customer.name}</h1>
+          <h1 className="text-[28px] font-semibold leading-snug tracking-tight capitalize">{customer.display_name}</h1>
           <CustomerStatusBadges customer={customer} />
         </div>
         <p className="mt-1.5 text-sm text-muted-foreground">

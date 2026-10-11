@@ -12,6 +12,9 @@ interface PaginatedResponse<T> {
 export interface CustomerSummary {
   id: string;
   name: string;
+  first_name: string;
+  /** Nom complet (« prénom nom ») : le seul à afficher. */
+  display_name: string;
   phone: string;
   /** Le numéro, lisible (+33 6 12 34 56 78). `phone` (E.164) sert aux liens tel: et wa.me. */
   phone_display: string;
@@ -27,7 +30,6 @@ export interface CustomerSummary {
 }
 
 export interface Customer extends CustomerSummary {
-  first_name: string;
   address_line: string;
   postal_code: string;
   country: string;

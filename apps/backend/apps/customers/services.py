@@ -20,12 +20,28 @@ from apps.orders.services import current_month_bounds
 from .models import Customer
 
 
-# Champs de recherche de la liste, partagés avec les facettes.
-CUSTOMER_SEARCH_FIELDS = ('name', 'phone', 'email', 'city')
+# Champs de recherche de la liste, partagés avec les facettes. `SearchFilter` exige
+# que chaque mot se trouve dans l'un d'eux : « Karima Bens » trouve Karima Bensouda.
+CUSTOMER_SEARCH_FIELDS = ('first_name', 'name', 'phone', 'email', 'city')
 SITUATIONS = ('all', 'active', 'pending', 'deactivated')
 
 _MONEY = DecimalField(max_digits=12, decimal_places=2)
 _NOT_CANCELLED = ~Q(orders__status='cancelled')
+
+
+def name_search(query: str, prefix: str = '') -> Q:
+    """Chaque mot de `query` dans le prénom ou le nom du client.
+
+    « Karima », « Bensouda » et « Karima Bens » trouvent Karima Bensouda. `prefix`
+    suit une relation (`'customer__'` depuis une commande).
+    """
+    condition = Q()
+    for word in query.split():
+        condition &= (
+            Q(**{f'{prefix}first_name__icontains': word})
+            | Q(**{f'{prefix}name__icontains': word})
+        )
+    return condition
 
 
 class InvalidPhoneNumber(ValueError):

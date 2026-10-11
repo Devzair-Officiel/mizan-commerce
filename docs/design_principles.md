@@ -38,6 +38,7 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 
 ## 4. Patterns canoniques (page de référence : Clients + Détail client)
 - **Hero card** : avatar/icône + nom + badge contextuel + barre d'actions principales.
+- **Nom d'un client** : un client s'affiche toujours par son nom complet (`display_name`), jamais par `name` seul (liste, fiche, commandes, accueil, recherche, sélecteur, messages). Ses initiales suivent la règle de l'aperçu du formulaire : `customerInitials(first_name, name)` (prénom + dernier mot du nom ; sans prénom, les deux premiers mots du nom).
 - **Stats** : grille 2 colonnes en haut, **cards cliquables = filtres**.
 - **Listes** : `rounded-2xl border bg-card` englobant, rows `divide-y divide-border`.
 - **Empty state** : icône ronde `bg-muted` + titre + sous-titre, jamais une ligne sèche.

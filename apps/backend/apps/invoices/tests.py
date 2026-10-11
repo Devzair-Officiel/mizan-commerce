@@ -183,6 +183,18 @@ class InvoiceSnapshotTest(TestCase):
         self.assertEqual(invoice.buyer_city, 'Paris')
         self.assertEqual(invoice.buyer_email, 'jean@example.com')
 
+    def test_buyer_name_is_display_name(self):
+        """Facture émise après la création du client : nom complet, espaces réduits ;
+        le nom seul sans prénom."""
+        karima = Customer.objects.create(shop=self.shop, first_name='Karima ', name='Bensouda  Test')  # noqa: E501
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=karima)  # noqa: E501
+        invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
+        self.assertEqual(invoice.buyer_name, 'Karima Bensouda Test')
+        haddad = Customer.objects.create(shop=self.shop, name='Haddad')
+        order = _make_order_with_items(self.shop, self.user, self.variant, customer=haddad)  # noqa: E501
+        invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
+        self.assertEqual(invoice.buyer_name, 'Haddad')
+
     def test_buyer_fields_empty_without_customer(self):
         order = _make_order_with_items(self.shop, self.user, self.variant, customer=None)  # noqa: E501
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)

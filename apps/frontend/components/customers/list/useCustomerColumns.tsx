@@ -9,9 +9,9 @@ import { CustomerAvatar } from '../CustomerAvatar';
 function ClientCell({ customer, noPhone }: { customer: CustomerSummary; noPhone: string }) {
   return (
     <span className="flex items-center gap-3">
-      <CustomerAvatar name={customer.name} className="size-9 text-xs" />
+      <CustomerAvatar customer={customer} className="size-9 text-xs" />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold capitalize">{customer.name}</span>
+        <span className="block truncate text-sm font-semibold capitalize">{customer.display_name}</span>
         <span className="mt-0.5 block truncate text-[0.8125rem] text-muted-foreground" dir="ltr">
           {customer.phone_display || customer.phone || noPhone}
         </span>

@@ -16,6 +16,9 @@ export interface SearchProduct {
 export interface SearchCustomer {
   id: string;
   name: string;
+  first_name: string;
+  /** Nom complet (« prénom nom ») : le seul à afficher. */
+  display_name: string;
   phone: string;
   city: string;
 }

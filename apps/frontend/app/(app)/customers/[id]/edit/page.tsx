@@ -41,7 +41,7 @@ export default function EditCustomerPage() {
   });
   return (
     <div className="mx-auto w-full max-w-280">
-      <TopBar title={t('title')} subtitle={subtitle} back backLabel={customer.name} onBack={back} hideSearch />
+      <TopBar title={t('title')} subtitle={subtitle} back backLabel={customer.display_name} onBack={back} hideSearch />
       <CustomerForm mode="edit" defaultValues={customer} onSubmit={handleSubmit} isSubmitting={isPending} onLeave={back} />
     </div>
   );

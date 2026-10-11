@@ -31,10 +31,10 @@ export function CustomerRow({ customer, first, currency }: CustomerRowProps) {
       href={`/customers/${customer.id}`}
       className={cn('flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-muted', !first && 'border-t border-border')}
     >
-      <CustomerAvatar name={customer.name} className={cn('size-11', !customer.is_active && 'opacity-60')} />
+      <CustomerAvatar customer={customer} className={cn('size-11', !customer.is_active && 'opacity-60')} />
       <div className={cn('min-w-0 flex-1', !customer.is_active && 'opacity-60')}>
         <div className="flex items-center gap-2">
-          <span dir="auto" className="truncate font-semibold capitalize text-foreground">{customer.name}</span>
+          <span dir="auto" className="truncate font-semibold capitalize text-foreground">{customer.display_name}</span>
           {!customer.is_active && (
             <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[0.6875rem] font-semibold text-muted-foreground">
               {t('deactivated_badge')}

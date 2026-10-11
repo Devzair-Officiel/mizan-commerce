@@ -25,16 +25,16 @@ export function CustomerDetailDialogs({ customer, state }: { customer: Customer;
   // Chargées dès l'ouverture de la fiche : le message de relance est prêt au clic.
   const { data: dueOrders } = useOrders({ customer: customer.id, due: true }, { enabled: hasPending(customer) && !!customer.phone });
   const { kind, close } = state.whatsApp;
-  const firstName = customer.name.trim().split(/\s+/)[0] ?? '';
+  const firstName = customer.display_name.trim().split(/\s+/)[0] ?? '';
 
   const message = kind === 'followup'
-    ? buildFollowupMessage(customer.name, dueOrders?.results ?? [], customer.pending_amount,
+    ? buildFollowupMessage(customer.display_name, dueOrders?.results ?? [], customer.pending_amount,
       { tWa, formatMoney, formatDate, currency: shop?.currency ?? 'EUR' })
     : firstName ? tGreeting('greeting_named', { name: firstName }) : tGreeting('greeting');
 
   return (
     <>
-      <CustomerFlashNotification visible={state.flash.visible} customerName={customer.name} onDismiss={state.flash.dismiss} />
+      <CustomerFlashNotification visible={state.flash.visible} customerName={customer.display_name} onDismiss={state.flash.dismiss} />
       {kind && customer.phone && (
         <PreparedMessageDialog
           open

@@ -13,3 +13,8 @@ export const PAYMENT_TONE: Record<string, string> = {
 export function getInitials(name: string): string {
   return name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 }
+
+/** Initiales d'un client : prénom + dernier mot du nom (« Amine » + « Benchekroun » → AB) ; sans prénom, le nom seul. */
+export function customerInitials(firstName: string, name: string): string {
+  return getInitials(firstName.trim() ? `${firstName} ${name.trim().split(/\s+/).pop() ?? ''}` : name);
+}

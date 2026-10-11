@@ -43,7 +43,7 @@ export function CustomerResultRow({ item, query, isActive, id, onClick }: {
     <div role="option" id={id} aria-selected={isActive} tabIndex={-1} onClick={onClick}
       className={`${ROW_BASE} ${isActive ? 'bg-muted' : ''}`}>
       <p className="text-sm text-foreground flex-1 min-w-0 truncate">
-        <SearchHighlight text={item.name} query={query} />
+        <SearchHighlight text={item.display_name} query={query} />
       </p>
       <div className="flex gap-3 text-xs text-muted-foreground shrink-0 ms-3">
         {item.phone && <span className="tabular-nums">{item.phone}</span>}

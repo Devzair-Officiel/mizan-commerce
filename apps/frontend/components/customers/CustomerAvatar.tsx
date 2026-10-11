@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
-import { getInitials } from './detail/constants';
+import type { CustomerSummary } from '@/lib/hooks/useCustomers';
+import { customerInitials } from './detail/constants';
 
 const AVATAR_COLORS = [
   'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
@@ -16,13 +17,15 @@ function avatarColor(name: string): string {
 }
 
 /** Initiales du client sur une couleur stable tirée de son nom (liste, tableau, fiche). */
-export function CustomerAvatar({ name, className }: { name: string; className?: string }) {
+export function CustomerAvatar({ customer, className }: {
+  customer: Pick<CustomerSummary, 'first_name' | 'name'>; className?: string;
+}) {
   return (
     <span aria-hidden className={cn(
       'flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-      avatarColor(name), className,
+      avatarColor(customer.name), className,
     )}>
-      {getInitials(name)}
+      {customerInitials(customer.first_name, customer.name)}
     </span>
   );
 }

@@ -46,7 +46,7 @@ export function useCustomerDetailState(customer: Customer) {
 
   async function scheduleReminder() {
     await createReminder.mutateAsync({
-      title: t('reminder_title', { name: customer.name || t('reminder_fallback_name') }),
+      title: t('reminder_title', { name: customer.display_name || t('reminder_fallback_name') }),
       due_at: tomorrowAtNine(),
       category: 'customer_followup',
       customer: customer.id,

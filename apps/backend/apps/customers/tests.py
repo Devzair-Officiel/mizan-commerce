@@ -295,3 +295,79 @@ class NormalizePhonesMigrationTest(TestCase):
         self.run_migration()
         national.refresh_from_db()
         self.assertEqual(national.phone, '+33612345678')
+
+
+class CustomerDisplayNameTest(TestCase):
+    """Nom complet du client (`display_name`) partout où il est nommé ; recherche
+    sur le prénom, le nom ou les deux."""
+
+    def setUp(self):
+        from apps.orders import services as order_services
+        from apps.subscriptions.test_utils import attach_subscription
+
+        self.client = APIClient()
+        self.user, self.shop = setup('display@example.com')
+        attach_subscription(self.shop)  # Plan Pro requis pour les commandes.
+        self.client.force_authenticate(user=self.user)
+        self.karima = Customer.objects.create(shop=self.shop, first_name='Karima', name='Bensouda')  # noqa: E501
+        self.ali = Customer.objects.create(shop=self.shop, name='Ali  Haddad')
+        self.order = order_services.create_order(self.shop, self.user, customer=self.karima)  # noqa: E501
+        # Une autre boutique, avec le même prénom : jamais visible.
+        _, other = setup('display-other@example.com')
+        Customer.objects.create(shop=other, first_name='Karima', name='Intruse')
+
+    def _list(self, **params) -> list[str]:
+        response = self.client.get(reverse('customer-list'), params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return [c['display_name'] for c in response.data['results']]
+
+    def test_display_name_with_and_without_first_name(self):
+        self.assertEqual(self.karima.display_name, 'Karima Bensouda')
+        self.assertEqual(self.ali.display_name, 'Ali Haddad')
+        self.assertEqual(Customer(first_name='  Karima ', name=' Bensouda  Test ').display_name, 'Karima Bensouda Test')  # noqa: E501
+        detail = self.client.get(reverse('customer-detail', kwargs={'pk': self.karima.pk}))  # noqa: E501
+        self.assertEqual(detail.data['display_name'], 'Karima Bensouda')
+        self.assertEqual(self._list(), ['Ali Haddad', 'Karima Bensouda'])
+
+    def test_display_name_is_read_only(self):
+        url = reverse('customer-detail', kwargs={'pk': self.karima.pk})
+        self.client.patch(url, {'display_name': 'Autre'}, format='json')
+        self.karima.refresh_from_db()
+        self.assertEqual(self.karima.display_name, 'Karima Bensouda')
+
+    def test_search_on_first_name_name_and_both(self):
+        for query in ('Karima', 'bensouda', 'Karima Bens', 'Bensouda Karima'):
+            self.assertEqual(self._list(search=query), ['Karima Bensouda'], query)
+        self.assertEqual(self._list(search='Karima Haddad'), [])
+
+    def test_sort_by_name_then_first_name(self):
+        self.assertEqual(self._list(ordering='-name'), ['Karima Bensouda', 'Ali Haddad'])  # noqa: E501
+        self.assertEqual(self._list(ordering='name'), ['Ali Haddad', 'Karima Bensouda'])  # noqa: E501
+
+    def test_orders_show_and_find_full_name(self):
+        detail = self.client.get(reverse('order-detail', kwargs={'pk': self.order.pk}))
+        self.assertEqual(detail.data['customer_name'], 'Karima Bensouda')
+        self.assertEqual(detail.data['customer_first_name'], 'Karima')
+        for query in ('Karima', 'Karima Bens'):
+            results = self.client.get(reverse('order-list'), {'search': query}).data['results']  # noqa: E501
+            self.assertEqual([o['customer_name'] for o in results], ['Karima Bensouda'], query)  # noqa: E501
+
+    def test_global_search_and_home(self):
+        data = self.client.get(reverse('global-search'), {'q': 'Karima Bens'}).data
+        self.assertEqual([c['display_name'] for c in data['customers']['items']], ['Karima Bensouda'])  # noqa: E501
+        self.assertEqual([o['customer_name'] for o in data['orders']['items']], ['Karima Bensouda'])  # noqa: E501
+        home = self.client.get(reverse('dashboard-today')).data
+        names = [o['customer_name'] for o in home['orders_to_prepare']['items']]
+        self.assertEqual(names, ['Karima Bensouda'])
+
+    def test_prepared_message_names_full_name(self):
+        from apps.comms import services as comms_services
+        from apps.comms.models import PreparedMessage
+
+        message = comms_services.prepare_message(
+            shop=self.shop, user=self.user,
+            template_type=PreparedMessage.TemplateType.ORDER_CONFIRMATION,
+            context_type=PreparedMessage.ContextType.ORDER, context_id=self.order.pk,
+        )
+        self.assertEqual(message.recipient_name, 'Karima Bensouda')
+        self.assertTrue(message.message.startswith('Bonjour Karima,'))

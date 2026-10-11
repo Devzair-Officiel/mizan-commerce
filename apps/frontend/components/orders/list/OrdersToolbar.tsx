@@ -32,7 +32,7 @@ export function OrdersToolbar({ state }: { state: OrdersPageState }) {
           <FilterMenuButton label={tSheet('payment_title')} value={state.paymentFilter} allValue="all"
             options={paymentOptions} onChange={state.handlePaymentFilter} />
           {state.customer && (
-            <FilterChip name={t('customer_filter')} value={customer?.name ?? '…'} onRemove={state.clearCustomer} />
+            <FilterChip name={t('customer_filter')} value={customer?.display_name ?? '…'} onRemove={state.clearCustomer} />
           )}
         </>
       }

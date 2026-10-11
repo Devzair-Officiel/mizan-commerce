@@ -58,6 +58,8 @@ export interface OrderInvoiceSummary {
 export interface Order extends OrderSummary {
   items: OrderItem[];
   invoice: OrderInvoiceSummary | null;
+  /** Prénom seul, pour les initiales (le nom affiché reste `customer_name`). */
+  customer_first_name?: string | null;
   customer_phone?: string | null;
   customer_city?: string | null;
   created_by_name: string | null;

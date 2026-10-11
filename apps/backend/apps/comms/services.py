@@ -28,7 +28,7 @@ def _first_name(full_name: str) -> str:
 
 
 def _greeting(customer: Customer | None) -> str:
-    first = _first_name(customer.name) if customer else ''
+    first = _first_name(customer.display_name) if customer else ''
     return f'Bonjour {first},' if first else 'Bonjour,'
 
 
@@ -161,7 +161,7 @@ def prepare_message(
         template_type=template_type,
         context_type=context_type,
         context_id=context_id,
-        recipient_name=customer.name if customer else '',
+        recipient_name=customer.display_name if customer else '',
         recipient_phone=customer.phone if customer else '',
         message=message,
     )

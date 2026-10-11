@@ -26,7 +26,7 @@ export function OrdersFiltersMobile({ state }: { state: OrdersPageState }) {
     isMonth && { name: t('stats.month_label'), option: { value: 'month', label: t('stats.month_label') }, onRemove: () => state.handlePeriod(false) },
     state.customer && {
       name: t('customer_filter'),
-      option: { value: state.customer, label: t('customer_chip', { name: customer?.name ?? '…' }) },
+      option: { value: state.customer, label: t('customer_chip', { name: customer?.display_name ?? '…' }) },
       onRemove: state.clearCustomer,
     },
   ].filter((f): f is ActiveFilter => !!f);

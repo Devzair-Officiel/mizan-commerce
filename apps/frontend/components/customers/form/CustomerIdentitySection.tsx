@@ -6,7 +6,7 @@ import { UserRound } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
-import { getInitials } from '@/components/customers/detail/constants';
+import { customerInitials } from '@/components/customers/detail/constants';
 import type { CustomerFormValues } from './useCustomerForm';
 
 interface CustomerIdentitySectionProps {
@@ -20,8 +20,7 @@ interface CustomerIdentitySectionProps {
 export function CustomerIdentitySection({ control, register, errors, order }: CustomerIdentitySectionProps) {
   const t = useTranslations('customers.form');
   const [firstName, name] = useWatch({ control, name: ['first_name', 'name'] });
-  // Prénom + dernier mot du nom (« Amine » + « Benchekroun » → AB) ; sans prénom, le nom seul.
-  const initials = getInitials(firstName.trim() ? `${firstName} ${name.trim().split(/\s+/).pop() ?? ''}` : name);
+  const initials = customerInitials(firstName, name);
   const fullName = `${firstName.trim()} ${name.trim()}`.trim();
 
   return (

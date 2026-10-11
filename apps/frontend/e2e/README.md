@@ -7,6 +7,7 @@ Scripts lancés **sans Node sur la machine** : service Docker Compose `e2e` (ima
 docker compose run --rm e2e                                   # tous les audits
 docker compose run --rm e2e npm run audit:pages               # écrans principaux
 docker compose run --rm e2e npm run audit:customer-form       # formulaire client
+docker compose run --rm e2e npm run audit:customer-name       # nom complet des clients partout
 docker compose run --rm e2e npm run audit:zakat               # zakat : erreurs notifiées, plus d'alert()
 docker compose run --rm e2e npm run audit:products-list       # liste Articles et services
 docker compose run --rm e2e npm run audit:product-form        # formulaire article
@@ -43,6 +44,10 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - notifications « Client créé » et « Client enregistré », une seule région `aria-live`, placée en bas (mobile) ou dans le coin bas (desktop, à gauche en arabe) ;
   - téléphone : « 06 12 34 56 78 » enregistré en `+33612345678`, affiché `+33 6 12 34 56 78`, « Relancer » ouvre `wa.me/33612345678` ;
   - aucun client de test dans la boutique de Youssef. Les clients créés (« Audit e2e … ») sont archivés à la fin.
+- `audit-customer-name.mjs` — nom complet des clients (`display_name`), à 1440px et 360px, clair et sombre, français et arabe :
+  - « Karima » + « Bensouda Test » créé par le formulaire s'affiche « Karima Bensouda Test » (initiales KT) dans la liste et la fiche client, le sélecteur et le ticket d'une nouvelle commande, la liste et le détail des commandes, la recherche globale ;
+  - « Karima » et « Karima Bens » le trouvent (liste des clients, recherche globale) ;
+  - le nom étant unique par boutique, le client d'un passage précédent est renommé et archivé (sa commande annulée) au début et à la fin.
 - `audit-products-list.mjs` — liste Articles et services à 1440px et 360px, clair et sombre, français et arabe :
   - 25 articles « Audit lot NN » (un tiers en rupture, un tiers en stock faible, un tiers en stock) créés une seule fois, réactivés au début et désactivés à la fin : la liste dépasse une page de 20 ;
   - desktop : titre et nombre total, 20 rangées et « 1 à 20 sur N », page 2 conforme à l'API, tri par l'en-tête « Prix » dans les deux sens (`aria-sort`), nombres du menu « Stock » égaux à `/products/facets/`, filtre appliqué puis retiré ;

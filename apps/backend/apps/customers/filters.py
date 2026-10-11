@@ -8,20 +8,26 @@ ORDER_DERIVED = frozenset(
 
 
 class CustomerOrderingFilter(filters.OrderingFilter):
-    """Trie la liste Clients avec un départage stable (nom, puis identifiant).
+    """Trie la liste Clients avec un départage stable (nom, prénom, identifiant).
 
-    Pour un tri issu des commandes, `has_orders` passe d'abord : un client sans
-    commande va en fin de liste, dans les deux sens.
+    Le tri par nom continue par le prénom, dans le même sens. Pour un tri issu des
+    commandes, `has_orders` passe d'abord : un client sans commande va en fin de
+    liste, dans les deux sens.
     """
 
     def filter_queryset(self, request, queryset, view) -> QuerySet:
-        terms = list(self.get_ordering(request, queryset, view) or ())
+        terms: list[str] = []
+        for term in self.get_ordering(request, queryset, view) or ():
+            terms.append(term)
+            if term.lstrip('-') == 'name':
+                terms.append(term.replace('name', 'first_name'))
         fields = [term.lstrip('-') for term in terms]
         ordering: list[OrderBy] = []
         if ORDER_DERIVED & set(fields):
             ordering.append(F('has_orders').desc())
         ordering += [_order_by(term) for term in terms]
-        ordering += [F(field).asc() for field in ('name', 'id') if field not in fields]
+        tiebreak = ('name', 'first_name', 'id')
+        ordering += [F(field).asc() for field in tiebreak if field not in fields]
         return queryset.order_by(*ordering)
 
 

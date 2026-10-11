@@ -12,6 +12,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     pending_amount = serializers.SerializerMethodField()
     paid_amount = serializers.SerializerMethodField()
     phone_display = serializers.SerializerMethodField()
+    display_name = serializers.CharField(read_only=True)
 
     def get_phone_display(self, obj: Customer) -> str:
         return format_phone_display(obj.phone)
@@ -47,7 +48,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = (
-            'id', 'name', 'first_name', 'phone', 'phone_display', 'email',
+            'id', 'name', 'first_name', 'display_name', 'phone', 'phone_display', 'email',  # noqa: E501
             'address_line', 'city', 'postal_code', 'country',
             'notes', 'is_active',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
@@ -62,6 +63,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
     paid_amount = serializers.SerializerMethodField()
     last_order_at = serializers.DateTimeField(read_only=True)
     phone_display = serializers.SerializerMethodField()
+    display_name = serializers.CharField(read_only=True)
 
     def get_phone_display(self, obj: Customer) -> str:
         return format_phone_display(obj.phone)
@@ -75,7 +77,8 @@ class CustomerListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = (
-            'id', 'name', 'phone', 'phone_display', 'email', 'city', 'is_active',
+            'id', 'name', 'first_name', 'display_name', 'phone', 'phone_display',
+            'email', 'city', 'is_active',
             'created_at',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
         )

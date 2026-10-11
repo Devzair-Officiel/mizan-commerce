@@ -1,8 +1,11 @@
 from django.db.models import Case, F, IntegerField, OrderBy, QuerySet, Value, When
 from rest_framework import filters
 
-# Champs de recherche de la liste, partagés avec les facettes.
-ORDER_SEARCH_FIELDS = ('order_number', 'customer__name', 'customer__phone')
+# Champs de recherche de la liste, partagés avec les facettes. Chaque mot doit se
+# trouver dans l'un d'eux : « Karima Bens » trouve les commandes de Karima Bensouda.
+ORDER_SEARCH_FIELDS = (
+    'order_number', 'customer__first_name', 'customer__name', 'customer__phone',
+)
 
 # Ordre du parcours : à traiter < prête < remise < annulée.
 STATUS_RANK = {'to_prepare': 0, 'prepared': 1, 'shipped': 2, 'cancelled': 3}
@@ -43,6 +46,8 @@ class OrderOrderingFilter(filters.OrderingFilter):
             desc = term.startswith('-')
             field = self.ALIASES.get(term.lstrip('-'), term.lstrip('-'))
             ordering.append(f'-{field}' if desc else field)
+            if field == 'customer__name':  # nom, puis prénom
+                ordering.append('-customer__first_name' if desc else 'customer__first_name')  # noqa: E501
         if not any(term.lstrip('-') == 'created_at' for term in ordering):
             ordering.append('-created_at')
         return ordering

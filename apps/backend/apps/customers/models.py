@@ -4,6 +4,11 @@ from django.db.models.functions import Lower
 from apps.shops.models import Shop
 
 
+def format_display_name(first_name: str, name: str) -> str:
+    """Nom complet affiché : « prénom nom », espaces réduits ; le nom seul sans prénom."""  # noqa: E501
+    return ' '.join(f'{first_name or ""} {name or ""}'.split())
+
+
 class Customer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='customers')
@@ -29,7 +34,11 @@ class Customer(models.Model):
         constraints = [
             models.UniqueConstraint(Lower('name'), 'shop', name='unique_customer_name_per_shop'),  # noqa: E501
         ]
-        ordering = ['name']
+        ordering = ['name', 'first_name']
 
     def __str__(self):
-        return f'{self.name} ({self.shop})'
+        return f'{self.display_name} ({self.shop})'
+
+    @property
+    def display_name(self) -> str:
+        return format_display_name(self.first_name, self.name)

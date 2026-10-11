@@ -61,8 +61,7 @@ def _snapshot_buyer_from_order(invoice: Invoice, order: Order) -> None:
     if customer is None:
         return
     invoice.customer = customer
-    full_name = f'{customer.first_name} {customer.name}'.strip() if customer.first_name else customer.name  # noqa: E501
-    invoice.buyer_name = full_name
+    invoice.buyer_name = customer.display_name
     parts = [customer.address_line]
     if customer.postal_code or customer.city:
         parts.append(f'{customer.postal_code} {customer.city}'.strip())

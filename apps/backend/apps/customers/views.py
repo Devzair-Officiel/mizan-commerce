@@ -25,7 +25,7 @@ class CustomerListCreateView(generics.ListCreateAPIView):
         'name', 'pending_amount', 'paid_amount', 'order_count', 'last_order_at',
         'created_at',
     )
-    ordering = ('name',)
+    ordering = ('name',)  # puis le prénom : voir CustomerOrderingFilter
 
     def get_serializer_class(self):
         return CustomerListSerializer if self.request.method == 'GET' else CustomerSerializer  # noqa: E501
