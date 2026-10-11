@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -432,3 +434,139 @@ class ProductNegativeStateTest(TestCase):
         self.assertEqual((summary['negative_stock'], summary['out_of_stock']), (1, 1))
         facets = client.get(reverse('product-facets')).data
         self.assertEqual(facets['stock']['negative'], 1)
+
+
+class ProductSheetFiguresTest(TestCase):
+    """Fiche article : stock total, valeur d'achat, ventes sur 30 jours."""
+
+    def setUp(self):
+        from apps.products.models import ProductVariant
+        from apps.stock.services import create_movement
+
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('sheet@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.product = make_product(self.shop, 'Chemise')
+        self.small = self.product.variants.get()
+        self.small.purchase_price = '12.00'
+        self.small.save()
+        self.large = ProductVariant.objects.create(
+            shop=self.shop, product=self.product, packaging_name='L', unit='piece',
+            base_quantity=1, selling_price='12.00', purchase_price='12.00', position=1,
+        )
+        create_movement(self.shop, self.small, 'in', 8, created_by=self.user)
+        create_movement(self.shop, self.large, 'reservation', 1, created_by=self.user)
+
+    def detail(self, product=None):
+        product = product or self.product
+        return self.client.get(reverse('product-detail', args=[product.pk])).data
+
+    def sell(self, variant, quantity):
+        from apps.orders import services as orders
+
+        order = orders.create_order(self.shop, self.user)
+        orders.add_item(order, variant, quantity, user=self.user)
+        return order
+
+    def test_total_counts_negative_formats_and_value_only_positive_stock(self):
+        data = self.detail()
+        self.assertEqual(Decimal(data['stock_total']), Decimal('7'))
+        self.assertEqual(data['purchase_value'], '96.00')
+
+    def test_inactive_format_and_format_without_price(self):
+        from apps.products.models import ProductVariant
+        from apps.stock.services import create_movement
+
+        unpriced = ProductVariant.objects.create(
+            shop=self.shop, product=self.product, packaging_name='M', unit='piece',
+            base_quantity=1, selling_price='12.00', position=2,
+        )
+        create_movement(self.shop, unpriced, 'in', 3, created_by=self.user)
+        self.large.is_active = False
+        self.large.save()
+        data = self.detail()
+        self.assertEqual(Decimal(data['stock_total']), Decimal('11'))
+        self.assertEqual(data['purchase_value'], '96.00')
+
+    def test_no_purchase_price_gives_no_value(self):
+        product = make_product(self.shop, 'Sans prix')
+        self.assertIsNone(self.detail(product)['purchase_value'])
+
+    def test_service_has_no_stock_figures(self):
+        service = make_product(self.shop, 'Retouche')
+        service.type = 'service'
+        service.save()
+        data = self.detail(service)
+        self.assertIsNone(data['stock_total'])
+        self.assertIsNone(data['purchase_value'])
+
+    def test_sales_last_30_days_skip_cancelled_and_old_orders(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from apps.orders.models import Order
+
+        self.sell(self.small, 2)
+        self.sell(self.large, 1)
+        cancelled = self.sell(self.small, 5)
+        Order.objects.filter(pk=cancelled.pk).update(status='cancelled')
+        old = self.sell(self.small, 4)
+        Order.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=31))  # noqa: E501
+        self.sell(make_product(self.shop, 'Autre').variants.get(), 3)
+
+        sales = self.detail()['sales_30d']
+        self.assertEqual(sales['quantity'], 3)
+        self.assertEqual(Decimal(sales['amount']), Decimal('32.00'))
+
+    def test_no_sales(self):
+        self.assertEqual(self.detail()['sales_30d'], {'quantity': 0, 'amount': '0.00'})
+
+
+class ProductVariantCreateTest(TestCase):
+    """Nouveau format avec son stock initial, en un seul appel."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('variant-create@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.product = make_product(self.shop, 'Sandales')
+
+    def post(self, payload, product=None):
+        product = product or self.product
+        url = reverse('product-variant-list', args=[product.pk])
+        return self.client.post(url, payload, format='json')
+
+    def test_format_and_initial_stock_recorded_together(self):
+        from apps.stock.models import StockMovement
+
+        response = self.post({
+            'packaging_name': 'Pointure 41', 'unit': 'piece', 'base_quantity': '1',
+            'selling_price': '25.00', 'purchase_price': '11.00', 'initial_stock': '6',
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Decimal(response.data['stock_quantity']), Decimal('6'))
+        movement = StockMovement.objects.get(variant_id=response.data['id'])
+        self.assertEqual((movement.movement_type, movement.unit_purchase_price), ('in', Decimal('11.00')))  # noqa: E501
+        detail = self.client.get(reverse('product-detail', args=[self.product.pk]))
+        self.assertTrue(detail.data['can_delete'])
+
+    def test_invalid_format_records_nothing(self):
+        from apps.stock.models import StockMovement
+
+        response = self.post({'packaging_name': 'Par défaut', 'selling_price': '5.00', 'initial_stock': '3'})  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.product.variants.count(), 1)
+        self.assertFalse(StockMovement.objects.filter(variant__product=self.product).exists())  # noqa: E501
+
+    def test_service_refuses_initial_stock(self):
+        self.product.type = 'service'
+        self.product.save()
+        response = self.post({'packaging_name': 'Une heure', 'selling_price': '30.00', 'initial_stock': '2'})  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('initial_stock', response.data['errors'])
+
+    def test_other_shop_product_is_not_found(self):
+        _, other_shop = setup_user_shop('variant-other@example.com')
+        foreign = make_product(other_shop)
+        response = self.post({'packaging_name': 'XL', 'selling_price': '5.00'}, foreign)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(foreign.variants.count(), 1)

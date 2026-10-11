@@ -4,11 +4,12 @@
  * et d'un service, puis modification de chacun ; résumés des sections repliées, unité en lecture
  * seule, garde « quitter sans enregistrer », notifications ; article à plusieurs formats.
  * La boutique de services n'affiche ni stock ni unité ; celle de Youssef reste intacte.
- * Les articles créés (« Audit article … », « Audit service … ») sont désactivés à la fin.
+ * Les articles créés (« Audit article … », « Audit service … ») sont supprimés à la fin (ils n'ont jamais servi) ;
+ * l'article à plusieurs formats, réutilisé d'un passage à l'autre, est désactivé.
  */
 import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
-import { allResults, api, createArticle, deactivate } from './lib/products.mjs';
+import { allResults, api, createArticle, deactivate, remove } from './lib/products.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 
 const report = createReport();
@@ -232,7 +233,7 @@ const browser = await launch();
 for (const viewport of VIEWPORTS) {
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
   const formats = await ensureFormatsProduct(page);
-  const created = [formats.id];
+  const created = [];
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
@@ -254,7 +255,8 @@ for (const viewport of VIEWPORTS) {
       report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
   }
-  await deactivate(page, created);
+  await remove(page, created);
+  await deactivate(page, [formats.id]);
   await ctx.close();
 }
 await checkServicesShop(browser);

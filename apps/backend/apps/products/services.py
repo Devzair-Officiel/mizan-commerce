@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
+from datetime import timedelta
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -12,6 +14,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.core.storage import get_signed_url, upload_fileobj
@@ -19,8 +22,6 @@ from apps.core.storage import get_signed_url, upload_fileobj
 from .models import Product, ProductVariant
 
 if TYPE_CHECKING:
-    from decimal import Decimal
-
     from apps.accounts.models import User
     from apps.products.models import ProductImage
     from apps.shops.models import Shop
@@ -29,8 +30,9 @@ if TYPE_CHECKING:
 __all__ = (
     'upload_product_image', 'get_signed_url', 'PRODUCT_SEARCH_FIELDS',
     'products_with_stats', 'filter_products', 'build_product_facets',
-    'build_products_summary', 'create_product', 'product_has_served',
+    'build_products_summary', 'create_product', 'create_variant', 'product_has_served',
     'delete_unused_product', 'ProductInUseError', 'INITIAL_STOCK_REASON',
+    'product_stock_totals', 'product_sales', 'SALES_DAYS',
 )
 
 PRODUCT_SEARCH_FIELDS = ('name', 'variants__sku', 'variants__barcode')
@@ -239,19 +241,34 @@ def create_product(
     Le stock initial (articles seulement) passe par une entrée de stock, au
     prix d'achat du format.
     """
+    with transaction.atomic():
+        product = Product.objects.create(shop=shop, **data)
+        if variant is not None:
+            create_variant(product, user, variant, initial_stock)
+    return product
+
+
+def create_variant(
+    product: Product,
+    user: User,
+    data: Mapping[str, object],
+    initial_stock: Decimal | None = None,
+) -> ProductVariant:
+    """Nouveau format et son stock initial en une transaction, tout ou rien.
+
+    Le stock initial (articles seulement) passe par une entrée de stock, au
+    prix d'achat du format.
+    """
     from apps.stock.services import create_movement
 
     with transaction.atomic():
-        product = Product.objects.create(shop=shop, **data)
-        if variant is None:
-            return product
-        created = ProductVariant.objects.create(shop=shop, product=product, **variant)
+        variant = ProductVariant.objects.create(shop=product.shop, product=product, **data)  # noqa: E501
         if initial_stock and product.type == 'product':
             create_movement(
-                shop, created, 'in', initial_stock, reason=INITIAL_STOCK_REASON,
-                created_by=user, unit_purchase_price=created.purchase_price,
+                product.shop, variant, 'in', initial_stock, reason=INITIAL_STOCK_REASON,  # noqa: E501
+                created_by=user, unit_purchase_price=variant.purchase_price,
             )
-    return product
+    return variant
 
 
 def product_has_served(product: Product) -> bool:
@@ -280,3 +297,54 @@ def delete_unused_product(product: Product) -> None:
         if product_has_served(product):
             raise ProductInUseError()
         product.delete()
+
+
+SALES_DAYS = 30
+_CENT = Decimal('0.01')
+
+
+def product_stock_totals(product: Product) -> dict[str, Decimal | None]:
+    """Stock total des formats actifs (négatifs compris) et valeur d'achat.
+
+    La valeur d'achat suit les niveaux de stock : stock positif × prix d'achat,
+    `None` si aucun format n'a de prix. Tout est `None` pour un service. Lit
+    les formats déjà chargés (`prefetch_related('variants')`).
+    """
+    if product.type != 'product':
+        return {'quantity': None, 'purchase_value': None}
+    variants = [v for v in product.variants.all() if v.is_active]
+    quantity = sum((v.stock_quantity for v in variants), Decimal('0'))
+    priced = [v for v in variants if v.purchase_price is not None]
+    if not priced:
+        return {'quantity': quantity, 'purchase_value': None}
+    value = sum(
+        (max(v.stock_quantity, Decimal('0')) * v.purchase_price for v in priced),
+        Decimal('0'),
+    )
+    return {'quantity': quantity, 'purchase_value': value.quantize(_CENT)}
+
+
+def product_sales(product: Product, days: int = SALES_DAYS) -> dict[str, Decimal | int]:  # noqa: E501
+    """Quantité et montant des lignes vendues sur les `days` derniers jours.
+
+    Commandes annulées exclues ; montant des lignes, avant remise de commande.
+    """
+    from apps.orders.models import OrderItem
+
+    since = timezone.now() - timedelta(days=days)
+    totals = (
+        OrderItem.objects
+        .filter(
+            shop_id=product.shop_id, variant__product=product,
+            order__created_at__gte=since,
+        )
+        .exclude(order__status='cancelled')
+        .aggregate(
+            quantity=Coalesce(Sum('quantity'), 0),
+            amount=Coalesce(
+                Sum('line_total'), Value(Decimal('0')),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            ),
+        )
+    )
+    return {'quantity': totals['quantity'], 'amount': totals['amount'].quantize(_CENT)}

@@ -50,7 +50,7 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - modification : bouton désactivé tant que rien ne change, type en badge, unité en lecture seule, résumés dès l'ouverture, stock actuel en lecture seule et lien « Faire une entrée de stock », garde « quitter sans enregistrer », « Article enregistré » ;
   - service : ni unité, ni prix d'achat, ni stock, ni référence ; résumé de la description ; création puis modification du prix ;
   - article à deux formats (« Audit formats ») : informations communes seulement, lien « Gérer les formats » ;
-  - boutique de services : ni choix de type, ni unité, ni stock ; boutique de Youssef : aucun article « Audit ». Les articles créés sont désactivés à la fin (il n'existe pas de suppression d'article).
+  - boutique de services : ni choix de type, ni unité, ni stock ; boutique de Youssef : aucun article « Audit ». Les articles et services créés sont supprimés à la fin (ils n'ont jamais servi) ; « Audit formats », réutilisé d'un passage à l'autre, est désactivé.
 - `audit-stock.mjs` — stock à 1440px et 360px :
   - parcours en français et en clair : une vente de 3 sur un stock de 1 est acceptée (avertissement « il passera en négatif » dans la nouvelle commande) et met le format à −2 ; l'indicateur « Négatif » filtre la liste ; l'entrée rapide de la ligne le régularise ; entrée de 3 articles à la main ; facture avec une ligne « À associer » associée à la main, puis facture suivante du même fournisseur associée toute seule ; sortie pour casse au-delà du stock refusée (formulaire et serveur) ; correction d'inventaire avec l'écart affiché ; lien vers la commande dans les Mouvements ; suppression d'un article jamais utilisé, refus (409) pour un article vendu ;
   - écrans du stock et entrée rapide ouverte en français et en arabe, clair et sombre : console propre, aucun élément imbriqué ;
@@ -58,6 +58,12 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - la facture passe par la **vraie lecture** (PaddleOCR puis structuration, ~10 s par facture : `celery-ocr` et `ai-service` démarrés) ;
   - les formulaires sont ouverts par le routeur Next (`window.next.router.push`) : leur retour à la page précédente après l'enregistrement reste dans l'app et la notification reste visible ;
   - nettoyage : commande annulée, articles désactivés (ils ont servi). `DEBUG=1` détaille les notifications, `SHOTS=<dossier>` capture un parcours interrompu.
+- `audit-product-sheet.mjs` — fiche article (gabarit de détail), mêmes tailles, thèmes et langues :
+  - article à un format : nom, badge « Stock faible », carte Stock, « Voir tout » vers ses mouvements ; « Entrée de stock » ouvre l'entrée rapide (stock 2 → 5, notification) ; « Ajouter un format » en fenêtre, puis « + Entrée » sur la ligne du nouveau format ;
+  - article jamais utilisé : « Supprimer » dans le menu « ⋯ » (menu ancré sur desktop, fenêtre du bas sur mobile), confirmation, retour à la liste, article supprimé ;
+  - article vendu : menu sans « Supprimer », suppression refusée par l'API (409) ;
+  - service : cartes « Prix » et « Ventes sur 30 jours », ni formats, ni stock, ni « Entrée de stock » ;
+  - nettoyage : commande annulée, articles utilisés désactivés, service supprimé. `SHOTS=<dossier>` capture un parcours interrompu.
 - `audit-zakat.mjs` — un calcul finalisé dont la réouverture échoue (réponse simulée) : l'erreur est notifiée, aucune `alert()` ni boîte de dialogue native. Les calculs créés sont supprimés.
 
 ## Exceptions de la console surveillée

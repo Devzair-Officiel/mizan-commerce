@@ -44,7 +44,7 @@ export async function remove(page, ids) {
   for (const id of ids) await api(page, `products/${id}/`, { method: 'DELETE' });
 }
 
-/** Retire de la liste des actifs les articles créés par un audit (pas de suppression d'article). */
+/** Retire de la liste des actifs les articles créés par un audit qui ont servi (ils ne peuvent plus être supprimés). */
 export async function deactivate(page, ids) {
   for (const id of ids) await api(page, `products/${id}/deactivate/`, { method: 'POST' });
 }

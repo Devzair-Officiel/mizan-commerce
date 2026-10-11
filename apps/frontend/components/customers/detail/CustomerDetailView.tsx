@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import { DetailPrimaryButton } from '@/components/detail/DetailPrimaryButton';
+import { DETAIL_COLUMN, DETAIL_GRID, DetailSlot } from '@/components/detail/DetailSlot';
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { TopBar } from '@/components/layout/TopBar';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
@@ -17,13 +18,6 @@ import { CustomerSituationCard } from './CustomerSituationCard';
 import { CustomerStatusBadges } from './CustomerStatusBadges';
 import { hasPending, useCustomerActions } from './useCustomerActions';
 import { useCustomerDetailState } from './useCustomerDetailState';
-
-/** Emplacement d'une carte : position dans la pile mobile, masqué si la carte ne rend rien. */
-function Slot({ order, children }: { order: string; children: ReactNode }) {
-  return <div className={`${order} empty:hidden`}>{children}</div>;
-}
-
-const COLUMN = 'contents lg:flex lg:flex-col lg:gap-5';
 
 /**
  * Fiche client. Desktop : historique à gauche (commandes, activité, notes), contact et argent
@@ -44,19 +38,19 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
       <CustomerDetailHeader customer={customer} primary={primary} menu={menu} />
       <div className={`flex flex-col gap-4 p-4 lg:pt-5 ${primary ? 'pb-28' : ''} lg:pb-8`}>
         <CustomerStatusBadges customer={customer} className="lg:hidden" />
-        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
-          <div className={COLUMN}>
-            <Slot order="max-lg:order-3"><CustomerOrdersCard customer={customer} /></Slot>
-            <Slot order="max-lg:order-4">
+        <div className={DETAIL_GRID}>
+          <div className={DETAIL_COLUMN}>
+            <DetailSlot order="max-lg:order-3"><CustomerOrdersCard customer={customer} /></DetailSlot>
+            <DetailSlot order="max-lg:order-4">
               <CustomerActivityTimeline customerId={customer.id} activityFilter={activityFilter} pendingOnly={pendingOnly}
                 onFilterChange={setActivityFilter} onTogglePending={hasPending(customer) ? () => setPendingOnly((v) => !v) : undefined} />
-            </Slot>
-            <Slot order="max-lg:order-5"><CustomerNotesCard customer={customer} notes={state.notes} /></Slot>
+            </DetailSlot>
+            <DetailSlot order="max-lg:order-5"><CustomerNotesCard customer={customer} notes={state.notes} /></DetailSlot>
           </div>
-          <div className={`${COLUMN} lg:sticky lg:top-6`}>
-            <Slot order="max-lg:order-2"><CustomerContactCard customer={customer} actions={state.actions} /></Slot>
-            <Slot order="max-lg:order-1"><CustomerSituationCard customer={customer} /></Slot>
-            <Slot order="max-lg:order-6"><PreparedMessageHistory customerId={customer.id} compact /></Slot>
+          <div className={`${DETAIL_COLUMN} lg:sticky lg:top-6`}>
+            <DetailSlot order="max-lg:order-2"><CustomerContactCard customer={customer} actions={state.actions} /></DetailSlot>
+            <DetailSlot order="max-lg:order-1"><CustomerSituationCard customer={customer} /></DetailSlot>
+            <DetailSlot order="max-lg:order-6"><PreparedMessageHistory customerId={customer.id} compact /></DetailSlot>
           </div>
         </div>
       </div>

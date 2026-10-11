@@ -12,7 +12,10 @@ from . import services  # noqa: E402
 from .filters import ProductOrderingFilter  # noqa: E402
 from .models import Product, ProductImage, ProductVariant  # noqa: E402
 from .services import PRODUCT_SEARCH_FIELDS, products_with_stats  # noqa: E402
-from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer  # noqa: E402, E501
+from .serializers import (  # noqa: E402
+    ProductListSerializer, ProductSerializer, ProductVariantCreateSerializer,
+    ProductVariantSerializer,
+)
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
@@ -186,9 +189,17 @@ class ProductVariantListCreateView(generics.ListCreateAPIView):
         ctx['product'] = self._get_product()
         return ctx
 
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ProductVariantCreateSerializer
+        return ProductVariantSerializer
+
     def perform_create(self, serializer):
-        product = self._get_product()
-        serializer.save(shop=product.shop, product=product)
+        data = dict(serializer.validated_data)
+        initial_stock = data.pop('initial_stock', None)
+        serializer.instance = services.create_variant(
+            self._get_product(), self.request.user, data, initial_stock,
+        )
 
 
 class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):

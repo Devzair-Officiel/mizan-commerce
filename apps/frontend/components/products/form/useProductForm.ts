@@ -7,10 +7,13 @@ import { useTranslations } from 'next-intl';
 import { z } from 'zod';
 import { useFormSections } from '@/components/form/useFormSections';
 import { ApiError } from '@/lib/api-client';
-import type { ProductDetail, ProductType, ProductVariant } from '@/lib/hooks/useProducts';
+import type { ProductDetail, ProductType, ProductUnit, ProductVariant } from '@/lib/hooks/useProducts';
 import { notify } from '@/lib/notify';
 
 export const UNITS = ['piece', 'g', 'kg', 'mL', 'L', 'm'] as const;
+
+/** Clé du libellé d'une unité dans `articles.units`. */
+export const UNIT_NAMES = { piece: 'piece', g: 'gram', kg: 'kilogram', mL: 'milliliter', L: 'liter', m: 'meter' } as const satisfies Record<ProductUnit, string>;
 
 /** Ordre d'affichage : la première erreur dans cet ordre reçoit le focus. */
 const FIELDS = ['name', 'selling_price', 'unit', 'purchase_price', 'initial_stock', 'low_stock_threshold', 'sku', 'barcode', 'description'] as const;

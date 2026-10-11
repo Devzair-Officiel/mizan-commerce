@@ -9,8 +9,8 @@ import { FormCollapsibleSection } from '@/components/form/FormCollapsibleSection
 import { FormField } from '@/components/form/FormField';
 
 /** Mêmes limites que le serveur (`PRODUCT_IMAGE_ALLOWED_TYPES`, 5 Mo). */
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_BYTES = 5 * 1024 * 1024;
+export const PRODUCT_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const PRODUCT_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 
 interface ProductPhotoSectionProps {
   file: File | null;
@@ -33,7 +33,7 @@ export function ProductPhotoSection({ file, onChange, currentUrl, open, onToggle
     const next = event.target.files?.[0];
     event.target.value = '';
     if (!next) return;
-    const problem = !ACCEPTED.includes(next.type) ? t('photo_format') : next.size > MAX_BYTES ? t('photo_too_heavy') : undefined;
+    const problem = !PRODUCT_PHOTO_TYPES.includes(next.type) ? t('photo_format') : next.size > PRODUCT_PHOTO_MAX_BYTES ? t('photo_too_heavy') : undefined;
     setError(problem);
     if (!problem) onChange(next);
   }
@@ -49,7 +49,7 @@ export function ProductPhotoSection({ file, onChange, currentUrl, open, onToggle
             </span>
             <div className="flex flex-wrap items-center gap-2">
               <label className={`${buttonVariants({ variant: 'outline' })} h-10 cursor-pointer rounded-full px-4 has-focus-visible:ring-3 has-focus-visible:ring-primary/30`}>
-                <input {...c} type="file" accept={ACCEPTED.join(',')} onChange={pick} className="sr-only" />
+                <input {...c} type="file" accept={PRODUCT_PHOTO_TYPES.join(',')} onChange={pick} className="sr-only" />
                 {preview ? t('photo_change') : t('photo_choose')}
               </label>
               {file && (

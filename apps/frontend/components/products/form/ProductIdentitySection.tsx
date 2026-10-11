@@ -8,11 +8,8 @@ import { FieldSuffix } from '@/components/form/FieldSuffix';
 import { FormField } from '@/components/form/FormField';
 import { FormRequiredSection } from '@/components/form/FormRequiredSection';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
-import type { ProductUnit } from '@/lib/hooks/useProducts';
 import { ProductTypeChoice } from './ProductTypeChoice';
-import { UNITS, type ProductFormValues } from './useProductForm';
-
-const UNIT_NAMES = { piece: 'piece', g: 'gram', kg: 'kilogram', mL: 'milliliter', L: 'liter', m: 'meter' } as const satisfies Record<ProductUnit, string>;
+import { UNIT_NAMES, UNITS, type ProductFormValues } from './useProductForm';
 
 interface ProductIdentitySectionProps {
   control: Control<ProductFormValues>;

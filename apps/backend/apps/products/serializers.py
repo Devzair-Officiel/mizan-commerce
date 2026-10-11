@@ -53,6 +53,25 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         return value
 
 
+class ProductVariantCreateSerializer(ProductVariantSerializer):
+    """Nouveau format d'un article existant, avec son stock initial."""
+    initial_stock = serializers.DecimalField(
+        max_digits=16, decimal_places=3, min_value=Decimal('0'),
+        write_only=True, required=False, allow_null=True,
+    )
+
+    def validate(self, attrs: dict) -> dict:
+        product = self.context.get('product')
+        if attrs.get('initial_stock') and product is not None and product.type == 'service':  # noqa: E501
+            raise serializers.ValidationError(
+                {'initial_stock': ["Un service n'a pas de stock."]},
+            )
+        return attrs
+
+    class Meta(ProductVariantSerializer.Meta):
+        fields = (*ProductVariantSerializer.Meta.fields, 'initial_stock')
+
+
 def _primary_image_url(product: Product) -> str | None:
     """URL signée de l'image principale (ou première image disponible). None si pas d'image
     ou si le bucket S3 n'est pas configuré."""  # noqa: E501
@@ -125,6 +144,10 @@ class ProductSerializer(serializers.ModelSerializer):
     stock_state = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
     can_delete = serializers.SerializerMethodField()
+    # Fiche article : stock total, valeur d'achat et ventes récentes.
+    stock_total = serializers.SerializerMethodField()
+    purchase_value = serializers.SerializerMethodField()
+    sales_30d = serializers.SerializerMethodField()
     # Création seulement : premier format et stock initial, enregistrés avec l'article.
     variant = ProductVariantSerializer(write_only=True, required=False)
     initial_stock = serializers.DecimalField(
@@ -197,6 +220,26 @@ class ProductSerializer(serializers.ModelSerializer):
         from .services import product_has_served
         return not product_has_served(obj)
 
+    def _stock_totals(self, obj: Product) -> dict:
+        cached = getattr(obj, '_stock_totals_cache', None)
+        if cached is None:
+            from .services import product_stock_totals
+            cached = obj._stock_totals_cache = product_stock_totals(obj)
+        return cached
+
+    def get_stock_total(self, obj: Product) -> str | None:
+        quantity = self._stock_totals(obj)['quantity']
+        return str(quantity) if quantity is not None else None
+
+    def get_purchase_value(self, obj: Product) -> str | None:
+        value = self._stock_totals(obj)['purchase_value']
+        return str(value) if value is not None else None
+
+    def get_sales_30d(self, obj: Product) -> dict:
+        from .services import product_sales
+        sales = product_sales(obj)
+        return {'quantity': sales['quantity'], 'amount': str(sales['amount'])}
+
     class Meta:
         model = Product
         fields = (
@@ -204,6 +247,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'is_active', 'is_low_stock', 'is_out_of_stock', 'is_negative_stock',
             'stock_state', 'min_selling_price', 'max_selling_price', 'variant_count',
             'variants', 'images', 'primary_image', 'can_delete',
+            'stock_total', 'purchase_value', 'sales_30d',
             'variant', 'initial_stock',
             'created_at', 'updated_at',
         )

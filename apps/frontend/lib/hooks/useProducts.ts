@@ -132,6 +132,8 @@ export interface ProductVariantFormData {
   barcode?: string;
   position?: number;
   is_active?: boolean;
+  /** Stock initial d'un nouveau format, enregistré dans la même transaction. */
+  initial_stock?: string | null;
 }
 
 export interface Product {
@@ -159,6 +161,14 @@ export interface ProductDetail extends Product {
   images: { id: string; object_key: string; is_primary: boolean; position: number }[];
   variants: ProductVariant[];
   created_at: string;
+  /** Vrai si l'article n'a jamais servi (aucune ligne de commande, aucun mouvement hors stock initial). */
+  can_delete: boolean;
+  /** Stock des formats actifs, négatifs compris ; `null` pour un service. */
+  stock_total: string | null;
+  /** Valeur d'achat du stock positif ; `null` pour un service ou sans prix d'achat. */
+  purchase_value: string | null;
+  /** Ventes des 30 derniers jours (commandes annulées exclues). */
+  sales_30d: { quantity: number; amount: string };
 }
 
 export interface ProductFormData {
@@ -317,6 +327,22 @@ export function useReactivateProduct() {
     mutationFn: (id: string) =>
       apiFetch(`/products/${id}/reactivate/`, { method: 'POST' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.all }),
+  });
+}
+
+/** Suppression d'un article jamais utilisé (le serveur répond 409 sinon). */
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/products/${id}/`, { method: 'DELETE' }),
+    // La fiche supprimée, encore affichée le temps de la navigation, n'est pas redemandée (404) :
+    // listes et stock se rechargent à leur prochain affichage ; les badges de navigation tout de suite.
+    onSuccess: () => {
+      for (const queryKey of [qk.products.all, qk.stock.all, qk.dashboard.all]) {
+        void qc.invalidateQueries({ queryKey, refetchType: 'none' });
+      }
+      void qc.invalidateQueries({ queryKey: qk.navBadges.all });
+    },
   });
 }
 
