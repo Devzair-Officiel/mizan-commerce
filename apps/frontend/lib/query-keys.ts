@@ -51,6 +51,19 @@ export interface ProductsListFilters {
   ordering?: string;
 }
 
+/** Filtres de la page Articles, transmis tels quels à l'API. */
+export interface ProductsPageFilters {
+  /** Sans valeur, l'API ne renvoie que les actifs (sélecteurs d'article). */
+  state?: 'all' | 'active' | 'inactive';
+  type?: 'product' | 'service';
+  /** Niveau de stock d'un article : rupture, stock faible, en stock. */
+  stock?: 'out' | 'low' | 'in';
+  search?: string;
+  /** Champ DRF, préfixé de `-` pour un tri décroissant. */
+  ordering?: string;
+  page?: number;
+}
+
 export interface StockMovementsFilters {
   productId?: string;
   variantId?: string;
@@ -81,6 +94,9 @@ export const qk = {
   products: {
     all: ['products'] as const,
     list: (filters: ProductsListFilters) => ['products', filters] as const,
+    page: (filters: ProductsPageFilters) => ['products', 'page', filters] as const,
+    listInfinite: (filters: Omit<ProductsPageFilters, 'page'>) => ['products', 'infinite', filters] as const,
+    facets: (filters: Omit<ProductsPageFilters, 'page'>) => ['products', 'facets', filters] as const,
     summary: ['products', 'summary'] as const,
     detail: (id: string) => ['products', id] as const,
   },

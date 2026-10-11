@@ -3,40 +3,54 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
-import { ProductForm, type ProductFormSubmission } from '@/components/products/ProductForm';
-import { useProduct, useUpdateProduct } from '@/lib/hooks/useProducts';
+import { ProductForm } from '@/components/products/form/ProductForm';
+import { useSaveProduct } from '@/components/products/form/useSaveProduct';
+import type { ProductFormValues } from '@/components/products/form/useProductForm';
+import { useBackOr } from '@/lib/hooks/useBackOr';
+import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useProduct } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 
 export default function EditProductPage() {
+  const t = useTranslations('articles.form');
+  const tDetail = useTranslations('articles.detail');
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const t = useTranslations('articles.form');
+  const formatDate = useFormatDate();
+  const back = useBackOr(`/products/${id}`);
   const { data: product, isLoading } = useProduct(id);
-  const { mutateAsync, isPending } = useUpdateProduct(id);
+  const { data: shop } = useShop();
+  const { update, saving } = useSaveProduct();
 
-  async function handleSubmit(submission: ProductFormSubmission) {
-    await mutateAsync(submission.product);
-    router.push(`/products/${id}`);
-  }
-
-  if (isLoading || !product) {
+  if (!product || !shop) {
     return (
-      <>
-        <TopBar title={t('topbar_edit')} back hideSearch />
-        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
-      </>
+      <div className="mx-auto w-full max-w-198">
+        <TopBar title={t('title_edit', { type: product?.type ?? 'product' })} back onBack={back} hideSearch />
+        {isLoading || !shop
+          ? <div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" />
+          : <p className="p-4 text-sm text-destructive">{tDetail('not_found', { type: 'other' })}</p>}
+      </div>
     );
   }
 
+  // Un seul format actif : le formulaire règle aussi son prix, son stock et ses références.
+  const active = product.variants.filter((v) => v.is_active);
+  const variant = active.length === 1 ? (active[0] ?? null) : null;
+
+  async function handleSubmit(values: ProductFormValues, photo: File | null) {
+    if (!product) return true;
+    const { complete } = await update(product, variant, values, photo);
+    // Remplace le formulaire dans l'historique : « retour » depuis la fiche ne le rouvre pas.
+    router.replace(`/products/${id}`);
+    return complete;
+  }
+
+  const subtitle = t('subtitle_edit', { type: product.type, date: formatDate(product.created_at, { day: 'numeric', month: 'long', year: 'numeric' }) });
   return (
-    <>
-      <TopBar title={product.type === 'service' ? t('topbar_edit_service') : t('topbar_edit_product')} back hideSearch />
-      <ProductForm
-        type={product.type}
-        defaultValues={product}
-        isEditing
-        onSubmit={handleSubmit}
-        isSubmitting={isPending}
-      />
-    </>
+    <div className="mx-auto w-full max-w-198">
+      <TopBar title={t('title_edit', { type: product.type })} subtitle={subtitle} back backLabel={product.name} onBack={back} hideSearch />
+      <ProductForm mode="edit" type={product.type} mixed={shop.catalog_kind === 'both'} currencyCode={shop.currency}
+        product={product} variant={variant} onSubmit={handleSubmit} isSubmitting={saving} onLeave={back} />
+    </div>
   );
 }

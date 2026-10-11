@@ -1,122 +1,53 @@
+'use client';
+
 import Link from 'next/link';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { Product } from '@/lib/hooks/useProducts';
-import { useShop } from '@/lib/hooks/useShop';
-import { useFormatMoney } from '@/lib/hooks/useFormat';
+import { cn } from '@/lib/utils';
+import { ProductPrice } from './ProductPrice';
+import { ProductStock } from './ProductStock';
+import { ProductThumb } from './ProductThumb';
 
-const THUMB_COLORS = [
-  'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
-  'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
-  'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-  'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
-  'bg-primary/15 text-primary',
-];
-
-function thumbColor(name: string) {
-  const code = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
-  return THUMB_COLORS[code % THUMB_COLORS.length];
+interface ProductRowProps {
+  product: Product;
+  first: boolean;
+  currency: string;
 }
 
-function getInitial(name: string): string {
-  const trimmed = name.trim();
-  return trimmed[0]?.toUpperCase() ?? '?';
-}
+/**
+ * Ligne de la liste mobile, avec le vocabulaire du tableau : nombre de formats
+ * (ou « Service ») sous le nom ; à droite le prix et le stock. Un article
+ * inactif est atténué.
+ */
+export function ProductRow({ product, first, currency }: ProductRowProps) {
+  const t = useTranslations('articles.list');
+  const dim = !product.is_active && 'opacity-60';
 
-export function ProductRow({ product, first }: { product: Product; first: boolean }) {
-  const t = useTranslations('articles.row');
-  const { data: shop } = useShop();
-  const currency = shop?.currency ?? 'EUR';
-  const formatMoney = useFormatMoney();
-  const money = (v: string | null) => (v ? formatMoney(v, currency) : null);
-  const min = money(product.min_selling_price);
-  const max = money(product.max_selling_price);
-  const priceLabel = min && max ? (min === max ? min : `${min} – ${max}`) : '—';
   return (
     <Link
       href={`/products/${product.id}`}
-      className={`flex items-center gap-3 px-3 py-3 active:bg-muted transition-colors ${
-        first ? '' : 'border-t border-border'
-      }`}
+      className={cn('flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-muted', !first && 'border-t border-border')}
     >
-      <ProductThumb product={product} />
-
-      <div className="flex-1 min-w-0">
+      <ProductThumb product={product} className={cn('size-11 text-base', dim)} />
+      <div className={cn('min-w-0 flex-1', dim)}>
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground truncate">{product.name}</span>
+          <span dir="auto" className="truncate font-semibold text-foreground">{product.name}</span>
           {!product.is_active && (
-            <span className="shrink-0 rounded-full bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">
-              {t('inactive')}
+            <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[0.6875rem] font-semibold text-muted-foreground">
+              {t('state_inactive')}
             </span>
           )}
         </div>
-        <StockLine product={product} />
+        <p className="mt-0.5 truncate text-sm text-muted-foreground">
+          {product.type === 'service' ? t('service') : t('formats', { count: product.variant_count })}
+        </p>
       </div>
-
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="text-sm font-semibold text-foreground tabular-nums">{priceLabel}</span>
-        <ChevronRight size={16} className="text-muted-foreground" />
+      <div className="flex shrink-0 flex-col items-end gap-0.5 leading-tight">
+        <ProductPrice product={product} currency={currency} className="text-sm font-semibold" />
+        <ProductStock product={product} labelled />
       </div>
+      <ChevronRight size={16} className="shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
     </Link>
-  );
-}
-
-function ProductThumb({ product }: { product: Product }) {
-  if (product.primary_image) {
-    return (
-      <Image
-        src={product.primary_image}
-        alt={product.name}
-        width={44}
-        height={44}
-        unoptimized
-        className="h-11 w-11 shrink-0 rounded-xl object-cover ring-1 ring-border"
-      />
-    );
-  }
-
-  if (product.type === 'service') {
-    return (
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <Sparkles size={18} />
-      </div>
-    );
-  }
-
-  return (
-    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-base font-bold ${thumbColor(product.name)}`}>
-      {getInitial(product.name)}
-    </div>
-  );
-}
-
-function StockLine({ product }: { product: Product }) {
-  const t = useTranslations('articles.row');
-  const variantCount = product.variant_count ?? 0;
-  const formatsLabel = t('formats', { count: Math.max(variantCount, 1) });
-
-  if (product.type === 'service') {
-    return <p className="text-xs text-muted-foreground mt-0.5">{t('service')}</p>;
-  }
-  if (product.is_out_of_stock) {
-    return (
-      <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">
-        {t('out_of_stock')}
-      </p>
-    );
-  }
-  if (product.is_low_stock) {
-    return (
-      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-0.5 tabular-nums">
-        {t('low_stock_with', { formats: formatsLabel })}
-      </p>
-    );
-  }
-  return (
-    <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-      {t('in_stock_with', { formats: formatsLabel })}
-    </p>
   );
 }

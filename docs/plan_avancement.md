@@ -397,6 +397,8 @@
 - [~] C3 — Clients : liste (gabarit)
 - [~] C3 — Fiche client (gabarit de détail)
 - [~] Gabarit des pages de formulaire, appliqué au formulaire client
+- [~] C3 — Articles et services : liste (gabarit)
+- [~] C3 — Formulaire article (gabarit v2)
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
-import { qk } from '@/lib/query-keys';
+import { qk, type ProductsPageFilters } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -143,6 +143,8 @@ export interface Product {
   min_selling_price: string | null;
   max_selling_price: string | null;
   variant_count: number;
+  /** Stock total des formats actifs (liste seulement) ; `null` pour un service. */
+  total_stock?: string | null;
 }
 
 export interface ProductDetail extends Product {
@@ -182,6 +184,56 @@ export function useProducts(options: ProductsQueryOptions = {}) {
   return useQuery({
     queryKey: qk.products.list({ search, all, inactive, type, outOfStock, lowStock, ordering }),
     queryFn: () => apiFetch<PaginatedResponse<Product>>(`/products/?${params}`),
+  });
+}
+
+function pageParams(filters: ProductsPageFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const key of ['state', 'type', 'stock', 'search', 'ordering'] as const) {
+    const value = filters[key];
+    if (value) params.set(key, value);
+  }
+  if (filters.page && filters.page > 1) params.set('page', String(filters.page));
+  return params;
+}
+
+/** Page de la liste Articles (desktop) : filtres, tri et pagination côté serveur. */
+export function useProductsPage(filters: ProductsPageFilters, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: qk.products.page(filters),
+    queryFn: () => apiFetch<PaginatedResponse<Product>>(`/products/?${pageParams(filters)}`),
+    enabled: options?.enabled,
+  });
+}
+
+/** Liste Articles mobile : pages chargées à la suite (« Charger plus »). */
+export function useProductsInfinite(filters: Omit<ProductsPageFilters, 'page'>, options?: { enabled?: boolean }) {
+  return useInfiniteQuery({
+    queryKey: qk.products.listInfinite(filters),
+    queryFn: ({ pageParam = 1 }) =>
+      apiFetch<PaginatedResponse<Product>>(`/products/?${pageParams({ ...filters, page: pageParam as number })}`),
+    initialPageParam: 1 as number,
+    getNextPageParam: (last, _, lastPageParam) =>
+      last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: options?.enabled,
+  });
+}
+
+/** Nombre d'articles par option de chaque filtre (mêmes filtres que la liste). */
+export interface ProductsFacets {
+  state: Record<'all' | 'active' | 'inactive', number>;
+  type: Record<'all' | ProductType, number>;
+  stock: Record<'all' | 'out' | 'low' | 'in', number>;
+}
+
+export function useProductsFacets(filters: Omit<ProductsPageFilters, 'page'>, options?: { enabled?: boolean }) {
+  // Le tri ne change pas les nombres : il reste hors de la clé de cache.
+  const facetFilters = { ...filters, ordering: undefined };
+  return useQuery({
+    queryKey: qk.products.facets(facetFilters),
+    queryFn: () => apiFetch<ProductsFacets>(`/products/facets/?${pageParams(facetFilters)}`),
+    placeholderData: keepPreviousData,
+    enabled: options?.enabled,
   });
 }
 

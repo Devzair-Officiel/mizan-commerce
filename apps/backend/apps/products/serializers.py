@@ -163,13 +163,17 @@ class ProductListSerializer(serializers.ModelSerializer):
     variant_count = serializers.SerializerMethodField()
     is_low_stock = serializers.SerializerMethodField()
     is_out_of_stock = serializers.SerializerMethodField()
+    # Annoté par `products_with_stats` : stock total des formats actifs (None pour un service).  # noqa: E501
+    total_stock = serializers.DecimalField(
+        max_digits=16, decimal_places=3, read_only=True, allow_null=True, default=None,
+    )
 
     class Meta:
         model = Product
         fields = (
             'id', 'name', 'type',
             'is_active', 'is_low_stock', 'is_out_of_stock',
-            'min_selling_price', 'max_selling_price', 'variant_count',
+            'min_selling_price', 'max_selling_price', 'variant_count', 'total_stock',
             'primary_image', 'updated_at',
         )
 

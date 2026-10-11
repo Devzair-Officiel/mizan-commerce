@@ -2,12 +2,13 @@ from django.urls import path
 from .views import (
     ProductListCreateView, ProductDetailView, ProductDeactivateView, ProductReactivateView,  # noqa: E501
     ProductImageUploadView, ProductImageSignedUrlView, ProductSummaryView,
-    ProductVariantListCreateView, ProductVariantDetailView,
+    ProductFacetsView, ProductVariantListCreateView, ProductVariantDetailView,
 )
 
 urlpatterns = [
     path('', ProductListCreateView.as_view(), name='product-list'),
     path('summary/', ProductSummaryView.as_view(), name='product-summary'),
+    path('facets/', ProductFacetsView.as_view(), name='product-facets'),
     path('<uuid:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('<uuid:pk>/deactivate/', ProductDeactivateView.as_view(), name='product-deactivate'),  # noqa: E501
     path('<uuid:pk>/reactivate/', ProductReactivateView.as_view(), name='product-reactivate'),  # noqa: E501

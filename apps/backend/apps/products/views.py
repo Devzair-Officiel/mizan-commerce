@@ -1,22 +1,25 @@
-from django.db.models import F, Exists, OuterRef
 from rest_framework import generics, filters, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import HasModulePermission, get_shop
 
 HasProductsModule = HasModulePermission.for_module('products')
+from . import services  # noqa: E402
+from .filters import ProductOrderingFilter  # noqa: E402
 from .models import Product, ProductImage, ProductVariant  # noqa: E402
+from .services import PRODUCT_SEARCH_FIELDS, products_with_stats  # noqa: E402
 from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer  # noqa: E402, E501
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated, HasProductsModule)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('name', 'variants__sku')
-    ordering_fields = ('name', 'created_at')
+    filter_backends = (filters.SearchFilter, ProductOrderingFilter)
+    search_fields = PRODUCT_SEARCH_FIELDS
+    ordering_fields = ('name', 'created_at', 'min_price', 'total_stock', 'type')
     ordering = ('-created_at',)
 
     def get_serializer_class(self):
@@ -30,43 +33,10 @@ class ProductListCreateView(generics.ListCreateAPIView):
         return ctx
 
     def get_queryset(self):
-        shop = get_shop(self.request.user)
-        qs = Product.objects.filter(shop=shop).prefetch_related('images', 'variants')
-
-        # Filtres d'activation
-        # - `?inactive=1` : uniquement les inactifs
-        # - `?all=1`     : actifs + inactifs
-        # - défaut       : uniquement les actifs
-        if self.request.query_params.get('inactive') == '1':
-            qs = qs.filter(is_active=False)
-        elif self.request.query_params.get('all') != '1':
-            qs = qs.filter(is_active=True)
-
-        # Filtre par type (product | service)
-        product_type = self.request.query_params.get('type')
-        if product_type in ('product', 'service'):
-            qs = qs.filter(type=product_type)
-
-        # Filtre rupture : toutes les variantes actives ont un stock <= 0 → produit en rupture.  # noqa: E501
-        # On exclut donc les produits qui possèdent au moins une variante active avec stock > 0.  # noqa: E501
-        if self.request.query_params.get('out_of_stock') == '1':
-            has_stock = ProductVariant.objects.filter(
-                product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
-            )
-            qs = qs.filter(type='product').annotate(_has_stock=Exists(has_stock)).filter(_has_stock=False)  # noqa: E501
-
-        # Filtre stock faible : au moins une variante active sous son seuil.
-        if self.request.query_params.get('low_stock') == '1':
-            has_low = ProductVariant.objects.filter(
-                product=OuterRef('pk'),
-                is_active=True,
-                low_stock_threshold__isnull=False,
-                stock_quantity__lte=F('low_stock_threshold'),
-                stock_quantity__gt=0,
-            )
-            qs = qs.filter(type='product').annotate(_has_low=Exists(has_low)).filter(_has_low=True)  # noqa: E501
-
-        return qs
+        qs = products_with_stats(get_shop(self.request.user))
+        return services.filter_products(qs, self.request.query_params).prefetch_related(
+            'images', 'variants',
+        )
 
     def perform_create(self, serializer):
         from apps.subscriptions.limits import enforce_product_limit
@@ -164,48 +134,25 @@ class ProductImageUploadView(APIView):
 
 
 class ProductSummaryView(APIView):
-    """Compteurs agrégés pour le bandeau de filtres du Catalogue."""
+    """Indicateurs du Catalogue (actifs, rupture, stock faible)."""
     permission_classes = (IsAuthenticated, HasProductsModule)
 
-    def get(self, request) -> Response:
-        shop = get_shop(request.user)
-        active_qs = Product.objects.filter(shop=shop, is_active=True)
+    def get(self, request: Request) -> Response:
+        return Response(services.build_products_summary(get_shop(request.user)))
 
-        has_stock = ProductVariant.objects.filter(
-            product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
-        )
-        has_low = ProductVariant.objects.filter(
-            product=OuterRef('pk'),
-            is_active=True,
-            low_stock_threshold__isnull=False,
-            stock_quantity__lte=F('low_stock_threshold'),
-            stock_quantity__gt=0,
-        )
 
-        out_of_stock = (
-            active_qs.filter(type='product')
-            .annotate(_has_stock=Exists(has_stock))
-            .filter(_has_stock=False)
-            .count()
-        )
-        low_stock = (
-            active_qs.filter(type='product')
-            .annotate(_has_low=Exists(has_low))
-            .filter(_has_low=True)
-            .count()
-        )
-        products_count = active_qs.filter(type='product').count()
-        services_count = active_qs.filter(type='service').count()
-        inactive_count = Product.objects.filter(shop=shop, is_active=False).count()
+class ProductFacetsView(APIView):
+    """Nombre d'articles par option des filtres (état, type, stock).
 
-        return Response({
-            'total': products_count + services_count,
-            'products': products_count,
-            'services': services_count,
-            'out_of_stock': out_of_stock,
-            'low_stock': low_stock,
-            'inactive': inactive_count,
-        })
+    Reçoit les mêmes paramètres que la liste (recherche comprise).
+    """
+    permission_classes = (IsAuthenticated, HasProductsModule)
+    search_fields = PRODUCT_SEARCH_FIELDS
+
+    def get(self, request: Request) -> Response:
+        qs = products_with_stats(get_shop(request.user))
+        qs = filters.SearchFilter().filter_queryset(request, qs, self)
+        return Response(services.build_product_facets(qs, request.query_params))
 
 
 class ProductVariantListCreateView(generics.ListCreateAPIView):
