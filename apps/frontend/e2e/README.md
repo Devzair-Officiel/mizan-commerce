@@ -10,6 +10,7 @@ docker compose run --rm e2e npm run audit:customer-form       # formulaire clien
 docker compose run --rm e2e npm run audit:zakat               # zakat : erreurs notifiées, plus d'alert()
 docker compose run --rm e2e npm run audit:products-list       # liste Articles et services
 docker compose run --rm e2e npm run audit:product-form        # formulaire article
+docker compose run --rm e2e npm run audit:product-photos      # photos d'articles au format carré
 docker compose run --rm e2e npm run audit:stock               # stock : niveaux, mouvements, entrées, sorties
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
 ```
@@ -30,12 +31,15 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 - `lib/session.mjs` — navigateur, connexion (compte `e2e@example.com` par défaut ; une connexion par taille d'écran : la limite `auth` du backend reste basse), langue (`NEXT_LOCALE`) et thème (réponse `/auth/me/` réécrite, préférences du compte intactes).
 - `lib/messages.mjs` — textes attendus lus dans `../messages/*.json` (montés en lecture seule) : `msg` (texte brut) et `fmt` (paramètres ICU appliqués : `{var}`, `select`, `plural` avec `=n` et `#`).
 - `lib/products.mjs` — appels du backend par le proxy (`api`, `allResults`), création d'un article de test, désactivation ou suppression en fin d'audit.
+- `lib/form.mjs` — gabarit de formulaire v3 : carte repliable (mobile) ouverte, refermée ou remplie avec son résumé, disposition vérifiée (`layoutOk` : deux colonnes et rien à déplier sur desktop, cartes empilées dans l'ordre et facultatives repliées sur mobile).
+- `lib/photos.mjs` — image de test très haute ou très large dessinée dans le navigateur, envoi par l'API, mesure des photos affichées (cadre carré, `object-cover`, fond `bg-muted`).
 - `lib/invoice.mjs` — facture fournisseur de test (page HTML capturée en PNG), envoyée ensuite à la vraie chaîne de lecture.
 - `audit-pages.mjs` — écrans principaux à 1440px et 360px.
-- `audit-customer-form.mjs` — gabarit de formulaire sur le formulaire client, à 1440px et 360px, clair et sombre, français et arabe :
-  - sections : Identité ouverte avec le badge « Obligatoire », Contact, Adresse et Notes repliées à l'ouverture, avec leur résumé si elles sont remplies (sinon leur explication) ; ouverture au clic, à Entrée et à Espace (`aria-expanded`) ;
-  - actions sous la carte, sans cadre, dans le `<form>` ; « Annuler » demande confirmation si le formulaire est modifié ;
-  - erreurs : champ obligatoire vide, e-mail invalide (client) et numéro invalide (serveur) dans une section repliée → la section s'ouvre, le focus va sur le champ, l'erreur est sous le champ ;
+- `audit-customer-form.mjs` — gabarit de formulaire v3 sur le formulaire client, à 1440px et 360px, clair et sombre, français et arabe :
+  - disposition : desktop, Identité, Contact et Adresse dans la colonne principale, Notes internes à côté, rien à déplier ; mobile, cartes empilées dans cet ordre, Identité (« Obligatoire ») ouverte, les facultatives repliées avec leur résumé si elles sont remplies (sinon leur explication), ouvertes au clic, à Entrée et à Espace (`aria-expanded`) ;
+  - aperçu de l'identité (initiales et nom) mis à jour pendant la saisie ;
+  - actions sous les colonnes, sans cadre, en fin de ligne ; « Annuler » demande confirmation si le formulaire est modifié ;
+  - erreurs : champ obligatoire vide, e-mail invalide (client) et numéro invalide (serveur), dans une carte repliée sur mobile → la carte s'ouvre, le focus va sur le champ, l'erreur est sous le champ ;
   - notifications « Client créé » et « Client enregistré », une seule région `aria-live`, placée en bas (mobile) ou dans le coin bas (desktop, à gauche en arabe) ;
   - téléphone : « 06 12 34 56 78 » enregistré en `+33612345678`, affiché `+33 6 12 34 56 78`, « Relancer » ouvre `wa.me/33612345678` ;
   - aucun client de test dans la boutique de Youssef. Les clients créés (« Audit e2e … ») sont archivés à la fin.
@@ -45,12 +49,13 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - mobile : 20 rangées puis « Charger plus », rappel du tri, fenêtre Filtres dont le bouton annonce le nombre exact, pastille du filtre ;
   - indicateurs « En rupture » et « Stock faible » : un clic filtre (articles actifs à ce niveau, nombre de l'indicateur), un second le retire ;
   - boutique de services (`services@example.com`) : seul « Services actifs », aucun stock ni type (indicateurs, filtre, colonne, fenêtre Filtres).
-- `audit-product-form.mjs` — formulaire article, mêmes tailles, thèmes et langues :
-  - création d'un article : Article choisi, unité et son aide, sections repliées, « Nom » obligatoire, photo (PNG), prix d'achat avec marge calculée, stock initial et seuil ; résumés des sections ; « Article créé » ; valeurs relues dans l'API ;
-  - modification : bouton désactivé tant que rien ne change, type en badge, unité en lecture seule, résumés dès l'ouverture, stock actuel en lecture seule et lien « Faire une entrée de stock », garde « quitter sans enregistrer », « Article enregistré » ;
-  - service : ni unité, ni prix d'achat, ni stock, ni référence ; résumé de la description ; création puis modification du prix ;
+- `audit-product-form.mjs` — formulaire article (gabarit v3), mêmes tailles, thèmes et langues :
+  - création d'un article : disposition (desktop : Informations, Prix, Stock | Photo, Vente, Référence, rien à déplier ; mobile : Informations, Photo, Prix, Stock, Vente, Référence, facultatives repliées), Article choisi, unité en menu, « Nom » obligatoire, marge affichée seulement avec les deux prix, photos très haute puis très large recadrées en carré à l'ajout, la seconde choisie comme principale, stock initial et seuil, scan du code-barres (Entrée ne soumet pas) ; résumés des cartes (mobile) ; « Article créé » ; valeurs et photos relues dans l'API ;
+  - modification ouverte par « Gérer les photos » de la fiche (formulaire sur la carte Photo) : bouton désactivé tant que rien ne change, type en badge, unité en lecture seule, résumés (mobile), stock actuel en lecture seule et lien « Faire une entrée de stock », une photo retirée et la photo enregistrée recadrée, garde « quitter sans enregistrer », « Article enregistré » ;
+  - service : Informations, Prix et Photo seulement (ni unité, ni prix d'achat, ni stock, ni référence) ; création puis modification du prix ;
   - article à deux formats (« Audit formats ») : informations communes seulement, lien « Gérer les formats » ;
   - boutique de services : ni choix de type, ni unité, ni stock ; boutique de Youssef : aucun article « Audit ». Les articles et services créés sont supprimés à la fin (ils n'ont jamais servi) ; « Audit formats », réutilisé d'un passage à l'autre, est désactivé.
+- `audit-product-photos.mjs` — photos d'articles au format carré, mêmes tailles, thèmes et langues : des photos très hautes et très larges envoyées sans recadrage (comme des photos anciennes) apparaissent en carré (`object-cover`, fond `bg-muted`) dans la liste, sur la fiche (photo principale, miniatures, « Gérer les photos ») et dans le catalogue de la nouvelle commande. « Audit photo haute » et « Audit photo large » sont créés une fois, réactivés au début et désactivés à la fin.
 - `audit-stock.mjs` — stock à 1440px et 360px :
   - parcours en français et en clair : une vente de 3 sur un stock de 1 est acceptée (avertissement « il passera en négatif » dans la nouvelle commande) et met le format à −2 ; l'indicateur « Négatif » filtre la liste ; l'entrée rapide de la ligne le régularise ; entrée de 3 articles à la main ; facture avec une ligne « À associer » associée à la main, puis facture suivante du même fournisseur associée toute seule ; sortie pour casse au-delà du stock refusée (formulaire et serveur) ; correction d'inventaire avec l'écart affiché ; lien vers la commande dans les Mouvements ; suppression d'un article jamais utilisé, refus (409) pour un article vendu ;
   - écrans du stock et entrée rapide ouverte en français et en arabe, clair et sombre : console propre, aucun élément imbriqué ;
@@ -61,9 +66,10 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 - `audit-product-sheet.mjs` — fiche article (gabarit de détail), mêmes tailles, thèmes et langues :
   - article à un format : nom, badge « Stock faible », carte Stock, « Voir tout » vers ses mouvements ; « Entrée de stock » ouvre l'entrée rapide (stock 2 → 5, notification) ; « Ajouter un format » en fenêtre, puis « + Entrée » sur la ligne du nouveau format ;
   - article jamais utilisé : « Supprimer » dans le menu « ⋯ » (menu ancré sur desktop, fenêtre du bas sur mobile), confirmation, retour à la liste, article supprimé ;
+  - menu « ⋯ » de chaque format : « Modifier », « Retirer de la vente », et « Supprimer » seulement pour un format jamais utilisé ; « Lot » supprimé après confirmation ; le dernier format actif n'offre plus que « Modifier » ; un format vendu pendant la confirmation → refus (409) affiché dans la fenêtre ;
   - article vendu : menu sans « Supprimer », suppression refusée par l'API (409) ;
   - service : cartes « Prix » et « Ventes sur 30 jours », ni formats, ni stock, ni « Entrée de stock » ;
-  - nettoyage : commande annulée, articles utilisés désactivés, service supprimé. `SHOTS=<dossier>` capture un parcours interrompu.
+  - nettoyage : commandes annulées, articles utilisés désactivés, service supprimé. `SHOTS=<dossier>` capture un parcours interrompu.
 - `audit-loading.mjs` — chargement en connexion lente (réseau limité par CDP : latence 1,5 s, 2 Mo/s) de la fiche article, de la fiche client et du détail d'une commande existants, à 1440px et 360px, en français et en arabe : squelette à la forme de la page visible (au moins trois cartes), aucun texte de chargement seul (« Chargement… »), puis l'objet affiché sans squelette ; console propre. Chaque page est d'abord ouverte sans limitation (compilation du serveur de dev).
 - `audit-zakat.mjs` — un calcul finalisé dont la réouverture échoue (réponse simulée) : l'erreur est notifiée, aucune `alert()` ni boîte de dialogue native. Les calculs créés sont supprimés.
 

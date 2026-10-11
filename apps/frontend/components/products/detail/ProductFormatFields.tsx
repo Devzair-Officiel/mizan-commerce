@@ -1,10 +1,11 @@
 'use client';
 
-import { useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { FieldSuffix } from '@/components/form/FieldSuffix';
 import { FormField } from '@/components/form/FormField';
-import { FIELD_CONTROL } from '@/components/form/fieldStyles';
+import { FormSelect } from '@/components/form/FormSelect';
+import { FIELD_CONTROL, FIELD_READONLY } from '@/components/form/fieldStyles';
 import { UNIT_NAMES, UNITS } from '@/components/products/form/useProductForm';
 import type { ProductFormatValues } from './useProductFormatForm';
 
@@ -38,8 +39,11 @@ export function ProductFormatFields({ form, isArticle, creating, currency }: Pro
       {isArticle && (
         <FormField label={tForm('unit')} required={creating} help={creating ? tForm('unit_help') : undefined}>
           {(c) => creating
-            ? <select {...c} {...register('unit')} className={FIELD_CONTROL}>{UNITS.map((u) => <option key={u} value={u}>{tUnits(UNIT_NAMES[u])}</option>)}</select>
-            : <input {...c} readOnly value={tUnits(UNIT_NAMES[unit])} className={`${FIELD_CONTROL} bg-muted text-muted-foreground`} />}
+            ? <Controller control={control} name="unit" render={({ field }) => (
+                <FormSelect control={c} value={field.value} onChange={field.onChange} triggerRef={field.ref}
+                  options={UNITS.map((u) => ({ value: u, label: tUnits(UNIT_NAMES[u]) }))} />
+              )} />
+            : <output {...c} className={`${FIELD_READONLY} text-muted-foreground`}>{tUnits(UNIT_NAMES[unit])}</output>}
         </FormField>
       )}
       {isArticle && (

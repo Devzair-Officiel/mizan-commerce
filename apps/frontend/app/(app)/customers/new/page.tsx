@@ -23,8 +23,8 @@ function NewCustomerContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-198">
-      <TopBar title={t('title')} back backLabel={tNav('customers')} onBack={back} hideSearch />
+    <div className="mx-auto w-full max-w-280">
+      <TopBar title={t('title')} subtitle={t('subtitle')} back backLabel={tNav('customers')} onBack={back} hideSearch />
       <CustomerForm
         mode="create"
         defaultValues={prefillName ? { name: prefillName } : undefined}

@@ -25,9 +25,11 @@ function thumbColor(name: string): string {
 export function ProductThumb({ product, className }: { product: Product; className?: string }) {
   const box = cn('flex shrink-0 items-center justify-center rounded-xl', className);
   if (product.primary_image) {
+    // Cadre carré : la photo, haute ou large, est recadrée au centre ; fond atténué pendant le chargement.
     return (
-      <Image src={product.primary_image} alt="" width={44} height={44} unoptimized
-        className={cn(box, 'object-cover ring-1 ring-border')} />
+      <span aria-hidden className={cn(box, 'relative aspect-square overflow-hidden bg-muted ring-1 ring-border')}>
+        <Image src={product.primary_image} alt="" fill unoptimized sizes="2.75rem" className="object-cover" />
+      </span>
     );
   }
   if (product.type === 'service') {

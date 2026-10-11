@@ -10,14 +10,16 @@ from django.conf import settings
 from django.db import transaction
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import (
-    Case, DecimalField, Exists, F, Min, OuterRef, Q, QuerySet, Subquery, Sum, Value,
-    When,
+    Case, DecimalField, Exists, F, Max, Min, OuterRef, Q, QuerySet, Subquery, Sum,
+    Value, When,
 )
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from apps.core.storage import get_signed_url, upload_fileobj
+from apps.core.storage import (
+    delete_object, download_bytes, get_signed_url, upload_fileobj,
+)
 
 from .models import Product, ProductVariant
 
@@ -28,7 +30,10 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    'upload_product_image', 'get_signed_url', 'PRODUCT_SEARCH_FIELDS',
+    'upload_product_image', 'set_primary_image', 'delete_product_image',
+    'replace_image_file', 'read_image_file', 'PRODUCT_IMAGE_MAX_COUNT',
+    'get_signed_url', 'PRODUCT_SEARCH_FIELDS', 'served_variant_ids',
+    'is_last_active_variant', 'LAST_ACTIVE_VARIANT_MESSAGE',
     'products_with_stats', 'filter_products', 'build_product_facets',
     'build_products_summary', 'create_product', 'create_variant', 'product_has_served',
     'delete_unused_product', 'ProductInUseError', 'INITIAL_STOCK_REASON',
@@ -184,35 +189,93 @@ def build_products_summary(shop: 'Shop') -> dict:
     }
 
 
-def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFile) -> 'ProductImage':  # noqa: E501
-    from apps.products.models import ProductImage
+# ─── Photos d'un article ────────────────────────────────────────────────────
 
+PRODUCT_IMAGE_MAX_COUNT = 8
+# Extension de l'objet déduite du type vérifié, jamais du nom de fichier envoyé.
+_IMAGE_EXTENSIONS = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp'}
+_IMAGE_TYPES = {ext: content_type for content_type, ext in _IMAGE_EXTENSIONS.items()}
+
+
+def _store_image_file(product: Product, file: InMemoryUploadedFile) -> str:
+    """Vérifie le type et la taille, envoie le fichier au bucket privé, renvoie sa clé."""  # noqa: E501
     max_bytes = getattr(settings, 'PRODUCT_IMAGE_MAX_SIZE_MB', 5) * 1024 * 1024
-    allowed_types: set[str] = getattr(settings, 'PRODUCT_IMAGE_ALLOWED_TYPES', {'image/jpeg', 'image/png', 'image/webp'})  # noqa: E501
+    allowed_types: set[str] = getattr(settings, 'PRODUCT_IMAGE_ALLOWED_TYPES', set(_IMAGE_EXTENSIONS))  # noqa: E501
 
     if file.size > max_bytes:
         raise ValidationError(f"L'image ne doit pas dépasser {max_bytes // (1024 * 1024)} Mo.")  # noqa: E501
+    if file.content_type not in allowed_types or file.content_type not in _IMAGE_EXTENSIONS:  # noqa: E501
+        raise ValidationError("Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP.")  # noqa: E501
 
-    if file.content_type not in allowed_types:
-        raise ValidationError(f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.")  # noqa: E501
+    ext = _IMAGE_EXTENSIONS[file.content_type]
+    object_key = f"products/{product.shop_id}/{product.pk}/{uuid.uuid4()}.{ext}"
+    upload_fileobj(file, object_key, file.content_type)
+    return object_key
+
+
+def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFile) -> 'ProductImage':  # noqa: E501
+    from apps.products.models import ProductImage
 
     product = Product.objects.get(pk=product_id, shop=shop)
+    if ProductImage.objects.filter(product=product).count() >= PRODUCT_IMAGE_MAX_COUNT:  # noqa: E501
+        raise ValidationError(f"Un article a au plus {PRODUCT_IMAGE_MAX_COUNT} photos.")  # noqa: E501
+    object_key = _store_image_file(product, file)
 
-    ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else 'jpg'
-    object_key = f"products/{shop.pk}/{product_id}/{uuid.uuid4()}.{ext}"
-
-    upload_fileobj(file, object_key, file.content_type)
-
-    # La photo envoyée devient la principale : « Remplacer la photo » (fiche,
-    # formulaire) change bien ce qui est affiché. Les précédentes restent attachées.
+    # La photo envoyée devient la principale : elle remplace ce qui est affiché.
+    # Les précédentes restent attachées, à la suite.
     with transaction.atomic():
         images = ProductImage.objects.filter(product=product)
-        position = images.count()
+        last = images.aggregate(last=Max('position'))['last']
         images.filter(is_primary=True).update(is_primary=False)
         return ProductImage.objects.create(
             shop=shop, product=product, object_key=object_key,
-            is_primary=True, position=position,
+            is_primary=True, position=0 if last is None else last + 1,
         )
+
+
+def set_primary_image(image: 'ProductImage') -> None:
+    """La photo devient la photo principale de son article (une seule à la fois)."""
+    from apps.products.models import ProductImage
+
+    with transaction.atomic():
+        others = ProductImage.objects.filter(product_id=image.product_id)
+        others.exclude(pk=image.pk).update(is_primary=False)
+        if not image.is_primary:
+            image.is_primary = True
+            image.save(update_fields=['is_primary'])
+
+
+def delete_product_image(image: 'ProductImage') -> None:
+    """Retire la photo ; si c'était la principale, la suivante (par position) la
+    remplace. Le fichier est supprimé du bucket une fois la transaction validée."""
+    from apps.products.models import ProductImage
+
+    object_key = image.object_key
+    with transaction.atomic():
+        was_primary = image.is_primary
+        product_id = image.product_id
+        image.delete()
+        if was_primary:
+            following = ProductImage.objects.filter(product_id=product_id).first()
+            if following is not None:
+                set_primary_image(following)
+        transaction.on_commit(lambda: delete_object(object_key))
+
+
+def replace_image_file(image: 'ProductImage', file: InMemoryUploadedFile) -> 'ProductImage':  # noqa: E501
+    """Remplace le fichier d'une photo (recadrage) : même place, même statut."""
+    old_key = image.object_key
+    image.object_key = _store_image_file(image.product, file)
+    image.save(update_fields=['object_key'])
+    delete_object(old_key)
+    return image
+
+
+def read_image_file(image: 'ProductImage') -> tuple[bytes, str]:
+    """Contenu et type d'une photo, servis par l'API (même origine que l'app) pour
+    être recadrés dans le navigateur."""
+    ext = image.object_key.rsplit('.', 1)[-1].lower()
+    return download_bytes(image.object_key), _IMAGE_TYPES.get(ext, 'application/octet-stream')  # noqa: E501
 
 
 # ─── Création et suppression d'un article ───────────────────────────────────
@@ -309,6 +372,34 @@ def _delete_unused_variants(variants: QuerySet[ProductVariant]) -> None:
     if _variants_have_served(variants):
         raise ProductInUseError()
     StockMovement.objects.filter(variant__in=variants).delete()
+
+
+def served_variant_ids(product: Product) -> set[uuid.UUID]:
+    """Formats de l'article qui ont déjà servi (ligne de commande, mouvement
+    autre que le stock initial) : ils se retirent de la vente, sans suppression."""
+    from apps.orders.models import OrderItem
+    from apps.stock.models import StockMovement
+
+    variants = ProductVariant.objects.filter(product=product)
+    ordered = OrderItem.objects.filter(variant__in=variants)
+    moved = StockMovement.objects.filter(variant__in=variants).exclude(_INITIAL_MOVEMENT)  # noqa: E501
+    return {
+        *ordered.values_list('variant_id', flat=True),
+        *moved.values_list('variant_id', flat=True),
+    }
+
+
+LAST_ACTIVE_VARIANT_MESSAGE = (
+    "C'est le dernier format en vente de cet article : désactivez plutôt l'article."
+)
+
+
+def is_last_active_variant(variant: ProductVariant) -> bool:
+    """Format actif sans autre format actif : le retirer rendrait l'article invendable."""  # noqa: E501
+    others = ProductVariant.objects.filter(
+        product_id=variant.product_id, is_active=True
+    ).exclude(pk=variant.pk)
+    return variant.is_active and not others.exists()
 
 
 def product_has_served(product: Product) -> bool:

@@ -1,28 +1,22 @@
 /**
- * Audit du formulaire client (gabarit des pages de formulaire, version 2), création puis
- * modification, à 1440px et 360px, en clair et en sombre, en français et en arabe :
- * sections repliables avec résumé, erreurs dans une section repliée, actions sous la carte,
- * notifications, numéro de téléphone normalisé et « Relancer » sur WhatsApp.
+ * Audit du formulaire client (gabarit de formulaire v3), création puis modification, à 1440px
+ * et 360px, en clair et en sombre, en français et en arabe : desktop, deux colonnes (Identité,
+ * Contact, Adresse | Notes internes), tout visible ; mobile, cartes empilées dans cet ordre, les
+ * facultatives repliables avec résumé, erreurs dans une carte repliée ; aperçu du nom en direct,
+ * actions sous les colonnes, notifications, numéro de téléphone normalisé et « Relancer » sur WhatsApp.
  * Tout se passe dans la boutique du compte d'audit ; les clients créés (« Audit e2e … ») sont
  * archivés à la fin, et la boutique de Youssef est vérifiée intacte.
  */
 import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
+import { cardToggle, closeCard, isFocused, layoutOk, openCard, textbox, visibleButton } from './lib/form.mjs';
 
 const report = createReport();
 const created = [];
 const nested = [];
 // Client du compte d'audit avec une commande impayée (seed `_seed_e2e.py`).
 const FOLLOWUP_CUSTOMER = 'Nadia Relance';
-
-const visibleButton = (page, name) =>
-  page.getByRole('button', { name, exact: true }).filter({ visible: true });
-// Nom accessible du champ (l'astérisque des champs obligatoires est aria-hidden).
-const textbox = (page, name) => page.getByRole('textbox', { name, exact: true });
-// En-tête d'une section repliable : un <button> dans un <h3>.
-const sectionButton = (page, title) => page.locator('form h3 > button').filter({ hasText: title });
-const isFocused = (locator) => locator.evaluate((el) => el === document.activeElement);
 
 async function describedText(field) {
   const ids = ((await field.getAttribute('aria-describedby')) ?? '').split(' ').filter(Boolean);
@@ -51,22 +45,25 @@ async function checkToast(page, ctx, text) {
   report.check(Boolean(placed) && regions === 1, `${ctx.label} : notification « ${text} » visible (un seul Toaster, aria-live)`);
 }
 
-/** Identité ouverte en tête ; Contact, Adresse, Notes repliées ; clic, Entrée et Espace. */
+/**
+ * Disposition v3 ; Identité « Obligatoire », jamais repliée. Mobile : cartes facultatives
+ * repliées, ouvertes au clic, à Entrée, refermées à Espace. Desktop : rien à déplier.
+ */
 async function checkSections(page, t, ctx) {
-  const titles = ['section_contact', 'section_address', 'section_notes_internal'].map((k) => t(`customers.form.${k}`));
-  const expanded = await Promise.all(titles.map((title) => sectionButton(page, title).getAttribute('aria-expanded')));
-  const required = page.locator('form section h2').filter({ hasText: t('customers.form.section_identity') });
+  const titles = ['section_identity', 'section_contact', 'section_address', 'section_notes_internal'].map((k) => t(`customers.form.${k}`));
+  const layout = await layoutOk(page, ctx, { order: titles, side: [titles[3]] });
   report.check(
-    expanded.every((v) => v === 'false') && (await required.count()) === 1
+    layout && (await cardToggle(page, titles[0]).count()) === 0
       && (await page.locator('form section').getByText(t('ui.form.required'), { exact: true }).count()) === 1,
-    `${ctx.label} : Identité ouverte (« ${t('ui.form.required')} »), trois sections facultatives repliées`,
+    `${ctx.label} : Identité « ${t('ui.form.required')} », ${ctx.viewport.mobile ? 'cartes empilées dans l\'ordre, facultatives repliées' : 'deux colonnes (Notes internes à côté), rien à déplier'}`,
   );
-  const contact = sectionButton(page, titles[0]);
+  if (!ctx.viewport.mobile) return;
+  const contact = cardToggle(page, titles[1]);
   await contact.click();
   const openedByClick = (await contact.getAttribute('aria-expanded')) === 'true'
     && (await textbox(page, t('customers.form.email')).isVisible());
   await contact.click();
-  const address = sectionButton(page, titles[1]);
+  const address = cardToggle(page, titles[2]);
   await address.focus();
   await page.keyboard.press('Enter');
   const openedByEnter = (await address.getAttribute('aria-expanded')) === 'true';
@@ -74,27 +71,44 @@ async function checkSections(page, t, ctx) {
   const closedBySpace = (await address.getAttribute('aria-expanded')) === 'false';
   report.check(
     openedByClick && (await contact.getAttribute('aria-expanded')) === 'false' && openedByEnter && closedBySpace,
-    `${ctx.label} : section ouverte au clic, à Entrée, refermée à Espace`,
+    `${ctx.label} : carte ouverte au clic, à Entrée, refermée à Espace`,
   );
 }
 
-/** Desktop : actions sous la carte, dans le <form>, sans cadre ni fond. */
+/** Aperçu de l'identité : initiales et nom tel qu'il apparaîtra, mis à jour pendant la saisie. */
+async function checkPreview(page, t, ctx) {
+  const card = page.locator('form section').filter({ has: page.getByRole('heading', { name: t('customers.form.section_identity') }) });
+  const empty = await card.getByText(t('customers.form.preview_empty'), { exact: true }).count();
+  await textbox(page, t('customers.form.first_name')).fill('Amine');
+  await textbox(page, t('customers.form.name')).fill('El Idrissi');
+  const shown = await card.getByText('Amine El Idrissi', { exact: true }).count();
+  // Initiales : prénom et dernier mot du nom.
+  const initials = await card.getByText('AI', { exact: true }).count();
+  await textbox(page, t('customers.form.first_name')).fill('');
+  await textbox(page, t('customers.form.name')).fill('');
+  report.check(empty === 1 && shown === 1 && initials === 1,
+    `${ctx.label} : aperçu « ${t('customers.form.preview_empty')} » puis « Amine El Idrissi » (AI) pendant la saisie`);
+}
+
+/** Desktop : actions sous les deux colonnes, dans le <form>, sans cadre ni fond, alignées en fin de ligne. */
 async function checkActions(page, t, ctx, submitLabel) {
   if (ctx.viewport.mobile) return;
   const submit = visibleButton(page, submitLabel);
   const style = await submit.evaluate((button) => {
     const bar = button.parentElement.parentElement;
-    const card = button.form.firstElementChild;
+    const columns = button.form.firstElementChild.getBoundingClientRect();
+    const buttons = button.parentElement.getBoundingClientRect();
     const s = getComputedStyle(bar);
+    const rtl = getComputedStyle(button).direction === 'rtl';
     return {
-      inForm: button.form.contains(card),
-      below: bar.getBoundingClientRect().top >= card.getBoundingClientRect().bottom,
+      below: bar.getBoundingClientRect().top >= columns.bottom,
+      end: rtl ? Math.abs(buttons.left - columns.left) <= 8 : Math.abs(buttons.right - columns.right) <= 8,
       frameless: s.borderTopWidth === '0px' && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.position === 'static',
     };
   });
   report.check(
-    style.inForm && style.below && style.frameless && (await visibleButton(page, t('ui.form.cancel')).count()) === 1,
-    `${ctx.label} : « ${t('ui.form.cancel')} » et « ${submitLabel} » sous la carte, sans cadre, dans le formulaire`,
+    style.below && style.end && style.frameless && (await visibleButton(page, t('ui.form.cancel')).count()) === 1,
+    `${ctx.label} : « ${t('ui.form.cancel')} » et « ${submitLabel} » sous les colonnes, sans cadre, en fin de ligne`,
   );
 }
 
@@ -111,6 +125,7 @@ async function auditCreate(page, t, ctx) {
     `${label} : titre « ${t('customers.new.title')} », thème et sens de lecture`,
   );
   await checkSections(page, t, ctx);
+  await checkPreview(page, t, ctx);
   await checkActions(page, t, ctx, t('customers.form.submit_create'));
   const submit = visibleButton(page, t('customers.form.submit_create'));
   await submit.click();
@@ -129,23 +144,23 @@ async function auditCreate(page, t, ctx) {
   return id;
 }
 
-/** Erreur dans une section repliée : la section s'ouvre et le champ reçoit le focus. */
+/** Erreur de champ : mobile, dans « Contact » repliée, la carte s'ouvre ; partout, focus sur le champ et message dessous. */
 async function checkCollapsedError(page, t, ctx, { field, value, error, origin }) {
-  const contact = sectionButton(page, t('customers.form.section_contact'));
+  const title = t('customers.form.section_contact');
   const input = field === 'phone' ? page.getByRole('textbox', { name: t('customers.form.phone') }) : textbox(page, t('customers.form.email'));
-  await contact.click();
+  await openCard(page, ctx, title);
   const previous = await input.inputValue();
   await input.fill(value);
-  await contact.click();
+  await closeCard(page, ctx, title);
   await visibleButton(page, t('customers.form.submit_edit')).click();
   await page.waitForFunction((el) => el === document.activeElement, await input.elementHandle(), { timeout: 5000 }).catch(() => {});
+  const opened = !ctx.viewport.mobile || (await cardToggle(page, title).getAttribute('aria-expanded')) === 'true';
   report.check(
-    (await contact.getAttribute('aria-expanded')) === 'true' && await isFocused(input)
-      && (await describedText(input)).includes(error),
-    `${ctx.label} : ${origin} dans « Contact » repliée → section ouverte, focus sur le champ, « ${error} » dessous`,
+    opened && await isFocused(input) && (await describedText(input)).includes(error),
+    `${ctx.label} : ${origin}${ctx.viewport.mobile ? ' dans « Contact » repliée → carte ouverte,' : ' →'} focus sur le champ, « ${error} » dessous`,
   );
   await input.fill(previous);
-  await contact.click();
+  await closeCard(page, ctx, title);
 }
 
 /** « Annuler » (desktop) ou le retour de l'en-tête (mobile) demande confirmation. */
@@ -170,25 +185,24 @@ async function auditEdit(page, t, ctx, id) {
   const customerName = await textbox(page, t('customers.form.name')).inputValue();
   const submit = visibleButton(page, t('customers.form.submit_edit'));
   const unsaved = page.getByText(t('ui.form.unsaved'), { exact: true });
-  const contact = sectionButton(page, t('customers.form.section_contact'));
+  // Carte vide : son explication, dans l'en-tête repliable (mobile) ou sous le titre (desktop).
+  const help = page.locator('form section').getByText(t('customers.form.section_contact_help'), { exact: true }).filter({ visible: true });
   report.check(
     (await page.locator('h1').innerText()).includes(t('customers.edit.title'))
-      && (await submit.isDisabled()) && !(await unsaved.isVisible())
-      && (await contact.innerText()).includes(t('customers.form.section_contact_help')),
-    `${label} : « ${t('customers.edit.title')} », bouton désactivé, section vide → son explication`,
+      && (await submit.isDisabled()) && !(await unsaved.isVisible()) && (await help.count()) === 1,
+    `${label} : « ${t('customers.edit.title')} », bouton désactivé, carte Contact vide → son explication`,
   );
   await checkActions(page, t, ctx, t('customers.form.submit_edit'));
   await checkCollapsedError(page, t, ctx, { field: 'email', value: 'pas-un-email', error: t('customers.form.email_invalid'), origin: 'e-mail invalide' });
   await checkCollapsedError(page, t, ctx, { field: 'phone', value: '12345', error: t('customers.form.phone_invalid'), origin: 'numéro invalide (serveur)' });
-  const address = sectionButton(page, t('customers.form.section_address'));
-  await address.click();
+  const address = t('customers.form.section_address');
+  await openCard(page, ctx, address);
   await textbox(page, t('customers.form.city')).fill('Rabat');
   await textbox(page, t('customers.form.postal_code')).fill('10000');
-  await address.click();
+  const summary = await closeCard(page, ctx, address);
   report.check(
-    (await submit.isEnabled()) && (viewport.mobile || (await unsaved.isVisible()))
-      && (await address.innerText()).includes('10000 Rabat'),
-    `${label} : modification → ${viewport.mobile ? 'bouton actif' : '« Modifications non enregistrées »'}, résumé « 10000 Rabat » dans « Adresse » repliée`,
+    (await submit.isEnabled()) && (viewport.mobile ? summary.includes('10000 Rabat') : await unsaved.isVisible()),
+    `${label} : modification → ${viewport.mobile ? 'bouton actif, résumé « 10000 Rabat » dans « Adresse » repliée' : '« Modifications non enregistrées »'}`,
   );
   await checkLeaveGuard(page, t, ctx, customerName);
   await submit.click();
@@ -207,7 +221,7 @@ async function auditPhoneFollowup(page, t, ctx) {
   await page.request.patch(`${BASE}/api/proxy/customers/${id}/`, { data: { phone: '' } });
   await page.goto(`${BASE}/customers/${id}/edit`);
   await page.waitForLoadState('networkidle');
-  await sectionButton(page, t('customers.form.section_contact')).click();
+  await openCard(page, ctx, t('customers.form.section_contact'));
   await page.getByRole('textbox', { name: t('customers.form.phone') }).fill('06 12 34 56 78');
   await visibleButton(page, t('customers.form.submit_edit')).click();
   await page.waitForURL(new RegExp(`/customers/${id}$`));

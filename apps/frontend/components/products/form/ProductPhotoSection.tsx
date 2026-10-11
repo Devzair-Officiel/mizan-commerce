@@ -1,66 +1,94 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
+import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Camera, ImageIcon } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { FormCollapsibleSection } from '@/components/form/FormCollapsibleSection';
-import { FormField } from '@/components/form/FormField';
+import { Crop, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
+import { FormSection } from '@/components/form/FormSection';
+import { notify } from '@/lib/notify';
+import { ProductPhotoGallery } from './ProductPhotoGallery';
+import { fetchPhotoFile, PRODUCT_PHOTO_MAX_COUNT, type ProductPhotos } from './useProductPhotos';
 
-/** Mêmes limites que le serveur (`PRODUCT_IMAGE_ALLOWED_TYPES`, 5 Mo). */
-export const PRODUCT_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-export const PRODUCT_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+/** Mêmes types que le serveur (`PRODUCT_IMAGE_ALLOWED_TYPES`). */
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface ProductPhotoSectionProps {
-  file: File | null;
-  onChange: (file: File | null) => void;
-  /** Photo déjà enregistrée (URL signée), remplacée si une nouvelle est choisie. */
-  currentUrl: string | null;
+  photos: ProductPhotos;
+  /** En modification : article dont on recadre les photos enregistrées. */
+  productId?: string;
   open: boolean;
   onToggle: () => void;
+  order: string;
 }
 
-/** Photo (facultative) : aperçu, choix ou changement ; envoyée à l'enregistrement du formulaire. */
-export function ProductPhotoSection({ file, onChange, currentUrl, open, onToggle }: ProductPhotoSectionProps) {
+/**
+ * Photos (facultatives), au format carré : chaque image choisie passe par le recadrage 1:1 avant
+ * d'être ajoutée ; « Recadrer » et « Retirer » agissent sur la photo principale. Tout est envoyé
+ * à l'enregistrement du formulaire.
+ */
+export function ProductPhotoSection({ photos, productId, open, onToggle, order }: ProductPhotoSectionProps) {
   const t = useTranslations('articles.form');
+  const input = useRef<HTMLInputElement>(null);
+  // Image à recadrer : nouvelle (`key` nul) ou photo existante à recadrer à nouveau.
+  const [crop, setCrop] = useState<{ key: string | null; file: File } | null>(null);
   const [error, setError] = useState<string>();
-  const fileUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
-  useEffect(() => (fileUrl ? () => URL.revokeObjectURL(fileUrl) : undefined), [fileUrl]);
-  const preview = fileUrl ?? currentUrl;
+  const [loading, setLoading] = useState(false);
+  const { main, items } = photos;
 
   function pick(event: React.ChangeEvent<HTMLInputElement>) {
-    const next = event.target.files?.[0];
+    const file = event.target.files?.[0];
     event.target.value = '';
-    if (!next) return;
-    const problem = !PRODUCT_PHOTO_TYPES.includes(next.type) ? t('photo_format') : next.size > PRODUCT_PHOTO_MAX_BYTES ? t('photo_too_heavy') : undefined;
-    setError(problem);
-    if (!problem) onChange(next);
+    if (!file) return;
+    const valid = PHOTO_TYPES.includes(file.type);
+    setError(valid ? undefined : t('photo_format'));
+    if (valid) setCrop({ key: null, file });
   }
 
+  async function recrop() {
+    if (!main) return;
+    if (main.source) {
+      setCrop({ key: main.key, file: main.source });
+      return;
+    }
+    if (!main.id || !productId) return;
+    setLoading(true);
+    try {
+      setCrop({ key: main.key, file: await fetchPhotoFile(productId, main.id) });
+    } catch {
+      notify.error(t('photo_load_failed'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function confirm(blob: Blob) {
+    if (!crop) return;
+    const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+    if (crop.key) photos.replace(crop.key, file, crop.file);
+    else photos.add(file, crop.file);
+    setCrop(null);
+  }
+
+  const action = 'h-8.5 gap-1.5 rounded-full bg-card px-3 text-[0.8125rem] font-medium';
   return (
-    <FormCollapsibleSection title={t('section_photo')} description={t('section_photo_help')} summary={preview ? t('photo_summary') : ''}
-      icon={<ImageIcon size={19} strokeWidth={1.75} />} open={open} onToggle={onToggle}>
-      <FormField label={t('photo_label')} help={t('photo_help')} error={error} wide>
-        {(c) => (
-          <div className="flex items-center gap-4">
-            <span className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted text-muted-foreground">
-              {preview ? <Image src={preview} alt="" width={80} height={80} unoptimized className="size-full object-cover" /> : <Camera size={22} aria-hidden />}
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className={`${buttonVariants({ variant: 'outline' })} h-10 cursor-pointer rounded-full px-4 has-focus-visible:ring-3 has-focus-visible:ring-primary/30`}>
-                <input {...c} type="file" accept={PRODUCT_PHOTO_TYPES.join(',')} onChange={pick} className="sr-only" />
-                {preview ? t('photo_change') : t('photo_choose')}
-              </label>
-              {file && (
-                <Button type="button" variant="ghost" onClick={() => onChange(null)} className="h-10 rounded-full px-4">
-                  {t('photo_cancel')}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </FormField>
-    </FormCollapsibleSection>
+    <FormSection id="photos" order={order} title={t('section_photo')} status="optional"
+      collapse={{ open, onToggle, summary: items.length ? t('photo_summary', { count: items.length }) : '' }}>
+      <ProductPhotoGallery photos={photos} canAdd={items.length < PRODUCT_PHOTO_MAX_COUNT} onAdd={() => input.current?.click()} />
+      <input ref={input} type="file" accept={PHOTO_TYPES.join(',')} onChange={pick} hidden />
+      {main && (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={recrop} disabled={loading} className={action}>
+            <Crop size={16} aria-hidden />{t('photo_crop')}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => photos.remove(main.key)} className={action}>
+            <Trash2 size={16} aria-hidden />{t('photo_remove')}
+          </Button>
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">{t('photo_note')}</p>
+      {error && <p role="alert" className="text-xs font-medium text-red-700 dark:text-red-400">{error}</p>}
+      <ImageCropDialog open={crop !== null} file={crop?.file ?? null} onClose={() => setCrop(null)} onConfirm={confirm} outputSize={1024} />
+    </FormSection>
   );
 }

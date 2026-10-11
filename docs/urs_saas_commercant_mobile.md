@@ -503,7 +503,7 @@ L'application est organisée autour des modules suivants :
 
 **En tant que** commerçant,  
 **je veux** que le stock soit réservé quand une commande est à préparer,  
-**afin de** éviter de vendre deux fois le même produit.
+**afin de** savoir à tout moment ce qui est disponible et ce qui est déjà promis à un client.
 
 ### Critères d'acceptation
 

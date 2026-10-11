@@ -2,10 +2,9 @@
 
 import { Controller, useWatch, type Control, type FieldErrors, type UseFormRegister, type UseFormSetValue } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
-import { MapPin } from 'lucide-react';
-import { FormCollapsibleSection } from '@/components/form/FormCollapsibleSection';
 import { FormField } from '@/components/form/FormField';
-import { FIELD_CONTROL } from '@/components/form/fieldStyles';
+import { FormSection } from '@/components/form/FormSection';
+import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
 import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
 import { CountryPicker } from '@/components/ui/CountryPicker';
 import { useCountryNames } from '@/lib/hooks/useCountryNames';
@@ -18,10 +17,11 @@ interface CustomerAddressSectionProps {
   errors: FieldErrors<CustomerFormValues>;
   open: boolean;
   onToggle: () => void;
+  order: string;
 }
 
-/** Adresse (facultative) : pays, adresse (autocomplétion, toute la largeur), ville et code postal. */
-export function CustomerAddressSection({ control, register, setValue, errors, open, onToggle }: CustomerAddressSectionProps) {
+/** Adresse (facultative) : pays, adresse (autocomplétion), puis ville et code postal côte à côte. */
+export function CustomerAddressSection({ control, register, setValue, errors, open, onToggle, order }: CustomerAddressSectionProps) {
   const t = useTranslations('customers.form');
   const countryName = useCountryNames();
   const [country, address, city, postalCode] = useWatch({ control, name: ['country', 'address_line', 'city', 'postal_code'] });
@@ -31,8 +31,8 @@ export function CustomerAddressSection({ control, register, setValue, errors, op
     .filter(Boolean).join(', ');
 
   return (
-    <FormCollapsibleSection title={t('section_address')} description={t('section_address_help')} summary={summary}
-      icon={<MapPin size={19} strokeWidth={1.75} />} open={open} onToggle={onToggle}>
+    <FormSection order={order} title={t('section_address')} status="optional" description={t('section_address_help')}
+      collapse={{ open, onToggle, summary }}>
       <FormField label={t('country')}>
         {({ id, 'aria-describedby': describedBy }) => (
           <Controller name="country" control={control} render={({ field }) => (
@@ -40,7 +40,7 @@ export function CustomerAddressSection({ control, register, setValue, errors, op
           )} />
         )}
       </FormField>
-      <FormField label={t('address')} error={errors.address_line?.message} wide>
+      <FormField label={t('address')} error={errors.address_line?.message}>
         {({ id, 'aria-describedby': describedBy, 'aria-invalid': invalid }) => (
           <Controller name="address_line" control={control} render={({ field }) => (
             <AddressAutocomplete ref={field.ref} id={id} aria-describedby={describedBy} aria-invalid={invalid}
@@ -53,12 +53,14 @@ export function CustomerAddressSection({ control, register, setValue, errors, op
           )} />
         )}
       </FormField>
-      <FormField label={t('city')} error={errors.city?.message}>
-        {(c) => <input {...c} {...register('city')} dir="auto" autoComplete="off" className={FIELD_CONTROL} />}
-      </FormField>
-      <FormField label={t('postal_code')} error={errors.postal_code?.message}>
-        {(c) => <input {...c} {...register('postal_code')} autoComplete="off" className={FIELD_CONTROL} />}
-      </FormField>
-    </FormCollapsibleSection>
+      <div className={FIELD_ROW}>
+        <FormField label={t('city')} error={errors.city?.message}>
+          {(c) => <input {...c} {...register('city')} dir="auto" autoComplete="off" className={FIELD_CONTROL} />}
+        </FormField>
+        <FormField label={t('postal_code')} error={errors.postal_code?.message}>
+          {(c) => <input {...c} {...register('postal_code')} autoComplete="off" className={`${FIELD_CONTROL} tabular-nums`} />}
+        </FormField>
+      </div>
+    </FormSection>
   );
 }

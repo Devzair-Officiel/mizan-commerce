@@ -1,8 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
+import type { DetailMenuActions } from '@/components/detail/types';
 import { StockEntryButton } from '@/components/stock/StockEntryButton';
 import { StockLevelQuantity } from '@/components/stock/levels/StockLevelQuantity';
+import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import type { ProductVariant } from '@/lib/hooks/useProducts';
 import { cn } from '@/lib/utils';
 import { ProductFormatState } from './ProductFormatState';
@@ -14,11 +17,14 @@ interface ProductFormatsListProps {
   labels: FormatLabels;
   actions: ProductDetailActions;
   canEnter: boolean;
+  /** Menu « ⋯ » du format. */
+  menuFor: (variant: ProductVariant) => DetailMenuActions;
 }
 
-/** Formats en lignes (jusqu'au grand écran) : la ligne ouvre la modification, « + Entrée » à côté. */
-export function ProductFormatsList({ formats, labels, actions, canEnter }: ProductFormatsListProps) {
+/** Formats en lignes (jusqu'au grand écran) : la ligne ouvre la modification, « + Entrée » et « ⋯ » à côté. */
+export function ProductFormatsList({ formats, labels, actions, canEnter, menuFor }: ProductFormatsListProps) {
   const t = useTranslations('articles.sheet');
+  const isDesktop = useIsDesktop();
   return (
     <ul className="divide-y divide-border xl:hidden">
       {formats.map((v) => (
@@ -37,6 +43,7 @@ export function ProductFormatsList({ formats, labels, actions, canEnter }: Produ
             </span>
           </button>
           {canEnter && v.is_active && <StockEntryButton label={labels.full(v)} onClick={() => actions.openEntry(v)} />}
+          <DetailActionsMenu actions={menuFor(v)} variant={isDesktop ? 'menu' : 'sheet'} label={t('format.actions_label', { name: labels.full(v) })} />
         </li>
       ))}
     </ul>

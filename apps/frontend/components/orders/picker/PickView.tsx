@@ -5,6 +5,7 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import type { Product } from '@/lib/hooks/useProducts';
+import { ProductThumb } from '@/components/products/list/ProductThumb';
 import { CatalogAddActions } from './CatalogAddActions';
 
 export type PickFilter = 'all' | 'product' | 'service';
@@ -133,6 +134,7 @@ function ProductRow({ product, onPick, isLoading, feedback }: {
         aria-label={t('add_aria', { name: product.name })}
         className="flex items-center gap-3 px-1 min-h-16 py-2 text-left text-foreground transition-colors active:bg-muted w-full disabled:opacity-60"
       >
+        <ProductThumb product={product} className="size-11 text-base" />
         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-sm font-medium truncate">{product.name}</span>

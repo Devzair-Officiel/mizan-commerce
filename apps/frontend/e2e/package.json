@@ -4,12 +4,13 @@
   "type": "module",
   "description": "Audits navigateur (Playwright) : console surveillée, éléments imbriqués, parcours de formulaires",
   "scripts": {
-    "audit": "node audit-pages.mjs && node audit-customer-form.mjs && node audit-zakat.mjs && node audit-products-list.mjs && node audit-product-form.mjs && node audit-stock.mjs && node audit-product-sheet.mjs && node audit-loading.mjs",
+    "audit": "node audit-pages.mjs && node audit-customer-form.mjs && node audit-zakat.mjs && node audit-products-list.mjs && node audit-product-form.mjs && node audit-product-photos.mjs && node audit-stock.mjs && node audit-product-sheet.mjs && node audit-loading.mjs",
     "audit:pages": "node audit-pages.mjs",
     "audit:customer-form": "node audit-customer-form.mjs",
     "audit:zakat": "node audit-zakat.mjs",
     "audit:products-list": "node audit-products-list.mjs",
     "audit:product-form": "node audit-product-form.mjs",
+    "audit:product-photos": "node audit-product-photos.mjs",
     "audit:stock": "node audit-stock.mjs",
     "audit:product-sheet": "node audit-product-sheet.mjs",
     "audit:loading": "node audit-loading.mjs"

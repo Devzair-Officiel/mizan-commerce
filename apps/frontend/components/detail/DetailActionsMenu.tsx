@@ -12,6 +12,8 @@ interface DetailActionsMenuProps {
   actions: DetailMenuActions;
   /** menu : menu ancré (desktop). sheet : feuille du bas (mobile). Même liste d'actions. */
   variant: 'menu' | 'sheet';
+  /** Nom accessible du bouton (« Actions du format 50 cl ») ; « Plus d'actions » par défaut. */
+  label?: string;
 }
 
 const ROW = 'flex w-full items-center gap-2.5 whitespace-nowrap text-start font-medium transition-colors disabled:pointer-events-none disabled:opacity-50';
@@ -50,17 +52,18 @@ function SheetEntry({ action, onDone }: { action: DetailAction; onDone: () => vo
 const TRIGGER = 'grid size-11 shrink-0 place-items-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /** Bouton « ⋯ » : actions secondaires de la page, puis l'action dangereuse après un séparateur. */
-export function DetailActionsMenu({ actions, variant }: DetailActionsMenuProps) {
+export function DetailActionsMenu({ actions, variant, label }: DetailActionsMenuProps) {
   const t = useTranslations('ui.detail');
   const [open, setOpen] = useState(false);
   const { items, danger } = actions;
+  const name = label ?? t('more_actions');
   if (items.length === 0 && !danger) return null;
 
   if (variant === 'sheet') {
     const close = () => setOpen(false);
     return (
       <>
-        <button type="button" aria-label={t('more_actions')} aria-haspopup="dialog" onClick={() => setOpen(true)} className={TRIGGER}>
+        <button type="button" aria-label={name} aria-haspopup="dialog" onClick={() => setOpen(true)} className={TRIGGER}>
           <MoreHorizontal size={22} aria-hidden />
         </button>
         <BottomSheet open={open} onClose={close} title={t('actions_title')}>
@@ -76,7 +79,7 @@ export function DetailActionsMenu({ actions, variant }: DetailActionsMenuProps) 
 
   return (
     <Menu.Root>
-      <Menu.Trigger aria-label={t('more_actions')} className={cn(TRIGGER, 'border border-border bg-card data-popup-open:bg-muted')}>
+      <Menu.Trigger aria-label={name} className={cn(TRIGGER, 'border border-border bg-card data-popup-open:bg-muted')}>
         <MoreHorizontal size={20} aria-hidden />
       </Menu.Trigger>
       <Menu.Portal>

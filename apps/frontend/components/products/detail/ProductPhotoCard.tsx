@@ -1,50 +1,42 @@
 'use client';
 
-import { useRef, type ChangeEvent } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Camera, ImageIcon } from 'lucide-react';
-import { PRODUCT_PHOTO_MAX_BYTES, PRODUCT_PHOTO_TYPES } from '@/components/products/form/ProductPhotoSection';
-import { useUploadProductImage, type ProductDetail } from '@/lib/hooks/useProducts';
-import { notify } from '@/lib/notify';
+import { ImageIcon } from 'lucide-react';
+import type { ProductDetail } from '@/lib/hooks/useProducts';
 
-/** Photo de l'article (4/3) ; l'ajout ou le remplacement s'enregistre tout de suite. */
+/** Photo carrée de l'article et miniatures (la principale entourée) ; elles se gèrent dans le formulaire. */
 export function ProductPhotoCard({ product }: { product: ProductDetail }) {
   const t = useTranslations('articles.sheet');
-  const tForm = useTranslations('articles.form');
-  const upload = useUploadProductImage(product.id);
-  const input = useRef<HTMLInputElement>(null);
-
-  function onChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (!(PRODUCT_PHOTO_TYPES as readonly string[]).includes(file.type)) { notify.error(tForm('photo_format')); return; }
-    if (file.size > PRODUCT_PHOTO_MAX_BYTES) { notify.error(tForm('photo_too_heavy')); return; }
-    upload.mutate(file, {
-      onSuccess: () => notify.success(t('photo_saved')),
-      onError: () => notify.error(t('photo_failed')),
-    });
-  }
+  const images = [...product.images].sort((a, b) => a.position - b.position);
+  const main = images.find((i) => i.is_primary) ?? images[0];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="relative grid aspect-4/3 place-items-center bg-muted">
-        {product.primary_image ? (
-          <Image src={product.primary_image} alt={product.name} fill unoptimized sizes="(min-width: 1024px) 25rem, 100vw" className="object-cover" />
+    <section aria-label={t('photos')} className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-4">
+      <div className="relative grid aspect-square place-items-center overflow-hidden rounded-xl border border-border bg-muted">
+        {main?.url ? (
+          <Image src={main.url} alt={product.name} fill unoptimized loading="eager" sizes="(min-width: 1024px) 24rem, 100vw" className="object-cover" />
         ) : (
           <ImageIcon size={40} strokeWidth={1.5} className="text-muted-foreground" aria-hidden />
         )}
       </div>
-      <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-5">
-        <p className="text-xs text-muted-foreground">{tForm('photo_help')}</p>
-        <button type="button" onClick={() => input.current?.click()} disabled={upload.isPending}
-          className="inline-flex shrink-0 items-center gap-1.5 text-[0.8125rem] font-semibold text-primary hover:underline focus-visible:underline focus-visible:outline-none disabled:opacity-50">
-          <Camera size={14} aria-hidden />
-          {upload.isPending ? t('photo_sending') : product.primary_image ? tForm('photo_change') : tForm('photo_choose')}
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        {images.length > 1 ? (
+          <div aria-hidden className="flex min-w-0 flex-wrap gap-1.5">
+            {images.map((image) => (
+              <span key={image.id}
+                className={`relative size-11 overflow-hidden rounded-lg bg-muted ${image.id === main?.id ? 'border-2 border-primary' : 'border border-border'}`}>
+                {image.url && <Image src={image.url} alt="" fill unoptimized loading="eager" sizes="2.75rem" className="object-cover" />}
+              </span>
+            ))}
+          </div>
+        ) : <span />}
+        <Link href={`/products/${product.id}/edit?focus=photos`}
+          className="shrink-0 text-[0.8125rem] font-semibold text-primary underline-offset-4 hover:underline">
+          {t(images.length ? 'photos_manage' : 'photos_add')}
+        </Link>
       </div>
-      <input ref={input} type="file" accept={PRODUCT_PHOTO_TYPES.join(',')} className="hidden" onChange={onChange} tabIndex={-1} aria-hidden />
-    </div>
+    </section>
   );
 }

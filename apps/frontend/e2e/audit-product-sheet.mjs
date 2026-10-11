@@ -3,6 +3,9 @@
  * en clair et en sombre :
  * - article à un format : nom, badge « Stock faible », carte Stock, derniers mouvements et « Voir tout » ;
  *   entrée rapide par l'action principale ; ajout d'un format en fenêtre, puis « + Entrée » sur sa ligne ;
+ * - menu « ⋯ » des formats : format qui a servi sans « Supprimer » ; format jamais utilisé supprimé
+ *   après confirmation ; dernier format actif ni retirable ni supprimable ; format devenu utilisé
+ *   pendant la confirmation → la fenêtre affiche le refus (409) ;
  * - article jamais utilisé : « Supprimer » dans le menu « ⋯ », confirmation, retour à la liste ;
  * - article vendu : pas de « Supprimer » dans le menu, l'API refuse (409) ;
  * - service : carte Prix et ventes, ni formats, ni stock, ni entrée de stock ;
@@ -93,6 +96,78 @@ async function checkNewFormat(page, ctx, article, nested) {
     `${label} : « ${s('add_format')} » → format « Lot » enregistré, « + Entrée » sur sa ligne ouvre l'entrée rapide`);
 }
 
+/** Ouvre le menu « ⋯ » du format `format` de l'article et renvoie le texte de ses entrées. */
+async function openFormatMenu(page, ctx, article, format) {
+  // Le format par défaut est désigné par le seul nom de l'article (comme dans le stock).
+  const name = format === 'Par défaut' ? article.name : fmt(ctx.locale, 'stock.common.variant_label', { product: article.name, format });
+  await button(page, fmt(ctx.locale, 'articles.sheet.format.actions_label', { name })).click();
+  const items = ctx.viewport.mobile ? page.getByRole('dialog').getByRole('button') : page.getByRole('menuitem');
+  await items.first().waitFor();
+  return { items, texts: await items.allInnerTexts() };
+}
+
+async function closeMenu(page) {
+  await page.keyboard.press('Escape');
+  await page.getByRole('menu').or(page.getByRole('dialog')).first().waitFor({ state: 'detached' }).catch(() => {});
+}
+
+/** Confirme la suppression du format `format` depuis son menu ; `before` s'exécute fenêtre ouverte. */
+async function deleteFormat(page, ctx, article, format, before = async () => {}) {
+  const f = (key, values) => fmt(ctx.locale, `articles.sheet.format.${key}`, values);
+  const { items } = await openFormatMenu(page, ctx, article, format);
+  await items.filter({ hasText: f('delete') }).click();
+  // Le format par défaut est désigné par le seul nom de l'article (comme dans le stock).
+  const name = format === 'Par défaut' ? article.name : fmt(ctx.locale, 'stock.common.variant_label', { product: article.name, format });
+  const confirm = page.getByRole('alertdialog').or(page.getByRole('dialog')).filter({ hasText: f('confirm_delete_title', { name }) });
+  await confirm.waitFor();
+  await before();
+  await confirm.getByRole('button', { name: f('delete'), exact: true }).click();
+  return confirm;
+}
+
+/**
+ * Menu « ⋯ » des formats (« Par défaut » a servi : entrée de stock ; « Lot » jamais utilisé) :
+ * suppression de « Lot », puis dernier format actif ; enfin un format qui sert pendant la confirmation (409).
+ */
+async function checkFormatMenu(page, ctx, article, fixtures) {
+  const { label, locale } = ctx;
+  const f = (key, values) => fmt(locale, `articles.sheet.format.${key}`, values);
+  const used = await openFormatMenu(page, ctx, article, 'Par défaut');
+  await closeMenu(page);
+  const lot = await openFormatMenu(page, ctx, article, 'Lot');
+  await closeMenu(page);
+  report.check(used.texts.some((x) => x.includes(f('edit'))) && used.texts.some((x) => x.includes(f('deactivate')))
+    && !used.texts.some((x) => x.includes(f('delete'))) && lot.texts.some((x) => x.includes(f('delete'))),
+  `${label} : menu « ⋯ » des formats — « ${f('edit')} », « ${f('deactivate')} » ; « ${f('delete')} » seulement sur le format jamais utilisé`);
+
+  const confirm = await deleteFormat(page, ctx, article, 'Lot');
+  const toast = await toastShown(page, f('deleted'));
+  await confirm.waitFor({ state: 'detached' });
+  const after = await api(page, `products/${article.id}/`);
+  const last = await openFormatMenu(page, ctx, article, 'Par défaut');
+  await closeMenu(page);
+  report.check(toast && after.variants.length === 1 && last.texts.some((x) => x.includes(f('edit')))
+    && !last.texts.some((x) => x.includes(f('deactivate')) || x.includes(f('delete'))),
+    `${label} : « Lot » supprimé après confirmation (« ${f('deleted')} ») ; dernier format actif : « ${f('edit')} » seulement`);
+
+  const extra = await api(page, `products/${article.id}/variants/`, {
+    method: 'POST', data: { packaging_name: 'Lot 2', base_quantity: '2', unit: 'piece', selling_price: '20.00', initial_stock: '2' },
+  });
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  // Le format sert (commande) pendant que la confirmation est ouverte : le serveur refuse (409).
+  const refused = await deleteFormat(page, ctx, article, 'Lot 2', async () => {
+    const order = await api(page, 'orders/', { method: 'POST', data: { items: [{ variant: extra.id, quantity: 1 }] } });
+    fixtures.orders.push(order.id);
+  });
+  const shown = await refused.getByText(f('delete_refused'), { exact: true }).waitFor().then(() => true, () => false);
+  await page.keyboard.press('Escape');
+  await refused.waitFor({ state: 'detached' });
+  const kept = await api(page, `products/${article.id}/`);
+  report.check(shown && kept.variants.length === 2,
+    `${label} : format vendu pendant la confirmation → « ${f('delete_refused')} » dans la fenêtre, format conservé`);
+}
+
 /** Article jamais utilisé : « Supprimer », confirmation, retour à la liste, article supprimé. */
 async function checkDelete(page, ctx, fresh, nested) {
   const { label, locale } = ctx;
@@ -143,11 +218,12 @@ async function run(page, ctx, fixtures, nested) {
   try {
     await checkArticle(page, ctx, article, nested);
     await checkNewFormat(page, ctx, article, nested);
+    await checkFormatMenu(page, ctx, article, fixtures);
     await checkDelete(page, ctx, fresh, nested);
     await checkSold(page, ctx, fixtures.sold, nested);
     await checkService(page, ctx, fixtures.service, nested);
   } catch (error) {
-    report.check(false, `${ctx.label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+    report.check(false, `${ctx.label} : parcours interrompu — ${error.message.split('\n').slice(0, process.env.DEBUG ? 6 : 1).join(' / ')}`);
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/fiche-${ctx.viewport.name}-${ctx.locale}.png`, fullPage: true });
     await remove(page, [fresh.id]).catch(() => {});
   }
@@ -160,7 +236,7 @@ for (const viewport of VIEWPORTS) {
   const sold = await createArticle(page, { name: `Audit fiche vendu ${stamp}`, price: '9.00', stock: 3 });
   const order = await api(page, 'orders/', { method: 'POST', data: { items: [{ variant: sold.variants[0].id, quantity: 1 }] } });
   const service = await createService(page, `Audit fiche service ${stamp}`);
-  const fixtures = { sold, service, used: [sold.id] };
+  const fixtures = { sold, service, used: [sold.id], orders: [order.id] };
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
@@ -170,12 +246,14 @@ for (const viewport of VIEWPORTS) {
       watch.setLabel(label);
       const nested = [];
       await run(page, { label, viewport, locale }, fixtures, nested);
-      const problems = [...watch.problems, ...nested.map((n) => `imbriqué : ${n}`)];
+      // Le 409 du format vendu pendant la confirmation est provoqué par l'audit (refus attendu).
+      const provoked = (p) => /status of 409 .*\/api\/proxy\/products\/[0-9a-f-]{36}\/variants\/[0-9a-f-]{36}\/?\)/.test(p);
+      const problems = [...watch.problems.filter((p) => !provoked(p)), ...nested.map((n) => `imbriqué : ${n}`)];
       report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       watch.problems.length = 0;
     }
   }
-  await api(page, `orders/${order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
+  for (const id of fixtures.orders) await api(page, `orders/${id}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
   await deactivate(page, fixtures.used);
   await remove(page, [service.id]);
   await ctx.close();

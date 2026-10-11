@@ -4,10 +4,29 @@ from .models import Product, ProductImage, ProductVariant
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    # URL signée (1 h) ; None si le bucket n'est pas configuré.
+    url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
-        fields = ('id', 'object_key', 'is_primary', 'position', 'created_at')
+        fields = ('id', 'url', 'is_primary', 'position', 'created_at')
         read_only_fields = ('id', 'created_at')
+
+    def get_url(self, obj: ProductImage) -> str | None:
+        from apps.core.storage import get_signed_url, is_storage_configured
+        return get_signed_url(obj.object_key) if is_storage_configured() else None
+
+
+class ProductImagePrimarySerializer(serializers.Serializer):
+    """PATCH d'une photo : seule la désignation de la photo principale est possible."""  # noqa: E501
+    is_primary = serializers.BooleanField()
+
+    def validate_is_primary(self, value: bool) -> bool:
+        if not value:
+            raise serializers.ValidationError(
+                'Choisissez une autre photo principale plutôt que de retirer celle-ci.',  # noqa: E501
+            )
+        return value
 
 
 class ProductVariantSerializer(serializers.ModelSerializer):
@@ -15,6 +34,8 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     is_out_of_stock = serializers.BooleanField(read_only=True)
     is_negative_stock = serializers.BooleanField(read_only=True)
     stock_state = serializers.CharField(read_only=True)
+    # Jamais servi (ni commande, ni mouvement autre que le stock initial) : supprimable.
+    can_delete = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductVariant
@@ -24,9 +45,18 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             'stock_quantity', 'low_stock_threshold',
             'sku', 'barcode', 'position', 'is_active',
             'is_low_stock', 'is_out_of_stock', 'is_negative_stock', 'stock_state',
-            'created_at', 'updated_at',
+            'can_delete', 'created_at', 'updated_at',
         )
         read_only_fields = ('id', 'stock_quantity', 'created_at', 'updated_at')
+
+    def get_can_delete(self, obj: ProductVariant) -> bool:
+        # Calculé une fois par article : les formats de la fiche partagent leur produit.
+        from .services import served_variant_ids
+        product = obj.product
+        served = getattr(product, '_served_variant_ids', None)
+        if served is None:
+            served = product._served_variant_ids = served_variant_ids(product)
+        return obj.pk not in served
 
     def validate_packaging_name(self, value: str) -> str:
         # Unicité du packaging au sein d'un produit (excepté l'instance courante en édition).  # noqa: E501
@@ -40,6 +70,12 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
             raise serializers.ValidationError("Ce nom de conditionnement existe déjà pour ce produit.")  # noqa: E501
+        return value
+
+    def validate_is_active(self, value: bool) -> bool:
+        from .services import LAST_ACTIVE_VARIANT_MESSAGE, is_last_active_variant
+        if not value and self.instance is not None and is_last_active_variant(self.instance):  # noqa: E501
+            raise serializers.ValidationError(LAST_ACTIVE_VARIANT_MESSAGE)
         return value
 
     def validate_base_quantity(self, value):

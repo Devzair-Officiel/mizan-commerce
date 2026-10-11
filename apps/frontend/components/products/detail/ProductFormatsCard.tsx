@@ -2,12 +2,14 @@
 
 import { useTranslations } from 'next-intl';
 import { Plus } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/dialog';
 import { SectionCard } from '@/components/ui/SectionCard';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
 import { ProductFormatsList } from './ProductFormatsList';
 import { ProductFormatsTable } from './ProductFormatsTable';
 import { sortedFormats } from './productFormats';
 import { useFormatLabels } from './useFormatLabels';
+import { useFormatMenu } from './useFormatMenu';
 import type { ProductDetailActions } from './useProductDetailState';
 
 interface ProductFormatsCardProps {
@@ -16,12 +18,13 @@ interface ProductFormatsCardProps {
   actions: ProductDetailActions;
 }
 
-/** Carte « Formats » : prix, stock, seuil et état de chaque format ; ajout et modification en fenêtre. */
+/** Carte « Formats » : prix, stock, seuil et état de chaque format ; ajout et modification en fenêtre, menu « ⋯ » par format. */
 export function ProductFormatsCard({ product, currency, actions }: ProductFormatsCardProps) {
   const t = useTranslations('articles.sheet');
   const labels = useFormatLabels(product, currency);
   const formats = sortedFormats(product);
-  const props = { formats, labels, actions, canEnter: product.is_active };
+  const { menuFor, confirm } = useFormatMenu(product, actions.openFormat);
+  const props = { formats, labels, actions, canEnter: product.is_active, menuFor };
   const add = (
     <button type="button" onClick={() => actions.openFormat('new')}
       className="inline-flex items-center gap-1 font-semibold text-primary hover:underline focus-visible:underline focus-visible:outline-none">
@@ -39,6 +42,9 @@ export function ProductFormatsCard({ product, currency, actions }: ProductFormat
           <ProductFormatsList {...props} />
         </>
       )}
+      <ConfirmDialog open={confirm.open} onOpenChange={confirm.setOpen} variant="destructive" onConfirm={confirm.run}
+        title={t('format.confirm_delete_title', { name: confirm.variant ? labels.full(confirm.variant) : '' })}
+        description={t('format.confirm_delete_text')} confirmLabel={t('delete')} cancelLabel={t('cancel')} />
     </SectionCard>
   );
 }

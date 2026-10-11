@@ -276,6 +276,8 @@ Photos d'un produit (1..n).
 | position | INTEGER | NOT NULL, DEFAULT 0 | Ordre |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
+Règles (service `products.services`) : 8 photos au plus par article ; une seule `is_primary` à la fois, la dernière envoyée le devient ; retirer la photo principale promeut la suivante (par `position`) ; le recadrage remplace `object_key` sans changer `position` ni `is_primary`. L'extension de la clé est déduite du type vérifié (JPEG, PNG, WebP), jamais du nom du fichier envoyé ; l'objet est supprimé du bucket avec la ligne.
+
 ---
 
 ### `shelves`

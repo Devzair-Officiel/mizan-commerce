@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useForm, type FieldErrors, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
@@ -9,6 +9,7 @@ import { useFormSections } from '@/components/form/useFormSections';
 import { ApiError } from '@/lib/api-client';
 import type { ProductDetail, ProductType, ProductUnit, ProductVariant } from '@/lib/hooks/useProducts';
 import { notify } from '@/lib/notify';
+import { useProductPhotos, type PhotoChanges } from './useProductPhotos';
 
 export const UNITS = ['piece', 'g', 'kg', 'mL', 'L', 'm'] as const;
 
@@ -16,13 +17,12 @@ export const UNITS = ['piece', 'g', 'kg', 'mL', 'L', 'm'] as const;
 export const UNIT_NAMES = { piece: 'piece', g: 'gram', kg: 'kilogram', mL: 'milliliter', L: 'liter', m: 'meter' } as const satisfies Record<ProductUnit, string>;
 
 /** Ordre d'affichage : la première erreur dans cet ordre reçoit le focus. */
-const FIELDS = ['name', 'selling_price', 'unit', 'purchase_price', 'initial_stock', 'low_stock_threshold', 'sku', 'barcode', 'description'] as const;
+const FIELDS = ['name', 'description', 'selling_price', 'purchase_price', 'initial_stock', 'low_stock_threshold', 'unit', 'sku', 'barcode'] as const;
 type ProductField = (typeof FIELDS)[number];
-export type ProductSection = 'photo' | 'purchase' | 'stock' | 'reference' | 'description';
+export type ProductSection = 'photo' | 'stock' | 'reference';
 
 const SECTION_OF: Partial<Record<ProductField, ProductSection>> = {
-  purchase_price: 'purchase', initial_stock: 'stock', low_stock_threshold: 'stock',
-  sku: 'reference', barcode: 'reference', description: 'description',
+  initial_stock: 'stock', low_stock_threshold: 'stock', sku: 'reference', barcode: 'reference',
 };
 
 /** Précision des champs `DecimalField` du modèle : prix (12, 2), quantités (14, 3). */
@@ -80,22 +80,24 @@ interface ProductFormOptions {
   product?: ProductDetail;
   /** Format réglé par le formulaire ; `null` en modification d'un article à plusieurs formats. */
   variant: ProductVariant | null;
-  /** Résout `false` si l'article est enregistré mais que la photo ou le stock initial ne l'ont pas été. */
-  onSubmit: (values: ProductFormValues, photo: File | null) => Promise<boolean>;
+  /** Résout `false` si l'article est enregistré mais que ses photos ne l'ont pas toutes été. */
+  onSubmit: (values: ProductFormValues, photos: PhotoChanges | null) => Promise<boolean>;
+  /** Carte ouverte à l'arrivée (« Gérer les photos » depuis la fiche). */
+  initialSection?: ProductSection;
 }
 
 /**
- * Valeurs, photo, sections et soumission du formulaire article. Une erreur (schéma ou serveur)
+ * Valeurs, photos, sections et soumission du formulaire article. Une erreur (schéma ou serveur)
  * ouvre la section de son champ et y place le focus ; succès et échec global sont notifiés.
  */
-export function useProductForm({ mode, type, product, variant, onSubmit }: ProductFormOptions) {
+export function useProductForm({ mode, type, product, variant, onSubmit, initialSection }: ProductFormOptions) {
   const t = useTranslations('articles.form');
   const priced = mode === 'create' || variant !== null;
   const resolver = useMemo<Resolver<ProductFormValues>>(() => (values, context, options) =>
     zodResolver(productSchema(t, { priced, article: values.type === 'product' }))(values, context, options), [t, priced]);
   const form = useForm<ProductFormValues>({ resolver, shouldFocusError: false, defaultValues: defaultValues(type, product, variant) });
-  const sections = useFormSections(SECTION_OF, form.setFocus);
-  const [photo, setPhoto] = useState<File | null>(null);
+  const sections = useFormSections(SECTION_OF, form.setFocus, initialSection ? [initialSection] : []);
+  const photos = useProductPhotos(product?.images);
 
   const onInvalid = (errors: FieldErrors<ProductFormValues>) => {
     const first = FIELDS.find((f) => errors[f]);
@@ -104,7 +106,7 @@ export function useProductForm({ mode, type, product, variant, onSubmit }: Produ
 
   const submit = form.handleSubmit(async (values) => {
     try {
-      const complete = await onSubmit(values, photo);
+      const complete = await onSubmit(values, photos.dirty ? photos.changes() : null);
       if (complete) notify.success(t(mode === 'edit' ? 'toast_saved' : 'toast_created', { type: values.type }));
       else notify.error(t('extras_failed', { type: values.type }));
     } catch (err) {
@@ -116,5 +118,5 @@ export function useProductForm({ mode, type, product, variant, onSubmit }: Produ
     }
   }, onInvalid);
 
-  return { form, submit, sections, photo, setPhoto };
+  return { form, submit, sections, photos };
 }

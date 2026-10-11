@@ -402,6 +402,7 @@
 - [~] C4 — Stock : règles et API
 - [~] C4 — Écrans du stock (niveaux, mouvements, entrées, sorties)
 - [~] C4 — Fiche article
+- [~] Gabarit de formulaire v3 (deux colonnes) appliqué aux formulaires article et client, photos d'articles carrées
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
 

@@ -7,6 +7,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { ProductForm } from '@/components/products/form/ProductForm';
 import { useSaveProduct } from '@/components/products/form/useSaveProduct';
 import type { ProductFormValues } from '@/components/products/form/useProductForm';
+import type { PhotoChanges } from '@/components/products/form/useProductPhotos';
 import { useBackOr } from '@/lib/hooks/useBackOr';
 import type { ProductType } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
@@ -23,15 +24,15 @@ function NewProductContent() {
   // Boutique mixte : `?type=service` (recherche rapide) présélectionne le service.
   const type: ProductType = kind === 'services' || (kind === 'both' && searchParams.get('type') === 'service') ? 'service' : 'product';
 
-  async function handleSubmit(values: ProductFormValues, photo: File | null) {
-    const { id, complete } = await create(values, photo);
+  async function handleSubmit(values: ProductFormValues, photos: PhotoChanges | null) {
+    const { id, complete } = await create(values, photos);
     router.replace(`/products/${id}`);
     return complete;
   }
 
   return (
-    <div className="mx-auto w-full max-w-198">
-      <TopBar title={t('title_new', { kind })} back backLabel={tList('title', { kind })} onBack={back} hideSearch />
+    <div className="mx-auto w-full max-w-280">
+      <TopBar title={t('title_new', { kind })} subtitle={t('subtitle_new')} back backLabel={tList('title', { kind })} onBack={back} hideSearch />
       {shop ? (
         <ProductForm mode="create" type={type} mixed={kind === 'both'} currencyCode={shop.currency} variant={null}
           onSubmit={handleSubmit} isSubmitting={saving} onLeave={back} />

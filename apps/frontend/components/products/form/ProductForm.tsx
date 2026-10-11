@@ -1,21 +1,20 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
-import { NotebookText } from 'lucide-react';
 import { FormActions } from '@/components/form/FormActions';
-import { FormCard } from '@/components/form/FormCard';
-import { FormCollapsibleSection } from '@/components/form/FormCollapsibleSection';
-import { FormField } from '@/components/form/FormField';
-import { FIELD_TEXTAREA } from '@/components/form/fieldStyles';
+import { FORM_COLUMN, FORM_COLUMNS } from '@/components/form/fieldStyles';
 import { useFormLeave } from '@/components/form/useFormLeave';
 import type { ProductDetail, ProductType, ProductVariant } from '@/lib/hooks/useProducts';
-import { ProductIdentitySection } from './ProductIdentitySection';
+import { ProductInfoSection } from './ProductInfoSection';
 import { ProductPhotoSection } from './ProductPhotoSection';
-import { ProductPurchaseSection } from './ProductPurchaseSection';
+import { ProductPriceSection } from './ProductPriceSection';
 import { ProductReferenceSection } from './ProductReferenceSection';
+import { ProductSaleSection } from './ProductSaleSection';
 import { ProductStockSection } from './ProductStockSection';
-import { useProductForm, type ProductFormValues } from './useProductForm';
+import { useProductForm, type ProductFormValues, type ProductSection } from './useProductForm';
+import type { PhotoChanges } from './useProductPhotos';
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -26,48 +25,52 @@ interface ProductFormProps {
   product?: ProductDetail;
   /** Format réglé par le formulaire ; `null` en modification d'un article à plusieurs formats. */
   variant: ProductVariant | null;
-  onSubmit: (values: ProductFormValues, photo: File | null) => Promise<boolean>;
+  onSubmit: (values: ProductFormValues, photos: PhotoChanges | null) => Promise<boolean>;
   isSubmitting: boolean;
   /** Retour sans enregistrer (après la garde « quitter sans enregistrer »). */
   onLeave: () => void;
+  /** Ouvert depuis « Gérer les photos » de la fiche : la carte Photo est ouverte et affichée. */
+  focusPhotos?: boolean;
 }
 
 /**
- * Formulaire article au gabarit des formulaires : Identité (toujours ouverte), puis Photo, Prix
- * d'achat, Stock, Référence et Description, repliables. Un service n'a ni stock ni unité ; un
- * article à plusieurs formats ne règle ici que ses informations communes.
+ * Formulaire article au gabarit v3. Colonne principale : Informations, Prix, Stock ; colonne
+ * latérale : Photo, Vente, Référence. Un service n'a ni stock ni unité ; un article à plusieurs
+ * formats ne règle ici que ses informations communes et ses photos.
  */
-export function ProductForm({ mode, type, mixed, currencyCode, product, variant, onSubmit, isSubmitting, onLeave }: ProductFormProps) {
+export function ProductForm({ mode, type, mixed, currencyCode, product, variant, onSubmit, isSubmitting, onLeave, focusPhotos }: ProductFormProps) {
   const t = useTranslations('articles.form');
-  const { form, submit, sections, photo, setPhoto } = useProductForm({ mode, type, product, variant, onSubmit });
-  const { register, control, formState: { errors, isDirty } } = form;
-  const [currentType, description] = useWatch({ control, name: ['type', 'description'] });
-  const dirty = isDirty || photo !== null;
+  const { form, submit, sections, photos } = useProductForm({ mode, type, product, variant, onSubmit, initialSection: focusPhotos ? 'photo' : undefined });
+  const { register, control, setFocus, formState: { errors, isDirty } } = form;
+  const currentType = useWatch({ control, name: 'type' });
+  const dirty = isDirty || photos.dirty;
   const cancel = useFormLeave(dirty && !isSubmitting, onLeave);
   const fields = { control, register, errors };
-  const section = (name: Parameters<typeof sections.isOpen>[0]) => ({ open: sections.isOpen(name), onToggle: () => sections.toggle(name) });
+  const section = (name: ProductSection) => ({ open: sections.isOpen(name), onToggle: () => sections.toggle(name) });
   const formats = product && !variant ? { count: product.variants.filter((v) => v.is_active).length, href: `/products/${product.id}` } : undefined;
   const article = currentType === 'product' && !formats;
   const currency = currencyCode === 'EUR' ? '€' : currencyCode;
 
+  // Défilement d'affichage seulement (aucune action) : la carte Photo, à l'arrivée depuis la fiche.
+  useEffect(() => { if (focusPhotos) document.getElementById('photos')?.scrollIntoView({ block: 'start' }); }, [focusPhotos]);
+
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-5 px-4 pt-4 pb-28 lg:pt-0 lg:pb-8">
-      <FormCard>
-        <ProductIdentitySection {...fields} mode={mode} mixed={mixed} currency={currency} formats={formats} />
-        <ProductPhotoSection file={photo} onChange={setPhoto} currentUrl={product?.primary_image ?? null} {...section('photo')} />
-        {article && <ProductPurchaseSection {...fields} currency={currency} currencyCode={currencyCode} {...section('purchase')} />}
-        {article && (
-          <ProductStockSection {...fields} {...section('stock')} current={product && variant
-            ? { quantity: variant.stock_quantity, stockInHref: `/stock/entree?variant=${variant.id}` } : undefined} />
-        )}
-        {article && <ProductReferenceSection {...fields} {...section('reference')} />}
-        <FormCollapsibleSection title={t('section_description')} description={t('section_description_help', { type: currentType })}
-          summary={description.replace(/\s+/g, ' ').trim()} icon={<NotebookText size={19} strokeWidth={1.75} />} {...section('description')}>
-          <FormField label={t('description')} error={errors.description?.message} wide>
-            {(c) => <textarea {...c} {...register('description')} dir="auto" rows={4} className={FIELD_TEXTAREA} />}
-          </FormField>
-        </FormCollapsibleSection>
-      </FormCard>
+      <div className={FORM_COLUMNS}>
+        <div className={FORM_COLUMN}>
+          <ProductInfoSection register={register} errors={errors} mode={mode} mixed={mixed} type={currentType} formats={formats} order="max-lg:order-1" />
+          {!formats && <ProductPriceSection {...fields} currency={currency} currencyCode={currencyCode} order="max-lg:order-3" />}
+          {article && (
+            <ProductStockSection {...fields} {...section('stock')} order="max-lg:order-4" current={product && variant
+              ? { quantity: variant.stock_quantity, stockInHref: `/stock/entree?variant=${variant.id}` } : undefined} />
+          )}
+        </div>
+        <div className={FORM_COLUMN}>
+          <ProductPhotoSection photos={photos} productId={product?.id} {...section('photo')} order="max-lg:order-2" />
+          {article && <ProductSaleSection control={control} mode={mode} order="max-lg:order-5" />}
+          {article && <ProductReferenceSection {...fields} setFocus={setFocus} {...section('reference')} order="max-lg:order-6" />}
+        </div>
+      </div>
       <FormActions dirty={dirty} submitting={isSubmitting}
         submitLabel={mode === 'edit' ? t('submit_edit') : t('submit_create', { type: currentType })}
         submitDisabled={mode === 'edit' && !dirty} onCancel={cancel} />

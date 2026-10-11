@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { productPickQueryOptions, type Product } from '@/lib/hooks/useProducts';
 import { DesktopAddButton } from '@/components/orders/new/DesktopAddButton';
+import { ProductThumb } from '@/components/products/list/ProductThumb';
 import { DesktopInlineVariants } from '@/components/orders/new/DesktopInlineVariants';
 import type { LineItem } from '@/components/orders/new/types';
 import { variantPick, type VariantPick } from '@/components/orders/picker/variantPick';
@@ -76,6 +77,7 @@ export function DesktopProductRow({ p, items, isExpanded, onToggle, onPick, mone
   return (
     <div>
       <div className="flex items-center gap-3 px-5 py-3">
+        <ProductThumb product={p} className="size-10 text-sm" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-foreground truncate">{p.name}</span>

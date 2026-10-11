@@ -4,14 +4,15 @@ import { useCallback, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 /**
- * Sections repliables d'un formulaire, toutes repliées à l'ouverture. `reveal(champ)` ouvre la
- * section du champ (rendu synchrone) puis lui donne le focus : erreur de validation ou du serveur.
+ * Sections repliables d'un formulaire, repliées à l'ouverture sauf `initial`. `reveal(champ)` ouvre
+ * la section du champ (rendu synchrone) puis lui donne le focus : erreur de validation ou du serveur.
  */
 export function useFormSections<Field extends string, Section extends string>(
   sectionOf: Partial<Record<Field, Section>>,
   focus: (field: Field) => void,
+  initial: readonly Section[] = [],
 ) {
-  const [open, setOpen] = useState<ReadonlySet<Section>>(() => new Set());
+  const [open, setOpen] = useState<ReadonlySet<Section>>(() => new Set(initial));
 
   const toggle = useCallback((section: Section) => {
     setOpen((prev) => {

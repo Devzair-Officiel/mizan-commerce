@@ -118,6 +118,8 @@ export interface ProductVariant {
   is_out_of_stock: boolean;
   is_negative_stock: boolean;
   stock_state: StockState;
+  /** Vrai si le format n'a jamais servi (aucune vente, aucun mouvement hors stock initial). */
+  can_delete: boolean;
   updated_at: string;
 }
 
@@ -157,8 +159,17 @@ export interface Product {
   total_stock?: string | null;
 }
 
+/** Photo d'un article : `url` signée (lecture seule, expire), `null` si le stockage n'est pas configuré. */
+export interface ProductImage {
+  id: string;
+  url: string | null;
+  is_primary: boolean;
+  position: number;
+  created_at: string;
+}
+
 export interface ProductDetail extends Product {
-  images: { id: string; object_key: string; is_primary: boolean; position: number }[];
+  images: ProductImage[];
   variants: ProductVariant[];
   created_at: string;
   /** Vrai si l'article n'a jamais servi (aucune ligne de commande, aucun mouvement hors stock initial). */
@@ -346,26 +357,6 @@ export function useDeleteProduct() {
   });
 }
 
-export function useUploadProductImage(productId: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('image', file);
-      const res = await fetch(`/api/proxy/products/${productId}/images/`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as { detail?: string }).detail ?? 'Erreur upload');
-      }
-      return res.json() as Promise<{ id: string; object_key: string; url: string; is_primary: boolean }>;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.detail(productId) }),
-  });
-}
-
 // ── Variants ───────────────────────────────────────────────────────────────────
 
 export function useCreateProductVariant(productId: string) {
@@ -403,6 +394,22 @@ export function useDeleteProductVariant(productId: string) {
   return useMutation({
     mutationFn: (variantId: string) =>
       apiFetch(`/products/${productId}/variants/${variantId}/`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.products.detail(productId) });
+      qc.invalidateQueries({ queryKey: qk.products.all });
+    },
+  });
+}
+
+/** Retire un format de la vente ou l'y remet (menu « ⋯ » de la fiche). */
+export function useSetProductVariantActive(productId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ variantId, isActive }: { variantId: string; isActive: boolean }) =>
+      apiFetch<ProductVariant>(`/products/${productId}/variants/${variantId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: isActive }),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.products.detail(productId) });
       qc.invalidateQueries({ queryKey: qk.products.all });

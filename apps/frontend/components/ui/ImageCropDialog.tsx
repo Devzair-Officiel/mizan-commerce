@@ -89,6 +89,9 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('title')}
       className="fixed inset-0 z-80 flex flex-col bg-black/80 backdrop-blur-sm"
       onClick={busy ? undefined : onClose}
     >

@@ -1,6 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
+import type { DetailMenuActions } from '@/components/detail/types';
 import { StockEntryButton } from '@/components/stock/StockEntryButton';
 import { StockLevelQuantity } from '@/components/stock/levels/StockLevelQuantity';
 import type { ProductVariant } from '@/lib/hooks/useProducts';
@@ -19,10 +21,12 @@ interface ProductFormatsTableProps {
   actions: ProductDetailActions;
   /** Article actif : « + Entrée » sur ses formats actifs. */
   canEnter: boolean;
+  /** Menu « ⋯ » du format. */
+  menuFor: (variant: ProductVariant) => DetailMenuActions;
 }
 
-/** Tableau des formats (grand écran) : le nom ouvre la modification, « + Entrée » l'entrée rapide. */
-export function ProductFormatsTable({ formats, labels, actions, canEnter }: ProductFormatsTableProps) {
+/** Tableau des formats (grand écran) : le nom ouvre la modification, « + Entrée » l'entrée rapide, « ⋯ » les autres gestes. */
+export function ProductFormatsTable({ formats, labels, actions, canEnter, menuFor }: ProductFormatsTableProps) {
   const t = useTranslations('articles.sheet');
   return (
     <table className="hidden w-full border-collapse xl:table">
@@ -46,7 +50,10 @@ export function ProductFormatsTable({ formats, labels, actions, canEnter }: Prod
             <td className={cn(TD, 'tabular-nums text-muted-foreground')}>{labels.threshold(v)}</td>
             <td className={TD}><ProductFormatState variant={v} /></td>
             <td className={cn(TD, 'text-end')}>
-              {canEnter && v.is_active && <StockEntryButton label={labels.full(v)} onClick={() => actions.openEntry(v)} />}
+              <div className="flex items-center justify-end gap-2">
+                {canEnter && v.is_active && <StockEntryButton label={labels.full(v)} onClick={() => actions.openEntry(v)} />}
+                <DetailActionsMenu actions={menuFor(v)} variant="menu" label={t('format.actions_label', { name: labels.full(v) })} />
+              </div>
             </td>
           </tr>
         ))}

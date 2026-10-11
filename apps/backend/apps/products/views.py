@@ -1,3 +1,5 @@
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, filters, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
@@ -6,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import HasModulePermission, get_shop
+from apps.core.storage import is_storage_configured
 
 HasProductsModule = HasModulePermission.for_module('products')
 from . import services  # noqa: E402
@@ -13,8 +16,8 @@ from .filters import ProductOrderingFilter  # noqa: E402
 from .models import Product, ProductImage, ProductVariant  # noqa: E402
 from .services import PRODUCT_SEARCH_FIELDS, products_with_stats  # noqa: E402
 from .serializers import (  # noqa: E402
-    ProductListSerializer, ProductSerializer, ProductVariantCreateSerializer,
-    ProductVariantSerializer,
+    ProductImagePrimarySerializer, ProductImageSerializer, ProductListSerializer,
+    ProductSerializer, ProductVariantCreateSerializer, ProductVariantSerializer,
 )
 
 
@@ -124,7 +127,7 @@ class ProductImageUploadView(APIView):
 
     def post(self, request, pk: str) -> Response:
         from django.conf import settings
-        from .services import upload_product_image, get_signed_url
+        from .services import upload_product_image
 
         if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
             return Response(
@@ -142,11 +145,8 @@ class ProductImageUploadView(APIView):
         except Product.DoesNotExist:
             return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
-        signed_url = get_signed_url(image.object_key)
-        return Response(
-            {'id': str(image.pk), 'object_key': image.object_key, 'url': signed_url, 'is_primary': image.is_primary},  # noqa: E501
-            status=status.HTTP_201_CREATED,
-        )
+        # Mêmes champs que la fiche : la clé de stockage n'est pas exposée.
+        return Response(ProductImageSerializer(image).data, status=status.HTTP_201_CREATED)  # noqa: E501
 
 
 class ProductSummaryView(APIView):
@@ -232,6 +232,11 @@ class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
                 {'detail': "Un produit doit conserver au moins une variante."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if services.is_last_active_variant(variant):
+            return Response(
+                {'detail': services.LAST_ACTIVE_VARIANT_MESSAGE},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             services.delete_unused_variant(variant)
         except services.VariantInUseError as exc:
@@ -254,3 +259,53 @@ class ProductImageSignedUrlView(APIView):
 
         signed_url = get_signed_url(image.object_key)
         return Response({'url': signed_url})
+
+
+_STORAGE_UNAVAILABLE = {'detail': "Le stockage des photos n'est pas configuré sur cet environnement."}  # noqa: E501
+
+
+def _shop_image(request: Request, pk: str, image_pk: str) -> ProductImage:
+    """Photo d'un article de la boutique courante, sinon 404."""
+    shop = get_shop(request.user)
+    return get_object_or_404(ProductImage, pk=image_pk, product__pk=pk, shop=shop)
+
+
+class ProductImageDetailView(APIView):
+    """Photo d'un article : devient la photo principale (PATCH) ou est retirée (DELETE)."""  # noqa: E501
+    permission_classes = (IsAuthenticated, HasProductsModule)
+
+    def patch(self, request: Request, pk: str, image_pk: str) -> Response:
+        image = _shop_image(request, pk, image_pk)
+        ProductImagePrimarySerializer(data=request.data).is_valid(raise_exception=True)
+        services.set_primary_image(image)
+        return Response(ProductImageSerializer(image).data)
+
+    def delete(self, request: Request, pk: str, image_pk: str) -> Response:
+        services.delete_product_image(_shop_image(request, pk, image_pk))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductImageFileView(APIView):
+    """Fichier d'une photo : lu par l'app (recadrage dans le navigateur, même
+    origine) et remplacé par la version recadrée."""
+    permission_classes = (IsAuthenticated, HasProductsModule)
+    parser_classes = (MultiPartParser,)
+
+    def get(self, request: Request, pk: str, image_pk: str) -> HttpResponse:
+        image = _shop_image(request, pk, image_pk)
+        if not is_storage_configured():
+            return Response(_STORAGE_UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)  # noqa: E501
+        content, content_type = services.read_image_file(image)
+        response = HttpResponse(content, content_type=content_type)
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+    def put(self, request: Request, pk: str, image_pk: str) -> Response:
+        image = _shop_image(request, pk, image_pk)
+        if not is_storage_configured():
+            return Response(_STORAGE_UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)  # noqa: E501
+        file = request.FILES.get('image')
+        if not file:
+            return Response({'detail': 'Champ « image » requis.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
+        services.replace_image_file(image, file)
+        return Response(ProductImageSerializer(image).data)

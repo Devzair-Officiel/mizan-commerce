@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -483,6 +483,157 @@ class ProductVariantDeleteTest(TestCase):
         _, other_shop = setup_user_shop('variant-delete-other@example.com')
         foreign = make_product(other_shop).variants.get()
         self.assertEqual(self.delete(foreign).status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_can_delete_flag_per_format(self):
+        from apps.stock.services import create_movement
+
+        create_movement(self.shop, self.variant, 'loss', 1, created_by=self.user)
+        data = self.client.get(reverse('product-detail', args=[self.product.pk])).data
+        flags = {v['packaging_name']: v['can_delete'] for v in data['variants']}
+        self.assertEqual(flags, {'1 L': True, '5 L': False})
+
+    def test_last_active_format_can_be_neither_withdrawn_nor_deleted(self):
+        first = self.product.variants.get(packaging_name='1 L')
+        url = reverse('product-variant-detail', args=[self.product.pk, first.pk])
+        withdrawn = self.client.patch(url, {'is_active': False}, format='json')
+        self.assertEqual(withdrawn.status_code, status.HTTP_200_OK)
+        last = reverse('product-variant-detail', args=[self.product.pk, self.variant.pk])  # noqa: E501
+        refused = self.client.patch(last, {'is_active': False}, format='json')
+        self.assertEqual(refused.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.delete().status_code, status.HTTP_400_BAD_REQUEST)
+        self.variant.refresh_from_db()
+        self.assertTrue(self.variant.is_active)
+        # Le format retiré, lui, peut être supprimé (il n'a jamais servi).
+        self.assertEqual(self.delete(first).status_code, status.HTTP_204_NO_CONTENT)
+
+
+@override_settings(AWS_S3_ENDPOINT_URL='https://s3.test', AWS_ACCESS_KEY_ID='test')
+class ProductImageManageTest(TestCase):
+    """Photo principale, retrait, lecture et remplacement du fichier (recadrage)."""
+
+    def setUp(self):
+        from unittest.mock import patch
+
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('photos@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.product = make_product(self.shop)
+        for target in ('upload_fileobj', 'delete_object', 'download_bytes'):
+            patcher = patch(f'apps.products.services.{target}', return_value=b'\x89PNG')
+            setattr(self, target, patcher.start())
+            self.addCleanup(patcher.stop)
+        signed = patch('apps.core.storage.get_signed_url', side_effect=lambda key: f'https://s3.test/{key}')  # noqa: E501
+        signed.start()
+        self.addCleanup(signed.stop)
+        self.first = self._upload(self.product)
+        self.second = self._upload(self.product)
+
+    def _upload(self, product, content_type='image/png'):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .services import upload_product_image
+        file = SimpleUploadedFile('photo.png', b'\x89PNG', content_type=content_type)
+        return upload_product_image(shop=product.shop, product_id=str(product.pk), file=file)  # noqa: E501
+
+    def url(self, image, name='product-image-detail', product=None):
+        return reverse(name, args=[(product or self.product).pk, image.pk])
+
+    def primary(self):
+        return set(self.product.images.filter(is_primary=True).values_list('pk', flat=True))  # noqa: E501
+
+    def test_detail_lists_images_with_signed_url(self):
+        data = self.client.get(reverse('product-detail', args=[self.product.pk])).data
+        self.assertEqual([i['id'] for i in data['images']], [str(self.first.pk), str(self.second.pk)])  # noqa: E501
+        self.assertTrue(data['images'][0]['url'].startswith('https://s3.test/products/'))  # noqa: E501
+        self.assertNotIn('object_key', data['images'][0])
+        self.assertTrue(self.first.object_key.endswith('.png'))
+
+    def test_upload_endpoint_returns_the_new_primary_without_key(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        file = SimpleUploadedFile('new.png', b'\x89PNG', content_type='image/png')
+        response = self.client.post(reverse('product-image-upload', args=[self.product.pk]), {'image': file}, format='multipart')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(set(response.data), {'id', 'url', 'is_primary', 'position', 'created_at'})  # noqa: E501
+        self.assertTrue(response.data['is_primary'])
+        self.assertEqual(response.data['position'], 2)
+
+    def test_set_primary(self):
+        response = self.client.patch(self.url(self.first), {'is_primary': True}, format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.primary(), {self.first.pk})
+
+    def test_unset_primary_is_refused(self):
+        response = self.client.patch(self.url(self.second), {'is_primary': False}, format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.primary(), {self.second.pk})
+
+    def test_delete_primary_promotes_the_next_and_removes_the_file(self):
+        key = self.second.object_key
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(self.url(self.second))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(self.primary(), {self.first.pk})
+        self.delete_object.assert_called_once_with(key)
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.delete(self.url(self.first))
+        self.assertFalse(self.product.images.exists())
+
+    def test_read_file(self):
+        response = self.client.get(self.url(self.first, 'product-image-file'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response['Content-Type'], 'image/png')
+        self.assertEqual(response.content, b'\x89PNG')
+        self.download_bytes.assert_called_once_with(self.first.object_key)
+
+    def test_replace_file_keeps_place_and_status(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        old_key = self.second.object_key
+        file = SimpleUploadedFile('crop.jpg', b'\xff\xd8', content_type='image/jpeg')
+        response = self.client.put(self.url(self.second, 'product-image-file'), {'image': file}, format='multipart')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.second.refresh_from_db()
+        self.assertNotEqual(self.second.object_key, old_key)
+        self.assertTrue(self.second.object_key.endswith('.jpg'))
+        self.assertTrue(self.second.is_primary)
+        self.assertEqual(self.second.position, 1)
+        self.delete_object.assert_called_once_with(old_key)
+
+    def test_replace_with_disallowed_type_is_refused(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        file = SimpleUploadedFile('x.gif', b'GIF8', content_type='image/gif')
+        response = self.client.put(self.url(self.first, 'product-image-file'), {'image': file}, format='multipart')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_photo_count_is_limited(self):
+        from rest_framework.exceptions import ValidationError
+        from .services import PRODUCT_IMAGE_MAX_COUNT
+        for _ in range(PRODUCT_IMAGE_MAX_COUNT - 2):
+            self._upload(self.product)
+        with self.assertRaises(ValidationError):
+            self._upload(self.product)
+
+    def test_other_shop_cannot_touch_images(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        intruder, _ = setup_user_shop('photos-intruder@example.com')
+        self.client.force_authenticate(user=intruder)
+        detail, file = self.url(self.first), self.url(self.first, 'product-image-file')
+        png = SimpleUploadedFile('p.png', b'\x89PNG', content_type='image/png')
+        responses = [
+            self.client.patch(detail, {'is_primary': True}, format='json'),
+            self.client.delete(detail),
+            self.client.get(file),
+            self.client.put(file, {'image': png}, format='multipart'),
+        ]
+        self.assertEqual({r.status_code for r in responses}, {status.HTTP_404_NOT_FOUND})  # noqa: E501
+        self.assertEqual(self.primary(), {self.second.pk})
+        self.assertEqual(self.product.images.count(), 2)
+        self.assertEqual(self.upload_fileobj.call_count, 2)
+        self.download_bytes.assert_not_called()
+
+    def test_image_of_another_product_is_not_found(self):
+        other = make_product(self.shop, name='Autre')
+        url = self.url(self.first, product=other)
+        self.assertEqual(self.client.delete(url).status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(self.client.get(self.url(self.first, 'product-image-file', other)).status_code, status.HTTP_404_NOT_FOUND)  # noqa: E501
 
 
 class ProductNegativeStateTest(TestCase):

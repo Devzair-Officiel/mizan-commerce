@@ -137,7 +137,7 @@ export function AddressAutocomplete({
   return (
     <div ref={containerRef} className="relative">
       <div
-        className={`flex h-11 items-center gap-2 rounded-xl border bg-background ps-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/20 ${
+        className={`flex h-11 items-center gap-2 rounded-xl border bg-card ps-3 transition-[border-color,box-shadow] focus-within:border-primary focus-within:ring-3 focus-within:ring-primary/20 ${
           invalid ? 'border-red-600 dark:border-red-400' : open ? 'border-primary' : 'border-border'
         }`}
       >
