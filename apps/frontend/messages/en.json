@@ -430,7 +430,6 @@
     },
     "detail": {
       "topbar_short": "Customer",
-      "loading": "Loading…",
       "not_found": "Customer not found.",
       "deactivate_confirm": "Deactivate this customer? They will no longer appear among active customers; you can reactivate them from their page.",
       "reminder_title": "Follow up with {name}",
@@ -518,7 +517,6 @@
   "orders": {
     "list": {
       "topbar": "Orders",
-      "loading": "Loading…",
       "count": "{count, plural, one {# order} other {# orders}}",
       "count_filtered": "{count, plural, one {# order · filtered} other {# orders · filtered}}",
       "new_order": "New order",
@@ -780,7 +778,6 @@
       "topbar": "Edit order",
       "topbar_with_number": "Edit order {number}",
       "topbar_short_with_number": "Edit {number}",
-      "loading": "Loading…",
       "not_found": "Order not found.",
       "read_only": "A delivered or cancelled order can no longer be edited.",
       "saving": "Saving…",
@@ -800,7 +797,6 @@
       "filter_service": "Services",
       "no_results": "No results.",
       "variant_back": "Back to catalog",
-      "loading": "Loading…",
       "variant_count": "{count, plural, one {# format} other {# formats}}",
       "no_variants": "No active format.",
       "out_of_stock": "Out of stock",
@@ -1040,7 +1036,6 @@
     },
     "sheet": {
       "topbar": "Item",
-      "loading": "Loading…",
       "not_found": "This item could not be found.",
       "subtitle": "{type, select, service {Service, created on {date}} other {Item, created on {date}}}",
       "subtitle_formats": "Item, {count} formats, created on {date}",
@@ -1446,7 +1441,6 @@
     },
     "history": {
       "title": "WhatsApp messages",
-      "loading": "Loading…",
       "delete_confirm": "Delete this message?",
       "delete_aria": "Delete message",
       "delete_cta": "Delete"
@@ -1458,7 +1452,6 @@
     "subtitle": "Manage your shop members and their access.",
     "add_member": "Add a member",
     "no_members": "You're the only one on this shop for now.",
-    "loading": "Loading…",
     "you_badge": "You",
     "since": "Since {date}",
     "role": {
@@ -1575,7 +1568,6 @@
       "retry": "Try again"
     },
     "loading": {
-      "label": "Loading…",
       "status": "Loading"
     },
     "not_found": {
@@ -1616,7 +1608,6 @@
     "page": {
       "title": "Shop settings",
       "loading_title": "Settings",
-      "loading": "Loading…",
       "saved": "Changes saved ✓"
     },
     "actions": {
@@ -1678,12 +1669,10 @@
     },
     "public_page": {
       "title": "Public page",
-      "loading": "Loading…",
       "error": "Unable to load the page information."
     },
     "subscription": {
       "title": "Subscription",
-      "loading": "Loading…",
       "current_plan": "Your plan",
       "trial": "Trial",
       "trial_remaining": "{days, plural, =0 {Trial ending today.} one {Trial in progress — # day left.} other {Trial in progress — # days left.}}",
@@ -1866,7 +1855,6 @@
       "year_done": "Zakat {year} already finalized",
       "year_done_amount": "{amount} — view the statement",
       "start": "Calculate my zakat",
-      "loading": "Loading…",
       "history": "History",
       "base": "Base: {amount}",
       "pdf_available": "PDF available",
@@ -2205,7 +2193,6 @@
       "badge_new": "New",
       "sheet_title": "{kind, select, product {Add a product} service {Add a service} other {Add an item}}",
       "search": "Search…",
-      "loading": "Loading…",
       "no_results": "No results.",
       "none_available": "{kind, select, product {No product available.} service {No service available.} other {No item available.}}",
       "close": "Close"
@@ -2276,7 +2263,6 @@
     "password_min": "At least 8 characters",
     "confirm_required": "Confirmation required",
     "password_mismatch": "Passwords don't match",
-    "loading": "Loading…",
     "email": "Email",
     "email_locked": "The email can't be changed.",
     "full_name": "Full name *",
@@ -2298,7 +2284,6 @@
     "list": {
       "title": "Invoices",
       "filter": "{value, select, issued {Issued} paid {Paid} cancelled {Cancelled} other {All}}",
-      "loading": "Loading…",
       "empty_title": "No invoices",
       "empty_body": "Invoices are created from an order.",
       "no_customer": "No customer"

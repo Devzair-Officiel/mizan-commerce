@@ -430,7 +430,6 @@
     },
     "detail": {
       "topbar_short": "Client",
-      "loading": "Chargement…",
       "not_found": "Client introuvable.",
       "deactivate_confirm": "Désactiver ce client ? Il n'apparaîtra plus parmi les clients actifs ; vous pourrez le réactiver depuis sa fiche.",
       "reminder_title": "Relancer {name}",
@@ -518,7 +517,6 @@
   "orders": {
     "list": {
       "topbar": "Commandes",
-      "loading": "Chargement…",
       "count": "{count, plural, one {# commande} other {# commandes}}",
       "count_filtered": "{count, plural, one {# commande · filtré} other {# commandes · filtré}}",
       "new_order": "Nouvelle commande",
@@ -780,7 +778,6 @@
       "topbar": "Modifier la commande",
       "topbar_with_number": "Modifier la commande {number}",
       "topbar_short_with_number": "Modifier {number}",
-      "loading": "Chargement…",
       "not_found": "Commande introuvable.",
       "read_only": "Une commande remise ou annulée ne peut plus être modifiée.",
       "saving": "Enregistrement…",
@@ -800,7 +797,6 @@
       "filter_service": "Services",
       "no_results": "Aucun résultat.",
       "variant_back": "Retour au catalogue",
-      "loading": "Chargement…",
       "variant_count": "{count, plural, one {# format} other {# formats}}",
       "no_variants": "Aucun format actif.",
       "out_of_stock": "Rupture",
@@ -1040,7 +1036,6 @@
     },
     "sheet": {
       "topbar": "Fiche",
-      "loading": "Chargement…",
       "not_found": "Cet article est introuvable.",
       "subtitle": "{type, select, service {Service, créé le {date}} other {Article, créé le {date}}}",
       "subtitle_formats": "Article, {count} formats, créé le {date}",
@@ -1446,7 +1441,6 @@
     },
     "history": {
       "title": "Messages WhatsApp",
-      "loading": "Chargement…",
       "delete_confirm": "Supprimer ce message ?",
       "delete_aria": "Supprimer le message",
       "delete_cta": "Supprimer"
@@ -1458,7 +1452,6 @@
     "subtitle": "Gérez les membres de votre boutique et leurs accès.",
     "add_member": "Ajouter un membre",
     "no_members": "Vous êtes seul·e sur cette boutique pour le moment.",
-    "loading": "Chargement…",
     "you_badge": "Vous",
     "since": "Depuis le {date}",
     "role": {
@@ -1575,7 +1568,6 @@
       "retry": "Réessayer"
     },
     "loading": {
-      "label": "Chargement…",
       "status": "Chargement en cours"
     },
     "not_found": {
@@ -1616,7 +1608,6 @@
     "page": {
       "title": "Paramètres boutique",
       "loading_title": "Paramètres",
-      "loading": "Chargement…",
       "saved": "Modifications enregistrées ✓"
     },
     "actions": {
@@ -1678,12 +1669,10 @@
     },
     "public_page": {
       "title": "Page publique",
-      "loading": "Chargement…",
       "error": "Impossible de charger les informations de la page."
     },
     "subscription": {
       "title": "Abonnement",
-      "loading": "Chargement…",
       "current_plan": "Votre formule",
       "trial": "Essai",
       "trial_remaining": "{days, plural, =0 {Essai se terminant aujourd'hui.} one {Essai en cours — # jour restant.} other {Essai en cours — # jours restants.}}",
@@ -1866,7 +1855,6 @@
       "year_done": "Zakat {year} déjà bouclée",
       "year_done_amount": "{amount} — voir le justificatif",
       "start": "Calculer ma zakat",
-      "loading": "Chargement…",
       "history": "Historique",
       "base": "Base : {amount}",
       "pdf_available": "PDF disponible",
@@ -2205,7 +2193,6 @@
       "badge_new": "Nouveau",
       "sheet_title": "{kind, select, product {Ajouter un produit} service {Ajouter un service} other {Ajouter un article}}",
       "search": "Rechercher…",
-      "loading": "Chargement…",
       "no_results": "Aucun résultat.",
       "none_available": "{kind, select, product {Aucun produit disponible.} service {Aucun service disponible.} other {Aucun article disponible.}}",
       "close": "Fermer"
@@ -2276,7 +2263,6 @@
     "password_min": "8 caractères minimum",
     "confirm_required": "Confirmation requise",
     "password_mismatch": "Les mots de passe ne correspondent pas",
-    "loading": "Chargement…",
     "email": "Email",
     "email_locked": "L'email ne peut pas être modifié.",
     "full_name": "Nom complet *",
@@ -2298,7 +2284,6 @@
     "list": {
       "title": "Factures",
       "filter": "{value, select, issued {Émises} paid {Payées} cancelled {Annulées} other {Toutes}}",
-      "loading": "Chargement…",
       "empty_title": "Aucune facture",
       "empty_body": "Les factures se créent depuis une commande.",
       "no_customer": "Sans client"

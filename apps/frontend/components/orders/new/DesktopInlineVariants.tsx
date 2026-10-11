@@ -7,6 +7,7 @@ import { isDefaultVariant } from '@/lib/products';
 import { DesktopAddButton } from '@/components/orders/new/DesktopAddButton';
 import type { LineItem } from '@/components/orders/new/types';
 import { variantPick, type VariantPick } from '@/components/orders/picker/variantPick';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 /** Variantes d'un article, dépliées sous sa ligne dans le catalogue grand écran. */
 export function DesktopInlineVariants({ productId, items, onPick, money }: {
@@ -17,7 +18,7 @@ export function DesktopInlineVariants({ productId, items, onPick, money }: {
   const { data: product, isError } = useQuery(productPickQueryOptions(productId));
 
   if (isError) return <p className="px-5 py-3 text-xs text-destructive">{t('add_error')}</p>;
-  if (!product) return <p className="px-5 py-3 text-xs text-muted-foreground">{t('loading')}</p>;
+  if (!product) return <div className="bg-muted/30"><SkeletonRows count={2} rowClassName="px-5 py-2.5" /></div>;
   return (
     <div className="divide-y divide-border/60 bg-muted/30">
       {product.variants.filter((v) => v.is_active).map((v) => {

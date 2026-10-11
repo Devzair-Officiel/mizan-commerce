@@ -175,14 +175,8 @@ export interface StockExitPayload {
 }
 
 export interface StockAdjustmentPayload {
-  variant: string;
-  counted_quantity: string;
+  lines: { variant: string; counted_quantity: string }[];
   note?: string;
-}
-
-export interface StockAdjustmentResult {
-  movement: StockMovement | null;
-  stock_quantity: string;
 }
 
 /** Une écriture de stock change niveaux, mouvements, articles, accueil et badges. */
@@ -213,22 +207,12 @@ export function useStockExit() {
   });
 }
 
-/**
- * Corrections d'inventaire, une par format. Recompter est sans risque : un
- * nouvel envoi de la même quantité comptée ne crée aucun écart.
- */
-export function useStockAdjustments() {
+/** Correction d'inventaire en une seule opération (tout ou rien) : un mouvement par écart non nul. */
+export function useStockAdjustment() {
   const invalidate = useInvalidateStock();
   return useMutation({
-    mutationFn: async (payloads: StockAdjustmentPayload[]) => {
-      const results: StockAdjustmentResult[] = [];
-      for (const payload of payloads) {
-        results.push(await apiFetch<StockAdjustmentResult>('/stock/adjustments/', {
-          method: 'POST', body: JSON.stringify(payload),
-        }));
-      }
-      return results;
-    },
-    onSettled: invalidate,
+    mutationFn: (payload: StockAdjustmentPayload) =>
+      apiFetch<{ movements: StockMovement[] }>('/stock/adjustments/', { method: 'POST', body: JSON.stringify(payload) }),
+    onSuccess: invalidate,
   });
 }

@@ -63,7 +63,7 @@ class OcrResult(models.Model):
         Shop, on_delete=models.CASCADE, related_name='ocr_results'
     )
     uploaded_document = models.ForeignKey(
-        UploadedDocument, on_delete=models.CASCADE, related_name='ocr_results'
+        UploadedDocument, on_delete=models.RESTRICT, related_name='ocr_results'
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING

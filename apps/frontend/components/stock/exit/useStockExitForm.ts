@@ -75,8 +75,8 @@ export function exitPayload(values: StockExitOutput, reason: StockExitReason): S
   };
 }
 
-export function adjustmentPayloads(values: StockExitOutput): StockAdjustmentPayload[] {
-  return values.lines.map((l) => ({ variant: l.variant, counted_quantity: toDecimal(l.quantity), note: values.note.trim() }));
+export function adjustmentPayload(values: StockExitOutput): StockAdjustmentPayload {
+  return { lines: values.lines.map((l) => ({ variant: l.variant, counted_quantity: toDecimal(l.quantity) })), note: values.note.trim() };
 }
 
 /** Formulaire de sortie : un format ajouté deux fois voit sa quantité augmenter (scans successifs, comptage). */

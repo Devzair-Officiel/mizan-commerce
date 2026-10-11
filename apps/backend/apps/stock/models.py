@@ -38,8 +38,10 @@ class StockMovement(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='stock_movements')  # noqa: E501
+    # Historique protégé : un format qui a des mouvements ne se supprime pas
+    # (RESTRICT ; seule la suppression de toute la boutique l'emporte).
     variant = models.ForeignKey(
-        ProductVariant, on_delete=models.CASCADE, related_name='stock_movements'
+        ProductVariant, on_delete=models.RESTRICT, related_name='stock_movements'
     )
     movement_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     # quantity = nombre de formats (bouteilles, sacs…), pas du contenu cumulé.

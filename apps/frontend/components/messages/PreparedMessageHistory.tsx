@@ -12,6 +12,7 @@ import {
 import { useFormatDateTime } from '@/lib/hooks/useFormat';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 interface PreparedMessageHistoryProps {
   customerId?: string;
@@ -47,8 +48,8 @@ export function PreparedMessageHistory({ customerId, orderId, compact }: Prepare
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm text-muted-foreground">{t('loading')}</p>
+      <div className="rounded-2xl border border-border bg-card">
+        <SkeletonRows count={2} rowClassName="px-4 py-3" />
       </div>
     );
   }

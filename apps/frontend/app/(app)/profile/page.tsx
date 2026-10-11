@@ -16,6 +16,8 @@ import {
   useChangePassword,
 } from '@/lib/hooks/useMe';
 import { ApiError } from '@/lib/api-client';
+import { LoadingRegion } from '@/components/ui/LoadingRegion';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type PasswordFieldProps = Omit<ComponentProps<typeof FloatingInput>, 'type'>;
 
@@ -87,7 +89,14 @@ function ProfileForm() {
     reset(values);
   }
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
+  if (isLoading) {
+    return (
+      <LoadingRegion className="flex flex-col gap-3">
+        {[0, 1, 2].map((i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+        <Skeleton className="mt-1 h-8 rounded-lg" />
+      </LoadingRegion>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">

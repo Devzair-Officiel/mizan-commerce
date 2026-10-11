@@ -12,6 +12,7 @@ import { PreviewCard } from '@/components/public-page-admin/PreviewCard';
 import { SectionsCard } from '@/components/public-page-admin/SectionsCard';
 import { StatusBar } from '@/components/public-page-admin/StatusBar';
 import { usePublicPage } from '@/lib/hooks/usePublicPageAdmin';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
 export default function PublicPageSettings() {
   const t = useTranslations('settings.public_page');
@@ -31,9 +32,7 @@ function PublicPageContent() {
       <TopBar title={t('title')} />
 
       <div className="flex flex-col gap-4 px-4 pt-4 pb-32">
-        {isLoading && (
-          <p className="text-sm text-muted-foreground text-center py-12">{t('loading')}</p>
-        )}
+        {isLoading && <SectionsSkeleton sections={[1, 3, 2]} />}
 
         {isError && (
           <p className="text-sm text-destructive text-center py-12">{t('error')}</p>

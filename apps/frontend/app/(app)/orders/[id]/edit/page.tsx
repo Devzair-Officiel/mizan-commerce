@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 import { NewSaleScreen } from '@/components/orders/new/NewSaleScreen';
 import { useOrder, type Order } from '@/lib/hooks/useOrders';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
@@ -44,7 +45,7 @@ export default function EditOrderPage() {
     <>
       <TopBar title={title} shortTitle={shortTitle} back backLabel={tDetail('topbar')} onBack={() => router.push(`/orders/${id}`)} hideSearch />
       {isLoading ? (
-        <OrderMessage text={t('loading')} />
+        <SectionsSkeleton sections={[1, 4, 2]} className="p-4" />
       ) : !order ? (
         <OrderMessage text={t('not_found')} tone="error" />
       ) : !EDITABLE.includes(order.status) ? (

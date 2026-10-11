@@ -416,6 +416,75 @@ class ProductDeleteTest(TestCase):
         self.assertTrue(Product.objects.filter(pk=foreign.pk).exists())
 
 
+class ProductVariantDeleteTest(TestCase):
+    MESSAGE = 'Ce format a déjà servi : retirez-le de la vente.'
+
+    def setUp(self):
+        from apps.products.services import create_product, create_variant
+
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('variant-delete@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.product = create_product(
+            self.shop, self.user, {'name': 'Huile'},
+            {'packaging_name': '1 L', 'selling_price': '10.00'},
+        )
+        self.variant = create_variant(
+            self.product, self.user,
+            {'packaging_name': '5 L', 'selling_price': '45.00'}, Decimal('3'),
+        )
+
+    def delete(self, variant=None):
+        variant = variant or self.variant
+        return self.client.delete(
+            reverse('product-variant-detail', args=[variant.product_id, variant.pk]),
+        )
+
+    def movements(self):
+        from apps.stock.models import StockMovement
+        return StockMovement.objects.filter(variant=self.variant)
+
+    def test_never_used_format_is_deleted_with_its_initial_stock(self):
+        from apps.products.models import ProductVariant
+        from apps.stock.models import StockMovement
+
+        initial = self.movements().get()
+        self.assertEqual(self.delete().status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ProductVariant.objects.filter(pk=self.variant.pk).exists())
+        self.assertFalse(StockMovement.objects.filter(pk=initial.pk).exists())
+
+    def test_sold_format_is_refused_and_history_kept(self):
+        from apps.orders import services as orders
+
+        order = orders.create_order(self.shop, self.user)
+        orders.add_item(order, self.variant, 1, user=self.user)
+        movements = self.movements().count()
+        response = self.delete()
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data['detail'], self.MESSAGE)
+        self.assertEqual(self.movements().count(), movements)
+        self.assertTrue(order.items.filter(variant=self.variant).exists())
+
+    def test_format_with_another_movement_is_refused(self):
+        from apps.stock.services import create_movement
+
+        create_movement(self.shop, self.variant, 'loss', 1, created_by=self.user)
+        self.assertEqual(self.delete().status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(self.movements().count(), 2)
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock_quantity, 2)
+
+    def test_last_format_is_refused(self):
+        self.assertEqual(self.delete().status_code, status.HTTP_204_NO_CONTENT)
+        last = self.product.variants.get()
+        self.assertEqual(self.delete(last).status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_other_shop_format_is_not_found(self):
+        _, other_shop = setup_user_shop('variant-delete-other@example.com')
+        foreign = make_product(other_shop).variants.get()
+        self.assertEqual(self.delete(foreign).status_code, status.HTTP_404_NOT_FOUND)
+
+
 class ProductNegativeStateTest(TestCase):
     def test_negative_level_in_list_summary_and_facets(self):
         from apps.stock.services import create_movement

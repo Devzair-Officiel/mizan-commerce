@@ -19,6 +19,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { useFormatDate } from '@/lib/hooks/useFormat';
 import { useSubscription, useDowngradeToFree, type PlanCode } from '@/lib/hooks/useSubscription';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
 /** Formules affichées ; textes sous `settings.subscription.plans.{code}` (f1…fN). */
 const PLANS: { code: PlanCode; price: number; features: number }[] = [
@@ -38,7 +39,7 @@ export default function SubscriptionPage() {
     return (
       <>
         <TopBar title={t('title')} />
-        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
+        <SectionsSkeleton sections={[1, 3, 3, 3]} className="px-4 pt-4 pb-32" />
       </>
     );
   }

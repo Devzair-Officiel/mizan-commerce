@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useFormatDate } from '@/lib/hooks/useFormat';
 import { TOTAL_STEPS } from '@/components/zakat/WizardLayout';
 import { HistoryChart } from '@/components/zakat/HistoryChart';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 import {
   formatMoney,
   useZakatCalculations,
@@ -105,9 +106,7 @@ export default function ZakatPage() {
         )}
 
         {/* Historique des calculs finalisés */}
-        {isLoading && (
-          <p className="text-sm text-muted-foreground text-center py-4">{t('loading')}</p>
-        )}
+        {isLoading && <SkeletonRows count={2} variant="cards" rowClassName="px-4 py-3" />}
 
         {!isLoading && (finalized?.results ?? []).length >= 2 && (
           <HistoryChart calculations={finalized!.results} />

@@ -1,13 +1,12 @@
-import { getTranslations } from 'next-intl/server';
-import { Loader2 } from 'lucide-react';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function Loading() {
-  const t = await getTranslations('ui.loading');
+/** Chargement d'une page : titre et cartes en squelette, en attendant sa propre mise en forme. */
+export default function Loading() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-muted-foreground">
-      <Loader2 className="size-6 animate-spin" aria-hidden />
-      <span className="text-sm">{t('label')}</span>
-      <span className="sr-only" role="status">{t('status')}</span>
+    <div className="flex flex-col gap-4 p-4">
+      <Skeleton className="h-7 w-48" />
+      <SectionsSkeleton sections={[2, 3]} />
     </div>
   );
 }

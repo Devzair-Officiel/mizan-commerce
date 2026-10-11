@@ -64,6 +64,7 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
   - article vendu : menu sans « Supprimer », suppression refusée par l'API (409) ;
   - service : cartes « Prix » et « Ventes sur 30 jours », ni formats, ni stock, ni « Entrée de stock » ;
   - nettoyage : commande annulée, articles utilisés désactivés, service supprimé. `SHOTS=<dossier>` capture un parcours interrompu.
+- `audit-loading.mjs` — chargement en connexion lente (réseau limité par CDP : latence 1,5 s, 2 Mo/s) de la fiche article, de la fiche client et du détail d'une commande existants, à 1440px et 360px, en français et en arabe : squelette à la forme de la page visible (au moins trois cartes), aucun texte de chargement seul (« Chargement… »), puis l'objet affiché sans squelette ; console propre. Chaque page est d'abord ouverte sans limitation (compilation du serveur de dev).
 - `audit-zakat.mjs` — un calcul finalisé dont la réouverture échoue (réponse simulée) : l'erreur est notifiée, aucune `alert()` ni boîte de dialogue native. Les calculs créés sont supprimés.
 
 ## Exceptions de la console surveillée

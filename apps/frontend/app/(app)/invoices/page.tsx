@@ -13,6 +13,7 @@ import {
 } from '@/lib/hooks/useInvoices';
 import { useFormatDate } from '@/lib/hooks/useFormat';
 import { getPaymentDisplay, type PaymentDisplay } from '@/components/invoices/detail/payment';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 const PILL_CLASS: Record<PaymentDisplay, string> = {
   paid: 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/25',
@@ -61,9 +62,7 @@ export default function InvoicesPage() {
           ))}
         </div>
 
-        {isLoading && (
-          <p className="text-sm text-muted-foreground text-center py-6">{t('loading')}</p>
-        )}
+        {isLoading && <SkeletonRows count={5} variant="cards" rowClassName="px-4 py-3" />}
 
         {!isLoading && invoices.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border bg-card p-8 flex flex-col items-center gap-2 text-center">

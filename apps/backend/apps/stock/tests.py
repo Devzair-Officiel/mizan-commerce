@@ -1,4 +1,6 @@
 from datetime import timedelta
+from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.urls import reverse
@@ -9,6 +11,7 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
 from apps.products.models import Product, ProductVariant
+from . import services
 from .models import StockMovement
 from .services import EntryReference, create_movement
 
@@ -200,33 +203,76 @@ class StockAdjustmentTest(_StockApiCase):
         super().setUp()
         create_movement(self.shop, self.variant, 'in', 5, created_by=self.user)
 
-    def adjust(self, counted):
+    def adjust(self, *lines):
         return self.post('stock-adjustments', {
-            'variant': str(self.variant.pk), 'counted_quantity': counted,
+            'lines': [
+                {'variant': str(variant.pk), 'counted_quantity': counted}
+                for variant, counted in lines
+            ],
             'note': 'Inventaire',
         })
 
     def test_positive_gap(self):
-        response = self.adjust('8')
+        response = self.adjust((self.variant, '8'))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['movement']['signed_quantity'], '3.000')
+        self.assertEqual(response.data['movements'][0]['signed_quantity'], '3.000')
         self.assertEqual(self.stock(self.variant), 8)
 
     def test_negative_gap(self):
-        response = self.adjust('2')
-        self.assertEqual(response.data['movement']['signed_quantity'], '-3.000')
+        response = self.adjust((self.variant, '2'))
+        self.assertEqual(response.data['movements'][0]['signed_quantity'], '-3.000')
         self.assertEqual(self.stock(self.variant), 2)
 
     def test_regularises_negative_stock(self):
         create_movement(self.shop, self.variant, 'reservation', 7, created_by=self.user)
-        self.adjust('0')
+        self.adjust((self.variant, '0'))
         self.assertEqual(self.stock(self.variant), 0)
 
     def test_zero_gap_records_nothing(self):
-        response = self.adjust('5')
+        response = self.adjust((self.variant, '5'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsNone(response.data['movement'])
+        self.assertEqual(response.data['movements'], [])
         self.assertEqual(StockMovement.objects.filter(variant=self.variant).count(), 1)
+
+    def test_several_lines_in_one_request(self):
+        other = _variant(self.shop, 'Autre')
+        create_movement(self.shop, other, 'in', 4, created_by=self.user)
+        response = self.adjust((self.variant, '6'), (other, '4'))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(response.data['movements']), 1)
+        self.assertEqual((self.stock(self.variant), self.stock(other)), (6, 4))
+
+    def test_invalid_line_records_nothing(self):
+        service = _variant(self.shop, 'Retouche', type_='service')
+        response = self.adjust((self.variant, '9'), (service, '1'))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['errors']['lines'][1]['variant'], ['Format introuvable.'])  # noqa: E501
+        self.assertEqual(self.stock(self.variant), 5)
+
+    def test_failure_on_a_later_line_rolls_back_the_first(self):
+        other = _variant(self.shop, 'Autre')
+        real = services.create_movement
+        calls = []
+
+        def failing(*args, **kwargs):
+            calls.append(args)
+            if len(calls) == 2:
+                raise RuntimeError('panne')
+            return real(*args, **kwargs)
+
+        with patch.object(services, 'create_movement', failing), \
+                self.assertRaises(RuntimeError):
+            services.adjust_to_counts(self.shop, self.user, [
+                services.CountLine(self.variant, Decimal('9')),
+                services.CountLine(other, Decimal('2')),
+            ])
+        self.assertEqual((self.stock(self.variant), self.stock(other)), (5, 0))
+        self.assertEqual(StockMovement.objects.filter(variant=self.variant).count(), 1)
+
+    def test_same_format_twice_refused(self):
+        response = self.adjust((self.variant, '1'), (self.variant, '2'))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.stock(self.variant), 5)
 
 
 class StockEntryTest(_StockApiCase):
@@ -464,7 +510,7 @@ class StockMultiTenantTest(_StockApiCase):
         for name, data in (
             ('stock-entries', {'lines': [line]}),
             ('stock-exits', {'lines': [line], 'reason': 'loss'}),
-            ('stock-adjustments', {'variant': line['variant'], 'counted_quantity': '0'}),  # noqa: E501
+            ('stock-adjustments', {'lines': [{'variant': line['variant'], 'counted_quantity': '0'}]}),  # noqa: E501
             ('stock-in', {**line, 'reason': 'x'}),
             ('stock-out', {**line, 'reason': 'x'}),
         ):

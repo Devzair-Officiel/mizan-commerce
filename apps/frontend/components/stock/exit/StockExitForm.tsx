@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { FormActions } from '@/components/form/FormActions';
 import { FormCard } from '@/components/form/FormCard';
 import { useFormLeave } from '@/components/form/useFormLeave';
-import { useStockAdjustments, useStockExit, type StockLevel } from '@/lib/hooks/useStock';
+import { useStockAdjustment, useStockExit, type StockLevel } from '@/lib/hooks/useStock';
 import { notify } from '@/lib/notify';
 import { StockVariantSearch } from '../search/StockVariantSearch';
 import { rejectedLines } from '../stockApiErrors';
@@ -14,7 +14,7 @@ import { useStockFormat } from '../useStockFormat';
 import { ExitNoteSection } from './ExitNoteSection';
 import { ExitReasonSection } from './ExitReasonSection';
 import { StockExitLines } from './StockExitLines';
-import { adjustmentPayloads, exitPayload, useStockExitForm, type StockExitMotive, type StockExitOutput } from './useStockExitForm';
+import { adjustmentPayload, exitPayload, useStockExitForm, type StockExitMotive, type StockExitOutput } from './useStockExitForm';
 
 interface StockExitFormProps {
   /** Motif prérempli (`?motif=correction` depuis « Corriger le stock » de la fiche article). */
@@ -30,7 +30,7 @@ export function StockExitForm({ reason, initial, onLeave, onSaved }: StockExitFo
   const tc = useTranslations('stock.common');
   const f = useStockFormat();
   const exit = useStockExit();
-  const adjust = useStockAdjustments();
+  const adjust = useStockAdjustment();
   const { form, lines, totals, addLevel, switchReason } = useStockExitForm(reason, initial);
   const [noteOpen, setNoteOpen] = useState(false);
   const counting = useWatch({ control: form.control, name: 'reason' }) === 'adjustment';
@@ -47,8 +47,8 @@ export function StockExitForm({ reason, initial, onLeave, onSaved }: StockExitFo
 
   const submit = form.handleSubmit((values) => {
     if (values.reason === 'adjustment') {
-      adjust.mutate(adjustmentPayloads(values), {
-        onSuccess: (results) => done(values, t('adjust_success', { count: results.filter((r) => r.movement).length })),
+      adjust.mutate(adjustmentPayload(values), {
+        onSuccess: ({ movements }) => done(values, t('adjust_success', { count: movements.length })),
         onError: () => notify.error(tc('save_error')),
       });
       return;

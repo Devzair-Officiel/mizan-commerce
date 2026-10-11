@@ -430,7 +430,6 @@
     },
     "detail": {
       "topbar_short": "عميل",
-      "loading": "جاري التحميل…",
       "not_found": "العميل غير موجود.",
       "deactivate_confirm": "تعطيل هذا العميل؟ لن يظهر بعد الآن ضمن العملاء النشطين، ويمكنك إعادة تفعيله من صفحته.",
       "reminder_title": "متابعة {name}",
@@ -518,7 +517,6 @@
   "orders": {
     "list": {
       "topbar": "الطلبات",
-      "loading": "جارٍ التحميل…",
       "count": "{count, plural, zero {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}",
       "count_filtered": "{count, plural, zero {لا توجد طلبات · مُصفّى} one {طلب واحد · مُصفّى} two {طلبان · مُصفّى} few {# طلبات · مُصفّى} many {# طلبًا · مُصفّى} other {# طلب · مُصفّى}}",
       "new_order": "طلب جديد",
@@ -780,7 +778,6 @@
       "topbar": "تعديل الطلب",
       "topbar_with_number": "تعديل الطلب {number}",
       "topbar_short_with_number": "تعديل {number}",
-      "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
       "read_only": "لا يمكن تعديل طلب تم تسليمه أو إلغاؤه.",
       "saving": "جارٍ الحفظ…",
@@ -800,7 +797,6 @@
       "filter_service": "خدمات",
       "no_results": "لا نتائج.",
       "variant_back": "العودة إلى الفهرس",
-      "loading": "جارٍ التحميل…",
       "variant_count": "{count, plural, zero {لا أشكال} one {شكل واحد} two {شكلان} few {# أشكال} many {# شكل} other {# شكل}}",
       "no_variants": "لا يوجد شكل نشط.",
       "out_of_stock": "نفد",
@@ -1040,7 +1036,6 @@
     },
     "sheet": {
       "topbar": "البطاقة",
-      "loading": "جارٍ التحميل…",
       "not_found": "هذا المنتج غير موجود.",
       "subtitle": "{type, select, service {خدمة، أُنشئت في {date}} other {منتج، أُنشئ في {date}}}",
       "subtitle_formats": "منتج، {count} أشكال، أُنشئ في {date}",
@@ -1446,7 +1441,6 @@
     },
     "history": {
       "title": "رسائل واتساب",
-      "loading": "جارٍ التحميل…",
       "delete_confirm": "حذف هذه الرسالة؟",
       "delete_aria": "حذف الرسالة",
       "delete_cta": "حذف"
@@ -1458,7 +1452,6 @@
     "subtitle": "أدر أعضاء متجرك وصلاحياتهم.",
     "add_member": "إضافة عضو",
     "no_members": "أنت العضو الوحيد في هذا المتجر حالياً.",
-    "loading": "جارٍ التحميل…",
     "you_badge": "أنت",
     "since": "منذ {date}",
     "role": {
@@ -1575,7 +1568,6 @@
       "retry": "إعادة المحاولة"
     },
     "loading": {
-      "label": "جارٍ التحميل…",
       "status": "التحميل جارٍ"
     },
     "not_found": {
@@ -1616,7 +1608,6 @@
     "page": {
       "title": "إعدادات المتجر",
       "loading_title": "الإعدادات",
-      "loading": "جارٍ التحميل…",
       "saved": "تم حفظ التعديلات ✓"
     },
     "actions": {
@@ -1678,12 +1669,10 @@
     },
     "public_page": {
       "title": "الصفحة العامة",
-      "loading": "جارٍ التحميل…",
       "error": "تعذّر تحميل معلومات الصفحة."
     },
     "subscription": {
       "title": "الاشتراك",
-      "loading": "جارٍ التحميل…",
       "current_plan": "باقتكم",
       "trial": "تجربة",
       "trial_remaining": "{days, plural, =0 {تنتهي التجربة اليوم.} one {التجربة جارية — يبقى يوم واحد.} two {التجربة جارية — يبقى يومان.} few {التجربة جارية — تبقى # أيام.} many {التجربة جارية — يبقى # يومًا.} other {التجربة جارية — يبقى # يوم.}}",
@@ -1866,7 +1855,6 @@
       "year_done": "زكاة {year} معتمدة مسبقًا",
       "year_done_amount": "{amount} — عرض المستند الداعم",
       "start": "احسبوا زكاتكم",
-      "loading": "جارٍ التحميل…",
       "history": "السجل",
       "base": "الوعاء: {amount}",
       "pdf_available": "ملف PDF متاح",
@@ -2205,7 +2193,6 @@
       "badge_new": "جديد",
       "sheet_title": "{kind, select, product {إضافة منتج} service {إضافة خدمة} other {إضافة عنصر}}",
       "search": "بحث…",
-      "loading": "جارٍ التحميل…",
       "no_results": "لا توجد نتائج.",
       "none_available": "{kind, select, product {لا يوجد منتج متاح.} service {لا توجد خدمة متاحة.} other {لا يوجد عنصر متاح.}}",
       "close": "إغلاق"
@@ -2276,7 +2263,6 @@
     "password_min": "8 أحرف على الأقل",
     "confirm_required": "التأكيد مطلوب",
     "password_mismatch": "كلمتا المرور غير متطابقتين",
-    "loading": "جارٍ التحميل…",
     "email": "البريد الإلكتروني",
     "email_locked": "لا يمكن تغيير البريد الإلكتروني.",
     "full_name": "الاسم الكامل *",
@@ -2298,7 +2284,6 @@
     "list": {
       "title": "الفواتير",
       "filter": "{value, select, issued {الصادرة} paid {المدفوعة} cancelled {الملغاة} other {الكل}}",
-      "loading": "جارٍ التحميل…",
       "empty_title": "لا توجد فواتير",
       "empty_body": "تُنشأ الفواتير من الطلبات.",
       "no_customer": "بدون عميل"

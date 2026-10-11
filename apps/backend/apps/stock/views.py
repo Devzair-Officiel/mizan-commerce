@@ -19,8 +19,9 @@ from .serializers import (  # noqa: E402
     StockOutSerializer,
 )
 from .services import (  # noqa: E402
-    EntryLine, EntryReference, ExitLine, LEVEL_SEARCH_FIELDS, MOVEMENT_SEARCH_FIELDS,
-    adjust_to_count, create_entry, create_exit, load_stock_variants,
+    CountLine, EntryLine, EntryReference, ExitLine, LEVEL_SEARCH_FIELDS,
+    MOVEMENT_SEARCH_FIELDS, adjust_to_counts, create_entry, create_exit,
+    load_stock_variants,
 )
 
 
@@ -159,7 +160,8 @@ class StockExitView(APIView):
 
 
 class StockAdjustmentView(APIView):
-    """Correction d'inventaire : crée un mouvement égal à l'écart (aucun si nul)."""
+    """Correction d'inventaire en plusieurs lignes, tout ou rien : un mouvement
+    égal à l'écart par ligne (aucun si l'écart est nul)."""
     permission_classes = (IsAuthenticated, HasStockModule)
 
     def post(self, request: Request) -> Response:
@@ -167,15 +169,15 @@ class StockAdjustmentView(APIView):
         serializer = StockAdjustmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
-        [variant] = load_stock_variants(shop, [d['variant']])
-        movement = adjust_to_count(
-            shop, request.user, variant, d['counted_quantity'], d['note'],
-        )
-        data = None if movement is None else StockMovementSerializer(movement).data
-        return Response(
-            {'movement': data, 'stock_quantity': str(variant.stock_quantity)},
-            status=status.HTTP_200_OK if movement is None else status.HTTP_201_CREATED,
-        )
+        variants = load_stock_variants(shop, [line['variant'] for line in d['lines']])
+        lines = [
+            CountLine(variant, line['counted_quantity'])
+            for variant, line in zip(variants, d['lines'], strict=True)
+        ]
+        movements = adjust_to_counts(shop, request.user, lines, d['note'])
+        if not movements:
+            return Response({'movements': []}, status=status.HTTP_200_OK)
+        return _created(movements)
 
 
 class StockInView(APIView):

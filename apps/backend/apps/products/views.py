@@ -232,7 +232,11 @@ class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
                 {'detail': "Un produit doit conserver au moins une variante."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return super().destroy(request, *args, **kwargs)
+        try:
+            services.delete_unused_variant(variant)
+        except services.VariantInUseError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProductImageSignedUrlView(APIView):

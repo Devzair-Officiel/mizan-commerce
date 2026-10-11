@@ -28,7 +28,8 @@ if TYPE_CHECKING:
 __all__ = [
     'EntryLine', 'EntryReference', 'ExitLine', 'InsufficientStockError',
     'LEVEL_SEARCH_FIELDS', 'MOVEMENT_SEARCH_FIELDS', 'STOCK_STATES',
-    'adjust_to_count', 'build_level_facets', 'build_levels_summary',
+    'adjust_to_count', 'adjust_to_counts', 'CountLine', 'build_level_facets',
+    'build_levels_summary',
     'create_entry', 'create_exit', 'create_movement', 'filter_levels',
     'filter_movements', 'load_stock_variants', 'movements_with_references',
     'stock_levels',
@@ -71,6 +72,11 @@ class EntryLine(NamedTuple):
 class ExitLine(NamedTuple):
     variant: ProductVariant
     quantity: Decimal
+
+
+class CountLine(NamedTuple):
+    variant: ProductVariant
+    counted: Decimal
 
 
 def create_movement(
@@ -225,6 +231,21 @@ def adjust_to_count(
         return create_movement(
             shop, variant, 'adjustment', delta, reason=note, created_by=user,
         )
+
+
+def adjust_to_counts(
+    shop: Shop, user: User, lines: Sequence[CountLine], note: str = '',
+) -> list[StockMovement]:
+    """Correction d'inventaire en plusieurs lignes, tout ou rien.
+
+    Un mouvement par ligne dont l'écart n'est pas nul.
+    """
+    with transaction.atomic():
+        movements = [
+            adjust_to_count(shop, user, line.variant, line.counted, note)
+            for line in lines
+        ]
+    return [m for m in movements if m is not None]
 
 
 # ─── Niveaux de stock ───────────────────────────────────────────────────────

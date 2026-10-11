@@ -14,6 +14,7 @@ import { InvoicingSection } from '@/components/settings/InvoicingSection';
 import { ZakatSection } from '@/components/settings/ZakatSection';
 import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
 function defaultsFromShop(shop: Shop): SettingsFormValues {
   return {
@@ -65,7 +66,7 @@ export default function SettingsPage() {
     return (
       <>
         <TopBar title={t('loading_title')} />
-        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
+        <SectionsSkeleton sections={[4, 3, 3]} className="mx-auto w-full max-w-3xl px-4 pt-4 pb-32" />
       </>
     );
   }

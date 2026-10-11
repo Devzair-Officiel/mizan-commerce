@@ -8,6 +8,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { isDefaultVariant } from '@/lib/products';
 import { variantPick, type VariantPick } from './variantPick';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 export type { VariantPick } from './variantPick';
 
@@ -41,7 +42,7 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
         <BackButton onBack={onBack} label={t('variant_back')} />
         {isError
           ? <p role="alert" className="py-6 text-center text-sm text-destructive">{t('add_error')}</p>
-          : <p className="py-6 text-center text-sm text-muted-foreground">{t('loading')}</p>}
+          : <SkeletonRows count={3} rowClassName="py-3" />}
       </div>
     );
   }

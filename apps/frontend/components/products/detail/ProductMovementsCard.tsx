@@ -7,6 +7,7 @@ import { useStockMovements } from '@/lib/hooks/useStock';
 import { isDefaultVariant } from '@/lib/products';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { ProductMovementLabel } from './ProductMovementLabel';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 const SHOWN = 5;
 
@@ -17,11 +18,13 @@ export function ProductMovementsCard({ productId }: { productId: string }) {
   const { data, isLoading, isError } = useStockMovements({ product: productId, pageSize: SHOWN });
   const movements = data?.results ?? [];
   const seeAll = (data?.count ?? 0) > 0 ? { label: t('see_all'), href: `/stock?tab=mouvements&product=${productId}` } : undefined;
-  const empty = isLoading ? t('loading') : isError ? t('movements_error') : t('movements_empty');
+  const empty = isError ? t('movements_error') : t('movements_empty');
 
   return (
     <SectionCard title={t('movements_title')} rightLink={seeAll}>
-      {movements.length === 0 ? (
+      {isLoading ? (
+        <SkeletonRows />
+      ) : movements.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted-foreground lg:px-5">{empty}</p>
       ) : (
         <ul className="divide-y divide-border">

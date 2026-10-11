@@ -32,6 +32,7 @@ __all__ = (
     'products_with_stats', 'filter_products', 'build_product_facets',
     'build_products_summary', 'create_product', 'create_variant', 'product_has_served',
     'delete_unused_product', 'ProductInUseError', 'INITIAL_STOCK_REASON',
+    'delete_unused_variant', 'VariantInUseError',
     'product_stock_totals', 'product_sales', 'SALES_DAYS',
 )
 
@@ -229,6 +230,13 @@ class ProductInUseError(Exception):
         super().__init__('Cet article a déjà servi : désactivez-le plutôt.')
 
 
+class VariantInUseError(Exception):
+    """Format déjà utilisé (commande, mouvement) : à retirer de la vente."""
+
+    def __init__(self) -> None:
+        super().__init__('Ce format a déjà servi : retirez-le de la vente.')
+
+
 def create_product(
     shop: Shop,
     user: User,
@@ -271,32 +279,60 @@ def create_variant(
     return variant
 
 
-def product_has_served(product: Product) -> bool:
-    """Une ligne de commande, ou un mouvement autre que son stock initial."""
+_INITIAL_MOVEMENT = Q(
+    movement_type='in', reason__in=_INITIAL_STOCK_REASONS, order_id__isnull=True,
+    supplier_name='', invoice_number='', ocr_result__isnull=True,
+)
+
+
+def _variants_have_served(variants: QuerySet[ProductVariant]) -> bool:
+    """Une ligne de commande, ou un mouvement autre que le stock initial."""
     from apps.orders.models import OrderItem
     from apps.stock.models import StockMovement
 
-    if OrderItem.objects.filter(variant__product=product).exists():
+    if OrderItem.objects.filter(variant__in=variants).exists():
         return True
-    initial = Q(
-        movement_type='in', reason__in=_INITIAL_STOCK_REASONS, order_id__isnull=True,
-        supplier_name='', invoice_number='', ocr_result__isnull=True,
-    )
-    movements = StockMovement.objects.filter(variant__product=product)
-    return movements.exclude(initial).exists()
+    movements = StockMovement.objects.filter(variant__in=variants)
+    return movements.exclude(_INITIAL_MOVEMENT).exists()
+
+
+def _delete_unused_variants(variants: QuerySet[ProductVariant]) -> None:
+    """Verrouille les formats, vérifie qu'ils n'ont jamais servi, puis supprime
+    leur stock initial (seul historique restant). À appeler dans une transaction.
+
+    Le verrou fait attendre une vente ou une entrée en cours la fin de la
+    vérification.
+    """
+    from apps.stock.models import StockMovement
+
+    list(variants.select_for_update())
+    if _variants_have_served(variants):
+        raise ProductInUseError()
+    StockMovement.objects.filter(variant__in=variants).delete()
+
+
+def product_has_served(product: Product) -> bool:
+    """Une ligne de commande, ou un mouvement autre que son stock initial."""
+    return _variants_have_served(ProductVariant.objects.filter(product=product))
 
 
 def delete_unused_product(product: Product) -> None:
-    """Supprime un article qui n'a jamais servi ; sinon `ProductInUseError`.
-
-    Ses formats sont verrouillés : une vente ou une entrée en cours attend la
-    fin de la vérification.
-    """
+    """Supprime un article qui n'a jamais servi, avec son stock initial ;
+    sinon `ProductInUseError`."""
     with transaction.atomic():
-        list(ProductVariant.objects.select_for_update().filter(product=product))
-        if product_has_served(product):
-            raise ProductInUseError()
+        _delete_unused_variants(ProductVariant.objects.filter(product=product))
         product.delete()
+
+
+def delete_unused_variant(variant: ProductVariant) -> None:
+    """Supprime un format qui n'a jamais servi, avec son stock initial ;
+    sinon `VariantInUseError` (le retirer de la vente)."""
+    with transaction.atomic():
+        try:
+            _delete_unused_variants(ProductVariant.objects.filter(pk=variant.pk))
+        except ProductInUseError:
+            raise VariantInUseError() from None
+        variant.delete()
 
 
 SALES_DAYS = 30

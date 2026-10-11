@@ -15,6 +15,7 @@ import {
   useUpdateCatalogItem,
 } from '@/lib/hooks/usePublicPageAdmin';
 import { useProducts, type Product } from '@/lib/hooks/useProducts';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 interface Props {
   page: PublicPage;
@@ -260,9 +261,7 @@ function AddPickerSheet({ open, onClose, kind, excludedProductIds }: SheetProps)
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
         />
 
-        {isLoading && (
-          <p className="text-xs text-muted-foreground text-center py-4">{t('loading')}</p>
-        )}
+        {isLoading && <SkeletonRows count={4} variant="cards" rowClassName="px-3 py-2" />}
 
         {!isLoading && candidates.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4 italic">

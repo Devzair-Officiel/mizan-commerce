@@ -251,6 +251,21 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-103 — Supprimer un article
+
+**En tant que** commerçant,  
+**je veux** supprimer un article créé par erreur,  
+**afin de** garder un catalogue propre.
+
+### Critères d'acceptation
+
+- La suppression n'est possible que si l'article n'a jamais servi : aucune vente, aucun mouvement de stock autre que son stock initial.
+- Sinon, l'article peut seulement être désactivé (URS-011), et un message l'explique.
+- La suppression demande une confirmation.
+- Un format qui a servi ne se supprime pas : il peut être retiré de la vente (URS-091).
+
+---
+
 ## URS-012 — Rechercher un produit
 
 **En tant que** commerçant,  
@@ -495,6 +510,7 @@ L'application est organisée autour des modules suivants :
 - Le stock est diminué lorsque la commande passe à "à préparer".
 - Le stock est restauré si la commande est annulée.
 - Un mouvement de stock est créé automatiquement.
+- Une vente n'est jamais bloquée par le stock : un format peut passer en négatif ; il est signalé « à régulariser » jusqu'à la prochaine entrée ou correction.
 
 ---
 

@@ -134,11 +134,21 @@ class StockExitSerializer(serializers.Serializer):
     note = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')  # noqa: E501
 
 
-class StockAdjustmentSerializer(serializers.Serializer):
-    """Correction d'inventaire : la quantité comptée remplace le stock."""
+class _CountLineSerializer(serializers.Serializer):
     variant = serializers.UUIDField()
     counted_quantity = serializers.DecimalField(**_QUANTITY, min_value=Decimal('0'))
+
+
+class StockAdjustmentSerializer(serializers.Serializer):
+    """Correction d'inventaire en plusieurs lignes : la quantité comptée remplace le stock."""  # noqa: E501
+    lines = _CountLineSerializer(many=True, allow_empty=False, max_length=200)
     note = serializers.CharField(max_length=500, required=False, allow_blank=True, default='')  # noqa: E501
+
+    def validate_lines(self, lines: list[dict]) -> list[dict]:
+        variants = [line['variant'] for line in lines]
+        if len(variants) != len(set(variants)):
+            raise serializers.ValidationError('Un même format ne peut être compté deux fois.')  # noqa: E501
+        return lines
 
 
 class StockLevelSerializer(serializers.ModelSerializer):

@@ -11,6 +11,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { cn } from '@/lib/utils';
 import { CustomerOrdersTable } from './CustomerOrdersTable';
 import { OrderStatusDot } from './OrderStatusDot';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 const SHOWN = 5;
 
@@ -29,7 +30,7 @@ export function CustomerOrdersCard({ customer }: { customer: Customer }) {
   return (
     <SectionCard title={t('orders_title')} rightLink={seeAll}>
       {isLoading ? (
-        <p className="px-4 py-4 text-sm text-muted-foreground lg:px-5">{t('loading')}</p>
+        <SkeletonRows />
       ) : orders.length === 0 ? (
         <p className="px-4 py-4 text-sm text-muted-foreground lg:px-5">{t('orders_empty')}</p>
       ) : (

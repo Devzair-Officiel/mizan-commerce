@@ -643,3 +643,72 @@ class GlobalSearchTest(TestCase):
         self.assertEqual(resp.data["products"]["total"], 0)
         self.assertEqual(resp.data["customers"]["total"], 0)
         self.assertEqual(resp.data["orders"]["total"], 0)
+
+
+class HistoryProtectionTest(TestCase):
+    """Aucune suppression d"un objet métier n"efface un historique en cascade.
+
+    RESTRICT refuse la suppression directe ; la suppression de toute la
+    boutique (compte supprimé, `seed_data --reset`) reste possible.
+    """
+
+    RESTRICTED = (
+        ("stock", "StockMovement", "variant"),
+        ("orders", "Order", "customer"),
+        ("orders", "OrderItem", "order"),
+        ("invoices", "InvoiceLine", "invoice"),
+        ("notes", "Note", "customer"),
+        ("notes", "Note", "order"),
+        ("ocr", "OcrResult", "uploaded_document"),
+        ("loyalty", "LoyaltyCard", "customer"),
+        ("loyalty", "LoyaltyTransaction", "card"),
+    )
+
+    def setUp(self):
+        from apps.customers.factories import CustomerFactory
+        from apps.invoices.services import issue_invoice_from_order
+        from apps.loyalty.factories import LoyaltyTransactionFactory
+        from apps.notes.factories import NoteFactory
+        from apps.ocr.factories import OcrResultFactory
+        from apps.stock.services import create_movement
+
+        self.user, self.shop = setup("history@example.com")
+        product = Product.objects.create(shop=self.shop, name="Huile")
+        self.variant = ProductVariant.objects.create(
+            shop=self.shop, product=product, packaging_name="1 L",
+            selling_price="10.00",
+        )
+        create_movement(self.shop, self.variant, "in", 5, "Réassort", created_by=self.user)  # noqa: E501
+        self.customer = CustomerFactory(shop=self.shop)
+        self.order = order_services.create_order(self.shop, self.user, customer=self.customer)  # noqa: E501
+        order_services.add_item(self.order, self.variant, 1)
+        self.invoice = issue_invoice_from_order(shop=self.shop, order=self.order)
+        self.note = NoteFactory(shop=self.shop, author=self.user, customer=self.customer, order=self.order)  # noqa: E501
+        self.card = LoyaltyTransactionFactory(card__shop=self.shop, card__customer=self.customer).card  # noqa: E501
+        self.ocr = OcrResultFactory(shop=self.shop, uploaded_document__uploaded_by_user=self.user)  # noqa: E501
+
+    def test_history_relations_are_restricted(self):
+        from django.apps import apps
+        from django.db.models import RESTRICT
+
+        for app, model, field in self.RESTRICTED:
+            on_delete = apps.get_model(app, model)._meta.get_field(field).remote_field.on_delete  # noqa: E501
+            self.assertIs(on_delete, RESTRICT, f"{model}.{field}")
+
+    def test_direct_deletion_of_a_business_object_is_refused(self):
+        from django.db.models import RestrictedError
+
+        movements = StockMovement.objects.filter(variant=self.variant).count()
+        for obj in (
+            self.variant, self.customer, self.order, self.invoice,
+            self.ocr.uploaded_document, self.card,
+        ):
+            with self.subTest(type(obj).__name__), self.assertRaises(RestrictedError):
+                obj.delete()
+        self.assertEqual(StockMovement.objects.filter(variant=self.variant).count(), movements)  # noqa: E501
+        self.assertTrue(Order.objects.filter(pk=self.order.pk, items__isnull=False).exists())  # noqa: E501
+
+    def test_deleting_the_whole_shop_still_works(self):
+        self.shop.delete()
+        self.assertFalse(StockMovement.objects.filter(shop_id=self.shop.pk).exists())
+        self.assertFalse(Order.objects.filter(shop_id=self.shop.pk).exists())

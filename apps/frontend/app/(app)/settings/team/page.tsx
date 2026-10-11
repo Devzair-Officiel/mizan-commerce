@@ -16,6 +16,7 @@ import {
 } from '@/lib/hooks/useShopMembers';
 import { ApiError } from '@/lib/api-client';
 import { MemberFormSheet, type FormMode } from '@/components/team/MemberFormSheet';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
 export default function TeamPage() {
   const t = useTranslations('team');
@@ -83,7 +84,7 @@ function MemberList({ onEdit }: { onEdit?: (member: ShopMember) => void }) {
   const { data: members, isLoading } = useShopMembers();
   const [deleteTarget, setDeleteTarget] = useState<ShopMember | null>(null);
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">{t('loading')}</p>;
+  if (isLoading) return <SkeletonRows count={2} variant="cards" rowClassName="p-4" />;
   if (!members || members.length === 0) {
     return <p className="text-sm text-muted-foreground">{t('no_members')}</p>;
   }
