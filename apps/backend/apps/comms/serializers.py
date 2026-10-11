@@ -75,6 +75,8 @@ class PreparedMessageCreateSerializer(serializers.Serializer):
     context_id = serializers.UUIDField(required=False, allow_null=True)
     customer_id = serializers.UUIDField(required=False, allow_null=True)
     custom_message = serializers.CharField(required=False, allow_blank=True, max_length=4000)  # noqa: E501
+    # WhatsApp s'ouvre avec ce texte : enregistré directement comme envoyé.
+    sent = serializers.BooleanField(required=False, default=False)
 
     def validate(self, data):
         template_type = data['template_type']

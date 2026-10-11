@@ -1434,9 +1434,8 @@
       "hint": "ستُرسل هذه الرسالة يدويًا عبر واتساب إلى {name}.",
       "message_label": "الرسالة",
       "send_cta": "فتح واتساب",
-      "sending": "جاري التحضير…",
       "cancel": "إلغاء",
-      "error_generic": "تعذّر تحضير الرسالة.",
+      "record_failed": "فُتح واتساب، لكن لم تُضف الرسالة إلى السجل.",
       "greeting": "السلام عليكم،",
       "greeting_named": "السلام عليكم {name}،"
     },
@@ -1444,7 +1443,10 @@
       "title": "رسائل واتساب",
       "delete_confirm": "حذف هذه الرسالة؟",
       "delete_aria": "حذف الرسالة",
-      "delete_cta": "حذف"
+      "delete_cta": "حذف",
+      "status_prepared": "محضّرة",
+      "status_sent_manually": "أُرسلت",
+      "status_archived": "مؤرشفة"
     }
   },
   "team": {

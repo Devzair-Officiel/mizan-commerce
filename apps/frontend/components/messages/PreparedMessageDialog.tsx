@@ -6,11 +6,10 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import {
   useCreatePreparedMessage,
-  useMarkMessageSent,
-  type PreparedMessage,
   type PreparedMessageContext,
   type PreparedMessageTemplate,
 } from '@/lib/hooks/usePreparedMessages';
+import { notify } from '@/lib/notify';
 
 interface PreparedMessageDialogProps {
   open: boolean;
@@ -39,44 +38,30 @@ export function PreparedMessageDialog({
   const textareaId = useId();
   const [message, setMessage] = useState(initialMessage);
   const [lastOpen, setLastOpen] = useState(open);
-  const create = useCreatePreparedMessage();
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const markSent = useMarkMessageSent(pendingId ?? '');
+  const record = useCreatePreparedMessage({ onError: () => notify.error(t('record_failed')) });
 
   if (open !== lastOpen) {
     setLastOpen(open);
-    if (open) {
-      setMessage(initialMessage);
-      setPendingId(null);
-    }
+    if (open) setMessage(initialMessage);
   }
 
   const phoneDigits = recipientPhone.replace(/\D/g, '');
   const canSend = phoneDigits.length > 0 && message.trim().length > 0;
-  const isSubmitting = create.isPending || markSent.isPending;
 
-  async function handleSend() {
-    if (!canSend || isSubmitting) return;
-    try {
-      const created: PreparedMessage = await create.mutateAsync({
-        template_type: templateType,
-        context_type: contextType,
-        context_id: contextId,
-        customer_id: customerId,
-        custom_message: message,
-      });
-      setPendingId(created.id);
-      // mark-sent en background — on n'attend pas la réponse pour ouvrir WhatsApp
-      fetch(`/api/proxy/messages/prepared/${created.id}/mark-sent/`, { method: 'POST' });
-      window.open(
-        `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`,
-        '_blank',
-        'noopener,noreferrer',
-      );
-      onClose();
-    } catch {
-      // l'erreur reste affichée via create.error
-    }
+  // WhatsApp s'ouvre dans le geste de l'utilisateur (après un await, le navigateur mobile bloque
+  // la fenêtre) ; le message est enregistré en même temps, directement comme envoyé.
+  function handleSend() {
+    if (!canSend) return;
+    window.open(`https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    record.mutate({
+      template_type: templateType,
+      context_type: contextType,
+      context_id: contextId,
+      customer_id: customerId,
+      custom_message: message,
+      sent: true,
+    });
+    onClose();
   }
 
   return (
@@ -102,27 +87,20 @@ export function PreparedMessageDialog({
           />
         </div>
 
-        {create.error && (
-          <p className="text-xs text-destructive" role="alert">
-            {t('error_generic')}
-          </p>
-        )}
-
         <div className="flex flex-col gap-2 pt-1">
           <Button
             type="button"
             onClick={handleSend}
-            disabled={!canSend || isSubmitting}
+            disabled={!canSend}
             className="w-full h-12 rounded-full gap-2"
           >
             <WhatsAppIcon size={16} />
-            {isSubmitting ? t('sending') : t('send_cta')}
+            {t('send_cta')}
           </Button>
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
-            disabled={isSubmitting}
             className="w-full h-11 rounded-full"
           >
             {t('cancel')}

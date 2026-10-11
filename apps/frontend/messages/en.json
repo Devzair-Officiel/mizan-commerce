@@ -1434,9 +1434,8 @@
       "hint": "This message will be sent manually via WhatsApp to {name}.",
       "message_label": "Message",
       "send_cta": "Open WhatsApp",
-      "sending": "Preparing…",
       "cancel": "Cancel",
-      "error_generic": "Could not prepare the message.",
+      "record_failed": "WhatsApp opened, but the message was not added to the history.",
       "greeting": "Hello,",
       "greeting_named": "Hello {name},"
     },
@@ -1444,7 +1443,10 @@
       "title": "WhatsApp messages",
       "delete_confirm": "Delete this message?",
       "delete_aria": "Delete message",
-      "delete_cta": "Delete"
+      "delete_cta": "Delete",
+      "status_prepared": "Prepared",
+      "status_sent_manually": "Sent",
+      "status_archived": "Archived"
     }
   },
   "team": {

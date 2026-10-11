@@ -3,9 +3,10 @@ import type { OrderSummary } from '@/lib/hooks/useOrders';
 type WaTranslator = (key: string, params?: Record<string, string | number>) => string;
 type MoneyFmt = (v: string | number, currency: string, opts?: Intl.NumberFormatOptions) => string;
 type DateFmt = (v: string | number | Date, opts?: Intl.DateTimeFormatOptions) => string;
+type DueOrder = Pick<OrderSummary, 'order_number' | 'created_at' | 'total_amount' | 'amount_paid'>;
 
 /** Reste dû d'une commande, en centimes entiers pour éviter les arrondis flottants. */
-function due(order: OrderSummary): number {
+function due(order: DueOrder): number {
   const cents = (v: string) => Math.round(Number(v) * 100);
   return (cents(order.total_amount) - cents(order.amount_paid)) / 100;
 }
@@ -13,7 +14,7 @@ function due(order: OrderSummary): number {
 /** Message de relance : une ligne par commande impayée, puis le total restant. */
 export function buildFollowupMessage(
   name: string,
-  orders: OrderSummary[],
+  orders: DueOrder[],
   total: string,
   ctx: { tWa: WaTranslator; formatMoney: MoneyFmt; formatDate: DateFmt; currency: string },
 ): string {

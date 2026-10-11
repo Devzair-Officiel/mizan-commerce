@@ -44,6 +44,8 @@ export interface PreparedMessageCreateInput {
   context_id?: string | null;
   customer_id?: string | null;
   custom_message?: string;
+  /** WhatsApp s'ouvre avec ce texte : enregistré directement comme envoyé. */
+  sent?: boolean;
 }
 
 export interface PreparedMessagesFilters {
@@ -71,7 +73,8 @@ export function usePreparedMessages({ customerId, orderId }: PreparedMessagesFil
   });
 }
 
-export function useCreatePreparedMessage() {
+// `onError` au niveau du hook : il s'exécute même si la fenêtre d'envoi est déjà fermée.
+export function useCreatePreparedMessage({ onError }: { onError?: () => void } = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: PreparedMessageCreateInput) =>
@@ -80,6 +83,7 @@ export function useCreatePreparedMessage() {
         body: JSON.stringify(data),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.preparedMessages.all }),
+    onError,
   });
 }
 
@@ -90,17 +94,6 @@ export function useUpdatePreparedMessage(id: string) {
       apiFetch<PreparedMessage>(`/messages/prepared/${id}/`, {
         method: 'PATCH',
         body: JSON.stringify({ message }),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.preparedMessages.all }),
-  });
-}
-
-export function useMarkMessageSent(id: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      apiFetch<PreparedMessage>(`/messages/prepared/${id}/mark-sent/`, {
-        method: 'POST',
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.preparedMessages.all }),
   });

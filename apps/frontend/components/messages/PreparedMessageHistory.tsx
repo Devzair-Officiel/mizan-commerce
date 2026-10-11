@@ -27,16 +27,23 @@ const STATUS_CLASSES: Record<PreparedMessageStatus, string> = {
   archived: 'bg-muted text-muted-foreground',
 };
 
+const STATUS_LABEL_KEYS: Record<PreparedMessageStatus, string> = {
+  prepared: 'status_prepared',
+  sent_manually: 'status_sent_manually',
+  archived: 'status_archived',
+};
+
 export function PreparedMessageHistory({ customerId, orderId, compact }: PreparedMessageHistoryProps) {
   const t = useTranslations('messages.history');
   const formatDateTime = useFormatDateTime();
   const { data, isLoading } = usePreparedMessages({ customerId, orderId });
   const messages = data?.results ?? [];
+  const count = data?.count ?? messages.length;
 
   if (compact) {
     if (messages.length === 0) return null;
     return (
-      <SectionCard title={t('title')} rightSlot={<span className="text-muted-foreground tabular-nums">{messages.length}</span>}>
+      <SectionCard title={t('title')} rightSlot={<span className="text-muted-foreground tabular-nums">{count}</span>}>
         <div className="divide-y divide-border">
           {messages.map((msg) => (
             <MessageRow key={msg.id} message={msg} formatDateTime={formatDateTime} compact />
@@ -65,7 +72,7 @@ export function PreparedMessageHistory({ customerId, orderId, compact }: Prepare
           <MessageCircle size={15} className="text-muted-foreground" />
           <h2 className="font-semibold text-sm text-foreground">{t('title')}</h2>
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {messages.length}
+            {count}
           </span>
         </div>
       </div>
@@ -110,7 +117,7 @@ function MessageRow({ message, formatDateTime, compact }: MessageRowProps) {
           <span className="flex min-w-0 items-center gap-2">
             <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_CLASSES[message.status]}`}>
               {message.status === 'sent_manually' && <CheckCircle2 size={11} aria-hidden />}
-              {message.status_display}
+              {t(STATUS_LABEL_KEYS[message.status])}
             </span>
             <span className="truncate text-xs text-muted-foreground">
               {formatDateTime(timestamp, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
