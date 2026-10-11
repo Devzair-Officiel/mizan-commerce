@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Step0Liquidity } from '@/components/zakat/Step0Liquidity';
 import { Step1Receivables } from '@/components/zakat/Step1Receivables';
 import { Step2Stock } from '@/components/zakat/Step2Stock';
@@ -18,6 +19,7 @@ interface WizardStepsProps {
 }
 
 export function WizardSteps({ step, state, patch, calc, estimate, estimateLoading, currency }: WizardStepsProps) {
+  const t = useTranslations('zakat.wizard');
   if (step === 0) {
     return (
       <Step0Liquidity
@@ -61,7 +63,7 @@ export function WizardSteps({ step, state, patch, calc, estimate, estimateLoadin
   if (step === 5) {
     return (
       <p className="text-sm text-muted-foreground text-center py-8">
-        Préparation du récapitulatif…
+        {t('preparing_summary')}
       </p>
     );
   }

@@ -1,11 +1,13 @@
+import { useTranslations } from 'next-intl';
 import { formatInvoiceMoney, type Invoice } from '@/lib/hooks/useInvoices';
 
 export function LinesList({ invoice }: { invoice: Invoice }) {
+  const t = useTranslations('invoices.detail');
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <div className="px-4 py-3 border-b border-border">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Détail
+          {t('lines_title')}
         </h2>
       </div>
       <ul className="divide-y divide-border">

@@ -5,7 +5,11 @@
       "password": "Mot de passe",
       "back_to_login": "Retour à la connexion",
       "invalid_email": "Email invalide",
-      "invalid_or_expired_link": "Lien invalide ou expiré."
+      "invalid_or_expired_link": "Lien invalide ou expiré.",
+      "back_home": "Retour à l'accueil",
+      "email_placeholder": "vous@exemple.com",
+      "show_password": "Afficher le mot de passe",
+      "hide_password": "Masquer le mot de passe"
     },
     "login": {
       "title": "Connexion",
@@ -120,7 +124,8 @@
       "articles": "Articles",
       "catalogue": "Catalogue",
       "services": "Services",
-      "articles_and_services": "Articles et services"
+      "articles_and_services": "Articles et services",
+      "more": "Plus"
     },
     "breadcrumb": {
       "products": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
@@ -1158,6 +1163,44 @@
       "barcode_exact": "Code-barres identique",
       "sku_exact": "Référence identique",
       "name_similarity": "Nom similaire"
+    },
+    "movement": {
+      "title_in": "Entrée stock",
+      "title_out": "Sortie stock",
+      "pieces": "pièces",
+      "variant_required": "Sélectionnez un conditionnement.",
+      "invalid_quantity": "Quantité invalide.",
+      "reason_required": "La raison est obligatoire.",
+      "error_in": "Erreur lors de l'ajout de stock.",
+      "error_out": "Erreur lors de la sortie de stock.",
+      "default_reason_in": "Réassort",
+      "product": "Produit *",
+      "select_product": "Sélectionner un produit…",
+      "formats": "({count, plural, one {# format} other {# formats}})",
+      "variant": "Conditionnement *",
+      "select_variant": "Sélectionner un conditionnement…",
+      "variant_option": "{name} (stock : {stock})",
+      "current_stock": "Stock actuel : <b>{stock}</b>",
+      "quantity_in": "Quantité à ajouter *",
+      "quantity_out": "Quantité *",
+      "reason_optional": "Raison (optionnel)",
+      "reason_required_label": "Raison *",
+      "type": "{value, select, out {Sortie (vente manuelle)} loss {Perte / casse} other {{value}}}",
+      "saving": "Enregistrement…",
+      "submit_in": "Ajouter au stock",
+      "submit_out": "Enregistrer la sortie"
+    },
+    "overview": {
+      "title": "Stock",
+      "import_invoice": "Importer une facture",
+      "import_invoice_hint": "Photo → analyse OCR → revue",
+      "out_of_stock": "En rupture",
+      "to_restock": "{count, plural, one {produit à réassortir} other {produits à réassortir}}",
+      "low_stock": "Stock faible",
+      "below_threshold": "sous le seuil d'alerte",
+      "recent_movements": "Derniers mouvements",
+      "empty_title": "Aucun mouvement",
+      "empty_body": "L'historique des entrées et sorties de stock apparaîtra ici."
     }
   },
   "messages": {
@@ -1295,6 +1338,32 @@
     },
     "toast": {
       "region": "Notifications"
+    },
+    "error": {
+      "title": "Une erreur est survenue",
+      "body": "Nous n'avons pas pu charger cette page. Réessayez dans un instant — si l'erreur persiste, contactez le support.",
+      "reference": "Référence : {digest}",
+      "retry": "Réessayer"
+    },
+    "loading": {
+      "label": "Chargement…",
+      "status": "Chargement en cours"
+    },
+    "not_found": {
+      "code": "Erreur 404",
+      "title": "Page introuvable",
+      "body": "La page que vous cherchez n'existe pas ou a été déplacée.",
+      "back": "Retour au tableau de bord"
+    },
+    "password": {
+      "show": "Afficher le mot de passe",
+      "hide": "Masquer le mot de passe"
+    },
+    "crop": {
+      "zoom": "Zoom",
+      "cancel": "Annuler",
+      "processing": "Traitement…",
+      "confirm": "Valider"
     }
   },
   "settings": {
@@ -1314,6 +1383,118 @@
       "title": "Disponible avec la formule Boutique+",
       "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} other {Cette fonction fait partie de la formule Boutique+.}}",
       "cta": "Voir les formules"
+    },
+    "page": {
+      "title": "Paramètres boutique",
+      "loading_title": "Paramètres",
+      "loading": "Chargement…",
+      "saved": "Modifications enregistrées ✓"
+    },
+    "actions": {
+      "unsaved": "Modifications non enregistrées",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "identity": {
+      "title": "Identité",
+      "description": "Le visage de votre boutique et ses repères régionaux.",
+      "name": "Nom de la boutique *",
+      "name_required": "Nom requis",
+      "currency": "Devise",
+      "country": "Pays (optionnel)"
+    },
+    "logo": {
+      "alt": "Logo de la boutique",
+      "uploading": "Envoi…",
+      "change": "Changer le logo",
+      "add": "Ajouter un logo",
+      "deleting": "Suppression…",
+      "delete": "Supprimer",
+      "delete_title": "Supprimer le logo ?",
+      "delete_description": "Le logo de la boutique sera supprimé définitivement.",
+      "invalid_format": "Formats acceptés : JPEG, PNG, WebP.",
+      "upload_error": "L'envoi du logo a échoué. Réessayez.",
+      "delete_error": "Erreur lors de la suppression."
+    },
+    "management": {
+      "title": "Gestion",
+      "description": "Équipe, vitrine et abonnement de votre boutique.",
+      "public_page": "Page publique",
+      "public_page_subtitle": "Vitrine partageable de votre boutique",
+      "subscription": "Abonnement",
+      "subscription_subtitle": "Formule, essai et résiliation"
+    },
+    "invoicing": {
+      "title": "Facturation",
+      "description": "Ces champs apparaissent sur vos factures clients. Renseignez ce qui est exigé par la réglementation de votre pays.",
+      "legal_address": "Adresse légale (siège)",
+      "tax_id": "Identifiant fiscal (SIRET, TVA, NIF, EIN…)",
+      "tax_rate": "Taux TVA par défaut",
+      "payment_terms": "Délai de paiement",
+      "days": "jours",
+      "legal_mentions": "Mentions légales (pied de facture)",
+      "legal_mentions_help": "Ex. : « TVA non applicable, art. 293 B du CGI », RCS, conditions de pénalités, indemnité forfaitaire…"
+    },
+    "zakat": {
+      "title": "Zakat",
+      "description": "Paramètres pour calculer le seuil de Nisab et générer le rappel annuel.",
+      "annual_date": "Date annuelle (optionnel)",
+      "annual_date_help": "Un rappel sera généré avant cette date chaque année.",
+      "method": "Méthode du Nisab",
+      "method_silver": "Argent (595 g)",
+      "method_gold": "Or (85 g)",
+      "unit_price": "Prix au gramme ({currency})",
+      "unit_price_help": "Le cours évolue chaque jour. Vérifiez et mettez à jour le prix au gramme avant chaque calcul. La méthode de l'argent est plus inclusive (seuil plus bas)."
+    },
+    "public_page": {
+      "title": "Page publique",
+      "loading": "Chargement…",
+      "error": "Impossible de charger les informations de la page."
+    },
+    "subscription": {
+      "title": "Abonnement",
+      "loading": "Chargement…",
+      "current_plan": "Votre formule",
+      "trial": "Essai",
+      "trial_remaining": "{days, plural, =0 {Essai se terminant aujourd'hui.} one {Essai en cours — # jour restant.} other {Essai en cours — # jours restants.}}",
+      "period_end": "Fin : {date}.",
+      "plan_active": "Plan {name} actif.",
+      "per_month": "{price} € / mois",
+      "plans": {
+        "free": {
+          "name": "Gratuit",
+          "description": "L'essentiel pour bien commencer.",
+          "f1": "Jusqu'à 50 produits actifs",
+          "f2": "20 commandes par mois",
+          "f3": "Stock, notes, rappels"
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "Pour gérer tout votre commerce.",
+          "f1": "Produits et commandes illimités",
+          "f2": "Factures PDF",
+          "f3": "Calcul Zakat",
+          "f4": "Messages WhatsApp préparés"
+        },
+        "boutique_plus": {
+          "name": "Boutique+",
+          "description": "Outils avancés et partenariats.",
+          "f1": "Tout Pro inclus",
+          "f2": "Page publique partageable",
+          "f3": "Multi-utilisateurs",
+          "f4": "Exports comptables"
+        }
+      },
+      "current": "Formule actuelle",
+      "coming_soon": "Bientôt disponible",
+      "cancel_title": "Résilier",
+      "cancel_text": "Vous passerez immédiatement sur la formule Gratuite. Vous perdrez l'accès aux fonctionnalités payantes mais vos données restent intactes.",
+      "cancel_cta": "Résilier ma formule",
+      "cancel_confirm": "Confirmer la résiliation",
+      "cancelling": "Résiliation…",
+      "cancel_back": "Annuler",
+      "cancel_error": "Impossible de résilier pour le moment. Réessayez plus tard."
     }
   },
   "onboarding": {
@@ -1325,11 +1506,647 @@
     "step2_delivery_title": "En livraison",
     "step2_delivery_desc": "Statut final : « Expédiée ». Frais de livraison disponibles.",
     "step2_both_title": "Les deux",
-    "step2_both_desc": "Statut final : « Terminée ». Frais de livraison disponibles."
+    "step2_both_desc": "Statut final : « Terminée ». Frais de livraison disponibles.",
+    "step_label": "Étape {step} sur {total}",
+    "step_short": "Étape {step} / {total}",
+    "step1_title": "Bienvenue",
+    "step1_sub": "Que proposez-vous dans votre boutique ? Vous pourrez modifier ce choix plus tard depuis les réglages.",
+    "step1_label": "Type d'activité",
+    "step1_products_title": "Je vends des produits",
+    "step1_products_desc": "Articles physiques avec stock, variantes, prix unitaires.",
+    "step1_services_title": "Je propose des services",
+    "step1_services_desc": "Prestations ou abonnements sans gestion de stock.",
+    "step1_both_title": "Les deux",
+    "step1_both_desc": "Produits et services dans le même catalogue.",
+    "saving": "Enregistrement…",
+    "finish": "Accéder à ma boutique",
+    "continue": "Continuer",
+    "skip": "Plus tard",
+    "step1_title_named": "Bienvenue, {name}"
   },
   "suspended": {
     "title": "Accès suspendu",
     "text": "La boutique n'a plus la formule Boutique+. Contactez le propriétaire pour rétablir votre accès.",
     "logout": "Se déconnecter"
+  },
+  "zakat": {
+    "detail": {
+      "title": "Détail du calcul",
+      "not_found": "Calcul introuvable.",
+      "back_to_zakat": "Retour à la zakat",
+      "back": "Retour",
+      "wealth_title": "Patrimoine zakatable",
+      "wealth_total": "Sous-total positif",
+      "debts_title": "Dettes déclarées",
+      "debts_total": "Total déductible",
+      "download_pdf": "Télécharger le justificatif PDF",
+      "delete_title": "Supprimer ce calcul ?",
+      "delete_description": "Cette action est irréversible. Le calcul sera définitivement supprimé de l'historique.",
+      "disclaimer": "Ce calcul est fourni à titre indicatif. Pour valider votre obligation, consultez un érudit ou un spécialiste de la zakat commerciale.",
+      "reopen_failed": "Impossible de rouvrir ce calcul.",
+      "edit": "Modifier",
+      "reopening": "Réouverture…",
+      "delete": "Supprimer",
+      "deleting": "Suppression…",
+      "breakdown_title": "Calcul détaillé",
+      "breakdown_wealth": "(patrimoine)",
+      "breakdown_debts": "(dettes exigibles)",
+      "breakdown_base": "(base)",
+      "excluded_title": "Exclus de la base",
+      "excluded_help": "Les éléments cochés ont été explicitement reconnus comme outils de travail (hors base).",
+      "religious_title": "Fondements religieux",
+      "reference": "Référence : <b>{date}</b>",
+      "finalized_on": "Finalisé le {date}",
+      "amount_due": "Zakat due",
+      "base": "Base zakatable : <b>{amount}</b>",
+      "rate": "Taux appliqué : <b>{rate} %</b>"
+    },
+    "wizard": {
+      "steps": {
+        "cash": {
+          "title": "Argent disponible",
+          "subtitle": "Caisse, compte pro, espèces du commerce."
+        },
+        "receivables": {
+          "title": "Créances clients",
+          "subtitle": "Ce qu'on vous doit — et que vous pensez récupérer."
+        },
+        "stock": {
+          "title": "Stock commercial",
+          "subtitle": "Marchandises destinées à la revente."
+        },
+        "excluded": {
+          "title": "Ce qui n'entre pas",
+          "subtitle": "Vos outils de travail restent hors zakat."
+        },
+        "debts": {
+          "title": "Dettes",
+          "subtitle": "Seules les dettes exigibles immédiatement comptent."
+        },
+        "summary": {
+          "title": "Récapitulatif",
+          "subtitle": "Dernière vérification avant validation."
+        }
+      },
+      "save": "Enregistrer",
+      "finalize": "Finaliser la zakat",
+      "next": "Suivant",
+      "discard": "Abandonner ce brouillon",
+      "discard_title": "Supprimer ce brouillon ?",
+      "discard_description": "Toutes les saisies seront perdues.",
+      "delete": "Supprimer",
+      "already_finalized": "Un calcul finalisé existe déjà pour {year}. Vous allez être redirigé vers ce calcul.",
+      "preparing_summary": "Préparation du récapitulatif…",
+      "short": {
+        "cash": "Liquidités",
+        "receivables": "Créances",
+        "stock": "Stock",
+        "excluded": "Exclus",
+        "debts": "Dettes",
+        "summary": "Récap"
+      },
+      "back": "Retour",
+      "progress": "Étape {step} sur {total} · {label}",
+      "saving": "Enregistrement…",
+      "finalizing": "Finalisation…",
+      "hub_title": "Modifier votre zakat",
+      "hub_subtitle": "Cliquez sur une étape pour ajuster ses valeurs.",
+      "hub_step": "Étape {step}",
+      "hub_final_check": "Vérification finale",
+      "hub_excluded_label": "Outils de travail (exclus)",
+      "hub_cash": "{amount} — {date}",
+      "hub_stock_breakdown": "{amount} — {count, plural, one {# catégorie} other {# catégories}}",
+      "hub_stock_adjusted": "{amount} — ajusté",
+      "hub_stock_estimated": "{amount} — estimation catalogue",
+      "hub_receivables_none": "Aucune créance déclarée",
+      "hub_receivables_breakdown": "{amount} récupérables — {count, plural, one {# ligne} other {# lignes}}",
+      "hub_receivables_nominal": "{amount} — non ventilées",
+      "hub_debts_none": "Aucune dette déclarée",
+      "hub_debts": "{count, plural, one {# dette} other {# dettes}} — {amount} à déduire",
+      "hub_excluded_none": "Aucun outil reconnu",
+      "hub_excluded_count": "{count}/{total} reconnus"
+    },
+    "home": {
+      "title": "Zakat commerciale",
+      "notice_title": "Estimation indicative",
+      "notice": "Ce calcul est un outil d'aide à la décision. Consultez un érudit ou un spécialiste pour validation finale.",
+      "resume": "Reprendre votre calcul en cours",
+      "draft_step": "Étape {step} sur {total}",
+      "stock_estimate": "Valeur estimée de votre stock commercial",
+      "stock_count": "Calculée sur {count, plural, one {# article} other {# articles}} de votre catalogue.",
+      "year_done": "Zakat {year} déjà bouclée",
+      "year_done_amount": "{amount} — voir le justificatif",
+      "start": "Calculer ma zakat",
+      "loading": "Chargement…",
+      "history": "Historique",
+      "base": "Base : {amount}",
+      "pdf_available": "PDF disponible",
+      "empty": "Aucun calcul finalisé pour l'instant.",
+      "currency": "Devise utilisée : {currency}"
+    },
+    "debt_category": {
+      "supplier": "Fournisseurs",
+      "tax_vat": "TVA / impôts",
+      "salary": "Salaires",
+      "loan": "Emprunt bancaire",
+      "rent": "Loyer",
+      "other": "Autre"
+    },
+    "stock_category": {
+      "finished": "Marchandises finies (prêtes à vendre)",
+      "raw_materials": "Matières premières",
+      "work_in_progress": "Produits en cours de fabrication",
+      "in_transit": "Marchandises en transit (commandées, non livrées)"
+    },
+    "receivable_category": {
+      "certain": "Certaines (recouvrement quasi sûr)",
+      "probable": "Probables (recouvrement attendu)",
+      "doubtful": "Douteuses (recouvrement incertain — exclues)"
+    },
+    "excluded_item": {
+      "vehicle": "Véhicules (camionnette, voiture pro)",
+      "computer": "Ordinateurs, tablettes",
+      "machine": "Machines, équipements",
+      "premises": "Local commercial",
+      "furniture": "Mobilier (étagères, comptoir)",
+      "other": "Autre outil de travail"
+    },
+    "common": {
+      "yes": "Oui",
+      "no": "Non",
+      "cash": "Argent disponible",
+      "receivables": "Créances récupérables",
+      "empty_table": "Rien à déclarer dans cette catégorie."
+    },
+    "rows": {
+      "doubtful_hint": "Archivée pour mémoire — non incluse dans la base",
+      "nominal_hint": "Sur un nominal de {amount}",
+      "stock_adjusted": "Stock commercial (ajusté)",
+      "stock_estimated": "Stock commercial (estimé)",
+      "stock_initial": "Estimation initiale : {amount}",
+      "debt_due": "{category} · exigible immédiatement",
+      "debt_not_due": "{category} · non exigible — non déduit"
+    },
+    "nisab": {
+      "title": "Seuil de Nisab",
+      "method": "Méthode {method, select, silver {argent (595 g)} gold {or (85 g)} other {{method}}}",
+      "not_configured": "Seuil de Nisab non configuré",
+      "not_configured_help": "Le Nisab est le seuil de richesse en dessous duquel la zakat n'est pas due. Configurez la méthode (or ou argent) et le prix au gramme pour obtenir un verdict d'obligation.",
+      "not_configured_short": "Sans Nisab, impossible de savoir si la zakat est obligatoire pour vous cette année.",
+      "configure": "Configurer dans les paramètres",
+      "above_title": "Vous êtes au-dessus du Nisab",
+      "above": "Votre base ({amount}) dépasse le seuil. La zakat est due.",
+      "below_title": "Vous êtes en dessous du Nisab",
+      "below": "Votre base ({amount}) reste sous le seuil — la zakat n'est pas obligatoire cette année.",
+      "preview_above": "Votre base dépasse le seuil — la zakat est due.",
+      "preview_below": "Votre base reste sous le seuil — la zakat n'est pas obligatoire cette année."
+    },
+    "step": {
+      "cash": {
+        "title": "Argent disponible aujourd'hui",
+        "help": "Comptez tout l'argent immédiatement disponible pour votre activité : caisse, compte professionnel, espèces conservées au commerce.",
+        "reference_date": "Date de référence"
+      },
+      "receivables": {
+        "title": "Argent que vos clients vous doivent",
+        "help": "Ventes à crédit, factures impayées, ardoises… On distingue trois niveaux selon la probabilité de recouvrement. Seules les <b>certaines</b> et <b>probables</b> entrent dans la zakat.",
+        "question": "Vos clients vous doivent-ils de l'argent ?",
+        "nominal": "Montant total dû (nominal)",
+        "total": "Total zakatable (certaines + probables)"
+      },
+      "stock": {
+        "title": "Valeur de votre stock commercial",
+        "help": "On a calculé une estimation à partir des prix d'achat saisis dans votre catalogue. Vous pouvez la ventiler par catégorie si la réalité diffère.",
+        "estimate": "Estimation automatique",
+        "estimate_basis": "Calculée sur {count, plural, one {# produit} other {# produits}} en stock.",
+        "breakdown": "Ventiler manuellement par catégorie",
+        "total": "Total stock zakatable (ventilation)",
+        "back_to_estimate": "Revenir à l'estimation automatique"
+      },
+      "excluded": {
+        "title": "Ce qui n'entre PAS dans la zakat",
+        "help": "Vos outils de travail ne sont pas concernés. Cochez ce que vous possédez pour confirmer que vous en avez pris connaissance — rien ne sera ajouté à votre base.",
+        "note": "Cette étape est informative. Cocher ou ne rien cocher ne change pas votre calcul."
+      },
+      "debts": {
+        "title": "Dettes à court terme",
+        "help": "Seules les dettes <b>exigibles immédiatement</b> sont déduites. Un emprunt sur 5 ans, par exemple, n'est exigible immédiatement que pour les mensualités du mois.",
+        "empty": "Aucune dette renseignée — appuyez sur « Ajouter une dette » si vous en avez.",
+        "category": "Catégorie",
+        "label": "Libellé",
+        "amount": "Montant",
+        "remove": "Supprimer cette dette",
+        "due_question": "Exigible immédiatement ?",
+        "add": "Ajouter une dette",
+        "total": "Total déductible (exigible immédiatement)"
+      },
+      "summary": {
+        "title": "Récapitulatif avant validation",
+        "help": "Vérifiez les chiffres. Une fois la zakat finalisée, le calcul est archivé et ne peut plus être modifié.",
+        "wealth": "Votre patrimoine entrant",
+        "stock": "{state, select, ventilated {Stock (ventilé)} adjusted {Stock (ajusté)} other {Stock (estimé)}}",
+        "deductions": "Déductions",
+        "debts": "Dettes exigibles immédiatement",
+        "base": "Base de la zakat (projection)",
+        "due": "Zakat due ({rate} %)",
+        "footer": "Le bouton ci-dessous archive ce calcul et le rend immuable. Vous pourrez revenir y consulter le détail à tout moment."
+      }
+    },
+    "audit": {
+      "reliability": "Fiabilité <b>{tier, select, high {Élevée} medium {Moyenne} other {À renforcer}}</b> — {ok} OK{warn, plural, =0 {} other {, # à affiner}}",
+      "explanation": "Ce score reflète la complétude de votre déclaration, pas la validité religieuse du calcul. Les points marqués « à affiner » sont optionnels mais améliorent la traçabilité.",
+      "stock_ventilated": {
+        "label": "Stock ventilé par catégorie"
+      },
+      "stock_adjusted": {
+        "label": "Stock ajusté manuellement",
+        "message": "Ventiler par catégorie (finis, matières, en cours) améliore la traçabilité."
+      },
+      "stock_estimated": {
+        "label": "Stock laissé sur estimation automatique",
+        "message": "Vous pouvez affiner avec un montant ajusté ou une ventilation par catégorie."
+      },
+      "receivables_ventilated": {
+        "label": "Créances ventilées (certaines / probables / douteuses)"
+      },
+      "receivables_bulk": {
+        "label": "Créances renseignées en bloc",
+        "message": "Ventiler par niveau de certitude permet d'exclure les douteuses du calcul."
+      },
+      "receivables_none": {
+        "label": "Aucune créance déclarée"
+      },
+      "excluded_ok": {
+        "label": "Outils de travail reconnus ({count}/{total})"
+      },
+      "excluded_none": {
+        "label": "Aucun outil de travail reconnu",
+        "message": "Cocher les éléments que vous possédez rend la déclaration plus traçable."
+      },
+      "debts_due": {
+        "label": "Dettes ventilées ({count}), exigibilité précisée"
+      },
+      "debts_not_due": {
+        "label": "Dettes déclarées ({count}), aucune exigible"
+      },
+      "debts_none": {
+        "label": "Aucune dette déclarée"
+      },
+      "nisab_ok": {
+        "label": "Seuil de Nisab configuré"
+      },
+      "nisab_missing": {
+        "label": "Seuil de Nisab non configuré",
+        "message": "Sans Nisab, impossible de savoir automatiquement si la zakat est due."
+      },
+      "stock_coherence": {
+        "label": "Écart inhabituel entre stock estimé et ajusté",
+        "message": "Stock ajusté à {ratio} % de l'estimation catalogue — confirmer la valeur saisie."
+      }
+    },
+    "history": {
+      "title": "Évolution annuelle",
+      "base": "Base : {amount}",
+      "caption": "Montant de zakat dû par exercice — {count, plural, one {# année enregistrée} other {# années enregistrées}}."
+    },
+    "donut": {
+      "title": "Répartition du patrimoine",
+      "total": "Total",
+      "receivables": "Créances",
+      "stock": "Stock"
+    },
+    "simulation": {
+      "title": "Simulation",
+      "subtitle": "Et si votre stock évoluait l'année prochaine ?",
+      "variation": "Variation du stock",
+      "variation_aria": "Variation du stock en pourcentage",
+      "new_stock": "Nouveau stock",
+      "new_base": "Nouvelle base",
+      "zakat": "Zakat simulée",
+      "vs_actual": "{amount} vs réel",
+      "note": "Cette projection ne modifie pas votre calcul archivé — elle vous aide à anticiper l'an prochain."
+    },
+    "note": {
+      "why": "Pourquoi cette question ?",
+      "basis": "Fondement :",
+      "in_app": "Dans Mizan :",
+      "source": "Source : {source}"
+    }
+  },
+  "public_page_admin": {
+    "status": {
+      "copy_url": "Copier l'URL",
+      "open_page": "Ouvrir la page publique",
+      "unpublish": "Dépublier",
+      "unpublishing": "Dépublication…",
+      "publish": "Publier",
+      "publishing": "Publication…",
+      "live": "En ligne",
+      "draft": "Brouillon"
+    },
+    "preview": {
+      "title": "Aperçu live",
+      "description": "Ce que voient vos clients. Mis à jour à chaque enregistrement.",
+      "mobile": "Mobile",
+      "tablet": "Tablette",
+      "reload": "Recharger",
+      "frame_title": "Aperçu de la vitrine"
+    },
+    "slug": {
+      "min": "3 caractères minimum",
+      "max": "50 caractères maximum",
+      "format": "Lettres minuscules, chiffres et tirets uniquement"
+    },
+    "create": {
+      "error": "Création impossible",
+      "title": "Activer ma page publique",
+      "description": "Une URL unique pour partager votre vitrine avec vos clients.",
+      "slug_label": "Adresse de la boutique *",
+      "your_url": "Votre URL : <code>{url}</code>",
+      "display_name_label": "Nom affiché sur la page",
+      "submit": "Créer ma page",
+      "submitting": "Création…"
+    },
+    "identity": {
+      "error": "Mise à jour impossible",
+      "title": "Identité de la page",
+      "description": "Ce que vos clients voient en haut de la vitrine.",
+      "slug_label": "Adresse URL *",
+      "slug_help": "Modifier l'adresse cassera les liens déjà partagés.",
+      "display_name_label": "Nom affiché",
+      "tagline_label": "Phrase d'accroche",
+      "description_label": "Description",
+      "theme_label": "Thème",
+      "themes": {
+        "classic": {
+          "label": "Classique",
+          "hint": "Sobre, fond clair"
+        },
+        "modern": {
+          "label": "Moderne",
+          "hint": "Contrastes affirmés"
+        },
+        "minimal": {
+          "label": "Minimal",
+          "hint": "Beaucoup d'espace"
+        }
+      },
+      "color_label": "Couleur principale",
+      "choose_color": "Choisir {color}",
+      "color_format": "Format attendu : #RRGGBB",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "sections": {
+      "title": "Sections de la page",
+      "description": "Ordre, visibilité et contenu de chaque bloc.",
+      "move_up": "Monter",
+      "move_down": "Descendre",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "types": {
+        "header": {
+          "label": "En-tête"
+        },
+        "description": {
+          "label": "Présentation",
+          "title": "À propos de la boutique",
+          "content": "Quelques mots sur votre boutique, votre histoire, vos engagements…"
+        },
+        "products": {
+          "label": "Produits",
+          "title": "Nos produits"
+        },
+        "services": {
+          "label": "Services",
+          "title": "Nos services"
+        },
+        "contact": {
+          "label": "Contact",
+          "title": "Nous contacter",
+          "content": "Horaires, adresse, disponibilité…"
+        }
+      }
+    },
+    "message": {
+      "error": "Mise à jour impossible",
+      "sample_item": "Tajine en céramique",
+      "sample_price": "4 500 DA",
+      "title": "Message d'intérêt",
+      "description": "Texte pré-rempli envoyé au commerçant via WhatsApp depuis la fiche d'un article.",
+      "template_label": "Modèle",
+      "placeholders": "Variables :",
+      "preview": "Aperçu",
+      "reset": "Réinitialiser",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "uploader": {
+      "formats": "Formats acceptés : JPEG, PNG, WebP.",
+      "upload_error": "Échec de l'envoi.",
+      "delete_error": "Erreur lors de la suppression.",
+      "sending": "Envoi…",
+      "deleting": "Suppression…",
+      "delete": "Supprimer"
+    },
+    "logo": {
+      "label": "Logo",
+      "change": "Changer le logo",
+      "add": "Ajouter un logo",
+      "confirm_delete": "Supprimer le logo ?"
+    },
+    "cover": {
+      "label": "Bannière",
+      "change": "Changer",
+      "add": "Ajouter une bannière",
+      "confirm_delete": "Supprimer la bannière ?"
+    },
+    "catalog": {
+      "title": "Catalogue",
+      "description": "Choisissez ce qui apparaît sur la vitrine.",
+      "section": "{kind, select, product {Produits} service {Services} other {Articles}}",
+      "add": "Ajouter",
+      "empty": "{kind, select, product {Aucun produit sélectionné.} service {Aucun service sélectionné.} other {Aucun article sélectionné.}}",
+      "move_up": "Monter",
+      "move_down": "Descendre",
+      "remove": "Retirer",
+      "show_price": "Afficher le prix",
+      "badge_promo": "Promo",
+      "badge_new": "Nouveau",
+      "sheet_title": "{kind, select, product {Ajouter un produit} service {Ajouter un service} other {Ajouter un article}}",
+      "search": "Rechercher…",
+      "loading": "Chargement…",
+      "no_results": "Aucun résultat.",
+      "none_available": "{kind, select, product {Aucun produit disponible.} service {Aucun service disponible.} other {Aucun article disponible.}}",
+      "close": "Fermer"
+    },
+    "contacts": {
+      "title": "Boutons de contact",
+      "description": "Comment vos clients vous joignent depuis la vitrine.",
+      "empty": "Aucun contact configuré.",
+      "add": "Ajouter un contact",
+      "primary": "Principal",
+      "set_primary": "Définir comme principal",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "value_required": "Valeur requise",
+      "value_max": "200 caractères maximum",
+      "error": "Enregistrement impossible",
+      "new_title": "Nouveau contact",
+      "edit_title": "Modifier le contact",
+      "channel": "Canal",
+      "value_label": "{hint} *",
+      "custom_label": "Libellé personnalisé (optionnel)",
+      "primary_hint": "Contact principal (utilisé pour les boutons « Commander »)",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "types": {
+        "whatsapp": {
+          "label": "WhatsApp",
+          "hint": "Numéro au format international",
+          "placeholder": "+33 6 12 34 56 78"
+        },
+        "telegram": {
+          "label": "Telegram",
+          "hint": "Nom d'utilisateur Telegram",
+          "placeholder": "@pseudo"
+        },
+        "instagram": {
+          "label": "Instagram",
+          "hint": "Nom d'utilisateur Instagram",
+          "placeholder": "@compte"
+        },
+        "phone": {
+          "label": "Téléphone",
+          "hint": "Numéro de téléphone",
+          "placeholder": "+33 6 12 34 56 78"
+        }
+      }
+    }
+  },
+  "profile": {
+    "email_verification": {
+      "verified": "Email vérifié — actualisez la page.",
+      "sent": "Lien renvoyé. Vérifiez votre boîte mail.",
+      "prompt": "Confirmez votre adresse email pour sécuriser votre compte.",
+      "sending": "Envoi…",
+      "resend": "Renvoyer",
+      "resend_link": "Renvoyer le lien"
+    },
+    "title": "Mon profil",
+    "info_section": "Informations",
+    "password_section": "Mot de passe",
+    "show_password": "Afficher le mot de passe",
+    "hide_password": "Masquer le mot de passe",
+    "name_required": "Nom requis",
+    "old_password_required": "Mot de passe actuel requis",
+    "password_min": "8 caractères minimum",
+    "confirm_required": "Confirmation requise",
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "loading": "Chargement…",
+    "email": "Email",
+    "email_locked": "L'email ne peut pas être modifié.",
+    "full_name": "Nom complet *",
+    "phone": "Téléphone (optionnel)",
+    "profile_saved": "Profil mis à jour ✓",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer",
+    "unexpected_error": "Erreur inattendue. Réessayez.",
+    "old_password": "Mot de passe actuel *",
+    "new_password": "Nouveau mot de passe *",
+    "confirm_password": "Confirmer le nouveau mot de passe *",
+    "password_saved": "Mot de passe modifié ✓",
+    "changing_password": "Modification…",
+    "change_password": "Modifier le mot de passe"
+  },
+  "invoices": {
+    "payment": "{state, select, paid {Payée} partial {Partiel — {amount}} cancelled {Annulée} other {Non payée}}",
+    "due": "Échéance : {date}",
+    "list": {
+      "title": "Factures",
+      "filter": "{value, select, issued {Émises} paid {Payées} cancelled {Annulées} other {Toutes}}",
+      "loading": "Chargement…",
+      "empty_title": "Aucune facture",
+      "empty_body": "Les factures se créent depuis une commande.",
+      "no_customer": "Sans client"
+    },
+    "detail": {
+      "title": "Facture",
+      "not_found": "Facture introuvable.",
+      "issued_on": "Émise le {date}",
+      "download_pdf": "Télécharger le PDF",
+      "lines_title": "Détail",
+      "seller": "Vendeur",
+      "buyer": "Client",
+      "notes": "Notes",
+      "legal_mentions": "Mentions légales",
+      "linked_order": "Voir la commande liée",
+      "customer_card": "Fiche client",
+      "mark_paid": "Marquer comme payée",
+      "driven_by_order": "Le statut de paiement est piloté par la commande liée.",
+      "cancel_invoice": "Annuler la facture",
+      "confirm_paid_title": "Marquer comme payée ?",
+      "confirm_paid_body": "Cette facture sera enregistrée comme intégralement réglée.",
+      "confirm": "Confirmer",
+      "confirm_cancel_title": "Annuler cette facture ?",
+      "confirm_cancel_body": "Le numéro reste réservé et la trace est conservée."
+    },
+    "totals": {
+      "subtotal": "Sous-total HT",
+      "discount": "Remise",
+      "shipping": "Frais de port",
+      "tax": "TVA",
+      "tax_rate": "TVA {rate} %",
+      "not_applicable": "Non applicable",
+      "total": "Total TTC",
+      "paid": "Payé",
+      "remaining": "Reste à payer"
+    }
+  },
+  "reminders": {
+    "title": "Rappels",
+    "new_cta": "+ Nouveau",
+    "new_title": "Nouveau rappel",
+    "edit_title": "Modifier le rappel",
+    "field_title": "Titre *",
+    "field_date": "Date *",
+    "field_category": "Catégorie",
+    "field_description": "Description (optionnel)",
+    "category": "{value, select, unpaid {Impayé} customer_followup {Relance client} zakat {Zakat} order_prep {Préparation commande} other {Libre}}",
+    "mark_done": "Marquer comme terminé",
+    "reopen": "Remettre en attente",
+    "saving": "Enregistrement…",
+    "update": "Mettre à jour",
+    "create": "Créer le rappel",
+    "deleting": "Suppression…",
+    "delete": "Supprimer le rappel",
+    "cancel": "Annuler",
+    "confirm_delete": "Supprimer ce rappel ?",
+    "confirm_delete_cta": "Supprimer",
+    "tab_pending": "En attente{count, plural, =0 {} other { (#)}}",
+    "tab_done": "Terminés{count, plural, =0 {} other { (#)}}",
+    "empty_pending": "Aucun rappel en attente.",
+    "empty_done": "Aucun rappel terminé."
+  },
+  "notes": {
+    "title": "Notes",
+    "new_cta": "+ Nouvelle",
+    "new_title": "Nouvelle note",
+    "edit_title": "Modifier la note",
+    "placeholder": "Écrivez votre note…",
+    "saving": "Enregistrement…",
+    "update": "Mettre à jour",
+    "save": "Enregistrer",
+    "deleting": "Suppression…",
+    "delete": "Supprimer la note",
+    "cancel": "Annuler",
+    "confirm_delete": "Supprimer cette note ?",
+    "confirm_delete_cta": "Supprimer",
+    "empty_title": "Aucune note",
+    "empty_body": "Appuyez sur + Nouvelle pour créer votre première note."
   }
 }

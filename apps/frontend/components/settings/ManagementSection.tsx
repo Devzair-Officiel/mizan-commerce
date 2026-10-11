@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { Settings2, Users, Globe, Sparkles, ChevronRight, type LucideIcon } from 'lucide-react';
 import { SettingsCard } from './SettingsCard';
 
@@ -16,30 +17,27 @@ interface ManagementSectionProps {
 }
 
 export function ManagementSection({ showPublicPage, teamTitle, teamSubtitle }: ManagementSectionProps) {
+  const t = useTranslations('settings.management');
   const links: ManagementLink[] = [
     { href: '/settings/team', icon: Users, title: teamTitle, subtitle: teamSubtitle },
     ...(showPublicPage
       ? [{
           href: '/settings/public-page',
           icon: Globe,
-          title: 'Page publique',
-          subtitle: 'Vitrine partageable de votre boutique',
+          title: t('public_page'),
+          subtitle: t('public_page_subtitle'),
         }]
       : []),
     {
       href: '/settings/subscription',
       icon: Sparkles,
-      title: 'Abonnement',
-      subtitle: 'Formule, essai et résiliation',
+      title: t('subscription'),
+      subtitle: t('subscription_subtitle'),
     },
   ];
 
   return (
-    <SettingsCard
-      icon={Settings2}
-      title="Gestion"
-      description="Équipe, vitrine et abonnement de votre boutique."
-    >
+    <SettingsCard icon={Settings2} title={t('title')} description={t('description')}>
       <ul className="flex flex-col gap-1 -mx-1">
         {links.map(({ href, icon: Icon, title, subtitle }) => (
           <li key={href}>

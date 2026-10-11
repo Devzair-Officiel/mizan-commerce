@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { FeatureGate } from '@/components/subscription/FeatureGate';
 import { CreatePageCard } from '@/components/public-page-admin/CreatePageCard';
@@ -13,29 +14,29 @@ import { StatusBar } from '@/components/public-page-admin/StatusBar';
 import { usePublicPage } from '@/lib/hooks/usePublicPageAdmin';
 
 export default function PublicPageSettings() {
+  const t = useTranslations('settings.public_page');
   return (
-    <FeatureGate feature="public_pages" title="Page publique">
+    <FeatureGate feature="public_pages" title={t('title')}>
       <PublicPageContent />
     </FeatureGate>
   );
 }
 
 function PublicPageContent() {
+  const t = useTranslations('settings.public_page');
   const { data, isLoading, isError } = usePublicPage();
 
   return (
     <>
-      <TopBar title="Page publique" />
+      <TopBar title={t('title')} />
 
       <div className="flex flex-col gap-4 px-4 pt-4 pb-32">
         {isLoading && (
-          <p className="text-sm text-muted-foreground text-center py-12">Chargement…</p>
+          <p className="text-sm text-muted-foreground text-center py-12">{t('loading')}</p>
         )}
 
         {isError && (
-          <p className="text-sm text-destructive text-center py-12">
-            Impossible de charger les informations de la page.
-          </p>
+          <p className="text-sm text-destructive text-center py-12">{t('error')}</p>
         )}
 
         {data && !data.exists && (

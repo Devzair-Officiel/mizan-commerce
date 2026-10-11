@@ -1,28 +1,22 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import type { ReactNode } from 'react';
 
-export const WIZARD_STEPS = [
-  { label: 'Liquidités' },
-  { label: 'Créances' },
-  { label: 'Stock' },
-  { label: 'Exclus' },
-  { label: 'Dettes' },
-  { label: 'Récap' },
-] as const;
+import { STEP_KEYS } from './wizard/types';
 
-export const TOTAL_STEPS = WIZARD_STEPS.length;
+export const TOTAL_STEPS = STEP_KEYS.length;
 
 interface WizardLayoutProps {
   step: number;
   title: string;
   subtitle?: string;
   children: ReactNode;
-  /** Texte du bouton principal. Défaut : "Suivant". */
+  /** Texte du bouton principal. Défaut : « Suivant ». */
   nextLabel?: string;
   onNext: () => void;
   onPrev?: () => void;
@@ -33,10 +27,13 @@ interface WizardLayoutProps {
 
 export function WizardLayout({
   step, title, subtitle, children,
-  nextLabel = 'Suivant',
+  nextLabel,
   onNext, onPrev, canGoNext = true, isPending = false,
 }: WizardLayoutProps) {
+  const t = useTranslations('zakat.wizard');
   const router = useRouter();
+  const stepKey = STEP_KEYS[step];
+  const buttonLabel = isPending ? t('saving') : (nextLabel ?? t('next'));
 
   return (
     // pb généreux pour que le contenu puisse scroller au-delà du footer wizard + BottomNav globale.
@@ -48,16 +45,16 @@ export function WizardLayout({
             type="button"
             onClick={() => (onPrev ? onPrev() : router.push('/zakat'))}
             className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Retour"
+            aria-label={t('back')}
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={20} className="rtl:rotate-180" />
           </button>
           <div className="flex-1 flex flex-col gap-1.5">
             <p className="text-xs font-medium text-muted-foreground tabular-nums">
-              Étape {step + 1} sur {TOTAL_STEPS} · {WIZARD_STEPS[step]?.label ?? ''}
+              {t('progress', { step: step + 1, total: TOTAL_STEPS, label: stepKey ? t(`short.${stepKey}`) : '' })}
             </p>
             <div className="flex gap-1">
-              {WIZARD_STEPS.map((_, i) => (
+              {STEP_KEYS.map((_, i) => (
                 <div
                   key={i}
                   className={`flex-1 h-1 rounded-full transition-colors ${
@@ -81,12 +78,12 @@ export function WizardLayout({
 
       <footer className="hidden lg:block lg:py-3">
         <Button onClick={onNext} disabled={!canGoNext || isPending} className="w-full">
-          {isPending ? 'Enregistrement…' : nextLabel}
+          {buttonLabel}
         </Button>
       </footer>
       <FloatingActionBar variant="button">
         <Button onClick={onNext} disabled={!canGoNext || isPending} className="w-full h-12 rounded-full shadow-lg">
-          {isPending ? 'Enregistrement…' : nextLabel}
+          {buttonLabel}
         </Button>
       </FloatingActionBar>
     </div>

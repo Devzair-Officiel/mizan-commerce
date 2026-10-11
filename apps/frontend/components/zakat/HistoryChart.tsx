@@ -1,7 +1,9 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
+import { useFormatDate } from '@/lib/hooks/useFormat';
 import { formatMoney, type ZakatCalculation } from '@/lib/hooks/useZakat';
 
 interface HistoryChartProps {
@@ -29,15 +31,13 @@ function buildSeries(calculations: ZakatCalculation[]): ChartDatum[] {
 }
 
 function ChartTooltip({ active, payload }: TooltipContentProps) {
+  const t = useTranslations('zakat.history');
+  const formatDate = useFormatDate();
   if (!active || !payload || payload.length === 0) return null;
   const first = payload[0];
   if (!first) return null;
   const datum = first.payload as ChartDatum;
-  const dateLabel = new Date(datum.date).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  const dateLabel = formatDate(datum.date, { day: '2-digit', month: 'long', year: 'numeric' });
   return (
     <div className="rounded-xl border border-border bg-card px-3 py-2 shadow-md">
       <p className="text-xs text-muted-foreground">{dateLabel}</p>
@@ -45,20 +45,21 @@ function ChartTooltip({ active, payload }: TooltipContentProps) {
         {formatMoney(datum.amount, datum.currency)}
       </p>
       <p className="text-xs text-muted-foreground tabular-nums">
-        Base&nbsp;: {formatMoney(datum.base, datum.currency)}
+        {t('base', { amount: formatMoney(datum.base, datum.currency) })}
       </p>
     </div>
   );
 }
 
 export function HistoryChart({ calculations }: HistoryChartProps) {
+  const t = useTranslations('zakat.history');
   const data = buildSeries(calculations);
   if (data.length < 2) return null;
 
   return (
     <div className="rounded-2xl border border-border bg-card px-4 py-4">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        Évolution annuelle
+        {t('title')}
       </p>
       <div className="h-44 w-full">
         {/* Dimensions non nulles dès le premier rendu : sans elles, recharts avertit (largeur -1). */}
@@ -89,7 +90,7 @@ export function HistoryChart({ calculations }: HistoryChartProps) {
         </ResponsiveContainer>
       </div>
       <p className="text-xs text-muted-foreground mt-2">
-        Montant de zakat dû par exercice — {data.length} année{data.length > 1 ? 's' : ''} enregistrée{data.length > 1 ? 's' : ''}.
+        {t('caption', { count: data.length })}
       </p>
     </div>
   );

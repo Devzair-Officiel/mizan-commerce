@@ -5,6 +5,7 @@
  * de dialogue du navigateur. Le calcul est supprimé à la fin (audit relançable).
  */
 import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { msg } from './lib/messages.mjs';
 
 const report = createReport();
 const FAILURE = 'Réouverture impossible (audit)';
@@ -40,8 +41,7 @@ for (const viewport of VIEWPORTS) {
       const id = await finalizedCalculation(page);
       await page.goto(`${BASE}/zakat/${id}`);
       await page.waitForLoadState('networkidle');
-      // Libellé encore en dur dans DetailActions (non traduit).
-      await page.getByRole('button', { name: 'Modifier', exact: true }).filter({ visible: true }).click();
+      await page.getByRole('button', { name: msg(locale, 'zakat.detail.edit'), exact: true }).filter({ visible: true }).click();
       const toast = page.locator('[data-sonner-toast]').filter({ hasText: FAILURE }).first();
       const shown = await toast.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
       report.check(shown && dialogs.length === 0, `${label} : échec de la réouverture → notification, aucune alert()`);

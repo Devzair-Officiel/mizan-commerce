@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   PackagePlus, PackageMinus, AlertTriangle, AlertCircle,
   History, RefreshCcw, ShoppingBag, Boxes, ScanLine,
@@ -13,6 +14,7 @@ import {
   type StockMovementType,
 } from '@/lib/hooks/useStock';
 import { isDefaultVariant } from '@/lib/products';
+import { useFormatDate } from '@/lib/hooks/useFormat';
 
 const MOVEMENT_VISUAL: Record<
   StockMovementType,
@@ -26,18 +28,16 @@ const MOVEMENT_VISUAL: Record<
   adjustment:  { icon: RefreshCcw,   classes: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', sign: '±' },
 };
 
-const DATE_FMT = new Intl.DateTimeFormat('fr-FR', {
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   day: '2-digit',
   month: 'short',
   hour: '2-digit',
   minute: '2-digit',
-});
-
-function formatMovementDate(iso: string): string {
-  return DATE_FMT.format(new Date(iso));
-}
+};
 
 export default function StockPage() {
+  const t = useTranslations('stock.overview');
+  const tm = useTranslations('stock.movement');
   const { data: summary } = useProductsSummary();
   const { data: movements, isLoading } = useStockMovements({ pageSize: 20 });
 
@@ -46,7 +46,7 @@ export default function StockPage() {
 
   return (
     <>
-      <TopBar title="Stock" />
+      <TopBar title={t('title')} />
 
       <div className="flex flex-col gap-5 p-4 pb-8">
         {/* CTAs principaux */}
@@ -58,7 +58,7 @@ export default function StockPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/15 text-primary-foreground">
               <PackagePlus size={20} />
             </div>
-            <p className="text-sm font-semibold text-primary-foreground">Entrée stock</p>
+            <p className="text-sm font-semibold text-primary-foreground">{tm('title_in')}</p>
           </Link>
           <Link
             href="/stock/out"
@@ -67,7 +67,7 @@ export default function StockPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300">
               <PackageMinus size={20} />
             </div>
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Sortie stock</p>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">{tm('title_out')}</p>
           </Link>
         </div>
 
@@ -80,8 +80,8 @@ export default function StockPage() {
             <ScanLine size={17} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground">Importer une facture</p>
-            <p className="text-xs text-muted-foreground">Photo → analyse OCR → revue</p>
+            <p className="text-sm font-semibold text-foreground">{t('import_invoice')}</p>
+            <p className="text-xs text-muted-foreground">{t('import_invoice_hint')}</p>
           </div>
         </Link>
 
@@ -96,7 +96,7 @@ export default function StockPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">En rupture</p>
+              <p className="text-xs text-muted-foreground">{t('out_of_stock')}</p>
               <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${
                 outOfStock > 0
                   ? 'bg-red-500/15 text-red-600 dark:text-red-400'
@@ -111,7 +111,7 @@ export default function StockPage() {
               {outOfStock}
             </p>
             <p className="text-[11px] text-muted-foreground/80">
-              {outOfStock > 1 ? 'produits' : 'produit'} à réassortir
+              {t('to_restock', { count: outOfStock })}
             </p>
           </Link>
           <Link
@@ -123,7 +123,7 @@ export default function StockPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Stock faible</p>
+              <p className="text-xs text-muted-foreground">{t('low_stock')}</p>
               <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${
                 lowStock > 0
                   ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
@@ -138,7 +138,7 @@ export default function StockPage() {
               {lowStock}
             </p>
             <p className="text-[11px] text-muted-foreground/80">
-              sous le seuil d&apos;alerte
+              {t('below_threshold')}
             </p>
           </Link>
         </div>
@@ -148,7 +148,7 @@ export default function StockPage() {
           <div className="flex items-center justify-between px-4 pt-4 pb-3">
             <div className="flex items-center gap-2">
               <History size={15} className="text-muted-foreground" />
-              <h2 className="text-sm font-semibold text-foreground">Derniers mouvements</h2>
+              <h2 className="text-sm font-semibold text-foreground">{t('recent_movements')}</h2>
               {movements && movements.count > 0 && (
                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">
                   {movements.count}
@@ -177,6 +177,7 @@ export default function StockPage() {
 }
 
 function MovementRow({ movement }: { movement: StockMovement }) {
+  const formatDate = useFormatDate();
   const visual = MOVEMENT_VISUAL[movement.movement_type];
   const Icon = visual.icon;
   // La quantité est un nombre de FORMATS — pas d'unité (mL/kg/pièce dépend du conditionnement,
@@ -216,7 +217,7 @@ function MovementRow({ movement }: { movement: StockMovement }) {
               {movement.reason && <> · {movement.reason}</>}
             </span>
             <span className="shrink-0 tabular-nums text-foreground/60">
-              {formatMovementDate(movement.created_at)}
+              {formatDate(movement.created_at, DATE_OPTIONS)}
             </span>
           </div>
         </div>
@@ -243,14 +244,15 @@ function MovementsSkeleton() {
 }
 
 function EmptyMovements() {
+  const t = useTranslations('stock.overview');
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
         <Boxes size={20} />
       </div>
-      <p className="text-sm font-medium text-foreground">Aucun mouvement</p>
+      <p className="text-sm font-medium text-foreground">{t('empty_title')}</p>
       <p className="text-xs text-muted-foreground max-w-xs">
-        L&apos;historique des entrées et sorties de stock apparaîtra ici.
+        {t('empty_body')}
       </p>
     </div>
   );

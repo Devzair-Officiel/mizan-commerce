@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
             id="email"
             type="email"
             className="au-input"
-            placeholder="vous@exemple.com"
+            placeholder={tc('email_placeholder')}
             autoComplete="email"
             inputMode="email"
             {...register('email')}

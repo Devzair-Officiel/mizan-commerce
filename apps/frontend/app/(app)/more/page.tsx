@@ -1,21 +1,24 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
+// Libellés sous `layout.nav.<clé>`.
 const MENU_ITEMS = [
-  { href: '/invoices', label: 'Factures' },
-  { href: '/stock/add', label: 'Entrée stock' },
-  { href: '/stock/out', label: 'Sortie stock' },
-  { href: '/reminders', label: 'Rappels' },
-  { href: '/notes', label: 'Notes' },
-  { href: '/zakat', label: 'Zakat' },
-  { href: '/settings', label: 'Paramètres boutique' },
-];
+  { href: '/invoices', label: 'invoices' },
+  { href: '/stock/add', label: 'stock_in' },
+  { href: '/stock/out', label: 'stock_out' },
+  { href: '/reminders', label: 'reminders' },
+  { href: '/notes', label: 'notes' },
+  { href: '/zakat', label: 'zakat' },
+  { href: '/settings', label: 'settings' },
+] as const;
 
 export default function MorePage() {
+  const t = useTranslations('layout');
   const router = useRouter();
 
   async function handleLogout() {
@@ -25,7 +28,7 @@ export default function MorePage() {
 
   return (
     <>
-      <TopBar title="Plus" />
+      <TopBar title={t('nav.more')} />
       <div className="flex flex-col gap-4 p-4">
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           {MENU_ITEMS.map(({ href, label }, i) => (
@@ -36,8 +39,8 @@ export default function MorePage() {
                 i < MENU_ITEMS.length - 1 ? 'border-b border-border' : ''
               }`}
             >
-              {label}
-              <span className="text-muted-foreground">›</span>
+              {t(`nav.${label}`)}
+              <span className="text-muted-foreground rtl:rotate-180">›</span>
             </Link>
           ))}
         </div>
@@ -47,7 +50,7 @@ export default function MorePage() {
           className="w-full"
           onClick={handleLogout}
         >
-          Se déconnecter
+          {t('common.logout')}
         </Button>
       </div>
     </>

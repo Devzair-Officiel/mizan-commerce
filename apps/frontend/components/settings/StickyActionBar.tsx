@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 
 interface StickyActionBarProps {
@@ -7,6 +8,7 @@ interface StickyActionBarProps {
 }
 
 export function StickyActionBar({ isDirty, isPending, onReset }: StickyActionBarProps) {
+  const t = useTranslations('settings.actions');
   return (
     <div
       aria-hidden={!isDirty}
@@ -16,13 +18,13 @@ export function StickyActionBar({ isDirty, isPending, onReset }: StickyActionBar
     >
       <div className={`mx-auto max-w-xl flex items-center gap-2 rounded-2xl border border-border bg-card/95 backdrop-blur px-3 py-2 shadow-lg ${isDirty ? 'pointer-events-auto' : ''}`}>
         <p className="flex-1 text-xs font-medium text-muted-foreground px-1">
-          Modifications non enregistrées
+          {t('unsaved')}
         </p>
         <Button type="button" variant="ghost" disabled={isPending} onClick={onReset}>
-          Annuler
+          {t('cancel')}
         </Button>
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Enregistrement…' : 'Enregistrer'}
+          {isPending ? t('saving') : t('save')}
         </Button>
       </div>
     </div>

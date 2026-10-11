@@ -2,6 +2,7 @@
 
 import { useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
@@ -17,18 +18,17 @@ import { qk } from '@/lib/query-keys';
  *   - vrac (base_quantity = 1, ex: 1 kg)           → unité brute ("kg")
  *   - conteneurs (base_quantity > 1, ex: 250 mL)   → nom du conditionnement ("Bouteille")
  */
-function quantityLabel(v: ProductVariant): string {
-  if (v.unit === 'piece') return 'pièces';
+function quantityLabel(v: ProductVariant, piecesLabel: string): string {
+  if (v.unit === 'piece') return piecesLabel;
   if (parseFloat(v.base_quantity) === 1) return v.unit;
   return v.packaging_name;
 }
 
-const MOVEMENT_TYPES = [
-  { value: 'out',  label: 'Sortie (vente manuelle)' },
-  { value: 'loss', label: 'Perte / casse' },
-];
+// Libellés sous `stock.movement.type` (ICU select sur la valeur).
+const MOVEMENT_TYPES = ['out', 'loss'];
 
 function StockOutForm() {
+  const t = useTranslations('stock.movement');
   const router = useRouter();
   const searchParams = useSearchParams();
   const qc = useQueryClient();
@@ -54,13 +54,13 @@ function StockOutForm() {
   const onlyVariant = activeVariants.length === 1 ? activeVariants[0] : null;
   const effectiveVariantId = variantId || onlyVariant?.id || '';
   const selectedVariant = activeVariants.find((v) => v.id === effectiveVariantId) ?? null;
-  const qtyUnitLabel = selectedVariant ? quantityLabel(selectedVariant) : null;
+  const qtyUnitLabel = selectedVariant ? quantityLabel(selectedVariant, t('pieces')) : null;
 
   async function handleSubmit() {
-    if (!effectiveVariantId) { setError('Sélectionnez un conditionnement.'); return; }
-    if (!reason.trim()) { setError('La raison est obligatoire.'); return; }
+    if (!effectiveVariantId) { setError(t('variant_required')); return; }
+    if (!reason.trim()) { setError(t('reason_required')); return; }
     const qty = parseFloat(quantity);
-    if (!Number.isFinite(qty) || qty <= 0) { setError('Quantité invalide.'); return; }
+    if (!Number.isFinite(qty) || qty <= 0) { setError(t('invalid_quantity')); return; }
     setIsPending(true); setError('');
     try {
       await apiFetch('/stock/out/', {
@@ -71,7 +71,7 @@ function StockOutForm() {
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
       router.back();
     } catch {
-      setError('Erreur lors de la sortie de stock.');
+      setError(t('error_out'));
     } finally {
       setIsPending(false);
     }
@@ -82,15 +82,15 @@ function StockOutForm() {
 
       <FloatingSelect
         id="product"
-        label="Produit *"
+        label={t('product')}
         value={productId}
         onChange={(e) => { setProductId(e.target.value); setVariantId(''); }}
       >
-        <option value="">Sélectionner un produit…</option>
+        <option value="">{t('select_product')}</option>
         {products?.results.filter((p) => p.is_active).map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
-            {p.variant_count && p.variant_count > 1 ? ` (${p.variant_count} formats)` : ''}
+            {p.variant_count && p.variant_count > 1 ? ` ${t('formats', { count: p.variant_count })}` : ''}
           </option>
         ))}
       </FloatingSelect>
@@ -98,14 +98,14 @@ function StockOutForm() {
       {productId && activeVariants.length > 0 && (
         <FloatingSelect
           id="variant"
-          label="Conditionnement *"
+          label={t('variant')}
           value={effectiveVariantId}
           onChange={(e) => setVariantId(e.target.value)}
         >
-          {activeVariants.length > 1 && <option value="">Sélectionner un conditionnement…</option>}
+          {activeVariants.length > 1 && <option value="">{t('select_variant')}</option>}
           {activeVariants.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.packaging_name} (stock : {formatStock(v.stock_quantity, v.unit, { baseQuantity: v.base_quantity, packagingName: v.packaging_name })})
+              {t('variant_option', { name: v.packaging_name, stock: formatStock(v.stock_quantity, v.unit, { baseQuantity: v.base_quantity, packagingName: v.packaging_name }) })}
             </option>
           ))}
         </FloatingSelect>
@@ -113,13 +113,16 @@ function StockOutForm() {
 
       {selectedVariant && (
         <div className="rounded-2xl bg-muted/60 border border-border px-4 py-3 text-sm text-muted-foreground">
-          Stock actuel : <span className="font-semibold text-foreground">{formatStock(selectedVariant.stock_quantity, selectedVariant.unit, { baseQuantity: selectedVariant.base_quantity, packagingName: selectedVariant.packaging_name })}</span>
+          {t.rich('current_stock', {
+            stock: formatStock(selectedVariant.stock_quantity, selectedVariant.unit, { baseQuantity: selectedVariant.base_quantity, packagingName: selectedVariant.packaging_name }),
+            b: (chunks) => <span className="font-semibold text-foreground">{chunks}</span>,
+          })}
         </div>
       )}
 
       {/* Type de mouvement — boutons toggle, pas un select */}
       <div className="flex gap-2">
-        {MOVEMENT_TYPES.map(({ value, label }) => (
+        {MOVEMENT_TYPES.map((value) => (
           <button
             key={value}
             type="button"
@@ -130,14 +133,14 @@ function StockOutForm() {
                 : 'border-border bg-card text-muted-foreground'
             }`}
           >
-            {label}
+            {t('type', { value })}
           </button>
         ))}
       </div>
 
       <FloatingInput
         id="quantity"
-        label="Quantité *"
+        label={t('quantity_out')}
         type="number"
         min="0"
         step="any"
@@ -149,7 +152,7 @@ function StockOutForm() {
 
       <FloatingInput
         id="reason"
-        label="Raison *"
+        label={t('reason_required_label')}
         value={reason}
         onChange={(e) => setReason(e.target.value)}
       />
@@ -157,16 +160,17 @@ function StockOutForm() {
       {error && <p className="text-[11px] text-destructive px-1">{error}</p>}
 
       <Button onClick={handleSubmit} disabled={isPending} className="w-full mt-1">
-        {isPending ? 'Enregistrement…' : 'Enregistrer la sortie'}
+        {isPending ? t('saving') : t('submit_out')}
       </Button>
     </div>
   );
 }
 
 export default function StockOutPage() {
+  const t = useTranslations('stock.movement');
   return (
     <>
-      <TopBar title="Sortie stock" back />
+      <TopBar title={t('title_out')} back />
       <Suspense><StockOutForm /></Suspense>
     </>
   );

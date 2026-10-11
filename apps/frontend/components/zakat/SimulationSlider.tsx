@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
 import { formatMoney, type ZakatCalculation } from '@/lib/hooks/useZakat';
 
@@ -25,6 +26,7 @@ function simulate(calc: ZakatCalculation, stockPct: number) {
 const PRESETS = [-20, -10, 0, 10, 20];
 
 export function SimulationSlider({ calc }: SimulationSliderProps) {
+  const t = useTranslations('zakat.simulation');
   const [pct, setPct] = useState(0);
   const sim = simulate(calc, pct);
   const baselineZakat = parseFloat(calc.zakat_amount || '0');
@@ -37,10 +39,10 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
         <Sparkles className="text-primary" size={16} />
         <div className="flex-1 flex flex-col">
           <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
-            Simulation
+            {t('title')}
           </p>
           <p className="text-xs text-muted-foreground">
-            Et si votre stock évoluait l&apos;année prochaine&nbsp;?
+            {t('subtitle')}
           </p>
         </div>
       </div>
@@ -48,7 +50,7 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
       {/* Slider — range natif stylisé via accent-color */}
       <div className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between">
-          <p className="text-xs text-muted-foreground">Variation du stock</p>
+          <p className="text-xs text-muted-foreground">{t('variation')}</p>
           <p
             className={`text-sm font-semibold tabular-nums ${
               pct > 0 ? 'text-primary' : pct < 0 ? 'text-destructive' : 'text-foreground'
@@ -66,7 +68,7 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
           value={pct}
           onChange={(e) => setPct(parseInt(e.target.value, 10))}
           className="w-full accent-primary cursor-pointer"
-          aria-label="Variation du stock en pourcentage"
+          aria-label={t('variation_aria')}
         />
         {/* Presets rapides — touche tactile facile sur mobile */}
         <div className="flex gap-1.5">
@@ -91,20 +93,20 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
       {/* Résultat simulé — on garde la même hiérarchie que le bloc principal pour la lisibilité */}
       <div className="rounded-xl bg-muted/30 px-3 py-3 flex flex-col gap-2">
         <div className="flex items-baseline justify-between text-xs">
-          <span className="text-muted-foreground">Nouveau stock</span>
+          <span className="text-muted-foreground">{t('new_stock')}</span>
           <span className="text-foreground tabular-nums">
             {formatMoney(sim.adjustedStock, calc.currency)}
           </span>
         </div>
         <div className="flex items-baseline justify-between text-xs">
-          <span className="text-muted-foreground">Nouvelle base</span>
+          <span className="text-muted-foreground">{t('new_base')}</span>
           <span className="text-foreground tabular-nums">
             {formatMoney(sim.base, calc.currency)}
           </span>
         </div>
         <div className="h-px bg-border/60" />
         <div className="flex items-baseline justify-between">
-          <span className="text-xs text-muted-foreground">Zakat simulée</span>
+          <span className="text-xs text-muted-foreground">{t('zakat')}</span>
           <span className="text-base font-semibold text-primary tabular-nums">
             {formatMoney(sim.zakat, calc.currency)}
           </span>
@@ -121,16 +123,14 @@ export function SimulationSlider({ calc }: SimulationSliderProps) {
                 deltaSign === 'up' ? 'text-primary' : 'text-destructive'
               }`}
             >
-              {delta > 0 ? '+' : ''}
-              {formatMoney(delta, calc.currency)} vs réel
+              {t('vs_actual', { amount: `${delta > 0 ? '+' : ''}${formatMoney(delta, calc.currency)}` })}
             </span>
           </div>
         )}
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Cette projection ne modifie pas votre calcul archivé — elle vous aide à anticiper l&apos;an
-        prochain.
+        {t('note')}
       </p>
     </div>
   );

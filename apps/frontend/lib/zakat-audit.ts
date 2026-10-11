@@ -9,15 +9,17 @@
  * Le score est le ratio des `ok` sur les checks pondérés (les `info` ne comptent pas).
  */
 
-import type { ZakatCalculation } from './hooks/useZakat';
+import { EXCLUDED_ITEMS, type ZakatCalculation } from './hooks/useZakat';
 
 export type AuditStatus = 'ok' | 'warn' | 'info';
 
 export interface AuditCheck {
   key: string;
-  label: string;
+  /** Message sous `zakat.audit.{id}.label` (et `.message` si `hasMessage`). */
+  id: string;
   status: AuditStatus;
-  message?: string;
+  hasMessage?: boolean;
+  values?: Record<string, number>;
 }
 
 export interface AuditResult {
@@ -38,22 +40,22 @@ export function computeAuditChecks(calc: ZakatCalculation): AuditResult {
   if (calc.stock_breakdown && calc.stock_breakdown.length > 0) {
     checks.push({
       key: 'stock',
-      label: 'Stock ventilé par catégorie',
+      id: 'stock_ventilated',
       status: 'ok',
     });
   } else if (calc.stock_value_adjusted) {
     checks.push({
       key: 'stock',
-      label: 'Stock ajusté manuellement',
+      id: 'stock_adjusted',
       status: 'warn',
-      message: 'Ventiler par catégorie (finis, matières, en cours) améliore la traçabilité.',
+      hasMessage: true,
     });
   } else {
     checks.push({
       key: 'stock',
-      label: 'Stock laissé sur estimation automatique',
+      id: 'stock_estimated',
       status: 'warn',
-      message: 'Vous pouvez affiner avec un montant ajusté ou une ventilation par catégorie.',
+      hasMessage: true,
     });
   }
 
@@ -62,20 +64,20 @@ export function computeAuditChecks(calc: ZakatCalculation): AuditResult {
   if (calc.receivables_breakdown && calc.receivables_breakdown.length > 0) {
     checks.push({
       key: 'receivables',
-      label: 'Créances ventilées (certaines / probables / douteuses)',
+      id: 'receivables_ventilated',
       status: 'ok',
     });
   } else if (receivablesTotal > 0) {
     checks.push({
       key: 'receivables',
-      label: 'Créances renseignées en bloc',
+      id: 'receivables_bulk',
       status: 'warn',
-      message: 'Ventiler par niveau de certitude permet d\'exclure les douteuses du calcul.',
+      hasMessage: true,
     });
   } else {
     checks.push({
       key: 'receivables',
-      label: 'Aucune créance déclarée',
+      id: 'receivables_none',
       status: 'info',
     });
   }
@@ -84,15 +86,16 @@ export function computeAuditChecks(calc: ZakatCalculation): AuditResult {
   if (calc.excluded_items_acknowledged.length > 0) {
     checks.push({
       key: 'excluded',
-      label: `Outils de travail reconnus (${calc.excluded_items_acknowledged.length}/6)`,
+      id: 'excluded_ok',
       status: 'ok',
+      values: { count: calc.excluded_items_acknowledged.length, total: EXCLUDED_ITEMS.length },
     });
   } else {
     checks.push({
       key: 'excluded',
-      label: 'Aucun outil de travail reconnu',
+      id: 'excluded_none',
       status: 'warn',
-      message: 'Cocher les éléments que vous possédez rend la déclaration plus traçable.',
+      hasMessage: true,
     });
   }
 
@@ -101,15 +104,14 @@ export function computeAuditChecks(calc: ZakatCalculation): AuditResult {
     const hasDue = calc.debts_breakdown.some((d) => d.is_immediately_due);
     checks.push({
       key: 'debts',
-      label: hasDue
-        ? `Dettes ventilées (${calc.debts_breakdown.length}), exigibilité précisée`
-        : `Dettes déclarées (${calc.debts_breakdown.length}), aucune exigible`,
+      id: hasDue ? 'debts_due' : 'debts_not_due',
       status: 'ok',
+      values: { count: calc.debts_breakdown.length },
     });
   } else {
     checks.push({
       key: 'debts',
-      label: 'Aucune dette déclarée',
+      id: 'debts_none',
       status: 'info',
     });
   }
@@ -119,15 +121,15 @@ export function computeAuditChecks(calc: ZakatCalculation): AuditResult {
   if (hasNisab) {
     checks.push({
       key: 'nisab',
-      label: 'Seuil de Nisab configuré',
+      id: 'nisab_ok',
       status: 'ok',
     });
   } else {
     checks.push({
       key: 'nisab',
-      label: 'Seuil de Nisab non configuré',
+      id: 'nisab_missing',
       status: 'warn',
-      message: 'Sans Nisab, impossible de savoir automatiquement si la zakat est due.',
+      hasMessage: true,
     });
   }
 
@@ -139,9 +141,10 @@ export function computeAuditChecks(calc: ZakatCalculation): AuditResult {
     if (ratio < 0.5 || ratio > 2) {
       checks.push({
         key: 'stock_coherence',
-        label: 'Écart inhabituel entre stock estimé et ajusté',
+        id: 'stock_coherence',
         status: 'warn',
-        message: `Stock ajusté à ${(ratio * 100).toFixed(0)}\u00a0% de l'estimation catalogue — confirmer la valeur saisie.`,
+        hasMessage: true,
+        values: { ratio: Math.round(ratio * 100) },
       });
     }
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Eye, RotateCw, Smartphone, Tablet } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function PreviewCard({ page }: Props) {
+  const t = useTranslations('public_page_admin.preview');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [device, setDevice] = useState<Device>('mobile');
   // Sert de cache-buster pour forcer le rechargement de l'iframe quand la
@@ -27,8 +29,8 @@ export function PreviewCard({ page }: Props) {
   const [prevSrc, setPrevSrc] = useState(src);
   const isReloading = src !== prevSrc;
   useEffect(() => {
-    const t = setTimeout(() => setPrevSrc(src), 400);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setPrevSrc(src), 400);
+    return () => clearTimeout(timer);
   }, [src]);
 
   function handleManualReload() {
@@ -40,8 +42,8 @@ export function PreviewCard({ page }: Props) {
   return (
     <SettingsCard
       icon={Eye}
-      title="Aperçu live"
-      description="Ce que voient vos clients. Mis à jour à chaque enregistrement."
+      title={t('title')}
+      description={t('description')}
     >
       <div className="flex items-center gap-2">
         <div className="inline-flex rounded-xl border border-border bg-muted p-0.5">
@@ -54,7 +56,7 @@ export function PreviewCard({ page }: Props) {
             aria-pressed={device === 'mobile'}
           >
             <Smartphone className="h-3.5 w-3.5" />
-            Mobile
+            {t('mobile')}
           </button>
           <button
             type="button"
@@ -65,7 +67,7 @@ export function PreviewCard({ page }: Props) {
             aria-pressed={device === 'tablet'}
           >
             <Tablet className="h-3.5 w-3.5" />
-            Tablette
+            {t('tablet')}
           </button>
         </div>
 
@@ -74,10 +76,10 @@ export function PreviewCard({ page }: Props) {
           variant="ghost"
           size="sm"
           onClick={handleManualReload}
-          className="ml-auto"
+          className="ms-auto"
         >
-          <RotateCw className={`h-3.5 w-3.5 mr-1 ${isReloading ? 'animate-spin' : ''}`} />
-          Recharger
+          <RotateCw className={`h-3.5 w-3.5 me-1 ${isReloading ? 'animate-spin' : ''}`} />
+          {t('reload')}
         </Button>
       </div>
 
@@ -89,7 +91,7 @@ export function PreviewCard({ page }: Props) {
           <iframe
             ref={iframeRef}
             src={src}
-            title="Aperçu de la vitrine"
+            title={t('frame_title')}
             className="block w-full h-160 border-0"
             // `allow-popups` : nécessaire pour que le devtools Next.js en dev
             // puisse ouvrir sa fenêtre picture-in-picture (sinon erreur console

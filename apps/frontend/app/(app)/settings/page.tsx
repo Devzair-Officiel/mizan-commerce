@@ -34,6 +34,7 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('settings.page');
   const tTeam = useTranslations('team');
   const { data: shop, isLoading } = useShop();
   const { mutateAsync, isPending, isSuccess } = useUpdateShop();
@@ -63,15 +64,15 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Paramètres" />
-        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+        <TopBar title={t('loading_title')} />
+        <p className="p-4 text-sm text-muted-foreground">{t('loading')}</p>
       </>
     );
   }
 
   return (
     <>
-      <TopBar title="Paramètres boutique" />
+      <TopBar title={t('title')} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32 max-w-3xl mx-auto w-full">
         <IdentitySection shop={shop} register={register} errors={errors} />
@@ -85,7 +86,7 @@ export default function SettingsPage() {
         <PreferencesSection register={register} />
 
         {isSuccess && !isDirty && (
-          <p className="text-sm text-green-700 dark:text-green-400 text-center">Modifications enregistrées ✓</p>
+          <p className="text-sm text-green-700 dark:text-green-400 text-center">{t('saved')}</p>
         )}
 
         <StickyActionBar

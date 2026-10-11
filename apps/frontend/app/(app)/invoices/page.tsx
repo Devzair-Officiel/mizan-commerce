@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, CircleDashed, FileText, Hourglass, XCircle } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import {
@@ -10,8 +11,8 @@ import {
   type Invoice,
   type InvoiceStatus,
 } from '@/lib/hooks/useInvoices';
-
-type PaymentDisplay = 'paid' | 'partial' | 'unpaid' | 'cancelled';
+import { useFormatDate } from '@/lib/hooks/useFormat';
+import { getPaymentDisplay, type PaymentDisplay } from '@/components/invoices/detail/payment';
 
 const PILL_CLASS: Record<PaymentDisplay, string> = {
   paid: 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/25',
@@ -27,40 +28,24 @@ const PILL_ICON: Record<PaymentDisplay, React.ReactNode> = {
   cancelled: <XCircle size={13} />,
 };
 
-function getRowPaymentDisplay(invoice: Invoice): { state: PaymentDisplay; label: string } {
-  if (invoice.status === 'cancelled') return { state: 'cancelled', label: 'Annulée' };
-  if (invoice.status === 'paid') return { state: 'paid', label: 'Payée' };
-  const amountPaid = parseFloat(invoice.amount_paid || '0');
-  const totalTtc = parseFloat(invoice.total_ttc || '0');
-  if (amountPaid > 0 && amountPaid < totalTtc) {
-    return { state: 'partial', label: `Partiel — ${formatInvoiceMoney(amountPaid, invoice.currency)}` };
-  }
-  return { state: 'unpaid', label: 'Non payée' };
-}
+// Libellés sous `invoices.list.filter` (ICU select sur la valeur).
+const FILTERS: (InvoiceStatus | 'all')[] = ['all', 'issued', 'paid', 'cancelled'];
 
-const FILTERS: { value: InvoiceStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'Toutes' },
-  { value: 'issued', label: 'Émises' },
-  { value: 'paid', label: 'Payées' },
-  { value: 'cancelled', label: 'Annulées' },
-];
-
-const DATE_FMT = new Intl.DateTimeFormat('fr-FR', {
-  day: 'numeric', month: 'short', year: 'numeric',
-});
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
 
 export default function InvoicesPage() {
+  const t = useTranslations('invoices.list');
   const [filter, setFilter] = useState<InvoiceStatus | 'all'>('all');
   const { data, isLoading } = useInvoices(filter === 'all' ? undefined : filter);
   const invoices = data?.results ?? [];
 
   return (
     <>
-      <TopBar title="Factures" />
+      <TopBar title={t('title')} />
       <div className="flex flex-col gap-4 p-4 pb-24">
         {/* Filtres */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {FILTERS.map(({ value, label }) => (
+          {FILTERS.map((value) => (
             <button
               key={value}
               type="button"
@@ -71,21 +56,21 @@ export default function InvoicesPage() {
                   : 'border-border bg-card text-muted-foreground hover:border-primary/40'
               }`}
             >
-              {label}
+              {t('filter', { value })}
             </button>
           ))}
         </div>
 
         {isLoading && (
-          <p className="text-sm text-muted-foreground text-center py-6">Chargement…</p>
+          <p className="text-sm text-muted-foreground text-center py-6">{t('loading')}</p>
         )}
 
         {!isLoading && invoices.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border bg-card p-8 flex flex-col items-center gap-2 text-center">
             <FileText className="text-muted-foreground" size={32} />
-            <p className="text-sm font-medium text-foreground">Aucune facture</p>
+            <p className="text-sm font-medium text-foreground">{t('empty_title')}</p>
             <p className="text-xs text-muted-foreground">
-              Les factures se créent depuis une commande.
+              {t('empty_body')}
             </p>
           </div>
         )}
@@ -105,8 +90,10 @@ export default function InvoicesPage() {
 }
 
 function InvoiceRow({ invoice }: { invoice: Invoice }) {
-  const issued = DATE_FMT.format(new Date(invoice.issued_at));
-  const payment = getRowPaymentDisplay(invoice);
+  const t = useTranslations('invoices');
+  const formatDate = useFormatDate();
+  const issued = formatDate(invoice.issued_at, DATE_OPTIONS);
+  const payment = getPaymentDisplay(invoice);
   return (
     <Link
       href={`/invoices/${invoice.id}`}
@@ -116,7 +103,7 @@ function InvoiceRow({ invoice }: { invoice: Invoice }) {
         <div className="flex flex-col min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{invoice.number}</p>
           <p className="text-xs text-muted-foreground truncate">
-            {invoice.buyer_name || 'Sans client'} · {issued}
+            {invoice.buyer_name || t('list.no_customer')} · {issued}
           </p>
         </div>
         <p className="text-base font-semibold text-foreground tabular-nums shrink-0">
@@ -128,10 +115,10 @@ function InvoiceRow({ invoice }: { invoice: Invoice }) {
           className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${PILL_CLASS[payment.state]}`}
         >
           {PILL_ICON[payment.state]}
-          {payment.label}
+          {t('payment', { state: payment.state, amount: formatInvoiceMoney(payment.amountPaid, invoice.currency) })}
         </span>
         <span className="text-[11px] text-muted-foreground">
-          Échéance&nbsp;: {DATE_FMT.format(new Date(invoice.due_date))}
+          {t('due', { date: formatDate(invoice.due_date, DATE_OPTIONS) })}
         </span>
       </div>
     </Link>

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
 import {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function LogoUploader({ page }: Props) {
+  const t = useTranslations('public_page_admin');
   const upload = useUploadPageLogo();
   const remove = useDeletePageLogo();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,7 +35,7 @@ export function LogoUploader({ page }: Props) {
     e.target.value = '';
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setError('Formats acceptés : JPEG, PNG, WebP.');
+      setError(t('uploader.formats'));
       return;
     }
     setPendingFile(file);
@@ -44,7 +46,7 @@ export function LogoUploader({ page }: Props) {
       await upload.mutateAsync(blob);
       setPendingFile(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur upload');
+      setError(err instanceof Error ? err.message : t('uploader.upload_error'));
     }
   }
 
@@ -52,19 +54,19 @@ export function LogoUploader({ page }: Props) {
     try {
       await remove.mutateAsync();
     } catch {
-      setError('Erreur lors de la suppression.');
+      setError(t('uploader.delete_error'));
     }
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[11px] text-muted-foreground px-1">Logo</span>
+      <span className="text-[11px] text-muted-foreground px-1">{t('logo.label')}</span>
       <div className="flex items-center gap-4">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-muted flex items-center justify-center">
           {page.logo_url ? (
             <Image
               src={page.logo_url}
-              alt="Logo"
+              alt={t('logo.label')}
               width={80}
               height={80}
               unoptimized
@@ -84,7 +86,7 @@ export function LogoUploader({ page }: Props) {
             onClick={handlePickFile}
             disabled={upload.isPending}
           >
-            {upload.isPending ? 'Envoi…' : page.logo_url ? 'Changer le logo' : 'Ajouter un logo'}
+            {upload.isPending ? t('uploader.sending') : page.logo_url ? t('logo.change') : t('logo.add')}
           </Button>
           {page.logo_url && (
             <Button
@@ -95,7 +97,7 @@ export function LogoUploader({ page }: Props) {
               onClick={() => setConfirmDelete(true)}
               disabled={remove.isPending}
             >
-              {remove.isPending ? 'Suppression…' : 'Supprimer'}
+              {remove.isPending ? t('uploader.deleting') : t('uploader.delete')}
             </Button>
           )}
         </div>
@@ -121,10 +123,10 @@ export function LogoUploader({ page }: Props) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Supprimer le logo ?"
+        title={t('logo.confirm_delete')}
         onConfirm={handleDelete}
         variant="destructive"
-        confirmLabel="Supprimer"
+        confirmLabel={t('uploader.delete')}
       />
     </div>
   );

@@ -52,9 +52,9 @@ export default function OnboardingPage() {
   const firstName = me?.full_name?.trim().split(/\s+/)[0];
 
   const CATALOG_OPTIONS: Option<CatalogKind>[] = [
-    { value: 'products', title: 'Je vends des produits', description: 'Articles physiques avec stock, variantes, prix unitaires.', icon: <Package size={22} /> },
-    { value: 'services', title: 'Je propose des services', description: 'Prestations ou abonnements sans gestion de stock.', icon: <Sparkles size={22} /> },
-    { value: 'both', title: 'Les deux', description: 'Produits et services dans le même catalogue.', icon: <ScrollText size={22} /> },
+    { value: 'products', title: t('step1_products_title'), description: t('step1_products_desc'), icon: <Package size={22} /> },
+    { value: 'services', title: t('step1_services_title'), description: t('step1_services_desc'), icon: <Sparkles size={22} /> },
+    { value: 'both', title: t('step1_both_title'), description: t('step1_both_desc'), icon: <ScrollText size={22} /> },
   ];
 
   const FULFILLMENT_OPTIONS: Option<string>[] = [
@@ -91,26 +91,25 @@ export default function OnboardingPage() {
 
   return (
     <div className="au-card au-wizard">
-      <div className="au-steps" aria-label={`Étape ${step} sur ${totalSteps}`}>
+      <div className="au-steps" aria-label={t('step_label', { step, total: totalSteps })}>
         <span className={`dot ${step === 1 ? 'is-current' : 'is-done'}`} />
         {catalogKind !== 'services' && (
           <span className={`dot ${step === 2 ? 'is-current' : ''}`} />
         )}
-        <span className="label">Étape {step} / {totalSteps}</span>
+        <span className="label">{t('step_short', { step, total: totalSteps })}</span>
       </div>
 
       {step === 1 ? (
         <>
           <h1>
-            Bienvenue{firstName ? `, ${firstName}` : ''}{' '}
+            {firstName ? t('step1_title_named', { name: firstName }) : t('step1_title')}{' '}
             <span className="serif-i">!</span>
           </h1>
           <p className="au-sub">
-            Que proposez-vous dans votre boutique ? Vous pourrez modifier ce
-            choix plus tard depuis les réglages.
+            {t('step1_sub')}
           </p>
           <div className="au-divider" />
-          <div className="au-options" role="radiogroup" aria-label="Type d'activité">
+          <div className="au-options" role="radiogroup" aria-label={t('step1_label')}>
             {CATALOG_OPTIONS.map((opt) => (
               <OptionCard key={opt.value} option={opt} selected={catalogKind === opt.value} onSelect={() => setCatalogKind(opt.value)} />
             ))}
@@ -139,8 +138,8 @@ export default function OnboardingPage() {
           onClick={handleContinue}
         >
           {isPending
-            ? 'Enregistrement…'
-            : (isLastStep || step === 2) ? 'Accéder à ma boutique' : 'Continuer'}
+            ? t('saving')
+            : (isLastStep || step === 2) ? t('finish') : t('continue')}
         </button>
         <button
           type="button"
@@ -148,7 +147,7 @@ export default function OnboardingPage() {
           disabled={isPending}
           onClick={handleSkip}
         >
-          Plus tard
+          {t('skip')}
         </button>
       </div>
     </div>

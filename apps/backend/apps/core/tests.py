@@ -493,6 +493,27 @@ class SeedDataSecurityTest(TestCase):
             call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
         self.assertTrue(Shop.objects.filter(name="La Boutique de Youssef").exists())
 
+    def test_rerun_without_reset_creates_no_duplicates(self):
+        """Relancer seed_data sans --reset ne duplique rien, dans aucune boutique."""
+        def snapshot() -> dict[str, tuple[int, ...]]:
+            return {
+                shop.name: (
+                    Product.objects.filter(shop=shop).count(),
+                    Customer.objects.filter(shop=shop).count(),
+                    Order.objects.filter(shop=shop).count(),
+                    StockMovement.objects.filter(shop=shop).count(),
+                    Reminder.objects.filter(shop=shop).count(),
+                )
+                for shop in Shop.objects.order_by("name")
+            }
+
+        quiet = {"stdout": io.StringIO(), "stderr": io.StringIO()}
+        with override_settings(DEBUG=True):
+            call_command("seed_data", reset=True, **quiet)
+            before = snapshot()
+            call_command("seed_data", **quiet)
+        self.assertEqual(snapshot(), before)
+
 
 def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501
     p = Product.objects.create(shop=shop, name=name)

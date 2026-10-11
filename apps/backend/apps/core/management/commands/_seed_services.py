@@ -119,12 +119,13 @@ def run_seed_services(shop, owner, *, stdout=None) -> None:
         (today, nadia, [soin], 'paid', 'to_prepare', 13, 0),
     ]
 
-    for date, customer, variants, pay_status, ord_status, hour, minute in orders_data:
-        order = _create_service_order(shop, owner, customer, variants, pay_status, ord_status)  # noqa: E501
-        target_dt = _make_dt(date, hour, minute)
-        _antidate_order(order, target_dt)
+    # Idempotence : comme les autres boutiques, on ne crée les commandes qu'une fois.
+    from apps.orders.models import Order
+    if not Order.objects.filter(shop=shop).exists():
+        for date, customer, variants, pay, status, hour, minute in orders_data:
+            order = _create_service_order(shop, owner, customer, variants, pay, status)
+            _antidate_order(order, _make_dt(date, hour, minute))
 
     if stdout:
-        from apps.orders.models import Order
         count = Order.objects.filter(shop=shop).count()
         stdout.write(f'    + {count} commandes créées')

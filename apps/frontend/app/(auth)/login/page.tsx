@@ -64,7 +64,7 @@ export default function LoginPage() {
             id="email"
             type="email"
             className="au-input"
-            placeholder="vous@exemple.com"
+            placeholder={tc('email_placeholder')}
             autoComplete="email"
             inputMode="email"
             {...register('email')}
@@ -86,7 +86,7 @@ export default function LoginPage() {
               type="button"
               className="au-pwd-toggle"
               onClick={() => setShowPwd((v) => !v)}
-              aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              aria-label={showPwd ? tc('hide_password') : tc('show_password')}
               aria-pressed={showPwd}
             >
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}

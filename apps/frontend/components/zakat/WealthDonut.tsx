@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { formatMoney, type ZakatCalculation } from '@/lib/hooks/useZakat';
@@ -21,14 +22,16 @@ const SLICE_COLORS = {
   stock: '#F59E0B',
 } as const;
 
-function buildSlices(calc: ZakatCalculation): Slice[] {
+type ZakatT = ReturnType<typeof useTranslations<'zakat'>>;
+
+function buildSlices(calc: ZakatCalculation, t: ZakatT): Slice[] {
   const cash = parseFloat(calc.cash_amount) || 0;
   const receivables = parseFloat(calc.receivables_amount) || 0;
   const stock = parseFloat(calc.stock_value_for_base) || 0;
   return [
-    { key: 'cash', label: 'Argent disponible', value: cash, color: SLICE_COLORS.cash },
-    { key: 'receivables', label: 'Créances', value: receivables, color: SLICE_COLORS.receivables },
-    { key: 'stock', label: 'Stock', value: stock, color: SLICE_COLORS.stock },
+    { key: 'cash', label: t('common.cash'), value: cash, color: SLICE_COLORS.cash },
+    { key: 'receivables', label: t('donut.receivables'), value: receivables, color: SLICE_COLORS.receivables },
+    { key: 'stock', label: t('donut.stock'), value: stock, color: SLICE_COLORS.stock },
   ].filter((s) => s.value > 0);
 }
 
@@ -48,14 +51,15 @@ function DonutTooltip({ active, payload, currency }: TooltipContentProps & { cur
 }
 
 export function WealthDonut({ calc }: WealthDonutProps) {
-  const slices = buildSlices(calc);
+  const t = useTranslations('zakat');
+  const slices = buildSlices(calc, t);
   if (slices.length === 0) return null;
   const total = slices.reduce((sum, s) => sum + s.value, 0);
 
   return (
     <div className="rounded-2xl border border-border bg-card px-4 py-4">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        Répartition du patrimoine
+        {t('donut.title')}
       </p>
       <div className="flex items-center gap-4">
         <div className="relative h-32 w-32 shrink-0">
@@ -79,7 +83,7 @@ export function WealthDonut({ calc }: WealthDonutProps) {
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('donut.total')}</p>
             <p className="text-sm font-semibold text-foreground tabular-nums">
               {formatMoney(total, calc.currency)}
             </p>

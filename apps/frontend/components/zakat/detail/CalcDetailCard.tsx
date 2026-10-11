@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import { formatMoney, type ZakatCalculation } from '@/lib/hooks/useZakat';
 
 interface CalcDetailCardProps {
@@ -7,28 +8,29 @@ interface CalcDetailCardProps {
 }
 
 export function CalcDetailCard({ calc, patrimoineTotal, ratePercent }: CalcDetailCardProps) {
+  const t = useTranslations('zakat.detail');
   return (
     <div className="rounded-2xl border border-border bg-card px-4 py-3 flex flex-col gap-2">
       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        Calcul détaillé
+        {t('breakdown_title')}
       </p>
       <div className="flex flex-col gap-1 text-xs text-muted-foreground tabular-nums">
         <p>
           <span className="text-foreground">{formatMoney(patrimoineTotal, calc.currency)}</span>{' '}
-          <span>(patrimoine)</span>
+          <span>{t('breakdown_wealth')}</span>
         </p>
         <p>
           <span className="text-destructive">
             − {formatMoney(calc.short_term_debts, calc.currency)}
           </span>{' '}
-          <span>(dettes exigibles)</span>
+          <span>{t('breakdown_debts')}</span>
         </p>
         <p className="border-t border-border/60 pt-1 mt-1">
           =&nbsp;
           <span className="text-foreground font-semibold">
             {formatMoney(calc.zakat_base, calc.currency)}
           </span>{' '}
-          <span>(base)</span>
+          <span>{t('breakdown_base')}</span>
         </p>
         <p>
           × <span className="text-foreground">{ratePercent}&nbsp;%</span> ={' '}

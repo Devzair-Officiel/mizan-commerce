@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { Manrope, Instrument_Serif } from 'next/font/google';
 import './auth.css';
 
@@ -23,11 +24,12 @@ export const metadata: Metadata = {
   title: 'mizan — Accès à votre boutique',
 };
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const t = await getTranslations('auth.common');
   return (
     <div className={`mzn-auth ${manrope.variable} ${instrumentSerif.variable}`}>
       <div className="au-top">
-        <Link href="/" className="au-back" aria-label="Retour à l'accueil">
+        <Link href="/" className="au-back" aria-label={t('back_home')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
               d="M15 18l-6-6 6-6"
@@ -37,7 +39,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               strokeLinejoin="round"
             />
           </svg>
-          <span>Retour à l&apos;accueil</span>
+          <span>{t('back_home')}</span>
         </Link>
       </div>
 

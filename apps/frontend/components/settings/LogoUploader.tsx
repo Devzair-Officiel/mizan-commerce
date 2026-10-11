@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
 import { useUploadShopLogo, useDeleteShopLogo, type Shop } from '@/lib/hooks/useShop';
@@ -10,6 +11,7 @@ interface LogoUploaderProps {
 }
 
 export function LogoUploader({ shop }: LogoUploaderProps) {
+  const t = useTranslations('settings.logo');
   const uploadLogo = useUploadShopLogo();
   const deleteLogo = useDeleteShopLogo();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,7 +29,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
     e.target.value = '';
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setLogoError('Formats acceptés : JPEG, PNG, WebP.');
+      setLogoError(t('invalid_format'));
       return;
     }
     setPendingFile(file);
@@ -38,7 +40,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
       await uploadLogo.mutateAsync(blob);
       setPendingFile(null);
     } catch (err) {
-      setLogoError(err instanceof Error ? err.message : 'Erreur upload');
+      setLogoError(err instanceof Error ? err.message : t('upload_error'));
     }
   }
 
@@ -46,7 +48,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
     try {
       await deleteLogo.mutateAsync();
     } catch {
-      setLogoError('Erreur lors de la suppression.');
+      setLogoError(t('delete_error'));
     }
   }
 
@@ -57,7 +59,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
           {shop?.logo_url ? (
             <Image
               src={shop.logo_url}
-              alt="Logo"
+              alt={t('alt')}
               width={80}
               height={80}
               unoptimized
@@ -77,7 +79,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
             onClick={handlePickFile}
             disabled={uploadLogo.isPending}
           >
-            {uploadLogo.isPending ? 'Envoi…' : shop?.logo_url ? 'Changer le logo' : 'Ajouter un logo'}
+            {uploadLogo.isPending ? t('uploading') : shop?.logo_url ? t('change') : t('add')}
           </Button>
           {shop?.logo_url && (
             <Button
@@ -88,7 +90,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
               onClick={() => setConfirmDelete(true)}
               disabled={deleteLogo.isPending}
             >
-              {deleteLogo.isPending ? 'Suppression…' : 'Supprimer'}
+              {deleteLogo.isPending ? t('deleting') : t('delete')}
             </Button>
           )}
         </div>
@@ -112,11 +114,11 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Supprimer le logo ?"
-        description="Le logo de la boutique sera supprimé définitivement."
+        title={t('delete_title')}
+        description={t('delete_description')}
         onConfirm={handleDeleteLogo}
         variant="destructive"
-        confirmLabel="Supprimer"
+        confirmLabel={t('delete')}
       />
     </>
   );

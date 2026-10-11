@@ -2,9 +2,11 @@
 
 import { ChevronLeft, Pencil, Wallet, Users, Package, ShieldCheck, Receipt } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { ComponentType } from 'react';
 import { Button } from '@/components/ui/button';
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
+import { useFormatDate } from '@/lib/hooks/useFormat';
 import {
   formatMoney,
   sumImmediateDebts,
@@ -48,79 +50,52 @@ function sumBreakdown(items: { amount: string }[]): number {
   return items.reduce((acc, it) => acc + (parseFloat(it.amount || '0') || 0), 0);
 }
 
-function buildCards(calc: ZakatCalculation, state: HubState, currency: string): StepCardModel[] {
-  const refDateLabel = new Date(state.referenceDate).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+type HubT = ReturnType<typeof useTranslations<'zakat.wizard'>>;
 
-  // Stock : on reflète la même priorité que le backend (ventilé > ajusté > estimé).
-  let stockSummary: string;
+function stockSummary(calc: ZakatCalculation, state: HubState, currency: string, t: HubT): string {
+  // Même priorité que le backend : ventilé > ajusté > estimé.
   if (state.stockBreakdown.length > 0) {
-    const total = sumBreakdown(state.stockBreakdown);
-    stockSummary = `${formatMoney(total, currency)} — ${state.stockBreakdown.length} catégorie${state.stockBreakdown.length > 1 ? 's' : ''}`;
-  } else if (calc.stock_value_adjusted !== null && calc.stock_value_adjusted !== '') {
-    stockSummary = `${formatMoney(calc.stock_value_adjusted, currency)} — ajusté`;
-  } else {
-    stockSummary = `${formatMoney(calc.stock_value_estimated, currency)} — estimation catalogue`;
+    const amount = formatMoney(sumBreakdown(state.stockBreakdown), currency);
+    return t('hub_stock_breakdown', { amount, count: state.stockBreakdown.length });
   }
+  if (calc.stock_value_adjusted !== null && calc.stock_value_adjusted !== '') {
+    return t('hub_stock_adjusted', { amount: formatMoney(calc.stock_value_adjusted, currency) });
+  }
+  return t('hub_stock_estimated', { amount: formatMoney(calc.stock_value_estimated, currency) });
+}
 
-  // Créances : si breakdown non vide, total certaines+probables ; sinon nominal saisi.
-  let receivablesSummary: string;
-  if (!state.hasReceivables) {
-    receivablesSummary = 'Aucune créance déclarée';
-  } else if (state.receivablesBreakdown.length > 0) {
+function receivablesSummary(state: HubState, currency: string, t: HubT): string {
+  // Ventilées : total certaines + probables ; sinon le nominal saisi.
+  if (!state.hasReceivables) return t('hub_receivables_none');
+  if (state.receivablesBreakdown.length > 0) {
     const recoverable = state.receivablesBreakdown
       .filter((r) => r.category !== 'doubtful')
       .reduce((acc, r) => acc + (parseFloat(r.amount || '0') || 0), 0);
-    receivablesSummary = `${formatMoney(recoverable, currency)} récupérables — ${state.receivablesBreakdown.length} ligne${state.receivablesBreakdown.length > 1 ? 's' : ''}`;
-  } else {
-    receivablesSummary = `${formatMoney(state.receivablesNominal || '0', currency)} — non ventilées`;
+    return t('hub_receivables_breakdown', { amount: formatMoney(recoverable, currency), count: state.receivablesBreakdown.length });
   }
+  return t('hub_receivables_nominal', { amount: formatMoney(state.receivablesNominal || '0', currency) });
+}
 
-  // Dettes : on distingue total exigible (déduit) vs total déclaré.
-  let debtsSummary: string;
-  if (state.debtsBreakdown.length === 0) {
-    debtsSummary = 'Aucune dette déclarée';
-  } else {
-    const due = sumImmediateDebts(state.debtsBreakdown);
-    debtsSummary = `${state.debtsBreakdown.length} dette${state.debtsBreakdown.length > 1 ? 's' : ''} — ${formatMoney(due, currency)} déductible${due === 1 ? '' : 's'}`;
-  }
-
+function buildCards(calc: ZakatCalculation, state: HubState, currency: string, t: HubT, refDate: string): StepCardModel[] {
+  const excluded = state.excludedItemsAcknowledged.length;
   return [
-    {
-      step: 0,
-      Icon: Wallet,
-      label: 'Argent disponible',
-      summary: `${formatMoney(state.cashAmount || '0', currency)} — ${refDateLabel}`,
-    },
-    {
-      step: 1,
-      Icon: Users,
-      label: 'Créances clients',
-      summary: receivablesSummary,
-    },
-    {
-      step: 2,
-      Icon: Package,
-      label: 'Stock commercial',
-      summary: stockSummary,
-    },
+    { step: 0, Icon: Wallet, label: t('steps.cash.title'), summary: t('hub_cash', { amount: formatMoney(state.cashAmount || '0', currency), date: refDate }) },
+    { step: 1, Icon: Users, label: t('steps.receivables.title'), summary: receivablesSummary(state, currency, t) },
+    { step: 2, Icon: Package, label: t('steps.stock.title'), summary: stockSummary(calc, state, currency, t) },
     {
       step: 3,
       Icon: ShieldCheck,
-      label: 'Outils de travail (exclus)',
-      summary:
-        state.excludedItemsAcknowledged.length === 0
-          ? 'Aucun outil reconnu'
-          : `${state.excludedItemsAcknowledged.length}/6 reconnus`,
+      label: t('hub_excluded_label'),
+      summary: excluded === 0 ? t('hub_excluded_none') : t('hub_excluded_count', { count: excluded, total: 6 }),
     },
     {
       step: 4,
       Icon: Receipt,
-      label: 'Dettes',
-      summary: debtsSummary,
+      label: t('steps.debts.title'),
+      // Total exigible (déduit), pas le total déclaré.
+      summary: state.debtsBreakdown.length === 0
+        ? t('hub_debts_none')
+        : t('hub_debts', { count: state.debtsBreakdown.length, amount: formatMoney(sumImmediateDebts(state.debtsBreakdown), currency) }),
     },
   ];
 }
@@ -134,9 +109,12 @@ export function WizardHub({
   onDiscard,
   isPending = false,
 }: WizardHubProps) {
+  const t = useTranslations('zakat.wizard');
+  const formatDate = useFormatDate();
   const router = useRouter();
-  const cards = buildCards(calc, state, currency);
-  const finalizeLabel = isPending ? 'Finalisation…' : 'Finaliser la zakat';
+  const refDate = formatDate(state.referenceDate, { day: '2-digit', month: 'long', year: 'numeric' });
+  const cards = buildCards(calc, state, currency, t, refDate);
+  const finalizeLabel = isPending ? t('finalizing') : t('finalize');
   return (
     <div className="flex flex-col min-h-screen pb-44 lg:pb-24">
       <header className="sticky top-0 z-20 bg-background border-b border-border">
@@ -145,15 +123,13 @@ export function WizardHub({
             type="button"
             onClick={() => router.push('/zakat')}
             className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Retour"
+            aria-label={t('back')}
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={20} className="rtl:rotate-180" />
           </button>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-foreground">Modifier votre zakat</p>
-            <p className="text-xs text-muted-foreground">
-              Cliquez sur une étape pour ajuster ses valeurs.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{t('hub_title')}</p>
+            <p className="text-xs text-muted-foreground">{t('hub_subtitle')}</p>
           </div>
         </div>
       </header>
@@ -165,13 +141,13 @@ export function WizardHub({
               type="button"
               onClick={() => onEditStep(step)}
               disabled={isPending}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left hover:border-primary/40 active:scale-[0.99] transition disabled:opacity-50"
+              className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-start hover:border-primary/40 active:scale-[0.99] transition disabled:opacity-50"
             >
               <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-muted text-muted-foreground shrink-0">
                 <Icon size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">Étape {step + 1}</p>
+                <p className="text-xs text-muted-foreground">{t('hub_step', { step: step + 1 })}</p>
                 <p className="text-sm font-medium text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground truncate">{summary}</p>
               </div>
@@ -182,7 +158,7 @@ export function WizardHub({
 
         <div className="flex flex-col gap-1 mt-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-            Vérification finale
+            {t('hub_final_check')}
           </p>
           <Step5Summary calc={calc} />
         </div>
@@ -193,7 +169,7 @@ export function WizardHub({
           disabled={isPending}
           className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50"
         >
-          Abandonner ce brouillon
+          {t('discard')}
         </button>
       </main>
 

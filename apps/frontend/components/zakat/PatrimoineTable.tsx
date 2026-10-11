@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { formatMoney } from '@/lib/hooks/useZakat';
 
 interface PatrimoineRow {
@@ -28,6 +29,7 @@ export function PatrimoineTable({
   currency,
   tone = 'positive',
 }: PatrimoineTableProps) {
+  const t = useTranslations('zakat');
   const totalColor = tone === 'positive' ? 'text-foreground' : 'text-destructive';
 
   return (
@@ -41,7 +43,7 @@ export function PatrimoineTable({
       <div className="flex flex-col">
         {rows.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4 px-4">
-            Rien à déclarer dans cette catégorie.
+            {t('common.empty_table')}
           </p>
         )}
 

@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { StickyNote } from 'lucide-react';
 import { apiFetch } from '@/lib/api-client';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { qk } from '@/lib/query-keys';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { useFormatDate } from '@/lib/hooks/useFormat';
 
 interface Note {
   id: string;
@@ -25,6 +27,8 @@ interface NotePayload {
 }
 
 export default function NotesPage() {
+  const t = useTranslations('notes');
+  const formatDate = useFormatDate();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Note | null>(null);
   const [content, setContent] = useState('');
@@ -85,19 +89,19 @@ export default function NotesPage() {
   if (showForm) {
     return (
       <>
-        <TopBar title={editing ? 'Modifier la note' : 'Nouvelle note'} />
+        <TopBar title={editing ? t('edit_title') : t('new_title')} />
         <div className="flex flex-col gap-4 p-4">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={8}
             autoFocus
-            placeholder="Écrivez votre note…"
+            placeholder={t('placeholder')}
             className="rounded-xl border border-border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground resize-none"
           />
           <div className="flex flex-col gap-2">
             <Button disabled={!content.trim() || isPending} onClick={handleSave} className="w-full">
-              {isPending ? 'Enregistrement…' : editing ? 'Mettre à jour' : 'Enregistrer'}
+              {isPending ? t('saving') : editing ? t('update') : t('save')}
             </Button>
             {editing && (
               <Button
@@ -106,20 +110,20 @@ export default function NotesPage() {
                 disabled={remove.isPending}
                 onClick={() => setConfirmRemove(true)}
               >
-                {remove.isPending ? 'Suppression…' : 'Supprimer la note'}
+                {remove.isPending ? t('deleting') : t('delete')}
               </Button>
             )}
-            <Button variant="outline" className="w-full" onClick={resetForm}>Annuler</Button>
+            <Button variant="outline" className="w-full" onClick={resetForm}>{t('cancel')}</Button>
           </div>
         </div>
 
         <ConfirmDialog
           open={confirmRemove}
           onOpenChange={setConfirmRemove}
-          title="Supprimer cette note ?"
+          title={t('confirm_delete')}
           onConfirm={() => { if (editing) return remove.mutateAsync(editing.id); }}
           variant="destructive"
-          confirmLabel="Supprimer"
+          confirmLabel={t('confirm_delete_cta')}
         />
       </>
     );
@@ -129,8 +133,8 @@ export default function NotesPage() {
     <>
       <TopBar
         back
-        title="Notes"
-        action={<Button size="sm" onClick={openNew}>+ Nouvelle</Button>}
+        title={t('title')}
+        action={<Button size="sm" onClick={openNew}>{t('new_cta')}</Button>}
       />
       <div className="flex flex-col gap-3 p-4">
         {isLoading && (
@@ -150,8 +154,8 @@ export default function NotesPage() {
               <StickyNote className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground">Aucune note</p>
-              <p className="text-xs text-muted-foreground mt-1">Appuyez sur + Nouvelle pour créer votre première note.</p>
+              <p className="text-sm font-medium text-foreground">{t('empty_title')}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t('empty_body')}</p>
             </div>
           </div>
         )}
@@ -160,11 +164,11 @@ export default function NotesPage() {
           <button
             key={note.id}
             onClick={() => openNote(note)}
-            className="w-full text-left rounded-xl border border-border bg-card p-4 hover:bg-muted active:bg-muted"
+            className="w-full text-start rounded-xl border border-border bg-card p-4 hover:bg-muted active:bg-muted"
           >
             <p className="text-sm text-foreground line-clamp-3 whitespace-pre-wrap">{note.content}</p>
             <p className="text-xs text-muted-foreground mt-2">
-              {new Date(note.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {formatDate(note.created_at, { day: '2-digit', month: 'short', year: 'numeric' })}
               {note.author_name ? ` · ${note.author_name}` : ''}
             </p>
           </button>

@@ -98,36 +98,15 @@ interface PaginatedResponse<T> {
 
 // ── Catalogues UI ────────────────────────────────────────────────────────────
 
-export const DEBT_CATEGORY_LABELS: Record<DebtCategory, string> = {
-  supplier: 'Fournisseurs',
-  tax_vat: 'TVA / impôts',
-  salary: 'Salaires',
-  loan: 'Emprunt bancaire',
-  rent: 'Loyer',
-  other: 'Autre',
-};
+// Libellés sous `zakat.debt_category.*`, `zakat.stock_category.*`, `zakat.receivable_category.*`
+// et `zakat.excluded_item.*` ; ces listes fixent l'ordre d'affichage.
+export const DEBT_CATEGORIES: DebtCategory[] = ['supplier', 'tax_vat', 'salary', 'loan', 'rent', 'other'];
 
-export const STOCK_CATEGORY_LABELS: Record<StockCategory, string> = {
-  finished: 'Marchandises finies (prêtes à vendre)',
-  raw_materials: 'Matières premières',
-  work_in_progress: 'Produits en cours de fabrication',
-  in_transit: 'Marchandises en transit (commandées, non livrées)',
-};
+export const STOCK_CATEGORIES: StockCategory[] = ['finished', 'raw_materials', 'work_in_progress', 'in_transit'];
 
-export const RECEIVABLE_CATEGORY_LABELS: Record<ReceivableCategory, string> = {
-  certain: 'Certaines (recouvrement quasi sûr)',
-  probable: 'Probables (recouvrement attendu)',
-  doubtful: 'Douteuses (recouvrement incertain — exclues)',
-};
+export const RECEIVABLE_CATEGORIES: ReceivableCategory[] = ['certain', 'probable', 'doubtful'];
 
-export const EXCLUDED_ITEM_LABELS: Record<ExcludedItem, string> = {
-  vehicle: 'Véhicules (camionnette, voiture pro)',
-  computer: 'Ordinateurs, tablettes',
-  machine: 'Machines, équipements',
-  premises: 'Local commercial',
-  furniture: 'Mobilier (étagères, comptoir)',
-  other: 'Autre outil de travail',
-};
+export const EXCLUDED_ITEMS: ExcludedItem[] = ['vehicle', 'computer', 'machine', 'premises', 'furniture', 'other'];
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 

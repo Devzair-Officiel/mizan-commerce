@@ -1,12 +1,14 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Receipt, Plus, Trash2 } from 'lucide-react';
 import {
   FloatingInput,
   FloatingSelect,
 } from '@/components/ui/floating-fields';
 import {
-  DEBT_CATEGORY_LABELS,
+  DEBT_CATEGORIES,
   formatMoney,
   sumImmediateDebts,
   type DebtCategory,
@@ -20,13 +22,12 @@ interface Step4Props {
   onChange: (patch: { debtsBreakdown: DebtItem[] }) => void;
 }
 
-const CATEGORIES = Object.keys(DEBT_CATEGORY_LABELS) as DebtCategory[];
-
 function makeEmptyDebt(): DebtItem {
   return { category: 'supplier', label: '', amount: '', is_immediately_due: true };
 }
 
 export function Step4Debts({ debts, currency, onChange }: Step4Props) {
+  const t = useTranslations('zakat');
   const updateDebt = (index: number, patch: Partial<DebtItem>) => {
     const next = debts.map((d, i) => (i === index ? { ...d, ...patch } : d));
     onChange({ debtsBreakdown: next });
@@ -44,20 +45,18 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
       <div className="flex gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
         <Receipt className="text-primary shrink-0 mt-0.5" size={18} />
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-foreground">Dettes à court terme</p>
+          <p className="text-sm font-medium text-foreground">{t('step.debts.title')}</p>
           <p className="text-xs text-muted-foreground">
-            Seules les dettes <strong className="font-medium text-foreground">exigibles immédiatement</strong>
-            {' '}sont déduites. Un emprunt sur 5 ans, par exemple, n&apos;est exigible immédiatement que
-            pour les mensualités du mois.
+            {t.rich('step.debts.help', {
+              b: (chunks: ReactNode) => <strong className="font-medium text-foreground">{chunks}</strong>,
+            })}
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
         {debts.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-4">
-            Aucune dette renseignée — appuyez sur «&nbsp;Ajouter une dette&nbsp;» si vous en avez.
-          </p>
+          <p className="text-xs text-muted-foreground text-center py-4">{t('step.debts.empty')}</p>
         )}
 
         {debts.map((debt, index) => (
@@ -69,28 +68,28 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
               <div className="flex-1 flex flex-col gap-2">
                 <FloatingSelect
                   id={`z-debt-${index}-cat`}
-                  label="Catégorie"
+                  label={t('step.debts.category')}
                   value={debt.category}
                   onChange={(e) =>
                     updateDebt(index, { category: e.target.value as DebtCategory })
                   }
                 >
-                  {CATEGORIES.map((cat) => (
+                  {DEBT_CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>
-                      {DEBT_CATEGORY_LABELS[cat]}
+                      {t(`debt_category.${cat}`)}
                     </option>
                   ))}
                 </FloatingSelect>
                 <FloatingInput
                   id={`z-debt-${index}-label`}
-                  label="Libellé"
+                  label={t('step.debts.label')}
                   type="text"
                   value={debt.label}
                   onChange={(e) => updateDebt(index, { label: e.target.value })}
                 />
                 <FloatingInput
                   id={`z-debt-${index}-amount`}
-                  label="Montant"
+                  label={t('step.debts.amount')}
                   type="number"
                   step="0.01"
                   min="0"
@@ -104,7 +103,7 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
                 type="button"
                 onClick={() => removeDebt(index)}
                 className="p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                aria-label="Supprimer cette dette"
+                aria-label={t('step.debts.remove')}
               >
                 <Trash2 size={16} />
               </button>
@@ -112,7 +111,7 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
 
             {/* Toggle exigibilité — la nuance la plus importante de cette étape */}
             <div className="flex items-center gap-2 px-1">
-              <p className="flex-1 text-xs text-muted-foreground">Exigible immédiatement&nbsp;?</p>
+              <p className="flex-1 text-xs text-muted-foreground">{t('step.debts.due_question')}</p>
               <button
                 type="button"
                 onClick={() => updateDebt(index, { is_immediately_due: false })}
@@ -122,7 +121,7 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Non
+                {t('common.no')}
               </button>
               <button
                 type="button"
@@ -133,7 +132,7 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                Oui
+                {t('common.yes')}
               </button>
             </div>
           </div>
@@ -145,13 +144,13 @@ export function Step4Debts({ debts, currency, onChange }: Step4Props) {
           className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
         >
           <Plus size={16} />
-          Ajouter une dette
+          {t('step.debts.add')}
         </button>
       </div>
 
       {debts.length > 0 && (
         <div className="rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
-          <p className="text-xs text-muted-foreground">Total déductible (exigible immédiatement)</p>
+          <p className="text-xs text-muted-foreground">{t('step.debts.total')}</p>
           <p className="text-lg font-semibold text-primary tabular-nums">
             {formatMoney(immediateTotal, currency)}
           </p>

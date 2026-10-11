@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ArrowDown, ArrowUp, Plus, ShoppingBag, Sparkles, Tag, Trash2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -20,24 +21,25 @@ interface Props {
 }
 
 export function CatalogCard({ page }: Props) {
+  const t = useTranslations('public_page_admin.catalog');
   const products = page.catalog_items.filter((i) => i.product_type === 'product');
   const services = page.catalog_items.filter((i) => i.product_type === 'service');
 
   return (
     <SettingsCard
       icon={ShoppingBag}
-      title="Catalogue"
-      description="Choisissez ce qui apparaît sur la vitrine."
+      title={t('title')}
+      description={t('description')}
     >
       <CatalogSection
-        title="Produits"
+        title={t('section', { kind: 'product' })}
         kind="product"
         items={products}
         allItems={page.catalog_items}
       />
       <div className="h-px bg-border my-2" />
       <CatalogSection
-        title="Services"
+        title={t('section', { kind: 'service' })}
         kind="service"
         items={services}
         allItems={page.catalog_items}
@@ -54,6 +56,7 @@ interface SectionProps {
 }
 
 function CatalogSection({ title, kind, items, allItems }: SectionProps) {
+  const t = useTranslations('public_page_admin.catalog');
   const [sheetOpen, setSheetOpen] = useState(false);
   const sorted = [...items].sort((a, b) => a.position - b.position);
 
@@ -68,13 +71,13 @@ function CatalogSection({ title, kind, items, allItems }: SectionProps) {
           onClick={() => setSheetOpen(true)}
         >
           <Plus className="h-4 w-4" />
-          Ajouter
+          {t('add')}
         </Button>
       </div>
 
       {sorted.length === 0 ? (
         <p className="text-xs text-muted-foreground italic py-2">
-          Aucun {kind === 'product' ? 'produit' : 'service'} sélectionné.
+          {t('empty', { kind })}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -108,6 +111,7 @@ interface RowProps {
 }
 
 function CatalogItemRow({ item, index, total, kindItems }: RowProps) {
+  const t = useTranslations('public_page_admin.catalog');
   const update = useUpdateCatalogItem();
   const remove = useRemoveCatalogItem();
   const reorder = useReorderCatalog();
@@ -129,7 +133,7 @@ function CatalogItemRow({ item, index, total, kindItems }: RowProps) {
         <div className="flex flex-col">
           <button
             type="button"
-            aria-label="Monter"
+            aria-label={t('move_up')}
             disabled={index === 0 || reorder.isPending}
             onClick={() => move(-1)}
             className="text-muted-foreground hover:text-foreground disabled:opacity-30"
@@ -138,7 +142,7 @@ function CatalogItemRow({ item, index, total, kindItems }: RowProps) {
           </button>
           <button
             type="button"
-            aria-label="Descendre"
+            aria-label={t('move_down')}
             disabled={index === total - 1 || reorder.isPending}
             onClick={() => move(1)}
             className="text-muted-foreground hover:text-foreground disabled:opacity-30"
@@ -153,7 +157,7 @@ function CatalogItemRow({ item, index, total, kindItems }: RowProps) {
 
         <button
           type="button"
-          aria-label="Retirer"
+          aria-label={t('remove')}
           onClick={() => remove.mutate(item.id)}
           className="text-muted-foreground hover:text-destructive"
         >
@@ -161,24 +165,24 @@ function CatalogItemRow({ item, index, total, kindItems }: RowProps) {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 pl-6">
+      <div className="flex flex-wrap gap-1.5 ps-6">
         <ToggleChip
           active={item.show_price}
           onClick={() => update.mutate({ id: item.id, data: { show_price: !item.show_price } })}
           icon={<Tag className="h-3 w-3" />}
-          label="Afficher le prix"
+          label={t('show_price')}
         />
         <ToggleChip
           active={item.badge_promo}
           onClick={() => update.mutate({ id: item.id, data: { badge_promo: !item.badge_promo } })}
-          label="Promo"
+          label={t('badge_promo')}
           tone="rose"
         />
         <ToggleChip
           active={item.badge_new}
           onClick={() => update.mutate({ id: item.id, data: { badge_new: !item.badge_new } })}
           icon={<Sparkles className="h-3 w-3" />}
-          label="Nouveau"
+          label={t('badge_new')}
           tone="emerald"
         />
       </div>
@@ -228,6 +232,7 @@ interface SheetProps {
 }
 
 function AddPickerSheet({ open, onClose, kind, excludedProductIds }: SheetProps) {
+  const t = useTranslations('public_page_admin.catalog');
   const [search, setSearch] = useState('');
   const add = useAddCatalogItem();
 
@@ -245,23 +250,23 @@ function AddPickerSheet({ open, onClose, kind, excludedProductIds }: SheetProps)
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={`Ajouter un ${kind === 'product' ? 'produit' : 'service'}`}>
+    <BottomSheet open={open} onClose={onClose} title={t('sheet_title', { kind })}>
       <div className="flex flex-col gap-3 p-4 overflow-y-auto">
         <input
           type="search"
-          placeholder="Rechercher…"
+          placeholder={t('search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
         />
 
         {isLoading && (
-          <p className="text-xs text-muted-foreground text-center py-4">Chargement…</p>
+          <p className="text-xs text-muted-foreground text-center py-4">{t('loading')}</p>
         )}
 
         {!isLoading && candidates.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4 italic">
-            {search ? 'Aucun résultat.' : `Aucun ${kind === 'product' ? 'produit' : 'service'} disponible.`}
+            {search ? t('no_results') : t('none_available', { kind })}
           </p>
         )}
 
@@ -272,7 +277,7 @@ function AddPickerSheet({ open, onClose, kind, excludedProductIds }: SheetProps)
                 type="button"
                 onClick={() => handleAdd(p)}
                 disabled={add.isPending}
-                className="w-full flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left hover:bg-muted transition-colors disabled:opacity-50"
+                className="w-full flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 text-start hover:bg-muted transition-colors disabled:opacity-50"
               >
                 <span className="flex-1 text-sm font-medium text-foreground truncate">
                   {p.name}
@@ -284,7 +289,7 @@ function AddPickerSheet({ open, onClose, kind, excludedProductIds }: SheetProps)
         </ul>
 
         <Button type="button" variant="outline" onClick={onClose} className="mt-2">
-          Fermer
+          {t('close')}
         </Button>
       </div>
     </BottomSheet>

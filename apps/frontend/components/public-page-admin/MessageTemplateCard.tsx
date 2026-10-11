@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { MessageSquare } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function MessageTemplateCard({ page }: Props) {
+  const t = useTranslations('public_page_admin.message');
   const update = useUpdatePublicPage();
   const [value, setValue] = useState(page.order_message_template);
   const [prevTemplate, setPrevTemplate] = useState(page.order_message_template);
@@ -36,9 +38,9 @@ export function MessageTemplateCard({ page }: Props) {
     } catch (err) {
       if (err instanceof ApiError) {
         const data = err.data as { order_message_template?: string[]; detail?: string } | null;
-        setError(data?.order_message_template?.[0] ?? data?.detail ?? 'Mise à jour impossible');
+        setError(data?.order_message_template?.[0] ?? data?.detail ?? t('error'));
       } else {
-        setError('Mise à jour impossible');
+        setError(t('error'));
       }
     }
   }
@@ -50,19 +52,19 @@ export function MessageTemplateCard({ page }: Props) {
   const previewName = page.display_name || page.slug;
   const preview = buildOrderMessage(value, {
     shop_name: previewName,
-    item_name: 'Tajine en céramique',
-    price_label: '4 500 DA',
+    item_name: t('sample_item'),
+    price_label: t('sample_price'),
   });
 
   return (
     <SettingsCard
       icon={MessageSquare}
-      title="Message d'intérêt"
-      description="Texte pré-rempli envoyé au commerçant via WhatsApp depuis la fiche d'un article."
+      title={t('title')}
+      description={t('description')}
     >
       <div className="flex flex-col gap-1">
         <label htmlFor="order-message-template" className="text-[11px] text-muted-foreground px-1">
-          Modèle
+          {t('template_label')}
         </label>
         <textarea
           id="order-message-template"
@@ -74,7 +76,7 @@ export function MessageTemplateCard({ page }: Props) {
         />
         <div className="flex items-center justify-between px-1">
           <p className="text-[11px] text-muted-foreground">
-            Placeholders :{' '}
+            {t('placeholders')}{' '}
             <code className="font-mono">{'{shop_name}'}</code>{' · '}
             <code className="font-mono">{'{item_name}'}</code>{' · '}
             <code className="font-mono">{'{price}'}</code>
@@ -87,7 +89,7 @@ export function MessageTemplateCard({ page }: Props) {
 
       <div className="rounded-2xl bg-muted px-4 py-3">
         <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          Aperçu
+          {t('preview')}
         </span>
         <p className="text-sm text-foreground whitespace-pre-line mt-1">{preview}</p>
       </div>
@@ -96,7 +98,7 @@ export function MessageTemplateCard({ page }: Props) {
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={handleReset}>
-          Réinitialiser
+          {t('reset')}
         </Button>
         <Button
           type="button"
@@ -104,7 +106,7 @@ export function MessageTemplateCard({ page }: Props) {
           disabled={!isDirty || isOverLimit || update.isPending}
           onClick={handleSave}
         >
-          {update.isPending ? 'Enregistrement…' : 'Enregistrer'}
+          {update.isPending ? t('saving') : t('save')}
         </Button>
       </div>
     </SettingsCard>

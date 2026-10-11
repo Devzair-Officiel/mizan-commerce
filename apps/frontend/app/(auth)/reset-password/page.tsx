@@ -118,7 +118,7 @@ function ResetPasswordForm() {
               type="button"
               className="au-pwd-toggle"
               onClick={() => setShowPwd((v) => !v)}
-              aria-label={showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              aria-label={showPwd ? tc('hide_password') : tc('show_password')}
               aria-pressed={showPwd}
             >
               {showPwd ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -143,7 +143,7 @@ function ResetPasswordForm() {
               type="button"
               className="au-pwd-toggle"
               onClick={() => setShowConfirm((v) => !v)}
-              aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              aria-label={showConfirm ? tc('hide_password') : tc('show_password')}
               aria-pressed={showConfirm}
             >
               {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}

@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { computeAuditChecks, scoreTier, type AuditCheck } from '@/lib/zakat-audit';
 import type { ZakatCalculation } from '@/lib/hooks/useZakat';
@@ -14,13 +16,8 @@ const TIER_STYLES = {
   low: 'bg-orange-500/10 border-orange-500/25 text-orange-700 dark:text-orange-400',
 } as const;
 
-const TIER_LABEL = {
-  high: 'Élevée',
-  medium: 'Moyenne',
-  low: 'À renforcer',
-} as const;
-
 function CheckRow({ check }: { check: AuditCheck }) {
+  const t = useTranslations('zakat.audit');
   const Icon = check.status === 'ok' ? CheckCircle2 : check.status === 'warn' ? AlertTriangle : Info;
   const iconColor =
     check.status === 'ok'
@@ -32,14 +29,17 @@ function CheckRow({ check }: { check: AuditCheck }) {
     <div className="flex items-start gap-2.5 py-2 border-b border-border/60 last:border-0">
       <Icon className={`shrink-0 mt-0.5 ${iconColor}`} size={16} />
       <div className="flex-1 flex flex-col gap-0.5">
-        <p className="text-sm text-foreground">{check.label}</p>
-        {check.message && <p className="text-xs text-muted-foreground">{check.message}</p>}
+        <p className="text-sm text-foreground">{t(`${check.id}.label`, check.values)}</p>
+        {check.hasMessage && (
+          <p className="text-xs text-muted-foreground">{t(`${check.id}.message`, check.values)}</p>
+        )}
       </div>
     </div>
   );
 }
 
 export function AuditCard({ calc }: AuditCardProps) {
+  const t = useTranslations('zakat.audit');
   const { checks, score, okCount, warnCount } = computeAuditChecks(calc);
   const tier = scoreTier(score);
 
@@ -56,15 +56,18 @@ export function AuditCard({ calc }: AuditCardProps) {
             <p className="text-xs text-muted-foreground">/ 100</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            Fiabilité <span className="font-medium">{TIER_LABEL[tier]}</span> — {okCount} OK
-            {warnCount > 0 ? `, ${warnCount} à affiner` : ''}
+            {t.rich('reliability', {
+              tier,
+              ok: okCount,
+              warn: warnCount,
+              b: (chunks: ReactNode) => <span className="font-medium">{chunks}</span>,
+            })}
           </p>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Ce score reflète la complétude de votre déclaration, pas la validité religieuse du calcul.
-        Les points marqués «&nbsp;à affiner&nbsp;» sont optionnels mais améliorent la traçabilité.
+        {t('explanation')}
       </p>
 
       {/* Détail des checks */}
