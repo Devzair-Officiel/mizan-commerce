@@ -19,7 +19,10 @@ const ALLOWED = [
 const INTERACTIVE =
   'a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=link], [role=menuitem], [role=option], [role=checkbox], [role=switch], [role=tab]';
 
-/** Collecte les problèmes de console de `page`, étiquetés par l'étape en cours. */
+/**
+ * Collecte les problèmes de console de `page`, étiquetés par l'étape en cours ; `add` y ajoute
+ * un autre problème relevé sur la page (défilement bloqué, voir scroll.mjs).
+ */
 export function watchConsole(page) {
   const problems = [];
   let label = '';
@@ -33,7 +36,7 @@ export function watchConsole(page) {
     problems.push(`[${label}] console.${type}: ${short}${url ? ` (${url})` : ''}`);
   });
   page.on('pageerror', (e) => problems.push(`[${label}] pageerror: ${e.message.slice(0, 400)}`));
-  return { problems, setLabel: (l) => { label = l; } };
+  return { problems, setLabel: (l) => { label = l; }, add: (text) => problems.push(`[${label}] ${text}`) };
 }
 
 /** Éléments interactifs imbriqués dans un autre élément interactif (DOM courant). */

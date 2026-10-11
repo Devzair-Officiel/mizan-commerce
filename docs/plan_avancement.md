@@ -409,11 +409,11 @@
 
 ### Après recette C1–C4
 
-- [ ] Lot 1 (bugs avant fusion)
+- [x] Lot 1 (bugs avant fusion)
   - [x] Suppression d'un article ou d'un format jamais utilisé (stock initial reconnu par `StockMovement.is_initial`)
   - [x] Rappels : mise à jour, compteurs, doublons
   - [x] Historique des messages WhatsApp
-  - [ ] Page bloquée sans défilement
+  - [x] Page bloquée sans défilement (un seul verrou de défilement : celui de Base UI)
 - [ ] Lot 2 (avant fusion)
   - [ ] Listes longues des fiches (5 + « Voir plus »)
   - [ ] Sélecteur d'indicatif téléphonique

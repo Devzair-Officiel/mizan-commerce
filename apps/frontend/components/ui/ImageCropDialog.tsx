@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { useTranslations } from 'next-intl';
+import { useScrollLock } from '@base-ui/utils/useScrollLock';
 import { Button } from '@/components/ui/button';
 
 interface ImageCropDialogProps {
@@ -52,6 +53,8 @@ interface CropEditorProps {
 
 function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: CropEditorProps) {
   const t = useTranslations('ui.crop');
+  // Monté seulement quand la fenêtre est ouverte : le verrou tombe à sa fermeture.
+  useScrollLock();
   // On gère blob URL via useEffect plutôt que useMemo : React Strict Mode (dev)
   // double-invoque le mount, et un useMemo + cleanup d'useEffect révoquerait
   // l'URL entre les deux passes — le Cropper affiche alors une image cachée

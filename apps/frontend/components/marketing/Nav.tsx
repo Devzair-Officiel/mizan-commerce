@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useScrollLock } from '@base-ui/utils/useScrollLock';
 
 const LINKS = [
   { href: '#features', label: 'Fonctionnalités' },
@@ -33,14 +34,7 @@ export function Nav() {
   const [open, setOpen] = useState(false);
 
   // Lock body scroll when drawer is open
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
+  useScrollLock(open);
 
   // Close on Escape
   useEffect(() => {

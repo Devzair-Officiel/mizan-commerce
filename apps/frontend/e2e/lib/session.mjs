@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { watchConsole } from './watch.mjs';
+import { guardScroll } from './scroll.mjs';
 
 export const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
 // Compte dédié aux audits (seed) : sa boutique « Boutique Audit » reçoit tout ce que les audits créent.
@@ -23,7 +24,8 @@ export function launch() {
 
 /**
  * Contexte connecté (une seule connexion par viewport : la limite 'auth' du
- * backend reste basse), console surveillée. Langue et thème se changent ensuite
+ * backend reste basse), console surveillée, défilement contrôlé après chaque
+ * interaction (scroll.mjs). Langue et thème se changent ensuite
  * avec `setLocale` / `setTheme`, pris en compte au prochain chargement de page.
  * Le thème vient du compte (`/auth/me/`) : la réponse est réécrite pour forcer
  * clair ou sombre sans toucher aux préférences enregistrées.
@@ -50,6 +52,7 @@ export async function openSession(browser, viewport, { email = EMAIL } = {}) {
   });
   const page = await ctx.newPage();
   const watch = watchConsole(page);
+  guardScroll(page, watch.add);
   watch.setLabel(`${viewport.name} connexion`);
   await page.goto(`${BASE}/login`);
   await page.fill('#email', email);

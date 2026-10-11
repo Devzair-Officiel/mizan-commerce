@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useScrollLock } from '@base-ui/utils/useScrollLock';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 
@@ -167,6 +168,9 @@ export function BottomSheet({ open, onClose, title, description, fullHeight, foo
   const [tracked, setTracked] = useState(open);
   const titleId = useId();
   const sheetRef = useFocusTrap<HTMLDivElement>(open);
+  // Verrou partagé avec les fenêtres et menus Base UI (un seul compteur) : @base-ui/utils doit
+  // rester à la version exacte qu'impose @base-ui/react, sinon deux compteurs coexistent.
+  useScrollLock(open);
   const isDesktop = useIsDesktop();
   const triggerRef = useRef<Element | null>(null);
   const t = useTranslations('ui');
