@@ -7,10 +7,13 @@ import { TopBar } from '@/components/layout/TopBar';
 import { ENTRY_PANEL_ID, EntryModeTabs, type EntryMode } from '@/components/stock/entry/EntryModeTabs';
 import { InvoiceEntryFlow } from '@/components/stock/entry/InvoiceEntryFlow';
 import { ManualEntryForm } from '@/components/stock/entry/ManualEntryForm';
+import { UpgradeCard } from '@/components/subscription/UpgradeCard';
 import { confirmLeave } from '@/lib/dirtyGuard';
 import { useBackOr } from '@/lib/hooks/useBackOr';
+import { hasFeature } from '@/lib/hooks/usePlanGating';
 import { useShop } from '@/lib/hooks/useShop';
 import { useStockLevels } from '@/lib/hooks/useStock';
+import { useSubscription } from '@/lib/hooks/useSubscription';
 
 function StockEntryContent() {
   const t = useTranslations('stock.entry');
@@ -24,7 +27,10 @@ function StockEntryContent() {
   // `?variant=` : « + Entrée » d'une ligne ou de la fiche article préremplit la première ligne.
   const variantId = params.get('variant') ?? '';
   const initial = useStockLevels({ variant: variantId }, { enabled: mode === 'manual' && variantId !== '' });
-  const ready = shop && (mode === 'invoice' || variantId === '' || !initial.isPending);
+  const subscription = useSubscription();
+  // Import de facture réservé à Boutique+ : la carte remplace l'envoi (aucune requête OCR), la saisie à la main reste.
+  const invoiceLocked = subscription.data !== undefined && !hasFeature(subscription.data.effective_plan_code, 'ocr');
+  const ready = shop && (mode === 'invoice' ? !subscription.isLoading : variantId === '' || !initial.isPending);
 
   function changeMode(next: EntryMode) {
     if (next === mode || !confirmLeave(tLayout('confirm_leave'))) return;
@@ -42,6 +48,8 @@ function StockEntryContent() {
           ) : mode === 'manual' ? (
             <ManualEntryForm key={variantId} currencyCode={shop.currency} initial={initial.data?.results[0] ?? null}
               onLeave={back} onSaved={back} />
+          ) : invoiceLocked ? (
+            <UpgradeCard feature="ocr" />
           ) : (
             <InvoiceEntryFlow currencyCode={shop.currency} onLeave={back} onSaved={back} />
           )}

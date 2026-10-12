@@ -18,6 +18,7 @@ docker compose run --rm e2e npm run audit:whatsapp            # messages WhatsAp
 docker compose run --rm e2e npm run audit:scroll-lock         # fenêtres et menus enchaînés : la page défile toujours
 docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-tête teintées : fond muted, contrastes ≥ 4,5:1
 docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »
+docker compose run --rm e2e npm run audit:stock-entry-plan    # entrée de stock en Pro : carte Boutique+ sur l'onglet facture, aucune requête OCR
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
 ```
 

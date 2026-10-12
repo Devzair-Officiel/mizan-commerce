@@ -5,10 +5,10 @@ import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 
-/** Fonctions réservées à Boutique+ pour lesquelles une page entière est masquée. */
+/** Fonctions réservées à Boutique+ pour lesquelles une page ou un onglet est masqué. */
 export type UpgradeFeature = 'multi_user' | 'public_pages' | 'ocr';
 
-/** Carte « Disponible avec la formule Boutique+ », à la place d'une page hors formule. */
+/** Carte « Disponible avec la formule Boutique+ », à la place d'une page ou d'un onglet hors formule. */
 export function UpgradeCard({ feature }: { feature: UpgradeFeature }) {
   const t = useTranslations('settings.upgrade');
 
