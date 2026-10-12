@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest import mock
 
 from django.test import TestCase
 from django.urls import reverse
@@ -8,12 +9,13 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 from apps.customers.models import Customer
 from apps.orders import services as order_services
+from apps.products.constants import DEFAULT_VARIANT_NAME
 from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
 
-from . import services
-from .models import Invoice
+from . import pdf, services
+from .models import Invoice, InvoiceLine
 
 
 def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, ProductVariant | None, Customer]:  # noqa: E501
@@ -212,6 +214,60 @@ class InvoiceSnapshotTest(TestCase):
 
         invoice.refresh_from_db()
         self.assertEqual(invoice.buyer_name, original)
+
+
+class InvoiceLineVariantLabelTest(TestCase):
+    """Nom du format dans les lignes : jamais celui du format par défaut."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, self.variant, self.customer = _make_shop('label@example.com')  # noqa: E501
+        self.client.force_authenticate(user=self.user)
+
+    def _variant(self, product: Product, name: str) -> ProductVariant:
+        variant = ProductVariant.objects.create(
+            shop=self.shop, product=product, packaging_name=name,
+            unit='piece', base_quantity=1, selling_price='18.00',
+        )
+        StockMovement.objects.create(
+            shop=self.shop, variant=variant, movement_type='in',
+            quantity=10, created_by=self.user,
+        )
+        return variant
+
+    def _issue(self, variant: ProductVariant) -> Invoice:
+        order = _make_order_with_items(self.shop, self.user, variant, qty=1)
+        return services.issue_invoice_from_order(shop=self.shop, order=order)
+
+    def test_single_format_has_no_suffix(self):
+        casquette = Product.objects.create(shop=self.shop, name='Casquette en toile')
+        invoice = self._issue(self._variant(casquette, DEFAULT_VARIANT_NAME))
+        self.assertEqual(invoice.lines.get().description, 'Casquette en toile')
+
+    def test_several_formats_keep_suffix(self):
+        miel = Product.objects.create(shop=self.shop, name='Miel de fleurs')
+        self._variant(miel, '250 g')
+        invoice = self._issue(self._variant(miel, '500 g'))
+        self.assertEqual(invoice.lines.get().description, 'Miel de fleurs (500 g)')
+
+    def test_old_invoice_hides_default_suffix_without_changing_it(self):
+        """Facture émise avant la règle : « (Par défaut) » masqué au détail
+        et dans le PDF, la ligne enregistrée reste intacte."""
+        casquette = Product.objects.create(shop=self.shop, name='Casquette en toile')
+        invoice = self._issue(self._variant(casquette, DEFAULT_VARIANT_NAME))
+        frozen = f'Casquette en toile ({DEFAULT_VARIANT_NAME})'
+        InvoiceLine.objects.filter(invoice=invoice).update(description=frozen)
+
+        response = self.client.get(reverse('invoice-detail', kwargs={'pk': invoice.pk}))  # noqa: E501
+        self.assertEqual(response.data['lines'][0]['description'], 'Casquette en toile')  # noqa: E501
+
+        with mock.patch.object(pdf, 'Paragraph', wraps=pdf.Paragraph) as paragraph:
+            response = self.client.get(reverse('invoice-pdf', kwargs={'pk': invoice.pk}))  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        texts = [str(c.args[0]) for c in paragraph.call_args_list if c.args]
+        self.assertIn('Casquette en toile', texts)
+        self.assertFalse([t for t in texts if DEFAULT_VARIANT_NAME in t])
+        self.assertEqual(invoice.lines.get().description, frozen)
 
 
 class InvoiceIssueGuardsTest(TestCase):
