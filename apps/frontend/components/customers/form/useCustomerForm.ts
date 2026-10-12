@@ -8,7 +8,9 @@ import { z } from 'zod';
 import { useFormSections } from '@/components/form/useFormSections';
 import { ApiError } from '@/lib/api-client';
 import type { Customer, CustomerFormData } from '@/lib/hooks/useCustomers';
+import { useShop } from '@/lib/hooks/useShop';
 import { notify } from '@/lib/notify';
+import { joinPhone, phoneCountry, splitPhone } from '@/lib/phone';
 
 /** Ordre d'affichage : la première erreur dans cet ordre reçoit le focus. */
 const FIELDS = ['first_name', 'name', 'phone', 'email', 'country', 'address_line', 'city', 'postal_code', 'notes'] as const;
@@ -29,6 +31,8 @@ function customerSchema(t: (key: string, values?: { max: number }) => string) {
     first_name: text(100),
     name: text(150).min(1, t('name_required')),
     phone: text(30),
+    /** Indicatif choisi (code ISO) ; vide : celui du pays de la boutique. */
+    phone_country: z.string(),
     email: z.union([z.literal(''), z.string().trim().max(254, t('too_long', { max: 254 })).email(t('email_invalid'))]),
     country: z.string(),
     address_line: text(255),
@@ -56,13 +60,18 @@ const SERVER_MESSAGE: Partial<Record<CustomerField, string>> = { name: 'name_tak
  */
 export function useCustomerForm(mode: 'create' | 'edit', defaults: Partial<Customer> | undefined, onSubmit: (data: CustomerFormData) => Promise<void>) {
   const t = useTranslations('customers.form');
+  const { data: shop } = useShop();
   const schema = useMemo(() => customerSchema(t), [t]);
+  // Valeurs telles qu'enregistrées : un nom complet saisi dans « Nom » n'est pas découpé.
+  // Le téléphone enregistré (E.164) donne l'indicatif et le numéro national affiché.
+  const stored = splitPhone(defaults?.phone ?? '');
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: false,
-    // Valeurs telles qu'enregistrées : un nom complet saisi dans « Nom » n'est pas découpé.
-    // Le téléphone est montré lisible (+33 6 12 34 56 78) ; le serveur le renormalise.
-    defaultValues: Object.fromEntries(FIELDS.map((f) => [f, (f === 'phone' && defaults?.phone_display) || defaults?.[f] || ''])) as CustomerFormValues,
+    defaultValues: {
+      ...Object.fromEntries(FIELDS.map((f) => [f, (f === 'phone' ? stored.national : defaults?.[f]) || ''])),
+      phone_country: stored.country ?? '',
+    } as CustomerFormValues,
   });
   const sections = useFormSections(SECTION_OF, form.setFocus);
 
@@ -71,9 +80,10 @@ export function useCustomerForm(mode: 'create' | 'edit', defaults: Partial<Custo
     if (first) sections.reveal(first);
   };
 
-  const submit = form.handleSubmit(async (values) => {
+  const submit = form.handleSubmit(async ({ phone_country, ...values }) => {
     try {
-      await onSubmit(values);
+      // Numéro complet (indicatif + numéro national) : le serveur le normalise en E.164.
+      await onSubmit({ ...values, phone: joinPhone(phoneCountry(phone_country || shop?.country), values.phone) });
       notify.success(t(mode === 'edit' ? 'toast_saved' : 'toast_created'));
     } catch (err) {
       const fields = serverFieldErrors(err);

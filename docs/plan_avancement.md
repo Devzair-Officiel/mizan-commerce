@@ -417,7 +417,7 @@
 - [~] Lot 2 (avant fusion)
   - [~] En-têtes de cartes teintés (bande `header-band`, titres et en-têtes de colonnes)
   - [~] Listes longues des fiches (5 + « Voir plus »)
-  - [ ] Sélecteur d'indicatif téléphonique
+  - [~] Sélecteur d'indicatif téléphonique
   - [ ] Fin de la recette
 - [ ] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
 - [ ] Puis : session Postman, pull request, fusion

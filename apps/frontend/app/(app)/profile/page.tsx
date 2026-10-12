@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ComponentProps } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
@@ -9,6 +9,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
+import { PhoneCountrySelect } from '@/components/form/PhoneCountrySelect';
 import { EmailVerificationBanner } from '@/components/account/EmailVerificationBanner';
 import {
   useMe,
@@ -16,6 +17,8 @@ import {
   useChangePassword,
 } from '@/lib/hooks/useMe';
 import { ApiError } from '@/lib/api-client';
+import { useShop } from '@/lib/hooks/useShop';
+import { joinPhone, phoneCountry, splitPhone } from '@/lib/phone';
 import { LoadingRegion } from '@/components/ui/LoadingRegion';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -50,7 +53,9 @@ function PasswordField({ label, ...props }: PasswordFieldProps) {
 function makeProfileSchema(t: ProfileT) {
   return z.object({
     full_name: z.string().min(1, t('name_required')),
-    phone: z.string().optional(),
+    phone: z.string(),
+    /** Indicatif choisi (code ISO) ; vide : celui du pays de la boutique. */
+    phone_country: z.string(),
   });
 }
 
@@ -73,20 +78,26 @@ function ProfileForm() {
   const t = useTranslations('profile');
   const { data: me, isLoading } = useMe();
   const { mutateAsync, isPending, isSuccess } = useUpdateMe();
+  const { data: shop } = useShop();
 
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<ProfileValues>({
+  const { register, control, handleSubmit, reset, setError, formState: { errors, isDirty } } = useForm<ProfileValues>({
     resolver: zodResolver(makeProfileSchema(t)),
   });
 
   useEffect(() => {
     if (me) {
-      reset({ full_name: me.full_name ?? '', phone: me.phone ?? '' });
+      const stored = splitPhone(me.phone ?? '');
+      reset({ full_name: me.full_name ?? '', phone: stored.national, phone_country: stored.country ?? '' });
     }
   }, [me, reset]);
 
-  async function onSubmit(values: ProfileValues) {
-    await mutateAsync(values);
-    reset(values);
+  async function onSubmit({ full_name, phone, phone_country }: ProfileValues) {
+    try {
+      await mutateAsync({ full_name, phone: joinPhone(phoneCountry(phone_country || shop?.country), phone) });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400) setError('phone', { message: t('phone_invalid') });
+      else setError('root', { message: t('unexpected_error') });
+    }
   }
 
   if (isLoading) {
@@ -110,7 +121,18 @@ function ProfileForm() {
         {errors.full_name && <p className="text-[11px] text-destructive px-1">{errors.full_name.message}</p>}
       </div>
 
-      <FloatingInput id="phone" label={t('phone')} {...register('phone')} />
+      <div className="flex flex-col gap-0.5">
+        <div className="flex gap-2 rtl:flex-row-reverse">
+          <Controller control={control} name="phone_country" render={({ field }) => (
+            <PhoneCountrySelect value={phoneCountry(field.value || shop?.country)} onChange={field.onChange} floating />
+          )} />
+          <div className="min-w-0 flex-1">
+            <FloatingInput id="phone" label={t('phone')} type="tel" inputMode="tel" dir="ltr" {...register('phone')} />
+          </div>
+        </div>
+        {errors.phone && <p className="text-[11px] text-destructive px-1">{errors.phone.message}</p>}
+      </div>
+      {errors.root && <p className="text-[11px] text-destructive px-1">{errors.root.message}</p>}
 
       {isSuccess && !isDirty && (
         <p className="text-sm text-green-700 dark:text-green-400 text-center">{t('profile_saved')}</p>

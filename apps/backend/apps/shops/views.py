@@ -86,7 +86,9 @@ class ShopMemberListView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         shop = get_user_shop(request.user)
-        serializer = ShopMemberCreateSerializer(data=request.data)
+        serializer = ShopMemberCreateSerializer(
+            data=request.data, context={'shop': shop},
+        )
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         member = create_staff_member(

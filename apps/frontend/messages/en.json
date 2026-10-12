@@ -405,7 +405,7 @@
       "section_contact": "Contact",
       "section_contact_help": "The phone is used for WhatsApp messages and calls from the customer page.",
       "phone": "Phone",
-      "phone_help": "Type the number as usual, the country code is added.",
+      "phone_help": "Pick the country, then type the number as usual.",
       "email": "Email",
       "section_address": "Address",
       "section_address_help": "Used for deliveries and shown on invoices.",
@@ -1509,6 +1509,12 @@
     "readonly_note": "Without the Boutique+ plan, these members can no longer sign in. Their accounts and access are kept."
   },
   "ui": {
+    "phone": {
+      "country_label": "Country code",
+      "country_value": "Country code: {country} (+{dial})",
+      "search_placeholder": "Country or code",
+      "search_empty": "No country found"
+    },
     "close": "Close",
     "panel": "Panel",
     "list": {
@@ -2272,6 +2278,7 @@
     "email_locked": "The email can't be changed.",
     "full_name": "Full name *",
     "phone": "Phone (optional)",
+    "phone_invalid": "Invalid phone number",
     "profile_saved": "Profile updated ✓",
     "saving": "Saving…",
     "save": "Save",

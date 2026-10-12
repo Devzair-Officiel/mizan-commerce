@@ -3,6 +3,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from apps.core.recaptcha import verify_recaptcha_token
+from apps.customers.serializers import validated_phone
 
 User = get_user_model()
 
@@ -37,6 +38,10 @@ class UserSerializer(serializers.ModelSerializer):
             'primary_color_custom_hex', 'background_custom_hex',
         )
         read_only_fields = ('id', 'email_verified_at', 'created_at')
+
+    def validate_phone(self, value: str) -> str:
+        # Le profil envoie le numéro avec son indicatif (sélecteur de pays).
+        return validated_phone(value)
 
     def validate(self, attrs):
         # Fusionne avec les valeurs existantes de l'instance (PATCH partiel).

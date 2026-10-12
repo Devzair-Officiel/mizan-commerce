@@ -2,6 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from apps.core.storage import get_signed_url, is_storage_configured
+from apps.customers.serializers import validated_phone
 
 from .models import Shop, ShopMember
 
@@ -65,6 +66,10 @@ class ShopMemberCreateSerializer(serializers.Serializer):
     permissions = serializers.ListField(
         child=serializers.CharField(), allow_empty=True, default=list,
     )
+
+    def validate_phone(self, value: str) -> str:
+        shop = self.context.get('shop')
+        return validated_phone(value, shop.country if shop else '')
 
 
 class ShopMemberUpdateSerializer(serializers.Serializer):

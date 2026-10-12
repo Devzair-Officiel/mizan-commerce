@@ -1,13 +1,13 @@
 'use client';
 
-import { useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
+import { useController, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
-import { Globe } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
+import { PhoneCountrySelect } from '@/components/form/PhoneCountrySelect';
 import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
-import { countryFlag } from '@/lib/countryFlag';
 import { useShop } from '@/lib/hooks/useShop';
+import { phoneCountry } from '@/lib/phone';
 import type { CustomerFormValues } from './useCustomerForm';
 
 interface CustomerContactSectionProps {
@@ -19,13 +19,13 @@ interface CustomerContactSectionProps {
   order: string;
 }
 
-/** Contact (facultatif) : téléphone, normalisé au format international par le serveur, et e-mail. */
+/** Contact (facultatif) : indicatif du pays et numéro national (normalisé au format international par le serveur), e-mail. */
 export function CustomerContactSection({ control, register, errors, open, onToggle, order }: CustomerContactSectionProps) {
   const t = useTranslations('customers.form');
   const { data: shop } = useShop();
   const [phone, email] = useWatch({ control, name: ['phone', 'email'] });
-  // Numéro national : l'indicatif du pays de la boutique sera ajouté (drapeau). Sinon il est déjà là.
-  const international = /^\s*(\+|00)/.test(phone);
+  // Indicatif vide : celui du pays de la boutique.
+  const { field: dial } = useController({ control, name: 'phone_country' });
 
   return (
     <FormSection order={order} title={t('section_contact')} status="optional" description={t('section_contact_help')}
@@ -33,11 +33,9 @@ export function CustomerContactSection({ control, register, errors, open, onTogg
       <div className={FIELD_ROW}>
         <FormField label={t('phone')} help={t('phone_help')} error={errors.phone?.message}>
           {(c) => (
-            <div dir="ltr" className="relative">
-              <span aria-hidden className="pointer-events-none absolute inset-s-3.25 top-3 flex text-lg leading-none text-muted-foreground">
-                {international || !shop?.country ? <Globe size={18} strokeWidth={1.75} /> : countryFlag(shop.country)}
-              </span>
-              <input {...c} {...register('phone')} type="tel" inputMode="tel" autoComplete="off" className={`${FIELD_CONTROL} ps-10.5`} />
+            <div dir="ltr" className="flex gap-2">
+              <PhoneCountrySelect value={phoneCountry(dial.value || shop?.country)} onChange={dial.onChange} />
+              <input {...c} {...register('phone')} type="tel" inputMode="tel" autoComplete="off" className={FIELD_CONTROL} />
             </div>
           )}
         </FormField>

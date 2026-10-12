@@ -88,6 +88,25 @@ class TeamPlanGatingTest(TestCase):
         self.staff.refresh_from_db()
         self.assertEqual(self.staff.role, 'admin')
 
+    def test_member_phone_is_normalized_with_shop_country(self):
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.shop.country = 'MA'
+        self.shop.save(update_fields=['country'])
+        payload = {
+            'email': 'karim@example.com', 'full_name': 'Karim',
+            'phone': '06 12 34 56 78',
+            'password': 'Pass123!Strong', 'permissions': [],
+        }
+        url = reverse('shop-members')
+        response = self.client.post(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(email='karim@example.com')
+        self.assertEqual(user.phone, '+212612345678')
+        payload.update(email='invalide@example.com', phone='12345')
+        response = self.client.post(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(User.objects.filter(email='invalide@example.com').exists())
+
 
 class StaffSuspensionTest(TestCase):
     """Sans Boutique+, employés et admins sont refusés partout ; le propriétaire jamais.

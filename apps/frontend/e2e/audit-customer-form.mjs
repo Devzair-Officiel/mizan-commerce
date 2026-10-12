@@ -3,7 +3,8 @@
  * et 360px, en clair et en sombre, en français et en arabe : desktop, deux colonnes (Identité,
  * Contact, Adresse | Notes internes), tout visible ; mobile, cartes empilées dans cet ordre, les
  * facultatives repliables avec résumé, erreurs dans une carte repliée ; aperçu du nom en direct,
- * actions sous les colonnes, notifications, numéro de téléphone normalisé et « Relancer » sur WhatsApp.
+ * actions sous les colonnes, notifications ; indicatif du pays choisi dans la liste (recherche « 212 »
+ * → Maroc), numéro enregistré en E.164, « Relancer » sur WhatsApp, pays déduit du numéro en modification.
  * Tout se passe dans la boutique du compte d'audit ; les clients créés (« Audit e2e … ») sont
  * archivés à la fin, et la boutique de Youssef est vérifiée intacte.
  */
@@ -212,7 +213,32 @@ async function auditEdit(page, t, ctx, id) {
   report.check(saved.city === 'Rabat', `${label} : « ${t('customers.form.submit_edit')} » → fiche du client, ville enregistrée`);
 }
 
-/** « 06 12 34 56 78 » → +33612345678, affiché lisiblement, « Relancer » ouvre wa.me/33612345678. */
+/** Indicatif choisi dans la liste : « 212 » donne les pays en +212, « Maroc » (par son nom) se choisit au clavier. */
+async function pickMorocco(page, t, ctx) {
+  const trigger = page.getByRole('combobox', { name: t('ui.phone.country_label') }).filter({ visible: true });
+  await trigger.click();
+  const search = page.getByRole('dialog', { name: t('ui.phone.country_label') }).getByRole('combobox');
+  const options = page.getByRole('option').filter({ visible: true });
+  // +212 est partagé par le Maroc et le Sahara occidental : la recherche par indicatif les donne tous les deux.
+  await search.fill('212');
+  await options.first().waitFor({ timeout: 5000 });
+  const dials = await options.allInnerTexts();
+  const byDial = dials.length > 0 && dials.every((text) => text.includes('+212'));
+  const morocco = await page.evaluate((locale) => new Intl.DisplayNames([locale], { type: 'region' }).of('MA'), ctx.locale);
+  await search.fill(morocco);
+  await options.first().waitFor({ timeout: 5000 });
+  const byName = (await options.count()) === 1 && (await options.first().innerText()).includes('+212');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.getByRole('dialog', { name: t('ui.phone.country_label') }).waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+  const shown = (await trigger.innerText()).replace(/\s+/g, ' ');
+  report.check(
+    byDial && byName && shown.includes('🇲🇦') && shown.includes('+212'),
+    `${ctx.label} : « ${t('ui.phone.country_label')} », recherche « 212 » → ${dials.length} option(s) en +212, « ${morocco} » choisi au clavier (« ${shown} »)`,
+  );
+}
+
+/** Maroc (+212) puis « 06 12 34 56 78 » → +212612345678 (E.164), « Relancer » ouvre wa.me/212612345678 ; en modification, le pays est déduit du numéro. */
 async function auditPhoneFollowup(page, t, ctx) {
   const { label } = ctx;
   const search = await apiJson(page, `customers/?search=${encodeURIComponent(FOLLOWUP_CUSTOMER)}`);
@@ -222,15 +248,16 @@ async function auditPhoneFollowup(page, t, ctx) {
   await page.goto(`${BASE}/customers/${id}/edit`);
   await page.waitForLoadState('networkidle');
   await openCard(page, ctx, t('customers.form.section_contact'));
+  await pickMorocco(page, t, ctx);
   await page.getByRole('textbox', { name: t('customers.form.phone') }).fill('06 12 34 56 78');
   await visibleButton(page, t('customers.form.submit_edit')).click();
   await page.waitForURL(new RegExp(`/customers/${id}$`));
   const saved = await apiJson(page, `customers/${id}/`);
   await page.waitForLoadState('networkidle');
   report.check(
-    saved.phone === '+33612345678' && (await page.getByText('+33 6 12 34 56 78', { exact: true }).first().isVisible())
-      && (await page.locator('a[href="tel:+33612345678"]').count()) > 0,
-    `${label} : « 06 12 34 56 78 » enregistré en +33612345678, affiché « +33 6 12 34 56 78 », lien tel: normalisé`,
+    saved.phone === '+212612345678' && (await page.getByText(saved.phone_display, { exact: true }).first().isVisible())
+      && (await page.locator('a[href="tel:+212612345678"]').count()) > 0,
+    `${label} : Maroc + « 06 12 34 56 78 » enregistré en +212612345678, affiché « ${saved.phone_display} », lien tel: normalisé`,
   );
   await page.getByRole('button', { name: t('customers.detail.followup') }).filter({ visible: true }).first().click();
   const popup = page.context().waitForEvent('page', { timeout: 10000 }).catch(() => null);
@@ -238,7 +265,16 @@ async function auditPhoneFollowup(page, t, ctx) {
   const opened = await popup;
   const url = opened ? opened.url() : '';
   await opened?.close();
-  report.check(url.startsWith('https://wa.me/33612345678?'), `${label} : « ${t('customers.detail.followup')} » ouvre wa.me/33612345678 (${url.slice(0, 40) || 'aucune fenêtre'})`);
+  report.check(url.startsWith('https://wa.me/212612345678?'), `${label} : « ${t('customers.detail.followup')} » ouvre wa.me/212612345678 (${url.slice(0, 40) || 'aucune fenêtre'})`);
+  await page.goto(`${BASE}/customers/${id}/edit`);
+  await page.waitForLoadState('networkidle');
+  await openCard(page, ctx, t('customers.form.section_contact'));
+  const trigger = page.getByRole('combobox', { name: t('ui.phone.country_label') }).filter({ visible: true });
+  const national = await page.getByRole('textbox', { name: t('customers.form.phone') }).inputValue();
+  report.check(
+    (await trigger.innerText()).includes('+212') && national.replace(/\D/g, '') === '0612345678',
+    `${label} : en modification, indicatif +212 déduit du numéro, numéro national « ${national} »`,
+  );
 }
 
 /** Aucun client de test dans la boutique de Youssef (les audits n'y créent plus rien). */

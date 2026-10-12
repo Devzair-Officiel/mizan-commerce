@@ -405,7 +405,7 @@
       "section_contact": "Contact",
       "section_contact_help": "Le téléphone sert aux messages WhatsApp et aux appels depuis la fiche.",
       "phone": "Téléphone",
-      "phone_help": "Tapez le numéro comme d'habitude, l'indicatif est ajouté.",
+      "phone_help": "Choisissez le pays, puis tapez le numéro comme d'habitude.",
       "email": "E-mail",
       "section_address": "Adresse",
       "section_address_help": "Utilisée pour les livraisons et reprise sur les factures.",
@@ -1509,6 +1509,12 @@
     "readonly_note": "Sans la formule Boutique+, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés."
   },
   "ui": {
+    "phone": {
+      "country_label": "Indicatif du pays",
+      "country_value": "Indicatif du pays : {country} (+{dial})",
+      "search_placeholder": "Pays ou indicatif",
+      "search_empty": "Aucun pays trouvé"
+    },
     "close": "Fermer",
     "panel": "Panneau",
     "list": {
@@ -2272,6 +2278,7 @@
     "email_locked": "L'email ne peut pas être modifié.",
     "full_name": "Nom complet *",
     "phone": "Téléphone (optionnel)",
+    "phone_invalid": "Numéro de téléphone invalide",
     "profile_saved": "Profil mis à jour ✓",
     "saving": "Enregistrement…",
     "save": "Enregistrer",

@@ -6,6 +6,17 @@ from .services import InvalidPhoneNumber, format_phone_display, normalize_phone
 PHONE_INVALID = 'Numéro de téléphone invalide'
 
 
+def validated_phone(value: str, region: str = '') -> str:
+    """Numéro normalisé en E.164 (`normalize_phone`), erreur de validation sinon.
+
+    `region` : pays du numéro saisi sans indicatif (celui de la boutique).
+    """
+    try:
+        return normalize_phone(value, region)
+    except InvalidPhoneNumber:
+        raise serializers.ValidationError(PHONE_INVALID) from None
+
+
 class CustomerSerializer(serializers.ModelSerializer):
     order_count = serializers.IntegerField(read_only=True, default=0)
     last_order_at = serializers.DateTimeField(read_only=True, default=None)
@@ -40,10 +51,7 @@ class CustomerSerializer(serializers.ModelSerializer):
 
     def validate_phone(self, value: str) -> str:
         shop = self.context.get('shop')
-        try:
-            return normalize_phone(value, shop.country if shop else '')
-        except InvalidPhoneNumber:
-            raise serializers.ValidationError(PHONE_INVALID) from None
+        return validated_phone(value, shop.country if shop else '')
 
     class Meta:
         model = Customer
