@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ProductForm } from '@/components/products/form/ProductForm';
 import { useSaveProduct } from '@/components/products/form/useSaveProduct';
-import type { ProductFormValues } from '@/components/products/form/useProductForm';
+import type { ProductFormValues } from '@/components/products/form/productFormSchema';
 import type { PhotoChanges } from '@/components/products/form/useProductPhotos';
 import { useBackOr } from '@/lib/hooks/useBackOr';
 import type { ProductType } from '@/lib/hooks/useProducts';
@@ -34,7 +34,7 @@ function NewProductContent() {
     <div className="mx-auto w-full max-w-280">
       <TopBar title={t('title_new', { kind })} subtitle={t('subtitle_new')} back backLabel={tList('title', { kind })} onBack={back} hideSearch />
       {shop ? (
-        <ProductForm mode="create" type={type} mixed={kind === 'both'} currencyCode={shop.currency} variant={null}
+        <ProductForm mode="create" type={type} mixed={kind === 'both'} currencyCode={shop.currency}
           onSubmit={handleSubmit} isSubmitting={saving} onLeave={back} />
       ) : (
         <div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" />

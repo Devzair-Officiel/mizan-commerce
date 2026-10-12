@@ -49,11 +49,13 @@ class ProductListCreateView(generics.ListCreateAPIView):
         shop = get_shop(self.request.user)
         enforce_product_limit(shop)
         data = dict(serializer.validated_data)
+        rows = data.pop('variants', [])
         variant = data.pop('variant', None)
         initial_stock = data.pop('initial_stock', None)
-        serializer.instance = services.create_product(
-            shop, self.request.user, data, variant, initial_stock,
-        )
+        if variant is not None:
+            rows = [{**variant, 'initial_stock': initial_stock}]
+        user = self.request.user
+        serializer.instance = services.create_product(shop, user, data, rows)
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -79,6 +81,14 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    def perform_update(self, serializer: ProductSerializer) -> None:
+        """Informations et, avec `variants`, tableau des formats : tout ou rien."""
+        data = dict(serializer.validated_data)
+        rows = data.pop('variants', None)
+        product = services.update_product(serializer.instance, self.request.user, data, rows)  # noqa: E501
+        # Relue : les formats préchargés avant la synchronisation sont périmés.
+        serializer.instance = self.get_queryset().get(pk=product.pk)
 
     def destroy(self, request: Request, *args, **kwargs) -> Response:
         """Suppression d'un article qui n'a jamais servi ; sinon 409 (le désactiver)."""

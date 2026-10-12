@@ -379,7 +379,7 @@ class ProductDeleteTest(TestCase):
         self.client.force_authenticate(user=self.user)
         self.product = create_product(
             self.shop, self.user, {'name': 'Neuf'},
-            {'packaging_name': 'Par défaut', 'selling_price': '10.00'}, 4,
+            [{'packaging_name': 'Par défaut', 'selling_price': '10.00', 'initial_stock': 4}],  # noqa: E501
         )
         self.variant = self.product.variants.get()
 
@@ -420,7 +420,7 @@ class ProductDeleteTest(TestCase):
 
         bare = create_product(
             self.shop, self.user, {'name': 'Sans stock'},
-            {'packaging_name': 'Par défaut', 'selling_price': '5.00'},
+            [{'packaging_name': 'Par défaut', 'selling_price': '5.00'}],
         )
         detail = self.client.get(reverse('product-detail', args=[bare.pk]))
         self.assertTrue(detail.data['can_delete'])
@@ -461,7 +461,7 @@ class ProductVariantDeleteTest(TestCase):
         self.client.force_authenticate(user=self.user)
         self.product = create_product(
             self.shop, self.user, {'name': 'Huile'},
-            {'packaging_name': '1 L', 'selling_price': '10.00'},
+            [{'packaging_name': '1 L', 'selling_price': '10.00'}],
         )
         self.variant = create_variant(
             self.product, self.user,
@@ -824,3 +824,213 @@ class ProductVariantCreateTest(TestCase):
         response = self.post({'packaging_name': 'XL', 'selling_price': '5.00'}, foreign)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(foreign.variants.count(), 1)
+
+
+def format_row(name, price='29.99', **extra):
+    return {'packaging_name': name, 'selling_price': price, **extra}
+
+
+class ProductFormatsCreateTest(TestCase):
+    """Création d'un article et de son tableau de formats, en un seul appel."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('formats-create@example.com')
+        self.client.force_authenticate(user=self.user)
+
+    def post(self, rows, **data):
+        payload = {'name': 'Chemise en lin', 'type': 'product', 'variants': rows, **data}  # noqa: E501
+        return self.client.post(reverse('product-list'), payload, format='json')
+
+    def test_three_formats_with_their_initial_stock(self):
+        from apps.stock.models import StockMovement
+
+        response = self.post([
+            format_row('Taille S', purchase_price='12.00', initial_stock='4', low_stock_threshold='2'),  # noqa: E501
+            format_row('Taille M', purchase_price='12.00', initial_stock='6', sku='CHL-M'),  # noqa: E501
+            format_row('Taille L', '31.99', initial_stock='3'),
+        ])
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        variants = response.data['variants']
+        self.assertEqual(
+            [(v['packaging_name'], v['position'], v['stock_quantity']) for v in variants],  # noqa: E501
+            [('Taille S', 0, '4.000'), ('Taille M', 1, '6.000'), ('Taille L', 2, '3.000')],  # noqa: E501
+        )
+        self.assertEqual(response.data['stock_total'], '13.000')
+        movements = StockMovement.objects.filter(variant__product_id=response.data['id'])  # noqa: E501
+        self.assertEqual(movements.count(), 3)
+        self.assertTrue(all(m.is_initial for m in movements))
+
+    def test_one_invalid_row_creates_nothing(self):
+        from apps.stock.models import StockMovement
+
+        response = self.post([
+            format_row('Taille S', initial_stock='4'), format_row('Taille M', '-1'),
+        ])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('selling_price', response.json()['errors']['variants']['1'])
+        self.assertFalse(Product.objects.filter(shop=self.shop).exists())
+        self.assertFalse(StockMovement.objects.filter(shop=self.shop).exists())
+
+    def test_blank_name_is_refused(self):
+        response = self.post([format_row('Taille S'), format_row('  ')])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('packaging_name', response.json()['errors']['variants']['1'])
+
+    def test_duplicate_names_are_refused_whatever_the_case(self):
+        response = self.post([format_row('Taille M'), format_row('taille m')])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('packaging_name', response.json()['errors']['variants']['1'])
+        self.assertFalse(Product.objects.filter(shop=self.shop).exists())
+
+    def test_reference_of_another_article_is_refused(self):
+        make_catalog_item(self.shop, 'Pantalon', sku='REF-1')
+        response = self.post([format_row('Taille S', sku='REF-1')])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('sku', response.json()['errors']['variants']['0'])
+        self.assertFalse(Product.objects.filter(name='Chemise en lin').exists())
+
+    def test_service_formats_have_no_initial_stock(self):
+        response = self.post([format_row('Une heure', initial_stock='2')], type='service')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('initial_stock', response.json()['errors']['variants']['0'])
+
+    def test_at_least_one_format_on_sale(self):
+        response = self.post([format_row('Taille S', is_active=False)])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Product.objects.filter(shop=self.shop).exists())
+
+    def test_reference_of_another_shop_is_free(self):
+        _, other_shop = setup_user_shop('formats-other@example.com')
+        make_catalog_item(other_shop, 'Pantalon', sku='REF-1')
+        response = self.post([format_row('Taille S', sku='REF-1')])
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class ProductFormatsSyncTest(TestCase):
+    """Modification de l'article et de son tableau de formats, tout ou rien."""
+
+    def setUp(self):
+        from apps.products.services import create_product
+
+        self.client = APIClient()
+        self.user, self.shop = setup_user_shop('formats-sync@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.product = create_product(self.shop, self.user, {'name': 'Chemise'}, [
+            format_row('Taille S', initial_stock=4), format_row('Taille M', initial_stock=6),  # noqa: E501
+            format_row('Taille L', initial_stock=3),
+        ])
+        self.s, self.m, self.l = self.product.variants.order_by('position')
+
+    def row(self, variant, **changes):
+        return {
+            'id': str(variant.pk), 'packaging_name': variant.packaging_name,
+            'selling_price': str(variant.selling_price), **changes,
+        }
+
+    def patch(self, rows, product=None, **data):
+        product = product or self.product
+        url = reverse('product-detail', args=[product.pk])
+        return self.client.patch(url, {'variants': rows, **data}, format='json')
+
+    def sell(self, variant):
+        from apps.orders import services as orders
+
+        order = orders.create_order(self.shop, self.user)
+        orders.add_item(order, variant, 1, user=self.user)
+
+    def test_add_modify_and_delete_in_one_call(self):
+        from apps.stock.models import StockMovement
+
+        response = self.patch([
+            self.row(self.s, selling_price='27.00'), self.row(self.m),
+            format_row('Taille XL', '33.00', initial_stock='2'),
+        ], name='Chemise en lin')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Chemise en lin')
+        names = [(v['packaging_name'], v['selling_price'], v['stock_quantity']) for v in response.data['variants']]  # noqa: E501
+        self.assertEqual(names, [
+            ('Taille S', '27.00', '4.000'), ('Taille M', '29.99', '6.000'),
+            ('Taille XL', '33.00', '2.000'),
+        ])
+        self.assertFalse(self.product.variants.filter(pk=self.l.pk).exists())
+        self.assertFalse(StockMovement.objects.filter(variant_id=self.l.pk).exists())
+        added = StockMovement.objects.get(variant__packaging_name='Taille XL')
+        self.assertTrue(added.is_initial)
+
+    def test_used_format_cannot_be_deleted_and_nothing_changes(self):
+        self.sell(self.l)
+        response = self.patch([self.row(self.s, selling_price='1'), self.row(self.m)])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Taille L', response.data['errors']['variants'][0])
+        self.s.refresh_from_db()
+        self.assertEqual(self.s.selling_price, Decimal('29.99'))
+        self.assertTrue(self.product.variants.filter(pk=self.l.pk).exists())
+
+    def test_used_format_is_withdrawn_from_sale(self):
+        self.sell(self.l)
+        response = self.patch([self.row(self.s), self.row(self.m), self.row(self.l, is_active=False)])  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.l.refresh_from_db()
+        self.assertFalse(self.l.is_active)
+        self.assertTrue(self.product.variants.filter(pk=self.l.pk).exists())
+
+    def test_last_active_format_is_protected(self):
+        response = self.patch([
+            self.row(self.s, is_active=False), self.row(self.m, is_active=False),
+            self.row(self.l, is_active=False),
+        ])
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.product.variants.filter(is_active=True).count(), 3)
+
+    def test_formats_can_swap_names(self):
+        response = self.patch([
+            self.row(self.s, packaging_name='Taille M'), self.row(self.m, packaging_name='Taille S'),  # noqa: E501
+            self.row(self.l),
+        ])
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.s.refresh_from_db()
+        self.assertEqual(self.s.packaging_name, 'Taille M')
+
+    def test_order_of_the_table_becomes_the_order_of_formats(self):
+        response = self.patch([self.row(self.l), self.row(self.s), self.row(self.m)])
+        self.assertEqual(
+            [v['packaging_name'] for v in response.data['variants']],
+            ['Taille L', 'Taille S', 'Taille M'],
+        )
+
+    def test_existing_format_stock_is_not_set_by_the_table(self):
+        response = self.patch([self.row(self.s, initial_stock='50'), self.row(self.m), self.row(self.l)])  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('initial_stock', response.json()['errors']['variants']['0'])
+        self.s.refresh_from_db()
+        self.assertEqual(self.s.stock_quantity, Decimal('4'))
+
+    def test_duplicate_names_are_refused(self):
+        response = self.patch([self.row(self.s), self.row(self.m), format_row('TAILLE S')])  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('packaging_name', response.json()['errors']['variants']['2'])
+        self.assertEqual(self.product.variants.count(), 3)
+
+    def test_format_of_another_shop_is_untouched(self):
+        _, other_shop = setup_user_shop('formats-sync-other@example.com')
+        foreign = make_catalog_item(other_shop, 'Chemise', prices=('10.00',)).variants.get()  # noqa: E501
+        response = self.patch([self.row(self.s), self.row(foreign, selling_price='1.00')])  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('id', response.json()['errors']['variants']['1'])
+        foreign.refresh_from_db()
+        self.assertEqual(foreign.selling_price, Decimal('10.00'))
+        self.assertEqual(self.product.variants.count(), 3)
+
+    def test_article_of_another_shop_is_not_found(self):
+        _, other_shop = setup_user_shop('formats-sync-foreign@example.com')
+        foreign = make_catalog_item(other_shop, 'Robe', prices=('10.00',))
+        response = self.patch([format_row('Taille S')], product=foreign)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(foreign.variants.count(), 1)
+
+    def test_without_variants_only_the_information_changes(self):
+        url = reverse('product-detail', args=[self.product.pk])
+        response = self.client.patch(url, {'description': 'Lin lavé'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['variants']), 3)

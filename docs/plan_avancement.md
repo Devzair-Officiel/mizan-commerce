@@ -422,7 +422,9 @@
   - [~] Facture client : ne pas afficher le format par défaut dans les lignes
   - [~] Entrée de stock : carte de mise à niveau sur l'onglet facture fournisseur sans Boutique+
   - [ ] Fin de la recette
-- [ ] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
+- [~] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
+  - [~] En-têtes des cartes de formulaire en bande teintée (formulaires article et client)
+  - [~] Formats dans le formulaire article : tableau « Formats et prix », création et modification tout ou rien
 - [ ] Puis : session Postman, pull request, fusion
 - [ ] Lot 4 (après fusion)
   - [ ] Page et formulaire Rappels + assignation à un employé

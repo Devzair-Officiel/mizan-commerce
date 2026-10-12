@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ProductForm } from '@/components/products/form/ProductForm';
 import { useSaveProduct } from '@/components/products/form/useSaveProduct';
-import type { ProductFormValues } from '@/components/products/form/useProductForm';
+import type { ProductFormValues } from '@/components/products/form/productFormSchema';
 import type { PhotoChanges } from '@/components/products/form/useProductPhotos';
 import { useBackOr } from '@/lib/hooks/useBackOr';
 import { useFormatDate } from '@/lib/hooks/useFormat';
@@ -36,13 +36,9 @@ export default function EditProductPage() {
     );
   }
 
-  // Un seul format actif : le formulaire règle aussi son prix, son stock et ses références.
-  const active = product.variants.filter((v) => v.is_active);
-  const variant = active.length === 1 ? (active[0] ?? null) : null;
-
   async function handleSubmit(values: ProductFormValues, photos: PhotoChanges | null) {
     if (!product) return true;
-    const { complete } = await update(product, variant, values, photos);
+    const { complete } = await update(product, values, photos);
     // Remplace le formulaire dans l'historique : « retour » depuis la fiche ne le rouvre pas.
     router.replace(`/products/${id}`);
     return complete;
@@ -53,7 +49,7 @@ export default function EditProductPage() {
     <div className="mx-auto w-full max-w-280">
       <TopBar title={t('title_edit', { type: product.type })} subtitle={subtitle} back backLabel={product.name} onBack={back} hideSearch />
       <ProductForm mode="edit" type={product.type} mixed={shop.catalog_kind === 'both'} currencyCode={shop.currency}
-        product={product} variant={variant} onSubmit={handleSubmit} isSubmitting={saving} onLeave={back} focusPhotos={focusPhotos} />
+        product={product} onSubmit={handleSubmit} isSubmitting={saving} onLeave={back} focusPhotos={focusPhotos} />
     </div>
   );
 }

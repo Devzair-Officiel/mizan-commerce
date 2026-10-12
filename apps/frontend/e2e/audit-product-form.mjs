@@ -10,7 +10,7 @@
  *   bouton désactivé, type en badge, unité en lecture seule, résumés (mobile), stock actuel et lien,
  *   photo retirée, photo enregistrée recadrée, garde « quitter sans enregistrer », « Article enregistré » ;
  * - service : Informations, Prix et Photo seulement ; création puis modification du prix ;
- * - article à deux formats (« Audit formats ») : informations communes, lien « Gérer les formats ».
+ * - article à deux formats (« Audit formats ») : tableau « Formats et prix » à la place de Prix et Stock.
  * La boutique de services n'affiche ni stock ni unité ; celle de Youssef reste intacte.
  * Les articles créés sont supprimés à la fin (ils n'ont jamais servi) ; « Audit formats » est désactivé.
  */
@@ -299,14 +299,16 @@ async function editService(page, t, ctx, id, nested) {
     `${label} : « ${f('toast_saved', { type: 'service' })} », prix 40 enregistré`);
 }
 
-/** Plusieurs formats : informations communes seulement, lien « Gérer les formats ». */
+/** Plusieurs formats : tableau « Formats et prix » à la place de Prix et Stock, unité en lecture seule. */
 async function checkFormats(page, t, ctx, id, nested) {
+  const f = (key, values) => fmt(ctx.locale, `articles.form.${key}`, values);
   await goto(page, `/products/${id}/edit`, nested);
-  const link = page.getByRole('link', { name: t('articles.form.manage_formats') });
-  report.check((await page.getByText(fmt(ctx.locale, 'articles.form.formats_note', { count: 2 }), { exact: true }).count()) === 1
-    && (await link.getAttribute('href')) === `/products/${id}`
-    && (await textbox(page, t('articles.form.selling_price')).count()) === 0 && await noArticleFields(page, t),
-  `${ctx.label} : article à 2 formats — note, lien « ${t('articles.form.manage_formats')} », ni prix, ni unité, ni stock`);
+  const titles = (await cards(page)).map((c) => c.title);
+  const names = await textbox(page, f('format_name')).filter({ visible: true }).evaluateAll((els) => els.map((el) => el.value));
+  report.check(titles.includes(f('section_formats')) && !titles.includes(f('section_price')) && !titles.includes(f('section_stock'))
+    && [...names].sort().join('|') === 'Lot de 6|Unité' && (await page.getByRole('combobox', { name: t('articles.form.unit') }).count()) === 0
+    && (await page.getByText(f('unit_help_formats'), { exact: true }).count()) === 1,
+  `${ctx.label} : article à 2 formats — carte « ${f('section_formats')} » (ses 2 formats, dans l'ordre de la fiche) à la place de Prix et Stock, unité en lecture seule ${JSON.stringify(names)}`);
 }
 
 async function ensureFormatsProduct(page) {

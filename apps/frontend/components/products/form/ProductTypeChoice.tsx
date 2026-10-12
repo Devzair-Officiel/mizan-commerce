@@ -3,7 +3,7 @@
 import type { UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { Package, Sparkles } from 'lucide-react';
-import type { ProductFormValues } from './useProductForm';
+import type { ProductFormValues } from './productFormSchema';
 
 const CHOICES = [
   { value: 'product', icon: Package, label: 'type_product', help: 'type_product_help' },

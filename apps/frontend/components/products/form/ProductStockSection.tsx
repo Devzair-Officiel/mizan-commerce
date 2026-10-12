@@ -9,7 +9,7 @@ import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL, FIELD_READONLY, FIELD_ROW } from '@/components/form/fieldStyles';
 import { useFormatNumber } from '@/lib/hooks/useFormat';
-import type { ProductFormValues } from './useProductForm';
+import type { ProductFormValues } from './productFormSchema';
 
 interface ProductStockSectionProps {
   control: Control<ProductFormValues>;
@@ -26,7 +26,7 @@ interface ProductStockSectionProps {
 export function ProductStockSection({ control, register, errors, current, open, onToggle, order }: ProductStockSectionProps) {
   const t = useTranslations('articles.form');
   const formatNumber = useFormatNumber();
-  const [initial, threshold, unit] = useWatch({ control, name: ['initial_stock', 'low_stock_threshold', 'unit'] });
+  const [initial, threshold, unit] = useWatch({ control, name: ['formats.0.initial_stock', 'formats.0.low_stock_threshold', 'unit'] });
   const suffix = t('unit_short', { unit });
   const show = (value: string) => {
     const n = Number(value.trim().replace(',', '.'));
@@ -55,18 +55,18 @@ export function ProductStockSection({ control, register, errors, current, open, 
             )}
           </FormField>
         ) : (
-          <FormField label={t('initial_stock')} help={t('initial_stock_help')} error={errors.initial_stock?.message}>
+          <FormField label={t('initial_stock')} help={t('initial_stock_help')} error={errors.formats?.[0]?.initial_stock?.message}>
             {(c) => (
               <FieldSuffix suffix={suffix}>
-                <input {...c} {...register('initial_stock')} inputMode="decimal" autoComplete="off" className={quantityClass} />
+                <input {...c} {...register('formats.0.initial_stock')} inputMode="decimal" autoComplete="off" className={quantityClass} />
               </FieldSuffix>
             )}
           </FormField>
         )}
-        <FormField label={t('threshold')} help={t('threshold_help')} error={errors.low_stock_threshold?.message}>
+        <FormField label={t('threshold')} help={t('threshold_help')} error={errors.formats?.[0]?.low_stock_threshold?.message}>
           {(c) => (
             <FieldSuffix suffix={suffix}>
-              <input {...c} {...register('low_stock_threshold')} inputMode="decimal" autoComplete="off" className={quantityClass} />
+              <input {...c} {...register('formats.0.low_stock_threshold')} inputMode="decimal" autoComplete="off" className={quantityClass} />
             </FieldSuffix>
           )}
         </FormField>

@@ -108,6 +108,83 @@ class ProductVariantCreateSerializer(ProductVariantSerializer):
         fields = (*ProductVariantSerializer.Meta.fields, 'initial_stock')
 
 
+VARIANT_ROWS_MAX = 50
+
+
+class VariantRowSerializer(serializers.Serializer):
+    """Ligne du tableau des formats (formulaire article).
+
+    Sans `id` : nouveau format, avec son stock initial ; avec `id` : format
+    existant de l'article, modifié (son stock ne change que par des mouvements).
+    """
+    id = serializers.UUIDField(required=False, allow_null=True)
+    packaging_name = serializers.CharField(max_length=120)
+    unit = serializers.ChoiceField(choices=Product.UNIT_CHOICES, required=False)
+    base_quantity = serializers.DecimalField(
+        max_digits=14, decimal_places=3, min_value=Decimal('0.001'), required=False,
+    )
+    selling_price = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal('0'),
+    )
+    purchase_price = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal('0'),
+        required=False, allow_null=True,
+    )
+    low_stock_threshold = serializers.DecimalField(
+        max_digits=14, decimal_places=3, min_value=Decimal('0'),
+        required=False, allow_null=True,
+    )
+    sku = serializers.CharField(max_length=64, required=False, allow_blank=True)
+    barcode = serializers.CharField(max_length=64, required=False, allow_blank=True)
+    is_active = serializers.BooleanField(required=False)
+    initial_stock = serializers.DecimalField(
+        max_digits=16, decimal_places=3, min_value=Decimal('0'),
+        required=False, allow_null=True,
+    )
+
+
+def _duplicate_row_errors(rows: list[dict]) -> dict[int, dict[str, list[str]]]:
+    """Noms (sans tenir compte de la casse) et références en double, par ligne."""
+    errors: dict[int, dict[str, list[str]]] = {}
+    names: set[str] = set()
+    skus: set[str] = set()
+    for index, row in enumerate(rows):
+        name = row['packaging_name'].casefold()
+        if name in names:
+            errors.setdefault(index, {})['packaging_name'] = [
+                'Ce nom de format est déjà utilisé dans cet article.',
+            ]
+        names.add(name)
+        sku = row.get('sku', '')
+        if sku and sku in skus:
+            errors.setdefault(index, {})['sku'] = [
+                'Cette référence est déjà utilisée par un autre format.',
+            ]
+        skus.add(sku)
+    return errors
+
+
+class VariantRowsField(serializers.ListField):
+    """`variants` de l'article : ses formats en lecture, le tableau du formulaire
+    en écriture (création, ou synchronisation en modification)."""
+    child = VariantRowSerializer()
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(
+            min_length=1, max_length=VARIANT_ROWS_MAX, required=False, **kwargs,
+        )
+
+    def to_representation(self, value) -> list:
+        return ProductVariantSerializer(value.all(), many=True, context=self.context).data  # noqa: E501
+
+    def to_internal_value(self, data) -> list[dict]:
+        rows = super().to_internal_value(data)
+        errors = _duplicate_row_errors(rows)
+        if errors:
+            raise serializers.ValidationError(errors)
+        return rows
+
+
 def _primary_image_url(product: Product) -> str | None:
     """URL signée de l'image principale (ou première image disponible). None si pas d'image
     ou si le bucket S3 n'est pas configuré."""  # noqa: E501
@@ -169,7 +246,7 @@ def _product_stock_state(
 
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
-    variants = ProductVariantSerializer(many=True, read_only=True)
+    variants = VariantRowsField()
     # Agrégats calculés à partir des variantes (source de vérité depuis la migration v2).  # noqa: E501
     min_selling_price = serializers.SerializerMethodField()
     max_selling_price = serializers.SerializerMethodField()
@@ -184,7 +261,8 @@ class ProductSerializer(serializers.ModelSerializer):
     stock_total = serializers.SerializerMethodField()
     purchase_value = serializers.SerializerMethodField()
     sales_30d = serializers.SerializerMethodField()
-    # Création seulement : premier format et stock initial, enregistrés avec l'article.
+    # Création seulement : format unique et stock initial (ancien appel ; `variants`
+    # porte le tableau des formats, en création comme en modification).
     variant = ProductVariantSerializer(write_only=True, required=False)
     initial_stock = serializers.DecimalField(
         max_digits=16, decimal_places=3, min_value=Decimal('0'),
@@ -197,15 +275,32 @@ class ProductSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'variant': ['Modifiez les formats depuis leur propre adresse.']},
             )
+        if 'variant' in attrs and 'variants' in attrs:
+            raise serializers.ValidationError(
+                {'variants': ['Envoyez soit un format, soit le tableau des formats.']},
+            )
         if attrs.get('initial_stock') and 'variant' not in attrs:
             raise serializers.ValidationError(
                 {'initial_stock': ['Le stock initial demande un format.']},
             )
-        if attrs.get('initial_stock') and attrs.get('type') == 'service':
+        kind = attrs.get('type', self.instance.type if self.instance else 'product')
+        if attrs.get('initial_stock') and kind == 'service':
             raise serializers.ValidationError(
                 {'initial_stock': ["Un service n'a pas de stock."]},
             )
+        self._validate_rows(attrs.get('variants', []), kind)
         return attrs
+
+    def _validate_rows(self, rows: list[dict], kind: str) -> None:
+        """Stock initial : article seulement ; identifiants : modification seulement."""
+        errors: dict[int, dict[str, list[str]]] = {}
+        for index, row in enumerate(rows):
+            if row.get('initial_stock') and kind == 'service':
+                errors[index] = {'initial_stock': ["Un service n'a pas de stock."]}
+            elif row.get('id') and self.instance is None:
+                errors[index] = {'id': ["Un nouvel article n'a pas encore de format."]}
+        if errors:
+            raise serializers.ValidationError({'variants': errors})
 
     def validate_name(self, value: str) -> str:
         shop = self.context.get('shop')

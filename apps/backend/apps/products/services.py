@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -37,7 +37,7 @@ __all__ = (
     'products_with_stats', 'filter_products', 'build_product_facets',
     'build_products_summary', 'create_product', 'create_variant', 'product_has_served',
     'delete_unused_product', 'ProductInUseError', 'INITIAL_STOCK_REASON',
-    'delete_unused_variant', 'VariantInUseError',
+    'delete_unused_variant', 'VariantInUseError', 'update_product', 'sync_variants',
     'product_stock_totals', 'product_sales', 'SALES_DAYS',
 )
 
@@ -303,18 +303,19 @@ def create_product(
     shop: Shop,
     user: User,
     data: Mapping[str, object],
-    variant: Mapping[str, object] | None = None,
-    initial_stock: Decimal | None = None,
+    variants: Sequence[Mapping[str, object]] = (),
 ) -> Product:
-    """Article et son premier format en une transaction, tout ou rien.
+    """Article et ses formats en une transaction, tout ou rien.
 
-    Le stock initial (articles seulement) passe par une entrée de stock, au
-    prix d'achat du format.
+    Le stock initial d'un format (`initial_stock` de sa ligne, articles
+    seulement) passe par une entrée de stock, au prix d'achat du format.
     """
     with transaction.atomic():
         product = Product.objects.create(shop=shop, **data)
-        if variant is not None:
-            create_variant(product, user, variant, initial_stock)
+        if variants:
+            _check_variant_rows(product, variants, current={})
+        for position, row in enumerate(variants):
+            _create_variant_row(product, user, row, position)
     return product
 
 
@@ -421,6 +422,153 @@ def delete_unused_variant(variant: ProductVariant) -> None:
         except ProductInUseError:
             raise VariantInUseError() from None
         variant.delete()
+
+
+# ─── Tableau des formats du formulaire article ──────────────────────────────
+
+# Champs d'un format existant que le tableau modifie ; l'unité et le contenu
+# sont définitifs, le stock ne change que par des mouvements.
+_ROW_FIELDS = (
+    'packaging_name', 'selling_price', 'purchase_price', 'low_stock_threshold',
+    'sku', 'barcode', 'is_active',
+)
+
+
+def _create_variant_row(
+    product: Product, user: User, row: Mapping[str, object], position: int,
+) -> ProductVariant:
+    data = {k: v for k, v in row.items() if k not in ('id', 'initial_stock')}
+    data.setdefault('position', position)
+    return create_variant(product, user, data, row.get('initial_stock'))
+
+
+def _row_errors(
+    product: Product,
+    rows: Sequence[Mapping[str, object]],
+    current: Mapping[uuid.UUID, ProductVariant],
+) -> dict[int, dict[str, list[str]]]:
+    """Lignes invalides au regard de la base : format d'un autre article, stock
+    initial sur un format existant, référence prise par un autre article."""
+    skus = {row['sku'] for row in rows if row.get('sku')}
+    taken = set(
+        ProductVariant.objects.filter(shop=product.shop, sku__in=skus)
+        .exclude(product=product).values_list('sku', flat=True)
+    )
+    errors: dict[int, dict[str, list[str]]] = {}
+    seen: set[object] = set()
+    for index, row in enumerate(rows):
+        row_id = row.get('id')
+        if row_id and (row_id not in current or row_id in seen):
+            errors[index] = {'id': ["Ce format n'appartient pas à cet article."]}
+        elif row_id and row.get('initial_stock'):
+            errors[index] = {'initial_stock': [
+                "Le stock d'un format existant change par une entrée de stock.",
+            ]}
+        elif row.get('sku') in taken:
+            errors[index] = {'sku': ['Cette référence est déjà utilisée par un autre article.']}  # noqa: E501
+        seen.add(row_id)
+    return errors
+
+
+def _check_variant_rows(
+    product: Product,
+    rows: Sequence[Mapping[str, object]],
+    current: Mapping[uuid.UUID, ProductVariant],
+) -> None:
+    """Refuse le tableau entier si une ligne est invalide ou si aucun format ne
+    reste en vente (l'article serait invendable)."""
+    errors = _row_errors(product, rows, current)
+    if errors:
+        raise ValidationError({'variants': errors})
+
+    def active(row: Mapping[str, object]) -> bool:
+        known = current.get(row['id']) if row.get('id') else None
+        return bool(row.get('is_active', known.is_active if known else True))
+
+    if not any(active(row) for row in rows):
+        raise ValidationError({'variants': [LAST_ACTIVE_VARIANT_MESSAGE]})
+
+
+def _remove_variants(product: Product, variants: list[ProductVariant]) -> None:
+    """Supprime les formats retirés du tableau ; refuse ceux qui ont déjà servi."""
+    served = served_variant_ids(product)
+    refused = [v.packaging_name for v in variants if v.pk in served]
+    if refused:
+        raise ValidationError({'variants': [
+            f'« {name} » a déjà servi : retirez-le de la vente plutôt que de le supprimer.'  # noqa: E501
+            for name in refused
+        ]})
+    removed = ProductVariant.objects.filter(pk__in=[v.pk for v in variants])
+    try:
+        _delete_unused_variants(removed)
+    except ProductInUseError:
+        raise ValidationError({'variants': [str(VariantInUseError())]}) from None
+    removed.delete()
+
+
+def _update_variant_rows(
+    rows: Sequence[Mapping[str, object]], current: Mapping[uuid.UUID, ProductVariant],
+) -> None:
+    """Modifie les formats existants. Les noms et références qui changent sont
+    d'abord libérés : deux formats peuvent échanger leurs noms."""
+    updates = [
+        (current[row['id']], row, position)
+        for position, row in enumerate(rows) if row.get('id')
+    ]
+    for variant, row, _ in updates:
+        if row['packaging_name'] != variant.packaging_name:
+            variant.packaging_name = f'~{variant.pk}'
+        if row.get('sku', variant.sku) != variant.sku:
+            variant.sku = ''
+    ProductVariant.objects.bulk_update([u[0] for u in updates], ['packaging_name', 'sku'])  # noqa: E501
+    for variant, row, position in updates:
+        for field in _ROW_FIELDS:
+            if field in row:
+                setattr(variant, field, row[field])
+        variant.position = position
+        # Jamais `stock_quantity` : il ne change que par les mouvements.
+        variant.save(update_fields=[*_ROW_FIELDS, 'position', 'updated_at'])
+
+
+def sync_variants(
+    product: Product, user: User, rows: Sequence[Mapping[str, object]],
+) -> None:
+    """Aligne les formats de l'article sur le tableau du formulaire, tout ou rien.
+
+    Ligne avec `id` : format modifié ; sans `id` : format créé avec son stock
+    initial ; format absent du tableau : supprimé s'il n'a jamais servi, sinon
+    refus (le retirer de la vente). L'ordre du tableau devient celui des formats.
+    """
+    with transaction.atomic():
+        current = {
+            v.pk: v
+            for v in ProductVariant.objects.select_for_update().filter(product=product)
+        }
+        _check_variant_rows(product, rows, current)
+        kept = {row.get('id') for row in rows}
+        removed = [v for pk, v in current.items() if pk not in kept]
+        if removed:
+            _remove_variants(product, removed)
+        _update_variant_rows(rows, current)
+        for position, row in enumerate(rows):
+            if not row.get('id'):
+                _create_variant_row(product, user, row, position)
+
+
+def update_product(
+    product: Product,
+    user: User,
+    data: Mapping[str, object],
+    variants: Sequence[Mapping[str, object]] | None = None,
+) -> Product:
+    """Informations de l'article et, avec `variants`, ses formats : une transaction."""
+    with transaction.atomic():
+        for field, value in data.items():
+            setattr(product, field, value)
+        product.save()
+        if variants is not None:
+            sync_variants(product, user, variants)
+    return product
 
 
 SALES_DAYS = 30

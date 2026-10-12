@@ -14,6 +14,8 @@ interface DetailActionsMenuProps {
   variant: 'menu' | 'sheet';
   /** Nom accessible du bouton (« Actions du format 50 cl ») ; « Plus d'actions » par défaut. */
   label?: string;
+  /** Bouton rond de 36px, sans bordure : menu d'une ligne de tableau. */
+  compact?: boolean;
 }
 
 const ROW = 'flex w-full items-center gap-2.5 whitespace-nowrap text-start font-medium transition-colors disabled:pointer-events-none disabled:opacity-50';
@@ -52,19 +54,20 @@ function SheetEntry({ action, onDone }: { action: DetailAction; onDone: () => vo
 const TRIGGER = 'grid size-11 shrink-0 place-items-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /** Bouton « ⋯ » : actions secondaires de la page, puis l'action dangereuse après un séparateur. */
-export function DetailActionsMenu({ actions, variant, label }: DetailActionsMenuProps) {
+export function DetailActionsMenu({ actions, variant, label, compact }: DetailActionsMenuProps) {
   const t = useTranslations('ui.detail');
   const [open, setOpen] = useState(false);
   const { items, danger } = actions;
   const name = label ?? t('more_actions');
   if (items.length === 0 && !danger) return null;
+  const small = compact ? 'size-9 text-muted-foreground' : '';
 
   if (variant === 'sheet') {
     const close = () => setOpen(false);
     return (
       <>
-        <button type="button" aria-label={name} aria-haspopup="dialog" onClick={() => setOpen(true)} className={TRIGGER}>
-          <MoreHorizontal size={22} aria-hidden />
+        <button type="button" aria-label={name} aria-haspopup="dialog" onClick={() => setOpen(true)} className={cn(TRIGGER, small)}>
+          <MoreHorizontal size={compact ? 18 : 22} aria-hidden />
         </button>
         <BottomSheet open={open} onClose={close} title={t('actions_title')}>
           <div className="flex flex-col px-2 pb-4">
@@ -79,8 +82,8 @@ export function DetailActionsMenu({ actions, variant, label }: DetailActionsMenu
 
   return (
     <Menu.Root>
-      <Menu.Trigger aria-label={name} className={cn(TRIGGER, 'border border-border bg-card data-popup-open:bg-muted')}>
-        <MoreHorizontal size={20} aria-hidden />
+      <Menu.Trigger aria-label={name} className={cn(TRIGGER, compact ? small : 'border border-border bg-card', 'data-popup-open:bg-muted')}>
+        <MoreHorizontal size={compact ? 18 : 20} aria-hidden />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="end" sideOffset={8} className="z-50">

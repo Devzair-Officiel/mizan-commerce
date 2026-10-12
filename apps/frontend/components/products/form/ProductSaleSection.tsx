@@ -7,16 +7,18 @@ import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FormSelect } from '@/components/form/FormSelect';
 import { FIELD_READONLY } from '@/components/form/fieldStyles';
-import { UNIT_NAMES, UNITS, type ProductFormValues } from './useProductForm';
+import { UNIT_NAMES, UNITS, type ProductFormValues } from './productFormSchema';
 
 interface ProductSaleSectionProps {
   control: Control<ProductFormValues>;
   mode: 'create' | 'edit';
+  /** Plusieurs formats : l'unité est commune à tous. */
+  multi: boolean;
   order: string;
 }
 
 /** Vente (article) : unité de vente, choisie à la création puis définitive. */
-export function ProductSaleSection({ control, mode, order }: ProductSaleSectionProps) {
+export function ProductSaleSection({ control, mode, multi, order }: ProductSaleSectionProps) {
   const t = useTranslations('articles.form');
   const tUnits = useTranslations('articles.units');
   const unit = useWatch({ control, name: 'unit' });
@@ -24,7 +26,7 @@ export function ProductSaleSection({ control, mode, order }: ProductSaleSectionP
 
   return (
     <FormSection icon={ShoppingBag} order={order} title={t('section_sale')}>
-      <FormField label={t('unit')} required={mode === 'create'} help={t('unit_help')}>
+      <FormField label={t('unit')} required={mode === 'create'} help={t(multi ? 'unit_help_formats' : 'unit_help')}>
         {(c) => mode === 'create'
           ? <Controller control={control} name="unit" render={({ field }) => (
               <FormSelect control={c} value={field.value} onChange={field.onChange} options={options} triggerRef={field.ref} />

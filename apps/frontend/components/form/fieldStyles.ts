@@ -20,3 +20,8 @@ export const FIELD_ROW = 'grid grid-cols-[repeat(auto-fit,minmax(min(11.25rem,10
 /** Gabarit v3 : colonne principale et colonne latérale sur desktop ; sur mobile, cartes empilées dans l'ordre `max-lg:order-N`. */
 export const FORM_COLUMNS = 'flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-5 xl:grid-cols-[minmax(0,1fr)_22.5rem]';
 export const FORM_COLUMN = 'contents lg:flex lg:flex-col lg:gap-5';
+
+/** Lien d'en-tête d'une carte (« + Plusieurs formats »), à droite du titre dans la bande teintée. */
+export const HEADER_LINK =
+  'inline-flex min-h-8 items-center gap-1 whitespace-nowrap rounded-md text-[0.8125rem] font-semibold text-primary ' +
+  'underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-primary/30';

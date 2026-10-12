@@ -6,7 +6,7 @@ import { FieldSuffix } from '@/components/form/FieldSuffix';
 import { FormField } from '@/components/form/FormField';
 import { FormSelect } from '@/components/form/FormSelect';
 import { FIELD_CONTROL, FIELD_READONLY } from '@/components/form/fieldStyles';
-import { UNIT_NAMES, UNITS } from '@/components/products/form/useProductForm';
+import { UNIT_NAMES, UNITS } from '@/components/products/form/productFormSchema';
 import type { ProductFormatValues } from './useProductFormatForm';
 
 interface ProductFormatFieldsProps {

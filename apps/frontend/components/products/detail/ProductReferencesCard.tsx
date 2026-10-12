@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { DetailRow } from '@/components/detail/DetailRow';
-import { UNIT_NAMES } from '@/components/products/form/useProductForm';
+import { UNIT_NAMES } from '@/components/products/form/productFormSchema';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { useFormatMoney, useFormatNumber } from '@/lib/hooks/useFormat';
 import type { ProductDetail } from '@/lib/hooks/useProducts';

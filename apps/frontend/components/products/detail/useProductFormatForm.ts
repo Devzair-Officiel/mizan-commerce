@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
-import { UNITS } from '@/components/products/form/useProductForm';
+import { UNITS } from '@/components/products/form/productFormSchema';
 import { AMOUNT, QUANTITY, toDecimal } from '@/components/stock/stockSchema';
 import { ApiError } from '@/lib/api-client';
 import {

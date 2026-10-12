@@ -9,7 +9,7 @@ import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL, FIELD_TEXTAREA } from '@/components/form/fieldStyles';
 import type { ProductType } from '@/lib/hooks/useProducts';
 import { ProductTypeChoice } from './ProductTypeChoice';
-import type { ProductFormValues } from './useProductForm';
+import type { ProductFormValues } from './productFormSchema';
 
 interface ProductInfoSectionProps {
   register: UseFormRegister<ProductFormValues>;

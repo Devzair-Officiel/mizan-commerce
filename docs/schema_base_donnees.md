@@ -258,6 +258,7 @@ Variante (packaging concret) d'un produit — ex. « Pot 250 g », « Seau 5 kg 
 - **Sémantique stock** : `stock_quantity` compte des formats, pas le contenu cumulé. Pour du vrac (kg, L, m), on modélise une variante avec `base_quantity = 1` en unité correspondante → le format vaut une unité, donc le stock = quantité physique.
 - Le contenu total disponible se calcule à la volée : `stock_quantity × base_quantity`.
 - `is_out_of_stock` = `stock_quantity <= 0` ; `is_low_stock` = `low_stock_threshold` défini et `0 < stock_quantity <= low_stock_threshold`.
+- **Écriture depuis le formulaire article** (tout ou rien, une transaction) : `POST /products/` accepte `variants` (`packaging_name`, `selling_price`, `purchase_price`, `low_stock_threshold`, `sku`, `barcode`, `initial_stock`…) et crée l'article, ses formats et leurs stocks initiaux (mouvements `is_initial`) ; `PATCH /products/{id}/` avec `variants` synchronise les formats (`products.services.sync_variants`) : ligne avec `id` modifiée (jamais `stock_quantity`), ligne sans `id` créée avec son stock initial, format absent supprimé s'il n'a jamais servi (sinon refus : le retirer de la vente), au moins un format actif. Noms uniques dans l'article (insensible à la casse), contrôlés avant l'écriture.
 - Un `Product` de `type = 'service'` peut posséder une variante « unique », mais aucun mouvement de stock n'est généré depuis les commandes pour ce type (voir `orders._reserve_stock`).
 
 ---
