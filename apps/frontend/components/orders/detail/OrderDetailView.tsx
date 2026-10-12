@@ -54,7 +54,7 @@ export function OrderDetailView({ order, state }: { order: Order; state: OrderDe
             <DetailSlot order="max-lg:order-5">
               <OrderInvoiceCard order={order} onIssue={actions.openInvoice} issueIsPrimary={primary?.key === 'issue_invoice'} />
             </DetailSlot>
-            <DetailSlot order="max-lg:order-8"><PreparedMessageHistory orderId={order.id} compact /></DetailSlot>
+            <DetailSlot order="max-lg:order-8"><PreparedMessageHistory orderId={order.id} /></DetailSlot>
           </div>
         </div>
       </div>

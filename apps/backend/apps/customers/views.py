@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.pagination import FlexiblePageNumberPagination
+from apps.core.pagination import WindowPagination
 from apps.core.permissions import HasModulePermission, get_shop
 
 HasCustomersModule = HasModulePermission.for_module('customers')
@@ -13,7 +13,7 @@ from .filters import CustomerOrderingFilter  # noqa: E402
 from .models import Customer  # noqa: E402
 from .serializers import CustomerSerializer, CustomerListSerializer  # noqa: E402
 from .services import (  # noqa: E402
-    ALL_TYPES, CUSTOMER_SEARCH_FIELDS, customers_with_stats, get_customer_timeline,
+    ALL_TYPES, CUSTOMER_SEARCH_FIELDS, customer_timeline_sources, customers_with_stats,
 )
 
 
@@ -108,16 +108,12 @@ class CustomerActivityView(APIView):
         else:
             types = None
         pending_only = request.query_params.get('pending') == 'true'
-        items: list[dict] = list(
-            get_customer_timeline(customer, types=types, pending_only=pending_only),
+        # Fenêtre `limit`/`offset` : seuls les événements affichés sont lus.
+        paginator = WindowPagination()
+        page = paginator.paginate_timeline(
+            customer_timeline_sources(customer, types=types, pending_only=pending_only),
+            request,
         )
-
-        paginator = FlexiblePageNumberPagination()
-        page = paginator.paginate_queryset(items, request, view=self)
-        if page is not None:
-            for it in page:
-                it['occurred_at'] = it['occurred_at'].isoformat()
-            return paginator.get_paginated_response(page)
-        for it in items:
+        for it in page:
             it['occurred_at'] = it['occurred_at'].isoformat()
-        return Response(items)
+        return paginator.get_paginated_response(page)

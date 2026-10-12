@@ -2,6 +2,7 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 import { apiFetch } from '@/lib/api-client';
 import type { ProductUnit, StockState } from '@/lib/hooks/useProducts';
 import { qk, type StockLevelsFilters, type StockMovementsFilters } from '@/lib/query-keys';
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -69,6 +70,11 @@ export function useStockMovements(filters: StockMovementsFilters = {}, options?:
     queryFn: () => apiFetch<PaginatedResponse<StockMovement>>(`/stock/movements/${listParams(filters)}`),
     enabled: options?.enabled,
   });
+}
+
+/** Carte « Derniers mouvements » de la fiche article, tous formats : 5, puis « Voir plus ». */
+export function useProductMovements(productId: string) {
+  return useShowMoreQuery<StockMovement>(qk.stock.productMovements(productId), '/stock/movements/', { product: productId }, !!productId);
 }
 
 /** Historique mobile : pages chargées à la suite (« Charger plus »). */

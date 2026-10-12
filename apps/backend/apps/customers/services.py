@@ -7,12 +7,14 @@ from typing import Iterable, TypedDict
 
 import phonenumbers
 from django.db.models import (
-    Count, DecimalField, Exists, F, Max, OuterRef, Q, QuerySet, Sum, Value,
+    CharField, Count, DecimalField, Exists, F, Max, OuterRef, Q, QuerySet, Subquery,
+    Sum, Value,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 
 from apps.core.models import AuditLog
+from apps.core.pagination import TimelineSource
 from apps.notes.models import Note
 from apps.orders.models import Order
 from apps.orders.services import current_month_bounds
@@ -192,132 +194,107 @@ class TimelineEvent(TypedDict):
     data: dict
 
 
-def get_customer_timeline(
+def _latest_order_log(action: str, **changes: str) -> Coalesce:
+    """Date du dernier `AuditLog` `action` de la commande, sinon sa date de création."""
+    logs = AuditLog.objects.filter(
+        shop_id=OuterRef('shop_id'),
+        object_id=Cast(OuterRef('pk'), CharField()),
+        action=action,
+        **{f'changes__{key}': value for key, value in changes.items()},
+    ).order_by('-created_at').values('created_at')[:1]
+    return Coalesce(Subquery(logs), F('created_at'))
+
+
+def _order_event(order: Order) -> TimelineEvent:
+    oid = str(order.id)
+    return TimelineEvent(id=f'order-{oid}', type=EVENT_ORDER, occurred_at=order.created_at, data={  # noqa: E501
+        'order_id': oid,
+        'order_number': order.order_number,
+        'total_amount': str(order.total_amount),
+        'status': order.status,
+        'payment_status': order.payment_status,
+    })
+
+
+def _payment_event(order: Order) -> TimelineEvent:
+    oid = str(order.id)
+    return TimelineEvent(id=f'payment-{oid}', type=EVENT_PAYMENT, occurred_at=order.event_at, data={  # noqa: E501
+        'order_id': oid,
+        'order_number': order.order_number,
+        'payment_status': order.payment_status,
+        'amount_paid': str(order.amount_paid),
+        'total_amount': str(order.total_amount),
+    })
+
+
+def _shipment_event(order: Order) -> TimelineEvent:
+    oid = str(order.id)
+    return TimelineEvent(id=f'shipment-{oid}', type=EVENT_SHIPMENT, occurred_at=order.event_at, data={  # noqa: E501
+        'order_id': oid,
+        'order_number': order.order_number,
+    })
+
+
+def _note_event(note: Note) -> TimelineEvent:
+    author_name: str | None = None
+    if note.author_id is not None:
+        author_name = note.author.full_name or note.author.email
+    return TimelineEvent(id=f'note-{note.id}', type=EVENT_NOTE, occurred_at=note.created_at, data={  # noqa: E501
+        'content': note.content,
+        'author_name': author_name,
+        'order_id': str(note.order_id) if note.order_id else None,
+    })
+
+
+def customer_timeline_sources(
     customer: Customer,
     types: Iterable[str] | None = None,
     pending_only: bool = False,
-) -> list[TimelineEvent]:
-    """Return a mixed activity timeline for the customer.
+) -> list[TimelineSource]:
+    """Sources de la timeline d'activité du client, à fenêtrer avec `window_timeline`.
 
-    For each order, generates up to three synthesized events:
+    Par commande, jusqu'à trois événements synthétisés :
 
-    - ``order`` (always): order creation
-    - ``payment`` (always): current ``payment_status`` of the order. Dated by
-      the latest ``order_payment_change`` audit log if any, else ``created_at``.
-    - ``shipment`` (only if order.status == 'shipped'): dated by the latest
-      ``order_status_change`` audit log with ``to='shipped'``.
+    - ``order`` (toujours) : création de la commande ;
+    - ``payment`` (toujours) : ``payment_status`` actuel, daté du dernier
+      ``order_payment_change`` s'il existe, sinon de la création ;
+    - ``shipment`` (commande expédiée) : daté du dernier ``order_status_change``
+      vers ``shipped``.
 
-    Plus one ``note`` event per customer note.
+    Plus un événement ``note`` par note du client.
 
-    When ``pending_only`` is True, restricts to orders with outstanding balance
-    (``payment_status`` in {unpaid, partial} and not cancelled). Customer-level
-    notes (notes without ``order_id``) are excluded in this mode.
+    ``pending_only`` : seulement les commandes avec un reste à payer (``unpaid`` ou
+    ``partial``, non annulées) et leurs notes ; les notes sans commande sont exclues.
 
-    Results sorted by ``occurred_at`` descending.
+    Chaque source est triée par la date de son événement, la plus récente d'abord :
+    la timeline n'est jamais chargée en entier.
     """
     selected = {t for t in (types or ALL_TYPES) if t in ALL_TYPES}
-    if not selected:
-        return []
+    orders = Order.objects.filter(customer=customer, shop_id=customer.shop_id).only(
+        'id', 'shop_id', 'order_number', 'total_amount',
+        'status', 'payment_status', 'amount_paid', 'created_at',
+    )
+    if pending_only:
+        orders = orders.filter(payment_status__in=['unpaid', 'partial']).exclude(status='cancelled')  # noqa: E501
 
-    events: list[TimelineEvent] = []
-    order_by_id: dict[str, Order] = {}
-    need_orders = bool({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT} & selected) or pending_only  # noqa: E501
-
-    if need_orders:
-        order_qs = Order.objects.filter(
-            customer=customer,
-            shop_id=customer.shop_id,
-        ).only(
-            'id', 'order_number', 'total_amount',
-            'status', 'payment_status', 'amount_paid', 'created_at',
+    sources: list[TimelineSource] = []
+    if EVENT_ORDER in selected:
+        sources.append((orders.order_by('-created_at', '-pk'), _order_event))
+    if EVENT_PAYMENT in selected:
+        paid = orders.annotate(event_at=_latest_order_log('order_payment_change'))
+        sources.append((paid.order_by('-event_at', '-pk'), _payment_event))
+    if EVENT_SHIPMENT in selected:
+        shipped = orders.filter(status='shipped').annotate(
+            event_at=_latest_order_log('order_status_change', to='shipped'),
         )
-        if pending_only:
-            order_qs = order_qs.filter(
-                payment_status__in=['unpaid', 'partial'],
-            ).exclude(status='cancelled')
-        order_by_id = {str(o.id): o for o in order_qs}
-
-    # Fetch latest payment/shipment audit logs in a single query.
-    latest_payment_at: dict[str, datetime] = {}
-    latest_shipment_at: dict[str, datetime] = {}
-    if order_by_id:
-        log_qs = AuditLog.objects.filter(
-            shop_id=customer.shop_id,
-            object_id__in=list(order_by_id.keys()),
-            action__in=['order_payment_change', 'order_status_change'],
-        ).only('action', 'object_id', 'changes', 'created_at').order_by('created_at')
-        for log in log_qs:
-            if log.action == 'order_payment_change':
-                latest_payment_at[log.object_id] = log.created_at
-            elif log.action == 'order_status_change' and log.changes.get('to') == 'shipped':  # noqa: E501
-                latest_shipment_at[log.object_id] = log.created_at
-
-    for order in order_by_id.values():
-        oid = str(order.id)
-        if EVENT_ORDER in selected:
-            events.append(TimelineEvent(
-                id=f'order-{oid}',
-                type=EVENT_ORDER,
-                occurred_at=order.created_at,
-                data={
-                    'order_id': oid,
-                    'order_number': order.order_number,
-                    'total_amount': str(order.total_amount),
-                    'status': order.status,
-                    'payment_status': order.payment_status,
-                },
-            ))
-        if EVENT_PAYMENT in selected:
-            events.append(TimelineEvent(
-                id=f'payment-{oid}',
-                type=EVENT_PAYMENT,
-                occurred_at=latest_payment_at.get(oid, order.created_at),
-                data={
-                    'order_id': oid,
-                    'order_number': order.order_number,
-                    'payment_status': order.payment_status,
-                    'amount_paid': str(order.amount_paid),
-                    'total_amount': str(order.total_amount),
-                },
-            ))
-        if EVENT_SHIPMENT in selected and order.status == 'shipped':
-            shipped_at = latest_shipment_at.get(oid, order.created_at)
-            events.append(TimelineEvent(
-                id=f'shipment-{oid}',
-                type=EVENT_SHIPMENT,
-                occurred_at=shipped_at,
-                data={
-                    'order_id': oid,
-                    'order_number': order.order_number,
-                },
-            ))
-
+        sources.append((shipped.order_by('-event_at', '-pk'), _shipment_event))
     if EVENT_NOTE in selected:
-        note_qs = Note.objects.filter(
-            customer=customer,
-            shop_id=customer.shop_id,
-        ).select_related('author').only(
+        notes = Note.objects.filter(customer=customer, shop_id=customer.shop_id)
+        if pending_only:
+            notes = notes.filter(order__in=orders.values('pk'))
+        notes = notes.select_related('author').only(
             'id', 'content', 'order_id', 'created_at',
             'author__full_name', 'author__email',
         )
-        if pending_only:
-            # En mode "à encaisser", exclure les notes sans commande et celles
-            # liées à des commandes déjà payées / annulées.
-            note_qs = note_qs.filter(order_id__in=list(order_by_id.keys()))
-        for note in note_qs:
-            author_name: str | None = None
-            if note.author_id is not None:
-                author_name = note.author.full_name or note.author.email
-            events.append(TimelineEvent(
-                id=f'note-{note.id}',
-                type=EVENT_NOTE,
-                occurred_at=note.created_at,
-                data={
-                    'content': note.content,
-                    'author_name': author_name,
-                    'order_id': str(note.order_id) if note.order_id else None,
-                },
-            ))
-
-    events.sort(key=lambda e: e['occurred_at'], reverse=True)
-    return events
+        sources.append((notes.order_by('-created_at', '-pk'), _note_event))
+    return sources

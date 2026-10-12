@@ -9,6 +9,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.core.models import AuditLog
+from apps.notes.models import Note
 from apps.shops.models import Shop, ShopMember
 from apps.orders.models import Order
 from .models import Customer
@@ -371,3 +373,72 @@ class CustomerDisplayNameTest(TestCase):
         )
         self.assertEqual(message.recipient_name, 'Karima Bensouda')
         self.assertTrue(message.message.startswith('Bonjour Karima,'))
+
+
+class CustomerActivityWindowTest(TestCase):
+    """Activité du client par fenêtre (`limit`, `offset`) : jamais chargée en entier."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup('activity@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.customer = Customer.objects.create(shop=self.shop, name='Habitué')
+        self.base = timezone.now() - timedelta(days=30)
+        # 6 commandes (création + paiement : 12 événements), 3 notes, dates distinctes.
+        self.orders = []
+        for i in range(6):
+            order = Order.objects.create(shop=self.shop, customer=self.customer, order_number=f'A-{i}')  # noqa: E501
+            Order.objects.filter(pk=order.pk).update(created_at=self.base + timedelta(days=i))  # noqa: E501
+            self.orders.append(order)
+        for i in range(3):
+            note = Note.objects.create(shop=self.shop, customer=self.customer, content=f'Note {i}')  # noqa: E501
+            Note.objects.filter(pk=note.pk).update(created_at=self.base + timedelta(days=i, hours=12))  # noqa: E501
+        self.url = reverse('customer-activity', kwargs={'pk': self.customer.pk})
+
+    def ids(self, **params) -> list[str]:
+        return [e['id'] for e in self.client.get(self.url, params).data['results']]
+
+    def test_windows_follow_the_full_timeline(self):
+        full = self.client.get(self.url, {'limit': 100}).data
+        self.assertEqual(full['count'], 15)
+        dates = [e['occurred_at'] for e in full['results']]
+        self.assertEqual(dates, sorted(dates, reverse=True))
+        first = self.client.get(self.url, {'limit': 5}).data
+        self.assertEqual((first['count'], len(first['results'])), (15, 5))
+        more = self.client.get(self.url, {'limit': 10, 'offset': 5}).data
+        self.assertIsNone(more['next'])
+        self.assertEqual([e['id'] for e in first['results'] + more['results']], [e['id'] for e in full['results']])  # noqa: E501
+
+    def test_payment_dated_by_its_latest_log(self):
+        oldest = self.orders[0]
+        AuditLog.objects.create(
+            shop_id=self.shop.id, action='order_payment_change', model_name='Order',
+            object_id=str(oldest.pk), object_repr='A-0', changes={'to': 'paid'},
+        )
+        self.assertEqual(self.ids(limit=1), [f'payment-{oldest.pk}'])
+
+    def test_filter_and_pending_keep_the_window(self):
+        notes = self.client.get(self.url, {'types': 'note', 'limit': 2}).data
+        self.assertEqual(notes['count'], 3)
+        self.assertEqual(len(notes['results']), 2)
+        self.assertTrue(all(e['type'] == 'note' for e in notes['results']))
+        Order.objects.filter(pk__in=[o.pk for o in self.orders[:4]]).update(payment_status='paid')  # noqa: E501
+        pending = self.client.get(self.url, {'types': 'order', 'pending': 'true', 'limit': 5}).data  # noqa: E501
+        self.assertEqual(pending['count'], 2)
+        self.assertEqual({e['data']['order_number'] for e in pending['results']}, {'A-4', 'A-5'})  # noqa: E501
+
+    def test_unknown_type_rejected(self):
+        response = self.client.get(self.url, {'types': 'order,bogus'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_other_shop_isolated(self):
+        user_b, shop_b = setup('other-activity@example.com')
+        customer_b = Customer.objects.create(shop=shop_b, name='Client B')
+        url_b = reverse('customer-activity', kwargs={'pk': customer_b.pk})
+        self.assertEqual(self.client.get(url_b).status_code, status.HTTP_404_NOT_FOUND)
+        # Un journal d'une autre boutique ne date pas le paiement de nos commandes.
+        AuditLog.objects.create(
+            shop_id=shop_b.id, action='order_payment_change', model_name='Order',
+            object_id=str(self.orders[0].pk), object_repr='A-0', changes={'to': 'paid'},
+        )
+        self.assertNotIn(f'payment-{self.orders[0].pk}', self.ids(limit=1))

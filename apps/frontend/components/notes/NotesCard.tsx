@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { ShowMoreList } from '@/components/ui/ShowMoreList';
 import { useDayTime } from '@/components/orders/detail/useDayTime';
 import type { Note } from '@/lib/hooks/useNotes';
+import type { ShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 function NoteRow({ note, onDelete }: { note: Note; onDelete: () => void }) {
   const t = useTranslations('ui.notes');
@@ -30,7 +32,8 @@ function NoteRow({ note, onDelete }: { note: Note; onDelete: () => void }) {
 }
 
 interface NotesCardProps {
-  notes: Note[];
+  /** Notes chargées par fenêtre : 5, puis « Voir plus ». */
+  list: ShowMoreQuery<Note>;
   emptyLabel: string;
   creating: boolean;
   onCreate: (content: string) => Promise<unknown>;
@@ -43,7 +46,7 @@ interface NotesCardProps {
 }
 
 /** Carte « Notes » : notes internes (commande ou client), ajout et suppression avec confirmation. */
-export function NotesCard({ notes, emptyLabel, creating, onCreate, onDelete, leading, ...form }: NotesCardProps) {
+export function NotesCard({ list, emptyLabel, creating, onCreate, onDelete, leading, ...form }: NotesCardProps) {
   const t = useTranslations('ui.notes');
   const [ownOpen, setOwnOpen] = useState(false);
   const formOpen = form.formOpen ?? ownOpen;
@@ -79,10 +82,12 @@ export function NotesCard({ notes, emptyLabel, creating, onCreate, onDelete, lea
         </div>
       )}
       {leading}
-      {notes.length > 0 ? (
-        <ul className="divide-y divide-border">
-          {notes.map((note) => <NoteRow key={note.id} note={note} onDelete={() => setPendingDeleteId(note.id)} />)}
-        </ul>
+      {list.items.length > 0 ? (
+        <ShowMoreList list={list} kind="notes">
+          <ul className="divide-y divide-border">
+            {list.items.map((note) => <NoteRow key={note.id} note={note} onDelete={() => setPendingDeleteId(note.id)} />)}
+          </ul>
+        </ShowMoreList>
       ) : !formOpen && !leading && (
         <p className="px-4 py-4 text-sm text-muted-foreground lg:px-5">{emptyLabel}</p>
       )}

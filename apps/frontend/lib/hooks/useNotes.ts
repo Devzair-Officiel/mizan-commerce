@@ -1,13 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
-
-interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 export interface Note {
   id: string;
@@ -20,12 +14,9 @@ export interface Note {
   updated_at: string;
 }
 
+/** Notes de la commande : 5, puis « Voir plus ». */
 export function useOrderNotes(orderId: string) {
-  return useQuery({
-    queryKey: qk.notes.byOrder(orderId),
-    queryFn: () => apiFetch<PaginatedResponse<Note>>(`/notes/?order=${orderId}`),
-    enabled: !!orderId,
-  });
+  return useShowMoreQuery<Note>(qk.notes.byOrder(orderId), '/notes/', { order: orderId }, !!orderId);
 }
 
 export function useCreateOrderNote(orderId: string) {
@@ -55,12 +46,9 @@ export function useDeleteNote(orderId: string) {
   });
 }
 
+/** Notes du client : 5, puis « Voir plus ». */
 export function useCustomerNotes(customerId: string) {
-  return useQuery({
-    queryKey: qk.notes.byCustomer(customerId),
-    queryFn: () => apiFetch<PaginatedResponse<Note>>(`/notes/?customer=${customerId}`),
-    enabled: !!customerId,
-  });
+  return useShowMoreQuery<Note>(qk.notes.byCustomer(customerId), '/notes/', { customer: customerId }, !!customerId);
 }
 
 /** Rafraîchit les notes du client et son activité (les notes y figurent). */

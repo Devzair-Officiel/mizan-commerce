@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk, type OrdersListFilters, type OrdersCustomerFilters } from '@/lib/query-keys';
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -182,12 +183,25 @@ export function useOrder(id: string) {
   });
 }
 
-export function useOrderActivity(id: string) {
+/** Carte « Historique » : 5 événements, puis 10 de plus à chaque « Voir plus ». */
+export function useOrderHistory(id: string) {
+  return useShowMoreQuery<OrderActivityEvent>(qk.orders.history(id), `/orders/${id}/activity/`, {}, !!id);
+}
+
+/** Étapes du suivi : les changements de statut (quelques-uns par commande). */
+export function useOrderStatusChanges(id: string) {
   return useQuery({
-    queryKey: qk.orders.activity(id),
-    queryFn: () => apiFetch<{ events: OrderActivityEvent[] }>(`/orders/${id}/activity/`),
+    queryKey: qk.orders.statusChanges(id),
+    queryFn: () => apiFetch<PaginatedResponse<OrderActivityEvent>>(`/orders/${id}/activity/?types=status_change&limit=100`),
     enabled: !!id,
   });
+}
+
+/** Commandes de la fiche client, les plus récentes d'abord : 5, puis « Voir plus ». */
+export function useCustomerOrderWindow(customerId: string) {
+  return useShowMoreQuery<OrderSummary>(
+    qk.orders.customerWindow(customerId), '/orders/', { customer: customerId, ordering: '-created_at' }, !!customerId,
+  );
 }
 
 export function useCreateOrder() {

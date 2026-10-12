@@ -3,11 +3,14 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.core.models import AuditLog
+from apps.notes.models import Note
 from apps.shops.models import Shop, ShopMember
 from apps.products.models import Product, ProductVariant
 from apps.customers.models import Customer
@@ -806,3 +809,66 @@ class FixStaleLineTotalsMigrationTest(TestCase):
         self.assertEqual(invoice.total_ttc, invoice_total)  # facture figée
 
         self.assertEqual(self._run(), {'lines': 0, 'orders': 0, 'invoices': []})
+
+
+class OrderActivityWindowTest(TestCase):
+    """Historique d'une commande par fenêtre (`limit`, `offset`) et par type."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, _, _, self.customer = setup('history@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.order = Order.objects.create(shop=self.shop, customer=self.customer, order_number='H-1')  # noqa: E501
+        base = timezone.now() - timedelta(days=10)
+        Order.objects.filter(pk=self.order.pk).update(created_at=base)
+        # Commande sans `order_created` au journal : création synthétisée, 4 statuts, 2 paiements, 3 notes.  # noqa: E501
+        for i, action in enumerate(['order_status_change'] * 4 + ['order_payment_change'] * 2):  # noqa: E501
+            log = AuditLog.objects.create(
+                shop_id=self.shop.id, user=self.user, action=action, model_name='Order',
+                object_id=str(self.order.pk), object_repr='H-1', changes={'to': 'prepared'},  # noqa: E501
+            )
+            AuditLog.objects.filter(pk=log.pk).update(created_at=base + timedelta(hours=i + 1))  # noqa: E501
+        for i in range(3):
+            note = Note.objects.create(shop=self.shop, order=self.order, content=f'Note {i}')  # noqa: E501
+            Note.objects.filter(pk=note.pk).update(created_at=base + timedelta(days=1, hours=i))  # noqa: E501
+        self.url = reverse('order-activity', kwargs={'pk': self.order.pk})
+
+    def test_windows_follow_the_full_history(self):
+        full = self.client.get(self.url, {'limit': 100}).data
+        self.assertEqual(full['count'], 10)
+        self.assertEqual(full['results'][-1]['type'], 'created')
+        dates = [e['occurred_at'] for e in full['results']]
+        self.assertEqual(dates, sorted(dates, reverse=True))
+        first = self.client.get(self.url, {'limit': 5}).data
+        more = self.client.get(self.url, {'limit': 10, 'offset': 5}).data
+        self.assertEqual((first['count'], len(first['results'])), (10, 5))
+        self.assertIsNone(more['next'])
+        self.assertEqual([e['id'] for e in first['results'] + more['results']], [e['id'] for e in full['results']])  # noqa: E501
+
+    def test_types_filter(self):
+        data = self.client.get(self.url, {'types': 'status_change', 'limit': 100}).data
+        self.assertEqual(data['count'], 4)
+        self.assertTrue(all(e['type'] == 'status_change' for e in data['results']))
+        response = self.client.get(self.url, {'types': 'bogus'})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_logged_creation_not_synthesized(self):
+        AuditLog.objects.create(
+            shop_id=self.shop.id, user=self.user, action='order_created', model_name='Order',  # noqa: E501
+            object_id=str(self.order.pk), object_repr='H-1', changes={'order_number': 'H-1'},  # noqa: E501
+        )
+        data = self.client.get(self.url, {'types': 'created'}).data
+        self.assertEqual(data['count'], 1)
+        self.assertTrue(data['results'][0]['id'].startswith('log-'))
+
+    def test_other_shop_isolated(self):
+        user_b, shop_b, _, _, customer_b = setup('other-history@example.com')
+        order_b = Order.objects.create(shop=shop_b, customer=customer_b, order_number='B-1')  # noqa: E501
+        url_b = reverse('order-activity', kwargs={'pk': order_b.pk})
+        self.assertEqual(self.client.get(url_b).status_code, status.HTTP_404_NOT_FOUND)
+        # Un journal d'une autre boutique n'entre pas dans notre historique.
+        AuditLog.objects.create(
+            shop_id=shop_b.id, user=user_b, action='order_status_change', model_name='Order',  # noqa: E501
+            object_id=str(self.order.pk), object_repr='H-1', changes={'to': 'shipped'},
+        )
+        self.assertEqual(self.client.get(self.url).data['count'], 10)

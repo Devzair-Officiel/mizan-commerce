@@ -30,7 +30,8 @@ class PreparedMessageListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated, HasWhatsappPlan, HasMessagesModule)
     serializer_class = PreparedMessageSerializer
     filter_backends = (filters.OrderingFilter,)
-    ordering = ('-created_at',)
+    # `-id` départage les messages de même date : fenêtres `offset` stables.
+    ordering = ('-created_at', '-id')
 
     def get_queryset(self):
         shop = get_shop(self.request.user)

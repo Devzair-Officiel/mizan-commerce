@@ -2,7 +2,7 @@
 
 import { useId, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, MessageCircle, Trash2 } from 'lucide-react';
+import { CheckCircle2, Trash2 } from 'lucide-react';
 import {
   useDeletePreparedMessage,
   usePreparedMessages,
@@ -12,13 +12,11 @@ import {
 import { useFormatDateTime } from '@/lib/hooks/useFormat';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { SectionCard } from '@/components/ui/SectionCard';
-import { SkeletonRows } from '@/components/ui/SkeletonRows';
+import { ShowMoreList } from '@/components/ui/ShowMoreList';
 
 interface PreparedMessageHistoryProps {
   customerId?: string;
   orderId?: string;
-  /** Version carte de section (détail d'une commande) : titre en casse normale, aperçu sur une ligne. */
-  compact?: boolean;
 }
 
 const STATUS_CLASSES: Record<PreparedMessageStatus, string> = {
@@ -33,66 +31,32 @@ const STATUS_LABEL_KEYS: Record<PreparedMessageStatus, string> = {
   archived: 'status_archived',
 };
 
-export function PreparedMessageHistory({ customerId, orderId, compact }: PreparedMessageHistoryProps) {
+/** Carte « Historique des messages » d'une commande ou d'un client : 5 messages, puis « Voir plus ». */
+export function PreparedMessageHistory({ customerId, orderId }: PreparedMessageHistoryProps) {
   const t = useTranslations('messages.history');
   const formatDateTime = useFormatDateTime();
-  const { data, isLoading } = usePreparedMessages({ customerId, orderId });
-  const messages = data?.results ?? [];
-  const count = data?.count ?? messages.length;
-
-  if (compact) {
-    if (messages.length === 0) return null;
-    return (
-      <SectionCard title={t('title')} rightSlot={<span className="text-muted-foreground tabular-nums">{count}</span>}>
-        <div className="divide-y divide-border">
-          {messages.map((msg) => (
-            <MessageRow key={msg.id} message={msg} formatDateTime={formatDateTime} compact />
-          ))}
-        </div>
-      </SectionCard>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="rounded-2xl border border-border bg-card">
-        <SkeletonRows count={2} rowClassName="px-4 py-3" />
-      </div>
-    );
-  }
-
-  if (messages.length === 0) {
-    return null;
-  }
+  const list = usePreparedMessages({ customerId, orderId });
+  if (list.items.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2">
-          <MessageCircle size={15} className="text-muted-foreground" />
-          <h2 className="font-semibold text-sm text-foreground">{t('title')}</h2>
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {count}
-          </span>
+    <SectionCard title={t('title')} rightSlot={<span className="text-muted-foreground tabular-nums">{list.count}</span>}>
+      <ShowMoreList list={list} kind="messages">
+        <div className="divide-y divide-border">
+          {list.items.map((msg) => (
+            <MessageRow key={msg.id} message={msg} formatDateTime={formatDateTime} />
+          ))}
         </div>
-      </div>
-
-      <div className="border-t border-border divide-y divide-border">
-        {messages.map((msg) => (
-          <MessageRow key={msg.id} message={msg} formatDateTime={formatDateTime} />
-        ))}
-      </div>
-    </div>
+      </ShowMoreList>
+    </SectionCard>
   );
 }
 
 interface MessageRowProps {
   message: PreparedMessage;
   formatDateTime: (value: string | number | Date, options?: Intl.DateTimeFormatOptions) => string;
-  compact?: boolean;
 }
 
-function MessageRow({ message, formatDateTime, compact }: MessageRowProps) {
+function MessageRow({ message, formatDateTime }: MessageRowProps) {
   const t = useTranslations('messages.history');
   const [expanded, setExpanded] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -101,12 +65,11 @@ function MessageRow({ message, formatDateTime, compact }: MessageRowProps) {
 
   const timestamp = message.sent_manually_at ?? message.created_at;
   const isPrepared = message.status === 'prepared';
-  const padding = compact ? 'px-4 lg:px-5' : 'px-4';
 
   // Le dépliage et la suppression sont deux boutons voisins : un bouton ne peut pas en contenir un autre.
   return (
     <div>
-      <div className={`flex items-center gap-1 ${padding}`}>
+      <div className="flex items-center gap-1 px-4 lg:px-5">
         <button
           type="button"
           aria-expanded={expanded}
@@ -124,7 +87,7 @@ function MessageRow({ message, formatDateTime, compact }: MessageRowProps) {
             </span>
           </span>
           {!expanded && (
-            <span className={`mt-1.5 block text-sm text-foreground wrap-break-word ${compact ? 'line-clamp-1' : 'line-clamp-2'}`}>
+            <span className="mt-1.5 block line-clamp-1 text-sm text-foreground wrap-break-word">
               {message.message}
             </span>
           )}
@@ -140,7 +103,7 @@ function MessageRow({ message, formatDateTime, compact }: MessageRowProps) {
           </button>
         )}
       </div>
-      <p id={contentId} hidden={!expanded} className={`${padding} pb-3 text-sm text-foreground whitespace-pre-wrap wrap-break-word`}>
+      <p id={contentId} hidden={!expanded} className="px-4 pb-3 text-sm text-foreground whitespace-pre-wrap wrap-break-word lg:px-5">
         {message.message}
       </p>
 

@@ -486,8 +486,6 @@
       "chip_notes": "الملاحظات",
       "empty_title": "لا يوجد نشاط",
       "empty_sub": "سيظهر نشاط العميل هنا.",
-      "load_more": "عرض المزيد ({remaining} متبقية)",
-      "loading": "جاري التحميل…",
       "chip_pending": "للتحصيل"
     },
     "activity": {
@@ -1541,6 +1539,9 @@
       "anonymous": "مجهول",
       "meta": "{author}، {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}",
       "delete_cta": "حذف"
+    },
+    "show_more": {
+      "more": "عرض المزيد ({kind, select, other {{remaining} متبقية}})"
     },
     "form": {
       "unsaved": "تعديلات غير محفوظة",

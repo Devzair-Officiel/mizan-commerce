@@ -486,8 +486,6 @@
       "chip_notes": "Notes",
       "empty_title": "Aucune activité",
       "empty_sub": "L'activité du client apparaîtra ici.",
-      "load_more": "Voir plus ({remaining} restantes)",
-      "loading": "Chargement…",
       "chip_pending": "À encaisser"
     },
     "activity": {
@@ -1541,6 +1539,9 @@
       "anonymous": "Anonyme",
       "meta": "{author}, {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}",
       "delete_cta": "Supprimer"
+    },
+    "show_more": {
+      "more": "Voir plus ({kind, select, events {{remaining, plural, one {# restant} other {# restants}}} movements {{remaining, plural, one {# restant} other {# restants}}} messages {{remaining, plural, one {# restant} other {# restants}}} other {{remaining, plural, one {# restante} other {# restantes}}}})"
     },
     "form": {
       "unsaved": "Modifications non enregistrées",

@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { SectionCard } from '@/components/ui/SectionCard';
-import { useOrderActivity, type OrderActivityEvent } from '@/lib/hooks/useOrders';
+import { ShowMoreList } from '@/components/ui/ShowMoreList';
+import { useOrderHistory, type OrderActivityEvent } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
@@ -35,25 +36,27 @@ export function OrderActivityTimeline({ orderId }: { orderId: string }) {
   const t = useTranslations('orders.activity');
   const { format } = useDayTime();
   const titleFor = useEventTitle();
-  const { data } = useOrderActivity(orderId);
-  if (!data || data.events.length === 0) return null;
+  const history = useOrderHistory(orderId);
+  if (history.items.length === 0) return null;
 
   return (
     <SectionCard title={t('title')}>
-      <ol className="flex flex-col gap-3 px-4 py-4 lg:px-5">
-        {data.events.map((event) => (
-          <li key={event.id} className="flex gap-3">
-            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-hidden />
-            <div className="min-w-0">
-              <p className="text-sm">{titleFor(event)}</p>
-              {event.type === 'note' && event.data.content && (
-                <p className="mt-0.5 line-clamp-2 text-[0.8125rem] text-muted-foreground wrap-break-word">{event.data.content}</p>
-              )}
-              <p className="mt-0.5 text-xs text-muted-foreground">{format(event.occurred_at)}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <ShowMoreList list={history} kind="events">
+        <ol className="flex flex-col gap-3 px-4 py-4 lg:px-5">
+          {history.items.map((event) => (
+            <li key={event.id} className="flex gap-3">
+              <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-sm">{titleFor(event)}</p>
+                {event.type === 'note' && event.data.content && (
+                  <p className="mt-0.5 line-clamp-2 text-[0.8125rem] text-muted-foreground wrap-break-word">{event.data.content}</p>
+                )}
+                <p className="mt-0.5 text-xs text-muted-foreground">{format(event.occurred_at)}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </ShowMoreList>
     </SectionCard>
   );
 }

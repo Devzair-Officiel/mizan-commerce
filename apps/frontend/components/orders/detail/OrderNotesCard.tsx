@@ -7,12 +7,12 @@ import { useCreateOrderNote, useDeleteNote, useOrderNotes } from '@/lib/hooks/us
 /** Carte « Notes » de la commande. */
 export function OrderNotesCard({ orderId }: { orderId: string }) {
   const t = useTranslations('orders.detail');
-  const { data } = useOrderNotes(orderId);
+  const list = useOrderNotes(orderId);
   const createNote = useCreateOrderNote(orderId);
   const deleteNote = useDeleteNote(orderId);
   return (
     <NotesCard
-      notes={data?.results ?? []}
+      list={list}
       emptyLabel={t('notes_empty')}
       creating={createNote.isPending}
       onCreate={createNote.mutateAsync}

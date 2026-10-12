@@ -3,8 +3,9 @@
 import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { History } from 'lucide-react';
-import { useCustomerActivityInfinite, type ActivityType } from '@/lib/hooks/useCustomers';
+import { useCustomerActivity, type ActivityType } from '@/lib/hooks/useCustomers';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { ShowMoreList } from '@/components/ui/ShowMoreList';
 import { ActivityRow, ActivitySkeletonRow } from './ActivityRow';
 
 interface CustomerActivityTimelineProps {
@@ -20,13 +21,8 @@ export function CustomerActivityTimeline({
   customerId, activityFilter, pendingOnly, onFilterChange, onTogglePending,
 }: CustomerActivityTimelineProps) {
   const t = useTranslations('customers.timeline');
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useCustomerActivityInfinite(customerId, activityFilter, pendingOnly);
+  // Une puce change la clé de la requête : la liste repart de 5 éléments.
+  const activity = useCustomerActivity(customerId, activityFilter, pendingOnly);
 
   const chips = useMemo<{ key: ActivityType | null; label: string }[]>(
     () => [
@@ -39,8 +35,7 @@ export function CustomerActivityTimeline({
     [t],
   );
 
-  const allItems = data?.pages.flatMap((p) => p.results) ?? [];
-  const totalCount = data?.pages[0]?.count ?? 0;
+  const totalCount = activity.count;
 
   return (
     <SectionCard title={t('title')}
@@ -76,13 +71,13 @@ export function CustomerActivityTimeline({
       </div>
 
       <div className="border-t border-border">
-        {isLoading ? (
+        {activity.isLoading ? (
           <div className="flex flex-col divide-y divide-border">
             {Array.from({ length: 4 }).map((_, i) => (
               <ActivitySkeletonRow key={i} />
             ))}
           </div>
-        ) : !allItems.length ? (
+        ) : !activity.items.length ? (
           <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <History size={20} />
@@ -91,20 +86,13 @@ export function CustomerActivityTimeline({
             <p className="text-xs text-muted-foreground">{t('empty_sub')}</p>
           </div>
         ) : (
-          <div className="flex flex-col divide-y divide-border">
-            {allItems.map((item) => (
-              <ActivityRow key={item.id} item={item} customerId={customerId} />
-            ))}
-            {hasNextPage && (
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="w-full py-3 text-xs font-medium text-primary transition-colors active:bg-muted"
-              >
-                {isFetchingNextPage ? t('loading') : t('load_more', { remaining: totalCount - allItems.length })}
-              </button>
-            )}
-          </div>
+          <ShowMoreList list={activity} kind="activities">
+            <div className="flex flex-col divide-y divide-border">
+              {activity.items.map((item) => (
+                <ActivityRow key={item.id} item={item} customerId={customerId} />
+              ))}
+            </div>
+          </ShowMoreList>
         )}
       </div>
     </SectionCard>

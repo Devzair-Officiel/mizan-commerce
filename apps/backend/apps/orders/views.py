@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.pagination import WindowPagination
 from apps.core.permissions import HasModulePermission, get_shop
 from apps.subscriptions.permissions import HasPlanForFeature
 
@@ -225,8 +226,20 @@ class OrderActivityView(APIView):
         except Order.DoesNotExist:
             return Response({'detail': 'Commande introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
-        events = services.get_order_timeline(order)
-        return Response({'events': events})
+        raw_types = request.query_params.get('types')
+        types: set[str] | None = None
+        if raw_types:
+            types = {t.strip() for t in raw_types.split(',') if t.strip()}
+            unknown = types - services.ORDER_EVENT_TYPES
+            if unknown:
+                return Response(
+                    {'detail': f'Types inconnus: {", ".join(sorted(unknown))}.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        # Fenêtre `limit`/`offset` : seuls les événements affichés sont lus.
+        paginator = WindowPagination()
+        page = paginator.paginate_timeline(services.order_timeline_sources(order, types), request)  # noqa: E501
+        return paginator.get_paginated_response(page)
 
 
 class OrderItemCreateView(APIView):

@@ -15,7 +15,8 @@ class NoteListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = NoteSerializer
     filter_backends = (filters.OrderingFilter,)
-    ordering = ('-created_at',)
+    # `-id` départage les notes de même date : fenêtres `offset` stables.
+    ordering = ('-created_at', '-id')
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()

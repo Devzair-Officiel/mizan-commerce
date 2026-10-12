@@ -101,6 +101,12 @@ export const qk = {
       ['orders', 'customer', customerId, filters] as const,
     detail: (id: string) => ['orders', id] as const,
     activity: (id: string) => ['orders', id, 'activity'] as const,
+    /** Carte « Historique » (5, puis « Voir plus »). */
+    history: (id: string) => ['orders', id, 'activity', 'history'] as const,
+    /** Étapes du suivi : changements de statut. */
+    statusChanges: (id: string) => ['orders', id, 'activity', 'status_change'] as const,
+    /** Carte « Commandes » de la fiche client (5, puis « Voir plus »). */
+    customerWindow: (customerId: string) => ['orders', 'customer', customerId, 'window'] as const,
   },
 
   notes: {
@@ -126,6 +132,8 @@ export const qk = {
     movementsInfinite: (filters: Omit<StockMovementsFilters, 'page'>) =>
       ['stock', 'movements', 'infinite', filters] as const,
     movementsAll: ['stock', 'movements'] as const,
+    /** Carte « Derniers mouvements » de la fiche article (5, puis « Voir plus »). */
+    productMovements: (productId: string) => ['stock', 'movements', 'product', productId] as const,
     levels: (filters: StockLevelsFilters) => ['stock', 'levels', filters] as const,
     levelsInfinite: (filters: Omit<StockLevelsFilters, 'page'>) =>
       ['stock', 'levels', 'infinite', filters] as const,

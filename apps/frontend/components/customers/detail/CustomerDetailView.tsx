@@ -50,7 +50,7 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
           <div className={`${DETAIL_COLUMN} lg:sticky lg:top-6`}>
             <DetailSlot order="max-lg:order-2"><CustomerContactCard customer={customer} actions={state.actions} /></DetailSlot>
             <DetailSlot order="max-lg:order-1"><CustomerSituationCard customer={customer} /></DetailSlot>
-            <DetailSlot order="max-lg:order-6"><PreparedMessageHistory customerId={customer.id} compact /></DetailSlot>
+            <DetailSlot order="max-lg:order-6"><PreparedMessageHistory customerId={customer.id} /></DetailSlot>
           </div>
         </div>
       </div>

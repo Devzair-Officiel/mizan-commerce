@@ -19,8 +19,9 @@ from .timeline import (  # ré-exports pour la rétro-compat des imports `servic
     EVENT_NOTE,
     EVENT_PAYMENT_CHANGE,
     EVENT_STATUS_CHANGE,
+    ORDER_EVENT_TYPES,
     OrderTimelineEvent,
-    get_order_timeline,
+    order_timeline_sources,
 )
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     'EVENT_NOTE',
     'EVENT_PAYMENT_CHANGE',
     'EVENT_STATUS_CHANGE',
+    'ORDER_EVENT_TYPES',
     'OrderTimelineEvent',
     'add_item',
     'advance_order_to',
@@ -38,7 +40,7 @@ __all__ = [
     'current_month_bounds',
     'filter_due',
     'generate_order_number',
-    'get_order_timeline',
+    'order_timeline_sources',
     'recalculate_totals',
     'remove_item',
     'reserve_stock',

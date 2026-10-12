@@ -486,8 +486,6 @@
       "chip_notes": "Notes",
       "empty_title": "No activity",
       "empty_sub": "Customer activity will appear here.",
-      "load_more": "See more ({remaining} remaining)",
-      "loading": "Loading…",
       "chip_pending": "To collect"
     },
     "activity": {
@@ -1541,6 +1539,9 @@
       "anonymous": "Anonymous",
       "meta": "{author}, {when, select, today {today} yesterday {yesterday} other {on {date}}} at {time}",
       "delete_cta": "Delete"
+    },
+    "show_more": {
+      "more": "See more ({kind, select, other {{remaining} remaining}})"
     },
     "form": {
       "unsaved": "Unsaved changes",

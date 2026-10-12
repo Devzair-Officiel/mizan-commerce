@@ -55,6 +55,28 @@ class NoteTest(TestCase):
         response = self.client.get(reverse('note-detail', kwargs={'pk': note_b.pk}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_window_with_limit_and_offset(self):
+        for i in range(7):
+            Note.objects.create(shop=self.shop, author=self.user, content=f'Note {i}', customer=self.customer)  # noqa: E501
+        url = reverse('note-list') + f'?customer={self.customer.pk}'
+        first = self.client.get(url + '&limit=5').data
+        self.assertEqual((first['count'], len(first['results'])), (7, 5))
+        more = self.client.get(url + '&limit=10&offset=5').data
+        self.assertEqual(len(more['results']), 2)
+        self.assertIsNone(more['next'])
+        ids = [n['id'] for n in first['results'] + more['results']]
+        self.assertEqual(len(set(ids)), 7)
+        # Sans `limit` ni `offset` : pagination par page inchangée.
+        self.assertNotIn('limit', self.client.get(url).data['next'] or '')
+
+    def test_window_scoped_to_the_shop(self):
+        user_b, shop_b, _ = setup('window-b@example.com')
+        Note.objects.create(shop=shop_b, author=user_b, content='Note B', customer=None)
+        Note.objects.create(shop=self.shop, author=self.user, content='Note A')
+        data = self.client.get(reverse('note-list') + '?limit=5').data
+        self.assertEqual(data['count'], 1)
+        self.assertEqual(data['results'][0]['content'], 'Note A')
+
 
 class ReminderTest(TestCase):
     def setUp(self):

@@ -9,7 +9,7 @@ import type { CustomerDetailState } from './useCustomerDetailState';
 /** Carte « Notes » du client : la note de la fiche (formulaire client) puis les notes datées. */
 export function CustomerNotesCard({ customer, notes }: { customer: Customer; notes: CustomerDetailState['notes'] }) {
   const t = useTranslations('customers.detail');
-  const { data } = useCustomerNotes(customer.id);
+  const list = useCustomerNotes(customer.id);
   const createNote = useCreateCustomerNote(customer.id);
   const deleteNote = useDeleteCustomerNote(customer.id);
   const recordNote = customer.notes.trim() && (
@@ -21,7 +21,7 @@ export function CustomerNotesCard({ customer, notes }: { customer: Customer; not
   return (
     <div id="customer-notes" className="scroll-mt-20">
       <NotesCard
-        notes={data?.results ?? []}
+        list={list}
         emptyLabel={t('notes_empty')}
         creating={createNote.isPending}
         onCreate={createNote.mutateAsync}

@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk, type CustomersListFilters } from '@/lib/query-keys';
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -194,28 +195,18 @@ export type ActivityEvent =
   | (ActivityBase & { type: 'shipment'; data: ShipmentEventData })
   | (ActivityBase & { type: 'note'; data: NoteData });
 
-export function useCustomerActivityInfinite(
+/** Activité du client (puces : un type, « À encaisser ») : 5 événements, puis « Voir plus ». */
+export function useCustomerActivity(
   customerId: string,
   filter: ActivityFilter = null,
   pendingOnly: boolean = false,
 ) {
-  return useInfiniteQuery({
-    queryKey: qk.customers.activity(customerId, filter, pendingOnly),
-    queryFn: ({ pageParam = 1 }) => {
-      const params = new URLSearchParams();
-      if (filter) params.set('types', filter);
-      if (pendingOnly) params.set('pending', 'true');
-      params.set('page', String(pageParam));
-      params.set('page_size', '15');
-      return apiFetch<PaginatedResponse<ActivityEvent>>(
-        `/customers/${customerId}/activity/?${params}`,
-      );
-    },
-    initialPageParam: 1,
-    getNextPageParam: (last, _, lastPageParam) =>
-      last.next ? (lastPageParam as number) + 1 : undefined,
-    enabled: !!customerId,
-  });
+  return useShowMoreQuery<ActivityEvent>(
+    qk.customers.activity(customerId, filter, pendingOnly),
+    `/customers/${customerId}/activity/`,
+    { types: filter ?? undefined, pending: pendingOnly ? 'true' : undefined },
+    !!customerId,
+  );
 }
 
 export function useUpdateCustomer(id: string) {
