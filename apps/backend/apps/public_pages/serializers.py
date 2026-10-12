@@ -15,11 +15,31 @@ def _signed_url_or_none(object_key: str) -> str | None:
     return get_signed_url(object_key)
 
 
+def _ensure_unique_on_page(
+    serializer: serializers.ModelSerializer, field: str, value: object, message: str,
+) -> None:
+    """Une seule ligne par valeur de `field` sur la page (contrainte d'unicité
+    en base) : 400 lisible plutôt qu'une `IntegrityError`. La page vient du
+    contexte de la vue."""
+    page: PublicPage | None = serializer.context.get('page')
+    if page is None:
+        return
+    qs = serializer.Meta.model.objects.filter(page=page, **{field: value})
+    if serializer.instance is not None:
+        qs = qs.exclude(pk=serializer.instance.pk)
+    if qs.exists():
+        raise serializers.ValidationError(message)
+
+
 class PublicPageSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PublicPageSection
         fields = ('id', 'type', 'position', 'is_visible', 'title', 'content', 'updated_at')  # noqa: E501
         read_only_fields = ('id', 'updated_at')
+
+    def validate_type(self, value: str) -> str:
+        _ensure_unique_on_page(self, 'type', value, 'Cette section existe déjà sur la page.')  # noqa: E501
+        return value
 
 
 class PublicCatalogVisibilitySerializer(serializers.ModelSerializer):
@@ -40,6 +60,7 @@ class PublicCatalogVisibilitySerializer(serializers.ModelSerializer):
         page: PublicPage = self.context['page']
         if product.shop_id != page.shop_id:
             raise serializers.ValidationError('Ce produit n\'appartient pas à cette boutique.')  # noqa: E501
+        _ensure_unique_on_page(self, 'product', product, 'Cet article est déjà sur la page.')  # noqa: E501
         return product
 
 
@@ -51,6 +72,10 @@ class ContactButtonSerializer(serializers.ModelSerializer):
             'is_visible', 'position',
         )
         read_only_fields = ('id',)
+
+    def validate_type(self, value: str) -> str:
+        _ensure_unique_on_page(self, 'type', value, 'Ce bouton de contact existe déjà sur la page.')  # noqa: E501
+        return value
 
     def validate_value(self, value: str) -> str:
         value = value.strip()

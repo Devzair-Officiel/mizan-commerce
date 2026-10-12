@@ -825,6 +825,30 @@ class ProductVariantCreateTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(foreign.variants.count(), 1)
 
+    def test_duplicate_sku_in_shop_is_refused(self):
+        self.product.variants.update(sku='SAN-41')
+        response = self.post({'packaging_name': 'Pointure 42', 'selling_price': '5.00', 'sku': 'SAN-41'})  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['errors']['sku'], ['Cette référence est déjà utilisée par un autre format.'])  # noqa: E501
+        self.assertEqual(self.product.variants.count(), 1)
+
+    def test_patch_to_existing_sku_is_refused(self):
+        self.product.variants.update(sku='SAN-41')
+        created = self.post({'packaging_name': 'Pointure 42', 'selling_price': '5.00', 'sku': 'SAN-42'})  # noqa: E501
+        url = reverse('product-variant-detail', args=[self.product.pk, created.data['id']])  # noqa: E501
+        response = self.client.patch(url, {'sku': 'SAN-41'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('sku', response.data['errors'])
+        # Sa propre référence reste acceptée.
+        response = self.client.patch(url, {'sku': 'SAN-42', 'selling_price': '6.00'}, format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_same_sku_in_other_shop_is_allowed(self):
+        _, other_shop = setup_user_shop('variant-sku-other@example.com')
+        make_product(other_shop).variants.update(sku='SAN-41')
+        response = self.post({'packaging_name': 'Pointure 42', 'selling_price': '5.00', 'sku': 'SAN-41'})  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
 
 def format_row(name, price='29.99', **extra):
     return {'packaging_name': name, 'selling_price': price, **extra}

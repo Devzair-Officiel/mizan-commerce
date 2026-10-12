@@ -2215,7 +2215,7 @@
               ],
               "request": {
                 "method": "POST",
-                "description": "Crée un format ; `initial_stock` crée le mouvement de stock initial.",
+                "description": "Crée un format ; `initial_stock` crée le mouvement de stock initial. `sku` est unique dans la boutique : déjà utilisé par un autre format → 400.",
                 "header": [
                   {
                     "key": "Accept",
@@ -2309,7 +2309,7 @@
               ],
               "request": {
                 "method": "PATCH",
-                "description": "Prix, seuil, référence, code-barres, activation.",
+                "description": "Prix, seuil, référence, code-barres, activation. Référence déjà utilisée dans la boutique → 400.",
                 "header": [
                   {
                     "key": "Accept",
@@ -6466,25 +6466,24 @@
           }
         },
         {
-          "name": "Ajouter une section",
+          "name": "Ajouter une section — déjà présente (400)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Statut 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "pm.test('Statut 400', () => pm.expect(pm.response.code).to.be.oneOf([400]));",
                   "const isJson = (pm.response.headers.get('Content-Type') || '').includes('application/json');",
                   "const json = isJson ? pm.response.json() : {};",
-                  "const set = (k, v) => { if (v !== undefined && v !== null && v !== '') pm.environment.set(k, v); };",
-                  "set('section_id', json.id);"
+                  "pm.test(\"Erreur sur le type\", () => { pm.expect(json.errors.type[0]).to.eql('Cette section existe déjà sur la page.'); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "POST",
-            "description": "`type` : header, description, products, services, contact — une seule section par type : recréer une section supprimée.",
+            "description": "Une seule section par type. Les cinq types existent dès la création de la page : en ajouter un renvoie 400, erreur sur `type`, rien n'est créé.",
             "header": [
               {
                 "key": "Accept",
@@ -6497,7 +6496,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"type\": \"description\",\n  \"position\": 1,\n  \"is_visible\": true,\n  \"title\": \"Notre histoire\",\n  \"content\": \"Une épicerie familiale ouverte depuis 2012.\"\n}",
+              "raw": "{\n  \"type\": \"description\",\n  \"position\": 1,\n  \"is_visible\": true,\n  \"title\": \"Notre histoire\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6516,7 +6515,56 @@
                 ""
               ]
             }
-          }
+          },
+          "response": [
+            {
+              "name": "Section déjà présente",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"description\",\n  \"position\": 1,\n  \"is_visible\": true,\n  \"title\": \"Notre histoire\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/public-page/sections/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "public-page",
+                    "sections",
+                    ""
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"detail\": \"Requête invalide.\",\n  \"errors\": {\n    \"type\": [\n      \"Cette section existe déjà sur la page.\"\n    ]\n  }\n}"
+            }
+          ]
         },
         {
           "name": "Section — fiche",
@@ -6693,6 +6741,59 @@
           }
         },
         {
+          "name": "Ajouter une section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Statut 201', () => pm.expect(pm.response.code).to.be.oneOf([201]));",
+                  "const isJson = (pm.response.headers.get('Content-Type') || '').includes('application/json');",
+                  "const json = isJson ? pm.response.json() : {};",
+                  "const set = (k, v) => { if (v !== undefined && v !== null && v !== '') pm.environment.set(k, v); };",
+                  "set('section_id', json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "`type` : header, description, products, services, contact. Ajoute un type absent de la page, ici la section retirée par la requête précédente. Type déjà présent : 400 (voir la requête précédente).",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"description\",\n  \"position\": 1,\n  \"is_visible\": true,\n  \"title\": \"Notre histoire\",\n  \"content\": \"Une épicerie familiale ouverte depuis 2012.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/public-page/sections/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "public-page",
+                "sections",
+                ""
+              ]
+            }
+          }
+        },
+        {
           "name": "Catalogue de la page",
           "event": [
             {
@@ -6747,7 +6848,7 @@
           ],
           "request": {
             "method": "POST",
-            "description": "Article visible, avec badges promo / nouveau.",
+            "description": "Article visible, avec badges promo / nouveau. Article déjà sur la page → 400.",
             "header": [
               {
                 "key": "Accept",
@@ -6973,7 +7074,7 @@
           ],
           "request": {
             "method": "POST",
-            "description": "`type` : whatsapp, telegram, instagram, phone.",
+            "description": "`type` : whatsapp, telegram, instagram, phone. Un bouton par type : type déjà présent → 400.",
             "header": [
               {
                 "key": "Accept",

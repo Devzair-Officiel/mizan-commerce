@@ -72,6 +72,18 @@ class ProductVariantSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ce nom de conditionnement existe déjà pour ce produit.")  # noqa: E501
         return value
 
+    def validate_sku(self, value: str) -> str:
+        # Référence unique dans la boutique (contrainte en base, hors référence vide).
+        product = self.context.get('product') or getattr(self.instance, 'product', None)
+        if not value or product is None:
+            return value
+        qs = ProductVariant.objects.filter(shop_id=product.shop_id, sku=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Cette référence est déjà utilisée par un autre format.')  # noqa: E501
+        return value
+
     def validate_is_active(self, value: bool) -> bool:
         from .services import LAST_ACTIVE_VARIANT_MESSAGE, is_last_active_variant
         if not value and self.instance is not None and is_last_active_variant(self.instance):  # noqa: E501

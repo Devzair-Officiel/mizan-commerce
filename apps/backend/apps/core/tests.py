@@ -712,3 +712,31 @@ class HistoryProtectionTest(TestCase):
         self.shop.delete()
         self.assertFalse(StockMovement.objects.filter(shop_id=self.shop.pk).exists())
         self.assertFalse(Order.objects.filter(shop_id=self.shop.pk).exists())
+
+
+class UniqueViolationHandlerTest(TestCase):
+    """Unicité violée malgré la validation (requêtes simultanées) : 409 générique."""
+
+    def test_unique_violation_becomes_generic_409(self):
+        from django.db import IntegrityError, transaction
+
+        from apps.core.exceptions import api_exception_handler
+
+        _, shop = setup("unique-409@example.com")
+        Customer.objects.create(shop=shop, name="Awa")
+        try:
+            with transaction.atomic():
+                Customer.objects.create(shop=shop, name="awa")
+        except IntegrityError as exc:
+            response = api_exception_handler(exc, {})
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data, {"detail": "Cette ressource existe déjà."})
+
+    def test_other_integrity_error_stays_500(self):
+        from django.db import IntegrityError
+
+        from apps.core.exceptions import api_exception_handler
+
+        with self.assertLogs("apps.core.exceptions", level="ERROR"):
+            response = api_exception_handler(IntegrityError("not null"), {})
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
