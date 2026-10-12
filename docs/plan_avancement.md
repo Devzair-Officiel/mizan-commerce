@@ -419,6 +419,8 @@
   - [~] Listes longues des fiches (5 + « Voir plus »)
   - [~] Sélecteur d'indicatif téléphonique
   - [~] Garde-fou Base UI (`npm run deps:check` : une seule copie de `@base-ui/utils`)
+  - [ ] Facture client : ne pas afficher le format par défaut dans les lignes
+  - [ ] Entrée de stock : carte de mise à niveau sur l'onglet facture fournisseur sans Boutique+
   - [ ] Fin de la recette
 - [ ] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
 - [ ] Puis : session Postman, pull request, fusion
@@ -427,6 +429,18 @@
   - [ ] Export de l'activité d'un client avec filtres
   - [ ] Bloc Ventes de l'accueil sur 12 mois et depuis la création
   - [ ] Modèles de messages WhatsApp et ton
+- [ ] Lot 5 — Factures fournisseur
+  - [ ] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
+  - [ ] Création d'un article ou d'un service depuis une ligne « à associer », pré-remplie et mémorisée
+- [ ] Lot 6 — Factures clients
+  - [ ] Nouveau design (référence : facture Nidemiel)
+  - [ ] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
+  - [ ] Récapitulatif du compte client en option
+  - [ ] Mentions légales configurables
+- [ ] Lot 7 — Compte et réglages
+  - [ ] Badge d'abonnement (sidebar, menu mobile)
+  - [ ] Raccourci clair/sombre dans le menu
+  - [ ] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
 
 ### Tests
 
