@@ -418,6 +418,7 @@
   - [~] En-têtes de cartes teintés (bande `header-band`, titres et en-têtes de colonnes)
   - [~] Listes longues des fiches (5 + « Voir plus »)
   - [~] Sélecteur d'indicatif téléphonique
+  - [~] Garde-fou Base UI (`npm run deps:check` : une seule copie de `@base-ui/utils`)
   - [ ] Fin de la recette
 - [ ] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
 - [ ] Puis : session Postman, pull request, fusion

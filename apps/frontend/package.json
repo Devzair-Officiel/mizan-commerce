@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "i18n:check": "node scripts/check-i18n.mjs",
     "tokens:check": "node scripts/check-tokens.mjs",
-    "text:check": "node scripts/check-hardcoded-text.mjs"
+    "text:check": "node scripts/check-hardcoded-text.mjs",
+    "deps:check": "node scripts/check-deps.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

@@ -42,6 +42,7 @@ docker compose exec -T frontend npm run typecheck  # Typecheck obligatoire avant
 docker compose exec -T frontend npm run i18n:check  # Obligatoire avant tout commit qui touche aux messages (fr/en/ar)
 docker compose exec -T frontend npm run tokens:check  # Obligatoire avant tout commit frontend : couleurs via tokens (pas de gris de palette ni d'hexadécimal dans un className)
 docker compose exec -T frontend npm run text:check  # Obligatoire avant tout commit frontend : aucun texte d'interface en dur (JSX, title, aria-label, placeholder, alt) — tout passe par t()
+docker compose exec -T frontend npm run deps:check  # Obligatoire avant tout commit frontend : @base-ui/utils installé une seule fois, à la version qu'attend @base-ui/react — deux copies font deux verrous de défilement qui s'ignorent, et la page reste bloquée (6e3b998)
 docker compose exec -T frontend npm run lint     # ESLint
 docker compose exec -T frontend npm run build    # Build de prod
 # npm run test n'existe pas encore — aucune infra Vitest en place
