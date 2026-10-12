@@ -38,7 +38,7 @@ export function DataTable<T>({ columns, rows, rowKey, rowHref, isRowMuted, order
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full min-w-205 border-collapse">
-          <thead className="bg-muted">
+          <thead className="header-band">
             <tr className="border-b border-border">
               {columns.map((column) => (
                 <DataTableHeaderCell key={column.key} column={column} onSort={onSortChange}

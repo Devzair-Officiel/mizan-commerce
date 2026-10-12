@@ -85,7 +85,20 @@ async function wheelScrolls(page) {
   return moved;
 }
 
-/** Problèmes de défilement de la page ([] si elle défile, ou si une fenêtre/un menu est ouvert). */
+/** Un onglet ouvert par la page (wa.me) est-il encore ouvert ? */
+async function popupOpen(page) {
+  for (const other of page.context().pages()) {
+    if (other !== page && !other.isClosed() && await other.opener() === page) return true;
+  }
+  return false;
+}
+
+/**
+ * Problèmes de défilement de la page ([] si elle défile, ou si une fenêtre/un menu est ouvert).
+ * Molette sans effet pendant qu'un onglet ouvert par la page est au premier plan : le navigateur
+ * retarde ou perd les événements de la page d'origine, rien n'est conclu ; l'action suivante, une
+ * fois l'onglet refermé, refait le contrôle.
+ */
 export async function scrollIssues(page, { timeout = 2000 } = {}) {
   const until = Date.now() + timeout;
   let issues = [];
@@ -93,7 +106,10 @@ export async function scrollIssues(page, { timeout = 2000 } = {}) {
     // Fermeture animée, verrou libéré au tour suivant de la boucle d'événements : on laisse 2 s.
     if (await page.evaluate(overlayOpen)) return [];
     issues = await page.evaluate(leftovers);
-    if (issues.length === 0 && await wheelScrolls(page) === false) issues = ['la molette ne fait pas défiler la page'];
+    if (issues.length === 0 && await wheelScrolls(page) === false) {
+      if (await popupOpen(page)) return [];
+      issues = ['la molette ne fait pas défiler la page'];
+    }
     if (issues.length === 0 || Date.now() > until) return issues;
     await page.waitForTimeout(200);
   }

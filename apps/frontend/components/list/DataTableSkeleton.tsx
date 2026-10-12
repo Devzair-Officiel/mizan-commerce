@@ -2,7 +2,7 @@
 export function DataTableSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="h-10.5 border-b border-border bg-muted" />
+      <div className="h-10.5 border-b border-border header-band" />
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex items-center gap-4 px-4 py-3 border-t border-border">
           <div className="h-3 w-12 rounded bg-muted animate-pulse" />

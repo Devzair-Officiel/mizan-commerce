@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { History } from 'lucide-react';
 import { useCustomerActivityInfinite, type ActivityType } from '@/lib/hooks/useCustomers';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { ActivityRow, ActivitySkeletonRow } from './ActivityRow';
 
 interface CustomerActivityTimelineProps {
@@ -42,13 +43,9 @@ export function CustomerActivityTimeline({
   const totalCount = data?.pages[0]?.count ?? 0;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
-        <h2 className="text-[0.9375rem] font-semibold text-foreground">{t('title')}</h2>
-        {totalCount > 0 && <span className="text-[0.8125rem] text-muted-foreground tabular-nums">{totalCount}</span>}
-      </div>
-
-      <div className="overflow-x-auto px-4 pb-3 lg:px-5">
+    <SectionCard title={t('title')}
+      rightSlot={totalCount > 0 ? <span className="text-muted-foreground tabular-nums">{totalCount}</span> : undefined}>
+      <div className="overflow-x-auto px-4 py-3 lg:px-5">
         <div className="flex gap-2 w-max">
           {chips.map(({ key, label }) => {
             const active = activityFilter === key;
@@ -110,6 +107,6 @@ export function CustomerActivityTimeline({
           </div>
         )}
       </div>
-    </div>
+    </SectionCard>
   );
 }

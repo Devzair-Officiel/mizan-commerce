@@ -45,7 +45,7 @@ export function StockEntryLines({ form, lines, currencyCode, candidates }: Stock
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-205 border-collapse text-start">
-        <thead className="bg-muted">
+        <thead className="header-band">
           <tr>
             {heads.map((head) => <th key={head} scope="col" className="px-4.5 py-2.5 text-start text-xs font-semibold text-muted-foreground">{head}</th>)}
             <th scope="col" className="px-4.5 py-2.5 text-end text-xs font-semibold text-muted-foreground">{t('col_total')}</th>

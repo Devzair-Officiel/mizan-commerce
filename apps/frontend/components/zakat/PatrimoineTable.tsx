@@ -34,7 +34,7 @@ export function PatrimoineTable({
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-4 py-2.5 bg-muted/40 border-b border-border">
+      <div className="px-4 py-2.5 header-band border-b border-border">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           {title}
         </p>

@@ -28,7 +28,8 @@ export function launch() {
  * interaction (scroll.mjs). Langue et thème se changent ensuite
  * avec `setLocale` / `setTheme`, pris en compte au prochain chargement de page.
  * Le thème vient du compte (`/auth/me/`) : la réponse est réécrite pour forcer
- * clair ou sombre sans toucher aux préférences enregistrées.
+ * clair ou sombre (`setTheme`), et au besoin la couleur principale et le fond
+ * (`setPalette({ primary_color, background_theme })`), sans toucher aux préférences enregistrées.
  * `email` : un autre compte de démo, en lecture (vérifier qu'une boutique est restée intacte).
  */
 export async function openSession(browser, viewport, { email = EMAIL } = {}) {
@@ -39,13 +40,14 @@ export async function openSession(browser, viewport, { email = EMAIL } = {}) {
   });
   const setLocale = (locale) => ctx.addCookies([{ name: 'NEXT_LOCALE', value: locale, url: BASE }]);
   let theme = 'light';
+  let palette = {};
   await setLocale('fr');
   await ctx.route(/\/api\/proxy\/auth\/me\/?(\?.*)?$/, async (route) => {
     if (route.request().method() !== 'GET') return route.continue();
     try {
       const response = await route.fetch();
       const me = await response.json();
-      await route.fulfill({ response, json: { ...me, theme_mode: theme } });
+      await route.fulfill({ response, json: { ...me, theme_mode: theme, ...palette } });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -61,7 +63,7 @@ export async function openSession(browser, viewport, { email = EMAIL } = {}) {
     page.waitForURL((u) => !u.pathname.startsWith('/login')),
     page.click('button[type=submit]'),
   ]);
-  return { ctx, page, watch, setLocale, setTheme: (t) => { theme = t; } };
+  return { ctx, page, watch, setLocale, setTheme: (t) => { theme = t; }, setPalette: (p) => { palette = p; } };
 }
 
 /** Résultats d'audit : chaque vérification est affichée, les échecs comptés. */

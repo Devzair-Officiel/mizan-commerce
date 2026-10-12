@@ -192,6 +192,20 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
+/* Bande d'en-tête (titre de carte, en-têtes de colonnes) : fond muted, voir design_principles §4.
+   Sur ce fond, muted-foreground et les signaux -700 / -400 tombent sous 4,5:1 avec certains thèmes :
+   la bande les remplace par une nuance plus contrastée (texte à 72 %, signaux -800 / -300). */
+@utility header-band {
+  background-color: var(--muted);
+  --muted-foreground: color-mix(in srgb, var(--foreground) 72%, var(--muted));
+  --color-amber-700: --theme(--color-amber-800 inline);
+  --color-red-700: --theme(--color-red-800 inline);
+  --color-green-700: --theme(--color-green-800 inline);
+  --color-amber-400: --theme(--color-amber-300 inline);
+  --color-red-400: --theme(--color-red-300 inline);
+  --color-green-400: --theme(--color-green-300 inline);
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    Boutique publique — opt-out total du thème admin.
    La vitrine vue par les clients reste claire et neutre quel que soit le

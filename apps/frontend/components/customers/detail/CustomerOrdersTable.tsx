@@ -20,7 +20,7 @@ export function CustomerOrdersTable({ orders, currency }: { orders: OrderSummary
   const formatMoney = useFormatMoney();
   return (
     <table className="hidden w-full border-collapse lg:table">
-      <thead className="bg-muted">
+      <thead className="header-band">
         <tr>
           {(['col_number', 'col_date', 'col_status', 'col_payment', 'col_total'] as const).map((k) => <th key={k} className={TH}>{t(k)}</th>)}
         </tr>

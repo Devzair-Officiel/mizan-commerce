@@ -30,7 +30,7 @@ export function ProductFormatsTable({ formats, labels, actions, canEnter, menuFo
   const t = useTranslations('articles.sheet');
   return (
     <table className="hidden w-full border-collapse xl:table">
-      <thead className="bg-muted">
+      <thead className="header-band">
         <tr>
           {COLUMNS.map((k) => <th key={k} className={TH}>{t(k)}</th>)}
           <th className={TH}><span className="sr-only">{t('col_actions')}</span></th>

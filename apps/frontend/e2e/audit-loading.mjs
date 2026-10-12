@@ -29,11 +29,13 @@ function sample(page, name, loading) {
     const shown = (el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
     const regions = [...document.querySelectorAll('[data-skeleton]')].filter(shown);
     const cards = Math.max(0, ...regions.map((r) => [...r.querySelectorAll('.rounded-2xl')].filter(shown).length));
+    // innerText applique le `text-transform` (titre en `capitalize` : « En-Têtes ») : comparaison sans casse.
     const lines = (document.body?.innerText ?? '').split('\n').map((l) => l.trim());
+    const wanted = name.toLowerCase();
     return {
       skeleton: regions.length > 0, cards,
       loadingText: lines.find((l) => loading.includes(l)) ?? null,
-      loaded: regions.length === 0 && lines.some((l) => l.includes(name)),
+      loaded: regions.length === 0 && lines.some((l) => l.toLowerCase().includes(wanted)),
     };
   }, { name, loading }).catch(() => ({ skeleton: false, cards: 0, loadingText: null, loaded: false }));
 }

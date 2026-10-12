@@ -9,7 +9,7 @@ import { DETAIL_COLUMN, DETAIL_GRID } from './DetailSlot';
 function CardSkeleton({ rows }: { rows: number }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="border-b border-border px-5 py-4"><Skeleton className="h-4 w-1/3" /></div>
+      <div className="border-b border-border header-band px-5 py-4"><Skeleton className="h-4 w-1/3" /></div>
       <div className="flex flex-col gap-3 px-5 py-4">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center justify-between gap-4">

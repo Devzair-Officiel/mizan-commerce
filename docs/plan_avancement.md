@@ -414,7 +414,8 @@
   - [x] Rappels : mise à jour, compteurs, doublons
   - [x] Historique des messages WhatsApp
   - [x] Page bloquée sans défilement (un seul verrou de défilement : celui de Base UI)
-- [ ] Lot 2 (avant fusion)
+- [~] Lot 2 (avant fusion)
+  - [~] En-têtes de cartes teintés (bande `header-band`, titres et en-têtes de colonnes)
   - [ ] Listes longues des fiches (5 + « Voir plus »)
   - [ ] Sélecteur d'indicatif téléphonique
   - [ ] Fin de la recette

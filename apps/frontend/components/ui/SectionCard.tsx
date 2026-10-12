@@ -11,7 +11,7 @@ interface SectionCardProps {
 export function SectionCard({ title, rightLink, rightSlot, children }: SectionCardProps) {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border">
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border header-band">
         <h2 className="text-[0.9375rem] font-semibold text-foreground">{title}</h2>
         {rightLink ? (
           <Link

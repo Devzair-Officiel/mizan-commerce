@@ -5,7 +5,7 @@ export function LinesList({ invoice }: { invoice: Invoice }) {
   const t = useTranslations('invoices.detail');
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-3 border-b border-border header-band">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('lines_title')}
         </h2>
