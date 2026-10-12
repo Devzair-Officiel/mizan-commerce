@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Crop, Trash2 } from 'lucide-react';
+import { Crop, ImageIcon, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
 import { FormSection } from '@/components/form/FormSection';
@@ -72,7 +72,7 @@ export function ProductPhotoSection({ photos, productId, open, onToggle, order }
 
   const action = 'h-8.5 gap-1.5 rounded-full bg-card px-3 text-[0.8125rem] font-medium';
   return (
-    <FormSection id="photos" order={order} title={t('section_photo')} status="optional"
+    <FormSection id="photos" icon={ImageIcon} order={order} title={t('section_photo')} status="optional"
       collapse={{ open, onToggle, summary: items.length ? t('photo_summary', { count: items.length }) : '' }}>
       <ProductPhotoGallery photos={photos} canAdd={items.length < PRODUCT_PHOTO_MAX_COUNT} onAdd={() => input.current?.click()} />
       <input ref={input} type="file" accept={PHOTO_TYPES.join(',')} onChange={pick} hidden />

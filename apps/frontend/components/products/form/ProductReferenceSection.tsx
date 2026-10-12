@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useWatch, type Control, type FieldErrors, type UseFormRegister, type UseFormSetFocus } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
-import { ScanBarcode } from 'lucide-react';
+import { Barcode, ScanBarcode } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
@@ -31,7 +31,7 @@ export function ProductReferenceSection({ control, register, errors, setFocus, o
     .filter(Boolean).join(', ');
 
   return (
-    <FormSection order={order} title={t('section_reference')} status="optional" collapse={{ open, onToggle, summary }}>
+    <FormSection icon={Barcode} order={order} title={t('section_reference')} status="optional" collapse={{ open, onToggle, summary }}>
       <FormField label={t('sku')} error={errors.sku?.message}>
         {(c) => <input {...c} {...register('sku')} dir="auto" autoComplete="off" className={FIELD_CONTROL} />}
       </FormField>

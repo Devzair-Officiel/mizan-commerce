@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
-import { Layers } from 'lucide-react';
+import { Layers, Tag } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL, FIELD_TEXTAREA } from '@/components/form/fieldStyles';
@@ -27,7 +27,7 @@ interface ProductInfoSectionProps {
 export function ProductInfoSection({ register, errors, mode, mixed, type, formats, order }: ProductInfoSectionProps) {
   const t = useTranslations('articles.form');
   return (
-    <FormSection order={order} title={t('section_info')} status="required">
+    <FormSection icon={Tag} order={order} title={t('section_info')} status="required">
       {mixed && mode === 'create' && <ProductTypeChoice register={register} />}
       {mixed && mode === 'edit' && (
         <p className="flex items-center gap-2 text-[0.8125rem] font-medium text-foreground">

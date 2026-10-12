@@ -2,6 +2,7 @@
 
 import { useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
+import { StickyNote } from 'lucide-react';
 import { FormActions } from '@/components/form/FormActions';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
@@ -44,7 +45,7 @@ export function CustomerForm({ mode, defaultValues, onSubmit, isSubmitting, onLe
           <CustomerAddressSection {...fields} setValue={setValue} {...section('address')} order="max-lg:order-3" />
         </div>
         <div className={FORM_COLUMN}>
-          <FormSection order="max-lg:order-4" title={t('section_notes_internal')} status="optional" description={t('section_notes_help')}
+          <FormSection icon={StickyNote} order="max-lg:order-4" title={t('section_notes_internal')} status="optional" description={t('section_notes_help')}
             collapse={{ ...section('notes'), summary: notes.replace(/\s+/g, ' ').trim() }}>
             <FormField label={t('notes')}>
               {(c) => <textarea {...c} {...register('notes')} dir="auto" rows={3} placeholder={t('notes_placeholder')} className={FIELD_TEXTAREA} />}

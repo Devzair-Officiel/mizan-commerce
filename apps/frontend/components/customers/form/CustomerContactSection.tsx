@@ -2,6 +2,7 @@
 
 import { useController, useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
+import { Phone } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { PhoneCountrySelect } from '@/components/form/PhoneCountrySelect';
@@ -28,7 +29,7 @@ export function CustomerContactSection({ control, register, errors, open, onTogg
   const { field: dial } = useController({ control, name: 'phone_country' });
 
   return (
-    <FormSection order={order} title={t('section_contact')} status="optional" description={t('section_contact_help')}
+    <FormSection icon={Phone} order={order} title={t('section_contact')} status="optional" description={t('section_contact_help')}
       collapse={{ open, onToggle, summary: [phone.trim(), email.trim()].filter(Boolean).join(', ') }}>
       <div className={FIELD_ROW}>
         <FormField label={t('phone')} help={t('phone_help')} error={errors.phone?.message}>

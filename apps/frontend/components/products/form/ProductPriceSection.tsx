@@ -2,6 +2,7 @@
 
 import { useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
+import { Wallet } from 'lucide-react';
 import { FieldSuffix } from '@/components/form/FieldSuffix';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
@@ -44,7 +45,7 @@ export function ProductPriceSection({ control, register, errors, currency, curre
   const priceClass = `${FIELD_CONTROL} ${isArticle ? 'pe-24' : 'pe-10'} tabular-nums`;
 
   return (
-    <FormSection order={order} title={t('section_price')}>
+    <FormSection icon={Wallet} order={order} title={t('section_price')}>
       <div className={FIELD_ROW}>
         <FormField label={t('selling_price')} required error={errors.selling_price?.message}>
           {(c) => <FieldSuffix suffix={suffix}><input {...c} {...register('selling_price')} inputMode="decimal" autoComplete="off" className={priceClass} /></FieldSuffix>}

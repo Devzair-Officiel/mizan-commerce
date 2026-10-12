@@ -2,6 +2,7 @@
 
 import { Controller, useWatch, type Control, type FieldErrors, type UseFormRegister, type UseFormSetValue } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
+import { MapPin } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
@@ -31,7 +32,7 @@ export function CustomerAddressSection({ control, register, setValue, errors, op
     .filter(Boolean).join(', ');
 
   return (
-    <FormSection order={order} title={t('section_address')} status="optional" description={t('section_address_help')}
+    <FormSection icon={MapPin} order={order} title={t('section_address')} status="optional" description={t('section_address_help')}
       collapse={{ open, onToggle, summary }}>
       <FormField label={t('country')}>
         {({ id, 'aria-describedby': describedBy }) => (

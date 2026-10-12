@@ -1,7 +1,9 @@
 /**
- * Audit des bandes d'en-tête (design_principles §4), à 1440px et 360px, en clair et en sombre, en français
- * et en arabe, sur l'accueil et les fiches client, commande et article :
- * - chaque titre de carte est dans une bande au fond `muted`, séparée du contenu par une bordure ;
+ * Audit des bandes d'en-tête (design_principles §4 et §11), à 1440px et 360px, en clair et en sombre, en
+ * français et en arabe, sur l'accueil, les fiches client, commande et article, et les formulaires article
+ * (création) et client (création, modification) :
+ * - chaque titre de carte est dans une bande au fond `muted`, séparée du contenu par une bordure (sauf
+ *   l'en-tête d'une carte repliée, sur mobile : la carte se réduit à sa bande) ;
  * - chaque en-tête de tableau a le même fond ; une carte titrée qui contient un tableau garde ses deux
  *   bandes, la bordure entre elles ;
  * - tout texte d'une bande (liens « Tout voir », compteurs, badges, montants) atteint 4,5:1 sur son fond
@@ -57,7 +59,8 @@ function bandIssues() {
     let band = h;
     while (band && band !== document.body && !filled(band)) band = band.parentElement;
     if (!band || band === document.body || !isMuted(band)) { issues.push(`titre « ${name(h)} » hors bande muted`); continue; }
-    if (parseFloat(getComputedStyle(band).borderBottomWidth) < 1) issues.push(`bande « ${name(h)} » sans bordure en bas`);
+    const folded = band.querySelector('[aria-expanded="false"]');
+    if (!folded && parseFloat(getComputedStyle(band).borderBottomWidth) < 1) issues.push(`bande « ${name(h)} » sans bordure en bas`);
     bands.push(band);
   }
   const heads = [...document.querySelectorAll('main thead')].filter(visible);
@@ -107,6 +110,9 @@ function screens({ customer, order, product }, mobile) {
     ['fiche client', `/customers/${customer.id}`, 3, mobile ? 0 : 1],
     ['fiche commande', `/orders/${order.id}`, 4, 0],
     ['fiche article', `/products/${product.id}`, 4, mobile ? 0 : 1],
+    ['nouvel article', '/products/new', 6, 0],
+    ['nouveau client', '/customers/new', 4, 0],
+    ['modification client', `/customers/${customer.id}/edit`, 4, 0],
   ];
 }
 

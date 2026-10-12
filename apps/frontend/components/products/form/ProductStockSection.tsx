@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
-import { ArrowDownToLine } from 'lucide-react';
+import { ArrowDownToLine, Package } from 'lucide-react';
 import { FieldSuffix } from '@/components/form/FieldSuffix';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
@@ -40,7 +40,7 @@ export function ProductStockSection({ control, register, errors, current, open, 
   const quantityClass = `${FIELD_CONTROL} pe-20 tabular-nums`;
 
   return (
-    <FormSection order={order} title={t('section_stock')} status="optional" collapse={{ open, onToggle, summary }}>
+    <FormSection icon={Package} order={order} title={t('section_stock')} status="optional" collapse={{ open, onToggle, summary }}>
       <div className={FIELD_ROW}>
         {current ? (
           <FormField label={t('current_stock')}>
