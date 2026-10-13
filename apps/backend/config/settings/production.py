@@ -1,3 +1,5 @@
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *
 
 DEBUG = False
@@ -29,6 +31,25 @@ if os.environ.get("SECRET_KEY") in (None, "", "change-me-in-production"):
 ALLOWED_HOSTS = _required_env_list("ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = _required_env_list("CSRF_TRUSTED_ORIGINS")
 CORS_ALLOWED_ORIGINS = _required_env_list("CORS_ALLOWED_ORIGINS")
+
+
+def _required_storage_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise ImproperlyConfigured(
+            f"Variable d'environnement {name!r} obligatoire en production "
+            f"(stockage OVH). Le bucket de production lui est propre : "
+            f"jamais celui du développement."
+        )
+    return value
+
+
+# Stockage OVH : aucune valeur par défaut en production, sinon les fichiers
+# partiraient sans prévenir dans un autre bucket.
+AWS_STORAGE_BUCKET_NAME = _required_storage_env("OVH_S3_BUCKET_PRIVATE")
+AWS_S3_ENDPOINT_URL = _required_storage_env("OVH_S3_ENDPOINT_URL")
+AWS_ACCESS_KEY_ID = _required_storage_env("OVH_S3_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY = _required_storage_env("OVH_S3_SECRET_KEY")
 
 # Apache gère le HTTPS — on lui fait confiance via X-Forwarded-Proto
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

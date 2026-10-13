@@ -55,7 +55,7 @@
 
 - [ ] Créer un VPS ou Public Cloud Instance OVH
 - [ ] Provisionner PostgreSQL managé OVHcloud
-- [ ] Provisionner un bucket Object Storage privé (`saas-private`) + un bucket public (`saas-public`)
+- [ ] Provisionner le bucket privé de production (ex. `mizan-prod-private`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
 - [ ] Configurer un nom de domaine + HTTPS (Let's Encrypt via Nginx/Traefik)
 - [ ] Configurer un domaine de staging séparé
 

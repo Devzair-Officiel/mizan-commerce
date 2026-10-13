@@ -740,3 +740,41 @@ class UniqueViolationHandlerTest(TestCase):
         with self.assertLogs("apps.core.exceptions", level="ERROR"):
             response = api_exception_handler(IntegrityError("not null"), {})
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ProductionStorageSettingsTest(TestCase):
+    """Production sans variable de stockage OVH : refus de démarrer."""
+
+    ENV = {
+        "SECRET_KEY": "x" * 50,
+        "ALLOWED_HOSTS": "mizan.example.com",
+        "CSRF_TRUSTED_ORIGINS": "https://mizan.example.com",
+        "CORS_ALLOWED_ORIGINS": "https://mizan.example.com",
+        "OVH_S3_BUCKET_PRIVATE": "mizan-prod-private",
+        "OVH_S3_ENDPOINT_URL": "https://s3.example.com",
+        "OVH_S3_ACCESS_KEY": "test-access",
+        "OVH_S3_SECRET_KEY": "test-secret",
+    }
+
+    def load_production(self, **missing_or_blank):
+        import runpy
+
+        env = {**self.ENV, **missing_or_blank}
+        with mock.patch.dict(os.environ, {k: v for k, v in env.items() if v is not None}):  # noqa: E501
+            for name in (k for k, v in env.items() if v is None):
+                os.environ.pop(name, None)
+            return runpy.run_module("config.settings.production")
+
+    def test_complete_environment_loads(self):
+        settings = self.load_production()
+        self.assertEqual(settings["AWS_STORAGE_BUCKET_NAME"], "mizan-prod-private")
+
+    def test_missing_storage_variable_is_refused(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        for name in ("OVH_S3_BUCKET_PRIVATE", "OVH_S3_ENDPOINT_URL",
+                     "OVH_S3_ACCESS_KEY", "OVH_S3_SECRET_KEY"):
+            for value in (None, "  "):
+                with self.subTest(name=name, value=value):
+                    with self.assertRaisesMessage(ImproperlyConfigured, name):
+                        self.load_production(**{name: value})
