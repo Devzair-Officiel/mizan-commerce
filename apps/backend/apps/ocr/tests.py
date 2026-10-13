@@ -13,6 +13,8 @@ from apps.accounts.models import User
 from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
+from apps.subscriptions.models import SubscriptionPlan
+from apps.subscriptions.test_utils import attach_subscription
 
 from .models import OcrResult, UploadedDocument
 
@@ -28,10 +30,14 @@ PNG_BYTES = b'\x89PNG\r\n\x1a\n' + b'\x00' * 16
 WEBP_BYTES = b'RIFF\x00\x00\x00\x00WEBP' + b'\x00' * 8
 
 
-def make_user_shop(email: str) -> tuple[User, Shop]:
+def make_user_shop(
+    email: str, plan_code: str = SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+) -> tuple[User, Shop]:
+    """Boutique de test en Boutique+ par défaut : l'import de facture en dépend."""
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}')
     ShopMember.objects.create(shop=shop, user=user, role='owner')
+    attach_subscription(shop, plan_code=plan_code)
     return user, shop
 
 
@@ -1376,6 +1382,49 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
         self.assertTrue(OcrResult.objects.filter(pk=response.data['ocr_result_id'], status='pending').exists())  # noqa: E501
         # Le message ne contient aucune trace technique.
         self.assertNotIn('broker', response.data['detail'].lower())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Formule : l'import de facture fournisseur est réservé à Boutique+
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class OcrPlanGatingTest(TestCase):
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop(
+            'owner@example.com', plan_code=SubscriptionPlan.CODE_PRO,
+        )
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop,
+            uploaded_document=make_document(self.shop, self.owner),
+            status=OcrResult.STATUS_DONE,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+    def _upload(self):
+        document = SimpleUploadedFile(
+            'facture.jpg', JPEG_BYTES, content_type='image/jpeg',
+        )
+        with (
+            patch('apps.ocr.services.upload_fileobj'),
+            patch('apps.ocr.views.process_invoice_ocr.delay'),
+        ):
+            return self.client.post('/api/ocr/invoices/', {'document': document}, format='multipart')  # noqa: E501
+
+    def test_pro_is_denied_on_every_endpoint(self) -> None:
+        self.assertEqual(self._upload().status_code, status.HTTP_403_FORBIDDEN)
+        detail = f'/api/ocr/results/{self.ocr.pk}/'
+        self.assertEqual(self.client.get(detail).status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.post(f'{detail}validate/', {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(OcrResult.objects.filter(shop=self.shop).count(), 1)
+
+    def test_boutique_plus_is_allowed(self) -> None:
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(self._upload().status_code, status.HTTP_201_CREATED)
+        detail = f'/api/ocr/results/{self.ocr.pk}/'
+        self.assertEqual(self.client.get(detail).status_code, status.HTTP_200_OK)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3290,3 +3339,184 @@ class ValidateInvoiceReviewViewTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.variant_a.refresh_from_db()
         self.assertEqual(self.variant_a.stock_quantity, before)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# C4 : association déterministe et entrée de stock depuis une facture
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class InvoiceLineAssociationTest(TestCase):
+    """Ordre : code-barres, référence, mémoire du fournisseur, nom normalisé."""
+
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('assoc@example.com')
+        self.sandales = _make_variant(
+            self.shop, _make_product(self.shop, 'Sandales cuir'), 'Pointure 41',
+            barcode='3760001', sku='SAN-41',
+        )
+        self.foulard = _make_variant(
+            self.shop, _make_product(self.shop, 'Foulard soie'), 'Par défaut',
+        )
+
+    def associate(self, line: object, supplier: str = 'ACME') -> object:
+        from .matching import match_invoice_lines_to_variants
+
+        extraction = _invoice_extraction([line])._replace(supplier_name=supplier)
+        (matched,) = match_invoice_lines_to_variants(
+            shop_id=self.shop.id, extraction=extraction,
+        ).lines
+        return matched.association
+
+    def test_barcode_then_reference(self) -> None:
+        by_barcode = self.associate(_invoice_line('x', supplier_reference='3760001'))
+        by_sku = self.associate(_invoice_line('x', supplier_reference='san-41'))
+        self.assertEqual(
+            [(a.variant_id, a.match_kind) for a in (by_barcode, by_sku)],
+            [(str(self.sandales.pk), 'barcode_exact'), (str(self.sandales.pk), 'sku_exact')],  # noqa: E501
+        )
+
+    def test_memorised_association_for_this_supplier(self) -> None:
+        from .models import SupplierLineMatch
+
+        SupplierLineMatch.objects.create(
+            shop=self.shop, supplier_key='lin co', label_key='fl soie 90',
+            variant=self.foulard,
+        )
+        association = self.associate(_invoice_line('FL. Soie 90'), supplier='Lin & Co')
+        self.assertEqual(
+            (association.variant_id, association.match_kind),
+            (str(self.foulard.pk), 'supplier_memory'),
+        )
+        self.assertIsNone(self.associate(_invoice_line('FL. Soie 90'), supplier='Autre'))  # noqa: E501
+
+    def test_normalised_name(self) -> None:
+        by_name = self.associate(_invoice_line('  SANDALES  cuir pointure 41 '))
+        only_format = self.associate(_invoice_line('Foulard SOIE'))
+        self.assertEqual(
+            [(a.variant_id, a.match_kind) for a in (by_name, only_format)],
+            [(str(self.sandales.pk), 'name_exact'), (str(self.foulard.pk), 'name_exact')],  # noqa: E501
+        )
+
+    def test_otherwise_to_associate(self) -> None:
+        self.assertIsNone(self.associate(_invoice_line('Sac en toile')))
+
+    def test_ambiguous_level_does_not_associate(self) -> None:
+        # Même nom normalisé pour deux formats : la ligne reste « à associer ».
+        _make_variant(self.shop, _make_product(self.shop, 'Sandales-cuir'), 'Pointure 41')  # noqa: E501
+        self.assertIsNone(self.associate(_invoice_line('Sandales cuir pointure 41')))
+
+
+class InvoiceStockEntryTest(TestCase):
+    """POST /stock/entries/ avec `ocr_document` : entrée, mémoire, facture validée."""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user, self.shop = make_user_shop('invoice-entry@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.sandales = _make_variant(
+            self.shop, _make_product(self.shop, 'Sandales cuir'), 'Pointure 41',
+        )
+        self.foulard = _make_variant(
+            self.shop, _make_product(self.shop, 'Foulard soie'), 'Par défaut',
+        )
+        self.document = make_document(self.shop, self.user)
+        self.ocr = self._ocr(self.document)
+
+    def _ocr(self, document: UploadedDocument) -> OcrResult:
+        lines = [
+            {'description': 'Sandales cuir pointure 41', 'supplier_reference': None,
+             'quantity': '2', 'unit_price': '12.00', 'line_total': '24.00',
+             'source_line_indices': [0]},
+            {'description': 'FL. Soie 90', 'supplier_reference': None,
+             'quantity': '3', 'unit_price': '8.00', 'line_total': '24.00',
+             'source_line_indices': [1]},
+        ]
+        association = {
+            'variant_id': str(self.sandales.pk), 'product_id': str(self.sandales.product_id),  # noqa: E501
+            'product_name': 'Sandales cuir', 'packaging_name': 'Pointure 41',
+            'match_kind': 'name_exact', 'similarity_score': 100,
+        }
+        return OcrResult.objects.create(
+            shop=document.shop, uploaded_document=document,
+            status=OcrResult.STATUS_DONE, raw_text='',
+            structured_data={
+                'invoice': {'supplier_name': 'Lin & Co', 'invoice_number': 'F-118',
+                            'invoice_date': '2026-10-08', 'lines': lines},
+                'matching': {'status': 'done', 'lines': [
+                    {'invoice_line_index': 0, 'candidates': [], 'association': association},  # noqa: E501
+                    {'invoice_line_index': 1, 'candidates': [], 'association': None},
+                ]},
+            },
+        )
+
+    def _post(self, document: UploadedDocument | None = None) -> object:
+        return self.client.post(reverse('stock-entries'), {
+            'ocr_document': str((document or self.document).pk),
+            'supplier_name': 'Lin & Co', 'invoice_number': 'F-118',
+            'invoice_date': '2026-10-08',
+            'lines': [
+                {'variant': str(self.sandales.pk), 'quantity': '2',
+                 'unit_purchase_price': '12.00', 'invoice_line_index': 0},
+                {'variant': str(self.foulard.pk), 'quantity': '3',
+                 'unit_purchase_price': '8.00', 'invoice_line_index': 1},
+            ],
+        }, format='json')
+
+    def test_entry_records_stock_memory_and_validates_the_invoice(self) -> None:
+        from .models import SupplierLineMatch
+
+        response = self._post()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.foulard.refresh_from_db()
+        self.assertEqual(
+            (self.foulard.stock_quantity, str(self.foulard.purchase_price)), (3, '8.00'),  # noqa: E501
+        )
+        movements = StockMovement.objects.filter(ocr_result=self.ocr)
+        self.assertEqual(movements.count(), 2)
+        self.assertEqual(set(movements.values_list('invoice_number', flat=True)), {'F-118'})  # noqa: E501
+        self.ocr.refresh_from_db()
+        self.assertEqual(self.ocr.status, OcrResult.STATUS_VALIDATED)
+        # Seule la ligne associée à la main est mémorisée.
+        memory = SupplierLineMatch.objects.get(shop=self.shop)
+        self.assertEqual(
+            (memory.supplier_key, memory.label_key, memory.variant_id),
+            ('lin co', 'fl soie 90', self.foulard.pk),
+        )
+
+    def test_next_invoice_from_this_supplier_is_associated(self) -> None:
+        from .matching import match_invoice_lines_to_variants
+
+        self._post()
+        extraction = _invoice_extraction([_invoice_line('Fl. soie 90')])
+        extraction = extraction._replace(supplier_name='LIN & CO')
+        (matched,) = match_invoice_lines_to_variants(
+            shop_id=self.shop.id, extraction=extraction,
+        ).lines
+        self.assertEqual(
+            (matched.association.variant_id, matched.association.match_kind),
+            (str(self.foulard.pk), 'supplier_memory'),
+        )
+
+    def test_invoice_recorded_once(self) -> None:
+        self._post()
+        response = self._post()
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(StockMovement.objects.filter(ocr_result=self.ocr).count(), 2)
+
+    def test_unknown_invoice_line_rolls_back(self) -> None:
+        response = self.client.post(reverse('stock-entries'), {
+            'ocr_document': str(self.document.pk),
+            'lines': [{'variant': str(self.foulard.pk), 'quantity': '1',
+                       'invoice_line_index': 7}],
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(StockMovement.objects.exists())
+
+    def test_other_shop_invoice_is_refused(self) -> None:
+        _, other_shop = make_user_shop('invoice-other@example.com')
+        foreign = make_document(other_shop)
+        self._ocr(foreign)
+        response = self._post(foreign)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(StockMovement.objects.exists())

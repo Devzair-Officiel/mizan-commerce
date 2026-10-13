@@ -1,36 +1,39 @@
 'use client';
 
-import { OrdersTable } from './OrdersTable';
-import { OrdersTableSkeleton } from './OrdersTableSkeleton';
-import { OrdersPagination } from './OrdersPagination';
+import { DataTable } from '@/components/list/DataTable';
+import { DataTablePagination } from '@/components/list/DataTablePagination';
+import { DataTableSkeleton } from '@/components/list/DataTableSkeleton';
+import { useOrderColumns } from './useOrderColumns';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
 
 interface Props {
   orders: OrderSummary[];
   isLoading: boolean;
   total: number;
-  urlPage: number;
+  page: number;
   pageSize: number;
   currency: string;
-  onPrev: () => void;
-  onNext: () => void;
+  ordering: string;
+  onSortChange: (ordering: string) => void;
+  onPageChange: (page: number) => void;
 }
 
 export function OrdersDesktopView({
-  orders, isLoading, total, urlPage, pageSize, currency, onPrev, onNext,
+  orders, isLoading, total, page, pageSize, currency, ordering, onSortChange, onPageChange,
 }: Props) {
-  if (isLoading) return <OrdersTableSkeleton />;
+  const columns = useOrderColumns(currency);
+  if (isLoading) return <DataTableSkeleton />;
   if (total === 0) return null;
   return (
-    <div className="flex flex-col gap-3">
-      <OrdersTable orders={orders} currency={currency} />
-      <OrdersPagination
-        total={total}
-        page={urlPage}
-        pageSize={pageSize}
-        onPrev={onPrev}
-        onNext={onNext}
-      />
-    </div>
+    <DataTable
+      columns={columns}
+      rows={orders}
+      rowKey={(o) => o.id}
+      rowHref={(o) => `/orders/${o.id}`}
+      isRowMuted={(o) => o.status === 'cancelled'}
+      ordering={ordering}
+      onSortChange={onSortChange}
+      footer={<DataTablePagination page={page} pageSize={pageSize} total={total} onPageChange={onPageChange} />}
+    />
   );
 }

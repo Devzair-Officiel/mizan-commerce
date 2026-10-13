@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { Palette } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { FloatingInput } from '@/components/ui/floating-fields';
@@ -20,22 +21,20 @@ import { LogoUploader } from './LogoUploader';
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const hexRegex = /^#[0-9A-Fa-f]{6}$/;
 
+// Messages : clés sous `public_page_admin.slug` et `public_page_admin.identity`, traduites à l'affichage.
 const schema = z.object({
-  slug: z.string().min(3).max(50).regex(slugRegex, 'Lettres minuscules, chiffres et tirets uniquement'),
+  slug: z.string().min(3, 'min').max(50, 'max').regex(slugRegex, 'format'),
   display_name: z.string().max(120),
   tagline: z.string().max(160),
   description: z.string().max(2000),
   theme: z.enum(['classic', 'modern', 'minimal']),
-  primary_color: z.string().regex(hexRegex, 'Format attendu : #RRGGBB'),
+  primary_color: z.string().regex(hexRegex, 'color_format'),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const THEMES: { value: PublicPageTheme; label: string; hint: string }[] = [
-  { value: 'classic', label: 'Classique', hint: 'Sobre, fond clair' },
-  { value: 'modern', label: 'Moderne', hint: 'Contrastes affirmés' },
-  { value: 'minimal', label: 'Minimal', hint: 'Beaucoup d\'espace' },
-];
+// Libellés sous `public_page_admin.identity.themes.<thème>.{label,hint}`.
+const THEMES: PublicPageTheme[] = ['classic', 'modern', 'minimal'];
 
 const COLOR_SWATCHES = ['#0f766e', '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#16a34a', '#0891b2'];
 
@@ -55,6 +54,7 @@ interface Props {
 }
 
 export function IdentityCard({ page }: Props) {
+  const t = useTranslations('public_page_admin');
   const update = useUpdatePublicPage();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -84,10 +84,10 @@ export function IdentityCard({ page }: Props) {
           data?.slug?.[0]
           ?? data?.primary_color?.[0]
           ?? data?.detail
-          ?? 'Mise à jour impossible',
+          ?? t('identity.error'),
         );
       } else {
-        setServerError('Mise à jour impossible');
+        setServerError(t('identity.error'));
       }
     }
   }
@@ -95,23 +95,23 @@ export function IdentityCard({ page }: Props) {
   return (
     <SettingsCard
       icon={Palette}
-      title="Identité de la page"
-      description="Ce que vos clients voient en haut de la vitrine."
+      title={t('identity.title')}
+      description={t('identity.description')}
     >
       <LogoUploader page={page} />
       <CoverUploader page={page} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <FloatingInput id="slug" label="Adresse URL *" {...register('slug')} />
-          {errors.slug && <p className="text-[11px] text-destructive px-1">{errors.slug.message}</p>}
+          <FloatingInput id="slug" label={t('identity.slug_label')} {...register('slug')} />
+          {errors.slug && <p className="text-[11px] text-destructive px-1">{t(`slug.${errors.slug.message}`)}</p>}
           <p className="text-[11px] text-muted-foreground px-1 mt-1">
-            Modifier l&apos;adresse cassera les liens déjà partagés.
+            {t('identity.slug_help')}
           </p>
         </div>
 
         <div className="flex flex-col gap-0.5">
-          <FloatingInput id="display_name" label="Nom affiché" {...register('display_name')} />
+          <FloatingInput id="display_name" label={t('identity.display_name_label')} {...register('display_name')} />
           {errors.display_name && (
             <p className="text-[11px] text-destructive px-1">{errors.display_name.message}</p>
           )}
@@ -120,7 +120,7 @@ export function IdentityCard({ page }: Props) {
         <div className="flex flex-col gap-0.5">
           <FloatingInput
             id="tagline"
-            label="Phrase d'accroche"
+            label={t('identity.tagline_label')}
             placeholder=" "
             {...register('tagline')}
           />
@@ -131,7 +131,7 @@ export function IdentityCard({ page }: Props) {
 
         <div className="flex flex-col gap-1">
           <label htmlFor="description" className="text-[11px] text-muted-foreground px-1">
-            Description
+            {t('identity.description_label')}
           </label>
           <textarea
             id="description"
@@ -145,33 +145,33 @@ export function IdentityCard({ page }: Props) {
         </div>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-[11px] text-muted-foreground px-1">Thème</legend>
+          <legend className="text-[11px] text-muted-foreground px-1">{t('identity.theme_label')}</legend>
           <div className="grid grid-cols-3 gap-2">
-            {THEMES.map((t) => (
+            {THEMES.map((theme) => (
               <label
-                key={t.value}
+                key={theme}
                 className={`flex flex-col items-center gap-1 rounded-2xl border p-3 cursor-pointer text-center transition-colors ${
-                  currentTheme === t.value
+                  currentTheme === theme
                     ? 'border-primary bg-primary/5'
                     : 'border-border bg-card hover:bg-muted'
                 }`}
               >
-                <input type="radio" value={t.value} {...register('theme')} className="sr-only" />
-                <span className="text-xs font-semibold">{t.label}</span>
-                <span className="text-[10px] text-muted-foreground leading-tight">{t.hint}</span>
+                <input type="radio" value={theme} {...register('theme')} className="sr-only" />
+                <span className="text-xs font-semibold">{t(`identity.themes.${theme}.label`)}</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">{t(`identity.themes.${theme}.hint`)}</span>
               </label>
             ))}
           </div>
         </fieldset>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="text-[11px] text-muted-foreground px-1">Couleur principale</legend>
+          <legend className="text-[11px] text-muted-foreground px-1">{t('identity.color_label')}</legend>
           <div className="flex items-center gap-2 flex-wrap">
             {COLOR_SWATCHES.map((c) => (
               <button
                 key={c}
                 type="button"
-                aria-label={`Choisir ${c}`}
+                aria-label={t('identity.choose_color', { color: c })}
                 onClick={() => setValue('primary_color', c, { shouldDirty: true })}
                 className={`h-8 w-8 rounded-full border-2 transition-transform ${
                   currentColor.toLowerCase() === c.toLowerCase()
@@ -181,7 +181,7 @@ export function IdentityCard({ page }: Props) {
                 style={{ backgroundColor: c }}
               />
             ))}
-            <label className="inline-flex items-center gap-2 ml-auto cursor-pointer">
+            <label className="inline-flex items-center gap-2 ms-auto cursor-pointer">
               <input
                 type="color"
                 value={currentColor}
@@ -192,7 +192,7 @@ export function IdentityCard({ page }: Props) {
             </label>
           </div>
           {errors.primary_color && (
-            <p className="text-[11px] text-destructive px-1">{errors.primary_color.message}</p>
+            <p className="text-[11px] text-destructive px-1">{t(`identity.${errors.primary_color.message}`)}</p>
           )}
         </fieldset>
 
@@ -208,11 +208,11 @@ export function IdentityCard({ page }: Props) {
               size="sm"
               onClick={() => reset(defaultsFromPage(page))}
             >
-              Annuler
+              {t('identity.cancel')}
             </Button>
           )}
           <Button type="submit" size="sm" disabled={!isDirty || update.isPending}>
-            {update.isPending ? 'Enregistrement…' : 'Enregistrer'}
+            {update.isPending ? t('identity.saving') : t('identity.save')}
           </Button>
         </div>
       </form>

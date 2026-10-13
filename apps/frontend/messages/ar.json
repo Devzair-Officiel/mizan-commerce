@@ -5,7 +5,11 @@
       "password": "كلمة المرور",
       "back_to_login": "العودة إلى تسجيل الدخول",
       "invalid_email": "البريد الإلكتروني غير صالح",
-      "invalid_or_expired_link": "الرابط غير صالح أو منتهي الصلاحية."
+      "invalid_or_expired_link": "الرابط غير صالح أو منتهي الصلاحية.",
+      "back_home": "العودة إلى الرئيسية",
+      "email_placeholder": "you@example.com",
+      "show_password": "إظهار كلمة المرور",
+      "hide_password": "إخفاء كلمة المرور"
     },
     "login": {
       "title": "تسجيل الدخول",
@@ -120,7 +124,8 @@
       "articles": "العناصر",
       "catalogue": "الفهرس",
       "services": "الخدمات",
-      "articles_and_services": "المنتجات والخدمات"
+      "articles_and_services": "المنتجات والخدمات",
+      "more": "المزيد"
     },
     "breadcrumb": {
       "products": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
@@ -240,7 +245,8 @@
       "low_stock_sub": "منها {count} نفد",
       "reminders_next": "اليوم، التالي في {time}",
       "reminders_late": "{count} متأخر",
-      "low_stock_unit": "منتجات"
+      "low_stock_unit": "منتجات",
+      "negative_sub": "منها {count} للتسوية"
     },
     "prepare": {
       "title": "طلبات قيد التحضير",
@@ -288,7 +294,8 @@
       "out_of_stock_sub": "{count} نفد",
       "see_all": "عرض {count} منتج →",
       "see_stock": "عرض المخزون",
-      "restock": "إعادة تموين"
+      "restock": "إعادة تموين",
+      "negative": "{qty}، للتسوية"
     },
     "reminders": {
       "title": "تذكيرات اليوم",
@@ -330,102 +337,139 @@
   "customers": {
     "list": {
       "title": "العملاء",
-      "active_count": "عملاء نشطون",
-      "pending_total": "مدفوعات معلقة",
-      "loading": "جاري التحميل…",
-      "count_filtered": "{count, plural, one {# عميل معروض} other {# عملاء معروضون}} · مرشّح",
-      "count_registered": "{count, plural, one {# عميل مسجل} other {# عملاء مسجلون}}",
+      "count": "{count, plural, zero {لا عملاء} one {عميل واحد} two {عميلان} few {# عملاء} many {# عميلًا} other {# عميل}}",
       "new_cta": "عميل جديد",
-      "filter_sort": "تصفية / فرز",
-      "empty_filtered": "لا يوجد عميل مطابق.",
+      "search_label": "البحث عن عميل",
+      "search_placeholder": "الاسم أو الهاتف أو البريد أو المدينة",
+      "clear_filters": "مسح عوامل التصفية",
+      "situation_title": "الوضع",
+      "situation": {
+        "all": "الكل",
+        "active": "النشطون",
+        "pending": "عليهم مستحقات",
+        "deactivated": "المعطّلون"
+      },
+      "column_client": "العميل",
+      "column_city": "المدينة",
+      "column_orders": "الطلبات",
+      "column_last_order": "آخر طلب",
+      "column_paid": "إجمالي المدفوع",
+      "column_pending": "المتبقي",
+      "none": "لا شيء",
+      "no_orders": "لا طلبات",
+      "pending_short": "متبقٍّ",
       "deactivated_badge": "معطل",
       "phone_missing": "لم يتم إدخال الهاتف",
-      "pending_to_collect": "للتحصيل"
+      "load_more": "تحميل المزيد",
+      "empty_title": "لا يوجد عملاء",
+      "empty_sub": "أضف عملاءك لمتابعة طلباتهم وما تبقى عليهم.",
+      "empty_filtered_title": "لا يوجد عملاء لهذا التصفية",
+      "empty_filtered_sub": "أزل عوامل التصفية أو غيّر البحث لعرض جميع عملائك.",
+      "sort": {
+        "name": "{dir, select, asc {مرتبة حسب الاسم، من أ إلى ي} other {مرتبة حسب الاسم، من ي إلى أ}}",
+        "pending_amount": "{dir, select, asc {مرتبة حسب المتبقي، الأصغر أولًا} other {مرتبة حسب المتبقي، الأكبر أولًا}}",
+        "paid_amount": "{dir, select, asc {مرتبة حسب المدفوع، الأصغر أولًا} other {مرتبة حسب المدفوع، الأكبر أولًا}}",
+        "order_count": "{dir, select, asc {مرتبة حسب الطلبات، الأقل أولًا} other {مرتبة حسب الطلبات، الأكثر أولًا}}",
+        "last_order_at": "{dir, select, asc {مرتبة حسب آخر طلب، الأقدم أولًا} other {مرتبة حسب آخر طلب، الأحدث أولًا}}",
+        "created_at": "{dir, select, asc {مرتبة حسب تاريخ الإضافة، الأقدم أولًا} other {مرتبة حسب تاريخ الإضافة، الأحدث أولًا}}"
+      },
+      "stats": {
+        "active_label": "عملاء نشطون",
+        "due_label": "للتحصيل",
+        "due_sub": "من {count, plural, zero {لا عملاء} one {عميل واحد} two {عميلين} few {# عملاء} many {# عميلًا} other {# عميل}}",
+        "new_label": "جدد هذا الشهر"
+      }
     },
     "filterSheet": {
-      "title": "تصفية / فرز",
-      "aria_label": "تصفية وفرز",
-      "close": "إغلاق",
-      "search_label": "بحث محلي",
-      "search_placeholder": "ابحث عن عميل أو هاتف أو مدينة…",
-      "search_clear": "مسح",
+      "apply": "عرض العملاء",
+      "show_results": "{count, plural, zero {لا يوجد عملاء} one {عرض عميل واحد} two {عرض عميلين} few {عرض # عملاء} many {عرض # عميلًا} other {عرض # عميل}}",
       "sort_title": "ترتيب حسب",
-      "sort_name_asc": "الاسم أ → ي",
-      "sort_amount_desc": "المبلغ تنازليًا",
-      "sort_recent": "آخر طلب",
-      "filter_title": "إظهار",
-      "filter_all": "جميع العملاء",
-      "filter_active": "عملاء نشطون",
-      "filter_pending": "مع دفعة معلقة",
-      "filter_deactivated": "معطلون",
-      "reset": "إعادة تعيين",
-      "apply": "عرض النتائج"
+      "sort_name": "الاسم، من أ إلى ي",
+      "sort_pending": "المتبقي، الأكبر أولًا",
+      "sort_last_order": "آخر طلب، الأحدث أولًا",
+      "sort_paid": "إجمالي المدفوع، الأكبر أولًا",
+      "sort_newest": "أحدث العملاء"
     },
     "new": {
       "title": "عميل جديد",
-      "hero_title": "جهة اتصال جديدة",
-      "hero_sub": "أدخل الاسم على الأقل. يمكن إكمال الباقي لاحقًا."
+      "subtitle": "الاسم وحده إلزامي."
     },
     "edit": {
       "title": "تعديل العميل",
-      "topbar_short": "تعديل",
-      "loading": "جاري التحميل…"
+      "subtitle": "عميل منذ {date}، {count, plural, =0 {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}"
     },
     "form": {
-      "name_required": "الاسم مطلوب",
-      "email_invalid": "البريد الإلكتروني غير صالح",
       "section_identity": "الهوية",
-      "name": "الاسم",
       "first_name": "الاسم الأول",
+      "name": "الاسم",
       "section_contact": "الاتصال",
+      "section_contact_help": "يُستخدم الهاتف لرسائل واتساب وللاتصال من صفحة العميل.",
       "phone": "الهاتف",
+      "phone_help": "اختر الدولة، ثم اكتب الرقم كالمعتاد.",
       "email": "البريد الإلكتروني",
       "section_address": "العنوان",
+      "section_address_help": "يُستخدم للتوصيل ويظهر في الفواتير.",
+      "country": "الدولة",
+      "address": "العنوان",
       "city": "المدينة",
       "postal_code": "الرمز البريدي",
       "section_notes_internal": "ملاحظات داخلية",
-      "notes_placeholder": "ملاحظات داخلية",
-      "submit": "حفظ العميل",
-      "submitting": "جاري الحفظ…"
+      "section_notes_help": "مرئية لك ولفريقك فقط، ولا يراها العميل أبدًا.",
+      "notes": "ملاحظات",
+      "submit_create": "إنشاء العميل",
+      "submit_edit": "حفظ",
+      "name_required": "أدخل اسم العميل.",
+      "name_taken": "يوجد عميل بهذا الاسم في متجرك.",
+      "email_invalid": "عنوان البريد الإلكتروني غير صالح.",
+      "phone_invalid": "رقم هاتف غير صالح",
+      "too_long": "{max} حرفًا كحد أقصى.",
+      "field_invalid": "القيمة مرفوضة: تحقق من هذا الحقل.",
+      "save_failed": "تعذّر الحفظ. أعد المحاولة بعد قليل.",
+      "toast_saved": "تم حفظ العميل",
+      "toast_created": "تم إنشاء العميل",
+      "preview_empty": "اسم العميل",
+      "preview_help": "معاينة كما سيظهر في طلباتك",
+      "email_placeholder": "name@example.com",
+      "notes_placeholder": "التفضيلات، المقاسات المعتادة، أوقات الزيارة…"
     },
     "detail": {
       "topbar_short": "عميل",
-      "loading": "جاري التحميل…",
       "not_found": "العميل غير موجود.",
-      "badge_to_remind": "للمتابعة",
-      "badge_new": "عميل جديد",
-      "badge_regular": "عميل دائم",
-      "deactivate_confirm": "تعطيل هذا العميل؟ لن يظهر بعد ذلك في القائمة.",
-      "reminder_title": "متابعة {name}",
-      "reminder_fallback_name": "العميل"
-    },
-    "hero": {
-      "phone_aria": "اتصال",
-      "more_aria": "إجراءات إضافية",
-      "whatsapp": "واتساب"
-    },
-    "stats": {
-      "to_collect": "للتحصيل",
-      "filter_active": "التصفية نشطة — اضغط مجددًا لعرض الكل",
-      "filter_hint": "اضغط للتصفية",
-      "up_to_date": "محدّث",
-      "new_order": "طلب جديد"
-    },
-    "actionsSheet": {
-      "title": "إجراءات العميل",
-      "email_label": "البريد الإلكتروني",
-      "address_label": "العنوان",
-      "notes_label": "ملاحظات",
-      "reminder_created_today": "تم إنشاء تذكير اليوم",
-      "reminder_schedule": "جدولة تذكير",
-      "reminder_tomorrow_9": "غدًا الساعة 9:00",
-      "edit_record": "تعديل البطاقة",
-      "deactivate_label": "تعطيل العميل",
-      "deactivate_desc": "لن يظهر العميل في القائمة",
-      "reactivate_label": "إعادة تنشيط العميل"
-    },
-    "notesSheet": {
-      "title": "ملاحظات"
+      "deactivate_confirm": "تعطيل هذا العميل؟ لن يظهر بعد الآن ضمن العملاء النشطين، ويمكنك إعادة تفعيله من صفحته.",
+      "badge_unpaid": "غير مدفوع",
+      "badge_deactivated": "معطّل",
+      "since": "عميل منذ {date}",
+      "edit": "تعديل",
+      "new_order": "طلب جديد",
+      "followup": "تذكير بالدفع",
+      "reminder_schedule": "وضع علامة للمتابعة",
+      "add_note": "إضافة ملاحظة",
+      "edit_address": "تعديل العنوان",
+      "deactivate": "تعطيل العميل",
+      "reactivate": "إعادة تفعيل العميل",
+      "deactivate_cta": "تعطيل",
+      "cancel": "إلغاء",
+      "situation_title": "الوضع",
+      "paid_total": "إجمالي المدفوع",
+      "pending_total": "المتبقي للدفع",
+      "order_count": "الطلبات",
+      "last_order": "آخر طلب",
+      "no_order": "لا توجد طلبات",
+      "contact_title": "بيانات الاتصال",
+      "contact_empty": "لا توجد بيانات اتصال.",
+      "contact_add": "إضافة بيانات اتصال",
+      "whatsapp": "واتساب",
+      "call": "اتصال",
+      "orders_title": "الطلبات",
+      "orders_empty": "لا توجد طلبات لهذا العميل.",
+      "see_all_orders": "عرض الكل ({count})",
+      "col_number": "رقم",
+      "col_date": "التاريخ",
+      "col_status": "الحالة",
+      "col_payment": "الدفع",
+      "col_total": "الإجمالي",
+      "record_note": "ملاحظة من بطاقة العميل",
+      "notes_empty": "لا توجد ملاحظات لهذا العميل."
     },
     "addressSheet": {
       "title": "العنوان",
@@ -433,12 +477,8 @@
       "copied": "تم النسخ ✓",
       "open_maps": "فتح في الخرائط"
     },
-    "flash": {
-      "reminder_created": "تم إنشاء التذكير",
-      "sub": "غدًا الساعة 9:00 — {name}"
-    },
     "timeline": {
-      "title": "النشاط الأخير",
+      "title": "النشاط",
       "chip_all": "الكل",
       "chip_orders": "الطلبات",
       "chip_payments": "المدفوعات",
@@ -446,8 +486,7 @@
       "chip_notes": "الملاحظات",
       "empty_title": "لا يوجد نشاط",
       "empty_sub": "سيظهر نشاط العميل هنا.",
-      "load_more": "عرض المزيد ({remaining} متبقية)",
-      "loading": "جاري التحميل…"
+      "chip_pending": "للتحصيل"
     },
     "activity": {
       "order_created": "تم إنشاء الطلب",
@@ -460,12 +499,19 @@
       "shipment_title": "تحديث الشحنة",
       "shipment_sub": "طلب {number} · تم الشحن",
       "note_title": "تمت إضافة ملاحظة"
+    },
+    "whatsapp": {
+      "hello_named": "مرحبًا {name}،",
+      "hello": "مرحبًا،",
+      "intro": "ما لم نكن مخطئين، لا يزال المبلغ التالي مستحقًا:",
+      "order_line": "• الطلب رقم {number} بتاريخ {date}: {amount}",
+      "total_line": "الإجمالي المستحق: {amount}",
+      "signoff": "شكرًا مسبقًا، إلى اللقاء."
     }
   },
   "orders": {
     "list": {
       "topbar": "الطلبات",
-      "loading": "جارٍ التحميل…",
       "count": "{count, plural, zero {لا توجد طلبات} one {طلب واحد} two {طلبان} few {# طلبات} many {# طلبًا} other {# طلب}}",
       "count_filtered": "{count, plural, zero {لا توجد طلبات · مُصفّى} one {طلب واحد · مُصفّى} two {طلبان · مُصفّى} few {# طلبات · مُصفّى} many {# طلبًا · مُصفّى} other {# طلب · مُصفّى}}",
       "new_order": "طلب جديد",
@@ -480,15 +526,32 @@
       "column_number": "رقم",
       "column_client_items": "{kind, select, products {الزبون والمنتجات} services {الزبون والخدمات} other {الزبون والمقالات}}",
       "column_date": "التاريخ",
-      "column_preparation": "التحضير",
+      "column_status": "الحالة",
       "column_payment": "الدفع",
       "column_total": "المجموع",
-      "pagination_range": "{from}–{to} من {total}",
-      "pagination_prev": "السابقة",
-      "pagination_next": "التالية",
-      "search_placeholder": "بحث…",
-      "search_label": "البحث في الطلبات",
-      "clear_filters": "مسح الفلاتر"
+      "search_placeholder": "العميل أو رقم الطلب",
+      "search_label": "البحث عن طلب",
+      "clear_filters": "مسح الفلاتر",
+      "date_today": "اليوم، {time}",
+      "date_yesterday": "أمس، {time}",
+      "amount_due": "متبقٍّ {amount}",
+      "sort": {
+        "order_number": "{dir, select, asc {مرتبة حسب الرقم، تصاعديًا} other {مرتبة حسب الرقم، تنازليًا}}",
+        "customer_name": "{dir, select, asc {مرتبة حسب العميل، من أ إلى ي} other {مرتبة حسب العميل، من ي إلى أ}}",
+        "created_at": "{dir, select, asc {مرتبة حسب التاريخ، الأقدم أولًا} other {مرتبة حسب التاريخ، الأحدث أولًا}}",
+        "status": "{dir, select, asc {مرتبة حسب الحالة، بترتيب المسار} other {مرتبة حسب الحالة، بعكس ترتيب المسار}}",
+        "payment_status": "{dir, select, asc {مرتبة حسب الدفع، غير المدفوعة أولًا} other {مرتبة حسب الدفع، المدفوعة أولًا}}",
+        "total_amount": "{dir, select, asc {مرتبة حسب المجموع، الأصغر أولًا} other {مرتبة حسب المجموع، الأكبر أولًا}}"
+      },
+      "stats": {
+        "to_prepare_sub": "الأقدم {age}",
+        "to_prepare_none": "لا شيء في الانتظار",
+        "due_sub": "على {count, plural, one {# طلب} other {# طلبات}}",
+        "month_label": "هذا الشهر",
+        "month_sub": "{count, plural, one {# طلب {state}} other {# طلبات {state}}}"
+      },
+      "customer_filter": "العميل",
+      "customer_chip": "العميل: {name}"
     },
     "statusLabel": {
       "to_prepare_products": "قيد التحضير",
@@ -538,63 +601,67 @@
     },
     "detail": {
       "topbar": "الطلب",
-      "loading": "جارٍ التحميل…",
       "not_found": "الطلب غير موجود.",
       "edit": "تعديل",
       "cancel_confirm": "إلغاء هذا الطلب؟",
-      "danger_zone": "منطقة حساسة",
       "cancel_cta": "إلغاء الطلب",
       "cancel_sub": "{kind, select, products {سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.} services {يمكن التراجع عن هذا الإجراء.} other {سيُفرَج عن المخزون المحجوز. يمكن التراجع عن هذا الإجراء.}}",
-      "invoice_error_generic": "حدث خطأ أثناء إصدار الفاتورة."
-    },
-    "hero": {
-      "no_client": "بدون زبون",
-      "items": "{kind, select, products {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}} services {{count, plural, zero {لا خدمات} one {خدمة واحدة} two {خدمتان} few {# خدمات} many {# خدمة} other {# خدمة}}} other {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}}}",
-      "remaining": "متبقّي {amount}",
-      "whatsapp_cta": "إشعار الزبون",
-      "call_aria": "اتصال",
-      "customer_aria": "عرض ملف الزبون"
+      "invoice_error_generic": "حدث خطأ أثناء إصدار الفاتورة.",
+      "title": "الطلب {number}",
+      "created": "أُنشئ {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}{hasAuthor, select, yes { بواسطة {author}} other {}}",
+      "day_time": "{when, select, today {اليوم} yesterday {أمس} other {{date}}}، {time}",
+      "revert_to": "الرجوع إلى «{label}»",
+      "reactivate": "إعادة تفعيل الطلب",
+      "reactivate_confirm": "إعادة تفعيل هذا الطلب؟",
+      "reactivate_sub": "{kind, select, services {يعود الطلب إلى «{label}».} other {يعود الطلب إلى «{label}» ويُحجز المخزون من جديد.}}",
+      "collect": "تحصيل {amount}",
+      "issue_invoice": "إصدار الفاتورة",
+      "download_invoice": "تحميل الفاتورة",
+      "send_whatsapp": "إرسال رسالة واتساب",
+      "reminder_schedule": "وضع علامة للمتابعة",
+      "notes_empty": "لا توجد ملاحظات لهذا الطلب."
     },
     "nextStep": {
-      "label": "الخطوة التالية",
-      "shipped_title": "تم إرسال الطلب",
-      "shipped_sub": "اكتملت كل المراحل.",
-      "to_prepare_title": "اعتبارها جاهزة",
-      "to_prepare_sub": "{kind, select, services {عند تأكيد الخدمة مع العميل.} other {عندما تكون المنتجات جاهزة للإرسال.}}",
-      "to_prepare_cta": "تعليم كجاهزة",
-      "prepared_title": "اعتبارها مُرسلة",
-      "prepared_sub": "عند مغادرة الطلب للمتجر.",
-      "prepared_cta": "تعليم كمُرسلة",
-      "prepared_mark": "تعليم كـ {label}",
-      "prepared_cta_mark": "{label}",
-      "shipped_title_dynamic": "{label}",
       "action_to_prepare": "تحديد كجاهزة",
       "action_shipped_on_site": "تحديد كمستلمة من العميل",
       "action_shipped_services": "تحديد كمنجزة",
-      "action_shipped_delivery": "تحديد كمُرسَلة",
-      "shipped_sub_services": "تم إنجاز الخدمة.",
-      "shipped_sub_on_site": "استلم العميل طلبه."
+      "action_shipped_delivery": "تحديد كمُرسَلة"
     },
-    "revert": {
-      "prepared": "العودة إلى «للتحضير»",
-      "shipped": "العودة إلى «جاهزة»",
-      "cancelled": "إعادة فتح الطلب"
+    "stepper": {
+      "title": "المتابعة",
+      "created": "أُنشئ",
+      "in_progress": "جارٍ",
+      "upcoming": "لاحقًا",
+      "mistake": "{mode, select, services {أُنجز بالخطأ؟} delivery {أُرسل بالخطأ؟} other {سُلِّم بالخطأ؟}}",
+      "mode": "{mode, select, services {خدمة} on_site {بيع في المحل} delivery {توصيل} both {في المحل أو بالتوصيل} other {}}"
+    },
+    "customerCard": {
+      "title": "الزبون",
+      "see_profile": "عرض الملف",
+      "whatsapp": "واتساب",
+      "call": "اتصال",
+      "none": "بدون زبون، بيع مباشر في المحل.",
+      "associate": "ربط زبون"
     },
     "items": {
       "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
       "unit_count": "{count, plural, zero {لا وحدات} one {وحدة} two {وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
       "empty": "{kind, select, products {لا توجد منتجات.} services {لا توجد خدمات.} other {لا توجد منتجات.}}",
-      "unit_price_short": "{amount}/و",
       "total": "الإجمالي",
       "subtotal": "المجموع الفرعي",
       "discount": "تخفيض",
-      "shipping": "شحن"
+      "shipping": "شحن",
+      "unit_price": "{amount} للوحدة",
+      "variant_unit": "{variant}، {unit}"
     },
     "paymentCard": {
       "title": "الدفع",
-      "remaining": "المتبقّي: {amount}",
-      "collect_cta": "تحصيل دفعة",
-      "correct_cta": "تصحيح دفعة مستلمة"
+      "remaining": "المتبقّي {amount}",
+      "collect_cta": "تحصيل",
+      "correct_cta": "تصحيح دفعة",
+      "of_total": "من {amount}",
+      "progress_label": "المبلغ المدفوع",
+      "remind_cta": "تذكير"
     },
     "paymentSheet": {
       "title": "تحصيل دفعة",
@@ -607,13 +674,12 @@
       "settled_hint": "تمت تسوية الطلب فعلاً. استخدم مبلغًا سالبًا لتصحيح دفعة مستلمة."
     },
     "invoiceCard": {
-      "title": "الفوترة",
-      "number_label": "رقم {number}",
-      "invoice_paid": "فاتورة مدفوعة",
-      "invoice_cancelled": "فاتورة ملغاة",
-      "invoice_issued": "فاتورة صادرة",
-      "invoice_sub": "اعرض التفاصيل وحمّل ملف PDF.",
-      "issue_cta": "إصدار فاتورة"
+      "title": "الفاتورة",
+      "number_label": "الفاتورة {number}",
+      "issue_cta": "إصدار الفاتورة",
+      "not_issued": "لم تُصدَر بعد.",
+      "status": "{status, select, paid {مدفوعة} cancelled {ملغاة} other {صادرة}}",
+      "download_cta": "تحميل PDF"
     },
     "invoiceSheet": {
       "title": "إصدار فاتورة",
@@ -627,24 +693,13 @@
       "submit": "إصدار الفاتورة",
       "footnote": "بعد الإصدار تصبح الفاتورة غير قابلة للتعديل. يمكن تغيير حالتها فقط."
     },
-    "notes": {
-      "title": "ملاحظات",
-      "add_cta": "إضافة",
-      "field_label": "ملاحظة جديدة",
-      "saving": "جارٍ الحفظ…",
-      "save": "حفظ",
-      "cancel": "إلغاء",
-      "delete_confirm": "حذف هذه الملاحظة؟",
-      "delete_aria": "حذف الملاحظة",
-      "anonymous": "مجهول",
-      "empty": "لا توجد ملاحظات لهذا الطلب."
-    },
     "activity": {
-      "title": "النشاط",
-      "event_created": "تم إنشاء الطلب",
-      "event_status": "الحالة: {from} ← {to}",
-      "event_payment": "الدفع: {from} ← {to}",
-      "event_note": "تمت إضافة ملاحظة"
+      "title": "السجل",
+      "event_created": "تم إنشاء الطلب{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_status": "انتقل إلى «{to}»{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_note": "أُضيفت ملاحظة{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_payment_in": "سُجّلت دفعة بقيمة {amount}{hasActor, select, yes { بواسطة {actor}} other {}}",
+      "event_payment_fix": "صُحّح الدفع بمقدار −{amount}{hasActor, select, yes { بواسطة {actor}} other {}}"
     },
     "rel": {
       "just_now": "الآن"
@@ -686,7 +741,7 @@
       "submit_label": "تسجيل الطلب",
       "notes_label": "ملاحظات داخلية (اختياري)",
       "notes_hide_aria": "إخفاء الملاحظات",
-      "notes_show": "+ إضافة ملاحظة",
+      "add_note": "+ إضافة ملاحظة",
       "summary_title": "الملخّص",
       "subtotal": "المجموع الفرعي",
       "discount": "تخفيض",
@@ -712,27 +767,18 @@
       "switch_on_site": "تحضير لاحقاً",
       "switch_on_site_hint": "وإلا، تُسجَّل عملية البيع كمُسلَّمة للعميل.",
       "switch_both": "تم التسليم بالفعل",
-      "switch_services": "تم الإنجاز بالفعل"
+      "switch_services": "تم الإنجاز بالفعل",
+      "stock_negative_warning": "المخزون غير كافٍ: سيصبح سالبًا"
     },
     "edit": {
       "topbar": "تعديل الطلب",
-      "topbar_with_number": "تعديل {number}",
-      "loading": "جارٍ التحميل…",
+      "topbar_with_number": "تعديل الطلب {number}",
+      "topbar_short_with_number": "تعديل {number}",
       "not_found": "الطلب غير موجود.",
       "read_only": "لا يمكن تعديل طلب تم تسليمه أو إلغاؤه.",
       "saving": "جارٍ الحفظ…",
-      "save": "حفظ",
-      "customer_label": "الزبون (اختياري)",
-      "no_customer": "— بدون زبون —",
-      "product_picker_label": "{kind, select, products {إضافة منتج (الإصدار الأول)} services {إضافة خدمة} other {إضافة منتج (الإصدار الأول)}}",
-      "product_picker_placeholder": "{kind, select, products {اختر منتجًا…} services {اختر خدمة…} other {اختر منتجًا…}}",
-      "items_title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات}}",
-      "subtotal": "المجموع الفرعي",
-      "discount": "تخفيض",
-      "shipping": "شحن",
-      "total": "الإجمالي",
-      "discount_field": "تخفيض (اختياري)",
-      "shipping_field": "شحن (اختياري)"
+      "submit_label": "حفظ التعديلات",
+      "back_to_order": "العودة إلى الطلب"
     },
     "picker": {
       "product_trigger_title": "{kind, select, products {إضافة منتج} services {إضافة خدمة} other {إضافة منتج أو خدمة}}",
@@ -745,17 +791,11 @@
       "filter_all": "الكل",
       "filter_product": "منتجات",
       "filter_service": "خدمات",
-      "create_product": "{kind, select, products {إنشاء منتج} services {إنشاء خدمة} other {إنشاء منتج أو خدمة}}",
-      "free_line_title": "{kind, select, products {منتج عابر} services {خدمة عابرة} other {منتج أو خدمة عابرة}}",
-      "free_line_sub": "دون حفظ في الفهرس",
       "no_results": "لا نتائج.",
-      "no_products": "{kind, select, products {لا توجد منتجات مسجّلة.} services {لا توجد خدمات مسجّلة.} other {لا توجد منتجات مسجّلة.}}",
       "variant_back": "العودة إلى الفهرس",
-      "loading": "جارٍ التحميل…",
       "variant_count": "{count, plural, zero {لا أشكال} one {شكل واحد} two {شكلان} few {# أشكال} many {# شكل} other {# شكل}}",
       "no_variants": "لا يوجد شكل نشط.",
       "out_of_stock": "نفد",
-      "out_of_stock_pick": "نفد المخزون. أضف مخزوناً أولاً.",
       "stock_label": "المخزون: {qty}",
       "variant_formats": "{count} أحجام",
       "service_badge": "خدمة",
@@ -771,16 +811,17 @@
       "panel_items": "{kind, select, products {العناصر} services {الخدمات} other {العناصر والخدمات}}",
       "panel_create": "{kind, select, products {إنشاء عنصر} services {إنشاء خدمة} other {إنشاء عنصر أو خدمة}}",
       "desktop_search_placeholder": "{kind, select, products {الاسم أو المرجع أو الباركود} services {اسم الخدمة} other {الاسم أو المرجع أو الباركود}}",
-      "free_line_desktop": "{kind, select, products {صنف طارئ، دون حفظ} services {خدمة طارئة، دون حفظ} other {صنف طارئ، دون حفظ}}",
       "empty_catalog_title": "فهرسك فارغ",
       "empty_catalog_text": "{kind, select, products {أنشئ البضاعة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.} services {أنشئ الخدمة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.} other {أنشئ البضاعة أو الخدمة هنا: ستُضاف إلى الطلب وتبقى في فهرسك للمرات القادمة.}}",
       "empty_catalog_free_question": "{kind, select, products {بضاعة لن تعيد بيعها؟} services {خدمة لن تفوترها إلا مرة واحدة؟} other {صنف أو خدمة طارئة؟}}",
       "empty_catalog_free_link": "أضفه دون حفظ",
-      "view_cart": "{count, plural, one {عرض الطلب (# عنصر)} other {عرض الطلب (# عناصر)}}"
+      "view_cart": "{count, plural, one {عرض الطلب (# عنصر)} other {عرض الطلب (# عناصر)}}",
+      "free_line_button": "{kind, select, products {منتج عابر} services {خدمة عابرة} other {منتج عابر}}",
+      "free_line_help": "يُضاف إلى هذا الطلب دون حفظه في الفهرس",
+      "add_error": "تعذّرت الإضافة. تحقّق من الاتصال وأعد المحاولة."
     },
     "customerPicker": {
       "trigger_select": "اختيار زبون",
-      "trigger_select_sub": "اختر زبونًا للبدء",
       "trigger_selected": "تم اختيار الزبون",
       "remove_aria": "إزالة الزبون",
       "sheet_title": "اختيار زبون",
@@ -791,7 +832,6 @@
       "no_customers": "لا يوجد زبائن مسجّلون."
     },
     "quickAdd": {
-      "trigger_aria": "إضافة",
       "customer_title": "زبون جديد",
       "customer_label": "اسم الزبون *",
       "customer_required": "الاسم مطلوب.",
@@ -820,170 +860,180 @@
       "paid": "مدفوعة"
     },
     "filterSheet": {
-      "title": "تصفية",
-      "close": "إغلاق",
       "status_title": "الحالة",
       "payment_title": "الدفع",
-      "reset": "إعادة ضبط",
-      "apply": "عرض الطلبات"
-    },
-    "filterBar": {
-      "filters_btn": "تصفية",
-      "remove_filter": "إزالة الفلتر {name}"
+      "apply": "عرض الطلبات",
+      "show_results": "{count, plural, zero {لا توجد طلبات} one {عرض طلب واحد} two {عرض طلبين} few {عرض # طلبات} many {عرض # طلبًا} other {عرض # طلب}}",
+      "sort_title": "ترتيب حسب",
+      "sort_newest": "الأحدث",
+      "sort_oldest": "الأقدم",
+      "sort_amount_desc": "المبلغ، من الأعلى",
+      "sort_amount_asc": "المبلغ، من الأدنى"
     }
   },
   "articles": {
-    "topbar": {
-      "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}"
-    },
     "list": {
-      "search_placeholder": "{kind, select, products {ابحث عن منتج…} services {ابحث عن خدمة…} other {ابحث عن منتج…}}",
-      "clear_search": "مسح البحث",
-      "new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {إضافة}}",
-      "options": "خيارات",
-      "count": "{kind, select, products {{count, plural, one {# منتج} other {# منتجات}}} services {{count, plural, one {# خدمة} other {# خدمات}}} other {{count, plural, one {# عنصر} other {# عناصر}}}}",
-      "filter_all": "الكل",
-      "filter_product": "منتجات",
-      "filter_service": "خدمات",
-      "visibility_active": "نشطة",
-      "visibility_inactive": "غير نشطة",
-      "visibility_all": "الكل"
-    },
-    "stats": {
-      "out_of_stock": "نفد المخزون",
-      "low_stock": "مخزون منخفض"
-    },
-    "empty": {
-      "no_results_title": "لا توجد نتائج",
-      "no_results_message": "لا شيء يطابق « {term} »",
-      "clear_search": "مسح البحث",
-      "title": "{kind, select, products {لا توجد منتجات} services {لا توجد خدمات} other {لا توجد منتجات}}",
-      "message": "{kind, select, products {أضف أول منتج لبدء إدارة كتالوجك.} services {أضف أول خدمة لبدء إدارة كتالوجك.} other {أضف أول منتج أو خدمة لبدء إدارة كتالوجك.}}",
-      "new_product": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {منتج أو خدمة جديدة}}"
-    },
-    "row": {
-      "inactive": "غير نشط",
-      "format": "صيغة",
+      "title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
+      "count": "{kind, select, products {{count, plural, zero {لا منتجات} one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}} services {{count, plural, zero {لا خدمات} one {خدمة واحدة} two {خدمتان} few {# خدمات} many {# خدمة} other {# خدمة}}} other {{count, plural, zero {لا عناصر} one {عنصر واحد} two {عنصران} few {# عناصر} many {# عنصرًا} other {# عنصر}}}}",
+      "new_cta": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {إضافة}}",
+      "search_label": "{kind, select, products {ابحث عن منتج} services {ابحث عن خدمة} other {ابحث عن منتج أو خدمة}}",
+      "search_placeholder": "{kind, select, products {الاسم أو المرجع أو الباركود} services {اسم الخدمة} other {الاسم أو المرجع أو الباركود}}",
+      "clear_filters": "مسح عوامل التصفية",
+      "type_title": "النوع",
+      "type": {
+        "all": "الكل",
+        "product": "منتجات",
+        "service": "خدمات"
+      },
+      "stock_title": "المخزون",
+      "stock": {
+        "all": "الكل",
+        "negative": "سالب",
+        "out": "نفد المخزون",
+        "low": "مخزون منخفض",
+        "in": "متوفر"
+      },
+      "state_title": "الحالة",
+      "state": {
+        "all": "الكل",
+        "active": "نشطة",
+        "inactive": "غير نشطة"
+      },
+      "column_name": "{kind, select, products {المنتج} services {الخدمة} other {المنتج}}",
+      "column_type": "النوع",
+      "column_price": "السعر",
+      "column_stock": "المخزون",
+      "column_state": "الحالة",
+      "type_one": "{type, select, service {خدمة} other {منتج}}",
       "formats": "{count, plural, zero {لا توجد صيغ} one {صيغة واحدة} two {صيغتان} few {# صيغ} many {# صيغة} other {# صيغة}}",
       "service": "خدمة",
       "out_of_stock": "نفد",
-      "low_stock_with": "مخزون منخفض, {formats}",
-      "in_stock_with": "{formats} في المخزون"
+      "in_stock": "{stock} في المخزون",
+      "low_stock_hint": "، مخزون منخفض",
+      "state_active": "نشط",
+      "state_inactive": "غير نشط",
+      "none": "لا شيء",
+      "load_more": "تحميل المزيد",
+      "empty_title": "{kind, select, products {لا توجد منتجات} services {لا توجد خدمات} other {لا توجد منتجات ولا خدمات}}",
+      "empty_sub": "{kind, select, products {أضف منتجك الأول لتسجيل الطلبات ومتابعة المخزون.} services {أضف خدمتك الأولى لتسجيل الطلبات.} other {أضف منتجك أو خدمتك الأولى لتسجيل الطلبات.}}",
+      "empty_filtered_title": "{kind, select, products {لا منتجات لهذا الفلتر} services {لا خدمات لهذا الفلتر} other {لا نتائج لهذا الفلتر}}",
+      "empty_filtered_sub": "{kind, select, products {أزل عوامل التصفية أو غيّر البحث لعرض كل منتجاتك.} services {أزل عوامل التصفية أو غيّر البحث لعرض كل خدماتك.} other {أزل عوامل التصفية أو غيّر البحث لعرض كل الكتالوج.}}",
+      "sort": {
+        "name": "{dir, select, asc {مرتبة حسب الاسم، من أ إلى ي} other {مرتبة حسب الاسم، من ي إلى أ}}",
+        "created_at": "{dir, select, asc {مرتبة حسب تاريخ الإضافة، الأقدم أولًا} other {مرتبة حسب تاريخ الإضافة، الأحدث أولًا}}",
+        "min_price": "{dir, select, asc {مرتبة حسب السعر، الأرخص أولًا} other {مرتبة حسب السعر، الأغلى أولًا}}",
+        "total_stock": "{dir, select, asc {مرتبة حسب المخزون، الأقل أولًا} other {مرتبة حسب المخزون، الأكثر أولًا}}",
+        "type": "{dir, select, asc {مرتبة حسب النوع، المنتجات أولًا} other {مرتبة حسب النوع، الخدمات أولًا}}"
+      },
+      "stats": {
+        "out_label": "نفد المخزون",
+        "low_label": "مخزون منخفض",
+        "active_label": "{kind, select, products {المنتجات النشطة} services {الخدمات النشطة} other {المنتجات والخدمات النشطة}}"
+      },
+      "negative_stock": "{stock}، للتسوية"
     },
     "badges": {
       "inactive": "غير نشط",
+      "negative_stock": "مخزون للتسوية",
       "out_of_stock": "نفد",
-      "low_stock": "مخزون منخفض",
-      "service": "خدمة",
-      "active": "نشط"
-    },
-    "options": {
-      "title": "خيارات",
-      "close": "إغلاق",
-      "type": "النوع",
-      "sort_by": "الترتيب",
-      "show": "العرض",
-      "type_all": "منتجات + خدمات",
-      "type_products": "منتجات فقط",
-      "type_services": "خدمات فقط",
-      "show_active": "النشطة فقط",
-      "show_inactive": "غير النشطة فقط",
-      "show_all": "النشطة + غير النشطة",
-      "sort_name_asc": "الاسم أ → ي",
-      "sort_name_desc": "الاسم ي → أ",
-      "sort_recent": "الأحدث"
-    },
-    "addType": {
-      "trigger_aria": "إضافة منتج",
-      "title": "إضافة إلى الكتالوج",
-      "close": "إغلاق",
-      "product_title": "منتج",
-      "product_subtitle": "منتج مادي مع تتبع المخزون",
-      "service_title": "خدمة",
-      "service_subtitle": "خدمة بدون إدارة المخزون"
+      "low_stock": "مخزون منخفض"
     },
     "detail": {
-      "title": "{type, select, product {منتج} service {خدمة} other {عنصر}}",
-      "not_found": "{type, select, product {المنتج غير موجود.} service {الخدمة غير موجودة.} other {غير موجود.}}",
-      "upload_error": "خطأ أثناء الرفع.",
-      "confirm_deactivate": "{type, select, product {تعطيل هذا المنتج؟} service {تعطيل هذه الخدمة؟} other {تعطيل هذا العنصر؟}}",
-      "initial_stock_reason": "المخزون الأولي",
-      "no_default_variant": "الصيغة الافتراضية مفقودة.",
-      "description_heading": "الوصف"
-    },
-    "hero": {
-      "stock_in": "إدخال مخزون",
-      "edit": "تعديل",
-      "more_actions": "المزيد من الإجراءات"
-    },
-    "photo": {
-      "replace_aria": "استبدال الصورة",
-      "add_aria": "إضافة صورة",
-      "helper": "JPEG أو PNG أو WebP — 5 ميجا كحد أقصى",
-      "format_unsupported": "صيغة غير مدعومة: اختر صورة.",
-      "too_heavy": "الصورة كبيرة جدًا (5 ميجا كحد أقصى).",
-      "preview_alt": "معاينة",
-      "remove_aria": "إزالة الصورة",
-      "selected": "تم اختيار الصورة",
-      "add_label": "إضافة صورة"
-    },
-    "statsGrid": {
-      "service_price": "سعر الخدمة",
-      "active_formats": "الصيغ النشطة",
-      "formats_helper": "التفاصيل لكل صيغة أدناه",
-      "sale_price": "سعر البيع",
-      "according_to_packaging": "حسب التعبئة"
-    },
-    "actions": {
-      "stock_out": "إخراج مخزون",
-      "replace_photo": "استبدال الصورة",
-      "add_photo": "إضافة صورة",
-      "photo_helper": "JPEG أو PNG أو WebP — 5 ميجا كحد أقصى",
-      "deactivate": "{type, select, product {تعطيل المنتج} service {تعطيل الخدمة} other {تعطيل}}",
-      "deactivate_helper": "{type, select, product {لن يظهر المنتج في القائمة} service {لن تظهر الخدمة في القائمة} other {لن يظهر هذا العنصر في القائمة}}",
-      "reactivate": "{type, select, product {إعادة تفعيل المنتج} service {إعادة تفعيل الخدمة} other {إعادة تفعيل}}"
+      "not_found": "{type, select, product {المنتج غير موجود.} service {الخدمة غير موجودة.} other {غير موجود.}}"
     },
     "form": {
-      "topbar_new_product": "منتج جديد",
-      "topbar_new_service": "خدمة جديدة",
-      "topbar_edit": "تعديل",
-      "topbar_edit_product": "تعديل المنتج",
-      "topbar_edit_service": "تعديل الخدمة",
-      "loading": "جارٍ التحميل…",
-      "type_product_title": "منتج مادي",
-      "type_product_subtitle": "متابعة المخزون، تحديد وحدة البيع.",
-      "type_service_title": "خدمة",
-      "type_service_subtitle": "لا يوجد مخزون — يكفي سعر ووصف.",
-      "name_required": "الاسم مطلوب",
-      "description_max": "{max} حرفًا كحد أقصى",
-      "generic_error": "حدث خطأ. تحقق من الحقول وحاول مجددًا.",
-      "network_error": "تعذر الاتصال بالخادم. حاول مجددًا بعد قليل.",
+      "title_new": "{kind, select, products {منتج جديد} services {خدمة جديدة} other {منتج أو خدمة جديدة}}",
+      "title_edit": "{type, select, service {تعديل الخدمة} other {تعديل المنتج}}",
+      "subtitle_edit": "{type, select, service {خدمة أُنشئت في {date}} other {منتج أُنشئ في {date}}}",
+      "type": "النوع",
+      "type_product": "منتج",
+      "type_service": "خدمة",
+      "type_product_help": "مع مخزون",
+      "type_service_help": "بدون مخزون",
+      "name": "الاسم",
+      "selling_price": "سعر البيع",
+      "price_suffix": "{currency} / {unit}",
+      "unit": "وحدة البيع",
+      "unit_help": "نهائية بعد الإنشاء: تُحسب الأسعار والمخزون بهذه الوحدة.",
+      "formats_note": "لهذا المنتج {count} أشكال: تُضبط الأسعار والمخزون والمراجع لكل شكل في صفحة المنتج.",
+      "manage_formats": "إدارة الأشكال",
       "section_photo": "الصورة",
-      "section_identity": "الهوية",
-      "name_label_product": "اسم المنتج",
-      "name_label_service": "اسم الخدمة",
-      "sku_label": "المرجع / SKU (اختياري)",
-      "section_unit": "وحدة البيع",
-      "unit_select_label": "كيف تبيع هذا المنتج؟",
-      "unit_helper": "نهائي بعد الإنشاء — جميع الأسعار والمخزون ستعتمد هذه الوحدة.",
-      "section_price": "السعر",
-      "sale_price": "سعر البيع",
-      "purchase_price": "سعر الشراء (اختياري)",
-      "purchase_helper": "يُستخدم سعر الشراء لحساب الهامش والزكاة. اتركه فارغًا إن كان متغيرًا.",
+      "photo_summary": "{count, plural, one {صورة واحدة} two {صورتان} few {# صور} other {# صورة}}",
+      "photo_format": "اختر صورة JPEG أو PNG أو WebP.",
+      "purchase_price": "سعر الشراء",
       "section_stock": "المخزون",
-      "initial_stock": "المخزون الأولي (اختياري)",
-      "initial_stock_helper": "يسجل حركة إدخال « المخزون الأولي » عند الإنشاء.",
-      "alert_threshold": "حد التنبيه (اختياري)",
-      "alert_helper": "يتم التنبيه عندما ينخفض المخزون عن هذا الحد. اتركه فارغًا للتعطيل.",
-      "section_description": "الوصف",
-      "description_product": "وصف المنتج",
-      "description_service": "وصف الخدمة",
-      "description_placeholder_product": "التركيب، نصائح الاستخدام، الأبعاد، المادة…",
-      "description_placeholder_service": "تفاصيل الخدمة، المدة المتوسطة، الشروط…",
-      "char_count": "{count} / {max}",
-      "saving": "جارٍ الحفظ…",
-      "submit_product": "حفظ المنتج",
-      "submit_service": "حفظ الخدمة"
+      "initial_stock": "المخزون الأولي",
+      "initial_stock_help": "يُسجَّل كإدخال مخزون.",
+      "current_stock": "المخزون الحالي",
+      "stock_in_link": "تسجيل إدخال مخزون",
+      "threshold": "حد التنبيه",
+      "threshold_help": "تحت هذا الحد، يظهر المنتج بمخزون منخفض.",
+      "stock_summary_both": "{stock} في المخزون، تنبيه عند {threshold}",
+      "stock_summary_stock": "{stock} في المخزون",
+      "stock_summary_threshold": "تنبيه عند {threshold}",
+      "section_reference": "المرجع والباركود",
+      "sku": "المرجع",
+      "barcode": "الباركود",
+      "sku_summary": "المرجع {sku}",
+      "barcode_summary": "الباركود {barcode}",
+      "description": "الوصف",
+      "submit_create": "{type, select, service {إنشاء الخدمة} other {إنشاء المنتج}}",
+      "submit_edit": "حفظ",
+      "name_required": "أدخل اسمًا.",
+      "name_taken": "يوجد منتج أو خدمة بهذا الاسم في متجرك.",
+      "price_required": "أدخل سعر البيع.",
+      "amount_invalid": "أدخل مبلغًا، مثلًا 12.50.",
+      "quantity_invalid": "أدخل كمية موجبة، مثلًا 12.",
+      "too_long": "{max} حرفًا كحد أقصى.",
+      "field_invalid": "قيمة مرفوضة: تحقق من هذا الحقل.",
+      "save_failed": "فشل الحفظ. أعد المحاولة بعد قليل.",
+      "extras_failed": "{type, select, service {تم حفظ الخدمة، لكن تعذّر حفظ بعض الصور. أعد المحاولة من صفحتها.} other {تم حفظ المنتج، لكن تعذّر حفظ بعض الصور أو المخزون. أعد المحاولة من صفحته.}}",
+      "toast_created": "{type, select, service {تم إنشاء الخدمة} other {تم إنشاء المنتج}}",
+      "toast_saved": "{type, select, service {تم حفظ الخدمة} other {تم حفظ المنتج}}",
+      "unit_short": "{unit, select, piece {قطعة} other {{unit}}}",
+      "section_info": "المعلومات",
+      "section_price": "السعر",
+      "section_sale": "البيع",
+      "purchase_help": "لمتابعة هامش ربحك وحساب الزكاة.",
+      "margin_rate": "الهامش {margin}٪",
+      "margin_amount": "{unit, select, piece {أي {amount} لكل قطعة مبيعة} other {أي {amount} لكل {unit} مبيع}}",
+      "photo_main": "الرئيسية",
+      "photo_add": "إضافة صورة",
+      "photo_crop": "قصّ",
+      "photo_remove": "إزالة",
+      "photo_note": "يُنصح بالصيغة المربعة. JPEG أو PNG أو WebP.",
+      "photo_thumb": "الصورة {index}: اجعلها الصورة الرئيسية",
+      "photo_load_failed": "تعذّر تحميل الصورة. أعد المحاولة بعد قليل.",
+      "scan_barcode": "مسح الرمز الشريطي",
+      "scan_help": "امسح الآن بالقارئ: يُكتب الرمز في الحقل.",
+      "subtitle_new": "الحقول المعلَّمة بنجمة إلزامية.",
+      "section_formats": "الأشكال والأسعار",
+      "formats_help": "سطر لكل مقاس أو سعة أو عبوة. لكل شكل سعره ومخزونه.",
+      "formats_multiple": "عدة أشكال (مقاسات، سعات…)",
+      "formats_single": "العودة إلى شكل واحد",
+      "format_name": "الشكل",
+      "format_placeholder": "مثال: مقاس M",
+      "format_more": "خيارات أخرى لـ {name}",
+      "format_number": "الشكل {index}",
+      "format_deactivate": "إيقاف البيع",
+      "format_reactivate": "إعادة إلى البيع",
+      "format_delete": "حذف",
+      "format_remove": "حذف السطر",
+      "format_add": "إضافة شكل",
+      "format_actions": "إجراءات",
+      "formats_count": "{count, plural, one {شكل واحد} two {شكلان} few {# أشكال} other {# شكل}}",
+      "formats_count_stock": "{count, plural, one {شكل واحد} two {شكلان} few {# أشكال} other {# شكل}} · مخزون أولي {unit, select, piece {{quantity, plural, one {قطعة واحدة} two {قطعتان} few {{stock} قطع} other {{stock} قطعة}}} other {{stock} {unit}}}",
+      "formats_margin_range": "الهامش من {min} إلى {max}٪",
+      "formats_margin_varies": "حسب الشكل",
+      "formats_margin_same": "لجميع الأشكال",
+      "formats_same_price": "السعر نفسه لجميع الأشكال",
+      "formats_same_threshold": "الحد نفسه للجميع",
+      "unit_help_formats": "نفسها لجميع الأشكال. نهائية بعد الإنشاء.",
+      "reference_formats_note": "مع عدة أشكال، يُضبط المرجع والباركود لكل شكل من قائمة «⋯» في كل سطر.",
+      "submit_create_formats": "{count, plural, one {إنشاء المنتج وشكله} two {إنشاء المنتج وشكليه} few {إنشاء المنتج وأشكاله الـ#} other {إنشاء المنتج وأشكاله الـ#}}",
+      "format_name_required": "أدخل اسم الشكل.",
+      "format_name_taken": "يحمل شكل آخر من هذا المنتج هذا الاسم.",
+      "sku_taken": "هذا المرجع مستخدم بالفعل."
     },
     "units": {
       "piece": "قطعة",
@@ -993,131 +1043,414 @@
       "liter": "لتر (L)",
       "meter": "متر (m)"
     },
-    "variants": {
-      "section_title": "التعبئات",
-      "add": "إضافة",
-      "empty": "لا توجد تعبئة.",
-      "name_label_product": "اسم الصيغة *",
-      "name_label_service": "الاسم *",
-      "sku_label": "SKU (اختياري)",
-      "unit_label": "وحدة القياس",
-      "quantity_label": "الكمية المحتواة",
-      "sale_price_label": "سعر البيع *",
-      "unit_price_preview": "أي {price}",
-      "purchase_label": "سعر الشراء (اختياري)",
-      "alert_label": "حد التنبيه (اختياري)",
-      "initial_stock_label": "المخزون الأولي (اختياري)",
-      "name_required": "اسم التعبئة مطلوب.",
-      "price_required": "سعر البيع مطلوب.",
-      "save_failed": "تعذر حفظ التعبئة.",
-      "generic_error": "حدث خطأ.",
-      "saving": "جارٍ الحفظ…",
-      "update": "تحديث",
-      "add_button": "إضافة",
+    "filterSheet": {
+      "apply": "{kind, select, products {عرض المنتجات} services {عرض الخدمات} other {عرض النتائج}}",
+      "show_results": "{kind, select, products {{count, plural, zero {لا منتجات} one {عرض منتج واحد} two {عرض منتجين} few {عرض # منتجات} many {عرض # منتجًا} other {عرض # منتج}}} services {{count, plural, zero {لا خدمات} one {عرض خدمة واحدة} two {عرض خدمتين} few {عرض # خدمات} many {عرض # خدمة} other {عرض # خدمة}}} other {{count, plural, zero {لا نتائج} one {عرض نتيجة واحدة} two {عرض نتيجتين} few {عرض # نتائج} many {عرض # نتيجة} other {عرض # نتيجة}}}}",
+      "sort_title": "ترتيب حسب",
+      "sort_name": "الاسم، من أ إلى ي",
+      "sort_newest": "الأحدث أولًا",
+      "sort_price_asc": "السعر، الأرخص أولًا",
+      "sort_price_desc": "السعر، الأغلى أولًا",
+      "sort_stock": "المخزون، الأقل أولًا"
+    },
+    "sheet": {
+      "topbar": "البطاقة",
+      "not_found": "هذا المنتج غير موجود.",
+      "subtitle": "{type, select, service {خدمة، أُنشئت في {date}} other {منتج، أُنشئ في {date}}}",
+      "subtitle_formats": "منتج، {count} أشكال، أُنشئ في {date}",
+      "edit": "تعديل",
+      "stock_in": "إدخال مخزون",
+      "correct_stock": "تصحيح المخزون",
+      "deactivate": "تعطيل",
+      "reactivate": "إعادة التفعيل",
+      "delete": "حذف",
       "cancel": "إلغاء",
-      "inactive_badge": "غير نشط",
-      "sku_with": "SKU {sku}",
-      "edit_aria": "تعديل",
-      "remove_aria": "حذف",
-      "confirm_remove": "حذف التعبئة \"{name}\"؟",
-      "remove_failed": "تعذر الحذف."
+      "reactivated": "{type, select, service {تمت إعادة تفعيل الخدمة} other {تمت إعادة تفعيل المنتج}}",
+      "deactivated": "{type, select, service {تم تعطيل الخدمة} other {تم تعطيل المنتج}}",
+      "deleted": "{type, select, service {تم حذف الخدمة} other {تم حذف المنتج}}",
+      "action_failed": "فشلت العملية. أعد المحاولة بعد قليل.",
+      "delete_refused": "سبق استخدام هذا المنتج: عطّله بدلًا من حذفه.",
+      "confirm_deactivate_title": "{type, select, service {تعطيل هذه الخدمة؟} other {تعطيل هذا المنتج؟}}",
+      "confirm_deactivate_text": "{type, select, service {لن تُعرض بعد الآن في طلباتك. يُحتفظ بسجلها ويمكنك إعادة تفعيلها.} other {لن يُعرض بعد الآن في طلباتك ولن يُتابع في المخزون. يُحتفظ بسجله ويمكنك إعادة تفعيله.}}",
+      "confirm_delete_title": "{type, select, service {حذف هذه الخدمة؟} other {حذف هذا المنتج؟}}",
+      "confirm_delete_text": "لم يُستخدم قط: سيُحذف نهائيًا مع أشكاله وصورته.",
+      "formats_title": "الأشكال",
+      "add_format": "إضافة شكل",
+      "formats_empty": "لا يوجد شكل.",
+      "col_format": "الشكل",
+      "col_price": "السعر",
+      "col_stock": "المخزون",
+      "col_threshold": "الحد",
+      "col_state": "الحالة",
+      "col_actions": "الإجراءات",
+      "edit_format": "تعديل الشكل {name}",
+      "format_line": "{price}، الحد {threshold}",
+      "movements_title": "آخر الحركات",
+      "see_all": "عرض الكل",
+      "movements_empty": "لا توجد حركة مخزون بعد.",
+      "movements_error": "تعذّر تحميل الحركات.",
+      "stock_title": "المخزون",
+      "stock_total_hint": "{count, plural, one {في المخزون} other {في المخزون، كل الأشكال}}",
+      "negative_formats": "{count, plural, one {شكل واحد سالب} two {شكلان سالبان} few {# أشكال سالبة} many {# شكلًا سالبًا} other {# شكل سالب}}",
+      "purchase_value": "قيمة الشراء",
+      "threshold": "حد التنبيه",
+      "threshold_each": "{threshold} لكل شكل",
+      "per_format": "حسب الشكل",
+      "sold_30d": "المبيعات خلال 30 يومًا",
+      "sold_30d_service": "المبيعات خلال 30 يومًا",
+      "sales_value": "{quantity}، أي {amount}",
+      "no_sales": "لا مبيعات",
+      "references_title": "المراجع",
+      "sku": "المرجع",
+      "barcode": "الرمز الشريطي",
+      "unit": "وحدة البيع",
+      "purchase_price": "سعر الشراء",
+      "purchase_margin": "{price}، هامش {margin}٪",
+      "prices_title": "الأسعار",
+      "add_price": "إضافة سعر",
+      "sales_title": "المبيعات خلال 30 يومًا",
+      "description_title": "الوصف",
+      "movement": {
+        "order": "{type}، الطلب <link>{number}</link>",
+        "order_cancelled": "{type}، الطلب <link>{number}</link> ملغى",
+        "supplier_invoice": "{type}، {supplier} فاتورة {invoice}",
+        "supplier": "{type}، {supplier}",
+        "invoice": "{type}، فاتورة {invoice}",
+        "kind": "{type}، {kind}",
+        "kind_note": "{type}، {kind}، {note}",
+        "note": "{type}، {note}",
+        "kinds": {
+          "loss": "فقدان",
+          "breakage": "كسر",
+          "internal_use": "استخدام داخلي",
+          "adjustment": "جرد"
+        }
+      },
+      "format": {
+        "new_title": "{type, select, service {سعر جديد} other {شكل جديد}}",
+        "edit_title": "{type, select, service {تعديل السعر} other {تعديل الشكل}}",
+        "name": "{type, select, service {اسم الخدمة} other {اسم الشكل}}",
+        "name_help": "مثلًا «مقاس M»، «علبة من 6»، «500 غ».",
+        "base_quantity": "المحتوى",
+        "base_quantity_help": "الكمية المباعة في هذا الشكل، بوحدة البيع.",
+        "submit_new": "إضافة",
+        "submit_edit": "حفظ",
+        "created": "تمت إضافة الشكل",
+        "saved": "تم حفظ الشكل",
+        "deactivate": "إيقاف البيع",
+        "reactivate": "إعادة إلى البيع",
+        "deactivated": "تم إيقاف بيع الشكل",
+        "reactivated": "أُعيد الشكل إلى البيع",
+        "format_name_required": "أدخل اسمًا.",
+        "price_required": "أدخل سعر البيع.",
+        "amount_invalid": "أدخل مبلغًا، مثلًا 12,50.",
+        "quantity_invalid": "أدخل كمية موجبة، مثلًا 12.",
+        "too_long": "{max} حرفًا كحد أقصى.",
+        "name_taken": "يحمل شكل آخر من هذا المنتج الاسم نفسه.",
+        "field_invalid": "قيمة مرفوضة: تحقق من هذا الحقل.",
+        "save_failed": "فشل الحفظ. أعد المحاولة بعد قليل.",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "deleted": "تم حذف الصيغة",
+        "delete_refused": "سبق استخدام هذه الصيغة: أوقف بيعها بدلًا من ذلك.",
+        "confirm_delete_title": "حذف الصيغة «{name}»؟",
+        "confirm_delete_text": "لم تُستخدم قط: ستُحذف نهائيًا من المنتج.",
+        "actions_label": "إجراءات الصيغة {name}"
+      },
+      "photos": "الصور",
+      "photos_manage": "إدارة الصور",
+      "photos_add": "إضافة صور"
     }
   },
   "stock": {
-    "importInvoice": {
-      "title": "استيراد فاتورة",
-      "picker_title": "أضف صورة الفاتورة",
-      "picker_helper": "JPEG أو PNG أو WebP. يبدأ التحليل الضوئي تلقائيًا.",
-      "pick_cta": "التقاط / اختيار صورة",
-      "uploading": "جاري الإرسال…",
-      "upload_error": "فشل الإرسال.",
-      "loading": "جاري التحميل…",
-      "analyzing": "جاري تحليل الفاتورة…",
-      "analyzing_sub": "يستغرق ذلك عادةً بضع ثوانٍ.",
-      "error_network_title": "خطأ في الشبكة",
-      "error_network_body": "تعذّر جلب النتيجة. حاول مرة أخرى بعد قليل.",
-      "restart": "إعادة المحاولة",
-      "restart_other_photo": "إعادة المحاولة بصورة أخرى",
-      "retry_photo": "جرّب صورة أخرى",
-      "failed_title": "فشل الاستخراج البنيوي",
-      "failed_with_raw": "تعذّر استخراج فاتورة بنيوية. النص الخام متاح أدناه.",
-      "failed_without_raw": "لم يتم استخراج أي نص. جرّب صورة أوضح ومؤطرة جيدًا.",
-      "raw_text_label": "نص OCR الخام",
-      "matching_unavailable": "روابط الكتالوج غير متوفرة لهذه الفاتورة.",
-      "lines_title": "الأسطر المكتشفة",
-      "supplier": "المورّد",
+    "common": {
+      "single_format": "شكل واحد",
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "today_at": "اليوم، {time}",
+      "yesterday_at": "أمس، {time}",
+      "variant_label": "{product}، {format}",
+      "load_more": "عرض المزيد",
+      "decrease": "إنقاص 1",
+      "increase": "زيادة 1",
+      "before_after": "المخزون الحالي <b>{before}</b> ← <a>{after}</a> بعد الإدخال",
+      "quantity_invalid": "أدخل كمية أكبر من 0.",
+      "amount_invalid": "أدخل مبلغًا صحيحًا، مثل 12,50.",
+      "cancel": "إلغاء",
+      "save_error": "تعذّر الحفظ. حاول مرة أخرى.",
+      "none": "غير محدد",
+      "lines_empty": "أضف منتجًا واحدًا على الأقل.",
+      "line_unassociated": "اربط هذا السطر بمنتج."
+    },
+    "page": {
+      "title": "المخزون",
+      "subtitle": "{count, plural, zero {لا أشكال متابَعة} one {شكل واحد متابَع} two {شكلان متابَعان} few {# أشكال متابَعة} many {# شكلًا متابَعًا} other {# شكل متابَع}}، قيمة الشراء {value}",
+      "exit_cta": "إخراج من المخزون",
+      "entry_cta": "إدخال إلى المخزون"
+    },
+    "tabs": {
+      "label": "عروض المخزون",
+      "levels": "المستويات",
+      "movements": "الحركات"
+    },
+    "stats": {
+      "negative_label": "سالب",
+      "negative_sub": "بحاجة إلى تسوية",
+      "out_label": "نفد",
+      "out_sub": "أشكال بحاجة إلى تموين",
+      "low_label": "مخزون منخفض",
+      "low_sub": "تحت حد التنبيه",
+      "value_label": "قيمة المخزون",
+      "value_sub": "بسعر الشراء"
+    },
+    "levels": {
+      "search_label": "البحث عن شكل",
+      "search_placeholder": "منتج أو شكل أو مرجع أو رمز شريطي",
+      "state_title": "الحالة",
+      "clear_filters": "مسح عوامل التصفية",
+      "state": {
+        "all": "الكل",
+        "negative": "سالب",
+        "out": "نفد",
+        "low": "مخزون منخفض",
+        "in": "متوفر"
+      },
+      "badge": {
+        "negative": "سالب",
+        "out": "نفد",
+        "low": "منخفض",
+        "in": "متوفر"
+      },
+      "sort": {
+        "stock": "{dir, select, asc {مرتّب حسب المخزون، الأقل أولًا} other {مرتّب حسب المخزون، الأكثر أولًا}}",
+        "name": "{dir, select, asc {مرتّب حسب الاسم، من أ إلى ي} other {مرتّب حسب الاسم، من ي إلى أ}}",
+        "purchase_value": "{dir, select, asc {مرتّب حسب قيمة الشراء، الأقل أولًا} other {مرتّب حسب قيمة الشراء، الأعلى أولًا}}",
+        "last_movement": "{dir, select, asc {مرتّب حسب آخر حركة، الأقدم أولًا} other {مرتّب حسب آخر حركة، الأحدث أولًا}}"
+      },
+      "sort_option": {
+        "stock_asc": "المخزون الأقل",
+        "name_asc": "الاسم، من أ إلى ي",
+        "value_desc": "قيمة الشراء الأعلى",
+        "last_movement_desc": "آخر حركة الأحدث"
+      },
+      "to_regularize": "بحاجة إلى تسوية",
+      "entry_short": "إدخال",
+      "entry_for": "إدخال مخزون: {name}",
+      "column_name": "المنتج والشكل",
+      "column_stock": "المخزون",
+      "column_threshold": "الحد",
+      "column_state": "الحالة",
+      "column_value": "قيمة الشراء",
+      "column_last_movement": "آخر حركة",
+      "column_actions": "الإجراءات"
+    },
+    "movements": {
+      "search_label": "البحث عن حركة",
+      "search_placeholder": "منتج أو شكل أو مرجع",
+      "product_filter": "المنتج",
+      "type_title": "الحركة",
+      "period_title": "الفترة",
+      "clear_filters": "مسح عوامل التصفية",
+      "type": {
+        "in": "إدخال",
+        "out": "إخراج",
+        "reservation": "حجز",
+        "release": "تحرير",
+        "adjustment": "تصحيح"
+      },
+      "filter_type": {
+        "all": "الكل",
+        "in": "الإدخالات",
+        "out": "الإخراجات",
+        "reservation": "الحجوزات",
+        "release": "التحريرات",
+        "adjustment": "التصحيحات"
+      },
+      "period": {
+        "all": "كل الفترات",
+        "today": "اليوم",
+        "7d": "آخر 7 أيام",
+        "30d": "آخر 30 يومًا",
+        "90d": "آخر 90 يومًا"
+      },
+      "sort": "{dir, select, asc {مرتّب حسب التاريخ، الأقدم أولًا} other {مرتّب حسب التاريخ، الأحدث أولًا}}",
+      "sort_option": {
+        "newest": "الأحدث أولًا",
+        "oldest": "الأقدم أولًا"
+      },
+      "column_date": "التاريخ",
+      "column_name": "المنتج والشكل",
+      "column_type": "الحركة",
+      "column_quantity": "الكمية",
+      "column_reference": "السبب أو المرجع",
+      "column_author": "بواسطة",
+      "reference": {
+        "order": "الطلب <link>{number}</link>",
+        "order_cancelled": "الطلب <link>{number}</link> ملغى",
+        "supplier_invoice": "{supplier}، فاتورة {invoice}",
+        "invoice": "فاتورة {invoice}",
+        "kind": {
+          "loss": "فقدان",
+          "breakage": "كسر",
+          "internal_use": "استخدام داخلي",
+          "adjustment": "جرد"
+        },
+        "with_note": "{kind}، {note}",
+        "none": "بلا مرجع"
+      }
+    },
+    "filterSheet": {
+      "apply_levels": "عرض الأشكال",
+      "show_levels": "{count, plural, =0 {لا أشكال} one {عرض شكل واحد} two {عرض شكلين} few {عرض # أشكال} many {عرض # شكلًا} other {عرض # شكل}}",
+      "apply_movements": "عرض الحركات",
+      "sort_title": "الترتيب حسب"
+    },
+    "empty": {
+      "levels_title": "لا أشكال متابَعة",
+      "levels_sub": "أضف منتجًا له مخزون لمتابعة مستوياته هنا.",
+      "levels_filtered_title": "لا أشكال مطابقة",
+      "levels_filtered_sub": "غيّر البحث أو أزل عامل تصفية.",
+      "movements_title": "لا حركات",
+      "movements_sub": "ستظهر هنا الإدخالات والإخراجات وحجوزات الطلبات.",
+      "movements_filtered_title": "لا حركات مطابقة",
+      "movements_filtered_sub": "غيّر البحث أو الفترة أو أزل عامل تصفية.",
+      "clear_filters": "مسح عوامل التصفية",
+      "add_product": "إضافة منتج"
+    },
+    "quick": {
+      "title": "إدخال إلى المخزون",
+      "quantity": "الكمية المستلمة",
+      "price": "سعر الشراء للوحدة",
+      "price_help": "آخر سعر مدفوع، قابل للتعديل.",
+      "full_entry": "استلمت عدة منتجات؟ افتح الإدخال الكامل للمخزون",
+      "submit": "إضافة {quantity} إلى المخزون",
+      "submit_empty": "إضافة إلى المخزون",
+      "success": "تم تحديث المخزون: {name}، +{quantity}"
+    },
+    "search": {
+      "label": "إضافة منتج",
+      "placeholder": "إضافة منتج: الاسم أو المرجع أو الرمز الشريطي",
+      "results": "المنتجات الموجودة",
+      "empty": "لا يوجد منتج مطابق.",
+      "stock": "المخزون {quantity}",
+      "scan": "مسح",
+      "scan_help": "امسح الرمز الشريطي بالقارئ: يُضاف المنتج تلقائيًا. يمكنك أيضًا كتابة الرمز ثم الضغط على Enter."
+    },
+    "entry": {
+      "title": "إدخال مخزون",
+      "subtitle": "سجّل كل ما استلمته دفعة واحدة.",
+      "mode": {
+        "label": "طريقة الإدخال",
+        "manual": "إدخال يدوي",
+        "invoice": "من فاتورة مورّد",
+        "manual_short": "يدوي",
+        "invoice_short": "فاتورة"
+      },
+      "line_quantity": "الكمية المستلمة: {label}",
+      "line_price": "سعر الشراء للوحدة: {label}",
+      "stock_change": "المخزون {before}، ثم {after}",
+      "remove_line": "حذف السطر: {label}",
+      "card_stock": "المخزون",
+      "line_total": "المجموع",
+      "footer_count": "{invoice, select, true {{count, plural, one {سطر واحد} two {سطران} few {# أسطر} many {# سطرًا} other {# سطر}}} other {{count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}}}، {units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}}",
+      "footer_total": "مجموع الشراء <b>{amount}</b>",
+      "col_article": "المنتج",
+      "col_state": "الحالة",
+      "col_read": "السطر المقروء في الفاتورة",
+      "col_quantity": "الكمية المستلمة",
+      "col_price": "سعر الشراء للوحدة",
+      "col_article_format": "المنتج والشكل",
+      "col_stock": "المخزون",
+      "col_total": "المجموع",
+      "col_actions": "الإجراءات",
+      "summary_invoice": "فاتورة {number}",
+      "supplier_title": "المورّد والفاتورة",
+      "supplier_help": "أضف المورّد ورقم الفاتورة للعثور على هذا الإدخال لاحقًا.",
+      "supplier_name": "المورّد",
       "invoice_number": "رقم الفاتورة",
-      "invoice_date": "التاريخ",
-      "total": "المجموع",
-      "currency": "العملة",
-      "ocr_confidence_short": "ثقة OCR {pct}%",
-      "field_description": "الوصف",
-      "field_quantity": "الكمية",
-      "field_unit_price": "سعر الوحدة",
-      "field_unit_price_with": "سعر الوحدة ({currency})",
-      "field_line_total": "الإجمالي",
-      "field_line_total_with": "الإجمالي ({currency})",
-      "supplier_ref_prefix": "مرجع",
-      "no_candidate": "لا يوجد منتج مطابق",
-      "proposal_suffix": "اقتراح",
-      "decide_prompt": "اضغط للاختيار أو التجاهل",
-      "quick_catalog": "الاختيار من الكتالوج",
-      "quick_ignore": "تجاهل هذا السطر",
-      "missing_quantity": "الكمية مطلوبة للتحقق",
-      "change_choice": "تغيير",
-      "reset_decision": "إعادة تعيين",
-      "ignored_state": "تم تجاهل السطر — بدون إدخال للمخزون",
-      "ready_summary": "{count, plural, =0 {لا يوجد سطر يُضاف للمخزون} one {# سطر جاهز، {ignored, plural, =0 {لم يُتجاهل شيء} one {تم تجاهل #} other {تم تجاهل #}}} other {# أسطر جاهزة، {ignored, plural, =0 {لم يُتجاهل شيء} one {تم تجاهل #} other {تم تجاهل #}}}}",
-      "missing_summary": "{count, plural, one {# سطر بحاجة إلى قرار} other {# أسطر بحاجة إلى قرار}}",
-      "continue_cta": "التحقق من الفاتورة",
-      "validating": "جاري التحقق…",
-      "confirm_title": "تأكيد التحقق",
-      "confirm_body": "هذا الإجراء يُثبّت المراجعة. لن يمكنك تعديل الأسطر بعد ذلك.",
-      "confirm_stock_count": "{count, plural, =0 {لا يوجد سطر لإضافته للمخزون} one {# سطر يُضاف للمخزون} other {# أسطر تُضاف للمخزون}}",
-      "confirm_ignore_count": "{count, plural, =0 {لا سطر متجاهل} one {# سطر متجاهل} other {# أسطر متجاهلة}}",
-      "confirm_no_stock_hint": "لا يُنشأ أي حركة مخزون الآن — الإدخال الفعلي في الخطوة التالية.",
-      "confirm_cta": "تحقق",
-      "confirm_cancel": "إلغاء",
-      "error_generic": "تعذّر التحقق الآن.",
-      "error_payload": "بعض الأسطر غير صالحة. تحقق من الكميات والمنتجات المختارة.",
-      "error_conflict": "تم التحقق من هذه الفاتورة مسبقًا بخيارات مختلفة. أعد تحميل الصفحة.",
-      "validated_title": "تم التحقق من الفاتورة",
-      "validated_at": "تم التحقق في {when}",
-      "validated_body": "{stock, plural, =0 {لا سطر} one {# سطر} other {# أسطر}} في المخزون، {ignored, plural, =0 {لم يُتجاهل شيء} one {# متجاهل} other {# متجاهلة}}.",
-      "validated_no_stock_hint": "إدخال المخزون الفعلي في الخطوة التالية.",
-      "validated_lines_title": "القرارات",
-      "validated_line_stock": "يُضاف للمخزون",
-      "validated_line_ignored": "متجاهل",
-      "validated_restart": "استيراد فاتورة أخرى"
+      "invoice_date": "تاريخ الفاتورة",
+      "success": "تم تسجيل الإدخال: {count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}، {units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}}",
+      "empty_lines": "ابحث عن المنتجات المستلمة أو امسحها لإضافتها.",
+      "note_manual": "سيتم تحديث المخزون وقيمة الشراء.",
+      "submit_empty": "أضف منتجًا للمتابعة",
+      "submit": "تسجيل الإدخال ({units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}})"
     },
-    "candidatesSheet": {
-      "title": "اختر منتجًا",
-      "line_prefix": "سطر الفاتورة:",
-      "empty_title": "لا يوجد منتج مطابق",
-      "empty_body": "لا يقترح الكتالوج أي منتج لهذا السطر.",
-      "pick_other_title": "اختر منتجًا آخر",
-      "pick_other_sub": "تصفح الكتالوج",
-      "ignore_title": "تجاهل هذا السطر",
-      "ignore_sub": "لا تُضف للمخزون"
+    "invoice": {
+      "associated": "مرتبط",
+      "to_associate": "للربط",
+      "picker_title": "اختيار المنتج",
+      "picker_read": "السطر المقروء: {label}",
+      "suggestions": "اقتراحات",
+      "change_article": "تغيير منتج السطر «{label}»",
+      "choose_article_for": "اختيار منتج السطر «{label}»",
+      "choose_article": "اختيار المنتج",
+      "file_type": "اختر صورة بصيغة JPEG أو PNG أو WebP.",
+      "file_size": "يجب ألا تتجاوز الصورة {max} ميغابايت.",
+      "upload_failed": "تعذّر إرسال الصورة. حاول مرة أخرى.",
+      "read_failed": "تعذّرت قراءة الفاتورة. التقط صورة أوضح والفاتورة مسطّحة.",
+      "stage": {
+        "uploading": "جارٍ الإرسال…",
+        "reading": "جارٍ قراءة الفاتورة…",
+        "done": "تم التحليل",
+        "validated": "مسجّلة مسبقًا في المخزون",
+        "failed": "تعذّرت القراءة"
+      },
+      "change_photo": "تغيير الصورة",
+      "prompt_title": "صوّر فاتورة المورّد",
+      "prompt_help": "JPEG أو PNG أو WebP، {max} ميغابايت كحد أقصى. ستُربط الأسطر المقروءة بمنتجاتك؛ لا يُضاف شيء إلى المخزون قبل تأكيدك.",
+      "prompt_cta": "التقاط صورة أو اختيارها",
+      "success": "تم تسجيل الفاتورة: {count, plural, one {سطر واحد} two {سطران} few {# أسطر} many {# سطرًا} other {# سطر}}، {units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}}",
+      "already_recorded": "سبق تسجيل هذه الفاتورة في المخزون.",
+      "note": "تبقى الفاتورة مرفقة بهذا الإدخال.",
+      "associate_to_continue": "اربط {count, plural, one {سطرًا واحدًا} two {سطرين} few {# أسطر} many {# سطرًا} other {# سطر}} للمتابعة",
+      "to_associate_count": "{count, plural, one {سطر واحد للربط.} two {سطران للربط.} few {# أسطر للربط.} many {# سطرًا للربط.} other {# سطر للربط.}}",
+      "check_lines": "تحقق من كل سطر: لا يُضاف شيء إلى المخزون قبل تأكيدك.",
+      "read_number_date": "فاتورة {number} بتاريخ {date}",
+      "read_number": "فاتورة {number}",
+      "lines_read": "{count, plural, zero {لم يُقرأ أي سطر} one {سطر واحد مقروء} two {سطران مقروءان} few {# أسطر مقروءة} many {# سطرًا مقروءًا} other {# سطر مقروء}}",
+      "no_lines": "لم يُقرأ أي سطر في هذه الفاتورة. غيّر الصورة أو أدخل المخزون يدويًا."
     },
-    "catalogSheet": {
-      "title": "الكتالوج",
-      "line_prefix": "سطر الفاتورة:",
-      "search_placeholder": "ابحث عن منتج…",
-      "search_clear_aria": "مسح البحث",
-      "loading": "جاري التحميل…",
-      "no_products": "لا يوجد منتج في الكتالوج.",
-      "no_results": "لا يوجد منتج مطابق.",
-      "variant_formats": "{count, plural, =0 {لا صيغة} one {# صيغة} other {# صيغ}}",
-      "no_variants": "لا توجد تعبئة نشطة.",
-      "back_to_products": "العودة إلى المنتجات",
-      "variant_pick_helper": "اختر التعبئة المستلمة",
-      "stock_short": "المخزون: {qty}"
-    },
-    "matchKind": {
-      "barcode_exact": "رمز شريطي مطابق",
-      "sku_exact": "مرجع مطابق",
-      "name_similarity": "اسم مشابه"
+    "exit": {
+      "title": "إخراج من المخزون",
+      "title_count": "تصحيح الجرد",
+      "subtitle": "فقدان أو كسر أو استعمال داخلي، أو تصحيح بعد الجرد.",
+      "reason_title": "سبب الإخراج",
+      "reason_help": "اختر سبب خروج هذه المنتجات من المخزون.",
+      "reason": {
+        "loss": "فقدان",
+        "breakage": "كسر",
+        "internal_use": "استعمال داخلي",
+        "adjustment": "تصحيح الجرد"
+      },
+      "reason_help_loss": "منتج مفقود أو مسروق أو منتهي الصلاحية.",
+      "reason_help_breakage": "منتج تالف لا يمكن بيعه.",
+      "reason_help_internal_use": "يستعمله المتجر: عرض، عيّنة…",
+      "reason_help_adjustment": "بعد الجرد: يأخذ المخزون الكمية المعدودة.",
+      "reason_required": "اختر سببًا.",
+      "count_invalid": "أدخل الكمية المعدودة، 0 أو أكثر.",
+      "insufficient": "المخزون غير كافٍ: المتوفر {available, number}.",
+      "rejected_line": "المخزون غير كافٍ لهذه الكمية.",
+      "rejected": "تغيّر المخزون: تحقق من الكميات المشار إليها.",
+      "line_quantity": "الكمية المُخرجة: {label}",
+      "line_counted": "الكمية المعدودة: {label}",
+      "gap_aria": "الفرق {gap}",
+      "col_quantity": "الكمية المُخرجة",
+      "col_counted": "الكمية المعدودة",
+      "col_gap": "الفرق",
+      "note_title": "ملاحظة",
+      "note_help": "وضّح ما حدث إن لزم: ستظهر في الحركات.",
+      "note_label": "ملاحظة",
+      "empty_lines": "ابحث عن المنتجات الخارجة من المخزون أو امسحها.",
+      "empty_lines_count": "ابحث عن المنتجات المعدودة أو امسحها.",
+      "footer": "{count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}، {units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}}",
+      "footer_count": "{count, plural, one {منتج واحد معدود} two {منتجان معدودان} few {# منتجات معدودة} many {# منتجًا معدودًا} other {# منتج معدود}}، {changed, plural, =0 {لا فرق} one {فرق واحد} two {فرقان} few {# فروق} many {# فرقًا} other {# فرق}}",
+      "note_exit": "سينخفض المخزون بهذه الكميات.",
+      "note_count": "سيأخذ مخزون كل منتج الكمية المعدودة.",
+      "submit_empty": "أضف منتجًا للمتابعة",
+      "submit": "تسجيل الإخراج ({units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}})",
+      "submit_count": "تسجيل التصحيح ({count, plural, =0 {لا فرق} one {فرق واحد} two {فرقان} few {# فروق} many {# فرقًا} other {# فرق}})",
+      "success": "تم تسجيل الإخراج: {count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}، {units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}}",
+      "adjust_success": "{count, plural, =0 {لا فرق: كان المخزون صحيحًا.} one {تم تصحيح مخزون منتج واحد.} two {تم تصحيح مخزون منتجين.} few {تم تصحيح مخزون # منتجات.} many {تم تصحيح مخزون # منتجًا.} other {تم تصحيح مخزون # منتج.}}"
     }
   },
   "messages": {
@@ -1126,17 +1459,19 @@
       "hint": "ستُرسل هذه الرسالة يدويًا عبر واتساب إلى {name}.",
       "message_label": "الرسالة",
       "send_cta": "فتح واتساب",
-      "sending": "جاري التحضير…",
       "cancel": "إلغاء",
-      "error_generic": "تعذّر تحضير الرسالة.",
+      "record_failed": "فُتح واتساب، لكن لم تُضف الرسالة إلى السجل.",
       "greeting": "السلام عليكم،",
       "greeting_named": "السلام عليكم {name}،"
     },
     "history": {
       "title": "رسائل واتساب",
-      "loading": "جارٍ التحميل…",
       "delete_confirm": "حذف هذه الرسالة؟",
-      "delete_aria": "حذف الرسالة"
+      "delete_aria": "حذف الرسالة",
+      "delete_cta": "حذف",
+      "status_prepared": "محضّرة",
+      "status_sent_manually": "أُرسلت",
+      "status_archived": "مؤرشفة"
     }
   },
   "team": {
@@ -1145,7 +1480,6 @@
     "subtitle": "أدر أعضاء متجرك وصلاحياتهم.",
     "add_member": "إضافة عضو",
     "no_members": "أنت العضو الوحيد في هذا المتجر حالياً.",
-    "loading": "جارٍ التحميل…",
     "you_badge": "أنت",
     "since": "منذ {date}",
     "role": {
@@ -1197,11 +1531,100 @@
       "create_error": "تعذّر إنشاء هذا العضو. تأكد من البريد الإلكتروني وكلمة المرور.",
       "update_error": "تعذّر حفظ هذه التغييرات.",
       "delete_error": "تعذّر إزالة هذا العضو."
-    }
+    },
+    "readonly_title": "الأعضاء الحاليون",
+    "readonly_note": "بدون باقة Boutique+ لا يمكن لهؤلاء الأعضاء تسجيل الدخول. تُحفظ حساباتهم وصلاحياتهم."
   },
   "ui": {
+    "phone": {
+      "country_label": "رمز الدولة",
+      "country_value": "رمز الدولة: {country} (+{dial})",
+      "search_placeholder": "الدولة أو الرمز",
+      "search_empty": "لم يتم العثور على أي دولة"
+    },
     "close": "إغلاق",
-    "panel": "لوحة"
+    "panel": "لوحة",
+    "list": {
+      "pagination_range": "{from} إلى {to} من {total}",
+      "pagination_prev": "الصفحة السابقة",
+      "pagination_next": "الصفحة التالية",
+      "pagination_page": "الصفحة {page}",
+      "pagination_label": "ترقيم الصفحات",
+      "filter_label": "{name}:",
+      "remove_filter": "إزالة فلتر {name}",
+      "filters": "تصفية",
+      "reset": "إعادة ضبط",
+      "active_filters": "{count, plural, zero {لا فلاتر نشطة} one {فلتر نشط واحد} two {فلتران نشطان} few {# فلاتر نشطة} many {# فلترًا نشطًا} other {# فلتر نشط}}"
+    },
+    "detail": {
+      "more_actions": "إجراءات أخرى",
+      "actions_title": "الإجراءات"
+    },
+    "notes": {
+      "title": "ملاحظات",
+      "add_cta": "إضافة",
+      "field_label": "ملاحظة جديدة",
+      "saving": "جارٍ الحفظ…",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "delete_confirm": "حذف هذه الملاحظة؟",
+      "delete_aria": "حذف الملاحظة",
+      "anonymous": "مجهول",
+      "meta": "{author}، {when, select, today {اليوم} yesterday {أمس} other {في {date}}} الساعة {time}",
+      "delete_cta": "حذف"
+    },
+    "show_more": {
+      "more": "عرض المزيد ({kind, select, other {{remaining} متبقية}})"
+    },
+    "form": {
+      "unsaved": "تعديلات غير محفوظة",
+      "cancel": "إلغاء",
+      "saving": "جارٍ الحفظ…",
+      "required": "إلزامي",
+      "optional": "اختياري",
+      "done": "تم"
+    },
+    "country": {
+      "placeholder": "اختر دولة",
+      "clear": "إزالة الدولة",
+      "sheet_title": "اختر دولة",
+      "search": "ابحث عن دولة",
+      "empty": "لم يتم العثور على أي دولة."
+    },
+    "address": {
+      "placeholder": "الرقم والشارع",
+      "clear": "مسح العنوان",
+      "empty": "لم يتم العثور على أي عنوان ({country}). وسّع البحث أو غيّر الدولة."
+    },
+    "toast": {
+      "region": "الإشعارات"
+    },
+    "error": {
+      "title": "حدث خطأ",
+      "body": "تعذّر تحميل هذه الصفحة. أعد المحاولة بعد لحظات، وإن استمر الخطأ فتواصل مع الدعم.",
+      "reference": "المرجع: {digest}",
+      "retry": "إعادة المحاولة"
+    },
+    "loading": {
+      "status": "التحميل جارٍ"
+    },
+    "not_found": {
+      "code": "خطأ 404",
+      "title": "الصفحة غير موجودة",
+      "body": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+      "back": "العودة إلى لوحة التحكم"
+    },
+    "password": {
+      "show": "إظهار كلمة المرور",
+      "hide": "إخفاء كلمة المرور"
+    },
+    "crop": {
+      "title": "قص الصورة",
+      "zoom": "تكبير",
+      "cancel": "إلغاء",
+      "processing": "جارٍ المعالجة…",
+      "confirm": "تأكيد"
+    }
   },
   "settings": {
     "preferences": {
@@ -1215,6 +1638,120 @@
       "fulfillment_on_site": "في المحل",
       "fulfillment_delivery": "توصيل",
       "fulfillment_both": "الاثنان"
+    },
+    "upgrade": {
+      "title": "متاح مع باقة Boutique+",
+      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} other {هذه الميزة جزء من باقة Boutique+.}}",
+      "cta": "عرض الباقات"
+    },
+    "page": {
+      "title": "إعدادات المتجر",
+      "loading_title": "الإعدادات",
+      "saved": "تم حفظ التعديلات ✓"
+    },
+    "actions": {
+      "unsaved": "تعديلات غير محفوظة",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…"
+    },
+    "identity": {
+      "title": "الهوية",
+      "description": "واجهة متجركم وإعداداته الإقليمية.",
+      "name": "اسم المتجر *",
+      "name_required": "الاسم مطلوب",
+      "currency": "العملة",
+      "country": "البلد (اختياري)"
+    },
+    "logo": {
+      "alt": "شعار المتجر",
+      "uploading": "جارٍ الرفع…",
+      "change": "تغيير الشعار",
+      "add": "إضافة شعار",
+      "deleting": "جارٍ الحذف…",
+      "delete": "حذف",
+      "delete_title": "حذف الشعار؟",
+      "delete_description": "سيُحذف شعار المتجر نهائيًا.",
+      "invalid_format": "الصيغ المقبولة: JPEG وPNG وWebP.",
+      "upload_error": "فشل رفع الشعار. حاولوا مجددًا.",
+      "delete_error": "حدث خطأ أثناء الحذف."
+    },
+    "management": {
+      "title": "الإدارة",
+      "description": "فريق متجركم وواجهته واشتراكه.",
+      "public_page": "الصفحة العامة",
+      "public_page_subtitle": "واجهة قابلة للمشاركة لمتجركم",
+      "subscription": "الاشتراك",
+      "subscription_subtitle": "الباقة والتجربة والإلغاء"
+    },
+    "invoicing": {
+      "title": "الفوترة",
+      "description": "تظهر هذه الحقول في فواتير زبائنكم. املؤوا ما تفرضه قوانين بلدكم.",
+      "legal_address": "العنوان القانوني (المقر)",
+      "tax_id": "المعرّف الضريبي (SIRET، TVA، NIF، EIN…)",
+      "tax_rate": "نسبة الضريبة الافتراضية",
+      "payment_terms": "أجل الدفع",
+      "days": "يوم",
+      "legal_mentions": "البيانات القانونية (أسفل الفاتورة)",
+      "legal_mentions_help": "مثال: «غير خاضع للضريبة على القيمة المضافة»، رقم السجل التجاري، شروط غرامات التأخير، التعويض الجزافي…"
+    },
+    "zakat": {
+      "title": "الزكاة",
+      "description": "إعدادات حساب حد النصاب وإنشاء التذكير السنوي.",
+      "annual_date": "التاريخ السنوي (اختياري)",
+      "annual_date_help": "سيُنشأ تذكير قبل هذا التاريخ كل عام.",
+      "method": "طريقة النصاب",
+      "method_silver": "الفضة (595 غ)",
+      "method_gold": "الذهب (85 غ)",
+      "unit_price": "سعر الغرام ({currency})",
+      "unit_price_help": "يتغيّر السعر يوميًا. تحققوا من سعر الغرام وحدّثوه قبل كل حساب. طريقة الفضة أشمل (حد أدنى)."
+    },
+    "public_page": {
+      "title": "الصفحة العامة",
+      "error": "تعذّر تحميل معلومات الصفحة."
+    },
+    "subscription": {
+      "title": "الاشتراك",
+      "current_plan": "باقتكم",
+      "trial": "تجربة",
+      "trial_remaining": "{days, plural, =0 {تنتهي التجربة اليوم.} one {التجربة جارية — يبقى يوم واحد.} two {التجربة جارية — يبقى يومان.} few {التجربة جارية — تبقى # أيام.} many {التجربة جارية — يبقى # يومًا.} other {التجربة جارية — يبقى # يوم.}}",
+      "period_end": "النهاية: {date}.",
+      "plan_active": "باقة {name} مفعّلة.",
+      "per_month": "{price} € / شهريًا",
+      "plans": {
+        "free": {
+          "name": "مجانية",
+          "description": "الأساسيات لبداية جيدة.",
+          "f1": "حتى 50 منتجًا نشطًا",
+          "f2": "20 طلبًا شهريًا",
+          "f3": "المخزون والملاحظات والتذكيرات"
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "لإدارة تجارتكم بالكامل.",
+          "f1": "منتجات وطلبات غير محدودة",
+          "f2": "فواتير PDF",
+          "f3": "حساب الزكاة",
+          "f4": "رسائل واتساب جاهزة"
+        },
+        "boutique_plus": {
+          "name": "Boutique+",
+          "description": "أدوات متقدمة وشراكات.",
+          "f1": "كل مزايا Pro",
+          "f2": "صفحة عامة قابلة للمشاركة",
+          "f3": "مستخدمون متعددون",
+          "f4": "تصدير محاسبي"
+        }
+      },
+      "current": "الباقة الحالية",
+      "coming_soon": "قريبًا",
+      "cancel_title": "إلغاء الاشتراك",
+      "cancel_text": "ستنتقلون فورًا إلى الباقة المجانية. ستفقدون الوصول إلى الميزات المدفوعة لكن بياناتكم تبقى سليمة.",
+      "cancel_cta": "إلغاء باقتي",
+      "cancel_confirm": "تأكيد الإلغاء",
+      "cancelling": "جارٍ الإلغاء…",
+      "cancel_back": "تراجع",
+      "cancel_error": "تعذّر الإلغاء حاليًا. حاولوا لاحقًا."
     }
   },
   "onboarding": {
@@ -1226,6 +1763,657 @@
     "step2_delivery_title": "توصيل",
     "step2_delivery_desc": "الحالة النهائية: «مُرسلة». رسوم الشحن متاحة.",
     "step2_both_title": "الاثنان",
-    "step2_both_desc": "الحالة النهائية: «مكتملة». رسوم الشحن متاحة."
+    "step2_both_desc": "الحالة النهائية: «مكتملة». رسوم الشحن متاحة.",
+    "step_label": "الخطوة {step} من {total}",
+    "step_short": "الخطوة {step} / {total}",
+    "step1_title": "مرحبًا",
+    "step1_sub": "ماذا تقدّم في متجرك؟ يمكنك تغيير هذا الاختيار لاحقًا من الإعدادات.",
+    "step1_label": "نوع النشاط",
+    "step1_products_title": "أبيع منتجات",
+    "step1_products_desc": "سلع مادية مع مخزون ومتغيرات وأسعار وحدة.",
+    "step1_services_title": "أقدّم خدمات",
+    "step1_services_desc": "خدمات أو اشتراكات دون إدارة مخزون.",
+    "step1_both_title": "الاثنان",
+    "step1_both_desc": "منتجات وخدمات في الكتالوج نفسه.",
+    "saving": "جارٍ الحفظ…",
+    "finish": "الدخول إلى متجري",
+    "continue": "متابعة",
+    "skip": "لاحقًا",
+    "step1_title_named": "مرحبًا، {name}"
+  },
+  "suspended": {
+    "title": "تم تعليق الوصول",
+    "text": "لم يعد المتجر مشتركاً في باقة Boutique+. تواصل مع المالك لاستعادة وصولك.",
+    "logout": "تسجيل الخروج"
+  },
+  "zakat": {
+    "detail": {
+      "title": "تفاصيل الحساب",
+      "not_found": "الحساب غير موجود.",
+      "back_to_zakat": "العودة إلى الزكاة",
+      "back": "رجوع",
+      "wealth_title": "الأموال الخاضعة للزكاة",
+      "wealth_total": "المجموع الفرعي الموجب",
+      "debts_title": "الديون المصرّح بها",
+      "debts_total": "إجمالي ما يُخصم",
+      "download_pdf": "تنزيل المستند الداعم بصيغة PDF",
+      "delete_title": "حذف هذا الحساب؟",
+      "delete_description": "لا يمكن التراجع عن هذا الإجراء. سيُحذف الحساب نهائيًا من السجل.",
+      "disclaimer": "هذا الحساب استرشادي فقط. للتأكد من الواجب عليكم، استشيروا عالمًا أو مختصًا في زكاة عروض التجارة.",
+      "reopen_failed": "تعذّرت إعادة فتح هذا الحساب.",
+      "edit": "تعديل",
+      "reopening": "جارٍ إعادة الفتح…",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف…",
+      "breakdown_title": "الحساب المفصّل",
+      "breakdown_wealth": "(الأموال)",
+      "breakdown_debts": "(الديون الحالّة)",
+      "breakdown_base": "(الوعاء)",
+      "excluded_title": "مستثنى من الوعاء",
+      "excluded_help": "العناصر المؤشَّر عليها أُقِرّ صراحةً بأنها أدوات عمل (خارج الوعاء).",
+      "religious_title": "الأسس الشرعية",
+      "reference": "تاريخ المرجع: <b>{date}</b>",
+      "finalized_on": "اعتُمد في {date}",
+      "amount_due": "الزكاة الواجبة",
+      "base": "الوعاء الزكوي: <b>{amount}</b>",
+      "rate": "النسبة المطبّقة: <b>{rate}%</b>"
+    },
+    "wizard": {
+      "steps": {
+        "cash": {
+          "title": "النقد المتاح",
+          "subtitle": "الصندوق والحساب المهني ونقود المتجر."
+        },
+        "receivables": {
+          "title": "ديون العملاء",
+          "subtitle": "ما يُستحق لكم ‒ وتتوقعون تحصيله."
+        },
+        "stock": {
+          "title": "المخزون التجاري",
+          "subtitle": "البضائع المعدّة لإعادة البيع."
+        },
+        "excluded": {
+          "title": "ما لا يدخل في الحساب",
+          "subtitle": "أدوات عملكم خارج الزكاة."
+        },
+        "debts": {
+          "title": "الديون",
+          "subtitle": "لا تُحتسب إلا الديون الحالّة فورًا."
+        },
+        "summary": {
+          "title": "الملخص",
+          "subtitle": "مراجعة أخيرة قبل الاعتماد."
+        }
+      },
+      "save": "حفظ",
+      "finalize": "اعتماد الزكاة",
+      "next": "التالي",
+      "discard": "التخلّي عن هذه المسودة",
+      "discard_title": "حذف هذه المسودة؟",
+      "discard_description": "ستضيع كل البيانات المُدخلة.",
+      "delete": "حذف",
+      "already_finalized": "يوجد حساب معتمد لسنة {year}. ستُنقلون إليه.",
+      "preparing_summary": "جارٍ إعداد الملخص…",
+      "short": {
+        "cash": "السيولة",
+        "receivables": "الديون المستحقة",
+        "stock": "المخزون",
+        "excluded": "المستثنى",
+        "debts": "الديون",
+        "summary": "الملخص"
+      },
+      "back": "رجوع",
+      "progress": "الخطوة {step} من {total} · {label}",
+      "saving": "جارٍ الحفظ…",
+      "finalizing": "جارٍ الاعتماد…",
+      "hub_title": "تعديل زكاتكم",
+      "hub_subtitle": "اختاروا خطوة لتعديل قيمها.",
+      "hub_step": "الخطوة {step}",
+      "hub_final_check": "المراجعة النهائية",
+      "hub_excluded_label": "أدوات العمل (مستثناة)",
+      "hub_cash": "{amount} — {date}",
+      "hub_stock_breakdown": "{amount} — {count, plural, zero {# فئة} one {فئة واحدة} two {فئتان} few {# فئات} many {# فئة} other {# فئة}}",
+      "hub_stock_adjusted": "{amount} — معدّل",
+      "hub_stock_estimated": "{amount} — تقدير من الكتالوج",
+      "hub_receivables_none": "لا ديون مستحقة مصرّح بها",
+      "hub_receivables_breakdown": "{amount} قابلة للتحصيل — {count, plural, zero {# سطر} one {سطر واحد} two {سطران} few {# أسطر} many {# سطرًا} other {# سطر}}",
+      "hub_receivables_nominal": "{amount} — غير مفصّلة",
+      "hub_debts_none": "لا ديون مصرّح بها",
+      "hub_debts": "{count, plural, zero {# دين} one {دين واحد} two {دينان} few {# ديون} many {# دينًا} other {# دين}} — {amount} قابلة للخصم",
+      "hub_excluded_none": "لم يُقَرّ بأي أداة",
+      "hub_excluded_count": "{count}/{total} مُقَرّ بها"
+    },
+    "home": {
+      "title": "زكاة التجارة",
+      "notice_title": "تقدير استرشادي",
+      "notice": "هذا الحساب أداة مساعدة على القرار. استشيروا عالمًا أو مختصًا للتأكيد النهائي.",
+      "resume": "استئناف حسابكم الجاري",
+      "draft_step": "الخطوة {step} من {total}",
+      "stock_estimate": "القيمة التقديرية لمخزونكم التجاري",
+      "stock_count": "محسوبة على {count, plural, zero {# منتج} one {منتج واحد} two {منتجين} few {# منتجات} many {# منتجًا} other {# منتج}} من الكتالوج.",
+      "year_done": "زكاة {year} معتمدة مسبقًا",
+      "year_done_amount": "{amount} — عرض المستند الداعم",
+      "start": "احسبوا زكاتكم",
+      "history": "السجل",
+      "base": "الوعاء: {amount}",
+      "pdf_available": "ملف PDF متاح",
+      "empty": "لا يوجد حساب معتمد حتى الآن.",
+      "currency": "العملة المستعملة: {currency}"
+    },
+    "debt_category": {
+      "supplier": "الموردون",
+      "tax_vat": "الضريبة على القيمة المضافة / الضرائب",
+      "salary": "الأجور",
+      "loan": "قرض بنكي",
+      "rent": "الإيجار",
+      "other": "أخرى"
+    },
+    "stock_category": {
+      "finished": "بضائع جاهزة (معدّة للبيع)",
+      "raw_materials": "مواد أولية",
+      "work_in_progress": "منتجات قيد التصنيع",
+      "in_transit": "بضائع في الطريق (مطلوبة وغير مستلمة)"
+    },
+    "receivable_category": {
+      "certain": "مؤكدة (التحصيل شبه مضمون)",
+      "probable": "محتملة (التحصيل متوقع)",
+      "doubtful": "مشكوك فيها (تحصيل غير مؤكد — مستبعدة)"
+    },
+    "excluded_item": {
+      "vehicle": "المركبات (شاحنة صغيرة، سيارة مهنية)",
+      "computer": "الحواسيب والأجهزة اللوحية",
+      "machine": "الآلات والمعدات",
+      "premises": "المحل التجاري",
+      "furniture": "الأثاث (رفوف، منضدة)",
+      "other": "أداة عمل أخرى"
+    },
+    "common": {
+      "yes": "نعم",
+      "no": "لا",
+      "cash": "المال المتاح",
+      "receivables": "الديون المستحقة القابلة للتحصيل",
+      "empty_table": "لا شيء للتصريح به في هذه الفئة."
+    },
+    "rows": {
+      "doubtful_hint": "محفوظة للتذكير — غير مدرجة في الوعاء",
+      "nominal_hint": "من مبلغ اسمي قدره {amount}",
+      "stock_adjusted": "المخزون التجاري (معدّل)",
+      "stock_estimated": "المخزون التجاري (تقديري)",
+      "stock_initial": "التقدير الأولي: {amount}",
+      "debt_due": "{category} · مستحقة فورًا",
+      "debt_not_due": "{category} · غير مستحقة — لا تُخصم"
+    },
+    "nisab": {
+      "title": "حد النصاب",
+      "method": "طريقة {method, select, silver {الفضة (595 غ)} gold {الذهب (85 غ)} other {{method}}}",
+      "not_configured": "حد النصاب غير مضبوط",
+      "not_configured_help": "النصاب هو حد الثروة الذي لا تجب الزكاة دونه. اضبطوا الطريقة (ذهب أو فضة) وسعر الغرام لمعرفة ما إذا كانت الزكاة واجبة.",
+      "not_configured_short": "بدون النصاب، لا يمكن معرفة ما إذا كانت الزكاة واجبة عليكم هذا العام.",
+      "configure": "الضبط في الإعدادات",
+      "above_title": "أنتم فوق النصاب",
+      "above": "وعاؤكم ({amount}) يتجاوز الحد. الزكاة واجبة.",
+      "below_title": "أنتم دون النصاب",
+      "below": "وعاؤكم ({amount}) دون الحد — الزكاة غير واجبة هذا العام.",
+      "preview_above": "وعاؤكم يتجاوز الحد — الزكاة واجبة.",
+      "preview_below": "وعاؤكم دون الحد — الزكاة غير واجبة هذا العام."
+    },
+    "step": {
+      "cash": {
+        "title": "المال المتاح اليوم",
+        "help": "احسبوا كل المال المتاح فورًا لنشاطكم: الصندوق، الحساب المهني، النقود المحفوظة في المحل.",
+        "reference_date": "التاريخ المرجعي"
+      },
+      "receivables": {
+        "title": "المال الذي يدين لكم به زبائنكم",
+        "help": "مبيعات بالأجل، فواتير غير مدفوعة، ديون الزبائن… نميّز ثلاثة مستويات حسب احتمال التحصيل. لا يدخل في الزكاة إلا <b>المؤكدة</b> و<b>المحتملة</b>.",
+        "question": "هل يدين لكم زبائنكم بمال؟",
+        "nominal": "إجمالي المبلغ المستحق (اسمي)",
+        "total": "المجموع الخاضع للزكاة (مؤكدة + محتملة)"
+      },
+      "stock": {
+        "title": "قيمة مخزونكم التجاري",
+        "help": "حسبنا تقديرًا انطلاقًا من أسعار الشراء المسجلة في كتالوجكم. يمكنكم توزيعه حسب الفئة إذا اختلف الواقع.",
+        "estimate": "تقدير تلقائي",
+        "estimate_basis": "{count, plural, zero {محسوب على لا منتج في المخزون.} one {محسوب على منتج واحد في المخزون.} two {محسوب على منتجين في المخزون.} few {محسوب على # منتجات في المخزون.} many {محسوب على # منتجًا في المخزون.} other {محسوب على # منتج في المخزون.}}",
+        "breakdown": "التوزيع يدويًا حسب الفئة",
+        "total": "إجمالي المخزون الخاضع للزكاة (التوزيع)",
+        "back_to_estimate": "العودة إلى التقدير التلقائي"
+      },
+      "excluded": {
+        "title": "ما لا يدخل في الزكاة",
+        "help": "أدوات عملكم غير معنية. ضعوا علامة على ما تملكونه لتأكيد علمكم بذلك — لن يُضاف شيء إلى وعائكم.",
+        "note": "هذه الخطوة للعلم فقط. وضع العلامة أو عدمه لا يغيّر حسابكم."
+      },
+      "debts": {
+        "title": "الديون قصيرة الأجل",
+        "help": "لا تُخصم إلا الديون <b>المستحقة فورًا</b>. فالقرض لمدة 5 سنوات مثلًا لا يُستحق فورًا إلا قسط الشهر.",
+        "empty": "لا ديون مسجلة — اضغطوا على «إضافة دين» إن كانت لديكم ديون.",
+        "category": "الفئة",
+        "label": "الوصف",
+        "amount": "المبلغ",
+        "remove": "حذف هذا الدين",
+        "due_question": "مستحق فورًا؟",
+        "add": "إضافة دين",
+        "total": "المجموع القابل للخصم (مستحق فورًا)"
+      },
+      "summary": {
+        "title": "الملخص قبل التأكيد",
+        "help": "تحققوا من الأرقام. بعد إنهاء الزكاة يُؤرشف الحساب ولا يمكن تعديله.",
+        "wealth": "ثروتكم الداخلة",
+        "stock": "{state, select, ventilated {المخزون (موزّع)} adjusted {المخزون (معدّل)} other {المخزون (تقديري)}}",
+        "deductions": "الخصومات",
+        "debts": "الديون المستحقة فورًا",
+        "base": "وعاء الزكاة (تقدير)",
+        "due": "الزكاة المستحقة ({rate}٪)",
+        "footer": "الزر أدناه يؤرشف هذا الحساب ويجعله نهائيًا. يمكنكم الرجوع إلى تفاصيله في أي وقت."
+      }
+    },
+    "audit": {
+      "reliability": "الموثوقية <b>{tier, select, high {عالية} medium {متوسطة} other {تحتاج تعزيزًا}}</b> — {ok} سليمة{warn, plural, =0 {} other {، # للتدقيق}}",
+      "explanation": "تعكس هذه النتيجة اكتمال تصريحكم، لا الصحة الشرعية للحساب. النقاط الموسومة «للتدقيق» اختيارية لكنها تحسّن إمكانية التتبع.",
+      "stock_ventilated": {
+        "label": "المخزون موزّع حسب الفئة"
+      },
+      "stock_adjusted": {
+        "label": "المخزون معدّل يدويًا",
+        "message": "التوزيع حسب الفئة (جاهزة، مواد، قيد التصنيع) يحسّن التتبع."
+      },
+      "stock_estimated": {
+        "label": "المخزون متروك على التقدير التلقائي",
+        "message": "يمكنكم التدقيق بمبلغ معدّل أو بتوزيع حسب الفئة."
+      },
+      "receivables_ventilated": {
+        "label": "الديون المستحقة موزّعة (مؤكدة / محتملة / مشكوك فيها)"
+      },
+      "receivables_bulk": {
+        "label": "الديون المستحقة مسجلة دفعة واحدة",
+        "message": "التوزيع حسب درجة اليقين يسمح باستبعاد المشكوك فيها من الحساب."
+      },
+      "receivables_none": {
+        "label": "لا ديون مستحقة مصرّح بها"
+      },
+      "excluded_ok": {
+        "label": "أدوات العمل المعترف بها ({count}/{total})"
+      },
+      "excluded_none": {
+        "label": "لم يُعترف بأي أداة عمل",
+        "message": "وضع علامة على ما تملكونه يجعل التصريح أكثر قابلية للتتبع."
+      },
+      "debts_due": {
+        "label": "الديون موزّعة ({count})، مع تحديد الاستحقاق"
+      },
+      "debts_not_due": {
+        "label": "الديون مصرّح بها ({count})، لا شيء مستحق"
+      },
+      "debts_none": {
+        "label": "لا ديون مصرّح بها"
+      },
+      "nisab_ok": {
+        "label": "حد النصاب مضبوط"
+      },
+      "nisab_missing": {
+        "label": "حد النصاب غير مضبوط",
+        "message": "بدون النصاب، لا يمكن معرفة وجوب الزكاة تلقائيًا."
+      },
+      "stock_coherence": {
+        "label": "فرق غير معتاد بين المخزون التقديري والمعدّل",
+        "message": "المخزون معدّل إلى {ratio}٪ من تقدير الكتالوج — يرجى تأكيد القيمة المدخلة."
+      }
+    },
+    "history": {
+      "title": "التطور السنوي",
+      "base": "الوعاء: {amount}",
+      "caption": "مبلغ الزكاة المستحق لكل سنة — {count, plural, zero {لا سنة مسجلة} one {سنة واحدة مسجلة} two {سنتان مسجلتان} few {# سنوات مسجلة} many {# سنة مسجلة} other {# سنة مسجلة}}."
+    },
+    "donut": {
+      "title": "توزيع الثروة",
+      "total": "المجموع",
+      "receivables": "الديون المستحقة",
+      "stock": "المخزون"
+    },
+    "simulation": {
+      "title": "محاكاة",
+      "subtitle": "ماذا لو تغيّر مخزونكم العام القادم؟",
+      "variation": "تغيّر المخزون",
+      "variation_aria": "تغيّر المخزون بالنسبة المئوية",
+      "new_stock": "المخزون الجديد",
+      "new_base": "الوعاء الجديد",
+      "zakat": "الزكاة المحاكاة",
+      "vs_actual": "{amount} مقارنة بالفعلي",
+      "note": "هذا التقدير لا يغيّر حسابكم المؤرشف — بل يساعدكم على الاستعداد للعام القادم."
+    },
+    "note": {
+      "why": "لماذا هذا السؤال؟",
+      "basis": "الأساس:",
+      "in_app": "في ميزان:",
+      "source": "المصدر: {source}"
+    }
+  },
+  "public_page_admin": {
+    "status": {
+      "copy_url": "نسخ الرابط",
+      "open_page": "فتح الصفحة العامة",
+      "unpublish": "إلغاء النشر",
+      "unpublishing": "جارٍ إلغاء النشر…",
+      "publish": "نشر",
+      "publishing": "جارٍ النشر…",
+      "live": "منشورة",
+      "draft": "مسودة"
+    },
+    "preview": {
+      "title": "معاينة مباشرة",
+      "description": "ما يراه عملاؤك. تُحدَّث عند كل حفظ.",
+      "mobile": "هاتف",
+      "tablet": "جهاز لوحي",
+      "reload": "إعادة التحميل",
+      "frame_title": "معاينة الواجهة"
+    },
+    "slug": {
+      "min": "3 أحرف على الأقل",
+      "max": "50 حرفًا كحد أقصى",
+      "format": "أحرف لاتينية صغيرة وأرقام وشرطات فقط"
+    },
+    "create": {
+      "error": "تعذّر إنشاء الصفحة",
+      "title": "تفعيل صفحتي العامة",
+      "description": "رابط فريد لمشاركة واجهة متجرك مع عملائك.",
+      "slug_label": "عنوان المتجر *",
+      "your_url": "رابطك: <code>{url}</code>",
+      "display_name_label": "الاسم المعروض في الصفحة",
+      "submit": "إنشاء صفحتي",
+      "submitting": "جارٍ الإنشاء…"
+    },
+    "identity": {
+      "error": "تعذّر التحديث",
+      "title": "هوية الصفحة",
+      "description": "ما يراه عملاؤك أعلى الواجهة.",
+      "slug_label": "عنوان الرابط *",
+      "slug_help": "تغيير العنوان سيُعطّل الروابط التي سبقت مشاركتها.",
+      "display_name_label": "الاسم المعروض",
+      "tagline_label": "عبارة تعريفية",
+      "description_label": "الوصف",
+      "theme_label": "السمة",
+      "themes": {
+        "classic": {
+          "label": "كلاسيكي",
+          "hint": "رصين، خلفية فاتحة"
+        },
+        "modern": {
+          "label": "عصري",
+          "hint": "تباين قوي"
+        },
+        "minimal": {
+          "label": "بسيط",
+          "hint": "مساحات واسعة"
+        }
+      },
+      "color_label": "اللون الرئيسي",
+      "choose_color": "اختيار {color}",
+      "color_format": "الصيغة المطلوبة: ‎#RRGGBB",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…"
+    },
+    "sections": {
+      "title": "أقسام الصفحة",
+      "description": "ترتيب كل قسم وظهوره ومحتواه.",
+      "move_up": "تحريك للأعلى",
+      "move_down": "تحريك للأسفل",
+      "hide": "إخفاء",
+      "show": "إظهار",
+      "types": {
+        "header": {
+          "label": "الترويسة"
+        },
+        "description": {
+          "label": "التعريف",
+          "title": "عن المتجر",
+          "content": "بضع كلمات عن متجرك وقصتك والتزاماتك…"
+        },
+        "products": {
+          "label": "المنتجات",
+          "title": "منتجاتنا"
+        },
+        "services": {
+          "label": "الخدمات",
+          "title": "خدماتنا"
+        },
+        "contact": {
+          "label": "التواصل",
+          "title": "تواصل معنا",
+          "content": "أوقات العمل، العنوان، التوفّر…"
+        }
+      }
+    },
+    "message": {
+      "error": "تعذّر التحديث",
+      "sample_item": "طاجين خزفي",
+      "sample_price": "4500 د.ج",
+      "title": "رسالة الاهتمام",
+      "description": "نص مُعدّ مسبقًا يُرسل إلى التاجر عبر واتساب من صفحة المنتج.",
+      "template_label": "القالب",
+      "placeholders": "المتغيرات:",
+      "preview": "معاينة",
+      "reset": "إعادة التعيين",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…"
+    },
+    "uploader": {
+      "formats": "الصيغ المقبولة: JPEG وPNG وWebP.",
+      "upload_error": "فشل الرفع.",
+      "delete_error": "حدث خطأ أثناء الحذف.",
+      "sending": "جارٍ الرفع…",
+      "deleting": "جارٍ الحذف…",
+      "delete": "حذف"
+    },
+    "logo": {
+      "label": "الشعار",
+      "change": "تغيير الشعار",
+      "add": "إضافة شعار",
+      "confirm_delete": "حذف الشعار؟"
+    },
+    "cover": {
+      "label": "اللافتة",
+      "change": "تغيير",
+      "add": "إضافة لافتة",
+      "confirm_delete": "حذف اللافتة؟"
+    },
+    "catalog": {
+      "title": "الكتالوج",
+      "description": "اختر ما يظهر على الواجهة.",
+      "section": "{kind, select, product {المنتجات} service {الخدمات} other {العناصر}}",
+      "add": "إضافة",
+      "empty": "{kind, select, product {لم يتم اختيار أي منتج.} service {لم يتم اختيار أي خدمة.} other {لم يتم اختيار أي عنصر.}}",
+      "move_up": "تحريك للأعلى",
+      "move_down": "تحريك للأسفل",
+      "remove": "إزالة",
+      "show_price": "إظهار السعر",
+      "badge_promo": "تخفيض",
+      "badge_new": "جديد",
+      "sheet_title": "{kind, select, product {إضافة منتج} service {إضافة خدمة} other {إضافة عنصر}}",
+      "search": "بحث…",
+      "no_results": "لا توجد نتائج.",
+      "none_available": "{kind, select, product {لا يوجد منتج متاح.} service {لا توجد خدمة متاحة.} other {لا يوجد عنصر متاح.}}",
+      "close": "إغلاق"
+    },
+    "contacts": {
+      "title": "أزرار التواصل",
+      "description": "كيف يتواصل معك عملاؤك من الواجهة.",
+      "empty": "لم يتم إعداد أي وسيلة تواصل.",
+      "add": "إضافة وسيلة تواصل",
+      "primary": "رئيسي",
+      "set_primary": "تعيين كرئيسي",
+      "hide": "إخفاء",
+      "show": "إظهار",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "value_required": "قيمة مطلوبة",
+      "value_max": "200 حرف كحد أقصى",
+      "error": "تعذّر الحفظ",
+      "new_title": "وسيلة تواصل جديدة",
+      "edit_title": "تعديل وسيلة التواصل",
+      "channel": "القناة",
+      "value_label": "{hint} *",
+      "custom_label": "تسمية مخصّصة (اختياري)",
+      "primary_hint": "وسيلة التواصل الرئيسية (تُستخدم لأزرار «اطلب»)",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ…",
+      "types": {
+        "whatsapp": {
+          "label": "واتساب",
+          "hint": "رقم بالصيغة الدولية",
+          "placeholder": "+33 6 12 34 56 78"
+        },
+        "telegram": {
+          "label": "تيليغرام",
+          "hint": "اسم المستخدم في تيليغرام",
+          "placeholder": "@username"
+        },
+        "instagram": {
+          "label": "إنستغرام",
+          "hint": "اسم المستخدم في إنستغرام",
+          "placeholder": "@account"
+        },
+        "phone": {
+          "label": "الهاتف",
+          "hint": "رقم الهاتف",
+          "placeholder": "+33 6 12 34 56 78"
+        }
+      }
+    }
+  },
+  "profile": {
+    "email_verification": {
+      "verified": "تم التحقق من البريد الإلكتروني — حدّث الصفحة.",
+      "sent": "أُعيد إرسال الرابط. تفقّد بريدك الإلكتروني.",
+      "prompt": "أكّد بريدك الإلكتروني لتأمين حسابك.",
+      "sending": "جارٍ الإرسال…",
+      "resend": "إعادة الإرسال",
+      "resend_link": "إعادة إرسال الرابط"
+    },
+    "title": "ملفي الشخصي",
+    "info_section": "المعلومات",
+    "password_section": "كلمة المرور",
+    "show_password": "إظهار كلمة المرور",
+    "hide_password": "إخفاء كلمة المرور",
+    "name_required": "الاسم مطلوب",
+    "old_password_required": "كلمة المرور الحالية مطلوبة",
+    "password_min": "8 أحرف على الأقل",
+    "confirm_required": "التأكيد مطلوب",
+    "password_mismatch": "كلمتا المرور غير متطابقتين",
+    "email": "البريد الإلكتروني",
+    "email_locked": "لا يمكن تغيير البريد الإلكتروني.",
+    "full_name": "الاسم الكامل *",
+    "phone": "الهاتف (اختياري)",
+    "phone_invalid": "رقم الهاتف غير صالح",
+    "profile_saved": "تم تحديث الملف ✓",
+    "saving": "جارٍ الحفظ…",
+    "save": "حفظ",
+    "unexpected_error": "خطأ غير متوقع. أعد المحاولة.",
+    "old_password": "كلمة المرور الحالية *",
+    "new_password": "كلمة المرور الجديدة *",
+    "confirm_password": "تأكيد كلمة المرور الجديدة *",
+    "password_saved": "تم تغيير كلمة المرور ✓",
+    "changing_password": "جارٍ التغيير…",
+    "change_password": "تغيير كلمة المرور"
+  },
+  "invoices": {
+    "payment": "{state, select, paid {مدفوعة} partial {مدفوعة جزئيًا — {amount}} cancelled {ملغاة} other {غير مدفوعة}}",
+    "due": "الاستحقاق: {date}",
+    "list": {
+      "title": "الفواتير",
+      "filter": "{value, select, issued {الصادرة} paid {المدفوعة} cancelled {الملغاة} other {الكل}}",
+      "empty_title": "لا توجد فواتير",
+      "empty_body": "تُنشأ الفواتير من الطلبات.",
+      "no_customer": "بدون عميل"
+    },
+    "detail": {
+      "title": "فاتورة",
+      "not_found": "الفاتورة غير موجودة.",
+      "issued_on": "صدرت في {date}",
+      "download_pdf": "تنزيل PDF",
+      "lines_title": "التفاصيل",
+      "seller": "البائع",
+      "buyer": "العميل",
+      "notes": "ملاحظات",
+      "legal_mentions": "البيانات القانونية",
+      "linked_order": "عرض الطلب المرتبط",
+      "customer_card": "ملف العميل",
+      "mark_paid": "تعليم كمدفوعة",
+      "driven_by_order": "حالة الدفع تتبع الطلب المرتبط.",
+      "cancel_invoice": "إلغاء الفاتورة",
+      "confirm_paid_title": "تعليم كمدفوعة؟",
+      "confirm_paid_body": "ستُسجَّل هذه الفاتورة كمدفوعة بالكامل.",
+      "confirm": "تأكيد",
+      "confirm_cancel_title": "إلغاء هذه الفاتورة؟",
+      "confirm_cancel_body": "يبقى الرقم محجوزًا ويُحتفظ بالسجل."
+    },
+    "totals": {
+      "subtotal": "المجموع الفرعي دون ضريبة",
+      "discount": "الخصم",
+      "shipping": "مصاريف الشحن",
+      "tax": "ض.ق.م",
+      "tax_rate": "ض.ق.م {rate}٪",
+      "not_applicable": "غير مطبّقة",
+      "total": "المجموع شامل الضريبة",
+      "paid": "المدفوع",
+      "remaining": "المتبقي"
+    }
+  },
+  "reminders": {
+    "title": "التذكيرات",
+    "new_cta": "+ جديد",
+    "new_title": "تذكير جديد",
+    "edit_title": "تعديل التذكير",
+    "field_title": "العنوان *",
+    "field_date": "التاريخ *",
+    "field_category": "الفئة",
+    "field_description": "الوصف (اختياري)",
+    "category": "{value, select, unpaid {غير مدفوع} customer_followup {متابعة عميل} zakat {الزكاة} order_prep {تحضير طلب} other {عام}}",
+    "mark_done": "تعليم كمنجز",
+    "reopen": "إعادة إلى قيد الانتظار",
+    "saving": "جارٍ الحفظ…",
+    "update": "تحديث",
+    "create": "إنشاء التذكير",
+    "deleting": "جارٍ الحذف…",
+    "delete": "حذف التذكير",
+    "cancel": "إلغاء",
+    "confirm_delete": "حذف هذا التذكير؟",
+    "confirm_delete_cta": "حذف",
+    "tab_todo": "للإنجاز{count, plural, =0 {} other { (#)}}",
+    "tab_upcoming": "القادمة{count, plural, =0 {} other { (#)}}",
+    "tab_done": "المنجزة{count, plural, =0 {} other { (#)}}",
+    "empty_todo": "لا شيء للإنجاز اليوم.",
+    "empty_upcoming": "لا توجد تذكيرات قادمة.",
+    "empty_done": "لا توجد تذكيرات منجزة.",
+    "followup": {
+      "title": "متابعة {name}",
+      "fallback_name": "العميل",
+      "created": "تم إنشاء التذكير: متابعة {name} في {date}",
+      "moved": "تم تأجيل التذكير إلى {date}",
+      "failed": "تعذّر حفظ التذكير. حاول مرة أخرى.",
+      "exists": "يوجد تذكير متابعة لـ{name} في {date}. هل تريد تأجيله إلى {newDate}؟",
+      "postpone": "تأجيل",
+      "create_anyway": "إنشاء رغم ذلك",
+      "cancel": "إلغاء"
+    }
+  },
+  "notes": {
+    "title": "الملاحظات",
+    "new_cta": "+ جديدة",
+    "new_title": "ملاحظة جديدة",
+    "edit_title": "تعديل الملاحظة",
+    "placeholder": "اكتب ملاحظتك…",
+    "saving": "جارٍ الحفظ…",
+    "update": "تحديث",
+    "save": "حفظ",
+    "deleting": "جارٍ الحذف…",
+    "delete": "حذف الملاحظة",
+    "cancel": "إلغاء",
+    "confirm_delete": "حذف هذه الملاحظة؟",
+    "confirm_delete_cta": "حذف",
+    "empty_title": "لا توجد ملاحظات",
+    "empty_body": "اضغط على + جديدة لإنشاء أول ملاحظة."
   }
 }

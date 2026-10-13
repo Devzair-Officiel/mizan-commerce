@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import generics, filters, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,13 +8,15 @@ from rest_framework.views import APIView
 from apps.core.permissions import get_shop
 from .models import Note, Reminder
 from .serializers import NoteSerializer, ReminderSerializer
+from .services import REMINDER_SCOPES, reminders_in_scope
 
 
 class NoteListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = NoteSerializer
     filter_backends = (filters.OrderingFilter,)
-    ordering = ('-created_at',)
+    # `-id` départage les notes de même date : fenêtres `offset` stables.
+    ordering = ('-created_at', '-id')
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -58,14 +61,18 @@ class ReminderListCreateView(generics.ListCreateAPIView):
         return ctx
 
     def get_queryset(self):
-        shop = get_shop(self.request.user)
-        qs = Reminder.objects.filter(shop=shop).select_related('author', 'customer', 'order')  # noqa: E501
-        status_filter = self.request.query_params.get('status')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        else:
-            qs = qs.filter(status='pending')
-        return qs
+        """`scope` : todo | upcoming | done (sans : tous ceux en attente).
+        `customer` et `category` retrouvent un rappel existant (relance d'un client)."""
+        params = self.request.query_params
+        scope = params.get('scope')
+        if scope and scope not in REMINDER_SCOPES:
+            raise ValidationError({'scope': 'Onglet inconnu.'})
+        qs = reminders_in_scope(get_shop(self.request.user), scope)
+        if customer_id := params.get('customer'):
+            qs = qs.filter(customer_id=customer_id)
+        if category := params.get('category'):
+            qs = qs.filter(category=category)
+        return qs.select_related('author', 'customer', 'order')
 
     def perform_create(self, serializer):
         serializer.save(shop=get_shop(self.request.user), author=self.request.user)

@@ -62,6 +62,11 @@ class _PublicPageMixin:
             from rest_framework.exceptions import NotFound
             raise NotFound('Aucune page publique pour cette boutique.')
 
+    def get_serializer_context(self) -> dict:
+        # Page courante : les serializers y vérifient l'unicité
+        # (section, article, contact).
+        return {**super().get_serializer_context(), 'page': self._get_page()}  # noqa: E501
+
 
 class PublicPageView(_PublicPageMixin, APIView):
     """GET / POST / PATCH sur la page singleton de la boutique courante."""
@@ -212,11 +217,6 @@ class CatalogListCreateView(_PublicPageMixin, generics.ListCreateAPIView):
     def get_queryset(self):
         return PublicCatalogVisibility.objects.filter(page=self._get_page()).select_related('product')  # noqa: E501
 
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx['page'] = self._get_page()
-        return ctx
-
     def perform_create(self, serializer):
         serializer.save(page=self._get_page())
 
@@ -227,11 +227,6 @@ class CatalogDetailView(_PublicPageMixin, generics.RetrieveUpdateDestroyAPIView)
 
     def get_queryset(self):
         return PublicCatalogVisibility.objects.filter(page=self._get_page())
-
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx['page'] = self._get_page()
-        return ctx
 
 
 class CatalogReorderView(_PublicPageMixin, APIView):

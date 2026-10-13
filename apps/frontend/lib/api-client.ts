@@ -1,3 +1,12 @@
+/** Code renvoyé par le backend quand la boutique d'un employé ou d'un admin n'a plus Boutique+. */
+const STAFF_SUSPENDED_CODE = 'staff_suspended_plan';
+export const SUSPENDED_PATH = '/suspended';
+
+export function isStaffSuspended(data: unknown): boolean {
+  return typeof data === 'object' && data !== null
+    && (data as { code?: unknown }).code === STAFF_SUSPENDED_CODE;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -41,6 +50,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    // Accès suspendu : seul l'écran dédié s'affiche, quelle que soit la page en cours.
+    if (res.status === 403 && isStaffSuspended(data) && window.location.pathname !== SUSPENDED_PATH) {
+      window.location.href = SUSPENDED_PATH;
+    }
     throw new ApiError(res.status, data, `API error ${res.status}`);
   }
 

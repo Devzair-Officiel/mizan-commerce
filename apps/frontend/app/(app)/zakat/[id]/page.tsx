@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ChevronLeft, FileText } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
@@ -23,8 +24,11 @@ import {
   useDeleteZakatCalculation,
 } from '@/lib/hooks/useZakat';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { notify } from '@/lib/notify';
 
 export default function ZakatDetailPage() {
+  const t = useTranslations('zakat.detail');
+  const tz = useTranslations('zakat');
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: calc, isLoading } = useZakatCalculation(id);
@@ -39,9 +43,9 @@ export default function ZakatDetailPage() {
       router.push('/zakat/new');
     } catch (err) {
       const message = err instanceof ApiError && err.data && typeof err.data === 'object'
-        ? ((err.data as { detail?: string }).detail ?? 'Impossible de rouvrir ce calcul.')
-        : 'Impossible de rouvrir ce calcul.';
-      window.alert(message);
+        ? ((err.data as { detail?: string }).detail ?? t('reopen_failed'))
+        : t('reopen_failed');
+      notify.error(message);
     }
   };
 
@@ -54,7 +58,7 @@ export default function ZakatDetailPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Détail du calcul" back />
+        <TopBar title={t('title')} back />
         <div className="flex flex-col gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4">
@@ -70,11 +74,11 @@ export default function ZakatDetailPage() {
   if (!calc) {
     return (
       <>
-        <TopBar title="Détail du calcul" back />
+        <TopBar title={t('title')} back />
         <div className="flex flex-col gap-3 px-4 py-8 items-center">
-          <p className="text-sm text-muted-foreground">Calcul introuvable.</p>
+          <p className="text-sm text-muted-foreground">{t('not_found')}</p>
           <Link href="/zakat" className="text-sm text-primary underline">
-            Retour à la zakat
+            {t('back_to_zakat')}
           </Link>
         </div>
       </>
@@ -82,29 +86,29 @@ export default function ZakatDetailPage() {
   }
 
   const ratePercent = (parseFloat(calc.zakat_rate) * 100).toFixed(2);
-  const patrimoineRows = buildPatrimoineRows(calc);
+  const patrimoineRows = buildPatrimoineRows(calc, tz);
   const patrimoineTotal = computePatrimoineTotal(calc);
-  const debtsRows = buildDebtsRows(calc);
+  const debtsRows = buildDebtsRows(calc, tz);
 
   return (
     <>
-      <TopBar title="Détail du calcul" back />
+      <TopBar title={t('title')} back />
       <div className="flex flex-col gap-4 p-4 pb-24">
         <Link
           href="/zakat"
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1"
         >
-          <ChevronLeft size={16} />
-          Retour
+          <ChevronLeft size={16} className="rtl:rotate-180" />
+          {t('back')}
         </Link>
 
         <ResultHero calc={calc} ratePercent={ratePercent} />
 
         <PatrimoineTable
-          title="Patrimoine zakatable"
+          title={t('wealth_title')}
           rows={patrimoineRows}
           total={patrimoineTotal}
-          totalLabel="Sous-total positif"
+          totalLabel={t('wealth_total')}
           currency={calc.currency}
         />
 
@@ -112,10 +116,10 @@ export default function ZakatDetailPage() {
 
         {calc.debts_breakdown.length > 0 && (
           <PatrimoineTable
-            title="Dettes déclarées"
+            title={t('debts_title')}
             rows={debtsRows}
             total={calc.short_term_debts}
-            totalLabel="Total déductible"
+            totalLabel={t('debts_total')}
             currency={calc.currency}
             tone="negative"
           />
@@ -137,7 +141,7 @@ export default function ZakatDetailPage() {
             className="flex items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
           >
             <FileText size={16} />
-            Télécharger le justificatif PDF
+            {t('download_pdf')}
           </a>
         )}
 
@@ -152,17 +156,16 @@ export default function ZakatDetailPage() {
         <ConfirmDialog
           open={confirmDelete}
           onOpenChange={setConfirmDelete}
-          title="Supprimer ce calcul ?"
-          description="Cette action est irréversible. Le calcul sera définitivement supprimé de l'historique."
+          title={t('delete_title')}
+          description={t('delete_description')}
           onConfirm={handleDelete}
           variant="destructive"
-          confirmLabel="Supprimer"
+          confirmLabel={t('delete')}
         />
 
         <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            Ce calcul est fourni à titre indicatif. Pour valider votre obligation, consultez un
-            érudit ou un spécialiste de la zakat commerciale.
+            {t('disclaimer')}
           </p>
         </div>
       </div>

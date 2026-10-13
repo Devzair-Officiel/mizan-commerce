@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.orders.models import Order
+from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
 from apps.shops.models import Shop
 
 from .models import Invoice, InvoiceLine, InvoiceSequence
@@ -61,8 +62,7 @@ def _snapshot_buyer_from_order(invoice: Invoice, order: Order) -> None:
     if customer is None:
         return
     invoice.customer = customer
-    full_name = f'{customer.first_name} {customer.name}'.strip() if customer.first_name else customer.name  # noqa: E501
-    invoice.buyer_name = full_name
+    invoice.buyer_name = customer.display_name
     parts = [customer.address_line]
     if customer.postal_code or customer.city:
         parts.append(f'{customer.postal_code} {customer.city}'.strip())
@@ -74,12 +74,30 @@ def _snapshot_buyer_from_order(invoice: Invoice, order: Order) -> None:
     invoice.buyer_phone = customer.phone
 
 
+_DEFAULT_VARIANT_SUFFIX = f' ({DEFAULT_VARIANT_NAME})'
+
+
+def line_description(product_name: str, variant_name: str) -> str:
+    """Libellé d'une ligne : « Article (format) », sauf format par défaut."""
+    if not variant_name or is_default_variant(variant_name):
+        return product_name
+    return f'{product_name} ({variant_name})'
+
+
+def display_line_description(description: str) -> str:
+    """Libellé affiché d'une ligne (détail et PDF).
+
+    Les factures émises avant `line_description` portent « (Par défaut) » et
+    restent figées en base : le suffixe est masqué à l'affichage seulement.
+    """
+    return description.removesuffix(_DEFAULT_VARIANT_SUFFIX)
+
+
 def _build_lines_from_order(invoice: Invoice, order: Order) -> list[InvoiceLine]:
     """Snapshot des items de commande en lignes de facture HT."""
     lines: list[InvoiceLine] = []
     for item in order.items.all():
-        suffix = f' ({item.variant_name})' if item.variant_name else ''
-        description = f'{item.product_name}{suffix}'
+        description = line_description(item.product_name, item.variant_name)
         unit_ht = Decimal(str(item.unit_price)).quantize(Decimal('0.01'))
         qty = Decimal(str(item.quantity))
         subtotal = (unit_ht * qty).quantize(Decimal('0.01'))

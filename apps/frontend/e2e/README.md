@@ -1,0 +1,110 @@
+# Audits navigateur (Playwright)
+
+Scripts lancés **sans Node sur la machine** : service Docker Compose `e2e` (image officielle `mcr.microsoft.com/playwright`, profil `audit`, ne démarre pas avec la stack). Il cible le frontend du réseau compose (`http://frontend:3000`) et se connecte avec le **compte dédié aux audits** `e2e@example.com` (mot de passe `Mizan1234!`, créé par `seed_data`).
+
+```bash
+# Depuis la racine du dépôt, stack démarrée (docker compose up -d)
+docker compose run --rm e2e                                   # tous les audits, boutique d'audit remise à zéro avant
+docker compose run --rm e2e npm run audit:pages               # écrans principaux
+docker compose run --rm e2e npm run audit:customer-form       # formulaire client
+docker compose run --rm e2e npm run audit:customer-name       # nom complet des clients partout
+docker compose run --rm e2e npm run audit:zakat               # zakat : erreurs notifiées, plus d'alert()
+docker compose run --rm e2e npm run audit:products-list       # liste Articles et services
+docker compose run --rm e2e npm run audit:product-form        # formulaire article
+docker compose run --rm e2e npm run audit:product-formats     # formats dans le formulaire article (création, modification)
+docker compose run --rm e2e npm run audit:product-photos      # photos d'articles au format carré
+docker compose run --rm e2e npm run audit:stock               # stock : niveaux, mouvements, entrées, sorties
+docker compose run --rm e2e npm run audit:reminders           # rappels : compteurs, mise à jour, relance déjà prévue
+docker compose run --rm e2e npm run audit:whatsapp            # messages WhatsApp : envoi enregistré, historique des fiches
+docker compose run --rm e2e npm run audit:scroll-lock         # fenêtres et menus enchaînés : la page défile toujours
+docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-tête teintées : fond muted, contrastes ≥ 4,5:1
+docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »
+docker compose run --rm e2e npm run audit:stock-entry-plan    # entrée de stock en Pro : carte Boutique+ sur l'onglet facture, aucune requête OCR
+docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
+docker compose run --rm --no-deps e2e npm run audit:stock     # sans remise à zéro : garde les données actuelles
+docker compose exec backend python manage.py reset_audit_shop # remise à zéro seule, à la main
+```
+
+Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (détaillée dans la sortie).
+
+## Compte et boutique d'audit
+
+- `e2e@example.com` possède sa propre boutique, « Boutique Audit » (France, EUR, articles et services, vente sur place, Boutique+), avec quelques articles, services, clients et commandes (`apps/backend/apps/core/management/commands/_seed_e2e.py`). « Nadia Relance » a une commande impayée : l'audit y teste « Relancer ».
+- Les audits créent tout ce dont ils ont besoin **dans cette boutique**, jamais dans celles des autres comptes de démo ; l'audit du formulaire client vérifie à la fin qu'aucun client de test n'existe dans la boutique de Youssef.
+- Ils restent **relançables plusieurs fois de suite** : ce qu'ils créent est archivé ou supprimé à la fin, et ce qu'ils modifient est remis en place au début.
+- **Données de départ connues** : `docker compose run --rm e2e` lance d'abord le service `e2e-reset` (`python manage.py reset_audit_shop`, profil `audit`), qui supprime les boutiques dont `e2e@example.com` est propriétaire puis recrée « Boutique Audit » et ses données de départ, comme `seed_data`. Les autres boutiques ne sont pas touchées. Mêmes gardes que `seed_data` : `DEBUG` ou `ALLOW_SEED=1`. Un audit lancé seul repart aussi de ces données ; `--no-deps` les garde telles quelles (le frontend doit alors déjà tourner).
+- `seed_data --reset` supprime aussi la boutique et la recrée, avec celles des autres comptes de démo (comptes `@example.*` uniquement).
+- `openSession(browser, viewport, { email })` permet, si besoin, de se connecter avec un autre compte de démo.
+
+## Contenu
+
+- `lib/watch.mjs` — **console surveillée** : toute erreur ou tout avertissement en console et toute exception non rattrapée font échouer l'audit ; **éléments interactifs imbriqués** (bouton dans un lien, etc.).
+- `lib/scroll.mjs` — **défilement contrôlé après chaque interaction** de chaque audit (clic, saisie, touche, navigation), branché par `openSession` : une fois fenêtres et menus refermés, la page défile à la molette et rien ne reste bloquant sur html, body et `main` (overflow, pointer-events, inert, aria-hidden, verrou de Base UI). Un blocage est compté avec les problèmes de console de l'étape.
+- `lib/session.mjs` — navigateur, connexion (compte `e2e@example.com` par défaut ; une connexion par taille d'écran : la limite `auth` du backend reste basse), langue (`NEXT_LOCALE`) et thème (réponse `/auth/me/` réécrite, préférences du compte intactes).
+- `lib/messages.mjs` — textes attendus lus dans `../messages/*.json` (montés en lecture seule) : `msg` (texte brut) et `fmt` (paramètres ICU appliqués : `{var}`, `select`, `plural` avec `=n` et `#`).
+- `lib/products.mjs` — appels du backend par le proxy (`api`, `allResults`), création d'un article de test, désactivation ou suppression en fin d'audit.
+- `lib/form.mjs` — gabarit de formulaire v3 : carte repliable (mobile) ouverte, refermée ou remplie avec son résumé, disposition vérifiée (`layoutOk` : deux colonnes et rien à déplier sur desktop, cartes empilées dans l'ordre et facultatives repliées sur mobile).
+- `lib/photos.mjs` — image de test très haute ou très large dessinée dans le navigateur, envoi par l'API, mesure des photos affichées (cadre carré, `object-cover`, fond `bg-muted`).
+- `lib/invoice.mjs` — facture fournisseur de test (page HTML capturée en PNG), envoyée ensuite à la vraie chaîne de lecture.
+- `audit-pages.mjs` — écrans principaux à 1440px et 360px.
+- `audit-customer-form.mjs` — gabarit de formulaire v3 sur le formulaire client, à 1440px et 360px, clair et sombre, français et arabe :
+  - disposition : desktop, Identité, Contact et Adresse dans la colonne principale, Notes internes à côté, rien à déplier ; mobile, cartes empilées dans cet ordre, Identité (« Obligatoire ») ouverte, les facultatives repliées avec leur résumé si elles sont remplies (sinon leur explication), ouvertes au clic, à Entrée et à Espace (`aria-expanded`) ;
+  - aperçu de l'identité (initiales et nom) mis à jour pendant la saisie ;
+  - actions sous les colonnes, sans cadre, en fin de ligne ; « Annuler » demande confirmation si le formulaire est modifié ;
+  - erreurs : champ obligatoire vide, e-mail invalide (client) et numéro invalide (serveur), dans une carte repliée sur mobile → la carte s'ouvre, le focus va sur le champ, l'erreur est sous le champ ;
+  - notifications « Client créé » et « Client enregistré », une seule région `aria-live`, placée en bas (mobile) ou dans le coin bas (desktop, à gauche en arabe) ;
+  - téléphone : « 06 12 34 56 78 » enregistré en `+33612345678`, affiché `+33 6 12 34 56 78`, « Relancer » ouvre `wa.me/33612345678` ;
+  - aucun client de test dans la boutique de Youssef. Les clients créés (« Audit e2e … ») sont archivés à la fin.
+- `audit-customer-name.mjs` — nom complet des clients (`display_name`), à 1440px et 360px, clair et sombre, français et arabe :
+  - « Karima » + « Bensouda Test » créé par le formulaire s'affiche « Karima Bensouda Test » (initiales KT) dans la liste et la fiche client, le sélecteur et le ticket d'une nouvelle commande, la liste et le détail des commandes, la recherche globale ;
+  - « Karima » et « Karima Bens » le trouvent (liste des clients, recherche globale) ;
+  - le nom étant unique par boutique, le client d'un passage précédent est renommé et archivé (sa commande annulée) au début et à la fin.
+- `audit-products-list.mjs` — liste Articles et services à 1440px et 360px, clair et sombre, français et arabe :
+  - 25 articles « Audit lot NN » (un tiers en rupture, un tiers en stock faible, un tiers en stock) créés une seule fois, réactivés au début et désactivés à la fin : la liste dépasse une page de 20 ;
+  - desktop : titre et nombre total, 20 rangées et « 1 à 20 sur N », page 2 conforme à l'API, tri par l'en-tête « Prix » dans les deux sens (`aria-sort`), nombres du menu « Stock » égaux à `/products/facets/`, filtre appliqué puis retiré ;
+  - mobile : 20 rangées puis « Charger plus », rappel du tri, fenêtre Filtres dont le bouton annonce le nombre exact, pastille du filtre ;
+  - indicateurs « En rupture » et « Stock faible » : un clic filtre (articles actifs à ce niveau, nombre de l'indicateur), un second le retire ;
+  - boutique de services (`services@example.com`) : seul « Services actifs », aucun stock ni type (indicateurs, filtre, colonne, fenêtre Filtres).
+- `audit-product-form.mjs` — formulaire article (gabarit v3), mêmes tailles, thèmes et langues :
+  - création d'un article : disposition (desktop : Informations, Prix, Stock | Photo, Vente, Référence, rien à déplier ; mobile : Informations, Photo, Prix, Stock, Vente, Référence, facultatives repliées), Article choisi, unité en menu, « Nom » obligatoire, marge affichée seulement avec les deux prix, photos très haute puis très large recadrées en carré à l'ajout, la seconde choisie comme principale, stock initial et seuil, scan du code-barres (Entrée ne soumet pas) ; résumés des cartes (mobile) ; « Article créé » ; valeurs et photos relues dans l'API ;
+  - modification ouverte par « Gérer les photos » de la fiche (formulaire sur la carte Photo) : bouton désactivé tant que rien ne change, type en badge, unité en lecture seule, résumés (mobile), stock actuel en lecture seule et lien « Faire une entrée de stock », une photo retirée et la photo enregistrée recadrée, garde « quitter sans enregistrer », « Article enregistré » ;
+  - service : Informations, Prix et Photo seulement (ni unité, ni prix d'achat, ni stock, ni référence) ; création puis modification du prix ;
+  - article à deux formats (« Audit formats ») : tableau « Formats et prix » à la place des cartes Prix et Stock, unité en lecture seule ;
+  - boutique de services : ni choix de type, ni unité, ni stock ; boutique de Youssef : aucun article « Audit ». Les articles et services créés sont supprimés à la fin (ils n'ont jamais servi) ; « Audit formats », réutilisé d'un passage à l'autre, est désactivé.
+- `audit-product-formats.mjs` — formats dans le formulaire article, mêmes tailles, thèmes et langues (tableau sur desktop, cartes empilées et « ⋯ » en fenêtre du bas sur mobile) :
+  - création d'un article à 3 formats : « Plusieurs formats » remplace Prix et Stock par « Formats et prix » (Vente et Références l'expliquent), « Même prix » et « Même seuil », marge sur la plage des formats, total du stock initial, nom en double refusé, référence d'une ligne saisie par son menu « ⋯ » ; formats, prix, seuils et stocks initiaux relus dans l'API, sur la fiche et sur la page Stock ;
+  - modification, un format vendu (commande créée par l'API) : stock en lecture seule avec « + Entrée » (entrée rapide), 4e format avec stock initial, format vendu retiré de la vente (pas de « Supprimer »), format jamais utilisé supprimé, le tout enregistré en une fois ;
+  - retour à un format unique : la dernière ligne ne se supprime pas, « Revenir à un format unique » rend Prix et Stock avec les valeurs saisies, un seul format au nom par défaut ;
+  - nettoyage : commandes annulées, articles vendus désactivés, articles à format unique supprimés.
+- `audit-product-photos.mjs` — photos d'articles au format carré, mêmes tailles, thèmes et langues : des photos très hautes et très larges envoyées sans recadrage (comme des photos anciennes) apparaissent en carré (`object-cover`, fond `bg-muted`) dans la liste, sur la fiche (photo principale, miniatures, « Gérer les photos ») et dans le catalogue de la nouvelle commande. « Audit photo haute » et « Audit photo large » sont créés une fois, réactivés au début et désactivés à la fin.
+- `audit-stock.mjs` — stock à 1440px et 360px :
+  - parcours en français et en clair : une vente de 3 sur un stock de 1 est acceptée (avertissement « il passera en négatif » dans la nouvelle commande) et met le format à −2 ; l'indicateur « Négatif » filtre la liste ; l'entrée rapide de la ligne le régularise ; entrée de 3 articles à la main ; facture avec une ligne « À associer » associée à la main, puis facture suivante du même fournisseur associée toute seule ; sortie pour casse au-delà du stock refusée (formulaire et serveur) ; correction d'inventaire avec l'écart affiché ; lien vers la commande dans les Mouvements ; suppression d'un article jamais utilisé, refus (409) pour un article vendu ;
+  - écrans du stock et entrée rapide ouverte en français et en arabe, clair et sombre : console propre, aucun élément imbriqué ;
+  - boutique de services : ni page ni entrée Stock (« Plus » compris) ;
+  - la facture passe par la **vraie lecture** (PaddleOCR puis structuration, ~10 s par facture : `celery-ocr` et `ai-service` démarrés) ;
+  - les formulaires sont ouverts par le routeur Next (`window.next.router.push`) : leur retour à la page précédente après l'enregistrement reste dans l'app et la notification reste visible ;
+  - nettoyage : commande annulée, articles désactivés (ils ont servi). `DEBUG=1` détaille les notifications, `SHOTS=<dossier>` capture un parcours interrompu.
+- `audit-product-sheet.mjs` — fiche article (gabarit de détail), mêmes tailles, thèmes et langues :
+  - article à un format : nom, badge « Stock faible », carte Stock, « Voir tout » vers ses mouvements ; « Entrée de stock » ouvre l'entrée rapide (stock 2 → 5, notification) ; « Ajouter un format » en fenêtre, puis « + Entrée » sur la ligne du nouveau format ;
+  - article jamais utilisé : « Supprimer » dans le menu « ⋯ » (menu ancré sur desktop, fenêtre du bas sur mobile), confirmation, retour à la liste, article supprimé ;
+  - menu « ⋯ » de chaque format : « Modifier », « Retirer de la vente », et « Supprimer » seulement pour un format jamais utilisé ; « Lot » supprimé après confirmation ; le dernier format actif n'offre plus que « Modifier » ; un format vendu pendant la confirmation → refus (409) affiché dans la fenêtre ;
+  - article vendu : menu sans « Supprimer », suppression refusée par l'API (409) ;
+  - service : cartes « Prix » et « Ventes sur 30 jours », ni formats, ni stock, ni « Entrée de stock » ;
+  - nettoyage : commandes annulées, articles utilisés désactivés, service supprimé. `SHOTS=<dossier>` capture un parcours interrompu.
+- `audit-loading.mjs` — chargement en connexion lente (réseau limité par CDP : latence 1,5 s, 2 Mo/s) de la fiche article, de la fiche client et du détail d'une commande existants, à 1440px et 360px, en français et en arabe : squelette à la forme de la page visible (au moins trois cartes), aucun texte de chargement seul (« Chargement… »), puis l'objet affiché sans squelette ; console propre. Chaque page est d'abord ouverte sans limitation (compilation du serveur de dev).
+- `audit-reminders.mjs` — rappels, mêmes tailles, thèmes et langues : l'onglet « À faire » donne le même chiffre que le badge du menu et l'accueil ; terminer ou supprimer un rappel met à jour les onglets et le badge sans recharger ; « Marquer à relancer » (fiche client, fiche commande) sur un client qui a déjà une relance en attente ouvre la fenêtre « décaler » : « Décaler » garde un seul rappel, « Créer quand même » en ajoute un second, lié à la commande. Client dédié « Audit Relance » ; les rappels créés sont supprimés, la commande annulée.
+- `audit-whatsapp.mjs` — messages WhatsApp, mêmes tailles, thèmes et langues : la carte Client et « Relancer » de la fiche commande, « Relancer » de l'accueil (commande d'audit placée en tête de la liste des impayés par une réponse réécrite) et la carte Contact de la fiche client ouvrent wa.me avec un texte préparé ; chaque message est enregistré comme envoyé et apparaît aussitôt, sans recharger, dans l'historique de la fiche commande (messages de la commande) et de la fiche client (tous ses messages, y compris ceux de ses commandes). Client dédié « Audit WhatsApp » ; ses messages sont supprimés au début de chaque passage, la commande annulée à la fin.
+- `audit-scroll-lock.mjs` — page bloquée sans défilement, mêmes tailles, thèmes et langues : enchaîne fenêtres (fenêtre du bas ou centrée, confirmation, recadrage d'image), menus (« ⋯ » de la fiche et d'un format, filtres, compte sur desktop, burger sur mobile), liste d'options dans une fenêtre, fenêtre ouverte depuis un menu, retour arrière pendant qu'une fenêtre ou un menu est ouvert, Échap, clic à l'extérieur, notification. Après chaque action, la page défile ; pendant qu'une fenêtre est ouverte, la page derrière est verrouillée. Article dédié, désactivé à la fin.
+- `audit-header-bands.mjs` — bandes d'en-tête (design_principles §4 et §11), mêmes tailles, thèmes et langues, sur l'accueil, les fiches client, commande et article, et les formulaires article (création) et client (création, modification) : chaque titre de carte est dans une bande au fond `muted` avec une bordure en bas (sauf une carte de formulaire repliée sur mobile, réduite à sa bande), chaque en-tête de tableau a le même fond (une carte titrée qui contient un tableau garde ses deux bandes, accolées) ; tout texte d'une bande (liens « Tout voir », compteurs, badges, montants) atteint 4,5:1 sur son fond réel, couleurs rendues lues sur un canevas. Chaque passage teste le thème par défaut et les palettes les moins contrastées (`setPalette`). Client dédié « Audit En-têtes » avec une commande impayée (annulée à la fin), article à deux formats désactivé à la fin.
+- `audit-show-more.mjs` — listes longues d'une fiche (design_principles §4), mêmes tailles, thèmes et langues, sur une fiche client à 7 notes : « Activité » et « Notes » affichent 5 éléments puis « Voir plus (2 restantes) », un clic charge la suite (7, plus de bouton) ; la puce « Notes » de l'activité repart de 5 avec « Voir plus » ; la première requête de l'activité est en `limit=5`. Client dédié « Audit Voir plus » et ses notes, créés au besoin.
+- `audit-zakat.mjs` — un calcul finalisé dont la réouverture échoue (réponse simulée) : l'erreur est notifiée, aucune `alert()` ni boîte de dialogue native. Les calculs créés sont supprimés.
+
+## Exceptions de la console surveillée
+
+Seulement les messages de l'outillage de développement qui ne viennent pas de notre code (`[Fast Refresh]`, `[HMR]`, invitation React DevTools) et l'échec du WebSocket de rechargement à chaud dans l'**aperçu de la page publique** : l'iframe est en `sandbox` sans `allow-same-origin` (origine opaque), le serveur de dev refuse donc ses ressources de développement. C'est attendu en développement ; le sandbox ne doit pas être assoupli (voir `components/public-page-admin/PreviewCard.tsx`).
+
+## Notes
+
+- Version de Playwright figée dans `package.json` ; elle doit correspondre au tag de l'image dans `docker-compose.yml`.
+- `next.config.ts` autorise l'hôte `frontend` en développement (`allowedDevOrigins`) et Chromium traite `http://frontend:3000` comme origine sûre (`crypto.randomUUID`, utilisé par la nouvelle commande). Ce drapeau n'est lu que par le canal `chromium` (nouveau mode sans interface) : le « headless shell » par défaut l'ignore.
+- Les limites de requêtes `user` et `anon` sont relevées dans `config/settings/local.py` pour que les audits ne les atteignent pas.

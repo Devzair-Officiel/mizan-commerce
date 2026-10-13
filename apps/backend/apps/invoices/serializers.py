@@ -1,15 +1,21 @@
 from rest_framework import serializers
 
 from .models import Invoice, InvoiceLine
+from .services import display_line_description
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
+    description = serializers.SerializerMethodField()
+
     class Meta:
         model = InvoiceLine
         fields = (
             'id', 'description', 'quantity', 'unit_price_ht', 'line_subtotal_ht',
         )
         read_only_fields = fields
+
+    def get_description(self, line: InvoiceLine) -> str:
+        return display_line_description(line.description)
 
 
 class InvoiceSerializer(serializers.ModelSerializer):

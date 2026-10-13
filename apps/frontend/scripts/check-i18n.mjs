@@ -9,6 +9,8 @@
  *      pour une même clé dans les trois langues.
  *   3. Les appels t('key') sans second argument ne doivent pas manquer
  *      les variables ICU de premier niveau de la clé FR correspondante.
+ *   4. fr.json vouvoie : aucune valeur ne contient tu / ton / ta / tes / toi / t'
+ *      (exceptions explicites dans TUTOIEMENT_EXCEPTIONS).
  */
 
 import { readFileSync, readdirSync, statSync } from 'fs';
@@ -169,10 +171,31 @@ for (const file of tsxFiles) {
   }
 }
 
+// ── Check 4 : vouvoiement dans fr.json ───────────────────────────────────────
+//
+// L'interface en français vouvoie. Les limites de mot tiennent compte des lettres
+// accentuées (« Prêtes », « côtes » ne sont pas des « tes »).
+
+const TUTOIEMENT_RE = /(?<![\p{L}\p{N}_])(?:tu|ton|ta|tes|toi)(?![\p{L}\p{N}_])|(?<![\p{L}\p{N}_])t['’]/iu;
+
+// Clés fr dont la valeur contient légitimement l'une de ces formes, avec la raison.
+const TUTOIEMENT_EXCEPTIONS = new Map([
+  // ['namespace.cle', 'raison'],
+]);
+
+for (const [key, value] of Object.entries(flat['fr'])) {
+  if (TUTOIEMENT_EXCEPTIONS.has(key)) continue;
+  const match = value.match(TUTOIEMENT_RE);
+  if (match) {
+    console.error(`\n[VOUVOIEMENT] fr ${key} — « ${match[0]} » : ${value}`);
+    hasError = true;
+  }
+}
+
 // ── Result ────────────────────────────────────────────────────────────────────
 
 if (!hasError) {
-  console.log(`✓ i18n OK — ${allKeys.size} clés, ${LANGS.length} langues, variables ICU cohérentes, call sites vérifiés`);
+  console.log(`✓ i18n OK — ${allKeys.size} clés, ${LANGS.length} langues, variables ICU cohérentes, call sites vérifiés, vouvoiement`);
 } else {
   process.exit(1);
 }

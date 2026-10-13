@@ -17,7 +17,7 @@ docs/            URS, schéma DB, plan d'avancement
 ```
 
 Documents de référence (à consulter selon le besoin, pas à charger systématiquement) :
-- `docs/urs_saas_commercant_mobile.md` — user stories URS-001 à URS-088
+- `docs/urs_saas_commercant_mobile.md` — user stories URS-001 à URS-103
 - `docs/schema_base_donnees.md` — schéma PostgreSQL canonique
 - `docs/plan_avancement.md` — phase et tâches en cours
 - `docs/fiche_technique_saas_commercants_ovh.md` — choix d'infra OVH
@@ -33,17 +33,27 @@ docker compose exec backend ruff check .      # Lint
 docker compose exec backend ruff format .     # Format
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py seed_data           # Dev uniquement (DEBUG=True requis)
+docker compose exec backend python manage.py seed_data --reset   # seed_data --reset : développement uniquement, ne touche qu'aux comptes de démo (@example.*)
 
 # Frontend (depuis la racine du repo)
 docker compose exec -T frontend npm run dev      # Dev server
 docker compose exec -T frontend npm run typecheck  # Typecheck obligatoire avant tout commit frontend : le build ne vérifie pas les types
 docker compose exec -T frontend npm run i18n:check  # Obligatoire avant tout commit qui touche aux messages (fr/en/ar)
+docker compose exec -T frontend npm run tokens:check  # Obligatoire avant tout commit frontend : couleurs via tokens (pas de gris de palette ni d'hexadécimal dans un className)
+docker compose exec -T frontend npm run text:check  # Obligatoire avant tout commit frontend : aucun texte d'interface en dur (JSX, title, aria-label, placeholder, alt) — tout passe par t()
+docker compose exec -T frontend npm run deps:check  # Obligatoire avant tout commit frontend : @base-ui/utils installé une seule fois, à la version qu'attend @base-ui/react — deux copies font deux verrous de défilement qui s'ignorent, et la page reste bloquée (6e3b998)
 docker compose exec -T frontend npm run lint     # ESLint
 docker compose exec -T frontend npm run build    # Build de prod
 # npm run test n'existe pas encore — aucune infra Vitest en place
 
 # Stack complète
 docker compose up -d
+
+# Audits navigateur Playwright (sans Node sur la machine, service `e2e` du profil « audit ») — voir apps/frontend/e2e/README.md
+docker compose run --rm e2e                              # tous les audits (console surveillée, éléments imbriqués), boutique d'audit remise à zéro avant
+docker compose run --rm e2e npm run audit:customer-form  # un audit ciblé (remise à zéro aussi ; --no-deps pour garder les données)
+docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée la boutique d'audit (e2e@example.com)
 ```
 
 ## Code rules — Backend (Python / Django)
@@ -67,6 +77,7 @@ docker compose up -d
 - UI : composants shadcn/ui en priorité avant d'en créer un. Tailwind utility-first, pas de CSS custom sauf cas exceptionnel.
 - **Classes Tailwind** : préférer les classes de l'échelle (`min-h-14`, `w-18`, `h-4.5`…) aux valeurs arbitraires en px (`min-h-[56px]`, `w-[72px]`…) quand un équivalent existe. Positions logiques : `inset-s-*`/`inset-e-*` au lieu de `start-*`/`end-*` (sauf grille : `col-start-*` inchangé).
 - **i18n — texte dépendant du type de catalogue** : utiliser un seul paramètre ICU `{kind, select, products {...} services {...} other {...}}` (jamais de clés séparées `_products`/`_services`, jamais de ternaires côté composant). Hook source : `useCatalogKind()` dans `lib/hooks/useCatalogKind.ts`. Pluriels imbriqués : `{kind, select, products {{count, plural, one {# article} other {# articles}}} ...}`.
+- **Interface en français : vouvoiement.** « Ajoutez », « votre boutique », jamais « Ajoute », « ta boutique ». Contrôlé par `npm run i18n:check` sur `fr.json` (exceptions explicites dans `scripts/check-i18n.mjs`).
 
 ## Architecture rules — universelles
 
@@ -101,9 +112,8 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - Toute nouvelle fonctionnalité doit pouvoir se rattacher à un URS (URS-XXX). Si rien ne couvre, le signaler.
 - Après modification du modèle Django : générer la migration et la mentionner explicitement.
 - À la fin d'une tâche, indiquer la ligne du `docs/plan_avancement.md` à cocher.
-- **À chaque création ou modification d'endpoint** : utiliser les outils MCP Postman pour ajouter ou mettre à jour l'endpoint dans le workspace en ligne. Un dossier Postman = une app Django. Chaque requête doit inclure : une description courte, les headers nécessaires, un body d'exemple réaliste, et un script de test qui stocke les IDs retournés dans les variables d'environnement (ex: `pm.environment.set('product_id', json.id)`). Pour les méthodes POST/PUT/PATCH, ajouter les variables correspondantes à l'environnement `mizan-local`.
-- **Pour synchroniser Postman** après une session de développement, envoyer dans la session Postman dédiée : `"Scanne les urls.py du backend et mets à jour la collection Mizan dans Postman"`
 - **À chaque nouvelle app Django** : créer `apps/backend/apps/<app>/factories.py` avec des factories `factory_boy` + `faker` pour tous les modèles de l'app. Ajouter le seeding correspondant dans `apps/core/management/commands/seed_data.py`. Tester avec : `docker compose exec backend python manage.py seed_data`.
+- **Vérifications navigateur : console surveillée, aucune erreur ni avertissement React toléré.** Seule exception : les messages de développement de Next.js qui ne viennent pas de notre code (Fast Refresh, HMR, invitation React DevTools). L'aperçu de la page publique (iframe sandbox, origine opaque) produit en dev des erreurs de ressources de développement : attendues, ne pas assouplir le sandbox. Vérification automatisée : `docker compose run --rm e2e`.
 - **Avant tout commit backend** : lancer `pytest` complet (pas seulement l'app modifiée), puis `ruff check .`. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type.
 
 ## Self-check before responding

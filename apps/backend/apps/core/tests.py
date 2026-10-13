@@ -1,14 +1,18 @@
+import io
+import os
 from datetime import datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import F, Q
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
+from unittest import mock
 
 from apps.accounts.models import User
 from apps.shops.models import Shop, ShopMember
@@ -198,6 +202,26 @@ class DashboardTodayTest(TestCase):
         self.assertEqual(data["low_stock_products"]["count"], 2)
         self.assertEqual(data["low_stock_products"]["out_of_stock_count"], 1)
 
+    def test_negative_stock_counted_apart_from_out_of_stock(self):
+        """Un format vendu au-delà de son stock est négatif, pas en rupture."""
+        p = Product.objects.create(shop=self.shop, name="Vendu")
+        v = ProductVariant.objects.create(
+            shop=self.shop,
+            product=p,
+            packaging_name="Unité",
+            unit="piece",
+            base_quantity=1,
+            selling_price=Decimal("10"),
+        )
+        StockMovement.objects.create(
+            shop=self.shop, variant=v, movement_type="reservation", quantity=2
+        )
+        block = build_dashboard_today(self.shop)["low_stock_products"]
+        self.assertEqual(
+            (block["count"], block["negative_count"], block["out_of_stock_count"]),
+            (1, 1, 0),
+        )
+
     # ── overdue reminders ─────────────────────────────────────────────────────
 
     def test_overdue_reminder_appears_with_flag(self):
@@ -342,11 +366,11 @@ class SeedDataTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        import io
-
-        call_command(
-            "seed_data", reset=True, stdout=io.StringIO(), stderr=io.StringIO()
-        )  # noqa: E501
+        with override_settings(DEBUG=True):
+            call_command(
+                "seed_data", reset=True,
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
 
     def _shop(self, name):
         return Shop.objects.get(name=name)
@@ -428,6 +452,151 @@ class SeedDataTest(TestCase):
         self.assertTrue(
             Product.objects.filter(shop=shop, type="service", is_active=True).exists()
         )
+
+    def test_fr_shop_is_boutique_plus(self):
+        """La boutique FR (employée + page publique) est en formule Boutique+."""
+        from apps.subscriptions.models import SubscriptionPlan
+
+        shop = self._shop("La Boutique de Youssef")
+        self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+
+    def test_seeded_shops_have_plan_for_their_features(self):
+        """Une boutique de démo n'utilise pas de fonction absente de sa formule."""
+        from apps.public_pages.models import PublicPage
+        from apps.core.management.commands.seed_data import SEED_DEMO_EMAILS
+        from apps.subscriptions.permissions import FEATURE_MIN_PLAN, _tier_index
+
+        def allows(shop, feature):
+            return shop.effective_plan.tier >= _tier_index(FEATURE_MIN_PLAN[feature])
+
+        demo_shops = Shop.objects.filter(members__user__email__in=SEED_DEMO_EMAILS)
+        for shop in demo_shops.distinct():
+            if ShopMember.objects.filter(shop=shop).exclude(role="owner").exists():
+                self.assertTrue(allows(shop, "multi_user"), shop.name)
+            if PublicPage.objects.filter(shop=shop).exists():
+                self.assertTrue(allows(shop, "public_pages"), shop.name)
+
+
+class SeedDataSecurityTest(TestCase):
+    """Garde DEBUG, isolation des boutiques externes, idempotence du --reset."""
+
+    def test_refused_when_debug_false(self):
+        """seed_data lève CommandError si DEBUG=False et ALLOW_SEED non défini."""
+        with mock.patch.dict(os.environ, {"ALLOW_SEED": ""}):
+            with override_settings(DEBUG=False):
+                with self.assertRaises(CommandError):
+                    call_command(
+                        "seed_data",
+                        stdout=io.StringIO(), stderr=io.StringIO(),
+                    )
+
+    def test_non_demo_shop_survives_reset(self):
+        """Une boutique créée hors seed n'est pas touchée par --reset."""
+        user = User.objects.create_user(
+            email="ext@test.local", password="Pass123!Strong"
+        )
+        shop = Shop.objects.create(name="Boutique Externe", currency="EUR")
+        ShopMember.objects.create(shop=shop, user=user, role="owner")
+        with override_settings(DEBUG=True):
+            call_command(
+                "seed_data", reset=True,
+                stdout=io.StringIO(), stderr=io.StringIO(),
+            )
+        self.assertTrue(Shop.objects.filter(pk=shop.pk).exists())
+        self.assertTrue(User.objects.filter(pk=user.pk).exists())
+
+    def test_double_reset_idempotent(self):
+        """Deux seed_data --reset successifs ne lèvent pas d'exception."""
+        out = io.StringIO()
+        with override_settings(DEBUG=True):
+            call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
+            call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
+        self.assertTrue(Shop.objects.filter(name="La Boutique de Youssef").exists())
+
+    def test_rerun_without_reset_creates_no_duplicates(self):
+        """Relancer seed_data sans --reset ne duplique rien, dans aucune boutique."""
+        def snapshot() -> dict[str, tuple[int, ...]]:
+            return {
+                shop.name: (
+                    Product.objects.filter(shop=shop).count(),
+                    Customer.objects.filter(shop=shop).count(),
+                    Order.objects.filter(shop=shop).count(),
+                    StockMovement.objects.filter(shop=shop).count(),
+                    Reminder.objects.filter(shop=shop).count(),
+                )
+                for shop in Shop.objects.order_by("name")
+            }
+
+        quiet = {"stdout": io.StringIO(), "stderr": io.StringIO()}
+        with override_settings(DEBUG=True):
+            call_command("seed_data", reset=True, **quiet)
+            before = snapshot()
+            call_command("seed_data", **quiet)
+        self.assertEqual(snapshot(), before)
+
+
+class ResetAuditShopTest(TestCase):
+    """reset_audit_shop : boutique d'audit remise à neuf, les autres intactes."""
+
+    quiet = {"stdout": io.StringIO(), "stderr": io.StringIO()}
+
+    def _audit_shop(self) -> Shop:
+        return Shop.objects.get(
+            members__user__email="e2e@example.com", members__role="owner"
+        )
+
+    def test_refused_when_debug_false(self) -> None:
+        with mock.patch.dict(os.environ, {"ALLOW_SEED": ""}):
+            with override_settings(DEBUG=False):
+                with self.assertRaises(CommandError):
+                    call_command("reset_audit_shop", **self.quiet)
+
+    def test_allowed_with_allow_seed(self) -> None:
+        with mock.patch.dict(os.environ, {"ALLOW_SEED": "1"}):
+            with override_settings(DEBUG=False):
+                call_command("reset_audit_shop", **self.quiet)
+        self.assertEqual(self._audit_shop().name, "Boutique Audit")
+
+    def test_restores_starting_data(self) -> None:
+        with override_settings(DEBUG=True):
+            call_command("reset_audit_shop", **self.quiet)
+            shop = self._audit_shop()
+            start = (
+                Product.objects.filter(shop=shop).count(),
+                Customer.objects.filter(shop=shop).count(),
+                Order.objects.filter(shop=shop).count(),
+            )
+            Product.objects.create(shop=shop, name="Audit lot 01")
+            Customer.objects.create(shop=shop, name="Client d'audit")
+            call_command("reset_audit_shop", **self.quiet)
+        shop = self._audit_shop()
+        self.assertEqual(
+            (
+                Product.objects.filter(shop=shop).count(),
+                Customer.objects.filter(shop=shop).count(),
+                Order.objects.filter(shop=shop).count(),
+            ),
+            start,
+        )
+        self.assertEqual(start, (3, 2, 2))
+        self.assertFalse(Product.objects.filter(name="Audit lot 01").exists())
+        user = User.objects.get(email="e2e@example.com")
+        self.assertTrue(user.check_password("Mizan1234!"))
+
+    def test_other_shops_untouched(self) -> None:
+        user = User.objects.create_user(
+            email="ext@test.local", password="Pass123!Strong"
+        )
+        shop = Shop.objects.create(name="Boutique Externe", currency="EUR")
+        ShopMember.objects.create(shop=shop, user=user, role="owner")
+        product = Product.objects.create(shop=shop, name="Article externe")
+        with override_settings(DEBUG=True):
+            call_command("seed_data", **self.quiet)
+            youssef = Shop.objects.get(name="La Boutique de Youssef")
+            youssef_products = Product.objects.filter(shop=youssef).count()
+            call_command("reset_audit_shop", **self.quiet)
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+        self.assertEqual(Product.objects.filter(shop=youssef).count(), youssef_products)  # noqa: E501
 
 
 def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501
@@ -538,3 +707,138 @@ class GlobalSearchTest(TestCase):
         self.assertEqual(resp.data["products"]["total"], 0)
         self.assertEqual(resp.data["customers"]["total"], 0)
         self.assertEqual(resp.data["orders"]["total"], 0)
+
+
+class HistoryProtectionTest(TestCase):
+    """Aucune suppression d"un objet métier n"efface un historique en cascade.
+
+    RESTRICT refuse la suppression directe ; la suppression de toute la
+    boutique (compte supprimé, `seed_data --reset`) reste possible.
+    """
+
+    RESTRICTED = (
+        ("stock", "StockMovement", "variant"),
+        ("orders", "Order", "customer"),
+        ("orders", "OrderItem", "order"),
+        ("invoices", "InvoiceLine", "invoice"),
+        ("notes", "Note", "customer"),
+        ("notes", "Note", "order"),
+        ("ocr", "OcrResult", "uploaded_document"),
+        ("loyalty", "LoyaltyCard", "customer"),
+        ("loyalty", "LoyaltyTransaction", "card"),
+    )
+
+    def setUp(self):
+        from apps.customers.factories import CustomerFactory
+        from apps.invoices.services import issue_invoice_from_order
+        from apps.loyalty.factories import LoyaltyTransactionFactory
+        from apps.notes.factories import NoteFactory
+        from apps.ocr.factories import OcrResultFactory
+        from apps.stock.services import create_movement
+
+        self.user, self.shop = setup("history@example.com")
+        product = Product.objects.create(shop=self.shop, name="Huile")
+        self.variant = ProductVariant.objects.create(
+            shop=self.shop, product=product, packaging_name="1 L",
+            selling_price="10.00",
+        )
+        create_movement(self.shop, self.variant, "in", 5, "Réassort", created_by=self.user)  # noqa: E501
+        self.customer = CustomerFactory(shop=self.shop)
+        self.order = order_services.create_order(self.shop, self.user, customer=self.customer)  # noqa: E501
+        order_services.add_item(self.order, self.variant, 1)
+        self.invoice = issue_invoice_from_order(shop=self.shop, order=self.order)
+        self.note = NoteFactory(shop=self.shop, author=self.user, customer=self.customer, order=self.order)  # noqa: E501
+        self.card = LoyaltyTransactionFactory(card__shop=self.shop, card__customer=self.customer).card  # noqa: E501
+        self.ocr = OcrResultFactory(shop=self.shop, uploaded_document__uploaded_by_user=self.user)  # noqa: E501
+
+    def test_history_relations_are_restricted(self):
+        from django.apps import apps
+        from django.db.models import RESTRICT
+
+        for app, model, field in self.RESTRICTED:
+            on_delete = apps.get_model(app, model)._meta.get_field(field).remote_field.on_delete  # noqa: E501
+            self.assertIs(on_delete, RESTRICT, f"{model}.{field}")
+
+    def test_direct_deletion_of_a_business_object_is_refused(self):
+        from django.db.models import RestrictedError
+
+        movements = StockMovement.objects.filter(variant=self.variant).count()
+        for obj in (
+            self.variant, self.customer, self.order, self.invoice,
+            self.ocr.uploaded_document, self.card,
+        ):
+            with self.subTest(type(obj).__name__), self.assertRaises(RestrictedError):
+                obj.delete()
+        self.assertEqual(StockMovement.objects.filter(variant=self.variant).count(), movements)  # noqa: E501
+        self.assertTrue(Order.objects.filter(pk=self.order.pk, items__isnull=False).exists())  # noqa: E501
+
+    def test_deleting_the_whole_shop_still_works(self):
+        self.shop.delete()
+        self.assertFalse(StockMovement.objects.filter(shop_id=self.shop.pk).exists())
+        self.assertFalse(Order.objects.filter(shop_id=self.shop.pk).exists())
+
+
+class UniqueViolationHandlerTest(TestCase):
+    """Unicité violée malgré la validation (requêtes simultanées) : 409 générique."""
+
+    def test_unique_violation_becomes_generic_409(self):
+        from django.db import IntegrityError, transaction
+
+        from apps.core.exceptions import api_exception_handler
+
+        _, shop = setup("unique-409@example.com")
+        Customer.objects.create(shop=shop, name="Awa")
+        try:
+            with transaction.atomic():
+                Customer.objects.create(shop=shop, name="awa")
+        except IntegrityError as exc:
+            response = api_exception_handler(exc, {})
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data, {"detail": "Cette ressource existe déjà."})
+
+    def test_other_integrity_error_stays_500(self):
+        from django.db import IntegrityError
+
+        from apps.core.exceptions import api_exception_handler
+
+        with self.assertLogs("apps.core.exceptions", level="ERROR"):
+            response = api_exception_handler(IntegrityError("not null"), {})
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ProductionStorageSettingsTest(TestCase):
+    """Production sans variable de stockage OVH : refus de démarrer."""
+
+    ENV = {
+        "SECRET_KEY": "x" * 50,
+        "ALLOWED_HOSTS": "mizan.example.com",
+        "CSRF_TRUSTED_ORIGINS": "https://mizan.example.com",
+        "CORS_ALLOWED_ORIGINS": "https://mizan.example.com",
+        "OVH_S3_BUCKET_PRIVATE": "mizan-prod-private",
+        "OVH_S3_ENDPOINT_URL": "https://s3.example.com",
+        "OVH_S3_ACCESS_KEY": "test-access",
+        "OVH_S3_SECRET_KEY": "test-secret",
+    }
+
+    def load_production(self, **missing_or_blank):
+        import runpy
+
+        env = {**self.ENV, **missing_or_blank}
+        with mock.patch.dict(os.environ, {k: v for k, v in env.items() if v is not None}):  # noqa: E501
+            for name in (k for k, v in env.items() if v is None):
+                os.environ.pop(name, None)
+            return runpy.run_module("config.settings.production")
+
+    def test_complete_environment_loads(self):
+        settings = self.load_production()
+        self.assertEqual(settings["AWS_STORAGE_BUCKET_NAME"], "mizan-prod-private")
+
+    def test_missing_storage_variable_is_refused(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        for name in ("OVH_S3_BUCKET_PRIVATE", "OVH_S3_ENDPOINT_URL",
+                     "OVH_S3_ACCESS_KEY", "OVH_S3_SECRET_KEY"):
+            for value in (None, "  "):
+                with self.subTest(name=name, value=value):
+                    with self.assertRaisesMessage(ImproperlyConfigured, name):
+                        self.load_production(**{name: value})

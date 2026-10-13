@@ -131,7 +131,7 @@ FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'apps.shops.authentication.ShopMemberJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -169,9 +169,11 @@ CORS_ALLOWED_ORIGINS = []
 CORS_ALLOW_CREDENTIALS = True
 
 # Object Storage (OVH S3-compatible — désactivé si les vars ne sont pas définies)
+# Bucket sans valeur par défaut : chaque environnement nomme le sien
+# (production.py refuse de démarrer sans lui).
 AWS_ACCESS_KEY_ID = os.environ.get('OVH_S3_ACCESS_KEY', '')
 AWS_SECRET_ACCESS_KEY = os.environ.get('OVH_S3_SECRET_KEY', '')
-AWS_STORAGE_BUCKET_NAME = os.environ.get('OVH_S3_BUCKET_PRIVATE', 'mizan-private')
+AWS_STORAGE_BUCKET_NAME = os.environ.get('OVH_S3_BUCKET_PRIVATE', '')
 AWS_S3_ENDPOINT_URL = os.environ.get('OVH_S3_ENDPOINT_URL', '')
 AWS_S3_REGION_NAME = os.environ.get('OVH_S3_REGION', 'gra')
 AWS_DEFAULT_ACL = 'private'

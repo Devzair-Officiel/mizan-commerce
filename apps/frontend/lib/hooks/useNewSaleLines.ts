@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react';
 import { apiFetch } from '@/lib/api-client';
 import type { ProductDetail } from '@/lib/hooks/useProducts';
+import type { OrderItemPayload } from '@/lib/hooks/useOrders';
 import type { LineItem } from '@/components/orders/new/types';
-import type { VariantPick, FreeLine } from '@/components/orders/ProductPicker';
+import type { FreeLine } from '@/components/orders/ProductPicker';
+import { variantPick, type VariantPick } from '@/components/orders/picker/variantPick';
 
 export interface NewSaleLines {
   items: LineItem[];
@@ -18,8 +20,16 @@ export interface NewSaleLines {
   clearItemsError: () => void;
 }
 
-export function useNewSaleLines(): NewSaleLines {
-  const [items, setItems] = useState<LineItem[]>([]);
+/** Corps d'API d'une ligne : variante du catalogue, ou ligne ponctuelle (nom + prix). */
+export function toItemPayload(i: LineItem): OrderItemPayload {
+  return i.variant
+    ? { variant: i.variant, quantity: i.quantity, unit_price: i.unit_price }
+    : { product_name: i.product_name, unit_price: i.unit_price, quantity: i.quantity };
+}
+
+/** Lignes du ticket. `initial` : lignes de la commande en cours de modification. */
+export function useNewSaleLines(initial: LineItem[] = []): NewSaleLines {
+  const [items, setItems] = useState<LineItem[]>(initial);
   const [itemsError, setItemsError] = useState(false);
 
   const addItem = useCallback((pick: VariantPick) => {
@@ -34,11 +44,13 @@ export function useNewSaleLines(): NewSaleLines {
       return [...prev, {
         lineId: crypto.randomUUID(),
         variant: pick.variantId,
+        product: pick.productId,
         product_name: pick.productName,
         variant_name: pick.variantName,
         product_type: pick.productType,
         quantity: 1,
         unit_price: pick.unitPrice,
+        stock: pick.stock,
       }];
     });
   }, []);
@@ -48,6 +60,7 @@ export function useNewSaleLines(): NewSaleLines {
     setItems((prev) => [...prev, {
       lineId: crypto.randomUUID(),
       variant: null,
+      product: null,
       product_name: line.product_name,
       variant_name: '',
       product_type: null,
@@ -72,13 +85,7 @@ export function useNewSaleLines(): NewSaleLines {
     const detail = await apiFetch<ProductDetail>(`/products/${productId}/`);
     const first = detail.variants.find((v) => v.is_active);
     if (!first) return;
-    addItem({
-      variantId: first.id,
-      productName: detail.name,
-      variantName: first.packaging_name,
-      productType: detail.type,
-      unitPrice: first.selling_price,
-    });
+    addItem(variantPick(detail, first));
   }, [addItem]);
 
   const subtotal = items.reduce((acc, i) => acc + parseFloat(i.unit_price) * i.quantity, 0);

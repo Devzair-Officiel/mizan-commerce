@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import {
   Eye, EyeOff, MessageCircle, Phone, Pencil, Plus, Send, Star, Trash2,
 } from 'lucide-react';
@@ -20,36 +21,12 @@ import {
   useUpdateContact,
 } from '@/lib/hooks/usePublicPageAdmin';
 
-const TYPE_META: Record<PublicContactType, {
-  label: string;
-  icon: typeof Phone;
-  placeholder: string;
-  hint: string;
-}> = {
-  whatsapp: {
-    label: 'WhatsApp',
-    icon: MessageCircle,
-    placeholder: '+33 6 12 34 56 78',
-    hint: 'Numéro au format international',
-  },
-  telegram: {
-    label: 'Telegram',
-    icon: Send,
-    placeholder: '@pseudo',
-    hint: 'Nom d\'utilisateur Telegram',
-  },
-  instagram: {
-    label: 'Instagram',
-    icon: MessageCircle,
-    placeholder: '@compte',
-    hint: 'Nom d\'utilisateur Instagram',
-  },
-  phone: {
-    label: 'Téléphone',
-    icon: Phone,
-    placeholder: '+33 6 12 34 56 78',
-    hint: 'Numéro de téléphone',
-  },
+// Libellés, aides et exemples sous `public_page_admin.contacts.types.<canal>.{label,hint,placeholder}`.
+const TYPE_ICONS: Record<PublicContactType, typeof Phone> = {
+  whatsapp: MessageCircle,
+  telegram: Send,
+  instagram: MessageCircle,
+  phone: Phone,
 };
 
 interface Props {
@@ -57,6 +34,7 @@ interface Props {
 }
 
 export function ContactsCard({ page }: Props) {
+  const t = useTranslations('public_page_admin.contacts');
   const [editing, setEditing] = useState<PublicContactButton | null>(null);
   const [creating, setCreating] = useState(false);
   const sorted = [...page.contact_buttons].sort((a, b) => a.position - b.position);
@@ -64,13 +42,13 @@ export function ContactsCard({ page }: Props) {
   return (
     <SettingsCard
       icon={Phone}
-      title="Boutons de contact"
-      description="Comment vos clients vous joignent depuis la vitrine."
+      title={t('title')}
+      description={t('description')}
     >
       <div className="flex flex-col gap-2">
         {sorted.length === 0 ? (
           <p className="text-xs text-muted-foreground italic py-2 text-center">
-            Aucun contact configuré.
+            {t('empty')}
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
@@ -88,7 +66,7 @@ export function ContactsCard({ page }: Props) {
           className="self-end"
         >
           <Plus className="h-4 w-4" />
-          Ajouter un contact
+          {t('add')}
         </Button>
       </div>
 
@@ -110,8 +88,8 @@ export function ContactsCard({ page }: Props) {
 function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit: () => void }) {
   const update = useUpdateContact();
   const remove = useDeleteContact();
-  const meta = TYPE_META[contact.type];
-  const Icon = meta.icon;
+  const t = useTranslations('public_page_admin.contacts');
+  const Icon = TYPE_ICONS[contact.type];
 
   return (
     <li className={`rounded-2xl border border-border bg-card p-3 flex items-center gap-3 ${contact.is_visible ? '' : 'opacity-60'}`}>
@@ -122,12 +100,12 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <p className="text-sm font-semibold text-foreground truncate">
-            {contact.label.trim() || meta.label}
+            {contact.label.trim() || t(`types.${contact.type}.label`)}
           </p>
           {contact.is_primary && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold">
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-semibold">
               <Star className="h-2.5 w-2.5 fill-current" />
-              Principal
+              {t('primary')}
             </span>
           )}
         </div>
@@ -138,16 +116,16 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
         {!contact.is_primary && (
           <button
             type="button"
-            aria-label="Définir comme principal"
+            aria-label={t('set_primary')}
             onClick={() => update.mutate({ id: contact.id, data: { is_primary: true } })}
-            className="p-1.5 text-muted-foreground hover:text-amber-600"
+            className="p-1.5 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400"
           >
             <Star className="h-4 w-4" />
           </button>
         )}
         <button
           type="button"
-          aria-label={contact.is_visible ? 'Masquer' : 'Afficher'}
+          aria-label={contact.is_visible ? t('hide') : t('show')}
           onClick={() => update.mutate({ id: contact.id, data: { is_visible: !contact.is_visible } })}
           className="p-1.5 text-muted-foreground hover:text-foreground"
         >
@@ -155,7 +133,7 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
         </button>
         <button
           type="button"
-          aria-label="Modifier"
+          aria-label={t('edit')}
           onClick={onEdit}
           className="p-1.5 text-muted-foreground hover:text-foreground"
         >
@@ -163,7 +141,7 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
         </button>
         <button
           type="button"
-          aria-label="Supprimer"
+          aria-label={t('delete')}
           onClick={() => remove.mutate(contact.id)}
           className="p-1.5 text-muted-foreground hover:text-destructive"
         >
@@ -176,7 +154,8 @@ function ContactRow({ contact, onEdit }: { contact: PublicContactButton; onEdit:
 
 const formSchema = z.object({
   type: z.enum(['whatsapp', 'telegram', 'instagram', 'phone']),
-  value: z.string().min(1, 'Valeur requise').max(200),
+  // Messages : clés sous `public_page_admin.contacts`, traduites à l'affichage.
+  value: z.string().min(1, 'value_required').max(200, 'value_max'),
   label: z.string().max(60).optional(),
   is_primary: z.boolean(),
 });
@@ -191,6 +170,7 @@ interface FormSheetProps {
 }
 
 function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
+  const t = useTranslations('public_page_admin.contacts');
   const create = useCreateContact();
   const update = useUpdateContact();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -224,7 +204,6 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
 
   const currentType = watch('type');
   const isPrimary = watch('is_primary');
-  const meta = TYPE_META[currentType];
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
@@ -250,9 +229,9 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
     } catch (err) {
       if (err instanceof ApiError) {
         const data = err.data as { value?: string[]; detail?: string } | null;
-        setServerError(data?.value?.[0] ?? data?.detail ?? 'Enregistrement impossible');
+        setServerError(data?.value?.[0] ?? data?.detail ?? t('error'));
       } else {
-        setServerError('Enregistrement impossible');
+        setServerError(t('error'));
       }
     }
   }
@@ -263,28 +242,27 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={mode === 'create' ? 'Nouveau contact' : 'Modifier le contact'}
+      title={mode === 'create' ? t('new_title') : t('edit_title')}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3 p-4 overflow-y-auto">
         {mode === 'create' && (
           <fieldset className="flex flex-col gap-2">
-            <legend className="text-[11px] text-muted-foreground px-1">Canal</legend>
+            <legend className="text-[11px] text-muted-foreground px-1">{t('channel')}</legend>
             <div className="grid grid-cols-2 gap-2">
-              {(Object.keys(TYPE_META) as PublicContactType[]).map((t) => {
-                const m = TYPE_META[t];
-                const Icon = m.icon;
+              {(Object.keys(TYPE_ICONS) as PublicContactType[]).map((type) => {
+                const Icon = TYPE_ICONS[type];
                 return (
                   <label
-                    key={t}
+                    key={type}
                     className={`flex items-center gap-2 rounded-xl border p-2.5 cursor-pointer transition-colors ${
-                      currentType === t
+                      currentType === type
                         ? 'border-primary bg-primary/5'
                         : 'border-border bg-card hover:bg-muted'
                     }`}
                   >
-                    <input type="radio" value={t} {...register('type')} className="sr-only" />
+                    <input type="radio" value={type} {...register('type')} className="sr-only" />
                     <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">{m.label}</span>
+                    <span className="text-sm font-medium">{t(`types.${type}.label`)}</span>
                   </label>
                 );
               })}
@@ -294,26 +272,26 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
 
         <div className="flex flex-col gap-1">
           <label htmlFor="value" className="text-[11px] text-muted-foreground px-1">
-            {meta.hint} *
+            {t('value_label', { hint: t(`types.${currentType}.hint`) })}
           </label>
           <input
             id="value"
             type="text"
-            placeholder={meta.placeholder}
+            placeholder={t(`types.${currentType}.placeholder`)}
             {...register('value')}
             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
-          {errors.value && <p className="text-[11px] text-destructive px-1">{errors.value.message}</p>}
+          {errors.value && <p className="text-[11px] text-destructive px-1">{t(errors.value.message ?? 'value_required')}</p>}
         </div>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="label" className="text-[11px] text-muted-foreground px-1">
-            Libellé personnalisé (optionnel)
+            {t('custom_label')}
           </label>
           <input
             id="label"
             type="text"
-            placeholder={meta.label}
+            placeholder={t(`types.${currentType}.label`)}
             {...register('label')}
             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
           />
@@ -326,7 +304,7 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
             onChange={(e) => setValue('is_primary', e.target.checked, { shouldDirty: true })}
             className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
           />
-          <span className="text-sm">Contact principal (utilisé pour les boutons &quot;Commander&quot;)</span>
+          <span className="text-sm">{t('primary_hint')}</span>
         </label>
 
         {serverError && (
@@ -335,10 +313,10 @@ function ContactFormSheet({ open, onClose, mode, contact }: FormSheetProps) {
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Annuler
+            {t('cancel')}
           </Button>
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending ? 'Enregistrement…' : 'Enregistrer'}
+            {isPending ? t('saving') : t('save')}
           </Button>
         </div>
       </form>

@@ -14,6 +14,7 @@ import { InvoicingSection } from '@/components/settings/InvoicingSection';
 import { ZakatSection } from '@/components/settings/ZakatSection';
 import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
 function defaultsFromShop(shop: Shop): SettingsFormValues {
   return {
@@ -34,6 +35,7 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('settings.page');
   const tTeam = useTranslations('team');
   const { data: shop, isLoading } = useShop();
   const { mutateAsync, isPending, isSuccess } = useUpdateShop();
@@ -63,15 +65,15 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Paramètres" />
-        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+        <TopBar title={t('loading_title')} />
+        <SectionsSkeleton sections={[4, 3, 3]} className="mx-auto w-full max-w-3xl px-4 pt-4 pb-32" />
       </>
     );
   }
 
   return (
     <>
-      <TopBar title="Paramètres boutique" />
+      <TopBar title={t('title')} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32 max-w-3xl mx-auto w-full">
         <IdentitySection shop={shop} register={register} errors={errors} />
@@ -85,7 +87,7 @@ export default function SettingsPage() {
         <PreferencesSection register={register} />
 
         {isSuccess && !isDirty && (
-          <p className="text-sm text-green-600 text-center">Modifications enregistrées ✓</p>
+          <p className="text-sm text-green-700 dark:text-green-400 text-center">{t('saved')}</p>
         )}
 
         <StickyActionBar

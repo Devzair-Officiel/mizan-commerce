@@ -6,8 +6,9 @@ from django.db.models import F, Q, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from apps.customers.models import Customer
-from apps.notes.models import Reminder
+from apps.customers.models import Customer, format_display_name
+from apps.customers.services import name_search
+from apps.notes.services import reminders_to_do
 from apps.orders.models import Order
 from apps.orders.services import build_items_preview_batch
 from apps.products.models import Product, ProductVariant
@@ -31,10 +32,6 @@ def _qs_low_stock(shop: Shop):
             stock_quantity__lte=F("low_stock_threshold"),
         )  # noqa: E501
     )
-
-
-def _qs_reminders_due(shop: Shop, day_end: datetime):
-    return Reminder.objects.filter(shop=shop, status="pending", due_at__lt=day_end)
 
 
 def _day_bounds(now: datetime, tz: ZoneInfo) -> tuple[datetime, datetime, date]:
@@ -102,6 +99,13 @@ def _build_last_7_days(shop: Shop, today_local: date, tz: ZoneInfo) -> list:
     ]
 
 
+def _customer_name(row: dict) -> str | None:
+    """Nom complet du client d'une ligne `values()` (et retire ses champs), None sans client."""  # noqa: E501
+    first_name = row.pop("customer__first_name", None)
+    name = row.pop("customer__name", None)
+    return format_display_name(first_name, name) if name is not None else None
+
+
 def _build_orders_to_prepare(shop: Shop) -> dict:
     qs = _qs_orders_to_prepare(shop).select_related("customer").order_by("created_at")
     total = qs.count()
@@ -112,11 +116,12 @@ def _build_orders_to_prepare(shop: Shop) -> dict:
             "total_amount",
             "payment_status",
             "created_at",
+            "customer__first_name",
             "customer__name",
         )[:5]  # noqa: E501
     )
     for o in rows:
-        o["customer_name"] = o.pop("customer__name", None)
+        o["customer_name"] = _customer_name(o)
 
     oldest_created_at = rows[0]["created_at"].isoformat() if rows else None
 
@@ -153,6 +158,7 @@ def _build_unpaid_orders(shop: Shop) -> dict:
             "total_amount",
             "payment_status",
             "created_at",
+            "customer__first_name",
             "customer__name",
             "customer__phone",
             "customer_id",
@@ -160,7 +166,7 @@ def _build_unpaid_orders(shop: Shop) -> dict:
         )[:5]
     )
     for o in rows:
-        o["customer_name"] = o.pop("customer__name", None)
+        o["customer_name"] = _customer_name(o)
         o["customer_phone"] = o.pop("customer__phone", None) or ""
         cid = o.pop("customer_id", None)
         o["customer_id"] = str(cid) if cid else None
@@ -178,7 +184,9 @@ def _build_unpaid_orders(shop: Shop) -> dict:
 def _build_low_stock(shop: Shop) -> dict:
     qs = _qs_low_stock(shop).select_related("product").order_by("stock_quantity")
     total = qs.count()
-    out_of_stock_count = qs.filter(stock_quantity__lte=0).count()
+    # Négatif (vendu au-delà du stock, à régulariser) et rupture (zéro) sont exclusifs.
+    negative_count = qs.filter(stock_quantity__lt=0).count()
+    out_of_stock_count = qs.filter(stock_quantity=0).count()
     rows = list(
         qs.values(
             "id",
@@ -204,12 +212,17 @@ def _build_low_stock(shop: Shop) -> dict:
         }
         for row in rows
     ]
-    return {"count": total, "out_of_stock_count": out_of_stock_count, "items": items}
+    return {
+        "count": total,
+        "negative_count": negative_count,
+        "out_of_stock_count": out_of_stock_count,
+        "items": items,
+    }
 
 
-def _build_today_reminders(shop: Shop, day_start: datetime, day_end: datetime) -> dict:
-    # Pending reminders due before end of today (includes overdue)
-    qs = _qs_reminders_due(shop, day_end).values(
+def _build_today_reminders(shop: Shop, now: datetime, day_start: datetime) -> dict:
+    # Rappels « à faire » : en retard + aujourd'hui (même définition que le badge)
+    qs = reminders_to_do(shop, now).values(
         "id",
         "title",
         "category",
@@ -256,9 +269,7 @@ def build_nav_badges(shop: Shop, member: ShopMember) -> dict[str, int]:
         count = _qs_low_stock(shop).count()
         if count > 0:
             result["low_stock"] = count
-    now = timezone.now()
-    _, day_end, _ = _day_bounds(now, ZoneInfo(shop.timezone))
-    count = _qs_reminders_due(shop, day_end).count()
+    count = reminders_to_do(shop).count()
     if count > 0:
         result["reminders_due"] = count
     return result
@@ -284,7 +295,7 @@ def build_dashboard_today(shop: Shop, now: datetime | None = None) -> dict:
         "orders_to_prepare": _build_orders_to_prepare(shop),
         "unpaid_orders": _build_unpaid_orders(shop),
         "low_stock_products": _build_low_stock(shop),
-        "today_reminders": _build_today_reminders(shop, day_start, day_end),
+        "today_reminders": _build_today_reminders(shop, now, day_start),
         "setup": _build_setup(shop),
     }
 
@@ -325,24 +336,27 @@ def _search_products(shop: Shop, q: str) -> dict:
 
 def _search_customers(shop: Shop, q: str) -> dict:
     qs = Customer.objects.filter(shop=shop, is_active=True).filter(
-        Q(name__icontains=q) | Q(phone__icontains=q)
+        name_search(q) | Q(phone__icontains=q)
     )
     total = qs.count()
-    rows = list(qs.values("id", "name", "phone", "city")[:_SEARCH_LIMIT])
+    rows = list(
+        qs.values("id", "first_name", "name", "phone", "city")[:_SEARCH_LIMIT]
+    )
     for c in rows:
         c["id"] = str(c["id"])
+        c["display_name"] = format_display_name(c["first_name"], c["name"])
     return {"total": total, "items": rows}
 
 
 def _search_orders(shop: Shop, q: str) -> dict:
     qs = Order.objects.filter(shop=shop).filter(
-        Q(order_number__icontains=q) | Q(customer__name__icontains=q)
+        Q(order_number__icontains=q) | name_search(q, "customer__")
     )
     total = qs.count()
     rows = list(
         qs.values(
             "id", "order_number", "status", "payment_status",
-            "total_amount", "created_at", "customer__name",
+            "total_amount", "created_at", "customer__first_name", "customer__name",
         )[:_SEARCH_LIMIT]
     )
     items = []
@@ -355,7 +369,7 @@ def _search_orders(shop: Shop, q: str) -> dict:
                 "payment_status": o["payment_status"],
                 "total_amount": str(o["total_amount"]),
                 "created_at": o["created_at"].isoformat(),
-                "customer_name": o.get("customer__name"),
+                "customer_name": _customer_name(o),
             }
         )
     return {"total": total, "items": items}

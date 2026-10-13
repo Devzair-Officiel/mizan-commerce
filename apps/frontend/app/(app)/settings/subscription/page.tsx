@@ -13,65 +13,24 @@
  */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Sparkles, Check, Loader2 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
+import { useFormatDate } from '@/lib/hooks/useFormat';
 import { useSubscription, useDowngradeToFree, type PlanCode } from '@/lib/hooks/useSubscription';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
-interface PlanCardData {
-  code: PlanCode;
-  name: string;
-  price: string;
-  description: string;
-  features: string[];
-}
-
-const PLANS: PlanCardData[] = [
-  {
-    code: 'free',
-    name: 'Gratuit',
-    price: '0 €',
-    description: "L'essentiel pour bien commencer.",
-    features: [
-      'Jusqu\'à 50 produits actifs',
-      '20 commandes par mois',
-      'Stock, notes, rappels',
-    ],
-  },
-  {
-    code: 'pro',
-    name: 'Pro',
-    price: '9 € / mois',
-    description: 'Pour gérer tout votre commerce.',
-    features: [
-      'Produits et commandes illimités',
-      'Factures PDF',
-      'Calcul Zakat',
-      'Messages WhatsApp préparés',
-    ],
-  },
-  {
-    code: 'boutique_plus',
-    name: 'Boutique+',
-    price: '19 € / mois',
-    description: 'Outils avancés et partenariats.',
-    features: [
-      'Tout Pro inclus',
-      'Page publique partageable',
-      'Multi-utilisateurs',
-      'Exports comptables',
-    ],
-  },
+/** Formules affichées ; textes sous `settings.subscription.plans.{code}` (f1…fN). */
+const PLANS: { code: PlanCode; price: number; features: number }[] = [
+  { code: 'free', price: 0, features: 3 },
+  { code: 'pro', price: 9, features: 4 },
+  { code: 'boutique_plus', price: 19, features: 4 },
 ];
 
-function formatPeriodEnd(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
-}
-
 export default function SubscriptionPage() {
+  const t = useTranslations('settings.subscription');
+  const formatDate = useFormatDate();
   const { data: subscription, isLoading } = useSubscription();
   const downgrade = useDowngradeToFree();
   const [confirming, setConfirming] = useState(false);
@@ -79,15 +38,17 @@ export default function SubscriptionPage() {
   if (isLoading || !subscription) {
     return (
       <>
-        <TopBar title="Abonnement" />
-        <p className="p-4 text-sm text-muted-foreground">Chargement…</p>
+        <TopBar title={t('title')} />
+        <SectionsSkeleton sections={[1, 3, 3, 3]} className="px-4 pt-4 pb-32" />
       </>
     );
   }
 
   const currentCode = subscription.effective_plan_code;
   const isTrialing = subscription.status === 'trialing';
-  const periodEnd = formatPeriodEnd(subscription.current_period_end);
+  const periodEnd = subscription.current_period_end
+    ? formatDate(subscription.current_period_end, { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
 
   async function handleDowngrade() {
     await downgrade.mutateAsync();
@@ -96,7 +57,7 @@ export default function SubscriptionPage() {
 
   return (
     <>
-      <TopBar title="Abonnement" />
+      <TopBar title={t('title')} />
 
       <div className="px-4 pt-4 pb-32 flex flex-col gap-4">
         <section className="rounded-2xl border border-border bg-card p-4">
@@ -106,23 +67,21 @@ export default function SubscriptionPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                Votre formule
+                {t('current_plan')}
               </p>
               <p className="text-lg font-semibold text-foreground">
                 {subscription.plan.name}
-                {isTrialing && <span className="ml-2 text-xs font-medium text-amber-600">Essai</span>}
+                {isTrialing && <span className="ms-2 text-xs font-medium text-amber-700 dark:text-amber-400">{t('trial')}</span>}
               </p>
               {isTrialing && subscription.days_remaining !== null && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {subscription.days_remaining > 0
-                    ? `Essai en cours — ${subscription.days_remaining} jour${subscription.days_remaining > 1 ? 's' : ''} restant${subscription.days_remaining > 1 ? 's' : ''}.`
-                    : "Essai se terminant aujourd'hui."}
-                  {periodEnd && ` Fin : ${periodEnd}.`}
+                  {t('trial_remaining', { days: Math.max(0, subscription.days_remaining) })}
+                  {periodEnd && <> {t('period_end', { date: periodEnd })}</>}
                 </p>
               )}
               {!isTrialing && currentCode !== 'free' && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Plan {subscription.plan.name} actif.
+                  {t('plan_active', { name: subscription.plan.name })}
                 </p>
               )}
             </div>
@@ -142,23 +101,25 @@ export default function SubscriptionPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-base font-semibold text-foreground">{plan.name}</p>
-                    <p className="text-sm text-muted-foreground">{plan.description}</p>
+                    <p className="text-base font-semibold text-foreground">{t(`plans.${plan.code}.name`)}</p>
+                    <p className="text-sm text-muted-foreground">{t(`plans.${plan.code}.description`)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-foreground shrink-0">{plan.price}</p>
+                  <p className="text-sm font-semibold text-foreground shrink-0">
+                    {plan.price === 0 ? '0 €' : t('per_month', { price: plan.price })}
+                  </p>
                 </div>
 
                 <ul className="mt-3 flex flex-col gap-1.5">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-foreground">
+                  {Array.from({ length: plan.features }, (_, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-foreground">
                       <Check className="h-4 w-4 shrink-0 text-primary" />
-                      <span>{feature}</span>
+                      <span>{t(`plans.${plan.code}.f${i + 1}`)}</span>
                     </li>
                   ))}
                 </ul>
 
                 {isCurrent && (
-                  <p className="mt-3 text-xs font-medium text-primary">Formule actuelle</p>
+                  <p className="mt-3 text-xs font-medium text-primary">{t('current')}</p>
                 )}
                 {isUpgrade && (
                   <Button
@@ -167,7 +128,7 @@ export default function SubscriptionPage() {
                     className="mt-3 w-full"
                     disabled
                   >
-                    Bientôt disponible
+                    {t('coming_soon')}
                   </Button>
                 )}
               </section>
@@ -177,11 +138,8 @@ export default function SubscriptionPage() {
 
         {currentCode !== 'free' && (
           <section className="rounded-2xl border border-border bg-card p-4">
-            <p className="text-sm font-semibold text-foreground">Résilier</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Vous passerez immédiatement sur la formule Gratuite. Vous perdrez l&apos;accès
-              aux fonctionnalités payantes mais vos données restent intactes.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{t('cancel_title')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t('cancel_text')}</p>
 
             {!confirming ? (
               <Button
@@ -190,7 +148,7 @@ export default function SubscriptionPage() {
                 className="mt-3"
                 onClick={() => setConfirming(true)}
               >
-                Résilier ma formule
+                {t('cancel_cta')}
               </Button>
             ) : (
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -201,9 +159,9 @@ export default function SubscriptionPage() {
                   disabled={downgrade.isPending}
                 >
                   {downgrade.isPending ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Résiliation…</>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> {t('cancelling')}</>
                   ) : (
-                    'Confirmer la résiliation'
+                    t('cancel_confirm')
                   )}
                 </Button>
                 <Button
@@ -212,14 +170,12 @@ export default function SubscriptionPage() {
                   onClick={() => setConfirming(false)}
                   disabled={downgrade.isPending}
                 >
-                  Annuler
+                  {t('cancel_back')}
                 </Button>
               </div>
             )}
             {downgrade.isError && (
-              <p className="mt-2 text-sm text-destructive">
-                Impossible de résilier pour le moment. Réessayez plus tard.
-              </p>
+              <p className="mt-2 text-sm text-destructive">{t('cancel_error')}</p>
             )}
           </section>
         )}

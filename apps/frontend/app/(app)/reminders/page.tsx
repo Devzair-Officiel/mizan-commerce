@@ -1,40 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api-client';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { FloatingInput, FloatingSelect } from '@/components/ui/floating-fields';
-import { qk } from '@/lib/query-keys';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { useMarkReminderDone } from '@/lib/hooks/useReminders';
+import { ReminderList } from '@/components/reminders/ReminderList';
+import { ReminderTabs } from '@/components/reminders/ReminderTabs';
+import {
+  useCreateReminder, useDeleteReminder, useMarkReminderDone, useReopenReminder, useUpdateReminder, type Reminder,
+} from '@/lib/hooks/useReminders';
+import type { ReminderScope } from '@/lib/query-keys';
 
-interface Reminder {
-  id: string;
-  title: string;
-  description: string;
-  due_at: string;
-  category: string;
-  category_display: string;
-  status: string;
-  status_display: string;
-}
-
-interface ReminderPayload {
-  title: string;
-  due_at: string;
-  category: string;
-  description: string;
-}
-
-const CATEGORY_OPTIONS = [
-  { value: 'free',             label: 'Libre' },
-  { value: 'unpaid',           label: 'Impayé' },
-  { value: 'customer_followup',label: 'Relance client' },
-  { value: 'zakat',            label: 'Zakat' },
-  { value: 'order_prep',       label: 'Préparation commande' },
-];
+// Libellés sous `reminders.category` (ICU select sur la valeur).
+const CATEGORY_OPTIONS = ['free', 'unpaid', 'customer_followup', 'zakat', 'order_prep'];
 
 function toLocalDatetime(iso: string) {
   const d = new Date(iso);
@@ -43,52 +23,22 @@ function toLocalDatetime(iso: string) {
 }
 
 export default function RemindersPage() {
-  const qc = useQueryClient();
+  const t = useTranslations('reminders');
   const [editing, setEditing] = useState<Reminder | null>(null);
   const [isNew,       setIsNew]       = useState(false);
   const [title,       setTitle]       = useState('');
   const [dueAt,       setDueAt]       = useState('');
   const [category,    setCategory]    = useState('free');
   const [description, setDescription] = useState('');
-  const [filter,      setFilter]      = useState<'pending' | 'done'>('pending');
+  const [scope,       setScope]       = useState<ReminderScope>('todo');
   const [confirmRemove, setConfirmRemove] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: qk.reminders.byFilter(filter),
-    queryFn: () => apiFetch<{ results: Reminder[] }>(`/reminders/?status=${filter}`),
-  });
-
-  const { data: pendingData } = useQuery({
-    queryKey: qk.reminders.pending,
-    queryFn: () => apiFetch<{ results: Reminder[] }>('/reminders/?status=pending'),
-  });
-
-  const { data: doneData } = useQuery({
-    queryKey: qk.reminders.done,
-    queryFn: () => apiFetch<{ results: Reminder[] }>('/reminders/?status=done'),
-  });
-
-  function invalidateAll() { qc.invalidateQueries({ queryKey: qk.reminders.all }); }
-
+  // Chaque mutation rafraîchit la liste, l'accueil et le badge du menu (useReminders).
   const markDone = useMarkReminderDone();
-  const reopen = useMutation({
-    mutationFn: (id: string) => apiFetch<Reminder>(`/reminders/${id}/reopen/`, { method: 'POST' }),
-    onSuccess: () => { invalidateAll(); resetForm(); },
-  });
-  const create = useMutation({
-    mutationFn: (payload: ReminderPayload) =>
-      apiFetch<Reminder>('/reminders/', { method: 'POST', body: JSON.stringify(payload) }),
-    onSuccess: () => { invalidateAll(); resetForm(); },
-  });
-  const update = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: ReminderPayload }) =>
-      apiFetch<Reminder>(`/reminders/${id}/`, { method: 'PATCH', body: JSON.stringify(payload) }),
-    onSuccess: () => { invalidateAll(); resetForm(); },
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/reminders/${id}/`, { method: 'DELETE' }),
-    onSuccess: () => { invalidateAll(); resetForm(); },
-  });
+  const reopen = useReopenReminder();
+  const create = useCreateReminder();
+  const update = useUpdateReminder();
+  const remove = useDeleteReminder();
 
   function resetForm() {
     setEditing(null); setIsNew(false);
@@ -112,25 +62,22 @@ export default function RemindersPage() {
 
   function handleSave() {
     const payload = { title, due_at: new Date(dueAt).toISOString(), category, description };
-    if (editing) update.mutate({ id: editing.id, payload });
-    else         create.mutate(payload);
+    if (editing) update.mutate({ id: editing.id, payload }, { onSuccess: resetForm });
+    else         create.mutate(payload, { onSuccess: resetForm });
   }
 
   const isPending    = create.isPending || update.isPending;
   const showForm     = isNew || editing !== null;
-  const pendingCount = pendingData?.results.length ?? 0;
-  const doneCount    = doneData?.results.length ?? 0;
-  const displayed    = data?.results ?? [];
 
   if (showForm) {
     return (
       <>
-        <TopBar title={editing ? 'Modifier le rappel' : 'Nouveau rappel'} />
+        <TopBar title={editing ? t('edit_title') : t('new_title')} />
         <div className="flex flex-col gap-3 p-4 pb-8">
 
           <FloatingInput
             id="title"
-            label="Titre *"
+            label={t('field_title')}
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -138,7 +85,7 @@ export default function RemindersPage() {
 
           <FloatingInput
             id="due-at"
-            label="Date *"
+            label={t('field_date')}
             type="datetime-local"
             value={dueAt}
             onChange={(e) => setDueAt(e.target.value)}
@@ -146,16 +93,16 @@ export default function RemindersPage() {
 
           <FloatingSelect
             id="category"
-            label="Catégorie"
+            label={t('field_category')}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
-            {CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {CATEGORY_OPTIONS.map((value) => <option key={value} value={value}>{t('category', { value })}</option>)}
           </FloatingSelect>
 
           <FloatingInput
             id="description"
-            label="Description (optionnel)"
+            label={t('field_description')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -164,36 +111,36 @@ export default function RemindersPage() {
             {editing && editing.status === 'pending' && (
               <Button variant="outline" className="w-full text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-950/20"
                 onClick={() => markDone.mutate(editing.id, { onSuccess: resetForm })} disabled={markDone.isPending}>
-                {markDone.isPending ? '…' : 'Marquer comme terminé'}
+                {markDone.isPending ? '…' : t('mark_done')}
               </Button>
             )}
             {editing && editing.status !== 'pending' && (
               <Button variant="outline" className="w-full text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                onClick={() => reopen.mutate(editing.id)} disabled={reopen.isPending}>
-                {reopen.isPending ? '…' : 'Remettre en attente'}
+                onClick={() => reopen.mutate(editing.id, { onSuccess: resetForm })} disabled={reopen.isPending}>
+                {reopen.isPending ? '…' : t('reopen')}
               </Button>
             )}
             <Button disabled={!title || !dueAt || isPending} onClick={handleSave} className="w-full">
-              {isPending ? 'Enregistrement…' : editing ? 'Mettre à jour' : 'Créer le rappel'}
+              {isPending ? t('saving') : editing ? t('update') : t('create')}
             </Button>
             {editing && (
               <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
                 disabled={remove.isPending}
                 onClick={() => setConfirmRemove(true)}>
-                {remove.isPending ? 'Suppression…' : 'Supprimer le rappel'}
+                {remove.isPending ? t('deleting') : t('delete')}
               </Button>
             )}
-            <Button variant="outline" className="w-full" onClick={resetForm}>Annuler</Button>
+            <Button variant="outline" className="w-full" onClick={resetForm}>{t('cancel')}</Button>
           </div>
         </div>
 
         <ConfirmDialog
           open={confirmRemove}
           onOpenChange={setConfirmRemove}
-          title="Supprimer ce rappel ?"
-          onConfirm={() => { if (editing) return remove.mutateAsync(editing.id); }}
+          title={t('confirm_delete')}
+          onConfirm={async () => { if (editing) { await remove.mutateAsync(editing.id); resetForm(); } }}
           variant="destructive"
-          confirmLabel="Supprimer"
+          confirmLabel={t('confirm_delete_cta')}
         />
       </>
     );
@@ -201,54 +148,11 @@ export default function RemindersPage() {
 
   return (
     <>
-      <TopBar title="Rappels" action={<Button size="sm" onClick={openNew}>+ Nouveau</Button>} />
+      <TopBar title={t('title')} action={<Button size="sm" onClick={openNew}>{t('new_cta')}</Button>} />
       <div className="flex flex-col gap-4 p-4">
 
-        <div className="flex rounded-xl border border-border overflow-hidden text-sm font-medium">
-          <button onClick={() => setFilter('pending')}
-            className={`flex-1 py-2.5 transition-colors ${filter === 'pending' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'}`}>
-            En attente{pendingCount > 0 ? ` (${pendingCount})` : ''}
-          </button>
-          <button onClick={() => setFilter('done')}
-            className={`flex-1 py-2.5 border-l border-border transition-colors ${filter === 'done' ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground'}`}>
-            Terminés{doneCount > 0 ? ` (${doneCount})` : ''}
-          </button>
-        </div>
-
-        {isLoading && (
-          <div className="flex flex-col gap-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-4">
-                <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
-                <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!isLoading && displayed.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            {filter === 'pending' ? 'Aucun rappel en attente.' : 'Aucun rappel terminé.'}
-          </p>
-        )}
-
-        {displayed.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {displayed.map((r) => (
-              <button key={r.id} onClick={() => openReminder(r)}
-                className={`w-full text-left flex items-start justify-between gap-3 px-4 py-3.5 rounded-2xl border border-border bg-card hover:bg-muted active:bg-muted transition-colors ${filter === 'done' ? 'opacity-60' : ''}`}>
-                <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <p className={`text-sm font-medium text-foreground truncate ${filter === 'done' ? 'line-through' : ''}`}>{r.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.category_display} · {new Date(r.due_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  {r.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{r.description}</p>}
-                </div>
-                <span className="text-muted-foreground text-lg shrink-0">›</span>
-              </button>
-            ))}
-          </div>
-        )}
+        <ReminderTabs value={scope} onChange={setScope} />
+        <ReminderList scope={scope} onOpen={openReminder} />
       </div>
     </>
   );

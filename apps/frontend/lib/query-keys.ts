@@ -18,6 +18,22 @@ export interface OrdersListFilters {
   page?: number;
   search?: string;
   due?: boolean;
+  /** Mois en cours, dans le fuseau de la boutique. */
+  period?: 'month';
+  /** Champ DRF, préfixé de `-` pour un tri décroissant. */
+  ordering?: string;
+}
+
+export interface CustomersListFilters {
+  /** Sans valeur, l'API ne renvoie que les clients actifs (sélecteur de client). */
+  situation?: 'all' | 'active' | 'pending' | 'deactivated';
+  /** Clients créés ce mois-ci, dans le fuseau de la boutique. */
+  period?: 'month';
+  search?: string;
+  /** Champ DRF, préfixé de `-` pour un tri décroissant. */
+  ordering?: string;
+  page?: number;
+  page_size?: number;
 }
 
 export interface OrdersCustomerFilters {
@@ -35,33 +51,76 @@ export interface ProductsListFilters {
   ordering?: string;
 }
 
+/** Filtres de la page Articles, transmis tels quels à l'API. */
+export interface ProductsPageFilters {
+  /** Sans valeur, l'API ne renvoie que les actifs (sélecteurs d'article). */
+  state?: 'all' | 'active' | 'inactive';
+  type?: 'product' | 'service';
+  /** Niveau de stock d'un article : rupture, stock faible, en stock. */
+  stock?: 'negative' | 'out' | 'low' | 'in';
+  search?: string;
+  /** Champ DRF, préfixé de `-` pour un tri décroissant. */
+  ordering?: string;
+  page?: number;
+}
+
 export interface StockMovementsFilters {
-  productId?: string;
-  variantId?: string;
+  /** Famille : entrée, sortie, réservation, libération, correction. */
+  type?: 'in' | 'out' | 'reservation' | 'release' | 'adjustment';
+  period?: 'today' | '7d' | '30d' | '90d';
+  product?: string;
+  variant?: string;
+  search?: string;
+  ordering?: string;
+  page?: number;
   pageSize?: number;
 }
 
-export type RemindersFilter = 'pending' | 'done';
+/** Filtres de l'onglet Niveaux du stock, transmis tels quels à l'API. */
+export interface StockLevelsFilters {
+  state?: 'negative' | 'out' | 'low' | 'in';
+  search?: string;
+  /** Un seul format (ligne préremplie par `?variant=`). */
+  variant?: string;
+  /** stock (défaut), name, purchase_value, last_movement ; `-` pour décroissant. */
+  ordering?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export type ReminderScope = 'todo' | 'upcoming' | 'done';
 
 export const qk = {
   orders: {
     all: ['orders'] as const,
     list: (filters: OrdersListFilters) => ['orders', filters] as const,
     listInfinite: (filters: Omit<OrdersListFilters, 'page'>) => ['orders', 'infinite', filters] as const,
+    summary: ['orders', 'summary'] as const,
+    facets: (filters: Omit<OrdersListFilters, 'page'>) => ['orders', 'facets', filters] as const,
     byCustomer: (customerId: string, filters: OrdersCustomerFilters) =>
       ['orders', 'customer', customerId, filters] as const,
     detail: (id: string) => ['orders', id] as const,
     activity: (id: string) => ['orders', id, 'activity'] as const,
+    /** Carte « Historique » (5, puis « Voir plus »). */
+    history: (id: string) => ['orders', id, 'activity', 'history'] as const,
+    /** Étapes du suivi : changements de statut. */
+    statusChanges: (id: string) => ['orders', id, 'activity', 'status_change'] as const,
+    /** Carte « Commandes » de la fiche client (5, puis « Voir plus »). */
+    customerWindow: (customerId: string) => ['orders', 'customer', customerId, 'window'] as const,
   },
 
   notes: {
     all: ['notes'] as const,
     byOrder: (orderId: string) => ['notes', 'order', orderId] as const,
+    byCustomer: (customerId: string) => ['notes', 'customer', customerId] as const,
   },
 
   products: {
     all: ['products'] as const,
     list: (filters: ProductsListFilters) => ['products', filters] as const,
+    page: (filters: ProductsPageFilters) => ['products', 'page', filters] as const,
+    listInfinite: (filters: Omit<ProductsPageFilters, 'page'>) => ['products', 'infinite', filters] as const,
+    facets: (filters: Omit<ProductsPageFilters, 'page'>) => ['products', 'facets', filters] as const,
     summary: ['products', 'summary'] as const,
     detail: (id: string) => ['products', id] as const,
   },
@@ -70,7 +129,17 @@ export const qk = {
     all: ['stock'] as const,
     movements: (filters: StockMovementsFilters) =>
       ['stock', 'movements', filters] as const,
+    movementsInfinite: (filters: Omit<StockMovementsFilters, 'page'>) =>
+      ['stock', 'movements', 'infinite', filters] as const,
     movementsAll: ['stock', 'movements'] as const,
+    /** Carte « Derniers mouvements » de la fiche article (5, puis « Voir plus »). */
+    productMovements: (productId: string) => ['stock', 'movements', 'product', productId] as const,
+    levels: (filters: StockLevelsFilters) => ['stock', 'levels', filters] as const,
+    levelsInfinite: (filters: Omit<StockLevelsFilters, 'page'>) =>
+      ['stock', 'levels', 'infinite', filters] as const,
+    levelsFacets: (filters: Omit<StockLevelsFilters, 'page' | 'ordering'>) =>
+      ['stock', 'levels', 'facets', filters] as const,
+    levelsSummary: ['stock', 'levels', 'summary'] as const,
   },
 
   search: {
@@ -100,15 +169,16 @@ export const qk = {
 
   reminders: {
     all: ['reminders'] as const,
-    byFilter: (filter: RemindersFilter) => ['reminders', filter] as const,
-    pending: ['reminders', 'pending'] as const,
-    done: ['reminders', 'done'] as const,
+    list: (scope: ReminderScope) => ['reminders', scope] as const,
+    followup: (customerId: string) => ['reminders', 'followup', customerId] as const,
   },
 
   customers: {
     all: ['customers'] as const,
-    list: (search: string | undefined, showInactive: boolean | undefined) =>
-      ['customers', search, showInactive] as const,
+    list: (filters: CustomersListFilters) => ['customers', filters] as const,
+    listInfinite: (filters: Omit<CustomersListFilters, 'page'>) => ['customers', 'infinite', filters] as const,
+    summary: ['customers', 'summary'] as const,
+    facets: (filters: Omit<CustomersListFilters, 'page'>) => ['customers', 'facets', filters] as const,
     detail: (id: string) => ['customers', id] as const,
     activity: (
       customerId: string,
@@ -125,6 +195,8 @@ export const qk = {
 
   me: {
     all: ['me'] as const,
+    /** Écran « Accès suspendu » : l'accès est-il revenu ? */
+    access: ['me', 'access'] as const,
   },
 
   zakat: {

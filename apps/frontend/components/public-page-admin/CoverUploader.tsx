@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { ImageIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { ImageCropDialog } from '@/components/ui/ImageCropDialog';
 import {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function CoverUploader({ page }: Props) {
+  const t = useTranslations('public_page_admin');
   const upload = useUploadPageCover();
   const remove = useDeletePageCover();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +36,7 @@ export function CoverUploader({ page }: Props) {
     e.target.value = '';
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setError('Formats acceptés : JPEG, PNG, WebP.');
+      setError(t('uploader.formats'));
       return;
     }
     setPendingFile(file);
@@ -45,7 +47,7 @@ export function CoverUploader({ page }: Props) {
       await upload.mutateAsync(blob);
       setPendingFile(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur upload');
+      setError(err instanceof Error ? err.message : t('uploader.upload_error'));
     }
   }
 
@@ -53,18 +55,18 @@ export function CoverUploader({ page }: Props) {
     try {
       await remove.mutateAsync();
     } catch {
-      setError('Erreur lors de la suppression.');
+      setError(t('uploader.delete_error'));
     }
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[11px] text-muted-foreground px-1">Bannière</span>
+      <span className="text-[11px] text-muted-foreground px-1">{t('cover.label')}</span>
       <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-muted flex items-center justify-center">
         {page.cover_url ? (
           <Image
             src={page.cover_url}
-            alt="Bannière"
+            alt={t('cover.label')}
             fill
             unoptimized
             className="object-cover"
@@ -82,7 +84,7 @@ export function CoverUploader({ page }: Props) {
           onClick={handlePickFile}
           disabled={upload.isPending}
         >
-          {upload.isPending ? 'Envoi…' : page.cover_url ? 'Changer' : 'Ajouter une bannière'}
+          {upload.isPending ? t('uploader.sending') : page.cover_url ? t('cover.change') : t('cover.add')}
         </Button>
         {page.cover_url && (
           <Button
@@ -93,7 +95,7 @@ export function CoverUploader({ page }: Props) {
             onClick={() => setConfirmDelete(true)}
             disabled={remove.isPending}
           >
-            {remove.isPending ? 'Suppression…' : 'Supprimer'}
+            {remove.isPending ? t('uploader.deleting') : t('uploader.delete')}
           </Button>
         )}
       </div>
@@ -118,10 +120,10 @@ export function CoverUploader({ page }: Props) {
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Supprimer la bannière ?"
+        title={t('cover.confirm_delete')}
         onConfirm={handleDelete}
         variant="destructive"
-        confirmLabel="Supprimer"
+        confirmLabel={t('uploader.delete')}
       />
     </div>
   );

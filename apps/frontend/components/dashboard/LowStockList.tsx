@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { formatStock } from '@/lib/hooks/useProducts';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { isDefaultVariant } from '@/lib/products';
 import type { ProductSummary } from '@/lib/hooks/useDashboard';
 
@@ -26,10 +26,11 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
   }
 
   return (
-    <DashboardCard title={t('title')} rightLink={{ label: t('see_stock'), href: '/stock' }}>
+    <SectionCard title={t('title')} rightLink={{ label: t('see_stock'), href: '/stock' }}>
       <div className="divide-y divide-border">
         {items.map((p) => {
-          const isOut = parseFloat(p.stock_quantity) <= 0;
+          const qty = parseFloat(p.stock_quantity);
+          const stockText = formatStock(p.stock_quantity, p.unit, { baseQuantity: p.base_quantity, packagingName: p.variant_name });
           const showVariant = !isDefaultVariant(p.variant_name);
           return (
             <div key={p.variant_id} className="flex items-center gap-3 px-5 py-3.5">
@@ -40,17 +41,21 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
                 )}
               </Link>
               <div className="flex items-center gap-2 shrink-0">
-                {isOut ? (
+                {qty < 0 ? (
+                  <span className="text-sm font-semibold tabular-nums text-red-700 dark:text-red-400">
+                    {t('negative', { qty: stockText })}
+                  </span>
+                ) : qty === 0 ? (
                   <span className="rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400 px-2.5 py-0.5 text-xs font-semibold">
                     {t('rupture')}
                   </span>
                 ) : (
                   <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400">
-                    {t('remaining', { qty: formatStock(p.stock_quantity, p.unit, { baseQuantity: p.base_quantity, packagingName: p.variant_name }) })}
+                    {t('remaining', { qty: stockText })}
                   </span>
                 )}
                 <Link
-                  href={`/stock/add?product=${p.id}&variant=${p.variant_id}`}
+                  href={`/stock/entree?variant=${p.variant_id}`}
                   className="text-[0.8125rem] font-medium text-primary hover:underline"
                 >
                   {t('restock')}
@@ -61,11 +66,11 @@ export function LowStockList({ count, items, outOfStockCount: _out }: Props) {
         })}
       </div>
       {count > items.length && (
-        <Link href="/products?filter=low_stock"
+        <Link href="/stock"
           className="block text-center text-[0.8125rem] font-medium text-primary px-5 py-3.5 hover:bg-muted transition-colors border-t border-border">
           {t('see_all', { count })}
         </Link>
       )}
-    </DashboardCard>
+    </SectionCard>
   );
 }

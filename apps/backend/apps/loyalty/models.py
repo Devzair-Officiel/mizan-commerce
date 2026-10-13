@@ -25,7 +25,7 @@ class LoyaltyCard(models.Model):
     """Solde de points d'un client dans une boutique."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='loyalty_cards')  # noqa: E501
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='loyalty_cards')  # noqa: E501
+    customer = models.ForeignKey(Customer, on_delete=models.RESTRICT, related_name='loyalty_cards')  # noqa: E501
     points_balance = models.IntegerField(default=0)
     total_points_earned = models.IntegerField(default=0)
     total_points_redeemed = models.IntegerField(default=0)
@@ -59,7 +59,7 @@ class LoyaltyTransaction(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='loyalty_transactions')  # noqa: E501
-    card = models.ForeignKey(LoyaltyCard, on_delete=models.CASCADE, related_name='transactions')  # noqa: E501
+    card = models.ForeignKey(LoyaltyCard, on_delete=models.RESTRICT, related_name='transactions')  # noqa: E501
     transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
     points = models.IntegerField()
     order = models.ForeignKey(

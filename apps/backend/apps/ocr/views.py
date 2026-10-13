@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import HasModulePermission, get_shop
 from apps.core.storage import is_storage_configured
+from apps.subscriptions.permissions import HasPlanForFeature
 
 from .models import OcrResult
 from .serializers import (
@@ -33,6 +34,7 @@ from .tasks import process_invoice_ocr
 logger = logging.getLogger(__name__)
 
 HasStockModule = HasModulePermission.for_module('stock')
+HasOcrPlan = HasPlanForFeature.for_feature('ocr')
 
 
 class SupplierInvoiceUploadView(APIView):
@@ -44,7 +46,7 @@ class SupplierInvoiceUploadView(APIView):
     l'endpoint GET pour suivre l'avancement.
     """
 
-    permission_classes = (IsAuthenticated, HasStockModule)
+    permission_classes = (IsAuthenticated, HasOcrPlan, HasStockModule)
     parser_classes = (MultiPartParser,)
 
     def post(self, request: Request) -> Response:
@@ -107,7 +109,7 @@ class OcrResultDetailView(APIView):
     prévus par le contrat. Le PDF / l'image source restent internes au bucket.
     """
 
-    permission_classes = (IsAuthenticated, HasStockModule)
+    permission_classes = (IsAuthenticated, HasOcrPlan, HasStockModule)
 
     def get(self, request: Request, ocr_result_id: str) -> Response:
         shop = get_shop(request.user)
@@ -140,7 +142,7 @@ class OcrResultValidateView(APIView):
     (jamais d'exposition d'information cross-tenant).
     """
 
-    permission_classes = (IsAuthenticated, HasStockModule)
+    permission_classes = (IsAuthenticated, HasOcrPlan, HasStockModule)
 
     def post(self, request: Request, ocr_result_id: str) -> Response:
         shop = get_shop(request.user)

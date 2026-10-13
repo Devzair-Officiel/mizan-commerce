@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ChevronRight, Search, X, UserPlus, Phone, MapPin, User } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
+import { customerInitials } from '@/components/customers/detail/constants';
 import { useCustomers, type Customer } from '@/lib/hooks/useCustomers';
 
 interface CustomerPickerProps {
@@ -54,14 +55,8 @@ export function CustomerPicker({
     onChange('');
   }
 
-  const initial = selectedCustomer
-    ? (selectedCustomer.first_name?.[0] ?? selectedCustomer.name?.[0] ?? '?').toUpperCase()
-    : '';
-  const fullName = selectedCustomer
-    ? (selectedCustomer.first_name
-        ? `${selectedCustomer.first_name} ${selectedCustomer.name}`
-        : selectedCustomer.name)
-    : '';
+  const initial = selectedCustomer ? customerInitials(selectedCustomer.first_name, selectedCustomer.name) : '';
+  const fullName = selectedCustomer?.display_name ?? '';
 
   return (
     <>
@@ -116,10 +111,7 @@ export function CustomerPicker({
               <div className="shrink-0 w-11 h-11 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
                 <User size={18} />
               </div>
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground">{t('trigger_select')}</span>
-                <span className="text-xs text-muted-foreground">{t('trigger_select_sub')}</span>
-              </div>
+              <span className="flex-1 min-w-0 text-sm font-medium text-foreground">{t('trigger_select')}</span>
               <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
             </>
           )}
@@ -175,7 +167,7 @@ export function CustomerPicker({
             </p>
           ) : (
             customers.map((c) => {
-              const itemInitial = (c.name?.[0] ?? '?').toUpperCase();
+              const itemInitial = customerInitials(c.first_name, c.name);
               const active = c.id === value;
               return (
                 <button
@@ -192,7 +184,7 @@ export function CustomerPicker({
                     {itemInitial}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                    <span className={`text-sm truncate ${active ? 'font-semibold' : 'font-medium'}`}>{c.name}</span>
+                    <span className={`text-sm truncate ${active ? 'font-semibold' : 'font-medium'}`}>{c.display_name}</span>
                     {(c.phone || c.city) && (
                       <div className="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
                         {c.phone && (

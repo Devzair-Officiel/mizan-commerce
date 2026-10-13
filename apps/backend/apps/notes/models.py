@@ -13,12 +13,14 @@ class Note(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name='notes'
     )
+    # Historique protégé (RESTRICT) : une note n'a de sens qu'avec son client
+    # ou sa commande.
     customer = models.ForeignKey(
-        Customer, on_delete=models.CASCADE,
+        Customer, on_delete=models.RESTRICT,
         null=True, blank=True, related_name='note_set'
     )
     order = models.ForeignKey(
-        Order, on_delete=models.CASCADE,
+        Order, on_delete=models.RESTRICT,
         null=True, blank=True, related_name='note_set'
     )
     content = models.TextField()

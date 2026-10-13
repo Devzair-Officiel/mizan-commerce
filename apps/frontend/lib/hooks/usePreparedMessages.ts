@@ -1,13 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
-
-interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 export type PreparedMessageTemplate =
   | 'order_confirmation'
@@ -44,6 +38,8 @@ export interface PreparedMessageCreateInput {
   context_id?: string | null;
   customer_id?: string | null;
   custom_message?: string;
+  /** WhatsApp s'ouvre avec ce texte : enregistré directement comme envoyé. */
+  sent?: boolean;
 }
 
 export interface PreparedMessagesFilters {
@@ -51,27 +47,16 @@ export interface PreparedMessagesFilters {
   orderId?: string | null;
 }
 
-export function usePreparedMessages({ customerId, orderId }: PreparedMessagesFilters = {}) {
-  const params = new URLSearchParams();
-  if (customerId) params.set('customer', customerId);
-  if (orderId) params.set('order', orderId);
-  const qs = params.toString();
-  const key = orderId
-    ? qk.preparedMessages.byOrder(orderId)
-    : customerId
-      ? qk.preparedMessages.byCustomer(customerId)
-      : qk.preparedMessages.all;
-  return useQuery({
-    queryKey: key,
-    queryFn: () =>
-      apiFetch<PaginatedResponse<PreparedMessage>>(
-        `/messages/prepared/${qs ? `?${qs}` : ''}`,
-      ),
-    enabled: !!(customerId || orderId),
-  });
+/** Historique des messages d'une commande ou d'un client : 5, puis « Voir plus ». */
+export function usePreparedMessages({ customerId, orderId }: PreparedMessagesFilters) {
+  const key = orderId ? qk.preparedMessages.byOrder(orderId) : qk.preparedMessages.byCustomer(customerId ?? '');
+  return useShowMoreQuery<PreparedMessage>(
+    key, '/messages/prepared/', { customer: customerId ?? undefined, order: orderId ?? undefined }, !!(customerId || orderId),
+  );
 }
 
-export function useCreatePreparedMessage() {
+// `onError` au niveau du hook : il s'exécute même si la fenêtre d'envoi est déjà fermée.
+export function useCreatePreparedMessage({ onError }: { onError?: () => void } = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: PreparedMessageCreateInput) =>
@@ -80,6 +65,7 @@ export function useCreatePreparedMessage() {
         body: JSON.stringify(data),
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.preparedMessages.all }),
+    onError,
   });
 }
 
@@ -90,17 +76,6 @@ export function useUpdatePreparedMessage(id: string) {
       apiFetch<PreparedMessage>(`/messages/prepared/${id}/`, {
         method: 'PATCH',
         body: JSON.stringify({ message }),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.preparedMessages.all }),
-  });
-}
-
-export function useMarkMessageSent(id: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () =>
-      apiFetch<PreparedMessage>(`/messages/prepared/${id}/mark-sent/`, {
-        method: 'POST',
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.preparedMessages.all }),
   });

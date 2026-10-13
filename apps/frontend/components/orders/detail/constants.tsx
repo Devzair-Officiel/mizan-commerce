@@ -1,111 +1,39 @@
-import {
-  ArrowRight, CreditCard, Flag, ListChecks, PackageCheck,
-  StickyNote, Truck, XCircle,
-} from 'lucide-react';
-import type { OrderActivityEvent } from '@/lib/hooks/useOrders';
+import type { FulfillmentMode } from '@/lib/hooks/useMe';
 
-export interface StatusConfig { icon: React.ReactNode; badge: string }
-
-export const STATUS_CONFIG: Record<string, StatusConfig> = {
-  to_prepare: { icon: <ListChecks size={15} />,   badge: 'bg-blue-100 text-blue-700' },
-  prepared:   { icon: <PackageCheck size={15} />, badge: 'bg-amber-100 text-amber-700' },
-  shipped:    { icon: <Truck size={15} />,        badge: 'bg-green-100 text-green-700' },
-  cancelled:  { icon: <XCircle size={15} />,      badge: 'bg-red-100 text-red-500' },
-};
-
-export const PAYMENT_COLOR: Record<string, string> = {
-  unpaid:  'text-red-500',
-  partial: 'text-amber-500',
-  paid:    'text-green-600',
-};
-
-export const PAYMENT_PILL: Record<string, string> = {
-  unpaid:  'bg-red-50 text-red-600 border border-red-100',
-  partial: 'bg-amber-50 text-amber-700 border border-amber-100',
-  paid:    'bg-green-50 text-green-700 border border-green-100',
-};
-
-export type NextStepKey = 'to_prepare' | 'prepared';
-
-export interface NextStep {
-  key: NextStepKey;
-  next: string;
-  icon: React.ReactNode;
-  accent: string;
-  btnClass: string;
+/**
+ * Statuts du parcours d'une boutique, dans l'ordre (miroir de `allowed_transitions` côté backend).
+ * « Prête » n'existe qu'en livraison, ou pour une commande restée prête après un changement de mode.
+ */
+export function flowStatuses(fm: FulfillmentMode, status?: string): string[] {
+  return fm === 'delivery' || status === 'prepared'
+    ? ['to_prepare', 'prepared', 'shipped']
+    : ['to_prepare', 'shipped'];
 }
 
-export function getNextStep(status: string, fm: string | null): NextStep | null {
-  if (status === 'to_prepare') {
-    return fm === 'delivery'
-      ? { key: 'to_prepare', next: 'prepared', icon: <PackageCheck size={18} />, accent: 'bg-amber-50 text-amber-700 border border-amber-100', btnClass: 'bg-amber-500 hover:bg-amber-600 text-white' }
-      : { key: 'to_prepare', next: 'shipped', icon: <Truck size={18} />, accent: 'bg-green-50 text-green-700 border border-green-100', btnClass: 'bg-green-600 hover:bg-green-700 text-white' };
-  }
-  if (status === 'prepared') {
-    return { key: 'prepared', next: 'shipped', icon: <Truck size={18} />, accent: 'bg-green-50 text-green-700 border border-green-100', btnClass: 'bg-green-600 hover:bg-green-700 text-white' };
-  }
-  return null;
+/** Étape suivante du parcours, ou null si la commande est terminée ou annulée. */
+export function getNextStatus(status: string, fm: FulfillmentMode): string | null {
+  const flow = flowStatuses(fm, status);
+  const i = flow.indexOf(status);
+  return i >= 0 && i < flow.length - 1 ? flow[i + 1]! : null;
 }
 
-export type RevertKey = 'prepared' | 'shipped' | 'cancelled';
-
-export function getRevertTransition(status: string, fm: string | null): { status: string; key: RevertKey } | null {
-  if (status === 'prepared') return { status: 'to_prepare', key: 'prepared' };
-  if (status === 'shipped') return fm === 'delivery'
-    ? { status: 'prepared', key: 'shipped' }
-    : { status: 'to_prepare', key: 'prepared' };
-  if (status === 'cancelled') return { status: 'to_prepare', key: 'cancelled' };
-  return null;
+/** Étape précédente (retour arrière) ; une commande annulée repart à la première étape. */
+export function getRevertStatus(status: string, fm: FulfillmentMode): string | null {
+  if (status === 'cancelled') return 'to_prepare';
+  const flow = flowStatuses(fm, status);
+  const i = flow.indexOf(status);
+  return i > 0 ? flow[i - 1]! : null;
 }
 
 export const STATUS_ALLOWS_CANCEL = new Set(['to_prepare', 'prepared']);
 
-export type ActivityEventDisplay = {
-  icon: React.ReactNode;
-  iconBg: string;
-  titleKey: 'event_created' | 'event_status' | 'event_payment' | 'event_note';
-  titleParams?: { from?: string; to?: string };
-  body?: string;
-};
+/** Une commande se modifie (articles, remise, client) tant qu'elle n'est pas remise. */
+export const STATUS_ALLOWS_EDIT = STATUS_ALLOWS_CANCEL;
 
-export function describeEvent(event: OrderActivityEvent): ActivityEventDisplay {
-  switch (event.type) {
-    case 'created':
-      return {
-        icon: <Flag size={14} />,
-        iconBg: 'bg-zinc-100 text-zinc-600',
-        titleKey: 'event_created',
-        body: event.data.order_number ? `#${event.data.order_number}` : undefined,
-      };
-    case 'status_change':
-      return {
-        icon: <ArrowRight size={14} />,
-        iconBg: 'bg-blue-50 text-blue-600',
-        titleKey: 'event_status',
-        titleParams: { from: event.data.from ?? '', to: event.data.to ?? '' },
-      };
-    case 'payment_change': {
-      const before = event.data.amount_paid_before;
-      const after = event.data.amount_paid_after;
-      const amountStr = before !== undefined && after !== undefined
-        ? `${parseFloat(before ?? '0').toFixed(2)} → ${parseFloat(after ?? '0').toFixed(2)}`
-        : undefined;
-      return {
-        icon: <CreditCard size={14} />,
-        iconBg: 'bg-green-50 text-green-600',
-        titleKey: 'event_payment',
-        titleParams: { from: event.data.from ?? '', to: event.data.to ?? '' },
-        body: amountStr,
-      };
-    }
-    case 'note':
-      return {
-        icon: <StickyNote size={14} />,
-        iconBg: 'bg-amber-50 text-amber-600',
-        titleKey: 'event_note',
-        body: typeof event.data.content === 'string' ? event.data.content : undefined,
-      };
-  }
+/** Reste dû en centimes entiers, pour éviter les arrondis flottants. */
+export function remainingDue(order: { total_amount: string; amount_paid: string }): number {
+  const cents = (v: string) => Math.round(Number(v) * 100);
+  return Math.max(0, cents(order.total_amount) - cents(order.amount_paid)) / 100;
 }
 
 export function WhatsAppIcon({ size = 18 }: { size?: number }) {

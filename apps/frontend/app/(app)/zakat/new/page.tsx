@@ -2,12 +2,13 @@
 
 import { useState, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { WizardLayout, TOTAL_STEPS } from '@/components/zakat/WizardLayout';
 import { WizardHub } from '@/components/zakat/WizardHub';
 import { WizardSteps } from '@/components/zakat/wizard/WizardSteps';
 import {
   INITIAL_STATE,
-  STEP_TITLES,
+  STEP_KEYS,
   hydrateFromDraft,
   type WizardState,
 } from '@/components/zakat/wizard/types';
@@ -21,6 +22,7 @@ import {
   type ZakatCalculation,
 } from '@/lib/hooks/useZakat';
 import { ApiError } from '@/lib/api-client';
+import { notify } from '@/lib/notify';
 import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function NewZakatWizardPage() {
@@ -45,6 +47,7 @@ export default function NewZakatWizardPage() {
 }
 
 function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | null }) {
+  const t = useTranslations('zakat.wizard');
   const router = useRouter();
   const startInHub = !!initialDraft && initialDraft.current_step >= TOTAL_STEPS - 1;
   const startStep = initialDraft
@@ -116,9 +119,8 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         const data = err.data as { detail?: string; existing_id?: string; year?: number };
-        window.alert(
-          data.detail ??
-            `Un calcul finalisé existe déjà pour ${data.year}. Vous allez être redirigé vers ce calcul.`,
+        notify.error(
+          data.detail ?? t('already_finalized', { year: String(data.year ?? '') }),
         );
         if (data.existing_id) {
           router.push(`/zakat/${data.existing_id}`);
@@ -158,13 +160,15 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
   const isPending =
     createDraft.isPending || updateDraft.isPending || finalize.isPending || deleteDraft.isPending;
 
-  const { title, subtitle } = STEP_TITLES[step] ?? { title: '', subtitle: undefined };
+  const stepKey = STEP_KEYS[step];
+  const title = stepKey ? t(`steps.${stepKey}.title`) : '';
+  const subtitle = stepKey ? t(`steps.${stepKey}.subtitle`) : undefined;
   const isHubEdit = mode === 'hub' && editingFromHub;
   const nextLabel = isHubEdit
-    ? 'Enregistrer'
+    ? t('save')
     : step === TOTAL_STEPS - 1
-      ? 'Finaliser la zakat'
-      : 'Suivant';
+      ? t('finalize')
+      : t('next');
   const onNext = isHubEdit
     ? persistAndReturnToHub
     : step === TOTAL_STEPS - 1
@@ -219,7 +223,7 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
               disabled={isPending}
               className="self-center mt-2 text-xs text-muted-foreground hover:text-destructive underline disabled:opacity-50 min-h-11 px-3 -mx-3 flex items-center justify-center"
             >
-              Abandonner ce brouillon
+              {t('discard')}
             </button>
           )}
         </WizardLayout>
@@ -228,11 +232,11 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
       <ConfirmDialog
         open={confirmDiscard}
         onOpenChange={setConfirmDiscard}
-        title="Supprimer ce brouillon ?"
-        description="Toutes les saisies seront perdues."
+        title={t('discard_title')}
+        description={t('discard_description')}
         onConfirm={handleDiscard}
         variant="destructive"
-        confirmLabel="Supprimer"
+        confirmLabel={t('delete')}
       />
     </Fragment>
   );

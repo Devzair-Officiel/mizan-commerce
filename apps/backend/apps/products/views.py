@@ -1,22 +1,31 @@
-from django.db.models import F, Exists, OuterRef
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, filters, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import HasModulePermission, get_shop
+from apps.core.storage import is_storage_configured
 
 HasProductsModule = HasModulePermission.for_module('products')
+from . import services  # noqa: E402
+from .filters import ProductOrderingFilter  # noqa: E402
 from .models import Product, ProductImage, ProductVariant  # noqa: E402
-from .serializers import ProductSerializer, ProductListSerializer, ProductVariantSerializer  # noqa: E402, E501
+from .services import PRODUCT_SEARCH_FIELDS, products_with_stats  # noqa: E402
+from .serializers import (  # noqa: E402
+    ProductImagePrimarySerializer, ProductImageSerializer, ProductListSerializer,
+    ProductSerializer, ProductVariantCreateSerializer, ProductVariantSerializer,
+)
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated, HasProductsModule)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ('name', 'variants__sku')
-    ordering_fields = ('name', 'created_at')
+    filter_backends = (filters.SearchFilter, ProductOrderingFilter)
+    search_fields = PRODUCT_SEARCH_FIELDS
+    ordering_fields = ('name', 'created_at', 'min_price', 'total_stock', 'type')
     ordering = ('-created_at',)
 
     def get_serializer_class(self):
@@ -30,52 +39,26 @@ class ProductListCreateView(generics.ListCreateAPIView):
         return ctx
 
     def get_queryset(self):
-        shop = get_shop(self.request.user)
-        qs = Product.objects.filter(shop=shop).prefetch_related('images', 'variants')
-
-        # Filtres d'activation
-        # - `?inactive=1` : uniquement les inactifs
-        # - `?all=1`     : actifs + inactifs
-        # - défaut       : uniquement les actifs
-        if self.request.query_params.get('inactive') == '1':
-            qs = qs.filter(is_active=False)
-        elif self.request.query_params.get('all') != '1':
-            qs = qs.filter(is_active=True)
-
-        # Filtre par type (product | service)
-        product_type = self.request.query_params.get('type')
-        if product_type in ('product', 'service'):
-            qs = qs.filter(type=product_type)
-
-        # Filtre rupture : toutes les variantes actives ont un stock <= 0 → produit en rupture.  # noqa: E501
-        # On exclut donc les produits qui possèdent au moins une variante active avec stock > 0.  # noqa: E501
-        if self.request.query_params.get('out_of_stock') == '1':
-            has_stock = ProductVariant.objects.filter(
-                product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
-            )
-            qs = qs.filter(type='product').annotate(_has_stock=Exists(has_stock)).filter(_has_stock=False)  # noqa: E501
-
-        # Filtre stock faible : au moins une variante active sous son seuil.
-        if self.request.query_params.get('low_stock') == '1':
-            has_low = ProductVariant.objects.filter(
-                product=OuterRef('pk'),
-                is_active=True,
-                low_stock_threshold__isnull=False,
-                stock_quantity__lte=F('low_stock_threshold'),
-                stock_quantity__gt=0,
-            )
-            qs = qs.filter(type='product').annotate(_has_low=Exists(has_low)).filter(_has_low=True)  # noqa: E501
-
-        return qs
+        qs = products_with_stats(get_shop(self.request.user))
+        return services.filter_products(qs, self.request.query_params).prefetch_related(
+            'images', 'variants',
+        )
 
     def perform_create(self, serializer):
         from apps.subscriptions.limits import enforce_product_limit
         shop = get_shop(self.request.user)
         enforce_product_limit(shop)
-        serializer.save(shop=shop)
+        data = dict(serializer.validated_data)
+        rows = data.pop('variants', [])
+        variant = data.pop('variant', None)
+        initial_stock = data.pop('initial_stock', None)
+        if variant is not None:
+            rows = [{**variant, 'initial_stock': initial_stock}]
+        user = self.request.user
+        serializer.instance = services.create_product(shop, user, data, rows)
 
 
-class ProductDetailView(generics.RetrieveUpdateAPIView):
+class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = (IsAuthenticated, HasProductsModule)
     serializer_class = ProductSerializer
 
@@ -98,6 +81,22 @@ class ProductDetailView(generics.RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    def perform_update(self, serializer: ProductSerializer) -> None:
+        """Informations et, avec `variants`, tableau des formats : tout ou rien."""
+        data = dict(serializer.validated_data)
+        rows = data.pop('variants', None)
+        product = services.update_product(serializer.instance, self.request.user, data, rows)  # noqa: E501
+        # Relue : les formats préchargés avant la synchronisation sont périmés.
+        serializer.instance = self.get_queryset().get(pk=product.pk)
+
+    def destroy(self, request: Request, *args, **kwargs) -> Response:
+        """Suppression d'un article qui n'a jamais servi ; sinon 409 (le désactiver)."""
+        try:
+            services.delete_unused_product(self.get_object())
+        except services.ProductInUseError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProductDeactivateView(generics.GenericAPIView):
@@ -138,7 +137,7 @@ class ProductImageUploadView(APIView):
 
     def post(self, request, pk: str) -> Response:
         from django.conf import settings
-        from .services import upload_product_image, get_signed_url
+        from .services import upload_product_image
 
         if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
             return Response(
@@ -156,56 +155,30 @@ class ProductImageUploadView(APIView):
         except Product.DoesNotExist:
             return Response({'detail': 'Produit introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
-        signed_url = get_signed_url(image.object_key)
-        return Response(
-            {'id': str(image.pk), 'object_key': image.object_key, 'url': signed_url, 'is_primary': image.is_primary},  # noqa: E501
-            status=status.HTTP_201_CREATED,
-        )
+        # Mêmes champs que la fiche : la clé de stockage n'est pas exposée.
+        return Response(ProductImageSerializer(image).data, status=status.HTTP_201_CREATED)  # noqa: E501
 
 
 class ProductSummaryView(APIView):
-    """Compteurs agrégés pour le bandeau de filtres du Catalogue."""
+    """Indicateurs du Catalogue (actifs, rupture, stock faible)."""
     permission_classes = (IsAuthenticated, HasProductsModule)
 
-    def get(self, request) -> Response:
-        shop = get_shop(request.user)
-        active_qs = Product.objects.filter(shop=shop, is_active=True)
+    def get(self, request: Request) -> Response:
+        return Response(services.build_products_summary(get_shop(request.user)))
 
-        has_stock = ProductVariant.objects.filter(
-            product=OuterRef('pk'), is_active=True, stock_quantity__gt=0,
-        )
-        has_low = ProductVariant.objects.filter(
-            product=OuterRef('pk'),
-            is_active=True,
-            low_stock_threshold__isnull=False,
-            stock_quantity__lte=F('low_stock_threshold'),
-            stock_quantity__gt=0,
-        )
 
-        out_of_stock = (
-            active_qs.filter(type='product')
-            .annotate(_has_stock=Exists(has_stock))
-            .filter(_has_stock=False)
-            .count()
-        )
-        low_stock = (
-            active_qs.filter(type='product')
-            .annotate(_has_low=Exists(has_low))
-            .filter(_has_low=True)
-            .count()
-        )
-        products_count = active_qs.filter(type='product').count()
-        services_count = active_qs.filter(type='service').count()
-        inactive_count = Product.objects.filter(shop=shop, is_active=False).count()
+class ProductFacetsView(APIView):
+    """Nombre d'articles par option des filtres (état, type, stock).
 
-        return Response({
-            'total': products_count + services_count,
-            'products': products_count,
-            'services': services_count,
-            'out_of_stock': out_of_stock,
-            'low_stock': low_stock,
-            'inactive': inactive_count,
-        })
+    Reçoit les mêmes paramètres que la liste (recherche comprise).
+    """
+    permission_classes = (IsAuthenticated, HasProductsModule)
+    search_fields = PRODUCT_SEARCH_FIELDS
+
+    def get(self, request: Request) -> Response:
+        qs = products_with_stats(get_shop(request.user))
+        qs = filters.SearchFilter().filter_queryset(request, qs, self)
+        return Response(services.build_product_facets(qs, request.query_params))
 
 
 class ProductVariantListCreateView(generics.ListCreateAPIView):
@@ -226,9 +199,17 @@ class ProductVariantListCreateView(generics.ListCreateAPIView):
         ctx['product'] = self._get_product()
         return ctx
 
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ProductVariantCreateSerializer
+        return ProductVariantSerializer
+
     def perform_create(self, serializer):
-        product = self._get_product()
-        serializer.save(shop=product.shop, product=product)
+        data = dict(serializer.validated_data)
+        initial_stock = data.pop('initial_stock', None)
+        serializer.instance = services.create_variant(
+            self._get_product(), self.request.user, data, initial_stock,
+        )
 
 
 class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -261,7 +242,16 @@ class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
                 {'detail': "Un produit doit conserver au moins une variante."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        return super().destroy(request, *args, **kwargs)
+        if services.is_last_active_variant(variant):
+            return Response(
+                {'detail': services.LAST_ACTIVE_VARIANT_MESSAGE},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            services.delete_unused_variant(variant)
+        except services.VariantInUseError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_409_CONFLICT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ProductImageSignedUrlView(APIView):
@@ -279,3 +269,53 @@ class ProductImageSignedUrlView(APIView):
 
         signed_url = get_signed_url(image.object_key)
         return Response({'url': signed_url})
+
+
+_STORAGE_UNAVAILABLE = {'detail': "Le stockage des photos n'est pas configuré sur cet environnement."}  # noqa: E501
+
+
+def _shop_image(request: Request, pk: str, image_pk: str) -> ProductImage:
+    """Photo d'un article de la boutique courante, sinon 404."""
+    shop = get_shop(request.user)
+    return get_object_or_404(ProductImage, pk=image_pk, product__pk=pk, shop=shop)
+
+
+class ProductImageDetailView(APIView):
+    """Photo d'un article : devient la photo principale (PATCH) ou est retirée (DELETE)."""  # noqa: E501
+    permission_classes = (IsAuthenticated, HasProductsModule)
+
+    def patch(self, request: Request, pk: str, image_pk: str) -> Response:
+        image = _shop_image(request, pk, image_pk)
+        ProductImagePrimarySerializer(data=request.data).is_valid(raise_exception=True)
+        services.set_primary_image(image)
+        return Response(ProductImageSerializer(image).data)
+
+    def delete(self, request: Request, pk: str, image_pk: str) -> Response:
+        services.delete_product_image(_shop_image(request, pk, image_pk))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductImageFileView(APIView):
+    """Fichier d'une photo : lu par l'app (recadrage dans le navigateur, même
+    origine) et remplacé par la version recadrée."""
+    permission_classes = (IsAuthenticated, HasProductsModule)
+    parser_classes = (MultiPartParser,)
+
+    def get(self, request: Request, pk: str, image_pk: str) -> HttpResponse:
+        image = _shop_image(request, pk, image_pk)
+        if not is_storage_configured():
+            return Response(_STORAGE_UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)  # noqa: E501
+        content, content_type = services.read_image_file(image)
+        response = HttpResponse(content, content_type=content_type)
+        response['Cache-Control'] = 'private, no-store'
+        return response
+
+    def put(self, request: Request, pk: str, image_pk: str) -> Response:
+        image = _shop_image(request, pk, image_pk)
+        if not is_storage_configured():
+            return Response(_STORAGE_UNAVAILABLE, status=status.HTTP_503_SERVICE_UNAVAILABLE)  # noqa: E501
+        file = request.FILES.get('image')
+        if not file:
+            return Response({'detail': 'Champ « image » requis.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
+        services.replace_image_file(image, file)
+        return Response(ProductImageSerializer(image).data)

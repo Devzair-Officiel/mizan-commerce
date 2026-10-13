@@ -42,6 +42,7 @@ function PaymentForm({
 
   const val = parseFloat(amountInput) || 0;
   const isNeg = val < 0;
+  const amountColor = isNeg ? 'text-red-700 dark:text-red-400' : 'text-foreground';
   const remainingNum = parseFloat(remaining);
   const newPaid = Math.max(0, paidAmount + val);
   const newRemaining = Math.max(0, totalAmount - newPaid);
@@ -70,19 +71,19 @@ function PaymentForm({
             value={amountInput}
             onChange={(e) => setAmountInput(e.target.value)}
             onBlur={() => setEditAmount(false)}
-            className={`w-full text-center text-5xl font-bold tabular-nums bg-transparent border-b-2 border-zinc-200 focus:border-zinc-900 outline-none py-2 ${isNeg ? 'text-red-500' : 'text-zinc-900'}`}
+            className={`w-full text-center text-5xl font-bold tabular-nums bg-transparent border-b-2 border-border focus:border-ring outline-none py-2 ${amountColor}`}
           />
         ) : (
           <button
             type="button"
             onClick={() => setEditAmount(true)}
-            className={`text-5xl font-bold tabular-nums py-2 inline-flex items-center gap-2 ${isNeg ? 'text-red-500' : 'text-zinc-900'}`}
+            className={`text-5xl font-bold tabular-nums py-2 inline-flex items-center gap-2 ${amountColor}`}
           >
             {money(val)}
-            <Pencil size={16} className="text-zinc-400" />
+            <Pencil size={16} className="text-muted-foreground" />
           </button>
         )}
-        <p className="text-xs text-zinc-500 tabular-nums">
+        <p className="text-xs text-muted-foreground tabular-nums">
           {t('remaining_after', { amount: money(newRemaining) })}
         </p>
       </div>
@@ -99,10 +100,10 @@ function PaymentForm({
                   setAmountInput(chip.value % 1 === 0 ? String(chip.value) : chip.value.toFixed(2));
                   setEditAmount(false);
                 }}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold tabular-nums transition-colors ${
+                className={`h-9 px-3.5 rounded-full whitespace-nowrap text-xs font-semibold tabular-nums transition-colors ${
                   selected
-                    ? 'bg-zinc-900 text-white'
-                    : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-accent'
                 }`}
               >
                 {chip.label}{chip.sub && <span className="opacity-70 font-normal"> · {chip.sub}</span>}
@@ -113,9 +114,8 @@ function PaymentForm({
       )}
 
       <Button
-        className={`w-full inline-flex items-center justify-center gap-2 ${
-          isNeg ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-600 hover:bg-green-700 text-white'
-        }`}
+        variant={isNeg ? 'destructive' : 'default'}
+        className="w-full"
         onClick={() => onSubmit(amountInput)}
         disabled={isPending || val === 0 || Number.isNaN(val)}
       >
@@ -127,7 +127,7 @@ function PaymentForm({
       </Button>
 
       {remainingNum <= 0 && !isNeg && (
-        <p className="text-xs text-zinc-400 text-center">
+        <p className="text-xs text-muted-foreground text-center">
           {t('settled_hint')}
         </p>
       )}

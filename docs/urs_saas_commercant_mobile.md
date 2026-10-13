@@ -251,6 +251,21 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-103 — Supprimer un article
+
+**En tant que** commerçant,  
+**je veux** supprimer un article créé par erreur,  
+**afin de** garder un catalogue propre.
+
+### Critères d'acceptation
+
+- La suppression n'est possible que si l'article n'a jamais servi : aucune vente, aucun mouvement de stock autre que son stock initial.
+- Sinon, l'article peut seulement être désactivé (URS-011), et un message l'explique.
+- La suppression demande une confirmation.
+- Un format qui a servi ne se supprime pas : il peut être retiré de la vente (URS-091).
+
+---
+
 ## URS-012 — Rechercher un produit
 
 **En tant que** commerçant,  
@@ -488,13 +503,32 @@ L'application est organisée autour des modules suivants :
 
 **En tant que** commerçant,  
 **je veux** que le stock soit réservé quand une commande est à préparer,  
-**afin de** éviter de vendre deux fois le même produit.
+**afin de** savoir à tout moment ce qui est disponible et ce qui est déjà promis à un client.
 
 ### Critères d'acceptation
 
 - Le stock est diminué lorsque la commande passe à "à préparer".
 - Le stock est restauré si la commande est annulée.
 - Un mouvement de stock est créé automatiquement.
+- Une vente n'est jamais bloquée par le stock : un format peut passer en négatif ; il est signalé « à régulariser » jusqu'à la prochaine entrée ou correction.
+
+---
+
+## URS-101 — Modifier une commande
+
+**En tant que** commerçant,  
+**je veux** modifier une commande déjà enregistrée,  
+**afin de** corriger une erreur ou suivre une demande du client sans recréer la commande.
+
+### Critères d'acceptation
+
+- Une commande « à préparer » ou « préparée » peut être modifiée ; une commande remise ou annulée ne peut plus l'être, et un message l'explique.
+- L'utilisateur peut changer le client, ajouter ou retirer des articles, changer les quantités, la remise et les frais de livraison.
+- La modification se fait sur le même écran que la création d'une commande.
+- Chaque ligne vaut prix unitaire × quantité ; les totaux sont recalculés à l'enregistrement.
+- Le stock réservé suit les changements de quantité.
+- Quitter l'écran avec des changements non enregistrés demande une confirmation.
+- Une facture déjà émise à partir de la commande n'est pas modifiée (URS-099).
 
 ---
 
@@ -1037,6 +1071,25 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-102 — Gérer l'équipe de la boutique
+
+**En tant que** propriétaire de boutique,  
+**je veux** créer des comptes pour mes employés et choisir ce que chacun peut faire,  
+**afin de** déléguer le travail sans partager mon propre accès.
+
+### Critères d'acceptation
+
+- La gestion d'équipe fait partie de la formule Boutique+.
+- Sans Boutique+, l'ajout et la modification d'un membre sont refusés par le serveur.
+- Seuls le propriétaire et les administrateurs accèdent à l'écran Équipe.
+- L'administrateur crée un employé avec son nom, son e-mail et un mot de passe.
+- Un membre est administrateur ou employé ; pour un employé, l'administrateur choisit les modules accessibles. La zakat et les paramètres ne sont jamais délégables.
+- Le propriétaire ne peut pas être retiré ; un administrateur ne peut ni modifier ses propres droits ni se retirer lui-même.
+- Sans Boutique+, l'écran Équipe affiche la carte « Disponible avec la formule Boutique+ », avec un lien vers l'abonnement, et, en dessous, la liste des membres en lecture seule avec la possibilité de les retirer.
+- Si la boutique quitte Boutique+, ses employés et administrateurs (hors propriétaire) ne peuvent plus se connecter ; leurs comptes et leurs droits sont conservés et l'accès revient automatiquement quand la boutique reprend Boutique+.
+
+---
+
 # 20. URS — Abonnement SaaS
 
 ## URS-064 — Limiter l'offre gratuite
@@ -1082,6 +1135,7 @@ L'application est organisée autour des modules suivants :
 - L'utilisateur reçoit une notification (email + in-app) au moins une fois avant la fin de l'essai.
 - Une fois l'essai consommé pour un compte, la création d'une boutique supplémentaire ne déclenche pas un nouvel essai (le trial est lié au compte, pas à la boutique).
 - Aucun débit n'est effectué tant que l'utilisateur n'a pas explicitement souscrit à une formule payante.
+- Une fonction hors formule affiche une carte de mise à niveau avec un lien vers l'abonnement, jamais une erreur ; le serveur refuse les actions correspondantes.
 
 ---
 
@@ -2064,12 +2118,38 @@ Fonctionnalités :
 - Rappels
 - Zakat simple
 - Sécurité de base
+- Formats d'articles (variantes), références et codes-barres
+- Vue de stock agrégée
+- Facturation client
+- Modification d'une commande, suppression d'un article
+- Équipe de la boutique
 
 URS concernées :
 
 ```text
 URS-001 à URS-041
 URS-061 à URS-063
+URS-089 à URS-099
+URS-101 à URS-103
+```
+
+---
+
+## Transversal — Abonnement SaaS
+
+Objectif : faire vivre les formules (gratuite, Pro, Boutique+) dès la V1, sans attendre une version donnée.
+
+Fonctionnalités :
+
+- Limites de l'offre gratuite
+- Passage à une offre payante
+- Essai gratuit de 14 jours sur Boutique+
+
+URS concernées :
+
+```text
+URS-064 à URS-065
+URS-100
 ```
 
 ---

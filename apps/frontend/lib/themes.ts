@@ -305,6 +305,9 @@ function buildThemeVars(
     };
   } else {
     const cc = (factor: number) => clamp(c * factor, 0.004, 0.32).toFixed(4);
+    // Primaire à 0.46 en clair et 0.77 en sombre : liens « Tout voir » en text-primary ≥ 4,5:1 sur les
+    // bandes d'en-tête bg-muted dans tous les thèmes. Les teintes vives (cyan, rouge) sortent du gamut sRGB
+    // et sont écrêtées par le navigateur : à 0.50 / 0.70, cyan clair et rouge sombre restaient à 3,9 / 4,0:1.
 
     base = isDark ? {
       background: bg.dark,
@@ -313,7 +316,7 @@ function buildThemeVars(
       'card-foreground': 'oklch(0.985 0 0)',
       popover: `oklch(0.25 ${cc(0.16)} ${h})`,
       'popover-foreground': 'oklch(0.985 0 0)',
-      primary: `oklch(0.70 ${cc(0.85)} ${h})`,
+      primary: `oklch(0.77 ${cc(0.85)} ${h})`,
       'primary-foreground': `oklch(0.14 ${cc(0.30)} ${h})`,
       secondary: `oklch(0.31 ${cc(0.22)} ${h})`,
       'secondary-foreground': 'oklch(0.985 0 0)',
@@ -323,7 +326,7 @@ function buildThemeVars(
       'accent-foreground': 'oklch(0.985 0 0)',
       border: 'oklch(1 0 0 / 10%)',
       input: 'oklch(1 0 0 / 15%)',
-      ring: `oklch(0.70 ${cc(0.85)} ${h})`,
+      ring: `oklch(0.77 ${cc(0.85)} ${h})`,
     } : {
       background: bg.light,
       foreground: 'oklch(0.145 0 0)',
@@ -331,7 +334,7 @@ function buildThemeVars(
       'card-foreground': 'oklch(0.145 0 0)',
       popover: `oklch(0.998 ${cc(0.05)} ${h})`,
       'popover-foreground': 'oklch(0.145 0 0)',
-      primary: `oklch(0.50 ${cc(1)} ${h})`,
+      primary: `oklch(0.46 ${cc(1)} ${h})`,
       'primary-foreground': `oklch(0.97 ${cc(0.08)} ${h})`,
       secondary: `oklch(0.93 ${cc(0.30)} ${h})`,
       'secondary-foreground': `oklch(0.30 ${cc(0.60)} ${h})`,
@@ -341,7 +344,7 @@ function buildThemeVars(
       'accent-foreground': `oklch(0.30 ${cc(0.70)} ${h})`,
       border: `oklch(0.88 ${cc(0.20)} ${h})`,
       input: `oklch(0.88 ${cc(0.20)} ${h})`,
-      ring: `oklch(0.50 ${cc(1)} ${h})`,
+      ring: `oklch(0.46 ${cc(1)} ${h})`,
     };
   }
 

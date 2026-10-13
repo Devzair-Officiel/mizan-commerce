@@ -5,7 +5,11 @@
       "password": "Mot de passe",
       "back_to_login": "Retour à la connexion",
       "invalid_email": "Email invalide",
-      "invalid_or_expired_link": "Lien invalide ou expiré."
+      "invalid_or_expired_link": "Lien invalide ou expiré.",
+      "back_home": "Retour à l'accueil",
+      "email_placeholder": "vous@exemple.com",
+      "show_password": "Afficher le mot de passe",
+      "hide_password": "Masquer le mot de passe"
     },
     "login": {
       "title": "Connexion",
@@ -97,7 +101,7 @@
       "shop_fallback": "Mizan Commerce",
       "light_mode": "Mode clair",
       "dark_mode": "Mode sombre",
-      "confirm_leave": "Quitter sans enregistrer ? Ce que tu as saisi sera perdu."
+      "confirm_leave": "Quitter sans enregistrer ? Ce que vous avez saisi sera perdu."
     },
     "nav": {
       "dashboard": "Accueil",
@@ -120,7 +124,8 @@
       "articles": "Articles",
       "catalogue": "Catalogue",
       "services": "Services",
-      "articles_and_services": "Articles et services"
+      "articles_and_services": "Articles et services",
+      "more": "Plus"
     },
     "breadcrumb": {
       "products": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
@@ -240,7 +245,8 @@
       "low_stock_sub": "dont {count} en rupture",
       "reminders_next": "aujourd'hui, le prochain à {time}",
       "reminders_late": "{count} en retard",
-      "low_stock_unit": "articles"
+      "low_stock_unit": "articles",
+      "negative_sub": "dont {count} à régulariser"
     },
     "prepare": {
       "title": "Commandes à préparer",
@@ -288,7 +294,8 @@
       "out_of_stock_sub": "{count} en rupture",
       "see_all": "Voir {count} produits →",
       "see_stock": "Voir le stock",
-      "restock": "Réassort"
+      "restock": "Réassort",
+      "negative": "{qty}, à régulariser"
     },
     "reminders": {
       "title": "Rappels du jour",
@@ -301,22 +308,22 @@
       "date_yesterday": "hier"
     },
     "notice": {
-      "email_title": "Confirme ton adresse email",
-      "email_sub": "Pour sécuriser ton compte.",
+      "email_title": "Confirmez votre adresse email",
+      "email_sub": "Pour sécuriser votre compte.",
       "email_cta": "Envoyer le lien",
-      "email_sent": "Lien envoyé — vérifie ta boîte mail.",
-      "email_verified": "Email vérifié — actualise la page.",
+      "email_sent": "Lien envoyé — vérifiez votre boîte mail.",
+      "email_verified": "Email vérifié — actualisez la page.",
       "email_resend": "Renvoyer",
       "zakat_title": "{days, plural, =0 {Zakat aujourd'hui} one {Zakat dans # jour} other {Zakat dans # jours}}",
       "zakat_sub": "Préparer le calcul de la zakat annuelle.",
       "zakat_cta": "Voir"
     },
     "welcome": {
-      "title": "Bienvenue dans ta boutique",
-      "sub": "Commence par enregistrer ta première commande.",
+      "title": "Bienvenue dans votre boutique",
+      "sub": "Commencez par enregistrer votre première commande.",
       "cta": "Nouvelle commande",
-      "add_products": "{kind, select, products {Ajoute tes produits} services {Ajoute tes services} other {Ajoute tes produits}}",
-      "add_customers": "Enregistre tes premiers clients",
+      "add_products": "{kind, select, products {Ajoutez vos produits} services {Ajoutez vos services} other {Ajoutez vos produits}}",
+      "add_customers": "Enregistrez vos premiers clients",
       "products_done": "{kind, select, products {{count, plural, one {# produit ajouté} other {# produits ajoutés}}} services {{count, plural, one {# service ajouté} other {# services ajoutés}}} other {{count, plural, one {# article ajouté} other {# articles ajoutés}}}}",
       "customers_done": "{count, plural, one {# client enregistré} other {# clients enregistrés}}"
     },
@@ -330,102 +337,139 @@
   "customers": {
     "list": {
       "title": "Clients",
-      "active_count": "Clients actifs",
-      "pending_total": "Paiements en attente",
-      "loading": "Chargement…",
-      "count_filtered": "{count, plural, one {# client affiché} other {# clients affichés}} · filtré",
-      "count_registered": "{count, plural, one {# client enregistré} other {# clients enregistrés}}",
+      "count": "{count, plural, one {# client} other {# clients}}",
       "new_cta": "Nouveau client",
-      "filter_sort": "Filtrer / Trier",
-      "empty_filtered": "Aucun client correspondant.",
+      "search_label": "Rechercher un client",
+      "search_placeholder": "Nom, téléphone, e-mail ou ville",
+      "clear_filters": "Effacer les filtres",
+      "situation_title": "Situation",
+      "situation": {
+        "all": "Tous",
+        "active": "Actifs",
+        "pending": "Avec un impayé",
+        "deactivated": "Désactivés"
+      },
+      "column_client": "Client",
+      "column_city": "Ville",
+      "column_orders": "Commandes",
+      "column_last_order": "Dernière commande",
+      "column_paid": "Total payé",
+      "column_pending": "Reste à payer",
+      "none": "Aucun",
+      "no_orders": "Aucune commande",
+      "pending_short": "à payer",
       "deactivated_badge": "Désactivé",
       "phone_missing": "Téléphone non renseigné",
-      "pending_to_collect": "à régler"
+      "load_more": "Charger plus",
+      "empty_title": "Aucun client",
+      "empty_sub": "Ajoutez vos clients pour suivre leurs commandes et ce qu'il leur reste à payer.",
+      "empty_filtered_title": "Aucun client pour ce filtre",
+      "empty_filtered_sub": "Retirez les filtres ou modifiez la recherche pour voir tous vos clients.",
+      "sort": {
+        "name": "{dir, select, asc {Trié par nom, de A à Z} other {Trié par nom, de Z à A}}",
+        "pending_amount": "{dir, select, asc {Trié par reste à payer, plus petits d'abord} other {Trié par reste à payer, plus grands d'abord}}",
+        "paid_amount": "{dir, select, asc {Trié par total payé, plus petits d'abord} other {Trié par total payé, plus grands d'abord}}",
+        "order_count": "{dir, select, asc {Trié par commandes, moins nombreuses d'abord} other {Trié par commandes, plus nombreuses d'abord}}",
+        "last_order_at": "{dir, select, asc {Trié par dernière commande, plus anciennes d'abord} other {Trié par dernière commande, plus récentes d'abord}}",
+        "created_at": "{dir, select, asc {Trié par ancienneté, plus anciens d'abord} other {Trié par ancienneté, plus récents d'abord}}"
+      },
+      "stats": {
+        "active_label": "Clients actifs",
+        "due_label": "À encaisser",
+        "due_sub": "sur {count, plural, one {# client} other {# clients}}",
+        "new_label": "Nouveaux ce mois-ci"
+      }
     },
     "filterSheet": {
-      "title": "Filtrer / Trier",
-      "aria_label": "Filtrer et trier",
-      "close": "Fermer",
-      "search_label": "Recherche locale",
-      "search_placeholder": "Rechercher un client, téléphone, ville…",
-      "search_clear": "Effacer",
+      "apply": "Voir les clients",
+      "show_results": "{count, plural, =0 {Aucun client} one {Voir # client} other {Voir les # clients}}",
       "sort_title": "Trier par",
-      "sort_name_asc": "Nom A → Z",
-      "sort_amount_desc": "Montant décroissant",
-      "sort_recent": "Dernière commande",
-      "filter_title": "Afficher",
-      "filter_all": "Tous les clients",
-      "filter_active": "Clients actifs",
-      "filter_pending": "Avec paiement en attente",
-      "filter_deactivated": "Désactivés",
-      "reset": "Réinitialiser",
-      "apply": "Voir les résultats"
+      "sort_name": "Nom, de A à Z",
+      "sort_pending": "Reste à payer, plus grands d'abord",
+      "sort_last_order": "Dernière commande, plus récentes d'abord",
+      "sort_paid": "Total payé, plus grands d'abord",
+      "sort_newest": "Clients les plus récents"
     },
     "new": {
       "title": "Nouveau client",
-      "hero_title": "Nouveau contact",
-      "hero_sub": "Renseignez au minimum le nom. Le reste pourra être complété plus tard."
+      "subtitle": "Seul le nom est obligatoire."
     },
     "edit": {
       "title": "Modifier le client",
-      "topbar_short": "Modifier",
-      "loading": "Chargement…"
+      "subtitle": "Client depuis {date}, {count, plural, =0 {aucune commande} one {# commande} other {# commandes}}"
     },
     "form": {
-      "name_required": "Nom requis",
-      "email_invalid": "Email invalide",
       "section_identity": "Identité",
-      "name": "Nom",
       "first_name": "Prénom",
+      "name": "Nom",
       "section_contact": "Contact",
+      "section_contact_help": "Le téléphone sert aux messages WhatsApp et aux appels depuis la fiche.",
       "phone": "Téléphone",
-      "email": "Email",
+      "phone_help": "Choisissez le pays, puis tapez le numéro comme d'habitude.",
+      "email": "E-mail",
       "section_address": "Adresse",
+      "section_address_help": "Utilisée pour les livraisons et reprise sur les factures.",
+      "country": "Pays",
+      "address": "Adresse",
       "city": "Ville",
       "postal_code": "Code postal",
       "section_notes_internal": "Notes internes",
-      "notes_placeholder": "Notes internes",
-      "submit": "Enregistrer le client",
-      "submitting": "Enregistrement…"
+      "section_notes_help": "Visibles uniquement par vous et votre équipe, jamais par le client.",
+      "notes": "Notes",
+      "submit_create": "Créer le client",
+      "submit_edit": "Enregistrer",
+      "name_required": "Indiquez le nom du client.",
+      "name_taken": "Un client porte déjà ce nom dans votre boutique.",
+      "email_invalid": "Cette adresse e-mail n'est pas valide.",
+      "phone_invalid": "Numéro de téléphone invalide",
+      "too_long": "{max} caractères au maximum.",
+      "field_invalid": "Valeur refusée : vérifiez ce champ.",
+      "save_failed": "L'enregistrement a échoué. Réessayez dans un instant.",
+      "toast_saved": "Client enregistré",
+      "toast_created": "Client créé",
+      "preview_empty": "Nom du client",
+      "preview_help": "Aperçu tel qu'il apparaîtra dans vos commandes",
+      "email_placeholder": "nom@exemple.fr",
+      "notes_placeholder": "Préférences, tailles habituelles, horaires de passage…"
     },
     "detail": {
       "topbar_short": "Client",
-      "loading": "Chargement…",
       "not_found": "Client introuvable.",
-      "badge_to_remind": "À relancer",
-      "badge_new": "Nouveau client",
-      "badge_regular": "Client régulier",
-      "deactivate_confirm": "Désactiver ce client ? Il n'apparaîtra plus dans la liste.",
-      "reminder_title": "Relancer {name}",
-      "reminder_fallback_name": "le client"
-    },
-    "hero": {
-      "phone_aria": "Appeler",
-      "more_aria": "Plus d'actions",
-      "whatsapp": "WhatsApp"
-    },
-    "stats": {
-      "to_collect": "À encaisser",
-      "filter_active": "Filtre actif — re-touche pour tout voir",
-      "filter_hint": "Touche pour filtrer",
-      "up_to_date": "À jour",
-      "new_order": "Nouvelle commande"
-    },
-    "actionsSheet": {
-      "title": "Actions client",
-      "email_label": "Email",
-      "address_label": "Adresse",
-      "notes_label": "Notes",
-      "reminder_created_today": "Rappel créé aujourd'hui",
-      "reminder_schedule": "Programmer un rappel",
-      "reminder_tomorrow_9": "Demain à 9h00",
-      "edit_record": "Modifier la fiche",
-      "deactivate_label": "Désactiver le client",
-      "deactivate_desc": "Le client n'apparaîtra plus dans la liste",
-      "reactivate_label": "Réactiver le client"
-    },
-    "notesSheet": {
-      "title": "Notes"
+      "deactivate_confirm": "Désactiver ce client ? Il n'apparaîtra plus parmi les clients actifs ; vous pourrez le réactiver depuis sa fiche.",
+      "badge_unpaid": "Impayé",
+      "badge_deactivated": "Désactivé",
+      "since": "Client depuis {date}",
+      "edit": "Modifier",
+      "new_order": "Nouvelle commande",
+      "followup": "Relancer",
+      "reminder_schedule": "Marquer à relancer",
+      "add_note": "Ajouter une note",
+      "edit_address": "Modifier l'adresse",
+      "deactivate": "Désactiver le client",
+      "reactivate": "Réactiver le client",
+      "deactivate_cta": "Désactiver",
+      "cancel": "Annuler",
+      "situation_title": "Situation",
+      "paid_total": "Total payé",
+      "pending_total": "Reste à payer",
+      "order_count": "Commandes",
+      "last_order": "Dernière commande",
+      "no_order": "Aucune commande",
+      "contact_title": "Coordonnées",
+      "contact_empty": "Aucune coordonnée enregistrée.",
+      "contact_add": "Ajouter des coordonnées",
+      "whatsapp": "WhatsApp",
+      "call": "Appeler",
+      "orders_title": "Commandes",
+      "orders_empty": "Aucune commande pour ce client.",
+      "see_all_orders": "Voir toutes ({count})",
+      "col_number": "N°",
+      "col_date": "Date",
+      "col_status": "Statut",
+      "col_payment": "Paiement",
+      "col_total": "Total",
+      "record_note": "Note de la fiche client",
+      "notes_empty": "Aucune note pour ce client."
     },
     "addressSheet": {
       "title": "Adresse",
@@ -433,12 +477,8 @@
       "copied": "Copié ✓",
       "open_maps": "Ouvrir dans Maps"
     },
-    "flash": {
-      "reminder_created": "Rappel créé",
-      "sub": "Demain à 9h00 — {name}"
-    },
     "timeline": {
-      "title": "Activité récente",
+      "title": "Activité",
       "chip_all": "Tout",
       "chip_orders": "Commandes",
       "chip_payments": "Paiements",
@@ -446,8 +486,7 @@
       "chip_notes": "Notes",
       "empty_title": "Aucune activité",
       "empty_sub": "L'activité du client apparaîtra ici.",
-      "load_more": "Voir plus ({remaining} restantes)",
-      "loading": "Chargement…"
+      "chip_pending": "À encaisser"
     },
     "activity": {
       "order_created": "Commande créée",
@@ -460,12 +499,19 @@
       "shipment_title": "Expédition mise à jour",
       "shipment_sub": "Commande {number} · Expédiée",
       "note_title": "Note ajoutée"
+    },
+    "whatsapp": {
+      "hello_named": "Bonjour {name},",
+      "hello": "Bonjour,",
+      "intro": "Sauf erreur de notre part, il reste à régler :",
+      "order_line": "• Commande n°{number} du {date} : {amount}",
+      "total_line": "Total restant : {amount}",
+      "signoff": "Merci d'avance, à bientôt."
     }
   },
   "orders": {
     "list": {
       "topbar": "Commandes",
-      "loading": "Chargement…",
       "count": "{count, plural, one {# commande} other {# commandes}}",
       "count_filtered": "{count, plural, one {# commande · filtré} other {# commandes · filtré}}",
       "new_order": "Nouvelle commande",
@@ -473,22 +519,39 @@
       "items": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
       "empty_filtered_title": "Aucune commande pour ce filtre",
       "empty_title": "Aucune commande",
-      "empty_filtered_sub": "Retire les filtres pour voir toutes tes commandes.",
-      "empty_sub": "Chaque vente que tu enregistres apparaît ici, avec son statut de préparation et de paiement.",
+      "empty_filtered_sub": "Retirez les filtres pour voir toutes vos commandes.",
+      "empty_sub": "Chaque vente que vous enregistrez apparaît ici, avec son statut de préparation et de paiement.",
       "empty_cta": "Nouvelle commande",
       "load_more": "Charger plus",
       "column_number": "N°",
       "column_client_items": "{kind, select, products {Client et articles} services {Client et services} other {Client et articles}}",
       "column_date": "Date",
-      "column_preparation": "Préparation",
+      "column_status": "Statut",
       "column_payment": "Paiement",
       "column_total": "Total",
-      "pagination_range": "{from}–{to} sur {total}",
-      "pagination_prev": "Précédente",
-      "pagination_next": "Suivante",
-      "search_placeholder": "Rechercher…",
-      "search_label": "Rechercher des commandes",
-      "clear_filters": "Effacer les filtres"
+      "search_placeholder": "Client ou numéro de commande",
+      "search_label": "Rechercher une commande",
+      "clear_filters": "Effacer les filtres",
+      "date_today": "Aujourd'hui, {time}",
+      "date_yesterday": "Hier, {time}",
+      "amount_due": "{amount} dus",
+      "sort": {
+        "order_number": "{dir, select, asc {Trié par numéro, croissant} other {Trié par numéro, décroissant}}",
+        "customer_name": "{dir, select, asc {Trié par client, de A à Z} other {Trié par client, de Z à A}}",
+        "created_at": "{dir, select, asc {Trié par date, plus anciennes d'abord} other {Trié par date, plus récentes d'abord}}",
+        "status": "{dir, select, asc {Trié par statut, dans l'ordre du parcours} other {Trié par statut, dans l'ordre inverse du parcours}}",
+        "payment_status": "{dir, select, asc {Trié par paiement, non payées d'abord} other {Trié par paiement, payées d'abord}}",
+        "total_amount": "{dir, select, asc {Trié par total, plus petits d'abord} other {Trié par total, plus grands d'abord}}"
+      },
+      "stats": {
+        "to_prepare_sub": "la plus ancienne {age}",
+        "to_prepare_none": "Rien en attente",
+        "due_sub": "sur {count, plural, one {# commande} other {# commandes}}",
+        "month_label": "Ce mois-ci",
+        "month_sub": "{count, plural, one {# commande {state}} other {# commandes {state}}}"
+      },
+      "customer_filter": "Client",
+      "customer_chip": "Client : {name}"
     },
     "statusLabel": {
       "to_prepare_products": "À préparer",
@@ -532,69 +595,73 @@
     "alert": {
       "shipped_unpaid": "Expédiée non payée",
       "to_ship": "À expédier",
-      "banner_title": "{count, plural, one {# commande nécessite ton attention} other {# commandes nécessitent ton attention}}",
-      "banner_active": "Filtre actif · clique pour tout voir",
-      "banner_idle": "Clique pour les afficher seules"
+      "banner_title": "{count, plural, one {# commande nécessite votre attention} other {# commandes nécessitent votre attention}}",
+      "banner_active": "Filtre actif · cliquez pour tout voir",
+      "banner_idle": "Cliquez pour les afficher seules"
     },
     "detail": {
       "topbar": "Commande",
-      "loading": "Chargement…",
       "not_found": "Commande introuvable.",
       "edit": "Modifier",
       "cancel_confirm": "Annuler cette commande ?",
-      "danger_zone": "Zone sensible",
       "cancel_cta": "Annuler la commande",
       "cancel_sub": "{kind, select, products {Le stock réservé sera libéré. Cette action est réversible.} services {Cette action est réversible.} other {Le stock réservé sera libéré. Cette action est réversible.}}",
-      "invoice_error_generic": "Erreur lors de l'émission de la facture."
-    },
-    "hero": {
-      "no_client": "Sans client",
-      "items": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
-      "remaining": "{amount} restant",
-      "whatsapp_cta": "Prévenir le client",
-      "call_aria": "Appeler",
-      "customer_aria": "Voir la fiche client"
+      "invoice_error_generic": "Erreur lors de l'émission de la facture.",
+      "title": "Commande {number}",
+      "created": "Créée {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}{hasAuthor, select, yes { par {author}} other {}}",
+      "day_time": "{when, select, today {Aujourd'hui} yesterday {Hier} other {{date}}}, {time}",
+      "revert_to": "Revenir à « {label} »",
+      "reactivate": "Réactiver la commande",
+      "reactivate_confirm": "Réactiver cette commande ?",
+      "reactivate_sub": "{kind, select, services {La commande repasse à « {label} ».} other {La commande repasse à « {label} » et le stock est de nouveau réservé.}}",
+      "collect": "Encaisser {amount}",
+      "issue_invoice": "Émettre la facture",
+      "download_invoice": "Télécharger la facture",
+      "send_whatsapp": "Envoyer un message WhatsApp",
+      "reminder_schedule": "Marquer à relancer",
+      "notes_empty": "Aucune note pour cette commande."
     },
     "nextStep": {
-      "label": "Prochaine étape",
-      "shipped_title": "Commande expédiée",
-      "shipped_sub": "Toutes les étapes sont terminées.",
-      "to_prepare_title": "Marquer comme prête",
-      "to_prepare_sub": "{kind, select, services {Quand la prestation est confirmée avec le client.} other {Quand les articles sont prêts à être expédiés.}}",
-      "to_prepare_cta": "Marquer prête",
-      "prepared_title": "Marquer comme expédiée",
-      "prepared_sub": "Quand la commande quitte la boutique.",
-      "prepared_cta": "Marquer expédiée",
-      "prepared_mark": "Marquer comme {label}",
-      "prepared_cta_mark": "{label}",
-      "shipped_title_dynamic": "{label}",
       "action_to_prepare": "Marquer comme prête",
       "action_shipped_on_site": "Marquer comme remise au client",
       "action_shipped_services": "Marquer comme réalisée",
-      "action_shipped_delivery": "Marquer comme expédiée",
-      "shipped_sub_services": "La prestation a été réalisée.",
-      "shipped_sub_on_site": "Le client a récupéré sa commande."
+      "action_shipped_delivery": "Marquer comme expédiée"
     },
-    "revert": {
-      "prepared": "Revenir à « À préparer »",
-      "shipped": "Revenir à « Prête »",
-      "cancelled": "Rouvrir la commande"
+    "stepper": {
+      "title": "Suivi",
+      "created": "Créée",
+      "in_progress": "En cours",
+      "upcoming": "À venir",
+      "mistake": "{mode, select, services {Réalisée par erreur ?} delivery {Expédiée par erreur ?} other {Remise par erreur ?}}",
+      "mode": "{mode, select, services {Prestation} on_site {Vente sur place} delivery {Livraison} both {Sur place ou en livraison} other {}}"
+    },
+    "customerCard": {
+      "title": "Client",
+      "see_profile": "Voir la fiche",
+      "whatsapp": "WhatsApp",
+      "call": "Appeler",
+      "none": "Sans client, vente au comptoir.",
+      "associate": "Associer un client"
     },
     "items": {
       "title": "{kind, select, products {Articles} services {Services} other {Articles}}",
       "unit_count": "{count, plural, one {# unité} other {# unités}}",
       "empty": "{kind, select, products {Aucun article.} services {Aucun service.} other {Aucun article.}}",
-      "unit_price_short": "{amount}/u",
       "total": "Total",
       "subtotal": "Sous-total",
       "discount": "Remise",
-      "shipping": "Livraison"
+      "shipping": "Livraison",
+      "unit_price": "{amount} l'unité",
+      "variant_unit": "{variant}, {unit}"
     },
     "paymentCard": {
       "title": "Paiement",
-      "remaining": "Reste à payer : {amount}",
-      "collect_cta": "Encaisser un paiement",
-      "correct_cta": "Corriger un paiement reçu"
+      "remaining": "Reste {amount}",
+      "collect_cta": "Encaisser",
+      "correct_cta": "Corriger un paiement",
+      "of_total": "sur {amount}",
+      "progress_label": "Montant payé",
+      "remind_cta": "Relancer"
     },
     "paymentSheet": {
       "title": "Encaisser un paiement",
@@ -607,13 +674,12 @@
       "settled_hint": "La commande est déjà soldée. Utilisez un montant négatif pour corriger un paiement reçu."
     },
     "invoiceCard": {
-      "title": "Facturation",
-      "number_label": "N° {number}",
-      "invoice_paid": "Facture payée",
-      "invoice_cancelled": "Facture annulée",
-      "invoice_issued": "Facture émise",
-      "invoice_sub": "Voir le détail et télécharger le PDF.",
-      "issue_cta": "Émettre une facture"
+      "title": "Facture",
+      "number_label": "Facture {number}",
+      "issue_cta": "Émettre la facture",
+      "not_issued": "Pas encore émise.",
+      "status": "{status, select, paid {Payée} cancelled {Annulée} other {Émise}}",
+      "download_cta": "Télécharger le PDF"
     },
     "invoiceSheet": {
       "title": "Émettre une facture",
@@ -627,24 +693,13 @@
       "submit": "Émettre la facture",
       "footnote": "Une fois émise, la facture est immuable. Seul le statut peut être modifié."
     },
-    "notes": {
-      "title": "Notes",
-      "add_cta": "Ajouter",
-      "field_label": "Nouvelle note",
-      "saving": "Enregistrement…",
-      "save": "Enregistrer",
-      "cancel": "Annuler",
-      "delete_confirm": "Supprimer cette note ?",
-      "delete_aria": "Supprimer la note",
-      "anonymous": "Anonyme",
-      "empty": "Aucune note pour cette commande."
-    },
     "activity": {
-      "title": "Activité",
-      "event_created": "Commande créée",
-      "event_status": "Statut : {from} → {to}",
-      "event_payment": "Paiement : {from} → {to}",
-      "event_note": "Note ajoutée"
+      "title": "Historique",
+      "event_created": "Commande créée{hasActor, select, yes { par {actor}} other {}}",
+      "event_status": "Passée à « {to} »{hasActor, select, yes { par {actor}} other {}}",
+      "event_note": "Note ajoutée{hasActor, select, yes { par {actor}} other {}}",
+      "event_payment_in": "Paiement de {amount} enregistré{hasActor, select, yes { par {actor}} other {}}",
+      "event_payment_fix": "Paiement corrigé de −{amount}{hasActor, select, yes { par {actor}} other {}}"
     },
     "rel": {
       "just_now": "à l'instant"
@@ -668,12 +723,12 @@
       "topbar": "Nouvelle commande",
       "section_customer": "1 · Client",
       "customer_required": "Sélectionnez un client pour continuer.",
-      "no_customer_payment_warning": "Sans client, tu ne pourras pas relancer ce paiement.",
+      "no_customer_payment_warning": "Sans client, vous ne pourrez pas relancer ce paiement.",
       "section_items": "{kind, select, products {2 · Articles} services {2 · Services} other {2 · Articles & services}}",
       "items_required": "{kind, select, products {Ajoutez au moins un article.} services {Ajoutez au moins un service.} other {Ajoutez au moins un article ou service.}}",
       "items_empty": "{kind, select, products {Aucun article pour l'instant.} services {Aucun service pour l'instant.} other {Aucun article pour l'instant.}}",
       "payment_title": "Paiement",
-      "payment_amount_required": "Saisis un montant reçu supérieur à 0.",
+      "payment_amount_required": "Saisissez un montant reçu supérieur à 0.",
       "payment_amount_exceeds": "Le montant reçu ne peut pas dépasser le total.",
       "amount_received": "Montant reçu",
       "per_unit": "l'unité",
@@ -686,7 +741,7 @@
       "submit_label": "Enregistrer la commande",
       "notes_label": "Notes internes (optionnel)",
       "notes_hide_aria": "Masquer les notes",
-      "notes_show": "+ Ajouter une note",
+      "add_note": "+ Ajouter une note",
       "summary_title": "Résumé",
       "subtotal": "Sous-total",
       "discount": "Remise",
@@ -712,27 +767,18 @@
       "switch_on_site": "À préparer plus tard",
       "switch_on_site_hint": "Sinon, la vente est enregistrée comme remise au client.",
       "switch_both": "Déjà remise au client",
-      "switch_services": "Déjà réalisé"
+      "switch_services": "Déjà réalisé",
+      "stock_negative_warning": "Stock insuffisant : il passera en négatif"
     },
     "edit": {
       "topbar": "Modifier la commande",
-      "topbar_with_number": "Modifier {number}",
-      "loading": "Chargement…",
+      "topbar_with_number": "Modifier la commande {number}",
+      "topbar_short_with_number": "Modifier {number}",
       "not_found": "Commande introuvable.",
       "read_only": "Une commande remise ou annulée ne peut plus être modifiée.",
       "saving": "Enregistrement…",
-      "save": "Enregistrer",
-      "customer_label": "Client (optionnel)",
-      "no_customer": "— Sans client —",
-      "product_picker_label": "{kind, select, products {Ajouter un article (1re variante)} services {Ajouter un service} other {Ajouter un article (1re variante)}}",
-      "product_picker_placeholder": "{kind, select, products {Choisir un article…} services {Choisir un service…} other {Choisir un article…}}",
-      "items_title": "{kind, select, products {Articles} services {Services} other {Articles}}",
-      "subtotal": "Sous-total",
-      "discount": "Remise",
-      "shipping": "Livraison",
-      "total": "Total",
-      "discount_field": "Remise (€, optionnel)",
-      "shipping_field": "Livraison (€, optionnel)"
+      "submit_label": "Enregistrer les modifications",
+      "back_to_order": "Retour à la commande"
     },
     "picker": {
       "product_trigger_title": "{kind, select, products {Ajouter un article} services {Ajouter un service} other {Ajouter un article ou service}}",
@@ -745,17 +791,11 @@
       "filter_all": "Tous",
       "filter_product": "Produits",
       "filter_service": "Services",
-      "create_product": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou service}}",
-      "free_line_title": "{kind, select, products {Article ponctuel} services {Service ponctuel} other {Article ou service ponctuel}}",
-      "free_line_sub": "Sans enregistrer au catalogue",
       "no_results": "Aucun résultat.",
-      "no_products": "{kind, select, products {Aucun article enregistré.} services {Aucun service enregistré.} other {Aucun article enregistré.}}",
       "variant_back": "Retour au catalogue",
-      "loading": "Chargement…",
       "variant_count": "{count, plural, one {# format} other {# formats}}",
       "no_variants": "Aucun format actif.",
       "out_of_stock": "Rupture",
-      "out_of_stock_pick": "En rupture de stock. Fais d'abord une entrée de stock.",
       "stock_label": "Stock : {qty}",
       "variant_formats": "{count} formats",
       "service_badge": "Service",
@@ -771,16 +811,17 @@
       "panel_items": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "panel_create": "{kind, select, products {Créer un article} services {Créer un service} other {Créer un article ou un service}}",
       "desktop_search_placeholder": "{kind, select, products {Nom de l'article, référence ou code-barres} services {Nom du service} other {Nom de l'article, référence ou code-barres}}",
-      "free_line_desktop": "{kind, select, products {Article ponctuel, sans l'enregistrer} services {Service ponctuel, sans l'enregistrer} other {Article ponctuel, sans l'enregistrer}}",
-      "empty_catalog_title": "Ton catalogue est vide",
-      "empty_catalog_text": "{kind, select, products {Crée l'article ici : il s'ajoute à la commande et reste dans ton catalogue pour les prochaines fois.} services {Crée le service ici : il s'ajoute à la commande et reste dans ton catalogue pour les prochaines fois.} other {Crée l'article ou le service ici : il s'ajoute à la commande et reste dans ton catalogue pour les prochaines fois.}}",
-      "empty_catalog_free_question": "{kind, select, products {Un article que tu ne revendras pas ?} services {Un service que tu ne factureras qu'une fois ?} other {Un article ou un service ponctuel ?}}",
-      "empty_catalog_free_link": "Ajoute-le sans l'enregistrer",
-      "view_cart": "{count, plural, one {Voir la commande (# article)} other {Voir la commande (# articles)}}"
+      "empty_catalog_title": "Votre catalogue est vide",
+      "empty_catalog_text": "{kind, select, products {Créez l'article ici : il s'ajoute à la commande et reste dans votre catalogue pour les prochaines fois.} services {Créez le service ici : il s'ajoute à la commande et reste dans votre catalogue pour les prochaines fois.} other {Créez l'article ou le service ici : il s'ajoute à la commande et reste dans votre catalogue pour les prochaines fois.}}",
+      "empty_catalog_free_question": "{kind, select, products {Un article que vous ne revendrez pas ?} services {Un service que vous ne facturerez qu'une fois ?} other {Un article ou un service ponctuel ?}}",
+      "empty_catalog_free_link": "Ajoutez-le sans l'enregistrer",
+      "view_cart": "{count, plural, one {Voir la commande (# article)} other {Voir la commande (# articles)}}",
+      "free_line_button": "{kind, select, products {Article ponctuel} services {Service ponctuel} other {Article ponctuel}}",
+      "free_line_help": "Ajouté à cette commande sans l'enregistrer dans le catalogue",
+      "add_error": "Ajout impossible. Vérifiez votre connexion et réessayez."
     },
     "customerPicker": {
       "trigger_select": "Sélectionner un client",
-      "trigger_select_sub": "Choisis un client pour démarrer",
       "trigger_selected": "Client sélectionné",
       "remove_aria": "Retirer le client",
       "sheet_title": "Sélectionner un client",
@@ -791,7 +832,6 @@
       "no_customers": "Aucun client enregistré."
     },
     "quickAdd": {
-      "trigger_aria": "Ajouter",
       "customer_title": "Nouveau client",
       "customer_label": "Nom du client *",
       "customer_required": "Le nom est requis.",
@@ -820,170 +860,180 @@
       "paid": "Payées"
     },
     "filterSheet": {
-      "title": "Filtres",
-      "close": "Fermer",
       "status_title": "Statut",
       "payment_title": "Paiement",
-      "reset": "Réinitialiser",
-      "apply": "Voir les commandes"
-    },
-    "filterBar": {
-      "filters_btn": "Filtres",
-      "remove_filter": "Retirer le filtre {name}"
+      "apply": "Voir les commandes",
+      "show_results": "{count, plural, =0 {Aucune commande} one {Voir # commande} other {Voir les # commandes}}",
+      "sort_title": "Trier par",
+      "sort_newest": "Plus récentes",
+      "sort_oldest": "Plus anciennes",
+      "sort_amount_desc": "Montant décroissant",
+      "sort_amount_asc": "Montant croissant"
     }
   },
   "articles": {
-    "topbar": {
-      "title": "{kind, select, products {Articles} services {Services} other {Articles et services}}"
-    },
     "list": {
-      "search_placeholder": "{kind, select, products {Rechercher un article…} services {Rechercher un service…} other {Rechercher un article…}}",
-      "clear_search": "Effacer la recherche",
-      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Ajouter}}",
-      "options": "Options",
+      "title": "{kind, select, products {Articles} services {Services} other {Articles et services}}",
       "count": "{kind, select, products {{count, plural, one {# article} other {# articles}}} services {{count, plural, one {# service} other {# services}}} other {{count, plural, one {# article} other {# articles}}}}",
-      "filter_all": "Tous",
-      "filter_product": "Produits",
-      "filter_service": "Services",
-      "visibility_active": "Actifs",
-      "visibility_inactive": "Inactifs",
-      "visibility_all": "Tous"
-    },
-    "stats": {
-      "out_of_stock": "En rupture",
-      "low_stock": "Stock faible"
-    },
-    "empty": {
-      "no_results_title": "Aucun résultat",
-      "no_results_message": "Rien ne correspond à « {term} »",
-      "clear_search": "Effacer la recherche",
-      "title": "{kind, select, products {Aucun article} services {Aucun service} other {Aucun article}}",
-      "message": "{kind, select, products {Ajoute ton premier article pour commencer à gérer ton catalogue.} services {Ajoute ton premier service pour commencer à gérer ton catalogue.} other {Ajoute ton premier article ou service pour commencer à gérer ton catalogue.}}",
-      "new_product": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}"
-    },
-    "row": {
-      "inactive": "Inactif",
-      "format": "format",
+      "new_cta": "{kind, select, products {Nouvel article} services {Nouveau service} other {Ajouter}}",
+      "search_label": "{kind, select, products {Rechercher un article} services {Rechercher un service} other {Rechercher un article ou un service}}",
+      "search_placeholder": "{kind, select, products {Nom, référence ou code-barres} services {Nom du service} other {Nom, référence ou code-barres}}",
+      "clear_filters": "Effacer les filtres",
+      "type_title": "Type",
+      "type": {
+        "all": "Tous",
+        "product": "Articles",
+        "service": "Services"
+      },
+      "stock_title": "Stock",
+      "stock": {
+        "all": "Tous",
+        "negative": "Négatif",
+        "out": "En rupture",
+        "low": "Stock faible",
+        "in": "En stock"
+      },
+      "state_title": "État",
+      "state": {
+        "all": "Tous",
+        "active": "Actifs",
+        "inactive": "Inactifs"
+      },
+      "column_name": "{kind, select, products {Article} services {Service} other {Article}}",
+      "column_type": "Type",
+      "column_price": "Prix",
+      "column_stock": "Stock",
+      "column_state": "État",
+      "type_one": "{type, select, service {Service} other {Article}}",
       "formats": "{count, plural, one {# format} other {# formats}}",
       "service": "Service",
       "out_of_stock": "Rupture",
-      "low_stock_with": "Stock faible, {formats}",
-      "in_stock_with": "{formats} en stock"
+      "in_stock": "{stock} en stock",
+      "low_stock_hint": ", stock faible",
+      "state_active": "Actif",
+      "state_inactive": "Inactif",
+      "none": "Aucun",
+      "load_more": "Charger plus",
+      "empty_title": "{kind, select, products {Aucun article} services {Aucun service} other {Aucun article ni service}}",
+      "empty_sub": "{kind, select, products {Ajoutez votre premier article pour prendre vos commandes et suivre votre stock.} services {Ajoutez votre premier service pour prendre vos commandes.} other {Ajoutez votre premier article ou service pour prendre vos commandes.}}",
+      "empty_filtered_title": "{kind, select, products {Aucun article pour ce filtre} services {Aucun service pour ce filtre} other {Aucun résultat pour ce filtre}}",
+      "empty_filtered_sub": "{kind, select, products {Retirez les filtres ou modifiez la recherche pour voir tous vos articles.} services {Retirez les filtres ou modifiez la recherche pour voir tous vos services.} other {Retirez les filtres ou modifiez la recherche pour voir tout votre catalogue.}}",
+      "sort": {
+        "name": "{dir, select, asc {Trié par nom, de A à Z} other {Trié par nom, de Z à A}}",
+        "created_at": "{dir, select, asc {Trié par date d'ajout, plus anciens d'abord} other {Trié par date d'ajout, plus récents d'abord}}",
+        "min_price": "{dir, select, asc {Trié par prix, moins chers d'abord} other {Trié par prix, plus chers d'abord}}",
+        "total_stock": "{dir, select, asc {Trié par stock, plus bas d'abord} other {Trié par stock, plus hauts d'abord}}",
+        "type": "{dir, select, asc {Trié par type, articles d'abord} other {Trié par type, services d'abord}}"
+      },
+      "stats": {
+        "out_label": "En rupture",
+        "low_label": "Stock faible",
+        "active_label": "{kind, select, products {Articles actifs} services {Services actifs} other {Articles et services actifs}}"
+      },
+      "negative_stock": "{stock}, à régulariser"
     },
     "badges": {
       "inactive": "Inactif",
+      "negative_stock": "Stock à régulariser",
       "out_of_stock": "Rupture",
-      "low_stock": "Stock faible",
-      "service": "Service",
-      "active": "Actif"
-    },
-    "options": {
-      "title": "Options",
-      "close": "Fermer",
-      "type": "Type",
-      "sort_by": "Trier par",
-      "show": "Afficher",
-      "type_all": "Produits + services",
-      "type_products": "Produits uniquement",
-      "type_services": "Services uniquement",
-      "show_active": "Actifs uniquement",
-      "show_inactive": "Inactifs uniquement",
-      "show_all": "Actifs + inactifs",
-      "sort_name_asc": "Nom A → Z",
-      "sort_name_desc": "Nom Z → A",
-      "sort_recent": "Plus récents"
-    },
-    "addType": {
-      "trigger_aria": "Ajouter un article",
-      "title": "Ajouter au catalogue",
-      "close": "Fermer",
-      "product_title": "Produit",
-      "product_subtitle": "Article physique avec stock à suivre",
-      "service_title": "Service",
-      "service_subtitle": "Prestation sans gestion de stock"
+      "low_stock": "Stock faible"
     },
     "detail": {
-      "title": "{type, select, product {Produit} service {Service} other {Article}}",
-      "not_found": "{type, select, product {Produit introuvable.} service {Service introuvable.} other {Introuvable.}}",
-      "upload_error": "Erreur lors de l'upload.",
-      "confirm_deactivate": "{type, select, product {Désactiver ce produit ?} service {Désactiver ce service ?} other {Désactiver cet article ?}}",
-      "initial_stock_reason": "Stock initial",
-      "no_default_variant": "Variant par défaut manquant.",
-      "description_heading": "Description"
-    },
-    "hero": {
-      "stock_in": "Entrée stock",
-      "edit": "Modifier",
-      "more_actions": "Plus d'actions"
-    },
-    "photo": {
-      "replace_aria": "Remplacer la photo",
-      "add_aria": "Ajouter une photo",
-      "helper": "JPEG, PNG ou WebP — 5 Mo max",
-      "format_unsupported": "Format non supporté : choisissez une image.",
-      "too_heavy": "Image trop lourde (5 Mo max).",
-      "preview_alt": "Aperçu",
-      "remove_aria": "Retirer la photo",
-      "selected": "Photo sélectionnée",
-      "add_label": "Ajouter une photo"
-    },
-    "statsGrid": {
-      "service_price": "Prix de la prestation",
-      "active_formats": "Formats actifs",
-      "formats_helper": "Détail par format ci-dessous",
-      "sale_price": "Prix de vente",
-      "according_to_packaging": "Selon le conditionnement"
-    },
-    "actions": {
-      "stock_out": "Sortie stock",
-      "replace_photo": "Remplacer la photo",
-      "add_photo": "Ajouter une photo",
-      "photo_helper": "JPEG, PNG ou WebP — 5 Mo max",
-      "deactivate": "{type, select, product {Désactiver le produit} service {Désactiver le service} other {Désactiver}}",
-      "deactivate_helper": "{type, select, product {Le produit n'apparaîtra plus dans la liste} service {Le service n'apparaîtra plus dans la liste} other {Cet article n'apparaîtra plus dans la liste}}",
-      "reactivate": "{type, select, product {Réactiver le produit} service {Réactiver le service} other {Réactiver}}"
+      "not_found": "{type, select, product {Produit introuvable.} service {Service introuvable.} other {Introuvable.}}"
     },
     "form": {
-      "topbar_new_product": "Nouveau produit",
-      "topbar_new_service": "Nouveau service",
-      "topbar_edit": "Modifier",
-      "topbar_edit_product": "Modifier le produit",
-      "topbar_edit_service": "Modifier le service",
-      "loading": "Chargement…",
-      "type_product_title": "Produit physique",
-      "type_product_subtitle": "Stock suivi, unité de vente à définir.",
-      "type_service_title": "Service",
-      "type_service_subtitle": "Pas de stock — un prix et une description suffisent.",
-      "name_required": "Nom requis",
-      "description_max": "{max} caractères maximum",
-      "generic_error": "Une erreur est survenue. Vérifiez les champs et réessayez.",
-      "network_error": "Impossible de joindre le serveur. Réessayez dans un instant.",
+      "title_new": "{kind, select, products {Nouvel article} services {Nouveau service} other {Nouvel article ou service}}",
+      "title_edit": "{type, select, service {Modifier le service} other {Modifier l'article}}",
+      "subtitle_edit": "{type, select, service {Service créé le {date}} other {Article créé le {date}}}",
+      "type": "Type",
+      "type_product": "Article",
+      "type_service": "Service",
+      "type_product_help": "Avec stock",
+      "type_service_help": "Sans stock",
+      "name": "Nom",
+      "selling_price": "Prix de vente",
+      "price_suffix": "{currency} / {unit}",
+      "unit": "Unité de vente",
+      "unit_help": "Définitive après création : prix et stocks s'expriment dans cette unité.",
+      "formats_note": "Cet article a {count} formats : prix, stock et références se règlent format par format sur la fiche.",
+      "manage_formats": "Gérer les formats",
       "section_photo": "Photo",
-      "section_identity": "Identité",
-      "name_label_product": "Nom du produit",
-      "name_label_service": "Nom du service",
-      "sku_label": "Référence / SKU (optionnel)",
-      "section_unit": "Unité de vente",
-      "unit_select_label": "Comment vendez-vous ce produit ?",
-      "unit_helper": "Définitif après création — tous les prix et stocks s'exprimeront dans cette unité.",
-      "section_price": "Prix",
-      "sale_price": "Prix de vente",
-      "purchase_price": "Prix d'achat (optionnel)",
-      "purchase_helper": "Le prix d'achat sert au calcul de marge et à la zakât. Laissez vide s'il varie.",
+      "photo_summary": "{count, plural, one {# photo} other {# photos}}",
+      "photo_format": "Choisissez une image JPEG, PNG ou WebP.",
+      "purchase_price": "Prix d'achat",
       "section_stock": "Stock",
-      "initial_stock": "Stock initial (optionnel)",
-      "initial_stock_helper": "Enregistre une entrée stock « Stock initial » à la création.",
-      "alert_threshold": "Seuil d'alerte (optionnel)",
-      "alert_helper": "Notifié quand le stock passe sous ce seuil. Laissez vide pour désactiver.",
-      "section_description": "Description",
-      "description_product": "Description du produit",
-      "description_service": "Description du service",
-      "description_placeholder_product": "Composition, conseils d'utilisation, dimensions, matière…",
-      "description_placeholder_service": "Déroulé de la prestation, durée moyenne, conditions…",
-      "char_count": "{count} / {max}",
-      "saving": "Enregistrement…",
-      "submit_product": "Enregistrer le produit",
-      "submit_service": "Enregistrer le service"
+      "initial_stock": "Stock initial",
+      "initial_stock_help": "Enregistré comme une entrée de stock.",
+      "current_stock": "Stock actuel",
+      "stock_in_link": "Faire une entrée de stock",
+      "threshold": "Seuil d'alerte",
+      "threshold_help": "En dessous, l'article passe en stock faible.",
+      "stock_summary_both": "{stock} en stock, alerte à {threshold}",
+      "stock_summary_stock": "{stock} en stock",
+      "stock_summary_threshold": "Alerte à {threshold}",
+      "section_reference": "Référence et code-barres",
+      "sku": "Référence",
+      "barcode": "Code-barres",
+      "sku_summary": "Réf. {sku}",
+      "barcode_summary": "Code-barres {barcode}",
+      "description": "Description",
+      "submit_create": "{type, select, service {Créer le service} other {Créer l'article}}",
+      "submit_edit": "Enregistrer",
+      "name_required": "Indiquez un nom.",
+      "name_taken": "Un article ou un service porte déjà ce nom dans votre boutique.",
+      "price_required": "Indiquez le prix de vente.",
+      "amount_invalid": "Saisissez un montant, par exemple 12,50.",
+      "quantity_invalid": "Saisissez une quantité positive, par exemple 12.",
+      "too_long": "{max} caractères au maximum.",
+      "field_invalid": "Valeur refusée : vérifiez ce champ.",
+      "save_failed": "L'enregistrement a échoué. Réessayez dans un instant.",
+      "extras_failed": "{type, select, service {Service enregistré, mais les photos n'ont pas toutes pu l'être. Réessayez depuis la fiche.} other {Article enregistré, mais les photos ou le stock n'ont pas tous pu l'être. Réessayez depuis la fiche.}}",
+      "toast_created": "{type, select, service {Service créé} other {Article créé}}",
+      "toast_saved": "{type, select, service {Service enregistré} other {Article enregistré}}",
+      "unit_short": "{unit, select, piece {pièce} other {{unit}}}",
+      "section_info": "Informations",
+      "section_price": "Prix",
+      "section_sale": "Vente",
+      "purchase_help": "Pour suivre votre marge et calculer la zakât.",
+      "margin_rate": "Marge {margin} %",
+      "margin_amount": "{unit, select, piece {soit {amount} par pièce vendue} other {soit {amount} par {unit} vendu}}",
+      "photo_main": "Principale",
+      "photo_add": "Ajouter une photo",
+      "photo_crop": "Recadrer",
+      "photo_remove": "Retirer",
+      "photo_note": "Format carré conseillé. JPEG, PNG ou WebP.",
+      "photo_thumb": "Photo {index} : en faire la photo principale",
+      "photo_load_failed": "La photo n'a pas pu être chargée. Réessayez dans un instant.",
+      "scan_barcode": "Scanner le code-barres",
+      "scan_help": "Scannez maintenant avec votre lecteur : le code s'inscrit dans le champ.",
+      "subtitle_new": "Les champs marqués d'un astérisque sont obligatoires.",
+      "section_formats": "Formats et prix",
+      "formats_help": "Une ligne par taille, contenance ou conditionnement. Chaque format a son prix et son stock.",
+      "formats_multiple": "Plusieurs formats (tailles, contenances…)",
+      "formats_single": "Revenir à un format unique",
+      "format_name": "Format",
+      "format_placeholder": "Ex. Taille M",
+      "format_more": "Plus d'options pour {name}",
+      "format_number": "Format {index}",
+      "format_deactivate": "Retirer de la vente",
+      "format_reactivate": "Remettre en vente",
+      "format_delete": "Supprimer",
+      "format_remove": "Supprimer la ligne",
+      "format_add": "Ajouter un format",
+      "format_actions": "Actions",
+      "formats_count": "{count, plural, one {# format} other {# formats}}",
+      "formats_count_stock": "{count, plural, one {# format} other {# formats}} · {unit, select, piece {{quantity, plural, one {{stock} pièce} other {{stock} pièces}}} other {{stock} {unit}}} en stock initial",
+      "formats_margin_range": "Marge de {min} à {max} %",
+      "formats_margin_varies": "selon le format",
+      "formats_margin_same": "pour tous les formats",
+      "formats_same_price": "Même prix pour tous les formats",
+      "formats_same_threshold": "Même seuil pour tous",
+      "unit_help_formats": "La même pour tous les formats. Définitive après création.",
+      "reference_formats_note": "Avec plusieurs formats, la référence et le code-barres se règlent par format, depuis le menu « ⋯ » de chaque ligne.",
+      "submit_create_formats": "{count, plural, one {Créer l'article et son format} other {Créer l'article et ses # formats}}",
+      "format_name_required": "Indiquez le nom du format.",
+      "format_name_taken": "Un autre format de cet article porte déjà ce nom.",
+      "sku_taken": "Cette référence est déjà utilisée."
     },
     "units": {
       "piece": "Pièce",
@@ -993,131 +1043,414 @@
       "liter": "Litre (L)",
       "meter": "Mètre (m)"
     },
-    "variants": {
-      "section_title": "Conditionnements",
-      "add": "Ajouter",
-      "empty": "Aucun conditionnement.",
-      "name_label_product": "Nom du format *",
-      "name_label_service": "Nom *",
-      "sku_label": "SKU (optionnel)",
-      "unit_label": "Unité de mesure",
-      "quantity_label": "Quantité contenue",
-      "sale_price_label": "Prix de vente *",
-      "unit_price_preview": "Soit {price}",
-      "purchase_label": "Prix d'achat (optionnel)",
-      "alert_label": "Seuil d'alerte (optionnel)",
-      "initial_stock_label": "Stock initial (optionnel)",
-      "name_required": "Nom du conditionnement requis.",
-      "price_required": "Prix de vente requis.",
-      "save_failed": "Impossible d'enregistrer le conditionnement.",
-      "generic_error": "Une erreur est survenue.",
-      "saving": "Enregistrement…",
-      "update": "Mettre à jour",
-      "add_button": "Ajouter",
+    "filterSheet": {
+      "apply": "{kind, select, products {Voir les articles} services {Voir les services} other {Voir les résultats}}",
+      "show_results": "{kind, select, products {{count, plural, =0 {Aucun article} one {Voir # article} other {Voir les # articles}}} services {{count, plural, =0 {Aucun service} one {Voir # service} other {Voir les # services}}} other {{count, plural, =0 {Aucun résultat} one {Voir # résultat} other {Voir les # résultats}}}}",
+      "sort_title": "Trier par",
+      "sort_name": "Nom, de A à Z",
+      "sort_newest": "Les plus récents",
+      "sort_price_asc": "Prix, moins chers d'abord",
+      "sort_price_desc": "Prix, plus chers d'abord",
+      "sort_stock": "Stock, plus bas d'abord"
+    },
+    "sheet": {
+      "topbar": "Fiche",
+      "not_found": "Cet article est introuvable.",
+      "subtitle": "{type, select, service {Service, créé le {date}} other {Article, créé le {date}}}",
+      "subtitle_formats": "Article, {count} formats, créé le {date}",
+      "edit": "Modifier",
+      "stock_in": "Entrée de stock",
+      "correct_stock": "Corriger le stock",
+      "deactivate": "Désactiver",
+      "reactivate": "Réactiver",
+      "delete": "Supprimer",
       "cancel": "Annuler",
-      "inactive_badge": "Inactif",
-      "sku_with": "SKU {sku}",
-      "edit_aria": "Modifier",
-      "remove_aria": "Supprimer",
-      "confirm_remove": "Supprimer le conditionnement \"{name}\" ?",
-      "remove_failed": "Suppression impossible."
+      "reactivated": "{type, select, service {Service réactivé} other {Article réactivé}}",
+      "deactivated": "{type, select, service {Service désactivé} other {Article désactivé}}",
+      "deleted": "{type, select, service {Service supprimé} other {Article supprimé}}",
+      "action_failed": "L'opération a échoué. Réessayez dans un instant.",
+      "delete_refused": "Cet article a déjà servi : désactivez-le plutôt.",
+      "confirm_deactivate_title": "{type, select, service {Désactiver ce service ?} other {Désactiver cet article ?}}",
+      "confirm_deactivate_text": "{type, select, service {Il ne sera plus proposé dans vos commandes. Son historique est conservé et vous pourrez le réactiver.} other {Il ne sera plus proposé dans vos commandes ni suivi dans le stock. Son historique est conservé et vous pourrez le réactiver.}}",
+      "confirm_delete_title": "{type, select, service {Supprimer ce service ?} other {Supprimer cet article ?}}",
+      "confirm_delete_text": "Il n'a jamais servi : il sera supprimé définitivement, avec ses formats et sa photo.",
+      "formats_title": "Formats",
+      "add_format": "Ajouter un format",
+      "formats_empty": "Aucun format.",
+      "col_format": "Format",
+      "col_price": "Prix",
+      "col_stock": "Stock",
+      "col_threshold": "Seuil",
+      "col_state": "État",
+      "col_actions": "Actions",
+      "edit_format": "Modifier le format {name}",
+      "format_line": "{price}, seuil {threshold}",
+      "movements_title": "Derniers mouvements",
+      "see_all": "Voir tout",
+      "movements_empty": "Aucun mouvement de stock pour l'instant.",
+      "movements_error": "Les mouvements n'ont pas pu être chargés.",
+      "stock_title": "Stock",
+      "stock_total_hint": "{count, plural, one {en stock} other {en stock, tous formats}}",
+      "negative_formats": "{count, plural, one {# format négatif} other {# formats négatifs}}",
+      "purchase_value": "Valeur d'achat",
+      "threshold": "Seuil d'alerte",
+      "threshold_each": "{threshold} par format",
+      "per_format": "Selon le format",
+      "sold_30d": "Vendus sur 30 jours",
+      "sold_30d_service": "Vendus sur 30 jours",
+      "sales_value": "{quantity}, soit {amount}",
+      "no_sales": "Aucune vente",
+      "references_title": "Références",
+      "sku": "Référence",
+      "barcode": "Code-barres",
+      "unit": "Unité de vente",
+      "purchase_price": "Prix d'achat",
+      "purchase_margin": "{price}, marge {margin} %",
+      "prices_title": "Prix",
+      "add_price": "Ajouter un prix",
+      "sales_title": "Ventes sur 30 jours",
+      "description_title": "Description",
+      "movement": {
+        "order": "{type}, commande <link>{number}</link>",
+        "order_cancelled": "{type}, commande <link>{number}</link> annulée",
+        "supplier_invoice": "{type}, {supplier} facture {invoice}",
+        "supplier": "{type}, {supplier}",
+        "invoice": "{type}, facture {invoice}",
+        "kind": "{type}, {kind}",
+        "kind_note": "{type}, {kind}, {note}",
+        "note": "{type}, {note}",
+        "kinds": {
+          "loss": "perte",
+          "breakage": "casse",
+          "internal_use": "usage interne",
+          "adjustment": "inventaire"
+        }
+      },
+      "format": {
+        "new_title": "{type, select, service {Nouveau prix} other {Nouveau format}}",
+        "edit_title": "{type, select, service {Modifier le prix} other {Modifier le format}}",
+        "name": "{type, select, service {Nom de la prestation} other {Nom du format}}",
+        "name_help": "Par exemple « Taille M », « Boîte de 6 », « 500 g ».",
+        "base_quantity": "Contenance",
+        "base_quantity_help": "Quantité vendue dans ce format, dans l'unité de vente.",
+        "submit_new": "Ajouter",
+        "submit_edit": "Enregistrer",
+        "created": "Format ajouté",
+        "saved": "Format enregistré",
+        "deactivate": "Retirer de la vente",
+        "reactivate": "Remettre en vente",
+        "deactivated": "Format retiré de la vente",
+        "reactivated": "Format remis en vente",
+        "format_name_required": "Indiquez un nom.",
+        "price_required": "Indiquez le prix de vente.",
+        "amount_invalid": "Saisissez un montant, par exemple 12,50.",
+        "quantity_invalid": "Saisissez une quantité positive, par exemple 12.",
+        "too_long": "{max} caractères au maximum.",
+        "name_taken": "Un autre format de cet article porte déjà ce nom.",
+        "field_invalid": "Valeur refusée : vérifiez ce champ.",
+        "save_failed": "L'enregistrement a échoué. Réessayez dans un instant.",
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "deleted": "Format supprimé",
+        "delete_refused": "Ce format a déjà servi : retirez-le de la vente.",
+        "confirm_delete_title": "Supprimer le format « {name} » ?",
+        "confirm_delete_text": "Il n'a jamais servi : il disparaît définitivement de l'article.",
+        "actions_label": "Actions du format {name}"
+      },
+      "photos": "Photos",
+      "photos_manage": "Gérer les photos",
+      "photos_add": "Ajouter des photos"
     }
   },
   "stock": {
-    "importInvoice": {
-      "title": "Importer une facture",
-      "picker_title": "Ajouter une photo de facture",
-      "picker_helper": "JPEG, PNG ou WebP. L'analyse OCR démarre automatiquement.",
-      "pick_cta": "Prendre / choisir une photo",
-      "uploading": "Envoi…",
-      "upload_error": "Erreur lors de l'envoi.",
-      "loading": "Chargement…",
-      "analyzing": "Analyse de la facture…",
-      "analyzing_sub": "Cela prend en général quelques secondes.",
-      "error_network_title": "Erreur réseau",
-      "error_network_body": "Impossible de récupérer le résultat. Réessayez dans un instant.",
-      "restart": "Recommencer",
-      "restart_other_photo": "Recommencer avec une autre photo",
-      "retry_photo": "Réessayer avec une autre photo",
-      "failed_title": "L'analyse structurée a échoué",
-      "failed_with_raw": "Nous n'avons pas pu extraire de facture structurée. Le texte brut reste consultable ci-dessous.",
-      "failed_without_raw": "Aucun texte n'a pu être extrait. Essayez une photo plus nette et bien cadrée.",
-      "raw_text_label": "Texte OCR brut",
-      "matching_unavailable": "Correspondances catalogue indisponibles pour cette facture.",
-      "lines_title": "Lignes détectées",
-      "supplier": "Fournisseur",
-      "invoice_number": "N° facture",
-      "invoice_date": "Date",
-      "total": "Total",
-      "currency": "Devise",
-      "ocr_confidence_short": "Confiance OCR {pct}%",
-      "field_description": "Description",
-      "field_quantity": "Qté",
-      "field_unit_price": "PU",
-      "field_unit_price_with": "PU ({currency})",
-      "field_line_total": "Total",
-      "field_line_total_with": "Total ({currency})",
-      "supplier_ref_prefix": "Réf.",
-      "no_candidate": "Aucun article correspondant",
-      "proposal_suffix": "proposition",
-      "decide_prompt": "Appuyez pour choisir ou ignorer",
-      "quick_catalog": "Choisir dans mon catalogue",
-      "quick_ignore": "Ignorer cette ligne",
-      "missing_quantity": "Quantité requise pour valider",
-      "change_choice": "Changer",
-      "reset_decision": "Réinitialiser",
-      "ignored_state": "Ligne ignorée — pas d'entrée de stock",
-      "ready_summary": "{count, plural, =0 {Aucune ligne en stock} one {# ligne prête, {ignored, plural, =0 {aucune ignorée} one {# ignorée} other {# ignorées}}} other {# lignes prêtes, {ignored, plural, =0 {aucune ignorée} one {# ignorée} other {# ignorées}}}}",
-      "missing_summary": "{count, plural, one {# ligne à traiter} other {# lignes à traiter}}",
-      "continue_cta": "Valider la facture",
-      "validating": "Validation…",
-      "confirm_title": "Confirmer la validation",
-      "confirm_body": "Cette action fige la revue. Vous ne pourrez plus modifier les lignes ensuite.",
-      "confirm_stock_count": "{count, plural, =0 {Aucune ligne à ajouter au stock} one {# ligne à ajouter au stock} other {# lignes à ajouter au stock}}",
-      "confirm_ignore_count": "{count, plural, =0 {Aucune ligne ignorée} one {# ligne ignorée} other {# lignes ignorées}}",
-      "confirm_no_stock_hint": "Aucun mouvement de stock n'est créé maintenant — l'entrée réelle se fera à l'étape suivante.",
-      "confirm_cta": "Valider",
-      "confirm_cancel": "Annuler",
-      "error_generic": "Impossible de valider pour le moment.",
-      "error_payload": "Certaines lignes ne sont pas valides. Vérifiez les quantités et les articles sélectionnés.",
-      "error_conflict": "Cette facture a déjà été validée avec des choix différents. Rechargez la page.",
-      "validated_title": "Facture validée",
-      "validated_at": "Validée le {when}",
-      "validated_body": "{stock, plural, =0 {Aucune ligne} one {# ligne} other {# lignes}} en stock, {ignored, plural, =0 {aucune ignorée} one {# ignorée} other {# ignorées}}.",
-      "validated_no_stock_hint": "L'entrée de stock proprement dite arrive dans l'étape suivante.",
-      "validated_lines_title": "Décisions",
-      "validated_line_stock": "À ajouter au stock",
-      "validated_line_ignored": "Ignorée",
-      "validated_restart": "Importer une autre facture"
+    "common": {
+      "single_format": "Format unique",
+      "today": "Aujourd'hui",
+      "yesterday": "Hier",
+      "today_at": "Aujourd'hui, {time}",
+      "yesterday_at": "Hier, {time}",
+      "variant_label": "{product}, {format}",
+      "load_more": "Charger plus",
+      "decrease": "Retirer 1",
+      "increase": "Ajouter 1",
+      "before_after": "Stock actuel <b>{before}</b> → <a>{after}</a> après l'entrée",
+      "quantity_invalid": "Saisissez une quantité supérieure à 0.",
+      "amount_invalid": "Saisissez un montant valide, par exemple 12,50.",
+      "cancel": "Annuler",
+      "save_error": "L'enregistrement a échoué. Réessayez.",
+      "none": "Non renseigné",
+      "lines_empty": "Ajoutez au moins un article.",
+      "line_unassociated": "Associez cette ligne à un article."
     },
-    "candidatesSheet": {
-      "title": "Choisir un article",
-      "line_prefix": "Ligne facture :",
-      "empty_title": "Aucun article correspondant",
-      "empty_body": "Le catalogue ne propose aucun article pour cette ligne.",
-      "pick_other_title": "Choisir un autre article",
-      "pick_other_sub": "Parcourir votre catalogue",
-      "ignore_title": "Ignorer cette ligne",
-      "ignore_sub": "Ne pas ajouter au stock"
+    "page": {
+      "title": "Stock",
+      "subtitle": "{count, plural, one {# format suivi} other {# formats suivis}}, valeur d'achat {value}",
+      "exit_cta": "Sortie de stock",
+      "entry_cta": "Entrée de stock"
     },
-    "catalogSheet": {
-      "title": "Mon catalogue",
-      "line_prefix": "Ligne facture :",
-      "search_placeholder": "Rechercher un produit…",
-      "search_clear_aria": "Effacer la recherche",
-      "loading": "Chargement…",
-      "no_products": "Aucun produit dans votre catalogue.",
-      "no_results": "Aucun produit ne correspond.",
-      "variant_formats": "{count, plural, =0 {Aucun format} one {# format} other {# formats}}",
-      "no_variants": "Aucun conditionnement actif.",
-      "back_to_products": "Retour aux produits",
-      "variant_pick_helper": "Choisissez le conditionnement reçu",
-      "stock_short": "Stock : {qty}"
+    "tabs": {
+      "label": "Vues du stock",
+      "levels": "Niveaux",
+      "movements": "Mouvements"
     },
-    "matchKind": {
-      "barcode_exact": "Code-barres identique",
-      "sku_exact": "Référence identique",
-      "name_similarity": "Nom similaire"
+    "stats": {
+      "negative_label": "Négatif",
+      "negative_sub": "à régulariser",
+      "out_label": "En rupture",
+      "out_sub": "formats à réassortir",
+      "low_label": "Stock faible",
+      "low_sub": "sous le seuil d'alerte",
+      "value_label": "Valeur du stock",
+      "value_sub": "au prix d'achat"
+    },
+    "levels": {
+      "search_label": "Rechercher un format",
+      "search_placeholder": "Article, format, référence ou code-barres",
+      "state_title": "État",
+      "clear_filters": "Effacer les filtres",
+      "state": {
+        "all": "Tous",
+        "negative": "Négatif",
+        "out": "En rupture",
+        "low": "Stock faible",
+        "in": "En stock"
+      },
+      "badge": {
+        "negative": "Négatif",
+        "out": "Rupture",
+        "low": "Faible",
+        "in": "En stock"
+      },
+      "sort": {
+        "stock": "{dir, select, asc {Trié par stock, plus bas d'abord} other {Trié par stock, plus haut d'abord}}",
+        "name": "{dir, select, asc {Trié par nom, de A à Z} other {Trié par nom, de Z à A}}",
+        "purchase_value": "{dir, select, asc {Trié par valeur d'achat, plus faible d'abord} other {Trié par valeur d'achat, plus élevée d'abord}}",
+        "last_movement": "{dir, select, asc {Trié par dernier mouvement, plus ancien d'abord} other {Trié par dernier mouvement, plus récent d'abord}}"
+      },
+      "sort_option": {
+        "stock_asc": "Stock le plus bas",
+        "name_asc": "Nom, de A à Z",
+        "value_desc": "Valeur d'achat la plus élevée",
+        "last_movement_desc": "Dernier mouvement le plus récent"
+      },
+      "to_regularize": "à régulariser",
+      "entry_short": "Entrée",
+      "entry_for": "Entrée de stock : {name}",
+      "column_name": "Article et format",
+      "column_stock": "Stock",
+      "column_threshold": "Seuil",
+      "column_state": "État",
+      "column_value": "Valeur d'achat",
+      "column_last_movement": "Dernier mouvement",
+      "column_actions": "Actions"
+    },
+    "movements": {
+      "search_label": "Rechercher un mouvement",
+      "search_placeholder": "Article, format ou référence",
+      "product_filter": "Article",
+      "type_title": "Mouvement",
+      "period_title": "Période",
+      "clear_filters": "Effacer les filtres",
+      "type": {
+        "in": "Entrée",
+        "out": "Sortie",
+        "reservation": "Réservation",
+        "release": "Libération",
+        "adjustment": "Correction"
+      },
+      "filter_type": {
+        "all": "Tous",
+        "in": "Entrées",
+        "out": "Sorties",
+        "reservation": "Réservations",
+        "release": "Libérations",
+        "adjustment": "Corrections"
+      },
+      "period": {
+        "all": "Toutes",
+        "today": "Aujourd'hui",
+        "7d": "7 derniers jours",
+        "30d": "30 derniers jours",
+        "90d": "90 derniers jours"
+      },
+      "sort": "{dir, select, asc {Trié par date, plus anciens d'abord} other {Trié par date, plus récents d'abord}}",
+      "sort_option": {
+        "newest": "Plus récents d'abord",
+        "oldest": "Plus anciens d'abord"
+      },
+      "column_date": "Date",
+      "column_name": "Article et format",
+      "column_type": "Mouvement",
+      "column_quantity": "Quantité",
+      "column_reference": "Motif ou référence",
+      "column_author": "Par",
+      "reference": {
+        "order": "Commande <link>{number}</link>",
+        "order_cancelled": "Commande <link>{number}</link> annulée",
+        "supplier_invoice": "{supplier}, facture {invoice}",
+        "invoice": "Facture {invoice}",
+        "kind": {
+          "loss": "Perte",
+          "breakage": "Casse",
+          "internal_use": "Usage interne",
+          "adjustment": "Inventaire"
+        },
+        "with_note": "{kind}, {note}",
+        "none": "Aucune référence"
+      }
+    },
+    "filterSheet": {
+      "apply_levels": "Afficher les formats",
+      "show_levels": "{count, plural, =0 {Aucun format} one {Afficher # format} other {Afficher # formats}}",
+      "apply_movements": "Afficher les mouvements",
+      "sort_title": "Trier par"
+    },
+    "empty": {
+      "levels_title": "Aucun format suivi",
+      "levels_sub": "Ajoutez un article avec du stock pour suivre ses niveaux ici.",
+      "levels_filtered_title": "Aucun format ne correspond",
+      "levels_filtered_sub": "Modifiez la recherche ou retirez un filtre.",
+      "movements_title": "Aucun mouvement",
+      "movements_sub": "Les entrées, sorties et réservations de vos commandes apparaîtront ici.",
+      "movements_filtered_title": "Aucun mouvement ne correspond",
+      "movements_filtered_sub": "Modifiez la recherche, la période ou retirez un filtre.",
+      "clear_filters": "Effacer les filtres",
+      "add_product": "Ajouter un article"
+    },
+    "quick": {
+      "title": "Entrée de stock",
+      "quantity": "Quantité reçue",
+      "price": "Prix d'achat unitaire",
+      "price_help": "Dernier prix payé, modifiable.",
+      "full_entry": "Plusieurs articles reçus ? Ouvrir l'entrée de stock complète",
+      "submit": "Ajouter {quantity} au stock",
+      "submit_empty": "Ajouter au stock",
+      "success": "Stock mis à jour : {name}, +{quantity}"
+    },
+    "search": {
+      "label": "Ajouter un article",
+      "placeholder": "Ajouter un article : nom, référence ou code-barres",
+      "results": "Articles trouvés",
+      "empty": "Aucun article ne correspond.",
+      "stock": "Stock {quantity}",
+      "scan": "Scanner",
+      "scan_help": "Scannez le code-barres avec votre lecteur : l'article s'ajoute tout seul. Vous pouvez aussi taper le code puis appuyer sur Entrée."
+    },
+    "entry": {
+      "title": "Entrée de stock",
+      "subtitle": "Enregistrez tout ce que vous avez reçu en une fois.",
+      "mode": {
+        "label": "Mode de saisie",
+        "manual": "Saisir à la main",
+        "invoice": "Depuis une facture fournisseur",
+        "manual_short": "À la main",
+        "invoice_short": "Facture"
+      },
+      "line_quantity": "Quantité reçue : {label}",
+      "line_price": "Prix d'achat unitaire : {label}",
+      "stock_change": "Stock {before}, puis {after}",
+      "remove_line": "Retirer la ligne : {label}",
+      "card_stock": "Stock",
+      "line_total": "Total",
+      "footer_count": "{invoice, select, true {{count, plural, one {# ligne} other {# lignes}}} other {{count, plural, one {# article} other {# articles}}}}, {units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}}",
+      "footer_total": "Total achat <b>{amount}</b>",
+      "col_article": "Article",
+      "col_state": "État",
+      "col_read": "Ligne lue sur la facture",
+      "col_quantity": "Quantité reçue",
+      "col_price": "Prix d'achat unitaire",
+      "col_article_format": "Article et format",
+      "col_stock": "Stock",
+      "col_total": "Total",
+      "col_actions": "Actions",
+      "summary_invoice": "facture {number}",
+      "supplier_title": "Fournisseur et facture",
+      "supplier_help": "Ajoutez le fournisseur et le numéro de facture pour retrouver cette entrée plus tard.",
+      "supplier_name": "Fournisseur",
+      "invoice_number": "Numéro de facture",
+      "invoice_date": "Date de la facture",
+      "success": "Entrée enregistrée : {count, plural, one {# article} other {# articles}}, {units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}}",
+      "empty_lines": "Recherchez ou scannez les articles reçus pour les ajouter.",
+      "note_manual": "Le stock et la valeur d'achat seront mis à jour.",
+      "submit_empty": "Ajoutez un article pour continuer",
+      "submit": "Enregistrer l'entrée ({units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}})"
+    },
+    "invoice": {
+      "associated": "Associée",
+      "to_associate": "À associer",
+      "picker_title": "Choisir l'article",
+      "picker_read": "Ligne lue : {label}",
+      "suggestions": "Suggestions",
+      "change_article": "Changer l'article de la ligne « {label} »",
+      "choose_article_for": "Choisir l'article de la ligne « {label} »",
+      "choose_article": "Choisir l'article",
+      "file_type": "Choisissez une photo JPEG, PNG ou WebP.",
+      "file_size": "La photo ne doit pas dépasser {max} Mo.",
+      "upload_failed": "L'envoi de la photo a échoué. Réessayez.",
+      "read_failed": "La facture n'a pas pu être lue. Prenez une photo plus nette, bien à plat.",
+      "stage": {
+        "uploading": "Envoi…",
+        "reading": "Lecture de la facture…",
+        "done": "Analysée",
+        "validated": "Déjà enregistrée dans le stock",
+        "failed": "Lecture impossible"
+      },
+      "change_photo": "Changer de photo",
+      "prompt_title": "Photographiez la facture du fournisseur",
+      "prompt_help": "JPEG, PNG ou WebP, {max} Mo au plus. Les lignes lues seront associées à vos articles ; rien n'est ajouté au stock avant votre validation.",
+      "prompt_cta": "Prendre ou choisir une photo",
+      "success": "Facture enregistrée : {count, plural, one {# ligne} other {# lignes}}, {units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}}",
+      "already_recorded": "Cette facture a déjà été enregistrée dans le stock.",
+      "note": "La facture reste attachée à cette entrée.",
+      "associate_to_continue": "Associez {count, plural, one {# ligne} other {# lignes}} pour continuer",
+      "to_associate_count": "{count, plural, one {# ligne à associer.} other {# lignes à associer.}}",
+      "check_lines": "Vérifiez chaque ligne : rien n'est ajouté au stock avant votre validation.",
+      "read_number_date": "facture {number} du {date}",
+      "read_number": "facture {number}",
+      "lines_read": "{count, plural, =0 {aucune ligne lue} one {# ligne lue} other {# lignes lues}}",
+      "no_lines": "Aucune ligne n'a été lue sur cette facture. Changez de photo ou saisissez l'entrée à la main."
+    },
+    "exit": {
+      "title": "Sortie de stock",
+      "title_count": "Correction d'inventaire",
+      "subtitle": "Perte, casse, usage interne, ou correction après un comptage.",
+      "reason_title": "Motif de la sortie",
+      "reason_help": "Choisissez pourquoi ces articles quittent le stock.",
+      "reason": {
+        "loss": "Perte",
+        "breakage": "Casse",
+        "internal_use": "Usage interne",
+        "adjustment": "Correction d'inventaire"
+      },
+      "reason_help_loss": "Article perdu, volé ou périmé.",
+      "reason_help_breakage": "Article abîmé, invendable.",
+      "reason_help_internal_use": "Utilisé par la boutique : vitrine, échantillon…",
+      "reason_help_adjustment": "Après un comptage : le stock prend la quantité comptée.",
+      "reason_required": "Choisissez un motif.",
+      "count_invalid": "Saisissez la quantité comptée, 0 ou plus.",
+      "insufficient": "Stock insuffisant : {available, number} disponible(s).",
+      "rejected_line": "Stock insuffisant pour cette quantité.",
+      "rejected": "Le stock a changé : vérifiez les quantités signalées.",
+      "line_quantity": "Quantité sortie : {label}",
+      "line_counted": "Quantité comptée : {label}",
+      "gap_aria": "Écart {gap}",
+      "col_quantity": "Quantité sortie",
+      "col_counted": "Quantité comptée",
+      "col_gap": "Écart",
+      "note_title": "Note",
+      "note_help": "Précisez ce qui s'est passé, si besoin : elle apparaîtra dans les mouvements.",
+      "note_label": "Note",
+      "empty_lines": "Recherchez ou scannez les articles qui sortent du stock.",
+      "empty_lines_count": "Recherchez ou scannez les articles comptés.",
+      "footer": "{count, plural, one {# article} other {# articles}}, {units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}}",
+      "footer_count": "{count, plural, one {# article compté} other {# articles comptés}}, {changed, plural, =0 {aucun écart} one {# écart} other {# écarts}}",
+      "note_exit": "Le stock sera diminué de ces quantités.",
+      "note_count": "Le stock de chaque article prendra la quantité comptée.",
+      "submit_empty": "Ajoutez un article pour continuer",
+      "submit": "Enregistrer la sortie ({units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}})",
+      "submit_count": "Enregistrer la correction ({count, plural, =0 {aucun écart} one {# écart} other {# écarts}})",
+      "success": "Sortie enregistrée : {count, plural, one {# article} other {# articles}}, {units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}}",
+      "adjust_success": "{count, plural, =0 {Aucun écart : le stock était juste.} one {Stock corrigé pour # article.} other {Stock corrigé pour # articles.}}"
     }
   },
   "messages": {
@@ -1126,17 +1459,19 @@
       "hint": "Le message sera envoyé manuellement via WhatsApp à {name}.",
       "message_label": "Message",
       "send_cta": "Ouvrir WhatsApp",
-      "sending": "Préparation…",
       "cancel": "Annuler",
-      "error_generic": "Impossible de préparer le message.",
+      "record_failed": "WhatsApp s'est ouvert, mais le message n'a pas été ajouté à l'historique.",
       "greeting": "Bonjour,",
       "greeting_named": "Bonjour {name},"
     },
     "history": {
       "title": "Messages WhatsApp",
-      "loading": "Chargement…",
       "delete_confirm": "Supprimer ce message ?",
-      "delete_aria": "Supprimer le message"
+      "delete_aria": "Supprimer le message",
+      "delete_cta": "Supprimer",
+      "status_prepared": "Préparé",
+      "status_sent_manually": "Envoyé",
+      "status_archived": "Archivé"
     }
   },
   "team": {
@@ -1145,7 +1480,6 @@
     "subtitle": "Gérez les membres de votre boutique et leurs accès.",
     "add_member": "Ajouter un membre",
     "no_members": "Vous êtes seul·e sur cette boutique pour le moment.",
-    "loading": "Chargement…",
     "you_badge": "Vous",
     "since": "Depuis le {date}",
     "role": {
@@ -1197,11 +1531,100 @@
       "create_error": "Impossible de créer ce membre. Vérifiez l'email et le mot de passe.",
       "update_error": "Impossible d'enregistrer ces changements.",
       "delete_error": "Impossible de retirer ce membre."
-    }
+    },
+    "readonly_title": "Membres actuels",
+    "readonly_note": "Sans la formule Boutique+, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés."
   },
   "ui": {
+    "phone": {
+      "country_label": "Indicatif du pays",
+      "country_value": "Indicatif du pays : {country} (+{dial})",
+      "search_placeholder": "Pays ou indicatif",
+      "search_empty": "Aucun pays trouvé"
+    },
     "close": "Fermer",
-    "panel": "Panneau"
+    "panel": "Panneau",
+    "list": {
+      "pagination_range": "{from} à {to} sur {total}",
+      "pagination_prev": "Page précédente",
+      "pagination_next": "Page suivante",
+      "pagination_page": "Page {page}",
+      "pagination_label": "Pagination",
+      "filter_label": "{name} :",
+      "remove_filter": "Retirer le filtre {name}",
+      "filters": "Filtres",
+      "reset": "Réinitialiser",
+      "active_filters": "{count, plural, one {# filtre actif} other {# filtres actifs}}"
+    },
+    "detail": {
+      "more_actions": "Plus d'actions",
+      "actions_title": "Actions"
+    },
+    "notes": {
+      "title": "Notes",
+      "add_cta": "Ajouter",
+      "field_label": "Nouvelle note",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "delete_confirm": "Supprimer cette note ?",
+      "delete_aria": "Supprimer la note",
+      "anonymous": "Anonyme",
+      "meta": "{author}, {when, select, today {aujourd'hui} yesterday {hier} other {le {date}}} à {time}",
+      "delete_cta": "Supprimer"
+    },
+    "show_more": {
+      "more": "Voir plus ({kind, select, events {{remaining, plural, one {# restant} other {# restants}}} movements {{remaining, plural, one {# restant} other {# restants}}} messages {{remaining, plural, one {# restant} other {# restants}}} other {{remaining, plural, one {# restante} other {# restantes}}}})"
+    },
+    "form": {
+      "unsaved": "Modifications non enregistrées",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…",
+      "required": "Obligatoire",
+      "optional": "Facultatif",
+      "done": "Terminé"
+    },
+    "country": {
+      "placeholder": "Choisir un pays",
+      "clear": "Retirer le pays",
+      "sheet_title": "Choisir un pays",
+      "search": "Rechercher un pays",
+      "empty": "Aucun pays trouvé."
+    },
+    "address": {
+      "placeholder": "Numéro et rue",
+      "clear": "Effacer l'adresse",
+      "empty": "Aucune adresse trouvée ({country}). Élargissez la recherche ou changez de pays."
+    },
+    "toast": {
+      "region": "Notifications"
+    },
+    "error": {
+      "title": "Une erreur est survenue",
+      "body": "Nous n'avons pas pu charger cette page. Réessayez dans un instant — si l'erreur persiste, contactez le support.",
+      "reference": "Référence : {digest}",
+      "retry": "Réessayer"
+    },
+    "loading": {
+      "status": "Chargement en cours"
+    },
+    "not_found": {
+      "code": "Erreur 404",
+      "title": "Page introuvable",
+      "body": "La page que vous cherchez n'existe pas ou a été déplacée.",
+      "back": "Retour au tableau de bord"
+    },
+    "password": {
+      "show": "Afficher le mot de passe",
+      "hide": "Masquer le mot de passe"
+    },
+    "crop": {
+      "title": "Recadrer l'image",
+      "zoom": "Zoom",
+      "cancel": "Annuler",
+      "processing": "Traitement…",
+      "confirm": "Valider"
+    }
   },
   "settings": {
     "preferences": {
@@ -1215,6 +1638,120 @@
       "fulfillment_on_site": "Sur place",
       "fulfillment_delivery": "En livraison",
       "fulfillment_both": "Les deux"
+    },
+    "upgrade": {
+      "title": "Disponible avec la formule Boutique+",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} other {Cette fonction fait partie de la formule Boutique+.}}",
+      "cta": "Voir les formules"
+    },
+    "page": {
+      "title": "Paramètres boutique",
+      "loading_title": "Paramètres",
+      "saved": "Modifications enregistrées ✓"
+    },
+    "actions": {
+      "unsaved": "Modifications non enregistrées",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "identity": {
+      "title": "Identité",
+      "description": "Le visage de votre boutique et ses repères régionaux.",
+      "name": "Nom de la boutique *",
+      "name_required": "Nom requis",
+      "currency": "Devise",
+      "country": "Pays (optionnel)"
+    },
+    "logo": {
+      "alt": "Logo de la boutique",
+      "uploading": "Envoi…",
+      "change": "Changer le logo",
+      "add": "Ajouter un logo",
+      "deleting": "Suppression…",
+      "delete": "Supprimer",
+      "delete_title": "Supprimer le logo ?",
+      "delete_description": "Le logo de la boutique sera supprimé définitivement.",
+      "invalid_format": "Formats acceptés : JPEG, PNG, WebP.",
+      "upload_error": "L'envoi du logo a échoué. Réessayez.",
+      "delete_error": "Erreur lors de la suppression."
+    },
+    "management": {
+      "title": "Gestion",
+      "description": "Équipe, vitrine et abonnement de votre boutique.",
+      "public_page": "Page publique",
+      "public_page_subtitle": "Vitrine partageable de votre boutique",
+      "subscription": "Abonnement",
+      "subscription_subtitle": "Formule, essai et résiliation"
+    },
+    "invoicing": {
+      "title": "Facturation",
+      "description": "Ces champs apparaissent sur vos factures clients. Renseignez ce qui est exigé par la réglementation de votre pays.",
+      "legal_address": "Adresse légale (siège)",
+      "tax_id": "Identifiant fiscal (SIRET, TVA, NIF, EIN…)",
+      "tax_rate": "Taux TVA par défaut",
+      "payment_terms": "Délai de paiement",
+      "days": "jours",
+      "legal_mentions": "Mentions légales (pied de facture)",
+      "legal_mentions_help": "Ex. : « TVA non applicable, art. 293 B du CGI », RCS, conditions de pénalités, indemnité forfaitaire…"
+    },
+    "zakat": {
+      "title": "Zakat",
+      "description": "Paramètres pour calculer le seuil de Nisab et générer le rappel annuel.",
+      "annual_date": "Date annuelle (optionnel)",
+      "annual_date_help": "Un rappel sera généré avant cette date chaque année.",
+      "method": "Méthode du Nisab",
+      "method_silver": "Argent (595 g)",
+      "method_gold": "Or (85 g)",
+      "unit_price": "Prix au gramme ({currency})",
+      "unit_price_help": "Le cours évolue chaque jour. Vérifiez et mettez à jour le prix au gramme avant chaque calcul. La méthode de l'argent est plus inclusive (seuil plus bas)."
+    },
+    "public_page": {
+      "title": "Page publique",
+      "error": "Impossible de charger les informations de la page."
+    },
+    "subscription": {
+      "title": "Abonnement",
+      "current_plan": "Votre formule",
+      "trial": "Essai",
+      "trial_remaining": "{days, plural, =0 {Essai se terminant aujourd'hui.} one {Essai en cours — # jour restant.} other {Essai en cours — # jours restants.}}",
+      "period_end": "Fin : {date}.",
+      "plan_active": "Plan {name} actif.",
+      "per_month": "{price} € / mois",
+      "plans": {
+        "free": {
+          "name": "Gratuit",
+          "description": "L'essentiel pour bien commencer.",
+          "f1": "Jusqu'à 50 produits actifs",
+          "f2": "20 commandes par mois",
+          "f3": "Stock, notes, rappels"
+        },
+        "pro": {
+          "name": "Pro",
+          "description": "Pour gérer tout votre commerce.",
+          "f1": "Produits et commandes illimités",
+          "f2": "Factures PDF",
+          "f3": "Calcul Zakat",
+          "f4": "Messages WhatsApp préparés"
+        },
+        "boutique_plus": {
+          "name": "Boutique+",
+          "description": "Outils avancés et partenariats.",
+          "f1": "Tout Pro inclus",
+          "f2": "Page publique partageable",
+          "f3": "Multi-utilisateurs",
+          "f4": "Exports comptables"
+        }
+      },
+      "current": "Formule actuelle",
+      "coming_soon": "Bientôt disponible",
+      "cancel_title": "Résilier",
+      "cancel_text": "Vous passerez immédiatement sur la formule Gratuite. Vous perdrez l'accès aux fonctionnalités payantes mais vos données restent intactes.",
+      "cancel_cta": "Résilier ma formule",
+      "cancel_confirm": "Confirmer la résiliation",
+      "cancelling": "Résiliation…",
+      "cancel_back": "Annuler",
+      "cancel_error": "Impossible de résilier pour le moment. Réessayez plus tard."
     }
   },
   "onboarding": {
@@ -1226,6 +1763,657 @@
     "step2_delivery_title": "En livraison",
     "step2_delivery_desc": "Statut final : « Expédiée ». Frais de livraison disponibles.",
     "step2_both_title": "Les deux",
-    "step2_both_desc": "Statut final : « Terminée ». Frais de livraison disponibles."
+    "step2_both_desc": "Statut final : « Terminée ». Frais de livraison disponibles.",
+    "step_label": "Étape {step} sur {total}",
+    "step_short": "Étape {step} / {total}",
+    "step1_title": "Bienvenue",
+    "step1_sub": "Que proposez-vous dans votre boutique ? Vous pourrez modifier ce choix plus tard depuis les réglages.",
+    "step1_label": "Type d'activité",
+    "step1_products_title": "Je vends des produits",
+    "step1_products_desc": "Articles physiques avec stock, variantes, prix unitaires.",
+    "step1_services_title": "Je propose des services",
+    "step1_services_desc": "Prestations ou abonnements sans gestion de stock.",
+    "step1_both_title": "Les deux",
+    "step1_both_desc": "Produits et services dans le même catalogue.",
+    "saving": "Enregistrement…",
+    "finish": "Accéder à ma boutique",
+    "continue": "Continuer",
+    "skip": "Plus tard",
+    "step1_title_named": "Bienvenue, {name}"
+  },
+  "suspended": {
+    "title": "Accès suspendu",
+    "text": "La boutique n'a plus la formule Boutique+. Contactez le propriétaire pour rétablir votre accès.",
+    "logout": "Se déconnecter"
+  },
+  "zakat": {
+    "detail": {
+      "title": "Détail du calcul",
+      "not_found": "Calcul introuvable.",
+      "back_to_zakat": "Retour à la zakat",
+      "back": "Retour",
+      "wealth_title": "Patrimoine zakatable",
+      "wealth_total": "Sous-total positif",
+      "debts_title": "Dettes déclarées",
+      "debts_total": "Total déductible",
+      "download_pdf": "Télécharger le justificatif PDF",
+      "delete_title": "Supprimer ce calcul ?",
+      "delete_description": "Cette action est irréversible. Le calcul sera définitivement supprimé de l'historique.",
+      "disclaimer": "Ce calcul est fourni à titre indicatif. Pour valider votre obligation, consultez un érudit ou un spécialiste de la zakat commerciale.",
+      "reopen_failed": "Impossible de rouvrir ce calcul.",
+      "edit": "Modifier",
+      "reopening": "Réouverture…",
+      "delete": "Supprimer",
+      "deleting": "Suppression…",
+      "breakdown_title": "Calcul détaillé",
+      "breakdown_wealth": "(patrimoine)",
+      "breakdown_debts": "(dettes exigibles)",
+      "breakdown_base": "(base)",
+      "excluded_title": "Exclus de la base",
+      "excluded_help": "Les éléments cochés ont été explicitement reconnus comme outils de travail (hors base).",
+      "religious_title": "Fondements religieux",
+      "reference": "Référence : <b>{date}</b>",
+      "finalized_on": "Finalisé le {date}",
+      "amount_due": "Zakat due",
+      "base": "Base zakatable : <b>{amount}</b>",
+      "rate": "Taux appliqué : <b>{rate} %</b>"
+    },
+    "wizard": {
+      "steps": {
+        "cash": {
+          "title": "Argent disponible",
+          "subtitle": "Caisse, compte pro, espèces du commerce."
+        },
+        "receivables": {
+          "title": "Créances clients",
+          "subtitle": "Ce qu'on vous doit — et que vous pensez récupérer."
+        },
+        "stock": {
+          "title": "Stock commercial",
+          "subtitle": "Marchandises destinées à la revente."
+        },
+        "excluded": {
+          "title": "Ce qui n'entre pas",
+          "subtitle": "Vos outils de travail restent hors zakat."
+        },
+        "debts": {
+          "title": "Dettes",
+          "subtitle": "Seules les dettes exigibles immédiatement comptent."
+        },
+        "summary": {
+          "title": "Récapitulatif",
+          "subtitle": "Dernière vérification avant validation."
+        }
+      },
+      "save": "Enregistrer",
+      "finalize": "Finaliser la zakat",
+      "next": "Suivant",
+      "discard": "Abandonner ce brouillon",
+      "discard_title": "Supprimer ce brouillon ?",
+      "discard_description": "Toutes les saisies seront perdues.",
+      "delete": "Supprimer",
+      "already_finalized": "Un calcul finalisé existe déjà pour {year}. Vous allez être redirigé vers ce calcul.",
+      "preparing_summary": "Préparation du récapitulatif…",
+      "short": {
+        "cash": "Liquidités",
+        "receivables": "Créances",
+        "stock": "Stock",
+        "excluded": "Exclus",
+        "debts": "Dettes",
+        "summary": "Récap"
+      },
+      "back": "Retour",
+      "progress": "Étape {step} sur {total} · {label}",
+      "saving": "Enregistrement…",
+      "finalizing": "Finalisation…",
+      "hub_title": "Modifier votre zakat",
+      "hub_subtitle": "Cliquez sur une étape pour ajuster ses valeurs.",
+      "hub_step": "Étape {step}",
+      "hub_final_check": "Vérification finale",
+      "hub_excluded_label": "Outils de travail (exclus)",
+      "hub_cash": "{amount} — {date}",
+      "hub_stock_breakdown": "{amount} — {count, plural, one {# catégorie} other {# catégories}}",
+      "hub_stock_adjusted": "{amount} — ajusté",
+      "hub_stock_estimated": "{amount} — estimation catalogue",
+      "hub_receivables_none": "Aucune créance déclarée",
+      "hub_receivables_breakdown": "{amount} récupérables — {count, plural, one {# ligne} other {# lignes}}",
+      "hub_receivables_nominal": "{amount} — non ventilées",
+      "hub_debts_none": "Aucune dette déclarée",
+      "hub_debts": "{count, plural, one {# dette} other {# dettes}} — {amount} à déduire",
+      "hub_excluded_none": "Aucun outil reconnu",
+      "hub_excluded_count": "{count}/{total} reconnus"
+    },
+    "home": {
+      "title": "Zakat commerciale",
+      "notice_title": "Estimation indicative",
+      "notice": "Ce calcul est un outil d'aide à la décision. Consultez un érudit ou un spécialiste pour validation finale.",
+      "resume": "Reprendre votre calcul en cours",
+      "draft_step": "Étape {step} sur {total}",
+      "stock_estimate": "Valeur estimée de votre stock commercial",
+      "stock_count": "Calculée sur {count, plural, one {# article} other {# articles}} de votre catalogue.",
+      "year_done": "Zakat {year} déjà bouclée",
+      "year_done_amount": "{amount} — voir le justificatif",
+      "start": "Calculer ma zakat",
+      "history": "Historique",
+      "base": "Base : {amount}",
+      "pdf_available": "PDF disponible",
+      "empty": "Aucun calcul finalisé pour l'instant.",
+      "currency": "Devise utilisée : {currency}"
+    },
+    "debt_category": {
+      "supplier": "Fournisseurs",
+      "tax_vat": "TVA / impôts",
+      "salary": "Salaires",
+      "loan": "Emprunt bancaire",
+      "rent": "Loyer",
+      "other": "Autre"
+    },
+    "stock_category": {
+      "finished": "Marchandises finies (prêtes à vendre)",
+      "raw_materials": "Matières premières",
+      "work_in_progress": "Produits en cours de fabrication",
+      "in_transit": "Marchandises en transit (commandées, non livrées)"
+    },
+    "receivable_category": {
+      "certain": "Certaines (recouvrement quasi sûr)",
+      "probable": "Probables (recouvrement attendu)",
+      "doubtful": "Douteuses (recouvrement incertain — exclues)"
+    },
+    "excluded_item": {
+      "vehicle": "Véhicules (camionnette, voiture pro)",
+      "computer": "Ordinateurs, tablettes",
+      "machine": "Machines, équipements",
+      "premises": "Local commercial",
+      "furniture": "Mobilier (étagères, comptoir)",
+      "other": "Autre outil de travail"
+    },
+    "common": {
+      "yes": "Oui",
+      "no": "Non",
+      "cash": "Argent disponible",
+      "receivables": "Créances récupérables",
+      "empty_table": "Rien à déclarer dans cette catégorie."
+    },
+    "rows": {
+      "doubtful_hint": "Archivée pour mémoire — non incluse dans la base",
+      "nominal_hint": "Sur un nominal de {amount}",
+      "stock_adjusted": "Stock commercial (ajusté)",
+      "stock_estimated": "Stock commercial (estimé)",
+      "stock_initial": "Estimation initiale : {amount}",
+      "debt_due": "{category} · exigible immédiatement",
+      "debt_not_due": "{category} · non exigible — non déduit"
+    },
+    "nisab": {
+      "title": "Seuil de Nisab",
+      "method": "Méthode {method, select, silver {argent (595 g)} gold {or (85 g)} other {{method}}}",
+      "not_configured": "Seuil de Nisab non configuré",
+      "not_configured_help": "Le Nisab est le seuil de richesse en dessous duquel la zakat n'est pas due. Configurez la méthode (or ou argent) et le prix au gramme pour obtenir un verdict d'obligation.",
+      "not_configured_short": "Sans Nisab, impossible de savoir si la zakat est obligatoire pour vous cette année.",
+      "configure": "Configurer dans les paramètres",
+      "above_title": "Vous êtes au-dessus du Nisab",
+      "above": "Votre base ({amount}) dépasse le seuil. La zakat est due.",
+      "below_title": "Vous êtes en dessous du Nisab",
+      "below": "Votre base ({amount}) reste sous le seuil — la zakat n'est pas obligatoire cette année.",
+      "preview_above": "Votre base dépasse le seuil — la zakat est due.",
+      "preview_below": "Votre base reste sous le seuil — la zakat n'est pas obligatoire cette année."
+    },
+    "step": {
+      "cash": {
+        "title": "Argent disponible aujourd'hui",
+        "help": "Comptez tout l'argent immédiatement disponible pour votre activité : caisse, compte professionnel, espèces conservées au commerce.",
+        "reference_date": "Date de référence"
+      },
+      "receivables": {
+        "title": "Argent que vos clients vous doivent",
+        "help": "Ventes à crédit, factures impayées, ardoises… On distingue trois niveaux selon la probabilité de recouvrement. Seules les <b>certaines</b> et <b>probables</b> entrent dans la zakat.",
+        "question": "Vos clients vous doivent-ils de l'argent ?",
+        "nominal": "Montant total dû (nominal)",
+        "total": "Total zakatable (certaines + probables)"
+      },
+      "stock": {
+        "title": "Valeur de votre stock commercial",
+        "help": "On a calculé une estimation à partir des prix d'achat saisis dans votre catalogue. Vous pouvez la ventiler par catégorie si la réalité diffère.",
+        "estimate": "Estimation automatique",
+        "estimate_basis": "Calculée sur {count, plural, one {# produit} other {# produits}} en stock.",
+        "breakdown": "Ventiler manuellement par catégorie",
+        "total": "Total stock zakatable (ventilation)",
+        "back_to_estimate": "Revenir à l'estimation automatique"
+      },
+      "excluded": {
+        "title": "Ce qui n'entre PAS dans la zakat",
+        "help": "Vos outils de travail ne sont pas concernés. Cochez ce que vous possédez pour confirmer que vous en avez pris connaissance — rien ne sera ajouté à votre base.",
+        "note": "Cette étape est informative. Cocher ou ne rien cocher ne change pas votre calcul."
+      },
+      "debts": {
+        "title": "Dettes à court terme",
+        "help": "Seules les dettes <b>exigibles immédiatement</b> sont déduites. Un emprunt sur 5 ans, par exemple, n'est exigible immédiatement que pour les mensualités du mois.",
+        "empty": "Aucune dette renseignée — appuyez sur « Ajouter une dette » si vous en avez.",
+        "category": "Catégorie",
+        "label": "Libellé",
+        "amount": "Montant",
+        "remove": "Supprimer cette dette",
+        "due_question": "Exigible immédiatement ?",
+        "add": "Ajouter une dette",
+        "total": "Total déductible (exigible immédiatement)"
+      },
+      "summary": {
+        "title": "Récapitulatif avant validation",
+        "help": "Vérifiez les chiffres. Une fois la zakat finalisée, le calcul est archivé et ne peut plus être modifié.",
+        "wealth": "Votre patrimoine entrant",
+        "stock": "{state, select, ventilated {Stock (ventilé)} adjusted {Stock (ajusté)} other {Stock (estimé)}}",
+        "deductions": "Déductions",
+        "debts": "Dettes exigibles immédiatement",
+        "base": "Base de la zakat (projection)",
+        "due": "Zakat due ({rate} %)",
+        "footer": "Le bouton ci-dessous archive ce calcul et le rend immuable. Vous pourrez revenir y consulter le détail à tout moment."
+      }
+    },
+    "audit": {
+      "reliability": "Fiabilité <b>{tier, select, high {Élevée} medium {Moyenne} other {À renforcer}}</b> — {ok} OK{warn, plural, =0 {} other {, # à affiner}}",
+      "explanation": "Ce score reflète la complétude de votre déclaration, pas la validité religieuse du calcul. Les points marqués « à affiner » sont optionnels mais améliorent la traçabilité.",
+      "stock_ventilated": {
+        "label": "Stock ventilé par catégorie"
+      },
+      "stock_adjusted": {
+        "label": "Stock ajusté manuellement",
+        "message": "Ventiler par catégorie (finis, matières, en cours) améliore la traçabilité."
+      },
+      "stock_estimated": {
+        "label": "Stock laissé sur estimation automatique",
+        "message": "Vous pouvez affiner avec un montant ajusté ou une ventilation par catégorie."
+      },
+      "receivables_ventilated": {
+        "label": "Créances ventilées (certaines / probables / douteuses)"
+      },
+      "receivables_bulk": {
+        "label": "Créances renseignées en bloc",
+        "message": "Ventiler par niveau de certitude permet d'exclure les douteuses du calcul."
+      },
+      "receivables_none": {
+        "label": "Aucune créance déclarée"
+      },
+      "excluded_ok": {
+        "label": "Outils de travail reconnus ({count}/{total})"
+      },
+      "excluded_none": {
+        "label": "Aucun outil de travail reconnu",
+        "message": "Cocher les éléments que vous possédez rend la déclaration plus traçable."
+      },
+      "debts_due": {
+        "label": "Dettes ventilées ({count}), exigibilité précisée"
+      },
+      "debts_not_due": {
+        "label": "Dettes déclarées ({count}), aucune exigible"
+      },
+      "debts_none": {
+        "label": "Aucune dette déclarée"
+      },
+      "nisab_ok": {
+        "label": "Seuil de Nisab configuré"
+      },
+      "nisab_missing": {
+        "label": "Seuil de Nisab non configuré",
+        "message": "Sans Nisab, impossible de savoir automatiquement si la zakat est due."
+      },
+      "stock_coherence": {
+        "label": "Écart inhabituel entre stock estimé et ajusté",
+        "message": "Stock ajusté à {ratio} % de l'estimation catalogue — confirmer la valeur saisie."
+      }
+    },
+    "history": {
+      "title": "Évolution annuelle",
+      "base": "Base : {amount}",
+      "caption": "Montant de zakat dû par exercice — {count, plural, one {# année enregistrée} other {# années enregistrées}}."
+    },
+    "donut": {
+      "title": "Répartition du patrimoine",
+      "total": "Total",
+      "receivables": "Créances",
+      "stock": "Stock"
+    },
+    "simulation": {
+      "title": "Simulation",
+      "subtitle": "Et si votre stock évoluait l'année prochaine ?",
+      "variation": "Variation du stock",
+      "variation_aria": "Variation du stock en pourcentage",
+      "new_stock": "Nouveau stock",
+      "new_base": "Nouvelle base",
+      "zakat": "Zakat simulée",
+      "vs_actual": "{amount} vs réel",
+      "note": "Cette projection ne modifie pas votre calcul archivé — elle vous aide à anticiper l'an prochain."
+    },
+    "note": {
+      "why": "Pourquoi cette question ?",
+      "basis": "Fondement :",
+      "in_app": "Dans Mizan :",
+      "source": "Source : {source}"
+    }
+  },
+  "public_page_admin": {
+    "status": {
+      "copy_url": "Copier l'URL",
+      "open_page": "Ouvrir la page publique",
+      "unpublish": "Dépublier",
+      "unpublishing": "Dépublication…",
+      "publish": "Publier",
+      "publishing": "Publication…",
+      "live": "En ligne",
+      "draft": "Brouillon"
+    },
+    "preview": {
+      "title": "Aperçu live",
+      "description": "Ce que voient vos clients. Mis à jour à chaque enregistrement.",
+      "mobile": "Mobile",
+      "tablet": "Tablette",
+      "reload": "Recharger",
+      "frame_title": "Aperçu de la vitrine"
+    },
+    "slug": {
+      "min": "3 caractères minimum",
+      "max": "50 caractères maximum",
+      "format": "Lettres minuscules, chiffres et tirets uniquement"
+    },
+    "create": {
+      "error": "Création impossible",
+      "title": "Activer ma page publique",
+      "description": "Une URL unique pour partager votre vitrine avec vos clients.",
+      "slug_label": "Adresse de la boutique *",
+      "your_url": "Votre URL : <code>{url}</code>",
+      "display_name_label": "Nom affiché sur la page",
+      "submit": "Créer ma page",
+      "submitting": "Création…"
+    },
+    "identity": {
+      "error": "Mise à jour impossible",
+      "title": "Identité de la page",
+      "description": "Ce que vos clients voient en haut de la vitrine.",
+      "slug_label": "Adresse URL *",
+      "slug_help": "Modifier l'adresse cassera les liens déjà partagés.",
+      "display_name_label": "Nom affiché",
+      "tagline_label": "Phrase d'accroche",
+      "description_label": "Description",
+      "theme_label": "Thème",
+      "themes": {
+        "classic": {
+          "label": "Classique",
+          "hint": "Sobre, fond clair"
+        },
+        "modern": {
+          "label": "Moderne",
+          "hint": "Contrastes affirmés"
+        },
+        "minimal": {
+          "label": "Minimal",
+          "hint": "Beaucoup d'espace"
+        }
+      },
+      "color_label": "Couleur principale",
+      "choose_color": "Choisir {color}",
+      "color_format": "Format attendu : #RRGGBB",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "sections": {
+      "title": "Sections de la page",
+      "description": "Ordre, visibilité et contenu de chaque bloc.",
+      "move_up": "Monter",
+      "move_down": "Descendre",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "types": {
+        "header": {
+          "label": "En-tête"
+        },
+        "description": {
+          "label": "Présentation",
+          "title": "À propos de la boutique",
+          "content": "Quelques mots sur votre boutique, votre histoire, vos engagements…"
+        },
+        "products": {
+          "label": "Produits",
+          "title": "Nos produits"
+        },
+        "services": {
+          "label": "Services",
+          "title": "Nos services"
+        },
+        "contact": {
+          "label": "Contact",
+          "title": "Nous contacter",
+          "content": "Horaires, adresse, disponibilité…"
+        }
+      }
+    },
+    "message": {
+      "error": "Mise à jour impossible",
+      "sample_item": "Tajine en céramique",
+      "sample_price": "4 500 DA",
+      "title": "Message d'intérêt",
+      "description": "Texte pré-rempli envoyé au commerçant via WhatsApp depuis la fiche d'un article.",
+      "template_label": "Modèle",
+      "placeholders": "Variables :",
+      "preview": "Aperçu",
+      "reset": "Réinitialiser",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…"
+    },
+    "uploader": {
+      "formats": "Formats acceptés : JPEG, PNG, WebP.",
+      "upload_error": "Échec de l'envoi.",
+      "delete_error": "Erreur lors de la suppression.",
+      "sending": "Envoi…",
+      "deleting": "Suppression…",
+      "delete": "Supprimer"
+    },
+    "logo": {
+      "label": "Logo",
+      "change": "Changer le logo",
+      "add": "Ajouter un logo",
+      "confirm_delete": "Supprimer le logo ?"
+    },
+    "cover": {
+      "label": "Bannière",
+      "change": "Changer",
+      "add": "Ajouter une bannière",
+      "confirm_delete": "Supprimer la bannière ?"
+    },
+    "catalog": {
+      "title": "Catalogue",
+      "description": "Choisissez ce qui apparaît sur la vitrine.",
+      "section": "{kind, select, product {Produits} service {Services} other {Articles}}",
+      "add": "Ajouter",
+      "empty": "{kind, select, product {Aucun produit sélectionné.} service {Aucun service sélectionné.} other {Aucun article sélectionné.}}",
+      "move_up": "Monter",
+      "move_down": "Descendre",
+      "remove": "Retirer",
+      "show_price": "Afficher le prix",
+      "badge_promo": "Promo",
+      "badge_new": "Nouveau",
+      "sheet_title": "{kind, select, product {Ajouter un produit} service {Ajouter un service} other {Ajouter un article}}",
+      "search": "Rechercher…",
+      "no_results": "Aucun résultat.",
+      "none_available": "{kind, select, product {Aucun produit disponible.} service {Aucun service disponible.} other {Aucun article disponible.}}",
+      "close": "Fermer"
+    },
+    "contacts": {
+      "title": "Boutons de contact",
+      "description": "Comment vos clients vous joignent depuis la vitrine.",
+      "empty": "Aucun contact configuré.",
+      "add": "Ajouter un contact",
+      "primary": "Principal",
+      "set_primary": "Définir comme principal",
+      "hide": "Masquer",
+      "show": "Afficher",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "value_required": "Valeur requise",
+      "value_max": "200 caractères maximum",
+      "error": "Enregistrement impossible",
+      "new_title": "Nouveau contact",
+      "edit_title": "Modifier le contact",
+      "channel": "Canal",
+      "value_label": "{hint} *",
+      "custom_label": "Libellé personnalisé (optionnel)",
+      "primary_hint": "Contact principal (utilisé pour les boutons « Commander »)",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "types": {
+        "whatsapp": {
+          "label": "WhatsApp",
+          "hint": "Numéro au format international",
+          "placeholder": "+33 6 12 34 56 78"
+        },
+        "telegram": {
+          "label": "Telegram",
+          "hint": "Nom d'utilisateur Telegram",
+          "placeholder": "@pseudo"
+        },
+        "instagram": {
+          "label": "Instagram",
+          "hint": "Nom d'utilisateur Instagram",
+          "placeholder": "@compte"
+        },
+        "phone": {
+          "label": "Téléphone",
+          "hint": "Numéro de téléphone",
+          "placeholder": "+33 6 12 34 56 78"
+        }
+      }
+    }
+  },
+  "profile": {
+    "email_verification": {
+      "verified": "Email vérifié — actualisez la page.",
+      "sent": "Lien renvoyé. Vérifiez votre boîte mail.",
+      "prompt": "Confirmez votre adresse email pour sécuriser votre compte.",
+      "sending": "Envoi…",
+      "resend": "Renvoyer",
+      "resend_link": "Renvoyer le lien"
+    },
+    "title": "Mon profil",
+    "info_section": "Informations",
+    "password_section": "Mot de passe",
+    "show_password": "Afficher le mot de passe",
+    "hide_password": "Masquer le mot de passe",
+    "name_required": "Nom requis",
+    "old_password_required": "Mot de passe actuel requis",
+    "password_min": "8 caractères minimum",
+    "confirm_required": "Confirmation requise",
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "email": "Email",
+    "email_locked": "L'email ne peut pas être modifié.",
+    "full_name": "Nom complet *",
+    "phone": "Téléphone (optionnel)",
+    "phone_invalid": "Numéro de téléphone invalide",
+    "profile_saved": "Profil mis à jour ✓",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer",
+    "unexpected_error": "Erreur inattendue. Réessayez.",
+    "old_password": "Mot de passe actuel *",
+    "new_password": "Nouveau mot de passe *",
+    "confirm_password": "Confirmer le nouveau mot de passe *",
+    "password_saved": "Mot de passe modifié ✓",
+    "changing_password": "Modification…",
+    "change_password": "Modifier le mot de passe"
+  },
+  "invoices": {
+    "payment": "{state, select, paid {Payée} partial {Partiel — {amount}} cancelled {Annulée} other {Non payée}}",
+    "due": "Échéance : {date}",
+    "list": {
+      "title": "Factures",
+      "filter": "{value, select, issued {Émises} paid {Payées} cancelled {Annulées} other {Toutes}}",
+      "empty_title": "Aucune facture",
+      "empty_body": "Les factures se créent depuis une commande.",
+      "no_customer": "Sans client"
+    },
+    "detail": {
+      "title": "Facture",
+      "not_found": "Facture introuvable.",
+      "issued_on": "Émise le {date}",
+      "download_pdf": "Télécharger le PDF",
+      "lines_title": "Détail",
+      "seller": "Vendeur",
+      "buyer": "Client",
+      "notes": "Notes",
+      "legal_mentions": "Mentions légales",
+      "linked_order": "Voir la commande liée",
+      "customer_card": "Fiche client",
+      "mark_paid": "Marquer comme payée",
+      "driven_by_order": "Le statut de paiement est piloté par la commande liée.",
+      "cancel_invoice": "Annuler la facture",
+      "confirm_paid_title": "Marquer comme payée ?",
+      "confirm_paid_body": "Cette facture sera enregistrée comme intégralement réglée.",
+      "confirm": "Confirmer",
+      "confirm_cancel_title": "Annuler cette facture ?",
+      "confirm_cancel_body": "Le numéro reste réservé et la trace est conservée."
+    },
+    "totals": {
+      "subtotal": "Sous-total HT",
+      "discount": "Remise",
+      "shipping": "Frais de port",
+      "tax": "TVA",
+      "tax_rate": "TVA {rate} %",
+      "not_applicable": "Non applicable",
+      "total": "Total TTC",
+      "paid": "Payé",
+      "remaining": "Reste à payer"
+    }
+  },
+  "reminders": {
+    "title": "Rappels",
+    "new_cta": "+ Nouveau",
+    "new_title": "Nouveau rappel",
+    "edit_title": "Modifier le rappel",
+    "field_title": "Titre *",
+    "field_date": "Date *",
+    "field_category": "Catégorie",
+    "field_description": "Description (optionnel)",
+    "category": "{value, select, unpaid {Impayé} customer_followup {Relance client} zakat {Zakat} order_prep {Préparation commande} other {Libre}}",
+    "mark_done": "Marquer comme terminé",
+    "reopen": "Remettre en attente",
+    "saving": "Enregistrement…",
+    "update": "Mettre à jour",
+    "create": "Créer le rappel",
+    "deleting": "Suppression…",
+    "delete": "Supprimer le rappel",
+    "cancel": "Annuler",
+    "confirm_delete": "Supprimer ce rappel ?",
+    "confirm_delete_cta": "Supprimer",
+    "tab_todo": "À faire{count, plural, =0 {} other { (#)}}",
+    "tab_upcoming": "À venir{count, plural, =0 {} other { (#)}}",
+    "tab_done": "Terminés{count, plural, =0 {} other { (#)}}",
+    "empty_todo": "Rien à faire aujourd'hui.",
+    "empty_upcoming": "Aucun rappel à venir.",
+    "empty_done": "Aucun rappel terminé.",
+    "followup": {
+      "title": "Relancer {name}",
+      "fallback_name": "le client",
+      "created": "Rappel créé : relancer {name} le {date}",
+      "moved": "Rappel décalé au {date}",
+      "failed": "Le rappel n'a pas pu être enregistré. Réessayez.",
+      "exists": "Un rappel de relance existe déjà pour {name} le {date}. Le décaler au {newDate} ?",
+      "postpone": "Décaler",
+      "create_anyway": "Créer quand même",
+      "cancel": "Annuler"
+    }
+  },
+  "notes": {
+    "title": "Notes",
+    "new_cta": "+ Nouvelle",
+    "new_title": "Nouvelle note",
+    "edit_title": "Modifier la note",
+    "placeholder": "Écrivez votre note…",
+    "saving": "Enregistrement…",
+    "update": "Mettre à jour",
+    "save": "Enregistrer",
+    "deleting": "Suppression…",
+    "delete": "Supprimer la note",
+    "cancel": "Annuler",
+    "confirm_delete": "Supprimer cette note ?",
+    "confirm_delete_cta": "Supprimer",
+    "empty_title": "Aucune note",
+    "empty_body": "Appuyez sur + Nouvelle pour créer votre première note."
   }
 }

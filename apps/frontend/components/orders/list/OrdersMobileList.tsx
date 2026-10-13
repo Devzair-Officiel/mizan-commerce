@@ -9,6 +9,8 @@ import type { OrderSummary } from '@/lib/hooks/useOrders';
 interface Props {
   orders: OrderSummary[];
   currency: string;
+  /** Les groupes par date n'ont de sens que pour un tri par date. */
+  ordering: string;
   hasNextPage: boolean;
   fetchNextPage: () => void;
   isFetchingNextPage: boolean;
@@ -16,7 +18,7 @@ interface Props {
 }
 
 export function OrdersMobileList({
-  orders, currency, hasNextPage, fetchNextPage, isFetchingNextPage, isLoading,
+  orders, currency, ordering, hasNextPage, fetchNextPage, isFetchingNextPage, isLoading,
 }: Props) {
   const t = useTranslations('orders.list');
   const tBuckets = useTranslations('orders.buckets');
@@ -33,12 +35,21 @@ export function OrdersMobileList({
 
   if (orders.length === 0) return null;
 
+  const byDate = ordering === '-created_at' || ordering === 'created_at';
   const grouped: Record<Bucket, OrderSummary[]> = { today: [], yesterday: [], this_week: [], older: [] };
   for (const o of orders) grouped[bucketOf(o.created_at)].push(o);
+  const buckets = ordering === 'created_at' ? [...BUCKET_ORDER].reverse() : BUCKET_ORDER;
 
   return (
     <div className="flex flex-col gap-5">
-      {BUCKET_ORDER.map((bucket) => {
+      {!byDate && (
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          {orders.map((order, i) => (
+            <OrderRow key={order.id} order={order} bucket={bucketOf(order.created_at)} first={i === 0} currency={currency} />
+          ))}
+        </div>
+      )}
+      {byDate && buckets.map((bucket) => {
         const bucketOrders = grouped[bucket];
         if (bucketOrders.length === 0) return null;
         return (

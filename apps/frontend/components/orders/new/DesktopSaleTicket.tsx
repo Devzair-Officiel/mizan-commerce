@@ -6,6 +6,7 @@ import { TicketCustomerBlock } from '@/components/orders/new/TicketCustomerBlock
 import { SectionChips } from '@/components/orders/new/SectionChips';
 import { StatusSwitch } from '@/components/orders/new/StatusSwitch';
 import { SummaryAmountInput } from '@/components/orders/new/OrderSummary';
+import { AddLink } from '@/components/orders/new/AddLink';
 import { PaymentPartialInput } from '@/components/orders/new/PaymentPartialInput';
 import { FloatingTextarea } from '@/components/ui/floating-fields';
 import { useShop } from '@/lib/hooks/useShop';
@@ -14,6 +15,8 @@ import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { isDefaultVariant } from '@/lib/products';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 import type { LineItem } from '@/components/orders/new/types';
+import { useSubmitLabel } from '@/components/orders/new/useSubmitLabel';
+import { LineStockWarning } from '@/components/orders/new/LineStockWarning';
 
 type T = ReturnType<typeof useTranslations<'orders.new'>>;
 
@@ -31,6 +34,7 @@ function DesktopTicketLine({ item, onUpdateQty, money, t }: {
       <div className="flex-1 min-w-0">
         <span className="text-sm font-semibold text-foreground block truncate">{item.product_name}</span>
         <span className="text-[0.8125rem] text-muted-foreground">{sub}</span>
+        <LineStockWarning item={item} className="mt-0.5" />
       </div>
       <div className="flex items-center h-9 border border-border rounded-full shrink-0">
         <button type="button" aria-label={decAria} onClick={() => onUpdateQty(item.lineId, item.quantity - 1)}
@@ -60,7 +64,6 @@ function DesktopSummaryBlock({ form, money, hasItems }: { form: NewSaleForm; mon
   const shippingN = parseFloat(form.shipping) || 0;
   const showAddDiscount = !form.showDiscount && discountN === 0;
   const showAddShipping = !form.showShipping && shippingN === 0 && fulfillmentMode !== 'on_site';
-  const linkClass = 'text-[0.8125rem] font-semibold text-primary hover:underline';
 
   return (
     <div className="px-5 pt-4 pb-3 border-t border-border flex flex-col gap-2.5">
@@ -89,14 +92,10 @@ function DesktopSummaryBlock({ form, money, hasItems }: { form: NewSaleForm; mon
           {(showAddDiscount || showAddShipping) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               {showAddDiscount && (
-                <button type="button" onClick={() => form.setShowDiscount(true)} className={linkClass}>
-                  {t('add_discount')}
-                </button>
+                <AddLink onClick={() => form.setShowDiscount(true)}>{t('add_discount')}</AddLink>
               )}
               {showAddShipping && (
-                <button type="button" onClick={() => form.setShowShipping(true)} className={linkClass}>
-                  {t('add_shipping')}
-                </button>
+                <AddLink onClick={() => form.setShowShipping(true)}>{t('add_shipping')}</AddLink>
               )}
             </div>
           )}
@@ -115,7 +114,6 @@ function DesktopTicketControls({ form }: { form: NewSaleForm }) {
   const tPayment = useTranslations('orders.payment');
   const { data: shop } = useShop();
   const catalogKind = useCatalogKind();
-  const linkClass = 'text-[0.8125rem] font-semibold text-primary hover:underline';
 
   return (
     <>
@@ -157,10 +155,7 @@ function DesktopTicketControls({ form }: { form: NewSaleForm }) {
             )}
           </div>
         ) : (
-          <button type="button" onClick={() => form.setShowNotes(true)}
-            className={linkClass}>
-            + {t('notes_show')}
-          </button>
+          <AddLink onClick={() => form.setShowNotes(true)}>{t('add_note')}</AddLink>
         )}
       </div>
     </>
@@ -174,9 +169,10 @@ export function DesktopSaleTicket({ form }: { form: NewSaleForm }) {
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
+  const submitLabel = useSubmitLabel(form.mode, form.isPending);
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden lg:sticky top-8">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden">
       <TicketCustomerBlock form={form} />
       {form.items.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-muted-foreground">{t('items_empty', { kind })}</p>
@@ -188,11 +184,12 @@ export function DesktopSaleTicket({ form }: { form: NewSaleForm }) {
         </div>
       )}
       <DesktopSummaryBlock form={form} money={money} hasItems={form.items.length > 0} />
-      <DesktopTicketControls form={form} />
-      <div className="px-5 pb-5">
+      {/* Paiement, statut et note se gèrent depuis le détail une fois la commande créée. */}
+      {form.mode === 'create' && <DesktopTicketControls form={form} />}
+      <div className={`px-5 pb-5 ${form.mode === 'edit' ? 'pt-1' : ''}`}>
         <button type="button" onClick={() => void form.handleSubmit()} disabled={form.isPending}
           className="w-full h-13 rounded-full bg-primary text-primary-foreground flex items-center justify-between px-6 text-[0.9375rem] font-semibold disabled:opacity-60 transition-opacity">
-          <span>{form.isPending ? t('submit_creating') : t('submit_label')}</span>
+          <span>{submitLabel}</span>
           <span className="tabular-nums font-bold">{money(form.total)}</span>
         </button>
       </div>

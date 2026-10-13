@@ -1,22 +1,28 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import Link from 'next/link';
 
+// Libellés sous `layout.nav.<clé>` ; les entrées Stock n'existent pas pour une boutique de services.
 const MENU_ITEMS = [
-  { href: '/invoices', label: 'Factures' },
-  { href: '/stock/add', label: 'Entrée stock' },
-  { href: '/stock/out', label: 'Sortie stock' },
-  { href: '/reminders', label: 'Rappels' },
-  { href: '/notes', label: 'Notes' },
-  { href: '/zakat', label: 'Zakat' },
-  { href: '/settings', label: 'Paramètres boutique' },
-];
+  { href: '/invoices', label: 'invoices', stock: false },
+  { href: '/stock/entree', label: 'stock_in', stock: true },
+  { href: '/stock/sortie', label: 'stock_out', stock: true },
+  { href: '/reminders', label: 'reminders', stock: false },
+  { href: '/notes', label: 'notes', stock: false },
+  { href: '/zakat', label: 'zakat', stock: false },
+  { href: '/settings', label: 'settings', stock: false },
+] as const;
 
 export default function MorePage() {
+  const t = useTranslations('layout');
   const router = useRouter();
+  const kind = useCatalogKind();
+  const items = MENU_ITEMS.filter((item) => !item.stock || kind !== 'services');
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -25,29 +31,29 @@ export default function MorePage() {
 
   return (
     <>
-      <TopBar title="Plus" />
+      <TopBar title={t('nav.more')} />
       <div className="flex flex-col gap-4 p-4">
-        <div className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
-          {MENU_ITEMS.map(({ href, label }, i) => (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {items.map(({ href, label }, i) => (
             <Link
               key={href}
               href={href}
-              className={`flex items-center justify-between px-4 py-3.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 ${
-                i < MENU_ITEMS.length - 1 ? 'border-b border-zinc-100' : ''
+              className={`flex items-center justify-between px-4 py-3.5 text-sm font-medium text-foreground hover:bg-muted ${
+                i < items.length - 1 ? 'border-b border-border' : ''
               }`}
             >
-              {label}
-              <span className="text-zinc-400">›</span>
+              {t(`nav.${label}`)}
+              <span className="text-muted-foreground rtl:rotate-180">›</span>
             </Link>
           ))}
         </div>
 
         <Button
-          variant="outline"
-          className="w-full text-red-500 border-red-200 hover:bg-red-50"
+          variant="destructive"
+          className="w-full"
           onClick={handleLogout}
         >
-          Se déconnecter
+          {t('common.logout')}
         </Button>
       </div>
     </>

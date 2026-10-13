@@ -1,6 +1,7 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk, type OrdersListFilters, type OrdersCustomerFilters } from '@/lib/query-keys';
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -58,7 +59,11 @@ export interface OrderInvoiceSummary {
 export interface Order extends OrderSummary {
   items: OrderItem[];
   invoice: OrderInvoiceSummary | null;
-  customer_phone: string | null;
+  /** Prénom seul, pour les initiales (le nom affiché reste `customer_name`). */
+  customer_first_name?: string | null;
+  customer_phone?: string | null;
+  customer_city?: string | null;
+  created_by_name: string | null;
   subtotal: string;
   discount_amount: string;
   shipping_amount: string;
@@ -78,7 +83,13 @@ export interface OrderCreateData {
   amount_paid?: string;
 }
 
-export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?: boolean }) {
+export interface OrdersSummary {
+  to_prepare: { count: number; oldest_created_at: string | null };
+  due: { count: number; amount: string };
+  month: { revenue: string; shipped_count: number };
+}
+
+function listParams(filters: OrdersListFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.status) params.set('status', filters.status);
   if (filters.payment_status) params.set('payment_status', filters.payment_status);
@@ -86,6 +97,13 @@ export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?:
   if (filters.page && filters.page > 1) params.set('page', String(filters.page));
   if (filters.search) params.set('search', filters.search);
   if (filters.due) params.set('due', 'true');
+  if (filters.period) params.set('period', filters.period);
+  if (filters.ordering) params.set('ordering', filters.ordering);
+  return params;
+}
+
+export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?: boolean }) {
+  const params = listParams(filters);
   return useQuery({
     queryKey: qk.orders.list(filters),
     queryFn: () => apiFetch<PaginatedResponse<OrderSummary>>(`/orders/?${params}`),
@@ -94,15 +112,7 @@ export function useOrders(filters: OrdersListFilters = {}, options?: { enabled?:
 }
 
 export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {}, options?: { enabled?: boolean }) {
-  const buildParams = (pg: number) => {
-    const p = new URLSearchParams();
-    if (filters.status) p.set('status', filters.status);
-    if (filters.payment_status) p.set('payment_status', filters.payment_status);
-    if (filters.search) p.set('search', filters.search);
-    if (filters.due) p.set('due', 'true');
-    if (pg > 1) p.set('page', String(pg));
-    return p;
-  };
+  const buildParams = (pg: number) => listParams({ ...filters, page: pg });
   return useInfiniteQuery({
     queryKey: qk.orders.listInfinite(filters),
     queryFn: ({ pageParam = 1 }) =>
@@ -110,6 +120,35 @@ export function useOrdersInfinite(filters: Omit<OrdersListFilters, 'page'> = {},
     initialPageParam: 1 as number,
     getNextPageParam: (last, _, lastPageParam) =>
       last.next ? (lastPageParam as number) + 1 : undefined,
+    enabled: options?.enabled,
+  });
+}
+
+export function useOrdersSummary(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: qk.orders.summary,
+    queryFn: () => apiFetch<OrdersSummary>('/orders/summary/'),
+    enabled: options?.enabled,
+  });
+}
+
+/** Nombre de commandes par option des menus Statut et Paiement (mêmes filtres que la liste). */
+export interface OrdersFacets {
+  status: Record<'all' | 'to_prepare' | 'prepared' | 'shipped' | 'cancelled', number>;
+  payment: Record<'all' | 'due' | 'paid', number>;
+}
+
+export function useOrdersFacets(
+  filters: Omit<OrdersListFilters, 'page'>,
+  options?: { enabled?: boolean },
+) {
+  // Le tri ne change pas les nombres : il reste hors de la clé de cache.
+  const facetFilters = { ...filters, ordering: undefined };
+  const params = listParams(facetFilters);
+  return useQuery({
+    queryKey: qk.orders.facets(facetFilters),
+    queryFn: () => apiFetch<OrdersFacets>(`/orders/facets/?${params}`),
+    placeholderData: keepPreviousData,
     enabled: options?.enabled,
   });
 }
@@ -144,12 +183,25 @@ export function useOrder(id: string) {
   });
 }
 
-export function useOrderActivity(id: string) {
+/** Carte « Historique » : 5 événements, puis 10 de plus à chaque « Voir plus ». */
+export function useOrderHistory(id: string) {
+  return useShowMoreQuery<OrderActivityEvent>(qk.orders.history(id), `/orders/${id}/activity/`, {}, !!id);
+}
+
+/** Étapes du suivi : les changements de statut (quelques-uns par commande). */
+export function useOrderStatusChanges(id: string) {
   return useQuery({
-    queryKey: qk.orders.activity(id),
-    queryFn: () => apiFetch<{ events: OrderActivityEvent[] }>(`/orders/${id}/activity/`),
+    queryKey: qk.orders.statusChanges(id),
+    queryFn: () => apiFetch<PaginatedResponse<OrderActivityEvent>>(`/orders/${id}/activity/?types=status_change&limit=100`),
     enabled: !!id,
   });
+}
+
+/** Commandes de la fiche client, les plus récentes d'abord : 5, puis « Voir plus ». */
+export function useCustomerOrderWindow(customerId: string) {
+  return useShowMoreQuery<OrderSummary>(
+    qk.orders.customerWindow(customerId), '/orders/', { customer: customerId, ordering: '-created_at' }, !!customerId,
+  );
 }
 
 export function useCreateOrder() {
@@ -161,6 +213,9 @@ export function useCreateOrder() {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
       qc.invalidateQueries({ queryKey: qk.navBadges.all });
+      // Une vente réserve le stock, une annulation le libère.
+      qc.invalidateQueries({ queryKey: qk.stock.all });
+      qc.invalidateQueries({ queryKey: qk.products.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },
   });
@@ -175,6 +230,9 @@ export function useTransitionOrder(id: string) {
       qc.invalidateQueries({ queryKey: qk.orders.all });
       qc.invalidateQueries({ queryKey: qk.dashboard.all });
       qc.invalidateQueries({ queryKey: qk.navBadges.all });
+      // Une vente réserve le stock, une annulation le libère.
+      qc.invalidateQueries({ queryKey: qk.stock.all });
+      qc.invalidateQueries({ queryKey: qk.products.all });
       qc.invalidateQueries({ queryKey: qk.invoices.all });
       if (order?.customer) qc.invalidateQueries({ queryKey: qk.customers.detail(order.customer) });
     },

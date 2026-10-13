@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
+import { buildFollowupMessage } from '@/components/customers/detail/followupMessage';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
 
 function WaIcon({ size = 18 }: { size?: number }) {
@@ -13,16 +14,21 @@ function WaIcon({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
-import { useFormatMoney, useRelativeTime } from '@/lib/hooks/useFormat';
+import { useFormatDate, useFormatMoney, useRelativeTime } from '@/lib/hooks/useFormat';
 import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
 
 interface Props { order: UnpaidOrder; currency: string; }
 
 export function UnpaidRow({ order, currency }: Props) {
   const t = useTranslations('dashboard.unpaid');
+  const tWa = useTranslations('customers.whatsapp');
   const formatMoney = useFormatMoney();
+  const formatDate = useFormatDate();
   const relativeTime = useRelativeTime();
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Même relance que depuis la fiche client, pour cette seule commande.
+  const followup = () => buildFollowupMessage(order.customer_name ?? '', [order], order.amount_due,
+    { tWa, formatMoney, formatDate, currency });
 
   return (
     <div className="flex items-center gap-3 px-5 py-3.5">
@@ -68,7 +74,7 @@ export function UnpaidRow({ order, currency }: Props) {
           contextId={order.id}
           customerId={order.customer_id}
           recipientPhone={order.customer_phone}
-          initialMessage=""
+          initialMessage={followup()}
           WhatsAppIcon={WaIcon}
         />
       )}

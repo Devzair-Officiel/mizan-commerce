@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { BookOpen, ChevronDown } from 'lucide-react';
 import { ZAKAT_REASONING, type ReasoningKey } from '@/lib/zakat-reasoning';
 
@@ -11,6 +12,7 @@ interface ReligiousNoteProps {
 }
 
 export function ReligiousNote({ rubric, defaultOpen = false }: ReligiousNoteProps) {
+  const t = useTranslations('zakat.note');
   const [open, setOpen] = useState(defaultOpen);
   const note = ZAKAT_REASONING[rubric];
 
@@ -19,12 +21,12 @@ export function ReligiousNote({ rubric, defaultOpen = false }: ReligiousNoteProp
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+        className="w-full flex items-center gap-2 px-4 py-3 hover:bg-muted/30 transition-colors text-start"
         aria-expanded={open}
       >
         <BookOpen className="text-primary shrink-0" size={14} />
         <span className="flex-1 text-xs font-medium text-foreground">
-          Pourquoi cette question&nbsp;? <span className="text-muted-foreground font-normal">— {note.title}</span>
+          {t('why')} <span className="text-muted-foreground font-normal">— {note.title}</span>
         </span>
         <ChevronDown
           size={14}
@@ -35,13 +37,13 @@ export function ReligiousNote({ rubric, defaultOpen = false }: ReligiousNoteProp
       {open && (
         <div className="px-4 pb-3 flex flex-col gap-2 border-t border-border/40">
           <p className="text-xs text-muted-foreground leading-relaxed pt-2">
-            <span className="text-foreground font-medium">Fondement&nbsp;:</span> {note.fondement}
+            <span className="text-foreground font-medium">{t('basis')}</span> {note.fondement}
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <span className="text-foreground font-medium">Dans Mizan&nbsp;:</span> {note.application}
+            <span className="text-foreground font-medium">{t('in_app')}</span> {note.application}
           </p>
           {note.source && (
-            <p className="text-[11px] text-muted-foreground/70 italic">Source : {note.source}</p>
+            <p className="text-[11px] text-muted-foreground/70 italic">{t('source', { source: note.source })}</p>
           )}
         </div>
       )}

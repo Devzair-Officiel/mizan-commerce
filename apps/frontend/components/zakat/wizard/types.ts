@@ -17,14 +17,8 @@ export interface WizardState {
   debtsBreakdown: DebtItem[];
 }
 
-export const STEP_TITLES: Array<{ title: string; subtitle?: string }> = [
-  { title: 'Argent disponible', subtitle: 'Caisse, compte pro, espèces du commerce.' },
-  { title: 'Créances clients', subtitle: "Ce qu'on vous doit — et que vous pensez récupérer." },
-  { title: 'Stock commercial', subtitle: 'Marchandises destinées à la revente.' },
-  { title: "Ce qui n'entre pas", subtitle: 'Vos outils de travail restent hors zakat.' },
-  { title: 'Dettes', subtitle: 'Seules les dettes exigibles immédiatement comptent.' },
-  { title: 'Récapitulatif', subtitle: 'Dernière vérification avant validation.' },
-];
+/** Étapes de l'assistant, dans l'ordre ; titres sous `zakat.wizard.steps.{clé}`. */
+export const STEP_KEYS = ['cash', 'receivables', 'stock', 'excluded', 'debts', 'summary'] as const;
 
 const today = () => new Date().toISOString().split('T')[0] ?? '';
 

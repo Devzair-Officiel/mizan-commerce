@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import uuid
+from collections.abc import Mapping
+from datetime import datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from django.db import transaction
+from django.db.models import Count, Min, Q, QuerySet, Sum
 from django.utils import timezone
 
 from apps.core.audit import log_action
@@ -14,8 +19,9 @@ from .timeline import (  # ré-exports pour la rétro-compat des imports `servic
     EVENT_NOTE,
     EVENT_PAYMENT_CHANGE,
     EVENT_STATUS_CHANGE,
+    ORDER_EVENT_TYPES,
     OrderTimelineEvent,
-    get_order_timeline,
+    order_timeline_sources,
 )
 
 __all__ = [
@@ -23,14 +29,18 @@ __all__ = [
     'EVENT_NOTE',
     'EVENT_PAYMENT_CHANGE',
     'EVENT_STATUS_CHANGE',
+    'ORDER_EVENT_TYPES',
     'OrderTimelineEvent',
     'add_item',
     'advance_order_to',
     'allowed_transitions',
     'build_items_preview_batch',
+    'build_orders_summary',
     'create_order',
+    'current_month_bounds',
+    'filter_due',
     'generate_order_number',
-    'get_order_timeline',
+    'order_timeline_sources',
     'recalculate_totals',
     'remove_item',
     'reserve_stock',
@@ -213,7 +223,8 @@ def update_item_quantity(order: Order, item: OrderItem, quantity: int, user=None
     old_qty = item.quantity
     delta = quantity - old_qty
     item.quantity = quantity
-    item.save(update_fields=['quantity'])
+    # line_total est recalculé par OrderItem.save() : à enregistrer avec la quantité.
+    item.save(update_fields=['quantity', 'line_total'])
     recalculate_totals(order)
 
     if order.stock_reserved and delta != 0 and item.variant and item.variant.product.type == 'product':  # noqa: E501
@@ -390,3 +401,99 @@ def update_payment(order: Order, amount_paid: Decimal, user=None) -> Order:
     return order
 
 
+def current_month_bounds(shop, now: datetime | None = None) -> tuple[datetime, datetime]:  # noqa: E501
+    """Début (inclus) et fin (exclue) du mois en cours, dans le fuseau de la boutique."""  # noqa: E501
+    tz = ZoneInfo(shop.timezone)
+    local = (now or timezone.now()).astimezone(tz)
+    start = datetime(local.year, local.month, 1, tzinfo=tz)
+    if local.month == 12:
+        end = datetime(local.year + 1, 1, 1, tzinfo=tz)
+    else:
+        end = datetime(local.year, local.month + 1, 1, tzinfo=tz)
+    return start, end
+
+
+# Commandes à encaisser : non payées ou partielles, hors annulées.
+DUE_Q = Q(payment_status__in=('unpaid', 'partial')) & ~Q(status='cancelled')
+
+
+def filter_due(qs: QuerySet[Order]) -> QuerySet[Order]:
+    """Commandes à encaisser : non payées ou partielles, hors annulées."""
+    return qs.filter(DUE_Q)
+
+
+def filter_orders(
+    qs: QuerySet[Order], shop, params: Mapping[str, str], *, skip: str | None = None,
+) -> QuerySet[Order]:
+    """Filtres de la liste Commandes, hors recherche (portée par `SearchFilter`).
+
+    `skip` ignore un groupe de filtres (`'status'` ou `'payment'`, qui couvre
+    `payment_status` et `due`) : c'est ce que compte chaque menu de facettes.
+    """
+    if skip != 'status' and params.get('status'):
+        qs = qs.filter(status=params['status'])
+    if skip != 'payment':
+        if params.get('payment_status'):
+            qs = qs.filter(payment_status=params['payment_status'])
+        if params.get('due') == 'true':
+            qs = filter_due(qs)
+    if params.get('customer'):
+        try:
+            qs = qs.filter(customer_id=uuid.UUID(params['customer']))
+        except ValueError:
+            qs = qs.none()
+    if params.get('period') == 'month':
+        start, end = current_month_bounds(shop)
+        qs = qs.filter(created_at__gte=start, created_at__lt=end)
+    return qs
+
+
+def build_order_facets(shop, qs: QuerySet[Order], params: Mapping[str, str]) -> dict:
+    """Nombre de commandes par option des menus Statut et Paiement.
+
+    Chaque menu applique tous les filtres sauf le sien : le nombre affiché
+    à côté d'une option est celui que donnerait la liste en la choisissant.
+    `qs` doit déjà être limité à la boutique et à la recherche.
+    """
+    rows = (
+        filter_orders(qs, shop, params, skip='status')
+        .order_by().values('status').annotate(n=Count('id'))
+    )
+    by_status = {value: 0 for value, _ in Order.STATUS_CHOICES}
+    for row in rows:
+        by_status[row['status']] = row['n']
+    payment = filter_orders(qs, shop, params, skip='payment').aggregate(
+        all=Count('id'),
+        due=Count('id', filter=DUE_Q),
+        paid=Count('id', filter=Q(payment_status='paid')),
+    )
+    return {'status': {'all': sum(by_status.values()), **by_status}, 'payment': payment}
+
+
+def build_orders_summary(shop, now: datetime | None = None) -> dict:
+    """Indicateurs de la page Commandes : à traiter, à encaisser, mois en cours."""
+    orders = Order.objects.filter(shop=shop)
+    to_prepare = orders.filter(status='to_prepare').aggregate(
+        count=Count('id'), oldest=Min('created_at'),
+    )
+    due = filter_due(orders).aggregate(
+        count=Count('id'), total=Sum('total_amount'), paid=Sum('amount_paid'),
+    )
+    month_start, month_end = current_month_bounds(shop, now)
+    month = orders.filter(created_at__gte=month_start, created_at__lt=month_end).aggregate(  # noqa: E501
+        revenue=Sum('total_amount', filter=~Q(status='cancelled')),
+        shipped_count=Count('id', filter=Q(status='shipped')),
+    )
+    due_amount = (due['total'] or Decimal('0')) - (due['paid'] or Decimal('0'))
+    oldest = to_prepare['oldest']
+    return {
+        'to_prepare': {
+            'count': to_prepare['count'],
+            'oldest_created_at': oldest.isoformat() if oldest else None,
+        },
+        'due': {'count': due['count'], 'amount': str(due_amount)},
+        'month': {
+            'revenue': str(month['revenue'] or Decimal('0')),
+            'shipped_count': month['shipped_count'],
+        },
+    }

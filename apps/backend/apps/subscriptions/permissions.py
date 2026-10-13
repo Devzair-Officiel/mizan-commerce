@@ -10,12 +10,19 @@ Un endpoint sensible combine les deux : on vérifie d'abord que la boutique a la
 formule qui débloque la feature, puis que le membre courant a le module activé.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
 from apps.core.permissions import get_shop
 
 from .models import SubscriptionPlan
+
+if TYPE_CHECKING:
+    from apps.shops.models import Shop
 
 # Mapping feature → plan minimum requis. Source de vérité du gating commercial.
 # Toute feature absente de ce mapping est gatée fermée (fail-closed) : un
@@ -48,6 +55,15 @@ def _tier_index(code: str) -> int:
         return -1
 
 
+def shop_has_feature(shop: Shop, feature: str) -> bool:
+    """La formule effective de la boutique débloque-t-elle `feature` ?"""
+    required_code = FEATURE_MIN_PLAN.get(feature)
+    if required_code is None:
+        # Feature non répertoriée → fail-closed.
+        return False
+    return shop.effective_plan.tier >= _tier_index(required_code)
+
+
 class HasPlanForFeature(BasePermission):
     """Gate l'accès à un endpoint selon la formule souscrite par la boutique.
 
@@ -72,14 +88,7 @@ class HasPlanForFeature(BasePermission):
             shop = get_shop(request.user)
         except PermissionDenied:
             return False
-
-        required_code = FEATURE_MIN_PLAN.get(self.feature)
-        if required_code is None:
-            # Feature non répertoriée → fail-closed.
-            return False
-
-        effective = shop.effective_plan
-        return effective.tier >= _tier_index(required_code)
+        return shop_has_feature(shop, self.feature)
 
     @classmethod
     def for_feature(cls, feature: str) -> type['HasPlanForFeature']:

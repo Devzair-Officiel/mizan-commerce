@@ -9,6 +9,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
+import { PhoneCountrySelect } from '@/components/form/PhoneCountrySelect';
 import { TOGGLEABLE_MODULES, type ModuleKey } from '@/lib/hooks/useMe';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import {
@@ -17,6 +18,8 @@ import {
   type ShopMember,
 } from '@/lib/hooks/useShopMembers';
 import { ApiError } from '@/lib/api-client';
+import { useShop } from '@/lib/hooks/useShop';
+import { joinPhone, phoneCountry } from '@/lib/phone';
 
 export type FormMode =
   | { kind: 'create' }
@@ -64,6 +67,10 @@ function CreateForm({ onClose }: { onClose: () => void }) {
   const [perms, setPerms] = useState<ModuleKey[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const { data: shop } = useShop();
+  // Indicatif du téléphone : celui du pays de la boutique tant qu'il n'est pas changé.
+  const [dial, setDial] = useState<string>('');
+  const country = phoneCountry(dial || shop?.country);
 
   const {
     register,
@@ -80,7 +87,7 @@ function CreateForm({ onClose }: { onClose: () => void }) {
       await mutateAsync({
         email: values.email,
         full_name: values.full_name,
-        phone: values.phone ?? '',
+        phone: joinPhone(country, values.phone ?? ''),
         password: values.password,
         permissions: perms,
       });
@@ -122,12 +129,20 @@ function CreateForm({ onClose }: { onClose: () => void }) {
         </p>
       )}
 
-      <FloatingInput
-        id="member-phone"
-        label={t('form.phone')}
-        autoComplete="off"
-        {...register('phone')}
-      />
+      <div className="flex gap-2 rtl:flex-row-reverse">
+        <PhoneCountrySelect value={country} onChange={setDial} floating />
+        <div className="min-w-0 flex-1">
+          <FloatingInput
+            id="member-phone"
+            label={t('form.phone')}
+            type="tel"
+            inputMode="tel"
+            dir="ltr"
+            autoComplete="off"
+            {...register('phone')}
+          />
+        </div>
+      </div>
 
       <div className="relative">
         <FloatingInput

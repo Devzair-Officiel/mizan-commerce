@@ -2,19 +2,11 @@ import { z } from 'zod';
 
 export const CURRENCIES = ['EUR', 'MAD', 'TND', 'DZD', 'XOF', 'USD', 'GBP'] as const;
 
-export const COUNTRIES = [
-  { code: 'FR', label: 'France' },
-  { code: 'MA', label: 'Maroc' },
-  { code: 'TN', label: 'Tunisie' },
-  { code: 'DZ', label: 'Algérie' },
-  { code: 'SN', label: 'Sénégal' },
-  { code: 'CI', label: "Côte d'Ivoire" },
-  { code: 'BE', label: 'Belgique' },
-  { code: 'GB', label: 'Royaume-Uni' },
-];
+/** Codes ISO 3166-1 ; le nom s'affiche dans la langue de l'interface (useCountryNames). */
+export const COUNTRIES = ['FR', 'MA', 'TN', 'DZ', 'SN', 'CI', 'BE', 'GB'] as const;
 
 export const settingsSchema = z.object({
-  name: z.string().min(1, 'Nom requis'),
+  name: z.string().min(1), // message : settings.identity.name_required
   currency: z.string().min(1),
   country: z.string().optional(),
   zakat_annual_date: z.string().optional(),

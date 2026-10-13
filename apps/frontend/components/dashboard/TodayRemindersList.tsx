@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Bell } from 'lucide-react';
 import { useMarkReminderDone } from '@/lib/hooks/useReminders';
 import { useFormat } from '@/lib/hooks/useFormat';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SectionCard } from '@/components/ui/SectionCard';
 import type { ReminderSummary } from '@/lib/hooks/useDashboard';
 
 interface Props { count: number; items: ReminderSummary[]; }
@@ -47,7 +47,7 @@ export function TodayRemindersList({ count, items }: Props) {
   }
 
   return (
-    <DashboardCard title={t('title')} rightLink={{ label: t('see_all'), href: '/reminders' }}>
+    <SectionCard title={t('title')} rightLink={{ label: t('see_all'), href: '/reminders' }}>
       <div className="divide-y divide-border">
         {items.map((r) => {
           const sub = reminderSubtext(r);
@@ -72,6 +72,6 @@ export function TodayRemindersList({ count, items }: Props) {
           );
         })}
       </div>
-    </DashboardCard>
+    </SectionCard>
   );
 }

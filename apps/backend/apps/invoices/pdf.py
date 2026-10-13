@@ -22,6 +22,7 @@ from reportlab.platypus import (
 )
 
 from .models import Invoice
+from .services import display_line_description
 
 
 _STATUS_LABELS = {
@@ -165,7 +166,7 @@ def build_invoice_pdf(invoice: Invoice) -> bytes:
     ]
     for line in invoice.lines.all():
         line_rows.append([
-            Paragraph(_nl_to_br(line.description), body),
+            Paragraph(_nl_to_br(display_line_description(line.description)), body),
             _fmt_qty(line.quantity),
             _fmt_money(line.unit_price_ht, invoice.currency),
             _fmt_money(line.line_subtotal_ht, invoice.currency),

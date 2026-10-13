@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Clock } from 'lucide-react';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useShop } from '@/lib/hooks/useShop';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SectionCard } from '@/components/ui/SectionCard';
 import { UnpaidRow } from '@/components/dashboard/UnpaidRow';
 import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
 
@@ -39,7 +39,7 @@ export function UnpaidList({ count, items, totalDue }: Props) {
   ) : undefined;
 
   return (
-    <DashboardCard title={t('title')} rightSlot={totalDueSlot}>
+    <SectionCard title={t('title')} rightSlot={totalDueSlot}>
       <div className="divide-y divide-border">
         {items.map((o) => <UnpaidRow key={o.id} order={o} currency={currency} />)}
       </div>
@@ -49,6 +49,6 @@ export function UnpaidList({ count, items, totalDue }: Props) {
           {t('see_all', { count })}
         </Link>
       )}
-    </DashboardCard>
+    </SectionCard>
   );
 }

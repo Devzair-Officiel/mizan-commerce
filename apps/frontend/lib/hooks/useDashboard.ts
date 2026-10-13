@@ -67,7 +67,7 @@ export interface DashboardData {
   revenue_last_7_days: RevenueDayPoint[];
   orders_to_prepare: DashboardBlock<OrderToPrepare> & { oldest_created_at: string | null };
   unpaid_orders: DashboardBlock<UnpaidOrder> & { total_due: string };
-  low_stock_products: DashboardBlock<ProductSummary> & { out_of_stock_count: number };
+  low_stock_products: DashboardBlock<ProductSummary> & { negative_count: number; out_of_stock_count: number };
   today_reminders: DashboardBlock<ReminderSummary>;
   setup: {
     has_orders: boolean;

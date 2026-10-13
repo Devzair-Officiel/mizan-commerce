@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Package, Clock, AlertTriangle, Bell } from 'lucide-react';
 import { useFormatMoney, useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
 import { useShop } from '@/lib/hooks/useShop';
-import { CounterCard } from '@/components/dashboard/CounterCard';
+import { StatCard } from '@/components/ui/StatCard';
 import { CountersGrid } from '@/components/dashboard/CountersGrid';
 import { RevenueCard } from '@/components/dashboard/RevenueCard';
 import { PrepareList } from '@/components/dashboard/PrepareList';
@@ -35,7 +35,7 @@ function getRemindersSub(
   t: TDashboard,
   formatDateTime: (v: string, opts?: Intl.DateTimeFormatOptions) => string,
 ) {
-  if (count === 0) return { sub: undefined, color: 'text-muted-foreground' as const };
+  if (count === 0) return { sub: undefined, tone: 'neutral' as const };
   const overdueCount = items.filter((r) => r.is_overdue).length;
   const nextNonOverdue = items.find((r) => !r.is_overdue);
   const sub = overdueCount > 0
@@ -43,17 +43,20 @@ function getRemindersSub(
     : nextNonOverdue
       ? t('counters.reminders_next', { time: formatDateTime(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
       : undefined;
-  const color = overdueCount > 0 ? 'text-amber-700 dark:text-amber-400' as const : 'text-muted-foreground' as const;
-  return { sub, color };
+  const tone = overdueCount > 0 ? 'amber' as const : 'neutral' as const;
+  return { sub, tone };
 }
 
-function getLowStockSub(outOfStock: number, t: TDashboard) {
-  if (outOfStock <= 0) return t('counters.low_stock_unit');
+/** « formats, dont 2 à régulariser » : le stock négatif passe avant la rupture. */
+function getLowStockSub(negative: number, outOfStock: number, t: TDashboard) {
+  if (negative <= 0 && outOfStock <= 0) return t('counters.low_stock_unit');
   return (
     <>
       {t('counters.low_stock_unit')}{', '}
       <span className="text-red-600 dark:text-red-400">
-        {t('counters.low_stock_sub', { count: outOfStock })}
+        {negative > 0
+          ? t('counters.negative_sub', { count: negative })
+          : t('counters.low_stock_sub', { count: outOfStock })}
       </span>
     </>
   );
@@ -83,8 +86,8 @@ export function ActiveShopDashboard({ data }: Props) {
   const { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders } =
     useActiveShopDashboardData(data);
 
-  const outOfStock = data.low_stock_products.out_of_stock_count;
-  const lowStockSub = getLowStockSub(outOfStock, t);
+  const { negative_count: negative, out_of_stock_count: outOfStock } = data.low_stock_products;
+  const lowStockSub = getLowStockSub(negative, outOfStock, t);
 
   return (
     <>
@@ -93,37 +96,37 @@ export function ActiveShopDashboard({ data }: Props) {
           {t('counters.section_today')}
         </p>
         <CountersGrid>
-          <CounterCard
+          <StatCard
             label={t('prepare.title')}
             value={data.orders_to_prepare.count}
             sub={oldestSub}
             href="/orders?status=to_prepare"
             icon={<Package size={15} />}
           />
-          <CounterCard
+          <StatCard
             label={t('unpaid.title')}
             value={formatMoney(data.unpaid_orders.total_due, currency)}
-            valueColor="text-amber-700 dark:text-amber-400"
             sub={t('counters.unpaid_sub', { count: data.unpaid_orders.count })}
             href="/orders?due=true"
             icon={<Clock size={15} />}
-            iconVariant="amber"
+            tone="amber"
+            toneValue
           />
           {catalogKind !== 'services' && (
-            <CounterCard
+            <StatCard
               label={t('low_stock.title')}
               value={data.low_stock_products.count}
               sub={lowStockSub}
               href="/stock"
               icon={<AlertTriangle size={15} />}
-              iconVariant={outOfStock > 0 ? 'red' : 'default'}
+              tone={outOfStock > 0 ? 'red' : 'neutral'}
             />
           )}
-          <CounterCard
+          <StatCard
             label={t('reminders.title')}
             value={data.today_reminders.count}
             sub={reminders.sub}
-            subColor={reminders.color}
+            subTone={reminders.tone}
             href="/reminders"
             icon={<Bell size={15} />}
           />

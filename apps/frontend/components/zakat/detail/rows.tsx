@@ -1,11 +1,8 @@
+import type { useTranslations } from 'next-intl';
 import { Package, Receipt, Users, Wallet } from 'lucide-react';
-import {
-  DEBT_CATEGORY_LABELS,
-  RECEIVABLE_CATEGORY_LABELS,
-  STOCK_CATEGORY_LABELS,
-  formatMoney,
-  type ZakatCalculation,
-} from '@/lib/hooks/useZakat';
+import { formatMoney, type ZakatCalculation } from '@/lib/hooks/useZakat';
+
+type ZakatT = ReturnType<typeof useTranslations<'zakat'>>;
 
 type Row = {
   label: string;
@@ -15,7 +12,7 @@ type Row = {
   icon: React.ReactNode;
 };
 
-export function buildPatrimoineRows(calc: ZakatCalculation): Row[] {
+export function buildPatrimoineRows(calc: ZakatCalculation, t: ZakatT): Row[] {
   const receivablesVentilated = calc.receivables_breakdown && calc.receivables_breakdown.length > 0;
   const stockVentilated = calc.stock_breakdown && calc.stock_breakdown.length > 0;
   const stockAdjusted =
@@ -23,22 +20,19 @@ export function buildPatrimoineRows(calc: ZakatCalculation): Row[] {
 
   const receivablesRows: Row[] = receivablesVentilated
     ? calc.receivables_breakdown.map((r) => ({
-        label: RECEIVABLE_CATEGORY_LABELS[r.category],
+        label: t(`receivable_category.${r.category}`),
         amount: r.amount,
-        hint:
-          r.category === 'doubtful'
-            ? 'Archivée pour mémoire — non incluse dans la base'
-            : undefined,
+        hint: r.category === 'doubtful' ? t('rows.doubtful_hint') : undefined,
         tone: r.category === 'doubtful' ? undefined : ('add' as const),
         icon: <Users size={14} />,
       }))
     : [
         {
-          label: 'Créances récupérables',
+          label: t('common.receivables'),
           amount: calc.receivables_amount,
           hint:
             calc.has_receivables && parseFloat(calc.receivables_nominal || '0') > 0
-              ? `Sur un nominal de ${formatMoney(calc.receivables_nominal, calc.currency)}`
+              ? t('rows.nominal_hint', { amount: formatMoney(calc.receivables_nominal, calc.currency) })
               : undefined,
           tone: 'add' as const,
           icon: <Users size={14} />,
@@ -47,17 +41,17 @@ export function buildPatrimoineRows(calc: ZakatCalculation): Row[] {
 
   const stockRows: Row[] = stockVentilated
     ? calc.stock_breakdown.map((s) => ({
-        label: STOCK_CATEGORY_LABELS[s.category],
+        label: t(`stock_category.${s.category}`),
         amount: s.amount,
         tone: 'add' as const,
         icon: <Package size={14} />,
       }))
     : [
         {
-          label: stockAdjusted ? 'Stock commercial (ajusté)' : 'Stock commercial (estimé)',
+          label: stockAdjusted ? t('rows.stock_adjusted') : t('rows.stock_estimated'),
           amount: calc.stock_value_for_base,
           hint: stockAdjusted
-            ? `Estimation initiale : ${formatMoney(calc.stock_value_estimated, calc.currency)}`
+            ? t('rows.stock_initial', { amount: formatMoney(calc.stock_value_estimated, calc.currency) })
             : undefined,
           tone: 'add' as const,
           icon: <Package size={14} />,
@@ -66,7 +60,7 @@ export function buildPatrimoineRows(calc: ZakatCalculation): Row[] {
 
   return [
     {
-      label: 'Argent disponible',
+      label: t('common.cash'),
       amount: calc.cash_amount,
       tone: 'add' as const,
       icon: <Wallet size={14} />,
@@ -76,16 +70,17 @@ export function buildPatrimoineRows(calc: ZakatCalculation): Row[] {
   ];
 }
 
-export function buildDebtsRows(calc: ZakatCalculation): Row[] {
-  return calc.debts_breakdown.map((d) => ({
-    label: d.label || DEBT_CATEGORY_LABELS[d.category],
-    amount: d.amount,
-    hint: d.is_immediately_due
-      ? `${DEBT_CATEGORY_LABELS[d.category]} · exigible immédiatement`
-      : `${DEBT_CATEGORY_LABELS[d.category]} · non exigible — non déduit`,
-    tone: d.is_immediately_due ? ('sub' as const) : undefined,
-    icon: <Receipt size={14} />,
-  }));
+export function buildDebtsRows(calc: ZakatCalculation, t: ZakatT): Row[] {
+  return calc.debts_breakdown.map((d) => {
+    const category = t(`debt_category.${d.category}`);
+    return {
+      label: d.label || category,
+      amount: d.amount,
+      hint: t(d.is_immediately_due ? 'rows.debt_due' : 'rows.debt_not_due', { category }),
+      tone: d.is_immediately_due ? ('sub' as const) : undefined,
+      icon: <Receipt size={14} />,
+    };
+  });
 }
 
 export function computePatrimoineTotal(calc: ZakatCalculation): number {

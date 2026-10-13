@@ -1,0 +1,29 @@
+{
+  "name": "mizan-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Audits navigateur (Playwright) : console surveillée, éléments imbriqués, parcours de formulaires",
+  "scripts": {
+    "audit": "node audit-pages.mjs && node audit-customer-form.mjs && node audit-customer-name.mjs && node audit-zakat.mjs && node audit-products-list.mjs && node audit-product-form.mjs && node audit-product-formats.mjs && node audit-product-photos.mjs && node audit-stock.mjs && node audit-product-sheet.mjs && node audit-loading.mjs && node audit-reminders.mjs && node audit-whatsapp.mjs && node audit-scroll-lock.mjs && node audit-header-bands.mjs && node audit-show-more.mjs && node audit-stock-entry-plan.mjs",
+    "audit:pages": "node audit-pages.mjs",
+    "audit:customer-form": "node audit-customer-form.mjs",
+    "audit:customer-name": "node audit-customer-name.mjs",
+    "audit:zakat": "node audit-zakat.mjs",
+    "audit:products-list": "node audit-products-list.mjs",
+    "audit:product-form": "node audit-product-form.mjs",
+    "audit:product-formats": "node audit-product-formats.mjs",
+    "audit:product-photos": "node audit-product-photos.mjs",
+    "audit:stock": "node audit-stock.mjs",
+    "audit:product-sheet": "node audit-product-sheet.mjs",
+    "audit:loading": "node audit-loading.mjs",
+    "audit:reminders": "node audit-reminders.mjs",
+    "audit:whatsapp": "node audit-whatsapp.mjs",
+    "audit:scroll-lock": "node audit-scroll-lock.mjs",
+    "audit:header-bands": "node audit-header-bands.mjs",
+    "audit:show-more": "node audit-show-more.mjs",
+    "audit:stock-entry-plan": "node audit-stock-entry-plan.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}

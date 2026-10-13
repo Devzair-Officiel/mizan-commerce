@@ -36,7 +36,7 @@ function EmailNotice() {
       action={
         !justVerified ? (
           <Button size="sm" disabled={isPending} onClick={() => mutate()}
-            className="h-7 shrink-0 bg-amber-600 px-3 text-xs font-semibold text-white hover:bg-amber-700">
+            className="h-7 shrink-0 bg-amber-500/15 px-3 text-xs font-semibold text-amber-800 hover:bg-amber-500/25 dark:text-amber-300">
             {isPending ? '…' : justSent ? t('email_resend') : t('email_cta')}
           </Button>
         ) : undefined

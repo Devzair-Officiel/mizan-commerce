@@ -1,9 +1,11 @@
 'use client';
 
+import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import { Users } from 'lucide-react';
 import { FloatingInput } from '@/components/ui/floating-fields';
 import {
-  RECEIVABLE_CATEGORY_LABELS,
+  RECEIVABLE_CATEGORIES,
   formatMoney,
   type ReceivableBreakdownItem,
   type ReceivableCategory,
@@ -21,8 +23,6 @@ interface Step1Props {
     receivablesBreakdown?: ReceivableBreakdownItem[];
   }) => void;
 }
-
-const CATEGORIES: ReceivableCategory[] = ['certain', 'probable', 'doubtful'];
 
 function getAmount(breakdown: ReceivableBreakdownItem[], category: ReceivableCategory): string {
   return breakdown.find((b) => b.category === category)?.amount ?? '';
@@ -51,6 +51,7 @@ export function Step1Receivables({
   currency,
   onChange,
 }: Step1Props) {
+  const t = useTranslations('zakat');
   const recoverable = sumRecoverable(receivablesBreakdown);
 
   return (
@@ -58,20 +59,17 @@ export function Step1Receivables({
       <div className="flex gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
         <Users className="text-primary shrink-0 mt-0.5" size={18} />
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-foreground">Argent que vos clients vous doivent</p>
+          <p className="text-sm font-medium text-foreground">{t('step.receivables.title')}</p>
           <p className="text-xs text-muted-foreground">
-            Ventes à crédit, factures impayées, ardoises… On distingue trois niveaux selon la
-            probabilité de recouvrement. Seules les <strong className="font-medium text-foreground">
-            certaines</strong> et <strong className="font-medium text-foreground">probables</strong>
-            {' '}entrent dans la zakat.
+            {t.rich('step.receivables.help', {
+              b: (chunks: ReactNode) => <strong className="font-medium text-foreground">{chunks}</strong>,
+            })}
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-foreground">
-          Vos clients vous doivent-ils de l&apos;argent&nbsp;?
-        </p>
+        <p className="text-sm font-medium text-foreground">{t('step.receivables.question')}</p>
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -82,7 +80,7 @@ export function Step1Receivables({
                 : 'border-border bg-card text-muted-foreground hover:text-foreground'
             }`}
           >
-            Non
+            {t('common.no')}
           </button>
           <button
             type="button"
@@ -93,7 +91,7 @@ export function Step1Receivables({
                 : 'border-border bg-card text-muted-foreground hover:text-foreground'
             }`}
           >
-            Oui
+            {t('common.yes')}
           </button>
         </div>
       </div>
@@ -102,7 +100,7 @@ export function Step1Receivables({
         <div className="flex flex-col gap-3">
           <FloatingInput
             id="z-recv-nominal"
-            label="Montant total dû (nominal)"
+            label={t('step.receivables.nominal')}
             type="number"
             step="0.01"
             min="0"
@@ -113,11 +111,11 @@ export function Step1Receivables({
           />
 
           <div className="flex flex-col gap-3">
-            {CATEGORIES.map((cat) => (
+            {RECEIVABLE_CATEGORIES.map((cat) => (
               <div key={cat} className="flex flex-col gap-1">
                 <FloatingInput
                   id={`z-recv-${cat}`}
-                  label={RECEIVABLE_CATEGORY_LABELS[cat]}
+                  label={t(`receivable_category.${cat}`)}
                   type="number"
                   step="0.01"
                   min="0"
@@ -135,7 +133,7 @@ export function Step1Receivables({
           </div>
 
           <div className="rounded-2xl bg-primary/5 border border-primary/20 px-4 py-3">
-            <p className="text-xs text-muted-foreground">Total zakatable (certaines + probables)</p>
+            <p className="text-xs text-muted-foreground">{t('step.receivables.total')}</p>
             <p className="text-lg font-semibold text-primary tabular-nums">
               {formatMoney(recoverable, currency)}
             </p>

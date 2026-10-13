@@ -1,84 +1,52 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
-import { ProductForm, type ProductFormExtras, type ProductFormSubmission } from '@/components/products/ProductForm';
-import { apiFetch } from '@/lib/api-client';
-import {
-  useCreateProduct,
-  type ProductType,
-  type ProductVariant,
-} from '@/lib/hooks/useProducts';
-import { qk } from '@/lib/query-keys';
+import { ProductForm } from '@/components/products/form/ProductForm';
+import { useSaveProduct } from '@/components/products/form/useSaveProduct';
+import type { ProductFormValues } from '@/components/products/form/productFormSchema';
+import type { PhotoChanges } from '@/components/products/form/useProductPhotos';
+import { useBackOr } from '@/lib/hooks/useBackOr';
+import type { ProductType } from '@/lib/hooks/useProducts';
+import { useShop } from '@/lib/hooks/useShop';
 
-function NewProductForm() {
+function NewProductContent() {
+  const t = useTranslations('articles.form');
+  const tList = useTranslations('articles.list');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const qc = useQueryClient();
-  const tForm = useTranslations('articles.form');
-  const tDetail = useTranslations('articles.detail');
-  const rawType = searchParams.get('type');
-  const type: ProductType = rawType === 'service' ? 'service' : 'product';
+  const back = useBackOr('/products');
+  const { data: shop } = useShop();
+  const { create, saving } = useSaveProduct();
+  const kind = shop?.catalog_kind ?? 'both';
+  // Boutique mixte : `?type=service` (recherche rapide) présélectionne le service.
+  const type: ProductType = kind === 'services' || (kind === 'both' && searchParams.get('type') === 'service') ? 'service' : 'product';
 
-  const { mutateAsync, isPending } = useCreateProduct();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  async function handleSubmit(submission: ProductFormSubmission, extras: ProductFormExtras) {
-    const product = await mutateAsync({ ...submission.product, type });
-
-    setIsProcessing(true);
-    try {
-      if (!submission.variant) throw new Error(tDetail('no_default_variant'));
-      const defaultVariant = await apiFetch<ProductVariant>(`/products/${product.id}/variants/`, {
-        method: 'POST',
-        body: JSON.stringify(submission.variant),
-      });
-
-      if (extras.image) {
-        const formData = new FormData();
-        formData.append('image', extras.image);
-        await fetch(`/api/proxy/products/${product.id}/images/`, {
-          method: 'POST',
-          body: formData,
-        });
-      }
-      if (extras.initialStock) {
-        await apiFetch('/stock/in/', {
-          method: 'POST',
-          body: JSON.stringify({
-            variant: defaultVariant.id,
-            quantity: extras.initialStock,
-            reason: tDetail('initial_stock_reason'),
-          }),
-        });
-      }
-      qc.invalidateQueries({ queryKey: qk.products.all });
-    } finally {
-      setIsProcessing(false);
-    }
-
-    router.push(`/products/${product.id}`);
+  async function handleSubmit(values: ProductFormValues, photos: PhotoChanges | null) {
+    const { id, complete } = await create(values, photos);
+    router.replace(`/products/${id}`);
+    return complete;
   }
 
   return (
-    <>
-      <TopBar title={type === 'service' ? tForm('topbar_new_service') : tForm('topbar_new_product')} back hideSearch />
-      <ProductForm
-        type={type}
-        onSubmit={handleSubmit}
-        isSubmitting={isPending || isProcessing}
-      />
-    </>
+    <div className="mx-auto w-full max-w-280">
+      <TopBar title={t('title_new', { kind })} subtitle={t('subtitle_new')} back backLabel={tList('title', { kind })} onBack={back} hideSearch />
+      {shop ? (
+        <ProductForm mode="create" type={type} mixed={kind === 'both'} currencyCode={shop.currency}
+          onSubmit={handleSubmit} isSubmitting={saving} onLeave={back} />
+      ) : (
+        <div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" />
+      )}
+    </div>
   );
 }
 
 export default function NewProductPage() {
   return (
     <Suspense>
-      <NewProductForm />
+      <NewProductContent />
     </Suspense>
   );
 }

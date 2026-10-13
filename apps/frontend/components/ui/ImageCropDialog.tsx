@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
+import { useTranslations } from 'next-intl';
+import { useScrollLock } from '@base-ui/utils/useScrollLock';
 import { Button } from '@/components/ui/button';
 
 interface ImageCropDialogProps {
@@ -50,6 +52,9 @@ interface CropEditorProps {
 }
 
 function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: CropEditorProps) {
+  const t = useTranslations('ui.crop');
+  // Monté seulement quand la fenêtre est ouverte : le verrou tombe à sa fermeture.
+  useScrollLock();
   // On gère blob URL via useEffect plutôt que useMemo : React Strict Mode (dev)
   // double-invoque le mount, et un useMemo + cleanup d'useEffect révoquerait
   // l'URL entre les deux passes — le Cropper affiche alors une image cachée
@@ -87,6 +92,9 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('title')}
       className="fixed inset-0 z-80 flex flex-col bg-black/80 backdrop-blur-sm"
       onClick={busy ? undefined : onClose}
     >
@@ -112,7 +120,7 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
 
         <div className="bg-card border-t border-border p-4 flex flex-col gap-3 pb-safe">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium text-muted-foreground">Zoom</span>
+            <span className="text-xs font-medium text-muted-foreground">{t('zoom')}</span>
             <input
               type="range"
               min={1}
@@ -121,7 +129,7 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
               className="flex-1 accent-primary"
-              aria-label="Zoom"
+              aria-label={t('zoom')}
             />
           </div>
           <div className="flex gap-2">
@@ -132,7 +140,7 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
               onClick={onClose}
               disabled={busy}
             >
-              Annuler
+              {t('cancel')}
             </Button>
             <Button
               type="button"
@@ -140,7 +148,7 @@ function CropEditor({ file, onClose, onConfirm, aspect, outputSize, quality }: C
               onClick={handleConfirm}
               disabled={busy || !croppedArea || !imageUrl}
             >
-              {busy ? 'Traitement…' : 'Valider'}
+              {busy ? t('processing') : t('confirm')}
             </Button>
           </div>
         </div>

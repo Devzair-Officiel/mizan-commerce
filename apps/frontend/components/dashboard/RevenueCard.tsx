@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useFormatMoney, useFormatDate } from '@/lib/hooks/useFormat';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
+import { SectionCard } from '@/components/ui/SectionCard';
 import type { RevenueDayPoint } from '@/lib/hooks/useDashboard';
 
 interface Props {
@@ -36,7 +36,7 @@ export function RevenueCard({ points, currency, todayRevenue, todayOrdersCount, 
     : null;
 
   return (
-    <DashboardCard
+    <SectionCard
       title={t('title')}
       rightSlot={<span className="text-muted-foreground">{t('header_meta')}</span>}
     >
@@ -85,6 +85,6 @@ export function RevenueCard({ points, currency, todayRevenue, todayOrdersCount, 
           <span className="text-[0.8125rem] font-semibold text-foreground">{formatMoney(total7d, currency)}</span>
         </div>
       </div>
-    </DashboardCard>
+    </SectionCard>
   );
 }

@@ -5,9 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useFormatDateTime, useFormatMoney } from '@/lib/hooks/useFormat';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import { cn } from '@/lib/utils';
 import type { OrderSummary } from '@/lib/hooks/useOrders';
 import { getAlert } from './alert';
-import { type Bucket, PAYMENT_COLOR, STATUS_BAR, STATUS_TEXT } from './constants';
+import { type Bucket, STATUS_BAR } from './constants';
+import { OrderPaymentBadge } from './OrderPaymentBadge';
 
 interface OrderRowProps {
   order: OrderSummary;
@@ -16,72 +18,48 @@ interface OrderRowProps {
   currency: string;
 }
 
-const PAYMENT_KEYS = ['unpaid', 'partial', 'paid'] as const;
-type PaymentKey = typeof PAYMENT_KEYS[number];
-
+/** Ligne de la liste mobile, même vocabulaire que le tableau : pastille de statut, badge de paiement, annulée atténuée. */
 export function OrderRow({ order, bucket, first, currency }: OrderRowProps) {
   const tList = useTranslations('orders.list');
-  const tPayment = useTranslations('orders.payment');
   const tAlert = useTranslations('orders.alert');
   const formatMoney = useFormatMoney();
   const formatDateTime = useFormatDateTime();
   const label = useOrderStatusLabel();
   const kind = useCatalogKind();
 
-  const total = formatMoney(order.total_amount, currency, { maximumFractionDigits: 2 });
-  const dateOpts: Intl.DateTimeFormatOptions =
-    bucket === 'today' || bucket === 'yesterday'
-      ? { hour: '2-digit', minute: '2-digit' }
-      : { day: 'numeric', month: 'short' };
-  const time = formatDateTime(order.created_at, dateOpts);
-  const itemLabel = tList('items', { count: order.item_count, kind });
+  const cancelled = order.status === 'cancelled';
+  const time = formatDateTime(order.created_at, bucket === 'today' || bucket === 'yesterday'
+    ? { hour: '2-digit', minute: '2-digit' }
+    : { day: 'numeric', month: 'short' });
   const alert = getAlert(order);
   const alertLabel = alert ? tAlert(alert.key) : '';
-  const isPaymentKey = (s: string): s is PaymentKey => (PAYMENT_KEYS as readonly string[]).includes(s);
-  const paymentLabel = isPaymentKey(order.payment_status)
-    ? tPayment(order.payment_status)
-    : order.payment_status;
 
   return (
-    <Link
-      href={`/orders/${order.id}`}
-      className={`flex items-stretch gap-3 px-4 py-3.5 active:bg-muted transition-colors ${
-        first ? '' : 'border-t border-border'
-      }`}
-    >
-      <div className={`w-1 rounded-full shrink-0 ${STATUS_BAR[order.status] ?? 'bg-muted'}`} />
-
-      <div className="flex-1 min-w-0 self-center">
+    <Link href={`/orders/${order.id}`} className={cn(
+      'flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-muted',
+      !first && 'border-t border-border', cancelled && 'text-muted-foreground',
+    )}>
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground truncate">
+          <span className={cn('truncate font-semibold', !order.customer_name && 'font-medium text-muted-foreground')}>
             {order.customer_name ?? tList('no_client')}
           </span>
-          <span className="text-[11px] text-muted-foreground/70 tabular-nums shrink-0">
-            #{order.order_number}
-          </span>
+          <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">#{order.order_number}</span>
           {alert && (
-            <span
-              aria-label={alertLabel}
-              title={alertLabel}
-              className={`inline-flex shrink-0 ${alert.colorClass}`}
-            >
-              {alert.icon}
-            </span>
+            <span aria-label={alertLabel} title={alertLabel} className={`inline-flex shrink-0 ${alert.colorClass}`}>{alert.icon}</span>
           )}
         </div>
-        <p className="text-xs mt-0.5 truncate">
-          <span className={`font-medium ${STATUS_TEXT[order.status] ?? 'text-muted-foreground'}`}>
+        <p className="mt-1 flex min-w-0 items-center gap-2 text-xs">
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-medium">
+            <span aria-hidden className={`size-2 shrink-0 rounded-full ${STATUS_BAR[order.status] ?? 'bg-muted-foreground'}`} />
             {label(order.status)}
           </span>
-          <span className="text-muted-foreground">, {time}, {itemLabel}</span>
+          <span className="truncate text-muted-foreground">· {time} · {tList('items', { count: order.item_count, kind })}</span>
         </p>
       </div>
-
-      <div className="flex flex-col items-end shrink-0 self-center leading-tight">
-        <span className="text-sm font-semibold text-foreground tabular-nums">{total}</span>
-        <span className={`text-[11px] font-medium ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
-          {paymentLabel}
-        </span>
+      <div className="flex shrink-0 flex-col items-end gap-1 text-end">
+        <span className="text-sm font-semibold tabular-nums">{formatMoney(order.total_amount, currency, { maximumFractionDigits: 2 })}</span>
+        {!cancelled && <OrderPaymentBadge order={order} currency={currency} />}
       </div>
     </Link>
   );

@@ -1,11 +1,12 @@
-import { Loader2 } from 'lucide-react';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
+/** Chargement d'une page : titre et cartes en squelette, en attendant sa propre mise en forme. */
 export default function Loading() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-zinc-500">
-      <Loader2 className="size-6 animate-spin" aria-hidden />
-      <span className="text-sm">Chargement…</span>
-      <span className="sr-only" role="status">Chargement en cours</span>
+    <div className="flex flex-col gap-4 p-4">
+      <Skeleton className="h-7 w-48" />
+      <SectionsSkeleton sections={[2, 3]} />
     </div>
   );
 }

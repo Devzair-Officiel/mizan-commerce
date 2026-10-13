@@ -36,7 +36,8 @@ updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 ### Règles structurelles
 
 - **Multi-tenant strict** : toute table métier porte `shop_id` (sauf `users`, `partner_profiles`, `subscription_plans`, `audit_logs`, `subscriptions`).
-- **Soft delete** : on **ne supprime jamais** un produit, un client, un projet, ni une commande. On utilise `is_active = false` ou un statut `cancelled` / `archived`.
+- **Soft delete** : on **ne supprime jamais** un produit, un client, un projet, ni une commande. On utilise `is_active = false` ou un statut `cancelled` / `archived`. Seule exception : un article ou un format qui n'a jamais servi (aucune ligne de commande, aucun mouvement autre que son stock initial) peut être supprimé, avec son mouvement de stock initial (URS-103).
+- **Historique protégé** : la suppression d'un objet métier n'efface jamais un historique en cascade. Les FK d'historique sans instantané sont en `ON DELETE RESTRICT` (`stock_movements.variant_id`, `orders.customer_id`, `order_items.order_id`, `invoice_lines.invoice_id`, `notes.customer_id` / `order_id`, `ocr_results.uploaded_document_id`, `loyalty_cards.customer_id`, `loyalty_transactions.card_id`) ; celles dont l'historique garde un instantané sont en `SET_NULL` (`order_items.variant_id`, `invoices.order_id` / `customer_id`, `prepared_messages.customer_id`, `reminders.*`, `stock_movements.ocr_result_id`). `RESTRICT` plutôt que `PROTECT` : la suppression de toute la boutique (cascade depuis `shops`) reste possible.
 - **Stock** : le stock est porté par la **variante** (`product_variants`), pas par le produit. La quantité d'une variante n'est **jamais réécrite** directement : elle se déduit (et se cache dans `product_variants.stock_quantity`) à partir de la somme des `stock_movements` de cette variante.
 - **Argent** : tous les montants sont dans la devise de la boutique (`shops.currency`). Pas de multi-devise par boutique en V1.
 - **Facturation** : une facture émise est **immuable** (montants, numéro, snapshots). Seul le `status` peut évoluer (`issued` → `paid`/`cancelled`). Contrainte légale ; toute correction se ferait par avoir (non couvert V1).
@@ -58,7 +59,8 @@ Commandes                   orders, order_items, shipments
 Facturation                 invoices, invoice_lines, invoice_sequences
 Productivité                notes, reminders
 Zakat                       zakat_calculations
-OCR / IA                    uploaded_documents, ocr_results, detection_results
+OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
+                            detection_results
 Communication               prepared_messages, telegram_accounts, telegram_publications
 Page publique               public_pages, public_page_sections,
                             public_product_visibilities, public_services, contact_buttons
@@ -256,6 +258,7 @@ Variante (packaging concret) d'un produit — ex. « Pot 250 g », « Seau 5 kg 
 - **Sémantique stock** : `stock_quantity` compte des formats, pas le contenu cumulé. Pour du vrac (kg, L, m), on modélise une variante avec `base_quantity = 1` en unité correspondante → le format vaut une unité, donc le stock = quantité physique.
 - Le contenu total disponible se calcule à la volée : `stock_quantity × base_quantity`.
 - `is_out_of_stock` = `stock_quantity <= 0` ; `is_low_stock` = `low_stock_threshold` défini et `0 < stock_quantity <= low_stock_threshold`.
+- **Écriture depuis le formulaire article** (tout ou rien, une transaction) : `POST /products/` accepte `variants` (`packaging_name`, `selling_price`, `purchase_price`, `low_stock_threshold`, `sku`, `barcode`, `initial_stock`…) et crée l'article, ses formats et leurs stocks initiaux (mouvements `is_initial`) ; `PATCH /products/{id}/` avec `variants` synchronise les formats (`products.services.sync_variants`) : ligne avec `id` modifiée (jamais `stock_quantity`), ligne sans `id` créée avec son stock initial, format absent supprimé s'il n'a jamais servi (sinon refus : le retirer de la vente), au moins un format actif. Noms uniques dans l'article (insensible à la casse), contrôlés avant l'écriture.
 - Un `Product` de `type = 'service'` peut posséder une variante « unique », mais aucun mouvement de stock n'est généré depuis les commandes pour ce type (voir `orders._reserve_stock`).
 
 ---
@@ -273,6 +276,8 @@ Photos d'un produit (1..n).
 | is_primary | BOOLEAN | NOT NULL, DEFAULT false | Photo principale |
 | position | INTEGER | NOT NULL, DEFAULT 0 | Ordre |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+Règles (service `products.services`) : 8 photos au plus par article ; une seule `is_primary` à la fois, la dernière envoyée le devient ; retirer la photo principale promeut la suivante (par `position`) ; le recadrage remplace `object_key` sans changer `position` ni `is_primary`. L'extension de la clé est déduite du type vérifié (JPEG, PNG, WebP), jamais du nom du fichier envoyé ; l'objet est supprimé du bucket avec la ligne.
 
 ---
 
@@ -316,11 +321,17 @@ Source de vérité du stock. Chaque entrée, sortie, ajustement, réservation ou
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
-| variant_id | UUID | FK → product_variants.id, CASCADE, NOT NULL | Variante concernée |
-| movement_type | VARCHAR(20) | NOT NULL | `in`, `out`, `reservation`, `release`, `adjustment`, `loss` |
+| variant_id | UUID | FK → product_variants.id, RESTRICT, NOT NULL | Variante concernée ; un format qui a des mouvements ne se supprime pas |
+| movement_type | VARCHAR(20) | NOT NULL | `in`, `out` (ancien, sortie), `reservation`, `release`, `adjustment` (correction d'inventaire), `loss` (perte), `breakage` (casse), `internal_use` (usage interne) |
 | quantity | DECIMAL(14,3) | NOT NULL | Nombre de **formats** (bouteilles, sacs…), pas le contenu cumulé. Toujours positive **sauf** pour `adjustment` où elle peut être signée. |
-| reason | TEXT | DEFAULT `''` | Motif libre (obligatoire côté service pour `out`/`loss`/`adjustment`) |
+| reason | TEXT | DEFAULT `''` | Motif ou note libre |
+| unit_purchase_price | DECIMAL(12,2) | NULL | Prix d'achat unitaire saisi à l'entrée ; devient `product_variants.purchase_price` |
+| supplier_name | VARCHAR(255) | DEFAULT `''` | Fournisseur d'une entrée |
+| invoice_number | VARCHAR(100) | DEFAULT `''` | Numéro de la facture fournisseur |
+| invoice_date | DATE | NULL | Date de la facture fournisseur |
+| ocr_result_id | UUID | FK → ocr_results.id, SET_NULL, NULL | Facture lue dont provient l'entrée |
 | order_id | UUID | | UUID nu (pas de FK ORM), renseigné si le mouvement provient d'une commande — sert au rapprochement avec `orders.id` |
+| is_initial | BOOLEAN | NOT NULL, DEFAULT false | Stock saisi à la création de l'article ou du format. Seul mouvement qui n'empêche pas de les supprimer (le motif n'est jamais interprété) |
 | created_by_id | UUID | FK → users.id, SET_NULL | Auteur du mouvement |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | Date du mouvement |
 
@@ -330,13 +341,16 @@ Source de vérité du stock. Chaque entrée, sortie, ajustement, réservation ou
 ```
 product_variants.stock_quantity = SUM(get_signed_quantity(m))
                                   WHERE m.variant_id = X
-  avec sign(in)=+, sign(release)=+, sign(out)=-, sign(reservation)=-, sign(loss)=-
+  avec sign(in)=+, sign(release)=+,
+       sign(out)=sign(reservation)=sign(loss)=sign(breakage)=sign(internal_use)=-
        adjustment : quantity utilisée telle quelle (peut être négative)
 ```
 
-Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `StockMovement`.
+Le cache est recalculé par un agrégat SQL dans la transaction de chaque `save()` d'un `StockMovement`. Toute écriture passe par `stock.services.create_movement()`, qui verrouille la ligne du format (`select_for_update`).
 
-**Note** : les champs `ocr_result_id` et `detection_result_id` planifiés pour V6 n'existent pas dans le modèle actuel — ils seront ajoutés lorsque les intégrations OCR / détection visuelle seront implémentées.
+**Stock négatif** : une vente n'est jamais bloquée par le stock ; la réservation d'une commande peut faire passer `stock_quantity` sous zéro (état « négatif », à régulariser par une entrée ou une correction). Les sorties manuelles (`loss`, `breakage`, `internal_use`) restent limitées au stock disponible. États exclusifs d'un format : négatif (`< 0`), rupture (`= 0`), faible (`0 < q ≤ low_stock_threshold`), en stock.
+
+**Note** : le champ `detection_result_id` planifié pour V6 n'existe pas encore — il sera ajouté avec la détection visuelle.
 
 ---
 
@@ -348,7 +362,8 @@ Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| name | VARCHAR(150) | NOT NULL | |
+| name | VARCHAR(150) | NOT NULL | Nom de famille (ou nom seul). Unique par boutique, sans tenir compte de la casse |
+| first_name | VARCHAR(100) | DEFAULT `''` | Prénom |
 | phone | VARCHAR(30) | | |
 | email | VARCHAR(254) | | |
 | address_line | VARCHAR(255) | | |
@@ -362,6 +377,8 @@ Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `
 
 **Index** : `(shop_id, name)`, `(shop_id, phone)`.
 
+**Nom affiché** : `display_name` (calculé, non stocké) = « prénom nom », espaces réduits, le nom seul sans prénom. C'est le seul nom exposé à l'affichage (fiche, listes, commandes, recherche, messages, factures). Tri par nom : `name` puis `first_name`. Recherche : chaque mot doit se trouver dans le prénom ou le nom (« Karima Bens » trouve Karima Bensouda).
+
 ---
 
 ## 8. Domaine — Commandes
@@ -372,7 +389,7 @@ Le cache est mis à jour dans une transaction atomique à chaque `save()` d'un `
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
-| customer_id | UUID | FK → customers.id, SET_NULL | NULL = vente rapide sans client (URS-023) |
+| customer_id | UUID | FK → customers.id, RESTRICT | NULL = vente rapide sans client (URS-023) ; pas d'instantané du client, donc un client qui a des commandes ne se supprime pas |
 | order_number | VARCHAR(20) | NOT NULL | Numéro lisible (ex: `2026-001`). UNIQUE par boutique. |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'to_prepare' | `to_prepare`, `prepared` (livraison uniquement), `shipped`, `cancelled` |
 | payment_status | VARCHAR(20) | NOT NULL, DEFAULT 'unpaid' | `unpaid`, `partial`, `paid` |
@@ -406,7 +423,7 @@ Lignes d'une commande. Chaque ligne pointe vers une **variante** (pas un produit
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | Redondant pour sécurité |
-| order_id | UUID | FK → orders.id, CASCADE, NOT NULL | |
+| order_id | UUID | FK → orders.id, RESTRICT, NOT NULL | |
 | variant_id | UUID | FK → product_variants.id, SET_NULL | NULL si ligne libre ou si la variante a été supprimée |
 | product_name | VARCHAR(200) | NOT NULL | Snapshot du nom produit au moment de la vente |
 | variant_name | VARCHAR(120) | DEFAULT `''` | Snapshot du packaging (`packaging_name`) au moment de la vente ; vide pour une ligne libre |
@@ -480,7 +497,7 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 | seller_tax_id | VARCHAR(64) | DEFAULT `''` | Snapshot `shop.tax_id` (SIRET, n° TVA, NIF, EIN… format libre) |
 | seller_legal_mentions | TEXT | DEFAULT `''` | Snapshot `shop.legal_mentions` — imprimé en pied de facture |
 | seller_country | VARCHAR(2) | DEFAULT `''` | Snapshot `shop.country` |
-| buyer_name | VARCHAR(200) | DEFAULT `''` | Snapshot (concat `first_name + name`) |
+| buyer_name | VARCHAR(200) | DEFAULT `''` | Snapshot du `display_name` du client à l'émission |
 | buyer_address | TEXT | DEFAULT `''` | Snapshot |
 | buyer_city | VARCHAR(100) | DEFAULT `''` | Snapshot |
 | buyer_postal_code | VARCHAR(20) | DEFAULT `''` | Snapshot |
@@ -521,7 +538,7 @@ Ligne de facture — snapshot d'un item de commande au moment de l'émission. D�
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | Redondant pour sécurité |
-| invoice_id | UUID | FK → invoices.id, CASCADE, NOT NULL | |
+| invoice_id | UUID | FK → invoices.id, RESTRICT, NOT NULL | |
 | description | VARCHAR(300) | NOT NULL | Concaténation `product_name (variant_name)` snapshottée depuis `order_items` |
 | quantity | DECIMAL(12,3) | NOT NULL | Quantité facturée |
 | unit_price_ht | DECIMAL(12,2) | NOT NULL | Prix unitaire HT snapshotté |
@@ -562,8 +579,8 @@ Note libre, ou liée à un client, ou liée à une commande.
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
 | author_user_id | UUID | FK → users.id | |
-| customer_id | UUID | FK → customers.id | NULL si pas liée à un client |
-| order_id | UUID | FK → orders.id | NULL si pas liée à une commande |
+| customer_id | UUID | FK → customers.id, RESTRICT | NULL si pas liée à un client |
+| order_id | UUID | FK → orders.id, RESTRICT | NULL si pas liée à une commande |
 | content | TEXT | NOT NULL | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -649,7 +666,7 @@ Résultat d'OCR sur un document.
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| uploaded_document_id | UUID | FK → uploaded_documents.id, NOT NULL | |
+| uploaded_document_id | UUID | FK → uploaded_documents.id, RESTRICT, NOT NULL | |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | `pending`, `processing`, `done`, `failed`, `validated` |
 | raw_text | TEXT | | Texte brut extrait |
 | structured_data | JSONB | | Données structurées (lignes, montants, adresse) |
@@ -659,6 +676,25 @@ Résultat d'OCR sur un document.
 | error_message | TEXT | | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+---
+
+### `supplier_line_matches`
+
+Association mémorisée d'une ligne de facture fournisseur à un format, faite à la main lors d'une entrée. Réutilisée par le matching déterministe des factures suivantes du même fournisseur (après code-barres et référence, avant le nom normalisé).
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| supplier_key | VARCHAR(255) | NOT NULL, DEFAULT `''` | Nom du fournisseur normalisé (sans accents, sans casse, espaces réduits) |
+| label_key | VARCHAR(500) | NOT NULL | Libellé de la ligne normalisé (à défaut, sa référence fournisseur) |
+| variant_id | UUID | FK → product_variants.id, CASCADE, NOT NULL | Format associé |
+| created_by_id | UUID | FK → users.id, SET_NULL | Auteur de l'association |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contrainte** : `UNIQUE (shop_id, supplier_key, label_key)` — une nouvelle association à la main remplace la précédente.
 
 ---
 
@@ -1097,6 +1133,7 @@ Le backend Django définirait `SET LOCAL app.current_shop_id = '...'` au début 
 
 - [ ] Toutes les tables métier ont `shop_id NOT NULL` (sauf `users`, `partner_profiles`, `subscription_plans`, `audit_logs`, `subscriptions`).
 - [ ] Toutes les FK vers `shops` sont en `ON DELETE CASCADE`.
+- [ ] Aucune FK d'historique n'est en `ON DELETE CASCADE` hors `shops` : `RESTRICT`, ou `SET_NULL` quand l'historique garde un instantané.
 - [ ] Toutes les FK vers `users` sont en `ON DELETE SET NULL` (RGPD : on peut supprimer un user sans détruire l'historique de la boutique).
 - [ ] Tous les champs `*_object_key` pointent vers le bucket privé par défaut.
 - [ ] Aucun champ ne stocke un mot de passe en clair, un token Stripe en clair, ou un bot token Telegram en clair.

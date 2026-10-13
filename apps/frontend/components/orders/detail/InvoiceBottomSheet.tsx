@@ -36,7 +36,7 @@ function InvoiceForm({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-zinc-500">{t('intro')}</p>
+      <p className="text-xs text-muted-foreground">{t('intro')}</p>
       <div className="grid grid-cols-2 gap-3">
         <FloatingInput
           id="invoice-tax-rate"
@@ -78,7 +78,7 @@ function InvoiceForm({
         <Receipt size={16} />
         {isPending ? t('issuing') : t('submit')}
       </Button>
-      <p className="text-[11px] text-zinc-400 text-center">{t('footnote')}</p>
+      <p className="text-[11px] text-muted-foreground text-center">{t('footnote')}</p>
     </div>
   );
 }

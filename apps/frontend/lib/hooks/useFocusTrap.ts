@@ -59,13 +59,10 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
       }
     }
 
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKey);
 
     return () => {
       document.removeEventListener('keydown', handleKey);
-      document.body.style.overflow = overflow;
       previouslyFocused?.focus?.();
     };
   }, [active]);

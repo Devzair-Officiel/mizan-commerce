@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.customers.models import Customer
 from apps.orders.models import Order
@@ -28,7 +29,7 @@ def _first_name(full_name: str) -> str:
 
 
 def _greeting(customer: Customer | None) -> str:
-    first = _first_name(customer.name) if customer else ''
+    first = _first_name(customer.display_name) if customer else ''
     return f'Bonjour {first},' if first else 'Bonjour,'
 
 
@@ -114,6 +115,7 @@ def prepare_message(
     context_id=None,
     customer: Customer | None = None,
     custom_message: str | None = None,
+    sent: bool = False,
 ) -> PreparedMessage:
     """Crée un `PreparedMessage` pour la boutique.
 
@@ -121,6 +123,8 @@ def prepare_message(
       à la boutique. Toute tentative cross-tenant est traitée comme un 404 métier.
     - Si `custom_message` est fourni, il prime sur le template rendu.
     - Pour `template_type=free`, `custom_message` est obligatoire.
+    - `sent` : WhatsApp vient de s'ouvrir avec ce texte, le message est enregistré
+      directement comme envoyé (historique des fiches client et commande).
     """
     order: Order | None = None
     product: Product | None = None
@@ -161,7 +165,12 @@ def prepare_message(
         template_type=template_type,
         context_type=context_type,
         context_id=context_id,
-        recipient_name=customer.name if customer else '',
+        recipient_name=customer.display_name if customer else '',
         recipient_phone=customer.phone if customer else '',
         message=message,
+        status=(
+            PreparedMessage.Status.SENT_MANUALLY if sent
+            else PreparedMessage.Status.PREPARED
+        ),
+        sent_manually_at=timezone.now() if sent else None,
     )

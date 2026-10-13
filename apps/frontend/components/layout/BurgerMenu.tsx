@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useScrollLock } from '@base-ui/utils/useScrollLock';
 import { Palette, LogOut } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
@@ -101,12 +102,7 @@ export function BurgerMenuDrawer() {
   const subtitle = [me?.full_name, roleLabel].filter(Boolean).join(', ');
   const displayName = shop?.name?.trim() || tc('shop_fallback');
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
+  useScrollLock(open);
 
   async function handleLogout() { close(); await fetch('/api/auth/logout', { method: 'POST' }); router.replace('/login'); }
   function handleNav(href: string) { if (!confirmLeave(tc('confirm_leave'))) return; close(); router.push(href); }

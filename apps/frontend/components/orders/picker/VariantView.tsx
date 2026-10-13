@@ -1,16 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { useProduct, type ProductVariant } from '@/lib/hooks/useProducts';
+import { productPickQueryOptions, type ProductVariant } from '@/lib/hooks/useProducts';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { isDefaultVariant } from '@/lib/products';
+import { variantPick, type VariantPick } from './variantPick';
+import { SkeletonRows } from '@/components/ui/SkeletonRows';
 
-export type VariantPick = {
-  variantId: string; productName: string; variantName: string;
-  productType: 'product' | 'service'; unitPrice: string;
-};
+export type { VariantPick } from './variantPick';
 
 interface VariantViewProps {
   productId: string;
@@ -30,7 +30,7 @@ function BackButton({ onBack, label }: { onBack: () => void; label: string }) {
 
 export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
   const t = useTranslations('orders.picker');
-  const { data: product, isLoading } = useProduct(productId);
+  const { data: product, isLoading, isError } = useQuery(productPickQueryOptions(productId));
   const { data: shop } = useShop();
   const formatMoney = useFormatMoney();
   const currency = shop?.currency ?? 'EUR';
@@ -40,12 +40,14 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
     return (
       <div className="flex flex-col gap-3">
         <BackButton onBack={onBack} label={t('variant_back')} />
-        <p className="py-6 text-center text-sm text-muted-foreground">{t('loading')}</p>
+        {isError
+          ? <p role="alert" className="py-6 text-center text-sm text-destructive">{t('add_error')}</p>
+          : <SkeletonRows count={3} rowClassName="py-3" />}
       </div>
     );
   }
 
-  const handlePick = (variant: ProductVariant) => onPick({ variantId: variant.id, productName: product.name, variantName: variant.packaging_name, productType: product.type, unitPrice: variant.selling_price });
+  const handlePick = (variant: ProductVariant) => onPick(variantPick(product, variant));
   const activeVariants = product.variants.filter((v) => v.is_active);
 
   return (
@@ -61,8 +63,8 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
         ) : activeVariants.map((v) => {
           const out = product.type === 'product' && parseFloat(v.stock_quantity) <= 0;
           return (
-            <button key={v.id} type="button" disabled={out} onClick={() => handlePick(v)}
-              className="flex items-center gap-3 px-1 py-3 text-left transition-colors active:bg-muted disabled:opacity-50">
+            <button key={v.id} type="button" onClick={() => handlePick(v)}
+              className="flex items-center gap-3 px-1 py-3 text-left transition-colors active:bg-muted">
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                 {!isDefaultVariant(v.packaging_name) && (
                   <span className="text-sm font-medium text-foreground truncate">{v.packaging_name}</span>
@@ -70,7 +72,7 @@ export function VariantView({ productId, onBack, onPick }: VariantViewProps) {
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {money(v.selling_price)}
                   {product.type === 'product' && (
-                    <>{' · '}<span className={out ? 'text-destructive' : v.is_low_stock ? 'text-amber-600' : ''}>{out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}</span></>
+                    <>{' · '}<span className={out ? 'text-destructive' : v.is_low_stock ? 'text-amber-700 dark:text-amber-400' : ''}>{out ? t('out_of_stock') : t('stock_label', { qty: v.stock_quantity })}</span></>
                   )}
                 </span>
               </div>

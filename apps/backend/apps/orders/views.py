@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.core.pagination import WindowPagination
 from apps.core.permissions import HasModulePermission, get_shop
 from apps.subscriptions.permissions import HasPlanForFeature
 
@@ -16,6 +17,7 @@ from apps.customers.models import Customer  # noqa: E402
 from apps.products.models import ProductVariant  # noqa: E402
 from apps.notes.models import Note  # noqa: E402
 from . import services  # noqa: E402
+from .filters import ORDER_SEARCH_FIELDS, OrderOrderingFilter, annotate_ranks  # noqa: E402
 from .models import Order, OrderItem  # noqa: E402
 from .serializers import (  # noqa: E402
     OrderSerializer, OrderListSerializer, OrderCreateSerializer,
@@ -26,9 +28,12 @@ from .serializers import (  # noqa: E402
 
 class OrderListCreateView(generics.ListAPIView):
     permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
-    filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-    search_fields = ['order_number', 'customer__name', 'customer__phone']
-    ordering_fields = ('created_at', 'total_amount')
+    filter_backends = (filters.SearchFilter, OrderOrderingFilter)
+    search_fields = ORDER_SEARCH_FIELDS
+    ordering_fields = (
+        'order_number', 'customer__name', 'created_at', 'total_amount',
+        'status', 'payment_status',
+    )
     ordering = ('-created_at',)
 
     def get_serializer_class(self):
@@ -36,20 +41,10 @@ class OrderListCreateView(generics.ListAPIView):
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        qs = Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items')  # noqa: E501
-        status_filter = self.request.query_params.get('status')
-        payment_filter = self.request.query_params.get('payment_status')
-        customer_filter = self.request.query_params.get('customer')
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        if payment_filter:
-            qs = qs.filter(payment_status=payment_filter)
-        if customer_filter:
-            qs = qs.filter(customer_id=customer_filter)
-        due_filter = self.request.query_params.get('due')
-        if due_filter == 'true':
-            qs = qs.filter(payment_status__in=('unpaid', 'partial')).exclude(status='cancelled')  # noqa: E501
-        return qs
+        qs = annotate_ranks(
+            Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items'),  # noqa: E501
+        )
+        return services.filter_orders(qs, shop, self.request.query_params)
 
     def post(self, request, *args, **kwargs):
         shop = get_shop(request.user)
@@ -121,13 +116,39 @@ class OrderListCreateView(generics.ListAPIView):
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
+class OrderSummaryView(APIView):
+    """Indicateurs de la page Commandes (à traiter, à encaisser, mois en cours)."""
+    permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
+
+    def get(self, request):
+        return Response(services.build_orders_summary(get_shop(request.user)))
+
+
+class OrderFacetsView(APIView):
+    """Nombre de commandes par statut et par paiement, pour les menus de filtre.
+
+    Reçoit les mêmes paramètres que la liste (recherche comprise).
+    """
+    permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
+    search_fields = ORDER_SEARCH_FIELDS
+
+    def get(self, request):
+        shop = get_shop(request.user)
+        qs = filters.SearchFilter().filter_queryset(request, Order.objects.filter(shop=shop), self)  # noqa: E501
+        return Response(services.build_order_facets(shop, qs, request.query_params))
+
+
 class OrderDetailView(generics.RetrieveUpdateAPIView):
     permission_classes = (IsAuthenticated, HasOrdersPlan, HasOrdersModule)
     serializer_class = OrderSerializer
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
-        return Order.objects.filter(shop=shop).select_related('customer').prefetch_related('items')  # noqa: E501
+        return (
+            Order.objects.filter(shop=shop)
+            .select_related('customer', 'created_by', 'updated_by')
+            .prefetch_related('items')
+        )
 
     def perform_destroy(self, instance):
         raise Exception("Suppression interdite. Utilisez l'annulation.")
@@ -205,8 +226,20 @@ class OrderActivityView(APIView):
         except Order.DoesNotExist:
             return Response({'detail': 'Commande introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
-        events = services.get_order_timeline(order)
-        return Response({'events': events})
+        raw_types = request.query_params.get('types')
+        types: set[str] | None = None
+        if raw_types:
+            types = {t.strip() for t in raw_types.split(',') if t.strip()}
+            unknown = types - services.ORDER_EVENT_TYPES
+            if unknown:
+                return Response(
+                    {'detail': f'Types inconnus: {", ".join(sorted(unknown))}.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        # Fenêtre `limit`/`offset` : seuls les événements affichés sont lus.
+        paginator = WindowPagination()
+        page = paginator.paginate_timeline(services.order_timeline_sources(order, types), request)  # noqa: E501
+        return paginator.get_paginated_response(page)
 
 
 class OrderItemCreateView(APIView):

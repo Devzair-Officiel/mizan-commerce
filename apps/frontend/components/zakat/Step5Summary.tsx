@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, Scale, AlertTriangle, ArrowRight } from 'lucide-react';
 import { formatMoney, type ZakatCalculation } from '@/lib/hooks/useZakat';
 import { useShop } from '@/lib/hooks/useShop';
@@ -35,15 +36,14 @@ function Row({ label, amount, currency, tone = 'neutral' }: RowProps) {
 const NISAB_GRAMS: Record<'silver' | 'gold', number> = { silver: 595, gold: 85 };
 
 export function Step5Summary({ calc }: Step5Props) {
+  const t = useTranslations('zakat');
   const { data: shop } = useShop();
   const stockForBase = calc.stock_value_for_base;
   const stockVentilated = calc.stock_breakdown && calc.stock_breakdown.length > 0;
   const stockAdjusted = !stockVentilated && calc.stock_value_adjusted !== null && calc.stock_value_adjusted !== '';
-  const stockLabel = stockVentilated
-    ? 'Stock (ventilé)'
-    : stockAdjusted
-      ? 'Stock (ajusté)'
-      : 'Stock (estimé)';
+  const stockLabel = t('step.summary.stock', {
+    state: stockVentilated ? 'ventilated' : stockAdjusted ? 'adjusted' : 'estimated',
+  });
 
   // Projection client-side : sur un brouillon, le serveur n'a pas encore calculé zakat_base
   // (gelé seulement à la finalisation). On reproduit ici la même formule pour donner l'aperçu.
@@ -67,27 +67,24 @@ export function Step5Summary({ calc }: Step5Props) {
       <div className="flex gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
         <CheckCircle2 className="text-primary shrink-0 mt-0.5" size={18} />
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-foreground">Récapitulatif avant validation</p>
-          <p className="text-xs text-muted-foreground">
-            Vérifiez les chiffres. Une fois la zakat finalisée, le calcul est archivé et ne peut
-            plus être modifié.
-          </p>
+          <p className="text-sm font-medium text-foreground">{t('step.summary.title')}</p>
+          <p className="text-xs text-muted-foreground">{t('step.summary.help')}</p>
         </div>
       </div>
 
       {/* Patrimoine entrant */}
       <div className="rounded-2xl border border-border bg-card px-4 py-3">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-          Votre patrimoine entrant
+          {t('step.summary.wealth')}
         </p>
         <Row
-          label="Argent disponible"
+          label={t('common.cash')}
           amount={calc.cash_amount}
           currency={calc.currency}
           tone="add"
         />
         <Row
-          label="Créances récupérables"
+          label={t('common.receivables')}
           amount={calc.receivables_amount}
           currency={calc.currency}
           tone="add"
@@ -103,10 +100,10 @@ export function Step5Summary({ calc }: Step5Props) {
       {/* Déductions */}
       <div className="rounded-2xl border border-border bg-card px-4 py-3">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-          Déductions
+          {t('step.summary.deductions')}
         </p>
         <Row
-          label="Dettes exigibles immédiatement"
+          label={t('step.summary.debts')}
           amount={calc.short_term_debts}
           currency={calc.currency}
           tone="sub"
@@ -116,7 +113,7 @@ export function Step5Summary({ calc }: Step5Props) {
       {/* Résultat clé — projection client-side (le serveur fige à la finalisation) */}
       <div className="rounded-2xl bg-primary text-primary-foreground px-5 py-5 flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
-          <p className="text-xs uppercase tracking-wide opacity-80">Base de la zakat (projection)</p>
+          <p className="text-xs uppercase tracking-wide opacity-80">{t('step.summary.base')}</p>
           <p className="text-xl font-semibold tabular-nums">
             {formatMoney(projectedBase, calc.currency)}
           </p>
@@ -124,7 +121,7 @@ export function Step5Summary({ calc }: Step5Props) {
         <div className="h-px bg-primary-foreground/20" />
         <div className="flex flex-col gap-0.5">
           <p className="text-xs uppercase tracking-wide opacity-80">
-            Zakat due ({(parseFloat(calc.zakat_rate) * 100).toFixed(2)}&nbsp;%)
+            {t('step.summary.due', { rate: (parseFloat(calc.zakat_rate) * 100).toFixed(2) })}
           </p>
           <p className="text-3xl font-bold tabular-nums">
             {formatMoney(projectedAmount, calc.currency)}
@@ -138,43 +135,35 @@ export function Step5Summary({ calc }: Step5Props) {
           className={`rounded-2xl border px-4 py-3 flex flex-col gap-2 ${
             isAboveNisab
               ? 'border-primary/30 bg-primary/5'
-              : 'border-emerald-200 bg-emerald-50'
+              : 'border-emerald-500/25 bg-emerald-500/10'
           }`}
         >
           <div className="flex items-center gap-2">
-            <Scale className={isAboveNisab ? 'text-primary' : 'text-emerald-700'} size={16} />
-            <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-              Seuil de Nisab
-            </p>
+            <Scale className={isAboveNisab ? 'text-primary' : 'text-emerald-700 dark:text-emerald-400'} size={16} />
+            <p className="text-xs font-semibold uppercase tracking-wide text-foreground">{t('nisab.title')}</p>
           </div>
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-xs text-muted-foreground">
-              Méthode {nisabMethod === 'silver' ? 'argent (595 g)' : 'or (85 g)'}
-            </p>
+            <p className="text-xs text-muted-foreground">{t('nisab.method', { method: nisabMethod })}</p>
             <p className="text-sm font-semibold tabular-nums text-foreground">
               {formatMoney(nisabThreshold, calc.currency)}
             </p>
           </div>
-          <p className={`text-xs ${isAboveNisab ? 'text-muted-foreground' : 'text-emerald-800'}`}>
-            {isAboveNisab
-              ? 'Votre base dépasse le seuil — la zakat est due.'
-              : 'Votre base reste sous le seuil — la zakat n\'est pas obligatoire cette année.'}
+          <p className={`text-xs ${isAboveNisab ? 'text-muted-foreground' : 'text-emerald-800 dark:text-emerald-200'}`}>
+            {isAboveNisab ? t('nisab.preview_above') : t('nisab.preview_below')}
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex gap-3">
-          <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 flex gap-3">
+          <AlertTriangle className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" size={18} />
           <div className="flex flex-col gap-1.5 flex-1">
-            <p className="text-sm font-medium text-amber-900">Seuil de Nisab non configuré</p>
-            <p className="text-xs text-amber-800">
-              Sans Nisab, impossible de savoir si la zakat est obligatoire pour vous cette année.
-            </p>
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">{t('nisab.not_configured')}</p>
+            <p className="text-xs text-amber-800 dark:text-amber-200">{t('nisab.not_configured_short')}</p>
             <Link
               href="/settings"
-              className="self-start mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-900 hover:text-amber-700 transition-colors"
+              className="self-start mt-1 inline-flex items-center gap-1 text-xs font-medium text-amber-900 dark:text-amber-100 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
             >
-              Configurer dans les paramètres
-              <ArrowRight size={12} />
+              {t('nisab.configure')}
+              <ArrowRight size={12} className="rtl:rotate-180" />
             </Link>
           </div>
         </div>
@@ -186,10 +175,7 @@ export function Step5Summary({ calc }: Step5Props) {
       <ReligiousNote rubric="nisab" />
       <ReligiousNote rubric="rate" />
 
-      <p className="text-xs text-muted-foreground px-1 text-center">
-        Le bouton ci-dessous archive ce calcul et le rend immuable. Vous pourrez revenir y consulter
-        le détail à tout moment.
-      </p>
+      <p className="text-xs text-muted-foreground px-1 text-center">{t('step.summary.footer')}</p>
     </div>
   );
 }

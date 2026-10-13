@@ -1,4 +1,5 @@
 import type { UseFormRegister } from 'react-hook-form';
+import { useTranslations } from 'next-intl';
 import { Receipt } from 'lucide-react';
 import { FloatingInput, FloatingTextarea } from '@/components/ui/floating-fields';
 import { SettingsCard } from './SettingsCard';
@@ -9,29 +10,26 @@ interface InvoicingSectionProps {
 }
 
 export function InvoicingSection({ register }: InvoicingSectionProps) {
+  const t = useTranslations('settings.invoicing');
   return (
-    <SettingsCard
-      icon={Receipt}
-      title="Facturation"
-      description="Ces champs apparaissent sur vos factures clients. Renseignez ce qui est exigé par la réglementation de votre pays."
-    >
+    <SettingsCard icon={Receipt} title={t('title')} description={t('description')}>
       <FloatingTextarea
         id="legal_address"
-        label="Adresse légale (siège)"
+        label={t('legal_address')}
         rows={3}
         {...register('legal_address')}
       />
 
       <FloatingInput
         id="tax_id"
-        label="Identifiant fiscal (SIRET, TVA, NIF, EIN…)"
+        label={t('tax_id')}
         {...register('tax_id')}
       />
 
       <div className="grid grid-cols-2 gap-3">
         <FloatingInput
           id="default_tax_rate"
-          label="Taux TVA par défaut"
+          label={t('tax_rate')}
           type="number"
           step="0.01"
           min="0"
@@ -42,12 +40,12 @@ export function InvoicingSection({ register }: InvoicingSectionProps) {
         />
         <FloatingInput
           id="default_payment_terms_days"
-          label="Délai de paiement"
+          label={t('payment_terms')}
           type="number"
           min="0"
           step="1"
           inputMode="numeric"
-          suffix="jours"
+          suffix={t('days')}
           {...register('default_payment_terms_days')}
         />
       </div>
@@ -55,14 +53,11 @@ export function InvoicingSection({ register }: InvoicingSectionProps) {
       <div className="flex flex-col gap-0.5">
         <FloatingTextarea
           id="legal_mentions"
-          label="Mentions légales (pied de facture)"
+          label={t('legal_mentions')}
           rows={4}
           {...register('legal_mentions')}
         />
-        <p className="text-[11px] text-muted-foreground px-1">
-          Ex.&nbsp;: «&nbsp;TVA non applicable, art. 293 B du CGI&nbsp;», RCS, conditions de
-          pénalités, indemnité forfaitaire…
-        </p>
+        <p className="text-[11px] text-muted-foreground px-1">{t('legal_mentions_help')}</p>
       </div>
     </SettingsCard>
   );

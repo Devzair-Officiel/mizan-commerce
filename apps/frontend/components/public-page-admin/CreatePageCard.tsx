@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { Globe } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { FloatingInput } from '@/components/ui/floating-fields';
@@ -13,11 +14,12 @@ import { ApiError } from '@/lib/api-client';
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+// Messages : clés sous `public_page_admin.slug`, traduites à l'affichage.
 const schema = z.object({
   slug: z.string()
-    .min(3, '3 caractères minimum')
-    .max(50, '50 caractères maximum')
-    .regex(slugRegex, 'Lettres minuscules, chiffres et tirets uniquement'),
+    .min(3, 'min')
+    .max(50, 'max')
+    .regex(slugRegex, 'format'),
   display_name: z.string().max(120).optional(),
 });
 
@@ -29,6 +31,7 @@ interface Props {
 }
 
 export function CreatePageCard({ suggestedSlug, suggestedDisplayName }: Props) {
+  const t = useTranslations('public_page_admin');
   const { mutateAsync, isPending } = useCreatePublicPage();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -50,9 +53,9 @@ export function CreatePageCard({ suggestedSlug, suggestedDisplayName }: Props) {
     } catch (err) {
       if (err instanceof ApiError) {
         const data = err.data as { slug?: string[]; detail?: string } | null;
-        setServerError(data?.slug?.[0] ?? data?.detail ?? 'Création impossible');
+        setServerError(data?.slug?.[0] ?? data?.detail ?? t('create.error'));
       } else {
-        setServerError('Création impossible');
+        setServerError(t('create.error'));
       }
     }
   }
@@ -60,28 +63,31 @@ export function CreatePageCard({ suggestedSlug, suggestedDisplayName }: Props) {
   return (
     <SettingsCard
       icon={Globe}
-      title="Activer ma page publique"
-      description="Une URL unique pour partager votre vitrine avec vos clients."
+      title={t('create.title')}
+      description={t('create.description')}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
         <div className="flex flex-col gap-0.5">
           <FloatingInput
             id="slug"
-            label="Adresse de la boutique *"
+            label={t('create.slug_label')}
             {...register('slug')}
           />
           {errors.slug && (
-            <p className="text-[11px] text-destructive px-1">{errors.slug.message}</p>
+            <p className="text-[11px] text-destructive px-1">{t(`slug.${errors.slug.message}`)}</p>
           )}
           <p className="text-[11px] text-muted-foreground px-1 mt-1 break-all">
-            Votre URL : <span className="font-mono text-foreground">/boutique/{slug || '…'}</span>
+            {t.rich('create.your_url', {
+              url: `/boutique/${slug || '…'}`,
+              code: (chunks) => <span className="font-mono text-foreground">{chunks}</span>,
+            })}
           </p>
         </div>
 
         <div className="flex flex-col gap-0.5">
           <FloatingInput
             id="display_name"
-            label="Nom affiché sur la page"
+            label={t('create.display_name_label')}
             {...register('display_name')}
           />
           {errors.display_name && (
@@ -94,7 +100,7 @@ export function CreatePageCard({ suggestedSlug, suggestedDisplayName }: Props) {
         )}
 
         <Button type="submit" disabled={isPending} className="mt-1">
-          {isPending ? 'Création…' : 'Créer ma page'}
+          {isPending ? t('create.submitting') : t('create.submit')}
         </Button>
       </form>
     </SettingsCard>

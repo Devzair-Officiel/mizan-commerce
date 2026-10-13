@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { User, X, Phone, MapPin } from 'lucide-react';
+import { customerInitials } from '@/components/customers/detail/constants';
 import { CustomerPicker } from '@/components/orders/CustomerPicker';
 import type { NewSaleForm } from '@/lib/hooks/useNewSaleForm';
 
@@ -33,10 +34,8 @@ export function TicketCustomerBlock({ form }: { form: NewSaleForm }) {
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const { customerId, selectedCustomer } = form;
 
-  const initial = selectedCustomer ? (selectedCustomer.first_name?.[0] ?? selectedCustomer.name?.[0] ?? '?').toUpperCase() : '';
-  const fullName = selectedCustomer
-    ? (selectedCustomer.first_name ? `${selectedCustomer.first_name} ${selectedCustomer.name}` : selectedCustomer.name)
-    : '';
+  const initial = selectedCustomer ? customerInitials(selectedCustomer.first_name, selectedCustomer.name) : '';
+  const fullName = selectedCustomer?.display_name ?? '';
 
   return (
     <>

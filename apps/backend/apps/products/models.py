@@ -114,8 +114,24 @@ class ProductVariant(models.Model):
 
     @property
     def is_out_of_stock(self):
+        """Rien à vendre (zéro ou négatif) : la page publique l'affiche indisponible."""
         from decimal import Decimal
         return self.stock_quantity <= Decimal('0')
+
+    @property
+    def is_negative_stock(self) -> bool:
+        """Stock passé sous zéro par une vente : à régulariser par une entrée."""
+        from decimal import Decimal
+        return self.stock_quantity < Decimal('0')
+
+    @property
+    def stock_state(self) -> str:
+        """État exclusif : `negative`, `out` (zéro), `low` (sous le seuil) ou `in`."""
+        if self.is_negative_stock:
+            return 'negative'
+        if self.is_out_of_stock:
+            return 'out'
+        return 'low' if self.is_low_stock else 'in'
 
 
 class ProductImage(models.Model):

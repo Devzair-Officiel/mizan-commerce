@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+import { useScrollLock } from '@base-ui/utils/useScrollLock';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface ThemeDrawerCtx { open: boolean; toggle: () => void; close: () => void; }
@@ -20,6 +21,7 @@ export function ThemeDrawerPanel() {
   const t = useTranslations('layout.themeDrawer');
   const tc = useTranslations('layout.common');
   const { open, close } = useThemeDrawer();
+  useScrollLock(open);
 
   return (
     <>

@@ -1,10 +1,12 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { CheckCircle2, MailWarning } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMe, useResendEmailVerification } from '@/lib/hooks/useMe';
 
 export function EmailVerificationBanner() {
+  const t = useTranslations('profile.email_verification');
   const { data: me } = useMe();
   const { mutate, isPending, data, isSuccess } = useResendEmailVerification();
 
@@ -14,11 +16,7 @@ export function EmailVerificationBanner() {
   const justVerified = isSuccess && data?.already_verified;
   const justSent = isSuccess && !data?.already_verified;
 
-  const message = justVerified
-    ? 'Email vérifié — actualisez la page.'
-    : justSent
-      ? 'Lien renvoyé. Vérifiez votre boîte mail.'
-      : 'Confirmez votre adresse email pour sécuriser votre compte.';
+  const message = justVerified ? t('verified') : justSent ? t('sent') : t('prompt');
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
@@ -34,9 +32,9 @@ export function EmailVerificationBanner() {
           size="sm"
           disabled={isPending}
           onClick={() => mutate()}
-          className="h-7 shrink-0 bg-amber-600 px-3 text-xs font-semibold text-white hover:bg-amber-700"
+          className="h-7 shrink-0 bg-amber-500/15 px-3 text-xs font-semibold text-amber-800 hover:bg-amber-500/25 dark:text-amber-300"
         >
-          {isPending ? 'Envoi…' : justSent ? 'Renvoyer' : 'Renvoyer le lien'}
+          {isPending ? t('sending') : justSent ? t('resend') : t('resend_link')}
         </Button>
       )}
     </div>

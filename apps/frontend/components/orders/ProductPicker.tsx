@@ -7,11 +7,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCatalogPicker } from '@/lib/hooks/useCatalogPicker';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
-import { productDetailQueryOptions } from '@/lib/hooks/useProducts';
-import type { Product } from '@/lib/hooks/useProducts';
-import { PickView } from './picker/PickView';
+import { productPickQueryOptions } from '@/lib/hooks/useProducts';
+import type { Product, ProductDetail } from '@/lib/hooks/useProducts';
+import { EmptyCatalogState } from './picker/EmptyCatalogState';
+import { PickView, type PickFeedback } from './picker/PickView';
 import { FreeLineView, type FreeLine } from './picker/FreeLineView';
-import { VariantView, type VariantPick } from './picker/VariantView';
+import { VariantView } from './picker/VariantView';
+import { variantPick, type VariantPick } from './picker/variantPick';
 
 export type { FreeLine, VariantPick };
 
@@ -19,6 +21,8 @@ interface ProductPickerProps {
   onPick: (pick: VariantPick) => void;
   onFreeLine: (line: FreeLine) => void;
   onRequestCreate: () => void;
+  /** Article créé depuis l'état « catalogue vide » de la fenêtre. */
+  onCreated: (p: ProductDetail) => void;
   variant?: 'default' | 'dashed';
   itemCount?: number;
 }
@@ -29,37 +33,34 @@ function usePickerProductClick(
 ) {
   const queryClient = useQueryClient();
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
-  const [outOfStockProductId, setOutOfStockProductId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<PickFeedback | null>(null);
 
+  // Le message d'erreur réseau s'efface seul après quelques secondes.
   useEffect(() => {
-    if (!outOfStockProductId) return;
-    const timer = setTimeout(() => setOutOfStockProductId(null), 3000);
+    if (!feedback) return;
+    const timer = setTimeout(() => setFeedback(null), 3000);
     return () => clearTimeout(timer);
-  }, [outOfStockProductId]);
+  }, [feedback]);
 
   async function handleProductClick(p: Product) {
     if (p.variant_count > 1) { onMultiVariantPick(p); return; }
     if (addingProductId) return;
     setAddingProductId(p.id);
-    setOutOfStockProductId(null);
+    setFeedback(null);
     try {
-      const detail = await queryClient.fetchQuery(productDetailQueryOptions(p.id));
+      const detail = await queryClient.fetchQuery(productPickQueryOptions(p.id));
       const active = detail.variants.filter((v) => v.is_active);
       const [single] = active;
       if (!single) return;
-      if (detail.type === 'product' && parseFloat(single.stock_quantity) <= 0) {
-        setOutOfStockProductId(p.id);
-        return;
-      }
-      onSingleVariantPick({ variantId: single.id, productName: detail.name, variantName: single.packaging_name, productType: detail.type, unitPrice: single.selling_price });
+      onSingleVariantPick(variantPick(detail, single));
     } catch {
-      // ignore network errors
+      setFeedback({ productId: p.id, kind: 'error' });
     } finally {
       setAddingProductId((id) => id === p.id ? null : id);
     }
   }
 
-  return { handleProductClick, addingProductId, outOfStockProductId };
+  return { handleProductClick, addingProductId, feedback };
 }
 
 function PickerTrigger({ variant, openPicker }: { variant: 'default' | 'dashed'; openPicker: () => void }) {
@@ -88,11 +89,11 @@ function PickerTrigger({ variant, openPicker }: { variant: 'default' | 'dashed';
   );
 }
 
-export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = 'default', itemCount }: ProductPickerProps) {
+export function ProductPicker({ onPick, onFreeLine, onRequestCreate, onCreated, variant = 'default', itemCount }: ProductPickerProps) {
   const t = useTranslations('orders.picker');
   const kind = useCatalogKind();
   const picker = useCatalogPicker();
-  const { handleProductClick, addingProductId, outOfStockProductId } = usePickerProductClick(
+  const { handleProductClick, addingProductId, feedback } = usePickerProductClick(
     picker.handlePickProduct,
     onPick,
   );
@@ -119,6 +120,9 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = '
                 onBack={picker.backToList}
                 onPick={(pick) => picker.handlePickVariant(pick, onPick)}
               />
+            ) : picker.products.length === 0 && !picker.search ? (
+              // Une recherche sans résultat n'est pas un catalogue vide : la recherche reste affichée.
+              <EmptyCatalogState onCreated={(p) => { onCreated(p); picker.close(); }} onFreeLine={picker.goToFreeLine} />
             ) : (
               <PickView
                 search={picker.search} setSearch={picker.setSearch}
@@ -128,7 +132,7 @@ export function ProductPicker({ onPick, onFreeLine, onRequestCreate, variant = '
                 onCreate={() => picker.handleCreate(onRequestCreate)}
                 onFreeLine={picker.goToFreeLine}
                 loadingProductId={addingProductId}
-                outOfStockProductId={outOfStockProductId}
+                feedback={feedback}
               />
             )}
           </div>

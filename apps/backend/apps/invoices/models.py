@@ -128,7 +128,7 @@ class InvoiceLine(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoice_lines')  # noqa: E501
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='lines')
+    invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='lines')  # noqa: E501
 
     description = models.CharField(max_length=300)
     quantity = models.DecimalField(max_digits=12, decimal_places=3)

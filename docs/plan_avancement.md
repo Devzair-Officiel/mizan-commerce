@@ -55,7 +55,7 @@
 
 - [ ] Créer un VPS ou Public Cloud Instance OVH
 - [ ] Provisionner PostgreSQL managé OVHcloud
-- [ ] Provisionner un bucket Object Storage privé (`saas-private`) + un bucket public (`saas-public`)
+- [ ] Provisionner le bucket privé de production (ex. `mizan-prod-private`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
 - [ ] Configurer un nom de domaine + HTTPS (Let's Encrypt via Nginx/Traefik)
 - [ ] Configurer un domaine de staging séparé
 
@@ -91,7 +91,7 @@
 - [x] Endpoints CRUD `Shop` (filtré par membership)
 - [x] Page paramètres boutique (modifier nom, devise, pays)
 
-### Gestion d'équipe & RBAC (URS-005, URS-061)
+### Gestion d'équipe & RBAC (URS-102)
 
 - [x] Modèle `ShopMember` : rôles `owner` (créateur, indélébile) / `admin` (accès complet) / `staff` (accès filtré par modules)
 - [x] Champ `permissions` JSONField sur `ShopMember` : liste de modules accessibles pour les `staff`
@@ -105,6 +105,8 @@
 - [x] Filtrage des entrées de navigation (`BurgerMenu`, `DesktopSidebar`, `BottomNav` + FAB) selon les permissions
 - [x] Page `/settings/team` : liste des membres, ajout, édition rôle/permissions, suppression (auto-protection + protection owner)
 - [x] Traductions complètes fr / en / ar pour la gestion d'équipe et les écrans 403
+- [x] Formule Boutique+ (URS-102) : ajout et modification d'un membre refusés côté serveur ; hors formule, page Équipe = carte de mise à niveau + liste en lecture seule (retrait possible)
+- [x] Suspension des employés et admins d'une boutique sans Boutique+ : `ShopMemberJWTAuthentication` (point unique, code `staff_suspended_plan`), écran `/suspended`, accès rétabli automatiquement au retour en Boutique+
 
 ### Tableau de bord (URS-006, URS-007)
 
@@ -346,7 +348,7 @@
 - [x] Endpoint upload facture + extraction texte brut
 - [x] Modèle `UploadedDocument`, `OcrResult`
 - [x] Extraction structurée : produits, quantités, prix
-- [ ] Matching déterministe des lignes OCR vers ProductVariant
+- [~] Matching déterministe des lignes OCR vers ProductVariant
 - [ ] Affichage frontend des lignes détectées avec confiance
 - [ ] Validation humaine ligne par ligne
 - [ ] Création des `StockMovement` après validation uniquement
@@ -388,8 +390,59 @@
   - [x] 5a — page Commandes (liste, filtres, pagination/infinite scroll)
   - [x] 5b — Nouvelle vente (vue caisse desktop, client facultatif, paiement par défaut)
   - [x] 5c — Simplification statuts : suppression `draft`, création directe `to_prepare`, parcours livraison/sur-place/autre, `StatusSwitch` adaptatif, stock delta sur édition
+- [~] C1+C2 — Gabarit des pages de liste (StatCard, ListToolbar, DataTable) appliqué à Commandes desktop
+- [~] C2 — Détail d'une commande (desktop + mobile)
+- [~] Mode sombre via tokens (fin des gris de palette, garde-fou `npm run tokens:check`) et marges latérales grand écran (`lg:px-8 xl:px-12 2xl:px-16`)
+- [~] C2 — Nouvelle commande desktop et modification sur le même écran
+- [~] C3 — Clients : liste (gabarit)
+- [~] C3 — Fiche client (gabarit de détail)
+- [~] Gabarit des pages de formulaire, appliqué au formulaire client
+- [~] C3 — Articles et services : liste (gabarit)
+- [~] C3 — Formulaire article (gabarit v2)
+- [~] C4 — Stock : règles et API
+- [~] C4 — Écrans du stock (niveaux, mouvements, entrées, sorties)
+- [~] C4 — Fiche article
+- [~] Gabarit de formulaire v3 (deux colonnes) appliqué aux formulaires article et client, photos d'articles carrées
+- [~] Nom complet des clients (`display_name`) partout, recherche sur le prénom et le nom
 - [~] Étape 6 — Onboarding revu et vocabulaire adapté au type d'activité
 - [~] Étape 7 — Mobile : barre du bas, menu, accueil 2×2, saisie plein écran
+
+### Après recette C1–C4
+
+- [~] Lot 1 (bugs avant fusion)
+  - [~] Suppression d'un article ou d'un format jamais utilisé (stock initial reconnu par `StockMovement.is_initial`)
+  - [~] Rappels : mise à jour, compteurs, doublons
+  - [~] Historique des messages WhatsApp
+  - [~] Page bloquée sans défilement (un seul verrou de défilement : celui de Base UI)
+- [~] Lot 2 (avant fusion)
+  - [~] En-têtes de cartes teintés (bande `header-band`, titres et en-têtes de colonnes)
+  - [~] Listes longues des fiches (5 + « Voir plus »)
+  - [~] Sélecteur d'indicatif téléphonique
+  - [~] Garde-fou Base UI (`npm run deps:check` : une seule copie de `@base-ui/utils`)
+  - [~] Facture client : ne pas afficher le format par défaut dans les lignes
+  - [~] Entrée de stock : carte de mise à niveau sur l'onglet facture fournisseur sans Boutique+
+  - [ ] Fin de la recette
+- [~] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
+  - [~] En-têtes des cartes de formulaire en bande teintée (formulaires article et client)
+  - [~] Formats dans le formulaire article : tableau « Formats et prix », création et modification tout ou rien
+- [ ] Puis : pull request, fusion (session Postman abandonnée : Postman n'est plus utilisé, collection retirée du dépôt)
+- [ ] Lot 4 (après fusion)
+  - [ ] Page et formulaire Rappels + assignation à un employé
+  - [ ] Export de l'activité d'un client avec filtres
+  - [ ] Bloc Ventes de l'accueil sur 12 mois et depuis la création
+  - [ ] Modèles de messages WhatsApp et ton
+- [ ] Lot 5 — Factures fournisseur
+  - [ ] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
+  - [ ] Création d'un article ou d'un service depuis une ligne « à associer », pré-remplie et mémorisée
+- [ ] Lot 6 — Factures clients
+  - [ ] Nouveau design (référence : facture Nidemiel)
+  - [ ] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
+  - [ ] Récapitulatif du compte client en option
+  - [ ] Mentions légales configurables
+- [ ] Lot 7 — Compte et réglages
+  - [ ] Badge d'abonnement (sidebar, menu mobile)
+  - [ ] Raccourci clair/sombre dans le menu
+  - [ ] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
 
 ### Tests
 
@@ -417,7 +470,7 @@
 
 - [x] Modèles `Subscription`, `SubscriptionPlan` + seed des 3 plans
 - [x] Essai 14j Boutique+ à l'inscription (URS-100) + tâche Celery d'expiration
-- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages
+- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
@@ -444,11 +497,6 @@
 - [ ] `seed_data.handle()` fait ~470 lignes et `_seed_new_products` 68 lignes ;
       découper en sous-commandes ou helpers dédiés hors périmètre de la refonte UX.
 
-- [ ] Remplacer les window.alert() résiduels par un composant toast une fois
-      disponible : apps/frontend/app/(app)/zakat/new/page.tsx:112 (conflit
-      409 sur finalisation), apps/frontend/app/(app)/zakat/[id]/page.tsx:44
-      (échec de réouverture)
-
 - [ ] Mettre en place Vitest côté frontend (aucun test, aucun script
       npm run test actuellement) — voir CLAUDE.md pour la note associée
 
@@ -471,6 +519,9 @@
 - [ ] Variante par défaut identifiée par son nom stocké en français (`'Par défaut'`) :
       remplacer par un booléen `is_default` sur `ProductVariant`, avec migration des données.
       Centralisé dans `lib/products.ts` (`DEFAULT_VARIANT_NAME` + `isDefaultVariant()`) en attendant.
+
+- [ ] « Ce mois-ci » (page Commandes) compte les commandes créées dans le mois faute de
+      date de remise : ajouter une date de clôture (`completed_at`) sur `Order`.
 
 - [ ] **max-lines-per-function** : 62 fichiers du frontend dépassent la limite de 80 lignes
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la

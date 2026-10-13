@@ -21,8 +21,9 @@ class Order(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='orders')
+    # Historique protégé (RESTRICT) : la commande ne garde pas d'instantané du client.
     customer = models.ForeignKey(
-        Customer, on_delete=models.SET_NULL,
+        Customer, on_delete=models.RESTRICT,
         null=True, blank=True, related_name='orders'
     )
     order_number = models.CharField(max_length=20)
@@ -71,7 +72,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='order_items')
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    order = models.ForeignKey(Order, on_delete=models.RESTRICT, related_name='items')
     variant = models.ForeignKey(
         ProductVariant, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='order_items'

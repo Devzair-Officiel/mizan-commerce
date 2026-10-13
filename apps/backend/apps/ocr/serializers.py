@@ -181,6 +181,8 @@ _MATCH_KIND_CHOICES: tuple[tuple[str, str], ...] = (
     ('barcode_exact', 'barcode_exact'),
     ('sku_exact', 'sku_exact'),
     ('name_similarity', 'name_similarity'),
+    ('supplier_memory', 'supplier_memory'),
+    ('name_exact', 'name_exact'),
 )
 _MATCHING_STATUS_CHOICES: tuple[tuple[str, str], ...] = (
     ('done', 'done'),
@@ -200,6 +202,8 @@ class _MatchingCandidateSerializer(serializers.Serializer):
 class _MatchingLineSerializer(serializers.Serializer):
     invoice_line_index = serializers.IntegerField(min_value=0)
     candidates = _MatchingCandidateSerializer(many=True)
+    # Association déterministe ; `null` : ligne « à associer ».
+    association = _MatchingCandidateSerializer(allow_null=True)
 
 
 class _MatchingSerializer(serializers.Serializer):
@@ -212,7 +216,7 @@ def _sanitize_matching_candidate(entry: object) -> dict | None:
     if not isinstance(entry, dict):
         return None
     kind = entry.get('match_kind')
-    if kind not in {'barcode_exact', 'sku_exact', 'name_similarity'}:
+    if kind not in {choice for choice, _ in _MATCH_KIND_CHOICES}:
         return None
     variant_id = entry.get('variant_id')
     product_id = entry.get('product_id')
@@ -252,7 +256,11 @@ def _sanitize_matching_line(entry: object) -> dict | None:
         if isinstance(candidates_raw, list)
         else []
     )
-    return {'invoice_line_index': index_raw, 'candidates': candidates}
+    return {
+        'invoice_line_index': index_raw,
+        'candidates': candidates,
+        'association': _sanitize_matching_candidate(entry.get('association')),
+    }
 
 
 def _sanitize_matching(block: object) -> dict | None:

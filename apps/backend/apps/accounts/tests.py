@@ -61,6 +61,17 @@ class AuthFlowTest(TestCase):
         self.assertEqual(response.data['primary_color'], 'sage')
         self.assertEqual(response.data['background_theme'], 'cream')
 
+    def test_me_phone_is_normalized(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('auth-me')
+        response = self.client.patch(url, {'phone': '+212 612-345678'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['phone'], '+212612345678')
+        response = self.client.patch(url, {'phone': '12345'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.patch(url, {'phone': ''}, format='json')
+        self.assertEqual(response.data['phone'], '')
+
     def test_me_persists_appearance_preferences(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch(reverse('auth-me'), {

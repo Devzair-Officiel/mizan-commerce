@@ -663,6 +663,14 @@ Pour les fichiers sensibles :
 - justificatifs ;
 - exports privés.
 
+### Un bucket par environnement
+
+`mizan-private` est le bucket de développement : environnement local, audits e2e, sessions Postman.
+
+La production aura son propre bucket (ex. `mizan-prod-private`), à ne jamais partager avec le développement.
+
+Le nom du bucket vient de la variable `OVH_S3_BUCKET_PRIVATE`, sans valeur par défaut dans le code. En production, `config/settings/production.py` refuse de démarrer (`ImproperlyConfigured`) si cette variable, `OVH_S3_ENDPOINT_URL`, `OVH_S3_ACCESS_KEY` ou `OVH_S3_SECRET_KEY` manque.
+
 ---
 
 ## 7.6 Accès public ou privé

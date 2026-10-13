@@ -4,15 +4,18 @@ import { useTranslations } from 'next-intl';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
+import { useSubmitLabel } from '@/components/orders/new/useSubmitLabel';
 
 interface MobileSubmitBarProps {
+  mode: 'create' | 'edit';
   total: number;
   isPending: boolean;
   onClick: () => void | Promise<void>;
 }
 
-export function MobileSubmitBar({ total, isPending, onClick }: MobileSubmitBarProps) {
+export function MobileSubmitBar({ mode, total, isPending, onClick }: MobileSubmitBarProps) {
   const t = useTranslations('orders.new');
+  const label = useSubmitLabel(mode, isPending);
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
@@ -30,7 +33,7 @@ export function MobileSubmitBar({ total, isPending, onClick }: MobileSubmitBarPr
         disabled={isPending}
         className="flex-1 h-11 rounded-full bg-primary text-primary-foreground text-[0.9375rem] font-semibold flex items-center justify-center disabled:opacity-60 active:scale-[0.98] transition-all"
       >
-        {isPending ? t('submit_creating') : t('submit_label')}
+        {label}
       </button>
     </FloatingActionBar>
   );

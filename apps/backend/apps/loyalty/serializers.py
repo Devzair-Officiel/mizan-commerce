@@ -23,7 +23,7 @@ class LoyaltyTransactionSerializer(serializers.ModelSerializer):
 
 
 class LoyaltyCardListSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    customer_name = serializers.CharField(source='customer.display_name', read_only=True)  # noqa: E501
     customer_phone = serializers.CharField(source='customer.phone', read_only=True)
 
     class Meta:
@@ -32,7 +32,7 @@ class LoyaltyCardListSerializer(serializers.ModelSerializer):
 
 
 class LoyaltyCardSerializer(serializers.ModelSerializer):
-    customer_name = serializers.CharField(source='customer.name', read_only=True)
+    customer_name = serializers.CharField(source='customer.display_name', read_only=True)  # noqa: E501
     customer_phone = serializers.CharField(source='customer.phone', read_only=True)
 
     class Meta:

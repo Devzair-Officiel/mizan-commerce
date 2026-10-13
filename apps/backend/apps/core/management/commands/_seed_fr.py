@@ -19,8 +19,10 @@ from apps.notes.models import Reminder
 from apps.orders import services as order_services
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Product, ProductVariant
+from apps.ocr.models import SupplierLineMatch
 from apps.stock.factories import StockMovementFactory
 from apps.stock.models import StockMovement
+from apps.stock.services import EntryLine, EntryReference, create_entry
 
 _RNG = random.Random(42)
 _TZ_FR = zoneinfo.ZoneInfo("Europe/Paris")
@@ -83,6 +85,7 @@ def _initial_stock(shop, variant, qty, user) -> None:
         quantity=qty,
         reason="Stock initial — seeding",
         created_by=user,
+        is_initial=True,
     )
     ref = _make_dt(datetime.date.today() - datetime.timedelta(days=35), 8, 0)
     StockMovement.objects.filter(pk=mv.pk).update(created_at=ref)
@@ -247,7 +250,7 @@ _CUSTOMERS_FR = [
     ("Samira Harrach", "+33667890123", "Strasbourg", "Régulière depuis le printemps."),
     ("Omar Berrada", "+33678901234", "Montpellier", ""),
     ("Dounia Tazi", "+33689012345", "Nantes", "Grande taille — préfère L et XL."),
-    ("Amine Benchekroun", "+33690123456", "Grenoble", ""),
+    ("Amine Benchekroun", "+33680123456", "Grenoble", ""),
     ("Rania Saadi", "+33601234567", "Lille", "Achète souvent pour offrir."),
 ]
 
@@ -422,6 +425,43 @@ def seed_reminders_fr(shop, user, customers) -> None:
         Reminder.objects.create(shop=shop, author=user, status="pending", **r)
 
 
+# ── Stock : facture fournisseur, association mémorisée, format négatif ─────────
+
+_SUPPLIER = "Lin & Co"
+
+
+def seed_stock_fr(shop, user, customers) -> None:
+    """Démo de l'écran Stock (idempotent).
+
+    - une entrée reçue de Lin & Co avec sa facture (fournisseur, prix d'achat) ;
+    - une association mémorisée pour ce fournisseur (facture suivante) ;
+    - une commande à préparer qui fait passer les Espadrilles 43 en négatif.
+    """
+    by_sku = {
+        v.sku: v for v in ProductVariant.objects.filter(
+            shop=shop, sku__in=("VES-LIN-006-S", "ECH-LIN-008", "ESP-TOI-007-43"),
+        ).select_related("product")
+    }
+    if not StockMovement.objects.filter(shop=shop, supplier_name=_SUPPLIER).exists():
+        received = datetime.date.today() - datetime.timedelta(days=8)
+        movements = create_entry(shop, user, [
+            EntryLine(by_sku["VES-LIN-006-S"], Decimal("5"), Decimal("30.00")),
+            EntryLine(by_sku["ECH-LIN-008"], Decimal("10"), Decimal("9.00")),
+        ], EntryReference(_SUPPLIER, "F-2026-118", received))
+        StockMovement.objects.filter(pk__in=[m.pk for m in movements]).update(
+            created_at=_make_dt(received, 10, 30),
+        )
+    SupplierLineMatch.objects.get_or_create(
+        shop=shop, supplier_key="lin co", label_key="echarpe lin nat",
+        defaults={"variant": by_sku["ECH-LIN-008"], "created_by": user},
+    )
+    negative = by_sku["ESP-TOI-007-43"]
+    if not OrderItem.objects.filter(variant=negative).exists():
+        order = order_services.create_order(shop, user, customer=customers[0])
+        order_services.add_item(order, negative, 1, user=user)
+        order_services.reserve_stock(order, user)
+
+
 # ── Point d'entrée ────────────────────────────────────────────────────────────
 
 
@@ -438,3 +478,4 @@ def run_seed_fr(shop, youssef, sara, stdout) -> None:
         stdout.write("    · Commandes existantes — skip")
 
     seed_reminders_fr(shop, youssef, customers)
+    seed_stock_fr(shop, youssef, customers)

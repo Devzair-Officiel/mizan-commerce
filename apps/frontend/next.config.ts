@@ -77,11 +77,29 @@ const nextConfig: NextConfig = {
   // Typecheck et lint sont lancés en dev/CI avant chaque commit.
   // Les rejouer pendant `next build` sature la RAM du VPS et fait swap pendant ~45 min.
   typescript: { ignoreBuildErrors: true },
+  // Serveur de dev uniquement : l'audit Playwright (service compose `e2e`) ouvre
+  // le frontend sous le nom d'hôte « frontend » ; sans cela le rechargement à chaud est bloqué.
+  allowedDevOrigins: ["frontend"],
+  // Anciennes pages du stock (liens enregistrés) : la query string est transmise.
+  async redirects() {
+    return [
+      { source: "/stock/add", destination: "/stock/entree", permanent: false },
+      { source: "/stock/in", destination: "/stock/entree", permanent: false },
+      { source: "/stock/out", destination: "/stock/sortie", permanent: false },
+      { source: "/stock/import-invoice", destination: "/stock/entree?mode=facture", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      // Polices (publiques, empreinte dans le nom) : lisibles depuis l'aperçu de la vitrine,
+      // une iframe sandboxée sans `allow-same-origin` dont l'origine est opaque (`null`).
+      {
+        source: "/_next/static/media/:path*",
+        headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
       },
       // Plus spécifique en dernier : override les headers de frame pour autoriser
       // l'iframe same-origin (utilisé par l'aperçu de l'éditeur de vitrine).

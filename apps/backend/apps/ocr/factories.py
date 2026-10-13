@@ -4,9 +4,10 @@ import factory
 from factory.django import DjangoModelFactory
 
 from apps.accounts.factories import UserFactory
+from apps.products.factories import ProductVariantFactory
 from apps.shops.factories import ShopFactory
 
-from .models import OcrResult, UploadedDocument
+from .models import OcrResult, SupplierLineMatch, UploadedDocument
 
 
 class UploadedDocumentFactory(DjangoModelFactory):
@@ -34,3 +35,16 @@ class OcrResultFactory(DjangoModelFactory):
         shop=factory.SelfAttribute('..shop'),
     )
     status = OcrResult.STATUS_PENDING
+
+
+class SupplierLineMatchFactory(DjangoModelFactory):
+    """Association mémorisée : libellé d'un fournisseur → format (clés normalisées)."""
+
+    class Meta:
+        model = SupplierLineMatch
+
+    variant = factory.SubFactory(ProductVariantFactory)
+    shop = factory.SelfAttribute('variant.shop')
+    supplier_key = 'lin co'
+    label_key = factory.Sequence(lambda n: f'article fournisseur {n}')
+    created_by = factory.SubFactory(UserFactory)

@@ -30,7 +30,8 @@ class PreparedMessageListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated, HasWhatsappPlan, HasMessagesModule)
     serializer_class = PreparedMessageSerializer
     filter_backends = (filters.OrderingFilter,)
-    ordering = ('-created_at',)
+    # `-id` départage les messages de même date : fenêtres `offset` stables.
+    ordering = ('-created_at', '-id')
 
     def get_queryset(self):
         shop = get_shop(self.request.user)
@@ -74,6 +75,7 @@ class PreparedMessageListCreateView(generics.ListCreateAPIView):
                 context_id=data.get('context_id'),
                 customer=customer,
                 custom_message=data.get('custom_message'),
+                sent=data['sent'],
             )
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)

@@ -1,100 +1,79 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { CreditCard, Pencil, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Banknote, Pencil } from 'lucide-react';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { buttonVariants } from '@/components/ui/button';
+import { OrderPaymentBadge } from '@/components/orders/list/OrderPaymentBadge';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import type { Order } from '@/lib/hooks/useOrders';
-import { PAYMENT_COLOR } from './constants';
+import { cn } from '@/lib/utils';
+import { remainingDue, WhatsAppIcon } from './constants';
+import type { OrderDetailActions } from './useOrderDetailState';
+
+const OUTLINE = cn(buttonVariants({ variant: 'outline' }), 'h-10 flex-1 rounded-full bg-card px-4 font-medium');
 
 interface OrderPaymentCardProps {
   order: Order;
-  totalAmount: number;
-  paidAmount: number;
-  remaining: string;
-  isPending: boolean;
-  onCollect: (preset: number) => void;
+  actions: OrderDetailActions;
+  /** L'encaissement est déjà l'action principale de la page : pas de second bouton. */
+  collectIsPrimary: boolean;
 }
 
-export function OrderPaymentCard({
-  order, totalAmount, paidAmount, remaining, isPending, onCollect,
-}: OrderPaymentCardProps) {
+/** Carte « Paiement » : payé sur total, progression, reste dû, encaisser ou relancer. */
+export function OrderPaymentCard({ order, actions, collectIsPrimary }: OrderPaymentCardProps) {
   const t = useTranslations('orders.paymentCard');
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
   const formatMoney = useFormatMoney();
   const money = (v: number | string) => formatMoney(v, currency, { maximumFractionDigits: 2 });
-
-  const paymentProgress = totalAmount > 0
-    ? Math.min(100, Math.round((paidAmount / totalAmount) * 100))
-    : 0;
-  const remainingNum = parseFloat(remaining);
+  const total = parseFloat(order.total_amount);
+  const due = remainingDue(order);
+  const progress = total > 0 ? Math.min(100, Math.round((parseFloat(order.amount_paid) / total) * 100)) : 0;
+  const open = order.status !== 'cancelled';
+  const canCollect = open && due > 0 && !collectIsPrimary;
+  const canRemind = open && due > 0 && !!order.customer && !!order.customer_phone;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h2 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          <Wallet size={14} />
-          {t('title')}
-        </h2>
-        <span className={`text-sm font-semibold ${PAYMENT_COLOR[order.payment_status] ?? ''}`}>
-          {order.payment_status_display}
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <div className="flex items-end justify-between">
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-zinc-900 tabular-nums">
-              {money(paidAmount)}
-            </span>
-            <span className="text-sm text-zinc-400 tabular-nums">
-              / {money(totalAmount)}
-            </span>
-          </div>
-          <span className="text-xs font-medium text-zinc-500 tabular-nums">
-            {paymentProgress}%
-          </span>
+    <SectionCard title={t('title')} rightSlot={<OrderPaymentBadge order={order} currency={currency} showDue={false} />}>
+      <div className="px-4 py-4 lg:px-5">
+        <p className="flex flex-wrap items-baseline gap-x-1.5">
+          <span className="text-2xl font-bold tabular-nums">{money(order.amount_paid)}</span>
+          <span className="text-sm text-muted-foreground tabular-nums">{t('of_total', { amount: money(total) })}</span>
+        </p>
+        <div role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label={t('progress_label')}
+          className="mt-2.5 h-2 overflow-hidden rounded-full bg-muted">
+          <div className={cn('h-full rounded-full transition-all duration-300',
+            order.payment_status === 'paid' ? 'bg-green-700 dark:bg-green-400' : 'bg-amber-600 dark:bg-amber-400')}
+            style={{ width: `${progress}%` }} />
         </div>
-        <div className="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              order.payment_status === 'paid' ? 'bg-green-500'
-              : order.payment_status === 'partial' ? 'bg-amber-500'
-              : 'bg-zinc-300'
-            }`}
-            style={{ width: `${paymentProgress}%` }}
-          />
-        </div>
-        {remainingNum > 0 && (
-          <p className="text-xs font-medium text-red-500 tabular-nums">
-            {t('remaining', { amount: money(remaining) })}
+        {due > 0 && (
+          <p className="mt-2 text-[0.8125rem] font-semibold text-amber-700 tabular-nums dark:text-amber-400">
+            {t('remaining', { amount: money(due) })}
           </p>
         )}
-      </div>
-
-      {order.status !== 'cancelled' && (
-        remainingNum > 0 ? (
-          <Button
-            className="w-full bg-green-600 hover:bg-green-700 text-white inline-flex items-center justify-center gap-2"
-            onClick={() => onCollect(remainingNum)}
-            disabled={isPending}
-          >
-            <CreditCard size={16} />
-            {t('collect_cta')}
-          </Button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onCollect(0)}
-            className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-700 py-1"
-          >
-            <Pencil size={12} />
-            {t('correct_cta')}
+        {(canCollect || canRemind) && (
+          <div className="mt-3.5 flex gap-2">
+            {canCollect && (
+              <button type="button" className={OUTLINE} onClick={() => actions.openPayment(due)}>
+                <Banknote className="text-primary" aria-hidden />{t('collect_cta')}
+              </button>
+            )}
+            {canRemind && (
+              <button type="button" className={OUTLINE} onClick={() => actions.openWhatsApp('unpaid_followup')}>
+                <span className="text-primary"><WhatsAppIcon size={16} /></span>{t('remind_cta')}
+              </button>
+            )}
+          </div>
+        )}
+        {open && (
+          <button type="button" onClick={() => actions.openPayment(0)}
+            className="mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-primary hover:underline">
+            <Pencil size={14} aria-hidden />{t('correct_cta')}
           </button>
-        )
-      )}
-    </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function StatusBar({ page }: Props) {
+  const t = useTranslations('public_page_admin.status');
   const publish = usePublishPublicPage();
   const unpublish = useUnpublishPublicPage();
   const [copied, setCopied] = useState(false);
@@ -44,11 +46,11 @@ export function StatusBar({ page }: Props) {
             <button
               type="button"
               onClick={handleCopy}
-              aria-label="Copier l'URL"
+              aria-label={t('copy_url')}
               className="shrink-0 text-muted-foreground hover:text-foreground"
             >
               {copied
-                ? <Check className="h-3.5 w-3.5 text-emerald-600" />
+                ? <Check className="h-3.5 w-3.5 text-green-700 dark:text-green-400" />
                 : <Copy className="h-3.5 w-3.5" />}
             </button>
             {page.is_live && (
@@ -56,7 +58,7 @@ export function StatusBar({ page }: Props) {
                 href={fullUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Ouvrir la page publique"
+                aria-label={t('open_page')}
                 className="shrink-0 text-muted-foreground hover:text-foreground"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -73,7 +75,7 @@ export function StatusBar({ page }: Props) {
             disabled={isPending}
             onClick={() => unpublish.mutate()}
           >
-            {unpublish.isPending ? 'Dépublication…' : 'Dépublier'}
+            {unpublish.isPending ? t('unpublishing') : t('unpublish')}
           </Button>
         ) : (
           <Button
@@ -82,7 +84,7 @@ export function StatusBar({ page }: Props) {
             disabled={isPending}
             onClick={() => publish.mutate()}
           >
-            {publish.isPending ? 'Publication…' : 'Publier'}
+            {publish.isPending ? t('publishing') : t('publish')}
           </Button>
         )}
       </div>
@@ -91,15 +93,16 @@ export function StatusBar({ page }: Props) {
 }
 
 function StatusBadge({ isLive }: { isLive: boolean }) {
+  const t = useTranslations('public_page_admin.status');
   return isLive ? (
-    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-semibold">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-      En ligne
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-500/10 text-green-700 dark:text-green-400 px-2 py-0.5 text-[11px] font-semibold">
+      <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+      {t('live')}
     </span>
   ) : (
-    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-neutral-200 text-neutral-700 px-2 py-0.5 text-[11px] font-semibold">
-      <span className="h-1.5 w-1.5 rounded-full bg-neutral-500" />
-      Brouillon
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-[11px] font-semibold">
+      <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+      {t('draft')}
     </span>
   );
 }

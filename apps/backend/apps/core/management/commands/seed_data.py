@@ -7,8 +7,22 @@ Usage :
     docker compose exec backend python manage.py seed_data --reset
 """  # noqa: E501
 
-from django.core.management.base import BaseCommand
+import os
+
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+
+# Emails des comptes de démo — seules les boutiques appartenant à ces comptes
+# sont supprimées par --reset.
+SEED_DEMO_EMAILS: frozenset[str] = frozenset({
+    "youssef@example.com",
+    "sara@example.com",
+    "amira@example.ma",
+    "vide@example.com",
+    "services@example.com",
+    "e2e@example.com",
+})
 
 
 class Command(BaseCommand):
@@ -23,6 +37,12 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        if not settings.DEBUG and os.environ.get("ALLOW_SEED") != "1":
+            raise CommandError(
+                "seed_data ne s'exécute qu'en environnement DEBUG. "
+                "Définir ALLOW_SEED=1 pour forcer."
+            )
+
         from datetime import timedelta
         from decimal import Decimal
         from django.utils import timezone
@@ -32,11 +52,11 @@ class Command(BaseCommand):
         from apps.customers.factories import CustomerFactory
         from apps.accounts.models import User
         from apps.products.models import Product, ProductVariant
-        from apps.stock.models import StockMovement
         from apps.customers.models import Customer
         from apps.subscriptions.models import Subscription, SubscriptionPlan
         from ._seed_fr import run_seed_fr
         from ._seed_services import run_seed_services
+        from ._seed_e2e import seed_audit_shop
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
             """Pose un abonnement déterministe sur la boutique. Idempotent."""
@@ -52,8 +72,7 @@ class Command(BaseCommand):
                 },
             )
 
-        from apps.orders.models import Order, OrderItem
-        from apps.notes.models import Note, Reminder
+        from apps.orders.models import Order
         from apps.ocr.models import OcrResult, UploadedDocument
         from apps.comms.models import PreparedMessage
         from apps.public_pages.models import (
@@ -64,31 +83,18 @@ class Command(BaseCommand):
         )
 
         if options["reset"]:
-            from apps.loyalty.models import (
-                LoyaltyCard,
-                LoyaltyProgram,
-                LoyaltyTransaction,
-            )
+            from apps.shops.models import Shop
 
-            LoyaltyTransaction.objects.all().delete()
-            LoyaltyCard.objects.all().delete()
-            LoyaltyProgram.objects.all().delete()
-            ContactButton.objects.all().delete()
-            PublicCatalogVisibility.objects.all().delete()
-            PublicPageSection.objects.all().delete()
-            PublicPage.objects.all().delete()
-            PreparedMessage.objects.all().delete()
-            OcrResult.objects.all().delete()
-            UploadedDocument.objects.all().delete()
-            Reminder.objects.all().delete()
-            Note.objects.all().delete()
-            OrderItem.objects.all().delete()
-            Order.objects.all().delete()
-            StockMovement.objects.all().delete()
-            ProductVariant.objects.all().delete()
-            Product.objects.all().delete()
-            Customer.objects.all().delete()
-            self.stdout.write(self.style.WARNING("  Tables métier vidées."))
+            # Supprime uniquement les boutiques dont le propriétaire est un
+            # compte de démo — les autres boutiques ne sont pas touchées.
+            demo_shops = Shop.objects.filter(
+                members__user__email__in=SEED_DEMO_EMAILS,
+                members__role="owner",
+            )
+            count = demo_shops.count()
+            demo_shops.delete()  # CASCADE supprime toutes les données liées
+            msg = f"  {count} boutiques de démo supprimées (cascade)."
+            self.stdout.write(self.style.WARNING(msg))
 
         self.stdout.write(
             self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n")
@@ -121,15 +127,16 @@ class Command(BaseCommand):
             name="La Boutique de Youssef", currency="EUR", country="FR"
         )
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
+        # Boutique+ : la boutique a une employée (multi_user) et une page publique.
         seed_subscription(
             shop=shop_fr,
-            plan_code=SubscriptionPlan.CODE_PRO,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
             status=Subscription.STATUS_ACTIVE,
         )
         if youssef.trial_consumed_at is None:
             youssef.trial_consumed_at = timezone.now()
             youssef.save(update_fields=["trial_consumed_at", "updated_at"])
-        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Pro)")
+        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Boutique+)")
 
         sara = UserFactory(
             email="sara@example.com",
@@ -265,6 +272,7 @@ class Command(BaseCommand):
                     quantity=qty,
                     reason="Stock initial — seeding",
                     created_by=amira,
+                    is_initial=True,
                 )
 
         customers_ma = [
@@ -367,6 +375,9 @@ class Command(BaseCommand):
         shop_services.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
         self.stdout.write(f'  ✓ Boutique Services : {shop_services.name}')
         run_seed_services(shop_services, samira, stdout=self.stdout)
+
+        # ── Boutique 5 — audits Playwright (articles et services, EUR) ─
+        seed_audit_shop(stdout=self.stdout)
 
         # ── Pages publiques ─────────────────────────────────────────
         page_fr, fr_created = PublicPage.objects.get_or_create(
@@ -521,6 +532,7 @@ class Command(BaseCommand):
             "    vide@example.com    / Mizan1234!  (essai Boutique+, accueil vide)"
         )
         self.stdout.write("    services@example.com / Mizan1234!  (Pro actif, services)")  # noqa: E501
+        self.stdout.write("    e2e@example.com     / Mizan1234!  (Boutique+, audits Playwright)")  # noqa: E501
         self.stdout.write("    admin@mizan.dev     / Admin1234!  (superadmin)")
         self.stdout.write(f"  Boutique FR — commandes : {fr_status}")
         self.stdout.write(f"  Boutique FR — impayées/partielles actives : {fr_unpaid}")

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { ShoppingBag, User } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { useInvoice, useUpdateInvoiceStatus } from '@/lib/hooks/useInvoices';
@@ -15,6 +16,7 @@ import { StatusActions } from '@/components/invoices/detail/StatusActions';
 import { ConfirmDialog } from '@/components/ui/dialog';
 
 export default function InvoiceDetailPage() {
+  const t = useTranslations('invoices.detail');
   const { id } = useParams<{ id: string }>();
   const { data: invoice, isLoading } = useInvoice(id);
   const updateStatus = useUpdateInvoiceStatus(id);
@@ -24,7 +26,7 @@ export default function InvoiceDetailPage() {
   if (isLoading) {
     return (
       <>
-        <TopBar title="Facture" back />
+        <TopBar title={t('title')} back />
         <div className="flex flex-col gap-3 p-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4">
@@ -40,8 +42,8 @@ export default function InvoiceDetailPage() {
   if (!invoice) {
     return (
       <>
-        <TopBar title="Facture" back />
-        <p className="p-4 text-sm text-destructive">Facture introuvable.</p>
+        <TopBar title={t('title')} back />
+        <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
       </>
     );
   }
@@ -65,13 +67,13 @@ export default function InvoiceDetailPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <PartyCard
-            title="Vendeur"
+            title={t('seller')}
             name={invoice.seller_name}
             address={invoice.seller_address}
             extras={[invoice.seller_tax_id]}
           />
           <PartyCard
-            title="Client"
+            title={t('buyer')}
             name={invoice.buyer_name || '—'}
             address={invoice.buyer_address}
             extras={[invoice.buyer_email, invoice.buyer_phone]}
@@ -89,14 +91,14 @@ export default function InvoiceDetailPage() {
 
         {invoice.notes && (
           <div className="rounded-2xl border border-border bg-card p-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Notes</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('notes')}</h2>
             <p className="text-sm text-foreground whitespace-pre-wrap">{invoice.notes}</p>
           </div>
         )}
         {invoice.seller_legal_mentions && (
           <div className="rounded-2xl border border-border bg-card p-4">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-              Mentions légales
+              {t('legal_mentions')}
             </h2>
             <p className="text-xs text-muted-foreground whitespace-pre-wrap">
               {invoice.seller_legal_mentions}
@@ -111,7 +113,7 @@ export default function InvoiceDetailPage() {
               className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors"
             >
               <ShoppingBag className="text-muted-foreground shrink-0" size={18} />
-              <p className="text-sm font-medium text-foreground flex-1">Voir la commande liée</p>
+              <p className="text-sm font-medium text-foreground flex-1">{t('linked_order')}</p>
             </Link>
           )}
           {invoice.customer && (
@@ -120,7 +122,7 @@ export default function InvoiceDetailPage() {
               className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors"
             >
               <User className="text-muted-foreground shrink-0" size={18} />
-              <p className="text-sm font-medium text-foreground flex-1">Fiche client</p>
+              <p className="text-sm font-medium text-foreground flex-1">{t('customer_card')}</p>
             </Link>
           )}
         </div>
@@ -135,20 +137,20 @@ export default function InvoiceDetailPage() {
         <ConfirmDialog
           open={confirmPaid}
           onOpenChange={setConfirmPaid}
-          title="Marquer comme payée ?"
-          description="Cette facture sera enregistrée comme intégralement réglée."
+          title={t('confirm_paid_title')}
+          description={t('confirm_paid_body')}
           onConfirm={handleMarkPaid}
-          confirmLabel="Confirmer"
+          confirmLabel={t('confirm')}
         />
 
         <ConfirmDialog
           open={confirmCancel}
           onOpenChange={setConfirmCancel}
-          title="Annuler cette facture ?"
-          description="Le numéro reste réservé et la trace est conservée."
+          title={t('confirm_cancel_title')}
+          description={t('confirm_cancel_body')}
           onConfirm={handleCancel}
           variant="destructive"
-          confirmLabel="Annuler la facture"
+          confirmLabel={t('cancel_invoice')}
         />
       </div>
     </>
