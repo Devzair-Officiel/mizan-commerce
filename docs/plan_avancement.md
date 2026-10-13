@@ -425,7 +425,7 @@
 - [~] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
   - [~] En-têtes des cartes de formulaire en bande teintée (formulaires article et client)
   - [~] Formats dans le formulaire article : tableau « Formats et prix », création et modification tout ou rien
-- [ ] Puis : session Postman, pull request, fusion
+- [ ] Puis : pull request, fusion (session Postman abandonnée : Postman n'est plus utilisé, collection retirée du dépôt)
 - [ ] Lot 4 (après fusion)
   - [ ] Page et formulaire Rappels + assignation à un employé
   - [ ] Export de l'activité d'un client avec filtres
