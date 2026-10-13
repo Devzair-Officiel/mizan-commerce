@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import { useShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 import { qk, type ReminderFilters, type ReminderScope } from '@/lib/query-keys';
 
 interface PaginatedResponse<T> {
@@ -38,7 +39,9 @@ export interface Reminder {
   assigned_to_name: string | null;
   is_automatic: boolean;
   moment: ReminderMoment;
+  author_name: string | null;
   done_at: string | null;
+  created_at: string;
 }
 
 export interface ReminderPayload {
@@ -166,6 +169,20 @@ export function useUpdateReminderSettings() {
   });
 }
 
+/** Rappel à modifier (en attente ou terminé). */
+export function useReminder(id: string) {
+  return useQuery({
+    queryKey: qk.reminders.detail(id),
+    queryFn: () => apiFetch<Reminder>(`/reminders/${id}/`),
+    enabled: !!id,
+  });
+}
+
+/** Carte « Rappels » d'une fiche client ou commande : en attente, par échéance ; 5, puis « Voir plus ». */
+export function useLinkedReminders(link: 'customer' | 'order', id: string) {
+  return useShowMoreQuery<Reminder>(qk.reminders.linked(link, id), '/reminders/', { [link]: id }, !!id);
+}
+
 /** Rappel de relance en attente d'un client, lu au moment du clic (jamais en cache). */
 export function useFindFollowupReminder() {
   const qc = useQueryClient();
@@ -217,6 +234,11 @@ export function useDeleteReminder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiFetch<void>(`/reminders/${id}/`, { method: 'DELETE' }),
-    onSuccess: () => invalidateReminders(qc),
+    // Le rappel supprimé, encore affiché le temps du retour (modification), n'est pas redemandé (404).
+    onSuccess: (_, id) => {
+      const deleted = qk.reminders.detail(id);
+      void qc.invalidateQueries({ queryKey: qk.reminders.all, predicate: (q) => q.queryKey.join() !== deleted.join() });
+      for (const queryKey of [qk.dashboard.all, qk.navBadges.all]) void qc.invalidateQueries({ queryKey });
+    },
   });
 }

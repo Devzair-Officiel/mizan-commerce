@@ -11,7 +11,8 @@ interface CustomerPickerProps {
   value: string;
   selectedCustomer?: Customer | null;
   onChange: (id: string) => void;
-  onRequestCreate: () => void;
+  /** Absent : pas de création de client depuis la liste (formulaire de rappel). */
+  onRequestCreate?: () => void;
   hideTrigger?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -47,7 +48,7 @@ export function CustomerPicker({
 
   function handleCreate() {
     close();
-    onRequestCreate();
+    onRequestCreate?.();
   }
 
   function handleRemove(e: React.MouseEvent) {
@@ -147,18 +148,20 @@ export function CustomerPicker({
           )}
         </div>
 
-        <div className="flex flex-col gap-2 mb-3">
-          <button
-            type="button"
-            onClick={handleCreate}
-            className="flex items-center gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
-          >
-            <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <UserPlus size={16} />
-            </span>
-            <span>{t('create_cta')}</span>
-          </button>
-        </div>
+        {onRequestCreate && (
+          <div className="flex flex-col gap-2 mb-3">
+            <button
+              type="button"
+              onClick={handleCreate}
+              className="flex items-center gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-3 py-3 text-sm font-medium text-primary transition-colors active:bg-primary/10"
+            >
+              <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                <UserPlus size={16} />
+              </span>
+              <span>{t('create_cta')}</span>
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-col divide-y divide-border -mx-5 px-5">
           {customers.length === 0 ? (

@@ -185,6 +185,8 @@ export const qk = {
     assignees: ['reminders', 'assignees'] as const,
     settings: ['reminders', 'settings'] as const,
     followup: (customerId: string) => ['reminders', 'followup', customerId] as const,
+    detail: (id: string) => ['reminders', 'detail', id] as const,
+    linked: (link: 'customer' | 'order', id: string) => ['reminders', link, id] as const,
   },
 
   customers: {

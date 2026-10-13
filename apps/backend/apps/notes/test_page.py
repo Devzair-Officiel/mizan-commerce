@@ -105,3 +105,46 @@ class ReminderPageTest(TestCase):
         self.client.force_authenticate(user=user_b)
         self.assertEqual(self.summary()['todo'], 1)
         self.assertEqual(self.summary('?search=nadia')['todo'], 0)
+
+
+class ReminderLinkTest(TestCase):
+    """La commande liée appartient au client lié (création et modification)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop, self.customer = setup('link@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.other = Customer.objects.create(shop=self.shop, name='Autre client')
+        self.order = OrderFactory(shop=self.shop, customer=self.customer)
+        self.due = timezone.now() + timedelta(days=1)
+
+    def post(self, **fields):
+        return self.client.post(
+            reverse('reminder-list'),
+            {'title': 'Relancer', 'due_at': self.due, **fields}, format='json',
+        )
+
+    def test_order_of_the_customer_is_accepted(self):
+        response = self.post(customer=str(self.customer.pk), order=str(self.order.pk))
+        self.assertEqual(response.status_code, 201)
+
+    def test_order_of_another_customer_is_refused(self):
+        response = self.post(customer=str(self.other.pk), order=str(self.order.pk))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('order', response.data['errors'])
+
+    def test_patch_customer_checks_the_linked_order(self):
+        reminder = Reminder.objects.create(
+            shop=self.shop, title='Relancer', due_at=self.due,
+            customer=self.customer, order=self.order,
+        )
+        url = reverse('reminder-detail', args=[reminder.pk])
+        response = self.client.patch(
+            url, {'customer': str(self.other.pk)}, format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+        # Retirer la commande en même temps : accepté.
+        response = self.client.patch(
+            url, {'customer': str(self.other.pk), 'order': None}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)

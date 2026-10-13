@@ -2433,7 +2433,9 @@
       "reopened_toast": "Rappel rouvert",
       "postponed_toast": "Rappel reporté au {date}",
       "deleted_toast": "Rappel supprimé",
-      "action_failed": "L'action n'a pas abouti. Réessayez."
+      "action_failed": "L'action n'a pas abouti. Réessayez.",
+      "mark_done": "Marquer comme terminé",
+      "reopen": "Rouvrir"
     },
     "auto": {
       "title": "Rappels automatiques",
@@ -2468,6 +2470,63 @@
       "postpone": "Décaler",
       "create_anyway": "Créer quand même",
       "cancel": "Annuler"
+    },
+    "form": {
+      "section_main": "Rappel",
+      "title": "Titre",
+      "title_placeholder": "Relancer un client, commander des cartons…",
+      "title_required": "Indiquez un titre.",
+      "too_long": "{max} caractères au maximum.",
+      "when": "Quand",
+      "shortcut": "{key, select, today {Aujourd'hui, {time}} tomorrow {Demain, {time}} monday {Lundi, {time}} other {Dans une semaine}}",
+      "date": "Date",
+      "time": "Heure",
+      "date_required": "Choisissez une date.",
+      "time_required": "Choisissez une heure.",
+      "date_invalid": "Cette date n'est pas valide.",
+      "category": "Catégorie",
+      "section_notes": "Notes",
+      "notes": "Notes",
+      "notes_placeholder": "Ce qu'il faudra savoir le moment venu…",
+      "section_link": "Lié à",
+      "section_link_help": "Le rappel apparaîtra aussi sur la fiche du client et de la commande.",
+      "customer": "Client",
+      "customer_placeholder": "Choisir un client",
+      "customer_remove": "Retirer le client",
+      "order": "Commande",
+      "order_help": "Les commandes de ce client qui ne sont pas soldées.",
+      "order_help_no_customer": "Choisissez d'abord un client pour voir ses commandes non soldées.",
+      "order_none": "Aucune commande",
+      "order_option": "{number}, {amount} dus",
+      "order_option_settled": "{number}, soldée",
+      "section_assignee": "Pour qui",
+      "assignee": "Attribuer à",
+      "assignee_team": "Toute l'équipe",
+      "assignee_me": "{name} (moi)",
+      "assignee_help": "{name} le verra dans ses rappels et son badge.",
+      "assignee_me_help": "Vous le verrez dans vos rappels et votre badge.",
+      "assignee_team_help": "Toute l'équipe le verra dans ses rappels et son badge.",
+      "submit_create": "Créer le rappel",
+      "submit_edit": "Enregistrer",
+      "field_invalid": "Valeur refusée : vérifiez ce champ.",
+      "save_failed": "L'enregistrement a échoué. Réessayez dans un instant.",
+      "toast_created": "Rappel créé",
+      "toast_saved": "Rappel enregistré"
+    },
+    "new": {
+      "title": "Nouveau rappel",
+      "subtitle": "Seuls le titre et la date sont obligatoires."
+    },
+    "edit": {
+      "title": "Modifier le rappel",
+      "subtitle": "{state, select, done {Terminé le {date}} automatic {Créé automatiquement le {date}} other {Créé le {date}}}",
+      "not_found": "Ce rappel est introuvable."
+    },
+    "card": {
+      "title": "Rappels",
+      "add_cta": "Ajouter",
+      "empty_customer": "Aucun rappel en attente pour ce client.",
+      "empty_order": "Aucun rappel en attente pour cette commande."
     }
   },
   "notes": {

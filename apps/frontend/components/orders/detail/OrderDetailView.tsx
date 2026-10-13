@@ -6,6 +6,7 @@ import { DETAIL_COLUMN, DETAIL_GRID, DetailSlot } from '@/components/detail/Deta
 import { TopBar } from '@/components/layout/TopBar';
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
+import { RemindersCard } from '@/components/reminders/RemindersCard';
 import type { Order } from '@/lib/hooks/useOrders';
 import { OrderActivityTimeline } from './OrderActivityTimeline';
 import { OrderCustomerCard } from './OrderCustomerCard';
@@ -22,7 +23,7 @@ import { useOrderMenuActions } from './useOrderMenuActions';
 import { useOrderPrimaryAction } from './useOrderPrimaryAction';
 
 /**
- * Détail d'une commande. Desktop : objet à gauche (suivi, articles, notes, historique),
+ * Détail d'une commande. Desktop : objet à gauche (suivi, articles, rappels, notes, historique),
  * personnes et argent à droite (client, paiement, facture, messages). Mobile : une seule
  * pile réordonnée, action principale flottante.
  */
@@ -43,8 +44,9 @@ export function OrderDetailView({ order, state }: { order: Order; state: OrderDe
           <div className={DETAIL_COLUMN}>
             <DetailSlot order="max-lg:order-1"><OrderStatusStepper order={order} actions={actions} /></DetailSlot>
             <DetailSlot order="max-lg:order-3"><OrderItemsCard order={order} /></DetailSlot>
-            <DetailSlot order="max-lg:order-6"><OrderNotesCard orderId={order.id} /></DetailSlot>
-            <DetailSlot order="max-lg:order-7"><OrderActivityTimeline orderId={order.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-6"><RemindersCard link="order" id={order.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-7"><OrderNotesCard orderId={order.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-8"><OrderActivityTimeline orderId={order.id} /></DetailSlot>
           </div>
           <div className={`${DETAIL_COLUMN} lg:sticky lg:top-6`}>
             <DetailSlot order="max-lg:order-2"><OrderCustomerCard order={order} actions={actions} /></DetailSlot>
@@ -54,7 +56,7 @@ export function OrderDetailView({ order, state }: { order: Order; state: OrderDe
             <DetailSlot order="max-lg:order-5">
               <OrderInvoiceCard order={order} onIssue={actions.openInvoice} issueIsPrimary={primary?.key === 'issue_invoice'} />
             </DetailSlot>
-            <DetailSlot order="max-lg:order-8"><PreparedMessageHistory orderId={order.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-9"><PreparedMessageHistory orderId={order.id} /></DetailSlot>
           </div>
         </div>
       </div>

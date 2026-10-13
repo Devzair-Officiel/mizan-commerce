@@ -2433,7 +2433,9 @@
       "reopened_toast": "أُعيد فتح التذكير",
       "postponed_toast": "أُجّل التذكير إلى {date}",
       "deleted_toast": "حُذف التذكير",
-      "action_failed": "تعذّر تنفيذ الإجراء. حاول مرة أخرى."
+      "action_failed": "تعذّر تنفيذ الإجراء. حاول مرة أخرى.",
+      "mark_done": "تحديد كمنجز",
+      "reopen": "إعادة الفتح"
     },
     "auto": {
       "title": "التذكيرات التلقائية",
@@ -2468,6 +2470,63 @@
       "postpone": "تأجيل",
       "create_anyway": "إنشاء رغم ذلك",
       "cancel": "إلغاء"
+    },
+    "form": {
+      "section_main": "التذكير",
+      "title": "العنوان",
+      "title_placeholder": "متابعة عميل، طلب علب…",
+      "title_required": "أدخل عنوانًا.",
+      "too_long": "{max} حرفًا كحد أقصى.",
+      "when": "متى",
+      "shortcut": "{key, select, today {اليوم، {time}} tomorrow {غدًا، {time}} monday {الاثنين، {time}} other {بعد أسبوع}}",
+      "date": "التاريخ",
+      "time": "الساعة",
+      "date_required": "اختر تاريخًا.",
+      "time_required": "اختر ساعة.",
+      "date_invalid": "هذا التاريخ غير صالح.",
+      "category": "الفئة",
+      "section_notes": "ملاحظات",
+      "notes": "ملاحظات",
+      "notes_placeholder": "ما ستحتاج إلى معرفته في حينه…",
+      "section_link": "مرتبط بـ",
+      "section_link_help": "سيظهر التذكير أيضًا في صفحة العميل وصفحة الطلب.",
+      "customer": "العميل",
+      "customer_placeholder": "اختر عميلًا",
+      "customer_remove": "إزالة العميل",
+      "order": "الطلب",
+      "order_help": "طلبات هذا العميل غير المسددة بالكامل.",
+      "order_help_no_customer": "اختر عميلًا أولًا لعرض طلباته غير المسددة.",
+      "order_none": "بدون طلب",
+      "order_option": "{number}، متبقٍ {amount}",
+      "order_option_settled": "{number}، مسدد",
+      "section_assignee": "لمن",
+      "assignee": "إسناد إلى",
+      "assignee_team": "كل الفريق",
+      "assignee_me": "{name} (أنا)",
+      "assignee_help": "سيراه {name} في تذكيراته وشارته.",
+      "assignee_me_help": "ستراه في تذكيراتك وشارتك.",
+      "assignee_team_help": "سيراه كل الفريق في تذكيراتهم وشارتهم.",
+      "submit_create": "إنشاء التذكير",
+      "submit_edit": "حفظ",
+      "field_invalid": "القيمة مرفوضة: تحقق من هذا الحقل.",
+      "save_failed": "تعذّر الحفظ. أعد المحاولة بعد قليل.",
+      "toast_created": "تم إنشاء التذكير",
+      "toast_saved": "تم حفظ التذكير"
+    },
+    "new": {
+      "title": "تذكير جديد",
+      "subtitle": "العنوان والتاريخ فقط إلزاميان."
+    },
+    "edit": {
+      "title": "تعديل التذكير",
+      "subtitle": "{state, select, done {أُنجز في {date}} automatic {أُنشئ تلقائيًا في {date}} other {أُنشئ في {date}}}",
+      "not_found": "تعذّر العثور على هذا التذكير."
+    },
+    "card": {
+      "title": "التذكيرات",
+      "add_cta": "إضافة",
+      "empty_customer": "لا توجد تذكيرات معلقة لهذا العميل.",
+      "empty_order": "لا توجد تذكيرات معلقة لهذا الطلب."
     }
   },
   "notes": {

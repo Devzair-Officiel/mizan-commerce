@@ -83,12 +83,16 @@ class ReminderSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         shop = self.context['shop']
-        customer = data.get('customer')
-        order = data.get('order')
+        # En modification partielle, le champ absent garde sa valeur enregistrée.
+        customer = data['customer'] if 'customer' in data else getattr(self.instance, 'customer', None)  # noqa: E501
+        order = data['order'] if 'order' in data else getattr(self.instance, 'order', None)  # noqa: E501
         if customer and customer.shop != shop:
             raise serializers.ValidationError({'customer': 'Client introuvable.'})
         if order and order.shop != shop:
             raise serializers.ValidationError({'order': 'Commande introuvable.'})
+        # La commande liée est celle du client lié : jamais la commande d'un autre.
+        if customer and order and order.customer_id not in (None, customer.pk):
+            raise serializers.ValidationError({'order': "Cette commande n'est pas celle de ce client."})  # noqa: E501
         return data
 
 

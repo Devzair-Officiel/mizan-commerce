@@ -2433,7 +2433,9 @@
       "reopened_toast": "Reminder reopened",
       "postponed_toast": "Reminder postponed to {date}",
       "deleted_toast": "Reminder deleted",
-      "action_failed": "That didn't work. Please try again."
+      "action_failed": "That didn't work. Please try again.",
+      "mark_done": "Mark as done",
+      "reopen": "Reopen"
     },
     "auto": {
       "title": "Automatic reminders",
@@ -2468,6 +2470,63 @@
       "postpone": "Move",
       "create_anyway": "Create anyway",
       "cancel": "Cancel"
+    },
+    "form": {
+      "section_main": "Reminder",
+      "title": "Title",
+      "title_placeholder": "Follow up with a customer, order boxes…",
+      "title_required": "Enter a title.",
+      "too_long": "{max} characters maximum.",
+      "when": "When",
+      "shortcut": "{key, select, today {Today, {time}} tomorrow {Tomorrow, {time}} monday {Monday, {time}} other {In a week}}",
+      "date": "Date",
+      "time": "Time",
+      "date_required": "Pick a date.",
+      "time_required": "Pick a time.",
+      "date_invalid": "This date is not valid.",
+      "category": "Category",
+      "section_notes": "Notes",
+      "notes": "Notes",
+      "notes_placeholder": "What you will need to know when the time comes…",
+      "section_link": "Linked to",
+      "section_link_help": "The reminder will also show on the customer and order pages.",
+      "customer": "Customer",
+      "customer_placeholder": "Choose a customer",
+      "customer_remove": "Remove the customer",
+      "order": "Order",
+      "order_help": "This customer's orders that are not fully paid.",
+      "order_help_no_customer": "Choose a customer first to see their unpaid orders.",
+      "order_none": "No order",
+      "order_option": "{number}, {amount} due",
+      "order_option_settled": "{number}, paid",
+      "section_assignee": "For whom",
+      "assignee": "Assign to",
+      "assignee_team": "Whole team",
+      "assignee_me": "{name} (me)",
+      "assignee_help": "{name} will see it in their reminders and badge.",
+      "assignee_me_help": "You will see it in your reminders and badge.",
+      "assignee_team_help": "The whole team will see it in their reminders and badge.",
+      "submit_create": "Create reminder",
+      "submit_edit": "Save",
+      "field_invalid": "Value rejected: check this field.",
+      "save_failed": "Saving failed. Try again in a moment.",
+      "toast_created": "Reminder created",
+      "toast_saved": "Reminder saved"
+    },
+    "new": {
+      "title": "New reminder",
+      "subtitle": "Only the title and the date are required."
+    },
+    "edit": {
+      "title": "Edit reminder",
+      "subtitle": "{state, select, done {Done on {date}} automatic {Created automatically on {date}} other {Created on {date}}}",
+      "not_found": "This reminder could not be found."
+    },
+    "card": {
+      "title": "Reminders",
+      "add_cta": "Add",
+      "empty_customer": "No pending reminders for this customer.",
+      "empty_order": "No pending reminders for this order."
     }
   },
   "notes": {
