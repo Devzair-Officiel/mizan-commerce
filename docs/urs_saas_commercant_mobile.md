@@ -2165,10 +2165,12 @@ Fonctionnalités :
 - Historique des messages manuels
 - Publication Telegram programmée
 - Historique Telegram
+- Rappels automatiques : impayés, commandes à préparer, résumé quotidien
 
 URS concernées :
 
 ```text
+URS-055 à URS-057
 URS-066 à URS-069
 ```
 
