@@ -1080,12 +1080,12 @@ L'application est organisée autour des modules suivants :
 ### Critères d'acceptation
 
 - La gestion d'équipe fait partie de la formule Boutique+.
-- Sans Boutique+, l'ajout et la modification d'un membre sont refusés par le serveur, et l'écran Équipe affiche « Disponible avec la formule Boutique+ » avec un lien vers l'abonnement.
+- Sans Boutique+, l'ajout et la modification d'un membre sont refusés par le serveur.
 - Seuls le propriétaire et les administrateurs accèdent à l'écran Équipe.
 - L'administrateur crée un employé avec son nom, son e-mail et un mot de passe.
 - Un membre est administrateur ou employé ; pour un employé, l'administrateur choisit les modules accessibles. La zakat et les paramètres ne sont jamais délégables.
 - Le propriétaire ne peut pas être retiré ; un administrateur ne peut ni modifier ses propres droits ni se retirer lui-même.
-- Sans Boutique+, l'écran Équipe affiche la carte « Disponible avec la formule Boutique+ » et, en dessous, la liste des membres en lecture seule avec la possibilité de les retirer.
+- Sans Boutique+, l'écran Équipe affiche la carte « Disponible avec la formule Boutique+ », avec un lien vers l'abonnement, et, en dessous, la liste des membres en lecture seule avec la possibilité de les retirer.
 - Si la boutique quitte Boutique+, ses employés et administrateurs (hors propriétaire) ne peuvent plus se connecter ; leurs comptes et leurs droits sont conservés et l'accès revient automatiquement quand la boutique reprend Boutique+.
 
 ---
@@ -2118,12 +2118,38 @@ Fonctionnalités :
 - Rappels
 - Zakat simple
 - Sécurité de base
+- Formats d'articles (variantes), références et codes-barres
+- Vue de stock agrégée
+- Facturation client
+- Modification d'une commande, suppression d'un article
+- Équipe de la boutique
 
 URS concernées :
 
 ```text
 URS-001 à URS-041
 URS-061 à URS-063
+URS-089 à URS-099
+URS-101 à URS-103
+```
+
+---
+
+## Transversal — Abonnement SaaS
+
+Objectif : faire vivre les formules (gratuite, Pro, Boutique+) dès la V1, sans attendre une version donnée.
+
+Fonctionnalités :
+
+- Limites de l'offre gratuite
+- Passage à une offre payante
+- Essai gratuit de 14 jours sur Boutique+
+
+URS concernées :
+
+```text
+URS-064 à URS-065
+URS-100
 ```
 
 ---

@@ -17,7 +17,7 @@ docs/            URS, schéma DB, plan d'avancement
 ```
 
 Documents de référence (à consulter selon le besoin, pas à charger systématiquement) :
-- `docs/urs_saas_commercant_mobile.md` — user stories URS-001 à URS-088
+- `docs/urs_saas_commercant_mobile.md` — user stories URS-001 à URS-103
 - `docs/schema_base_donnees.md` — schéma PostgreSQL canonique
 - `docs/plan_avancement.md` — phase et tâches en cours
 - `docs/fiche_technique_saas_commercants_ovh.md` — choix d'infra OVH

@@ -409,11 +409,11 @@
 
 ### Après recette C1–C4
 
-- [x] Lot 1 (bugs avant fusion)
-  - [x] Suppression d'un article ou d'un format jamais utilisé (stock initial reconnu par `StockMovement.is_initial`)
-  - [x] Rappels : mise à jour, compteurs, doublons
-  - [x] Historique des messages WhatsApp
-  - [x] Page bloquée sans défilement (un seul verrou de défilement : celui de Base UI)
+- [~] Lot 1 (bugs avant fusion)
+  - [~] Suppression d'un article ou d'un format jamais utilisé (stock initial reconnu par `StockMovement.is_initial`)
+  - [~] Rappels : mise à jour, compteurs, doublons
+  - [~] Historique des messages WhatsApp
+  - [~] Page bloquée sans défilement (un seul verrou de défilement : celui de Base UI)
 - [~] Lot 2 (avant fusion)
   - [~] En-têtes de cartes teintés (bande `header-band`, titres et en-têtes de colonnes)
   - [~] Listes longues des fiches (5 + « Voir plus »)
