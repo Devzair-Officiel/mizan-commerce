@@ -6,7 +6,7 @@ type DateFmt = (v: string | number | Date, opts?: Intl.DateTimeFormatOptions) =>
 type DueOrder = Pick<OrderSummary, 'order_number' | 'created_at' | 'total_amount' | 'amount_paid'>;
 
 /** Reste dû d'une commande, en centimes entiers pour éviter les arrondis flottants. */
-function due(order: DueOrder): number {
+export function orderDue(order: DueOrder): number {
   const cents = (v: string) => Math.round(Number(v) * 100);
   return (cents(order.total_amount) - cents(order.amount_paid)) / 100;
 }
@@ -24,7 +24,7 @@ export function buildFollowupMessage(
   const lines = orders.map((o) => tWa('order_line', {
     number: o.order_number,
     date: formatDate(new Date(o.created_at), { day: 'numeric', month: 'short', year: 'numeric' }),
-    amount: money(due(o)),
+    amount: money(orderDue(o)),
   }));
   return [
     firstName ? tWa('hello_named', { name: firstName }) : tWa('hello'),

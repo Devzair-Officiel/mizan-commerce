@@ -33,7 +33,7 @@ function useSearchInput(search: string) {
  * restaure l'état précédent). La recherche remplace l'entrée courante après
  * une courte pause de frappe, pour ne pas empiler une entrée par lettre.
  */
-export function useListUrlState(defaultOrdering: string) {
+export function useListUrlState(defaultOrdering: string, keep: readonly string[] = []) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -85,12 +85,12 @@ export function useListUrlState(defaultOrdering: string) {
     setPage: (next: number) => push(hrefWith({ page: next > 1 ? String(next) : null })),
     setOrdering: (next: string) =>
       push(hrefWith({ ordering: next === defaultOrdering ? null : next, page: null })),
-    /** Retire filtres et recherche, garde le tri choisi. */
+    /** Retire filtres et recherche, garde le tri choisi et les paramètres `keep` (onglet). */
     clearFilters() {
       setSearchInput('');
       setCommittedSearch('');
       const kept = new URLSearchParams();
-      if (param('ordering')) kept.set('ordering', param('ordering'));
+      for (const key of ['ordering', ...keep]) if (param(key)) kept.set(key, param(key));
       push(hrefWith({}, kept));
     },
   };

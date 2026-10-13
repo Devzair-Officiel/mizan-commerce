@@ -119,6 +119,7 @@ class AssignmentTest(TestCase):
         self.client.force_authenticate(user=self.sara.user)
         data = self.client.get(reverse('reminder-assignees')).data
         self.assertEqual(len(data), 3)
+        self.assertEqual([m['id'] for m in data if m['is_me']], [str(self.sara.pk)])
         attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
         self.client.force_authenticate(user=self.owner)
         data = self.client.get(reverse('reminder-assignees')).data

@@ -4,6 +4,8 @@ import { useId, type ReactNode } from 'react';
 import { Search } from 'lucide-react';
 
 interface ListToolbarProps {
+  /** Avant la recherche : onglets de la page. */
+  leading?: ReactNode;
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchLabel: string;
@@ -13,17 +15,18 @@ interface ListToolbarProps {
   /** Affiché uniquement quand au moins un filtre est actif. */
   clearLabel?: string;
   onClear?: () => void;
-  /** Tri courant en toutes lettres (« Trié par date, plus récentes d'abord »). */
-  sortLabel: string;
+  /** Tri courant en toutes lettres (« Trié par date, plus récentes d'abord ») ; absent si la liste n'a qu'un ordre. */
+  sortLabel?: string;
 }
 
 /** Barre d'outils d'une page de liste (desktop) : recherche, filtres, tri courant. */
 export function ListToolbar({
-  searchValue, onSearchChange, searchLabel, searchPlaceholder, filters, clearLabel, onClear, sortLabel,
+  leading, searchValue, onSearchChange, searchLabel, searchPlaceholder, filters, clearLabel, onClear, sortLabel,
 }: ListToolbarProps) {
   const inputId = useId();
   return (
     <div role="search" className="flex flex-wrap items-center gap-2.5">
+      {leading}
       <div className="relative w-84 min-w-60 shrink">
         <label htmlFor={inputId} className="sr-only">{searchLabel}</label>
         <Search size={18} strokeWidth={1.75} aria-hidden
@@ -44,7 +47,7 @@ export function ListToolbar({
           {clearLabel}
         </button>
       )}
-      <span className="ms-auto text-[0.8125rem] text-muted-foreground">{sortLabel}</span>
+      {sortLabel && <span className="ms-auto text-[0.8125rem] text-muted-foreground">{sortLabel}</span>}
     </div>
   );
 }

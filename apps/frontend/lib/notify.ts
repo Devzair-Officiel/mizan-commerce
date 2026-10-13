@@ -5,6 +5,8 @@ import { toast } from 'sonner';
  * jamais pour une information qui doit rester visible. Affichées par `AppToaster`.
  */
 export const notify = {
-  success: (message: string) => toast.success(message),
+  /** `action` : geste immédiat sur ce qui vient d'être fait (« Annuler »). */
+  success: (message: string, action?: { label: string; onClick: () => void }) =>
+    toast.success(message, action ? { action } : undefined),
   error: (message: string) => toast.error(message),
 };

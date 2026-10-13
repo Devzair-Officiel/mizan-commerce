@@ -426,12 +426,12 @@
   - [~] En-têtes des cartes de formulaire en bande teintée (formulaires article et client)
   - [~] Formats dans le formulaire article : tableau « Formats et prix », création et modification tout ou rien
 - [~] Puis : pull request, fusion (session Postman abandonnée : Postman n'est plus utilisé, collection retirée du dépôt)
-- [ ] Lot 4 (après fusion)
-  - [ ] Page et formulaire Rappels + assignation à un employé
+- [~] Lot 4 (après fusion)
+  - [~] Page et formulaire Rappels + assignation à un employé
   - [ ] Export de l'activité d'un client avec filtres
   - [ ] Bloc Ventes de l'accueil sur 12 mois et depuis la création
   - [ ] Modèles de messages WhatsApp et ton
-  - [ ] Rappels automatiques (URS-055 à 057) : à cadrer avec la maquette Rappels
+  - [~] Rappels automatiques (URS-055 à 057) : relance d'impayé, commandes en attente, résumé du jour par e-mail
 - [ ] Lot 5 — Factures fournisseur
   - [ ] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
   - [ ] Création d'un article ou d'un service depuis une ligne « à associer », pré-remplie et mémorisée

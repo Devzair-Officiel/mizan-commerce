@@ -90,6 +90,17 @@ export interface StockLevelsFilters {
 
 export type ReminderScope = 'todo' | 'upcoming' | 'done';
 
+/** Filtres de la page Rappels, partagés par la liste et les compteurs. */
+export interface ReminderFilters {
+  search?: string;
+  category?: string;
+  /** me | team | identifiant d'un membre. */
+  for?: string;
+  /** Rappels d'une fiche client ou commande. */
+  customer?: string;
+  order?: string;
+}
+
 export const qk = {
   orders: {
     all: ['orders'] as const,
@@ -169,7 +180,10 @@ export const qk = {
 
   reminders: {
     all: ['reminders'] as const,
-    list: (scope: ReminderScope) => ['reminders', scope] as const,
+    list: (scope: ReminderScope, filters: ReminderFilters) => ['reminders', 'list', scope, filters] as const,
+    summary: (filters: ReminderFilters) => ['reminders', 'summary', filters] as const,
+    assignees: ['reminders', 'assignees'] as const,
+    settings: ['reminders', 'settings'] as const,
     followup: (customerId: string) => ['reminders', 'followup', customerId] as const,
   },
 

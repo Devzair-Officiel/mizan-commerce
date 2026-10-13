@@ -645,9 +645,13 @@ L'application est organisée autour des modules suivants :
 ### Critères d'acceptation
 
 - L'utilisateur peut saisir un titre.
-- L'utilisateur peut choisir une date.
-- Le rappel apparaît sur le dashboard.
-- Le rappel peut être marqué comme terminé.
+- L'utilisateur peut choisir une date et une heure (raccourcis : aujourd'hui 18 h, demain 9 h, lundi 9 h, dans une semaine).
+- L'utilisateur peut choisir une catégorie : relance client, préparation, paiement, libre.
+- Le rappel peut être lié à un client et à une de ses commandes non soldées ; il apparaît alors aussi sur la fiche du client et de la commande.
+- Le rappel peut être attribué à un membre de l'équipe ; sans attribution, il est pour toute l'équipe. Le badge et l'accueil de chaque membre ne comptent que ses rappels et ceux de l'équipe.
+- Le rappel apparaît sur le dashboard et dans la page Rappels (À faire, À venir, Terminés).
+- Le rappel peut être modifié, reporté (dans 1 h, demain 9 h, lundi 9 h, une date au choix) et supprimé.
+- Le rappel peut être marqué comme terminé, avec annulation possible depuis la notification.
 
 ---
 
@@ -948,6 +952,9 @@ L'application est organisée autour des modules suivants :
 - Une commande non payée apparaît dans les alertes.
 - L'utilisateur peut marquer le paiement comme reçu.
 - L'utilisateur peut créer un rappel de relance.
+- Un rappel automatique « Relancer {client} » est créé pour chaque commande impayée ou partiellement payée depuis plus de N jours (3 par défaut), une seule fois par commande : supprimé ou terminé, il n'est jamais recréé.
+- Le propriétaire et les administrateurs peuvent désactiver ces relances ou changer le délai ; les employés voient le réglage sans pouvoir le modifier.
+- Aucun message WhatsApp n'est jamais envoyé automatiquement.
 
 ---
 
@@ -962,6 +969,8 @@ L'application est organisée autour des modules suivants :
 - Les commandes à préparer apparaissent sur le dashboard.
 - L'utilisateur peut changer leur statut.
 - Les commandes préparées disparaissent de cette section.
+- Chaque matin (heure de la boutique), un rappel automatique signale les commandes à préparer depuis plus de N jours (2 par défaut), au plus un par jour.
+- Le propriétaire et les administrateurs peuvent désactiver ce rappel ou changer le délai.
 
 ---
 
@@ -973,10 +982,12 @@ L'application est organisée autour des modules suivants :
 
 ### Critères d'acceptation
 
-- Le résumé affiche les ventes du jour.
+- Le résumé est envoyé par e-mail au propriétaire, dans sa langue, une fois par jour à l'heure choisie (8 h par défaut, heure de la boutique).
+- Il est désactivé par défaut ; le propriétaire et les administrateurs peuvent l'activer.
 - Le résumé affiche les commandes à préparer.
-- Le résumé affiche les impayés.
-- Le résumé affiche les alertes stock.
+- Le résumé affiche les impayés (nombre et montant dû).
+- Le résumé affiche les rappels du jour et ceux en retard.
+- Les ventes du jour et les alertes stock restent consultables sur le dashboard (hors e-mail pour l'instant).
 
 ---
 

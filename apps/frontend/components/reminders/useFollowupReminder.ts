@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useFormatDate } from '@/lib/hooks/useFormat';
 import { useCreateReminder, useFindFollowupReminder, useUpdateReminder, type Reminder } from '@/lib/hooks/useReminders';
 import { notify } from '@/lib/notify';
+import { tomorrowAt } from './reminderDates';
 
 /** Client à relancer, et la commande d'où part la relance s'il y en a une. */
 export interface FollowupTarget {
@@ -16,13 +17,6 @@ export interface FollowupTarget {
 interface Conflict { target: FollowupTarget; existing: Reminder; dueAt: string }
 
 export const FOLLOWUP_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' };
-
-function tomorrowAtNine(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(9, 0, 0, 0);
-  return d.toISOString();
-}
 
 /**
  * « Marquer à relancer » (fiche client, fiche commande) : rappel pour demain 9 h. Si le client a
@@ -44,7 +38,7 @@ export function useFollowupReminder() {
   }
 
   async function schedule(target: FollowupTarget) {
-    const dueAt = tomorrowAtNine();
+    const dueAt = tomorrowAt(9).toISOString();
     setChecking(true);
     try {
       const existing = await find(target.customerId);

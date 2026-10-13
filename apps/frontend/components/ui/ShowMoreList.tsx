@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { ShowMoreQuery } from '@/lib/hooks/useShowMoreQuery';
 
 /** Nature des éléments : accord de « restant(e)s » selon la langue. */
-export type ShowMoreKind = 'activities' | 'events' | 'orders' | 'movements' | 'messages' | 'notes';
+export type ShowMoreKind = 'activities' | 'events' | 'orders' | 'movements' | 'messages' | 'notes' | 'reminders';
 
 interface ShowMoreListProps {
   list: Pick<ShowMoreQuery<unknown>, 'count' | 'hasMore' | 'isFetchingMore' | 'loadMore'> & { items: readonly unknown[] };

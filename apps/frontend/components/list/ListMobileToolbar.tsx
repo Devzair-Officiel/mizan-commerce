@@ -21,8 +21,8 @@ interface ListMobileToolbarProps {
   searchPlaceholder: string;
   activeFilters: ActiveFilter[];
   onOpenFilters: () => void;
-  /** Tri courant en toutes lettres (« Trié par date, plus récentes d'abord »). */
-  sortLabel: string;
+  /** Tri courant en toutes lettres (« Trié par date, plus récentes d'abord ») ; absent si la liste n'a qu'un ordre. */
+  sortLabel?: string;
 }
 
 /** Barre d'outils d'une page de liste (mobile) : recherche, Filtres, filtres actifs, tri courant. */
@@ -59,7 +59,7 @@ export function ListMobileToolbar({
           {activeFilters.map((filter) => <ActiveFilterChip key={filter.name} filter={filter} />)}
         </ul>
       )}
-      <p className="px-1 text-xs text-muted-foreground">{sortLabel}</p>
+      {sortLabel && <p className="px-1 text-xs text-muted-foreground">{sortLabel}</p>}
     </div>
   );
 }

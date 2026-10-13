@@ -7,6 +7,7 @@ import { AppToaster } from '@/components/layout/AppToaster';
 import { DesktopSidebar } from '@/components/layout/DesktopSidebar';
 import { LegacyTokenCleaner } from '@/components/layout/LegacyTokenCleaner';
 import { OnboardingGate } from '@/components/layout/OnboardingGate';
+import { AccountLanguageSync } from '@/components/providers/AccountLanguageSync';
 import { AccountThemeSync } from '@/components/providers/AccountThemeSync';
 import type { ReactNode } from 'react';
 
@@ -18,6 +19,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <DesktopSidebar />
           <AppContent>
             <AccountThemeSync />
+            <AccountLanguageSync />
             <LegacyTokenCleaner />
             <OnboardingGate />
             <div className="flex flex-col flex-1 lg:ms-60">

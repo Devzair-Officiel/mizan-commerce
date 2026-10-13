@@ -42,7 +42,8 @@ export function AppToaster() {
       mobileOffset={offset}
       containerAriaLabel={t('region')}
       style={TOKEN_STYLE}
-      toastOptions={{ className: 'text-sm' }}
+      // Bouton d'action (« Annuler ») : bouton secondaire aux couleurs de l'app.
+      toastOptions={{ className: 'text-sm', classNames: { actionButton: 'bg-primary! text-primary-foreground! font-semibold! rounded-full! px-3!' } }}
       icons={{
         success: <CircleCheck size={16} className="text-primary" aria-hidden />,
         error: <CircleAlert size={16} className="text-red-700 dark:text-red-400" aria-hidden />,

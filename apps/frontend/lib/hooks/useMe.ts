@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
+import type { Locale } from '@/i18n/locales';
 import type { ThemeMode } from '@/lib/themes';
 
 export type ShopRole = 'owner' | 'admin' | 'staff';
@@ -46,6 +47,8 @@ export interface Me {
   background_theme: string | null;
   primary_color_custom_hex: string | null;
   background_custom_hex: string | null;
+  /** Langue des e-mails et des rappels automatiques, alignée sur celle de l'interface. */
+  language: Locale;
   membership: Membership | null;
 }
 
@@ -57,6 +60,7 @@ export interface MeUpdateData {
   background_theme?: string;
   primary_color_custom_hex?: string;
   background_custom_hex?: string;
+  language?: Locale;
 }
 
 export type AppearancePreferencesUpdate = Pick<

@@ -6,8 +6,9 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db.models import Exists, OuterRef, Q, QuerySet, Sum
+from django.db.models import Count, Exists, OuterRef, Q, QuerySet, Sum
 from django.utils import timezone
+from django.http import QueryDict
 from rest_framework.exceptions import ValidationError
 
 from apps.orders.models import Order
@@ -53,6 +54,75 @@ def reminders_in_scope(
     if scope == 'done':
         return Reminder.objects.filter(shop=shop, status='done')
     return pending_reminders(shop)
+
+
+# ── Moments, recherche et compteurs de la page Rappels ─────────────────────────
+
+# Groupes de la liste : en retard (avant aujourd'hui), aujourd'hui, demain,
+# cette semaine (les sept jours qui commencent aujourd'hui), plus tard.
+MOMENTS = ('overdue', 'today', 'tomorrow', 'week', 'later')
+
+
+def moment_bounds(shop: Shop, now: datetime | None = None) -> list[datetime]:
+    """Débuts d'aujourd'hui, de demain, d'après-demain et fin de la semaine, dans le
+    fuseau de la boutique : bornes des groupes `MOMENTS`."""
+    tomorrow = todo_cutoff(shop, now)
+    today = tomorrow - timedelta(days=1)
+    return [today, tomorrow, tomorrow + timedelta(days=1), today + timedelta(days=7)]
+
+
+def moment_of(due_at: datetime, bounds: list[datetime]) -> str:
+    for moment, bound in zip(MOMENTS, bounds):
+        if due_at < bound:
+            return moment
+    return MOMENTS[-1]
+
+
+def search_reminders(qs: QuerySet[Reminder], term: str) -> QuerySet[Reminder]:
+    """Chaque mot doit se trouver dans le titre ou le nom du client."""
+    for word in term.split():
+        qs = qs.filter(
+            Q(title__icontains=word)
+            | Q(customer__first_name__icontains=word)
+            | Q(customer__name__icontains=word)
+        )
+    return qs
+
+
+def filter_reminders(
+    qs: QuerySet[Reminder], params: QueryDict, member: ShopMember,
+) -> QuerySet[Reminder]:
+    """Filtres communs à la liste et aux compteurs : `search`, `category`, `for`,
+    `customer` et `order` (rappels d'une fiche)."""
+    if customer_id := params.get('customer'):
+        qs = qs.filter(customer_id=customer_id)
+    if order_id := params.get('order'):
+        qs = qs.filter(order_id=order_id)
+    if category := params.get('category'):
+        qs = qs.filter(category=category)
+    if for_value := params.get('for'):
+        qs = filter_for(qs, for_value, member)
+    if term := params.get('search', '').strip():
+        qs = search_reminders(qs, term)
+    return qs
+
+
+def reminder_counts(
+    qs: QuerySet[Reminder], shop: Shop, now: datetime | None = None,
+) -> dict[str, int]:
+    """Compteurs des onglets et des groupes, en une requête. `todo` = en retard +
+    aujourd'hui (même définition que le badge), `upcoming` = demain et après."""
+    today, tomorrow, after_tomorrow, week_end = moment_bounds(shop, now)
+    pending = Q(status='pending')
+    counts = qs.aggregate(
+        overdue=Count('id', filter=pending & Q(due_at__lt=today)),
+        todo=Count('id', filter=pending & Q(due_at__lt=tomorrow)),
+        upcoming=Count('id', filter=pending & Q(due_at__gte=tomorrow)),
+        tomorrow=Count('id', filter=pending & Q(due_at__gte=tomorrow, due_at__lt=after_tomorrow)),  # noqa: E501
+        this_week=Count('id', filter=pending & Q(due_at__gte=after_tomorrow, due_at__lt=week_end)),  # noqa: E501
+        done=Count('id', filter=Q(status='done')),
+    )
+    return counts
 
 
 # ── Assignation ────────────────────────────────────────────────────────────────

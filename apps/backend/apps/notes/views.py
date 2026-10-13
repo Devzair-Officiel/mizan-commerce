@@ -11,8 +11,8 @@ from .serializers import (
     AssigneeSerializer, NoteSerializer, ReminderSerializer, ReminderSettingsSerializer,
 )
 from .services import (
-    REMINDER_SCOPES, assignable_members, delete_reminder, filter_for,
-    get_reminder_settings, reminders_in_scope,
+    REMINDER_SCOPES, assignable_members, delete_reminder, filter_reminders,
+    get_reminder_settings, reminder_counts, reminders_in_scope,
 )
 
 
@@ -58,7 +58,9 @@ class ReminderListCreateView(generics.ListCreateAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = ReminderSerializer
     filter_backends = (filters.OrderingFilter,)
-    ordering = ('due_at',)
+    ordering_fields = ('due_at', 'done_at')
+    # `id` départage les rappels de même échéance : pages « Voir plus » stables.
+    ordering = ('due_at', 'id')
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -67,24 +69,30 @@ class ReminderListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """`scope` : todo | upcoming | done (sans : tous ceux en attente).
-        `customer` et `category` retrouvent un rappel existant (relance d'un client).
-        `for` : me | team | identifiant d'un membre."""
+        `customer`, `order` et `category` : rappels d'une fiche, relance existante.
+        `for` : me | team | identifiant d'un membre. `search` : titre ou client."""
         params = self.request.query_params
         scope = params.get('scope')
         if scope and scope not in REMINDER_SCOPES:
             raise ValidationError({'scope': 'Onglet inconnu.'})
         member = get_member(self.request.user)
-        qs = reminders_in_scope(member.shop, scope)
-        if customer_id := params.get('customer'):
-            qs = qs.filter(customer_id=customer_id)
-        if category := params.get('category'):
-            qs = qs.filter(category=category)
-        if for_value := params.get('for'):
-            qs = filter_for(qs, for_value, member)
+        qs = filter_reminders(reminders_in_scope(member.shop, scope), params, member)
         return qs.select_related('author', 'customer', 'order', 'assigned_to__user')
 
     def perform_create(self, serializer):
         serializer.save(shop=get_shop(self.request.user), author=self.request.user)
+
+
+class ReminderSummaryView(APIView):
+    """Compteurs de la page Rappels (onglets, en-tête, groupes à venir), avec les
+    mêmes filtres que la liste."""
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        member = get_member(request.user)
+        qs = Reminder.objects.filter(shop=member.shop).exclude(status='dismissed')
+        qs = filter_reminders(qs, request.query_params, member)
+        return Response(reminder_counts(qs, member.shop))
 
 
 class ReminderDetailView(generics.RetrieveUpdateDestroyAPIView):
