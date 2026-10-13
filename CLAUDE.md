@@ -51,8 +51,9 @@ docker compose exec -T frontend npm run build    # Build de prod
 docker compose up -d
 
 # Audits navigateur Playwright (sans Node sur la machine, service `e2e` du profil « audit ») — voir apps/frontend/e2e/README.md
-docker compose run --rm e2e                              # tous les audits (console surveillée, éléments imbriqués)
-docker compose run --rm e2e npm run audit:customer-form  # un audit ciblé
+docker compose run --rm e2e                              # tous les audits (console surveillée, éléments imbriqués), boutique d'audit remise à zéro avant
+docker compose run --rm e2e npm run audit:customer-form  # un audit ciblé (remise à zéro aussi ; --no-deps pour garder les données)
+docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée la boutique d'audit (e2e@example.com)
 ```
 
 ## Code rules — Backend (Python / Django)

@@ -68,7 +68,7 @@ async function checkSaleWarning(page, ctx, article) {
   await goto(page, '/orders/new');
   if (ctx.viewport.mobile) await button(page, fmt('fr', 'orders.picker.product_trigger_title', { kind: 'both' })).first().click();
   await visible(page.locator('input[inputmode=search]')).first().fill(article.name);
-  await visible(page.getByRole('button', { name: fmt('fr', 'orders.picker.add_aria', { name: article.name }) })).first().click();
+  await visible(page.getByRole('button', { name: fmt('fr', 'orders.picker.add_aria', { name: article.name }), exact: true })).first().click();
   // Mobile : la fenêtre de choix reste ouverte après l'ajout, la commande est derrière.
   if (ctx.viewport.mobile) await button(page, fmt('fr', 'orders.picker.view_cart', { count: 1 })).click();
   // Stock de 1 : la deuxième unité le dépasse.
@@ -124,7 +124,7 @@ async function checkManualEntry(page, ctx, articles) {
   const before = await Promise.all(articles.map((a) => stockOf(page, a.variants[0].id)));
   for (const a of articles) await addBySearch(page, a.name);
   for (const [i, a] of articles.entries()) {
-    await page.getByRole('textbox', { name: fmt('fr', 'stock.entry.line_quantity', { label: a.name }) }).filter({ visible: true }).fill(String(i + 2));
+    await page.getByRole('textbox', { name: fmt('fr', 'stock.entry.line_quantity', { label: a.name }), exact: true }).filter({ visible: true }).fill(String(i + 2));
   }
   const units = 2 + 3 + 4;
   await submitButton(page, fmt('fr', 'stock.entry.submit', { units, unitsLabel: String(units) })).click();
@@ -181,7 +181,7 @@ async function checkExitRefused(page, ctx, article) {
   const variant = article.variants[0].id;
   const stock = await stockOf(page, variant);
   await open(page, `/stock/sortie?variant=${variant}&motif=casse`);
-  await page.getByRole('textbox', { name: fmt('fr', 'stock.exit.line_quantity', { label: article.name }) }).filter({ visible: true }).fill(String(stock + 1));
+  await page.getByRole('textbox', { name: fmt('fr', 'stock.exit.line_quantity', { label: article.name }), exact: true }).filter({ visible: true }).fill(String(stock + 1));
   await submitButton(page, new RegExp(msg('fr', 'stock.exit.submit').split('(')[0].trim())).click();
   const error = visible(page.getByText(msg('fr', 'stock.exit.insufficient').split(':')[0])).first();
   const shown = await error.waitFor({ timeout: 3000 }).then(() => true, () => false);
@@ -196,7 +196,7 @@ async function checkExitRefused(page, ctx, article) {
 async function checkAdjustment(page, ctx, article) {
   const variant = article.variants[0].id;
   await open(page, `/stock/sortie?variant=${variant}&motif=correction`);
-  const counted = page.getByRole('textbox', { name: fmt('fr', 'stock.exit.line_counted', { label: article.name }) }).filter({ visible: true });
+  const counted = page.getByRole('textbox', { name: fmt('fr', 'stock.exit.line_counted', { label: article.name }), exact: true }).filter({ visible: true });
   const stock = await stockOf(page, variant);
   await counted.fill('2');
   const signed = `${2 - stock > 0 ? '+' : ''}${2 - stock}`.replace('-', '\u2212');
@@ -210,7 +210,7 @@ async function checkAdjustment(page, ctx, article) {
 /** Mouvements : la réservation de la commande renvoie vers la commande. */
 async function checkMovements(page, ctx, article, order) {
   await goto(page, `/stock?tab=mouvements&product=${article.id}`);
-  const link = visible(page.getByRole('link', { name: order.order_number })).first();
+  const link = visible(page.getByRole('link', { name: order.order_number, exact: true })).first();
   report.check(await link.count() === 1 && (await link.getAttribute('href')) === `/orders/${order.id}`,
     `${ctx.label} : onglet Mouvements filtré sur l'article, référence de commande ${order.order_number} en lien`);
 }

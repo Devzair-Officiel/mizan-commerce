@@ -45,6 +45,9 @@ async function rowMenu(page, ctx, name) {
   return items;
 }
 
+// Libellé entier : « Supprimer » ne doit pas attraper « Supprimer la ligne ».
+const whole = (text) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+
 async function closeMenu(page) {
   await page.keyboard.press('Escape');
   await page.getByRole('dialog').or(page.getByRole('menu')).first().waitFor({ state: 'detached' }).catch(() => {});
@@ -185,11 +188,11 @@ async function editFormats(page, t, ctx, created, order, nested) {
   await fields(page, f, 'initial_stock').first().fill('4');
 
   let items = await rowMenu(page, ctx, SIZES[0]);
-  const sold = await items.filter({ hasText: f('format_delete') }).count() === 0;
+  const sold = await items.filter({ hasText: whole(f('format_delete')) }).count() === 0;
   await items.filter({ hasText: f('format_deactivate') }).first().click();
   const badge = await page.getByText(t('articles.badges.inactive'), { exact: true }).filter({ visible: true }).count() === 1;
   items = await rowMenu(page, ctx, SIZES[1]);
-  await items.filter({ hasText: f('format_delete') }).first().click();
+  await items.filter({ hasText: whole(f('format_delete')) }).first().click();
   const removed = await fields(page, f, 'format_name').count() === 3;
 
   await visibleButton(page, f('submit_edit')).click();
@@ -219,9 +222,9 @@ async function backToSingle(page, t, ctx, nested) {
   await fields(page, f, 'format_name').first().fill('Pot 250 g');
   await fields(page, f, 'selling_price').first().fill('15');
   let items = await rowMenu(page, ctx, f('format_number', { index: 2 }));
-  await items.filter({ hasText: f('format_remove') }).first().click();
+  await items.filter({ hasText: whole(f('format_remove')) }).first().click();
   items = await rowMenu(page, ctx, 'Pot 250 g');
-  const locked = await items.filter({ hasText: f('format_remove') }).first().isDisabled();
+  const locked = await items.filter({ hasText: whole(f('format_remove')) }).first().isDisabled();
   await closeMenu(page);
   await back.click();
   const list = await titles(page);

@@ -63,7 +63,7 @@ async function checkHeader(page, t, ctx, total) {
   const count = fmt(ctx.locale, 'articles.list.count', { kind: 'both', count: total });
   const ok = await settles(() => subtitle(page).innerText(), count);
   report.check(ok && title.includes(fmt(ctx.locale, 'articles.list.title', { kind: 'both' }))
-    && (await page.getByRole('link', { name: fmt(ctx.locale, 'articles.list.new_cta', { kind: 'both' }) }).filter({ visible: true }).count()) === 1,
+    && (await page.getByRole('link', { name: fmt(ctx.locale, 'articles.list.new_cta', { kind: 'both' }), exact: true }).filter({ visible: true }).count()) === 1,
   `${ctx.label} : titre, « ${count} », bouton « ${fmt(ctx.locale, 'articles.list.new_cta', { kind: 'both' })} »`);
 }
 
@@ -79,7 +79,7 @@ async function checkDesktopPaging(page, t, ctx, total) {
   const page2 = await allResults(page, 'products/?state=all&ordering=name').then((all) => all.slice(20, 40));
   const ok = await settles(() => rows.count(), page2.length);
   report.check(ok && (await rows.first().innerText()).includes(page2[0].name)
-    && (await page.getByRole('button', { name: fmt(ctx.locale, 'ui.list.pagination_page', { page: 2 }) }).getAttribute('aria-current')) === 'page',
+    && (await page.getByRole('button', { name: fmt(ctx.locale, 'ui.list.pagination_page', { page: 2 }), exact: true }).getAttribute('aria-current')) === 'page',
   `${ctx.label} : page 2 (${page2.length} rangées, « ${page2[0].name} » en tête)`);
 
   const priceHeader = page.locator('th').filter({ hasText: t('articles.list.column_price') });

@@ -56,7 +56,7 @@ class Command(BaseCommand):
         from apps.subscriptions.models import Subscription, SubscriptionPlan
         from ._seed_fr import run_seed_fr
         from ._seed_services import run_seed_services
-        from ._seed_e2e import run_seed_e2e
+        from ._seed_e2e import seed_audit_shop
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
             """Pose un abonnement déterministe sur la boutique. Idempotent."""
@@ -377,29 +377,7 @@ class Command(BaseCommand):
         run_seed_services(shop_services, samira, stdout=self.stdout)
 
         # ── Boutique 5 — audits Playwright (articles et services, EUR) ─
-        e2e = UserFactory(
-            email='e2e@example.com',
-            full_name='Audit Playwright',
-            phone='+33611000100',
-            password='Mizan1234!',
-        )
-        shop_e2e = ShopFactory(name='Boutique Audit', currency='EUR', country='FR')
-        ShopMemberFactory(shop=shop_e2e, user=e2e, role='owner')
-        seed_subscription(
-            shop=shop_e2e,
-            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-            status=Subscription.STATUS_ACTIVE,
-        )
-        if e2e.trial_consumed_at is None:
-            e2e.trial_consumed_at = timezone.now()
-            e2e.save(update_fields=['trial_consumed_at', 'updated_at'])
-        shop_e2e.catalog_kind = 'both'
-        shop_e2e.fulfillment_mode = 'on_site'
-        if shop_e2e.onboarding_completed_at is None:
-            shop_e2e.onboarding_completed_at = timezone.now()
-        shop_e2e.save(update_fields=['catalog_kind', 'fulfillment_mode', 'onboarding_completed_at', 'updated_at'])  # noqa: E501
-        self.stdout.write(f'  ✓ Boutique audits : {shop_e2e.name}')
-        run_seed_e2e(shop_e2e, e2e, stdout=self.stdout)
+        seed_audit_shop(stdout=self.stdout)
 
         # ── Pages publiques ─────────────────────────────────────────
         page_fr, fr_created = PublicPage.objects.get_or_create(

@@ -535,6 +535,70 @@ class SeedDataSecurityTest(TestCase):
         self.assertEqual(snapshot(), before)
 
 
+class ResetAuditShopTest(TestCase):
+    """reset_audit_shop : boutique d'audit remise à neuf, les autres intactes."""
+
+    quiet = {"stdout": io.StringIO(), "stderr": io.StringIO()}
+
+    def _audit_shop(self) -> Shop:
+        return Shop.objects.get(
+            members__user__email="e2e@example.com", members__role="owner"
+        )
+
+    def test_refused_when_debug_false(self) -> None:
+        with mock.patch.dict(os.environ, {"ALLOW_SEED": ""}):
+            with override_settings(DEBUG=False):
+                with self.assertRaises(CommandError):
+                    call_command("reset_audit_shop", **self.quiet)
+
+    def test_allowed_with_allow_seed(self) -> None:
+        with mock.patch.dict(os.environ, {"ALLOW_SEED": "1"}):
+            with override_settings(DEBUG=False):
+                call_command("reset_audit_shop", **self.quiet)
+        self.assertEqual(self._audit_shop().name, "Boutique Audit")
+
+    def test_restores_starting_data(self) -> None:
+        with override_settings(DEBUG=True):
+            call_command("reset_audit_shop", **self.quiet)
+            shop = self._audit_shop()
+            start = (
+                Product.objects.filter(shop=shop).count(),
+                Customer.objects.filter(shop=shop).count(),
+                Order.objects.filter(shop=shop).count(),
+            )
+            Product.objects.create(shop=shop, name="Audit lot 01")
+            Customer.objects.create(shop=shop, name="Client d'audit")
+            call_command("reset_audit_shop", **self.quiet)
+        shop = self._audit_shop()
+        self.assertEqual(
+            (
+                Product.objects.filter(shop=shop).count(),
+                Customer.objects.filter(shop=shop).count(),
+                Order.objects.filter(shop=shop).count(),
+            ),
+            start,
+        )
+        self.assertEqual(start, (3, 2, 2))
+        self.assertFalse(Product.objects.filter(name="Audit lot 01").exists())
+        user = User.objects.get(email="e2e@example.com")
+        self.assertTrue(user.check_password("Mizan1234!"))
+
+    def test_other_shops_untouched(self) -> None:
+        user = User.objects.create_user(
+            email="ext@test.local", password="Pass123!Strong"
+        )
+        shop = Shop.objects.create(name="Boutique Externe", currency="EUR")
+        ShopMember.objects.create(shop=shop, user=user, role="owner")
+        product = Product.objects.create(shop=shop, name="Article externe")
+        with override_settings(DEBUG=True):
+            call_command("seed_data", **self.quiet)
+            youssef = Shop.objects.get(name="La Boutique de Youssef")
+            youssef_products = Product.objects.filter(shop=youssef).count()
+            call_command("reset_audit_shop", **self.quiet)
+        self.assertTrue(Product.objects.filter(pk=product.pk).exists())
+        self.assertEqual(Product.objects.filter(shop=youssef).count(), youssef_products)  # noqa: E501
+
+
 def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501
     p = Product.objects.create(shop=shop, name=name)
     ProductVariant.objects.create(

@@ -90,7 +90,23 @@ services:
     entrypoint: ["sh", "-c", "npm ci --no-audit --no-fund --loglevel=error && exec \"$$@\"", "--"]
     command: ["npm", "run", "audit"]
     depends_on:
-      - frontend
+      frontend:
+        condition: service_started
+      e2e-reset:
+        condition: service_completed_successfully   # boutique d'audit remise à zéro avant chaque lancement (`run --no-deps` pour garder les données)
+
+  e2e-reset:
+    build:
+      context: ./apps/backend
+      target: development                       # même image que backend, code monté
+    profiles: ["audit"]                         # lancé par `docker compose run --rm e2e`, puis s'arrête
+    restart: "no"
+    env_file: .env
+    volumes:
+      - ./apps/backend:/app
+    command: ["python", "manage.py", "reset_audit_shop"]   # DEBUG ou ALLOW_SEED=1 requis, comme seed_data
+    depends_on:
+      - postgres
 
 volumes:
   postgres_data:                                # volume nommé géré par Docker pour persister les données PostgreSQL

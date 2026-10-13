@@ -4,7 +4,7 @@ Scripts lancés **sans Node sur la machine** : service Docker Compose `e2e` (ima
 
 ```bash
 # Depuis la racine du dépôt, stack démarrée (docker compose up -d)
-docker compose run --rm e2e                                   # tous les audits
+docker compose run --rm e2e                                   # tous les audits, boutique d'audit remise à zéro avant
 docker compose run --rm e2e npm run audit:pages               # écrans principaux
 docker compose run --rm e2e npm run audit:customer-form       # formulaire client
 docker compose run --rm e2e npm run audit:customer-name       # nom complet des clients partout
@@ -21,6 +21,8 @@ docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-têt
 docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »
 docker compose run --rm e2e npm run audit:stock-entry-plan    # entrée de stock en Pro : carte Boutique+ sur l'onglet facture, aucune requête OCR
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
+docker compose run --rm --no-deps e2e npm run audit:stock     # sans remise à zéro : garde les données actuelles
+docker compose exec backend python manage.py reset_audit_shop # remise à zéro seule, à la main
 ```
 
 Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (détaillée dans la sortie).
@@ -30,7 +32,8 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 - `e2e@example.com` possède sa propre boutique, « Boutique Audit » (France, EUR, articles et services, vente sur place, Boutique+), avec quelques articles, services, clients et commandes (`apps/backend/apps/core/management/commands/_seed_e2e.py`). « Nadia Relance » a une commande impayée : l'audit y teste « Relancer ».
 - Les audits créent tout ce dont ils ont besoin **dans cette boutique**, jamais dans celles des autres comptes de démo ; l'audit du formulaire client vérifie à la fin qu'aucun client de test n'existe dans la boutique de Youssef.
 - Ils restent **relançables plusieurs fois de suite** : ce qu'ils créent est archivé ou supprimé à la fin, et ce qu'ils modifient est remis en place au début.
-- `seed_data --reset` supprime la boutique et la recrée (comptes `@example.*` uniquement).
+- **Données de départ connues** : `docker compose run --rm e2e` lance d'abord le service `e2e-reset` (`python manage.py reset_audit_shop`, profil `audit`), qui supprime les boutiques dont `e2e@example.com` est propriétaire puis recrée « Boutique Audit » et ses données de départ, comme `seed_data`. Les autres boutiques ne sont pas touchées. Mêmes gardes que `seed_data` : `DEBUG` ou `ALLOW_SEED=1`. Un audit lancé seul repart aussi de ces données ; `--no-deps` les garde telles quelles (le frontend doit alors déjà tourner).
+- `seed_data --reset` supprime aussi la boutique et la recrée, avec celles des autres comptes de démo (comptes `@example.*` uniquement).
 - `openSession(browser, viewport, { email })` permet, si besoin, de se connecter avec un autre compte de démo.
 
 ## Contenu
