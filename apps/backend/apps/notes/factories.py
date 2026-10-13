@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from apps.shops.factories import ShopFactory
 from apps.accounts.factories import UserFactory
-from .models import Note, Reminder
+from .models import Note, Reminder, ReminderSettings
 
 
 class NoteFactory(DjangoModelFactory):
@@ -28,3 +28,11 @@ class ReminderFactory(DjangoModelFactory):
     due_at = factory.LazyFunction(lambda: timezone.now() + timedelta(days=3))
     category = 'free'
     status = 'pending'
+
+
+class ReminderSettingsFactory(DjangoModelFactory):
+    class Meta:
+        model = ReminderSettings
+        django_get_or_create = ('shop',)
+
+    shop = factory.SubFactory(ShopFactory)

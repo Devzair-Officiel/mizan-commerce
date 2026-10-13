@@ -84,6 +84,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         )
     ]
 
+    LANGUAGE_CHOICES = [('fr', 'Français'), ('ar', 'العربية'), ('en', 'English')]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(max_length=254, unique=True)
     full_name = models.CharField(max_length=150, blank=True)
@@ -118,6 +120,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #ffffff.',
         )],
     )
+    # Langue de l'interface, recopiée par le frontend : sert aux e-mails envoyés
+    # hors requête (résumé du jour).
+    language = models.CharField(max_length=2, choices=LANGUAGE_CHOICES, default='fr')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

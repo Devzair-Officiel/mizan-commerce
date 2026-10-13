@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Note, Reminder
+from .models import Note, Reminder, ReminderSettings
 
 
 @admin.register(Note)
@@ -11,7 +11,18 @@ class NoteAdmin(admin.ModelAdmin):
 
 @admin.register(Reminder)
 class ReminderAdmin(admin.ModelAdmin):
-    list_display = ('title', 'shop', 'category', 'status', 'due_at', 'author')
-    list_filter = ('status', 'category', 'shop')
+    list_display = (
+        'title', 'shop', 'category', 'status', 'due_at', 'assigned_to', 'is_automatic',
+    )
+    list_filter = ('status', 'category', 'is_automatic', 'shop')
     search_fields = ('title',)
     readonly_fields = ('id', 'done_at', 'created_at', 'updated_at')
+
+
+@admin.register(ReminderSettings)
+class ReminderSettingsAdmin(admin.ModelAdmin):
+    list_display = (
+        'shop', 'unpaid_followup_enabled', 'pending_orders_enabled',
+        'daily_summary_enabled',
+    )
+    readonly_fields = ('daily_summary_sent_on', 'updated_at')

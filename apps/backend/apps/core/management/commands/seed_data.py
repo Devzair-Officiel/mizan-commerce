@@ -22,6 +22,7 @@ SEED_DEMO_EMAILS: frozenset[str] = frozenset({
     "vide@example.com",
     "services@example.com",
     "e2e@example.com",
+    "e2e-staff@example.com",
 })
 
 
@@ -533,6 +534,7 @@ class Command(BaseCommand):
         )
         self.stdout.write("    services@example.com / Mizan1234!  (Pro actif, services)")  # noqa: E501
         self.stdout.write("    e2e@example.com     / Mizan1234!  (Boutique+, audits Playwright)")  # noqa: E501
+        self.stdout.write("    e2e-staff@example.com / Mizan1234!  (Staff audits)")
         self.stdout.write("    admin@mizan.dev     / Admin1234!  (superadmin)")
         self.stdout.write(f"  Boutique FR — commandes : {fr_status}")
         self.stdout.write(f"  Boutique FR — impayées/partielles actives : {fr_unpaid}")

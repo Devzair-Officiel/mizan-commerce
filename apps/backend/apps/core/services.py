@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from apps.customers.models import Customer, format_display_name
 from apps.customers.services import name_search
-from apps.notes.services import reminders_to_do
+from apps.notes.services import reminders_to_do, visible_to
 from apps.orders.models import Order
 from apps.orders.services import build_items_preview_batch
 from apps.products.models import Product, ProductVariant
@@ -220,9 +220,19 @@ def _build_low_stock(shop: Shop) -> dict:
     }
 
 
-def _build_today_reminders(shop: Shop, now: datetime, day_start: datetime) -> dict:
+def _member_reminders_to_do(
+    shop: Shop, member: ShopMember | None, now: datetime | None = None,
+):
+    """Rappels « à faire » d'un membre : les siens et ceux de toute l'équipe."""
+    qs = reminders_to_do(shop, now)
+    return qs.filter(visible_to(member)) if member else qs
+
+
+def _build_today_reminders(
+    shop: Shop, now: datetime, day_start: datetime, member: ShopMember | None,
+) -> dict:
     # Rappels « à faire » : en retard + aujourd'hui (même définition que le badge)
-    qs = reminders_to_do(shop, now).values(
+    qs = _member_reminders_to_do(shop, member, now).values(
         "id",
         "title",
         "category",
@@ -269,13 +279,16 @@ def build_nav_badges(shop: Shop, member: ShopMember) -> dict[str, int]:
         count = _qs_low_stock(shop).count()
         if count > 0:
             result["low_stock"] = count
-    count = reminders_to_do(shop).count()
+    count = _member_reminders_to_do(shop, member).count()
     if count > 0:
         result["reminders_due"] = count
     return result
 
 
-def build_dashboard_today(shop: Shop, now: datetime | None = None) -> dict:
+def build_dashboard_today(
+    shop: Shop, now: datetime | None = None, member: ShopMember | None = None,
+) -> dict:
+    """Accueil du jour. Avec `member`, les rappels sont ceux de ce membre."""
     if now is None:
         now = timezone.now()
     tz = ZoneInfo(shop.timezone)
@@ -295,7 +308,7 @@ def build_dashboard_today(shop: Shop, now: datetime | None = None) -> dict:
         "orders_to_prepare": _build_orders_to_prepare(shop),
         "unpaid_orders": _build_unpaid_orders(shop),
         "low_stock_products": _build_low_stock(shop),
-        "today_reminders": _build_today_reminders(shop, now, day_start),
+        "today_reminders": _build_today_reminders(shop, now, day_start, member),
         "setup": _build_setup(shop),
     }
 

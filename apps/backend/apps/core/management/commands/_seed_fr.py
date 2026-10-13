@@ -391,7 +391,7 @@ def seed_orders_fr(shop, user, safe_v, svc_v, customers, stdout) -> list[Order]:
 # ── Rappels ────────────────────────────────────────────────────────────────────
 
 
-def seed_reminders_fr(shop, user, customers) -> None:
+def seed_reminders_fr(shop, user, customers, sara_member=None) -> None:
     if Reminder.objects.filter(shop=shop).exists():
         return
     by_name = {c.name: c for c in customers}
@@ -408,6 +408,7 @@ def seed_reminders_fr(shop, user, customers) -> None:
             title="Préparer les commandes du samedi",
             category="order_prep",
             due_at=_make_dt(today, 15, 30),
+            assigned_to=sara_member,
         ),
         dict(
             title="Relance — Nadia El Fassi impayée",
@@ -477,5 +478,5 @@ def run_seed_fr(shop, youssef, sara, stdout) -> None:
     else:
         stdout.write("    · Commandes existantes — skip")
 
-    seed_reminders_fr(shop, youssef, customers)
+    seed_reminders_fr(shop, youssef, customers, shop.members.filter(user=sara).first())
     seed_stock_fr(shop, youssef, customers)

@@ -44,6 +44,7 @@ def send_zakat_reminders() -> dict[str, int]:
             description=f"La date annuelle de zakat de votre boutique est dans 7 jours ({target_date.strftime('%d/%m/%Y')}).",  # noqa: E501
             due_at=due_at,
             category='zakat',
+            is_automatic=True,
         )
         created += 1
 

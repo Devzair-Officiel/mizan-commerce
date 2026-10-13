@@ -209,6 +209,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.subscriptions.tasks.expire_trials',
         'schedule': crontab(hour=6, minute=30),  # juste après les rappels zakat
     },
+    # Toutes les heures : chaque boutique est traitée à son heure locale.
+    'notes-automatic-reminders-hourly': {
+        'task': 'apps.notes.tasks.run_automatic_reminders',
+        'schedule': crontab(minute=0),
+    },
 }
 
 # Service IA / OCR (FastAPI séparé — V6). Accessible uniquement en réseau

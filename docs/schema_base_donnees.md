@@ -133,6 +133,7 @@ Compte utilisateur (commerçant ou partenaire potentiel).
 | password_hash | VARCHAR(255) | NOT NULL | Géré par Django (PBKDF2 par défaut) |
 | full_name | VARCHAR(150) | | Nom affiché |
 | phone | VARCHAR(30) | | Téléphone optionnel |
+| language | VARCHAR(2) | NOT NULL, DEFAULT 'fr' | `fr`, `ar`, `en` — langue de l'interface, reprise par les textes écrits hors requête (rappels automatiques, résumé du jour) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | Désactivation (RGPD) |
 | email_verified_at | TIMESTAMPTZ | | Date validation email |
 | last_login_at | TIMESTAMPTZ | | Dernière connexion |
@@ -600,12 +601,34 @@ Note libre, ou liée à un client, ou liée à une commande.
 | category | VARCHAR(30) | | `unpaid`, `customer_followup`, `zakat`, `order_prep`, `free` |
 | customer_id | UUID | FK → customers.id | Optionnel |
 | order_id | UUID | FK → orders.id | Optionnel |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | `pending`, `done`, `dismissed` |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | `pending`, `done`, `dismissed` (rappel automatique supprimé : gardé pour ne pas être recréé, invisible partout) |
 | done_at | TIMESTAMPTZ | | |
+| assigned_to_member_id | UUID | FK → shop_members.id, ON DELETE SET NULL | Membre chargé du rappel ; NULL = toute l'équipe |
+| is_automatic | BOOLEAN | NOT NULL, DEFAULT false | Créé par une tâche (relance d'impayé, commandes en attente, zakat) |
+| auto_key | VARCHAR(80) | NOT NULL, DEFAULT '' | Clé de dédoublonnage des rappels automatiques : `unpaid:{order_id}`, `pending_orders:{date locale}` |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `(shop_id, status, due_at)`.
+**Contrainte** : UNIQUE `(shop_id, auto_key)` quand `auto_key <> ''` — une relance par commande, un rappel de commandes en attente par jour.
+
+---
+
+### `reminder_settings`
+
+Réglages des rappels automatiques (URS-055 à 057), un par boutique, créés à la première lecture. Modifiables par le propriétaire et les administrateurs.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| shop_id | UUID | PK, FK → shops.id ON DELETE CASCADE | |
+| unpaid_followup_enabled | BOOLEAN | NOT NULL, DEFAULT true | Relance des commandes impayées |
+| unpaid_followup_days | SMALLINT | NOT NULL, DEFAULT 3, 1 à 60 | Jours sans paiement avant la relance |
+| pending_orders_enabled | BOOLEAN | NOT NULL, DEFAULT true | Rappel du matin des commandes à préparer |
+| pending_orders_days | SMALLINT | NOT NULL, DEFAULT 2, 1 à 60 | Ancienneté des commandes comptées |
+| daily_summary_enabled | BOOLEAN | NOT NULL, DEFAULT false | E-mail du résumé du jour au propriétaire |
+| daily_summary_hour | SMALLINT | NOT NULL, DEFAULT 8, 0 à 23 | Heure locale d'envoi |
+| daily_summary_sent_on | DATE | | Dernier envoi (date locale) : un e-mail par jour |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 ---
 

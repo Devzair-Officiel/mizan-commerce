@@ -5,6 +5,7 @@ Importé par seed_data.py et reset_audit_shop.py via
 Les audits y créent tout ce dont ils ont besoin : les autres boutiques de démo
 restent intactes. Ne pas exécuter directement.
 """
+from datetime import timedelta
 from decimal import Decimal
 
 from django.utils import timezone
@@ -19,6 +20,9 @@ from apps.stock.services import create_movement
 from apps.subscriptions.models import Subscription, SubscriptionPlan
 
 AUDIT_EMAIL = 'e2e@example.com'
+
+# Employée de la boutique d'audit : rappels attribués, badge par membre.
+AUDIT_STAFF_EMAIL = 'e2e-staff@example.com'
 
 # Client avec une commande impayée : l'audit y teste « Relancer » (WhatsApp).
 E2E_FOLLOWUP_CUSTOMER = 'Nadia Relance'
@@ -42,13 +46,19 @@ def _variant(shop, name: str, ptype: str, price: str) -> ProductVariant:
     return variant
 
 
-def _order(shop, owner, customer, variant, status: str, paid: bool) -> None:
+def _order(
+    shop, owner, customer, variant, status: str, paid: bool, days_ago: int = 0,
+) -> None:
     order = order_services.create_order(shop, owner, customer=customer)
     order_services.add_item(order, variant, 1)
     order_services.advance_order_to(order, status, owner)
     if paid:
         order.refresh_from_db()
         order_services.update_payment(order, order.total_amount, owner)
+    if days_ago:
+        shop.orders.filter(pk=order.pk).update(
+            created_at=timezone.now() - timedelta(days=days_ago),
+        )
 
 
 def run_seed_e2e(shop, owner, *, stdout=None) -> None:
@@ -72,7 +82,8 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
             shop=shop, name='Marc Dupuis', phone='+33611000102',
             city='Grenoble', notes='',
         )
-        _order(shop, owner, nadia, tote, 'to_prepare', paid=False)
+        # Impayée depuis 5 jours : la tâche des rappels automatiques la relance.
+        _order(shop, owner, nadia, tote, 'to_prepare', paid=False, days_ago=5)
         _order(shop, owner, marc, retouche, 'shipped', paid=True)
 
     if stdout:
@@ -92,6 +103,15 @@ def seed_audit_shop(*, stdout=None) -> Shop:
     )
     shop = ShopFactory(name='Boutique Audit', currency='EUR', country='FR')
     ShopMemberFactory(shop=shop, user=e2e, role='owner')
+    staff = UserFactory(
+        email=AUDIT_STAFF_EMAIL,
+        full_name='Inès Martin',
+        phone='+33611000103',
+        password='Mizan1234!',
+    )
+    ShopMemberFactory(
+        shop=shop, user=staff, role='staff', permissions=['orders', 'customers'],
+    )
     Subscription.objects.update_or_create(
         shop=shop,
         defaults={
