@@ -1,6 +1,6 @@
 # Intégration continue
 
-Workflow : `.github/workflows/ci.yml` (GitHub Actions). Un nouveau push annule l'exécution en cours de la même branche. Il se lance :
+Workflow : `.github/workflows/ci.yml` (GitHub Actions). Un nouveau push annule l'exécution en cours de la même pull request ; sur `main`, les exécutions se suivent sans s'interrompre. Il se lance :
 - sur chaque pull request vers `main` ;
 - sur chaque push vers `main` ;
 - à la main (`workflow_dispatch`), pour une branche sans pull request : **Actions → CI → Run workflow**, choisir la branche.
@@ -11,15 +11,39 @@ Un push sur une branche de travail ne lance rien tant qu'aucune pull request n'e
 |---|---|
 | `backend` | Python 3.12, PostgreSQL 16 et Redis 7 (mêmes images que `docker-compose.yml`) ; `ruff check`, `makemigrations --check --dry-run`, `pytest -n auto` |
 | `frontend` | Node 20 (comme `node:20-alpine`) ; `npm ci`, lint, typecheck, `i18n:check`, `tokens:check`, `text:check`, `deps:check`, build |
-| `docker` | Construction des images de production backend et frontend, sans publication (cache GitHub Actions) |
+| `docker` | Après `backend` et `frontend` : images de production backend, frontend et ai-service (cache GitHub Actions). Publiées sur GHCR seulement sur un push vers `main` ; construites sans publication sinon |
 
-Le CI n'utilise **aucun secret**. Les variables OVH sont vides, donc `is_storage_configured()` est faux. Les tests d'upload forcent leurs réglages avec `override_settings` et simulent boto3 avec `patch` : aucun test ne contacte le bucket, même en local avec un `.env` complet. Un test qui dépendrait des variables OVH du `.env` passerait en local mais échouerait en CI. Pour le reproduire en local :
+Le CI n'utilise **aucun secret** du dépôt : la publication sur GHCR passe par le `GITHUB_TOKEN` fourni par GitHub. Les variables OVH sont vides, donc `is_storage_configured()` est faux. Les tests d'upload forcent leurs réglages avec `override_settings` et simulent boto3 avec `patch` : aucun test ne contacte le bucket, même en local avec un `.env` complet. Un test qui dépendrait des variables OVH du `.env` passerait en local mais échouerait en CI. Pour le reproduire en local :
 
 ```bash
 docker compose run --rm --no-deps -e OVH_S3_ACCESS_KEY= -e OVH_S3_SECRET_KEY= \
   -e OVH_S3_ENDPOINT_URL= -e OVH_S3_BUCKET_PRIVATE= -e AI_SERVICE_API_KEY= \
   backend pytest -n auto
 ```
+
+## Images publiées (GHCR)
+
+Sur chaque push vers `main`, le job `docker` publie :
+
+| Image | Contenu |
+|---|---|
+| `ghcr.io/devzair-officiel/mizan-backend` | Django + gunicorn ; même image pour les workers Celery et Celery Beat (autre commande) |
+| `ghcr.io/devzair-officiel/mizan-frontend` | Next.js, sortie standalone |
+| `ghcr.io/devzair-officiel/mizan-ai-service` | FastAPI + PaddleOCR |
+
+Deux étiquettes par image : l'identifiant complet du commit (celle qu'on déploie, voir `docs/exploitation/deploiement.md`) et `latest`. Le backend reçoit l'identifiant comme release Sentry (`SENTRY_RELEASE`), le frontend aussi (`NEXT_PUBLIC_SENTRY_RELEASE`).
+
+Les variables `NEXT_PUBLIC_*` sont inlinées dans le bundle du navigateur : elles se fixent à la construction, pas au démarrage. Une même image sert à staging et à la production, donc ces valeurs sont communes aux deux. Les déclarer dans **Settings → Secrets and variables → Actions → Variables** (onglet *Variables*, pas *Secrets* : elles sont publiques par nature) :
+
+| Variable | Valeur |
+|---|---|
+| `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` | Clé de site reCAPTCHA v3 (domaines de production et de staging déclarés chez Google) |
+| `NEXT_PUBLIC_SENTRY_DSN` | DSN du projet Sentry frontend ; absente = Sentry désactivé |
+| `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | Part des transactions envoyées, de `0` à `1` ; absente = `0` |
+
+L'environnement Sentry n'en fait pas partie : côté serveur, il vient de `SENTRY_ENVIRONMENT` (fichier d'environnement du serveur) ; dans le navigateur, du domaine (`staging.*` → `staging`, sinon `production`).
+
+Après la première publication, les paquets apparaissent dans **Profil ou organisation → Packages**, privés par défaut. Les laisser privés : le serveur s'authentifie une fois avec `docker login ghcr.io` et un jeton *classic* limité à `read:packages` (procédure dans `docs/exploitation/deploiement.md`). Dans **Package settings** de chaque paquet, vérifier que le dépôt `mizan-commerce` a l'accès *Write* (*Manage Actions access*), sinon les publications suivantes échouent.
 
 Les suites d'audits Playwright ne tournent pas en CI : elles restent locales (`docker compose run --rm e2e`).
 

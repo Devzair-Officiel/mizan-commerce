@@ -55,6 +55,7 @@ services:
   ai-service:
     build:
       context: ./apps/ai-service            # service FastAPI séparé (V6 : OCR/IA)
+      target: development                   # code monté, rechargement à chaud
     restart: unless-stopped
     env_file: .env                          # transmet AI_SERVICE_API_KEY (jamais commité)
     # Reste en root : PaddleOCR écrit dans son cache (/root/.paddlex, volume existant en root).

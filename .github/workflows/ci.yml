@@ -11,10 +11,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Un nouveau push annule l'exécution en cours de la même branche.
+# Un nouveau push annule l'exécution en cours de la même pull request. Sur main,
+# les exécutions se suivent : une publication d'images n'est jamais interrompue.
 concurrency:
   group: ci-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -117,27 +118,75 @@ jobs:
           API_URL: http://localhost:8000/api
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ""
 
+  # Images de production. Sur un push vers main, une fois backend et frontend
+  # verts : publiées sur GHCR, étiquetées avec l'identifiant du commit et latest.
+  # Ailleurs : construites sans publication.
   docker:
     name: docker
+    needs: [backend, frontend]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUSH: ${{ github.event_name == 'push' }}
+      REGISTRY: ghcr.io/devzair-officiel
+      LABELS: |
+        org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+        org.opencontainers.image.revision=${{ github.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
-      # Images de production, construites sans être publiées.
+      - name: Connexion à GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Image backend
         uses: docker/build-push-action@v7
         with:
           context: apps/backend
           target: production
-          push: false
+          push: ${{ env.PUSH }}
+          build-args: RELEASE=${{ github.sha }}
+          labels: ${{ env.LABELS }}
+          tags: |
+            ${{ env.REGISTRY }}/mizan-backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/mizan-backend:latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
+      # NEXT_PUBLIC_* : inlinées dans le bundle, donc fixées à la construction.
+      # Variables du dépôt (Settings → Secrets and variables → Actions → Variables) :
+      # valeurs publiques, communes à staging et à la production (docs/ci.md).
       - name: Image frontend
         uses: docker/build-push-action@v7
         with:
           context: apps/frontend
           target: production
-          push: false
+          push: ${{ env.PUSH }}
+          build-args: |
+            NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${{ vars.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE }}
+            NEXT_PUBLIC_SENTRY_RELEASE=${{ github.sha }}
+          labels: ${{ env.LABELS }}
+          tags: |
+            ${{ env.REGISTRY }}/mizan-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/mizan-frontend:latest
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
+      - name: Image ai-service
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/ai-service
+          target: production
+          push: ${{ env.PUSH }}
+          labels: ${{ env.LABELS }}
+          tags: |
+            ${{ env.REGISTRY }}/mizan-ai-service:${{ github.sha }}
+            ${{ env.REGISTRY }}/mizan-ai-service:latest
+          cache-from: type=gha,scope=ai-service
+          cache-to: type=gha,scope=ai-service,mode=max

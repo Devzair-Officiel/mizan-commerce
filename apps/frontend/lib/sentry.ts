@@ -70,13 +70,24 @@ export function scrubEvent<T extends ErrorEvent | TransactionEvent>(event: T): T
   return scrub(event) as T;
 }
 
+// L'image publiée par le CI sert à staging et à la production : sans valeur fixée à la
+// construction, le serveur lit SENTRY_ENVIRONMENT et le navigateur se fie à son domaine.
+function environment(): string {
+  const built = process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT?.trim();
+  if (built) return built;
+  if (typeof window === 'undefined') return process.env.SENTRY_ENVIRONMENT?.trim() || 'local';
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') return 'local';
+  return host.startsWith('staging.') ? 'staging' : 'production';
+}
+
 /** Options communes, ou `null` sans DSN : Sentry n'est alors pas initialisé. */
 export function sentryOptions() {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
   if (!dsn) return null;
   return {
     dsn,
-    environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT?.trim() || 'local',
+    environment: environment(),
     release: process.env.NEXT_PUBLIC_SENTRY_RELEASE?.trim() || undefined,
     tracesSampleRate: Number(process.env.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE) || 0,
     sendDefaultPii: false,

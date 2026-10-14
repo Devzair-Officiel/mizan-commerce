@@ -85,18 +85,13 @@ STORAGES = {
     },
 }
 
-# WhiteNoise doit être juste après SecurityMiddleware
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
+# Liste de base (santé en tête, axes en fin) avec WhiteNoise juste après
+# SecurityMiddleware.
+MIDDLEWARE = [*MIDDLEWARE]
+MIDDLEWARE.insert(
+    MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-]
+)
 
 LOGGING = {
     "version": 1,
