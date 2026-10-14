@@ -31,12 +31,14 @@ export function launch() {
  * clair ou sombre (`setTheme`), et au besoin la couleur principale et le fond
  * (`setPalette({ primary_color, background_theme })`), sans toucher aux préférences enregistrées.
  * `email` : un autre compte de démo, en lecture (vérifier qu'une boutique est restée intacte).
+ * `timezoneId` : fuseau de l'appareil (IANA), pour vérifier ce qui suit celui de la boutique.
  */
-export async function openSession(browser, viewport, { email = EMAIL } = {}) {
+export async function openSession(browser, viewport, { email = EMAIL, timezoneId } = {}) {
   const ctx = await browser.newContext({
     viewport: { width: viewport.width, height: viewport.height },
     isMobile: viewport.mobile,
     hasTouch: viewport.mobile,
+    timezoneId,
   });
   const setLocale = (locale) => ctx.addCookies([{ name: 'NEXT_LOCALE', value: locale, url: BASE }]);
   let theme = 'light';

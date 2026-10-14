@@ -56,6 +56,12 @@ export function useShop() {
   });
 }
 
+/** Fuseau de la boutique (échéances des rappels) ; celui de l'appareil tant qu'elle n'est pas chargée. */
+export function useShopTimeZone(): string {
+  const { data } = useShop();
+  return data?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
 export function useUpdateShop() {
   const qc = useQueryClient();
   return useMutation({

@@ -14,6 +14,7 @@ import {
 import { useFormatDate } from '@/lib/hooks/useFormat';
 import { getPaymentDisplay, type PaymentDisplay } from '@/components/invoices/detail/payment';
 import { SkeletonRows } from '@/components/ui/SkeletonRows';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 const PILL_CLASS: Record<PaymentDisplay, string> = {
   paid: 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/25',
@@ -100,7 +101,7 @@ function InvoiceRow({ invoice }: { invoice: Invoice }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{invoice.number}</p>
+          <p className="text-sm font-semibold text-foreground truncate"><OrderNumber>{invoice.number}</OrderNumber></p>
           <p className="text-xs text-muted-foreground truncate">
             {invoice.buyer_name || t('list.no_customer')} · {issued}
           </p>

@@ -232,6 +232,8 @@ def _build_today_reminders(
     shop: Shop, now: datetime, day_start: datetime, member: ShopMember | None,
 ) -> dict:
     # Rappels « à faire » : en retard + aujourd'hui (même définition que le badge)
+    if member and not member.has_module("reminders"):
+        return {"count": 0, "items": []}
     qs = _member_reminders_to_do(shop, member, now).values(
         "id",
         "title",
@@ -279,9 +281,10 @@ def build_nav_badges(shop: Shop, member: ShopMember) -> dict[str, int]:
         count = _qs_low_stock(shop).count()
         if count > 0:
             result["low_stock"] = count
-    count = _member_reminders_to_do(shop, member).count()
-    if count > 0:
-        result["reminders_due"] = count
+    if member.has_module("reminders"):
+        count = _member_reminders_to_do(shop, member).count()
+        if count > 0:
+            result["reminders_due"] = count
     return result
 
 

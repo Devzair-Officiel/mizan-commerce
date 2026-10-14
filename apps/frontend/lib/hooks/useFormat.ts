@@ -10,6 +10,7 @@ import {
   formatMoney,
   formatNumber,
 } from '@/lib/format';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 
 /**
  * Hooks de formatage côté client.
@@ -57,6 +58,17 @@ export function useFormatDate() {
     (value: string | number | Date, options?: Intl.DateTimeFormatOptions) =>
       formatDate(value, locale, options),
     [locale],
+  );
+}
+
+/** Comme `useFormatDate`, à l'heure de la boutique : échéances des rappels. */
+export function useFormatShopDate() {
+  const locale = useResolvedLocale();
+  const timeZone = useShopTimeZone();
+  return useCallback(
+    (value: string | number | Date, options?: Intl.DateTimeFormatOptions) =>
+      formatDate(value, locale, { ...options, timeZone }),
+    [locale, timeZone],
   );
 }
 

@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.http import QueryDict
 from rest_framework.exceptions import ValidationError
 
+from apps.core.permissions import MODULE_REMINDERS
 from apps.orders.models import Order
 from apps.shops.models import Shop, ShopMember
 from apps.subscriptions.permissions import shop_has_feature
@@ -151,14 +152,18 @@ def filter_for(qs: QuerySet[Reminder], value: str, member: ShopMember) -> QueryS
 def assignable_members(shop: Shop) -> QuerySet[ShopMember]:
     """Membres qui ont accès aux rappels, donc à qui en attribuer un.
 
-    Les rappels ne sont pas un module accordable : tout membre y accède, sauf
-    les employés et administrateurs suspendus faute de Boutique+ (même règle que
-    `is_member_suspended`). Sans Boutique+, seul le propriétaire reste.
+    Le propriétaire et les administrateurs, et les employés à qui le module
+    `reminders` est accordé (même règle que `ShopMember.has_module`). Sans
+    Boutique+, employés et administrateurs sont suspendus (`is_member_suspended`) :
+    seul le propriétaire reste.
     """
     members = shop.members.select_related('user').order_by('created_at')
-    if shop_has_feature(shop, 'multi_user'):
-        return members
-    return members.filter(role=ShopMember.ROLE_OWNER)
+    if not shop_has_feature(shop, 'multi_user'):
+        return members.filter(role=ShopMember.ROLE_OWNER)
+    return members.filter(
+        Q(role__in=(ShopMember.ROLE_OWNER, ShopMember.ROLE_ADMIN))
+        | Q(permissions__contains=[MODULE_REMINDERS]),
+    )
 
 
 # ── Rappels automatiques (URS-055 à 057) ───────────────────────────────────────

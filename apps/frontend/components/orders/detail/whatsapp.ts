@@ -1,4 +1,5 @@
 import type { Order } from '@/lib/hooks/useOrders';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 type WaTranslator = (key: string, params?: Record<string, string | number>) => string;
 type MoneyFmt = (v: string | number, currency: string, opts?: Intl.NumberFormatOptions) => string;
@@ -37,7 +38,7 @@ export function buildWhatsAppMessage(
     '',
     tWa(statusKey),
     '',
-    tWa('order_line', { number: order.order_number, date }),
+    tWa('order_line', { number: isolateNumber(order.order_number), date }),
     tWa('total_line', { amount: money(total) }),
     paymentLine,
     '',

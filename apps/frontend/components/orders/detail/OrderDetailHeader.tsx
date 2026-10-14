@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ChevronLeft, Pencil } from 'lucide-react';
 import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import { DetailPrimaryButton } from '@/components/detail/DetailPrimaryButton';
+import { orderNumberTag } from '@/components/orders/OrderNumber';
 import { buttonVariants } from '@/components/ui/button';
 import type { Order } from '@/lib/hooks/useOrders';
 import { cn } from '@/lib/utils';
@@ -40,7 +41,7 @@ export function OrderDetailHeader({ order, primary, menu }: OrderDetailHeaderPro
           {tNav('orders')}
         </button>
         <div className="mt-1.5 flex flex-wrap items-center gap-3">
-          <h1 className="text-[28px] font-semibold leading-snug tracking-tight">{t('title', { number: order.order_number })}</h1>
+          <h1 className="text-[28px] font-semibold leading-snug tracking-tight">{t.rich('title', { number: order.order_number, num: orderNumberTag })}</h1>
           <OrderStatusBadge status={order.status} />
         </div>
         <p className="mt-1.5 text-sm text-muted-foreground">

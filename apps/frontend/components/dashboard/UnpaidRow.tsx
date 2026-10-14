@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
 import { buildFollowupMessage } from '@/components/customers/detail/followupMessage';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
+import { orderNumberTag } from '@/components/orders/OrderNumber';
 
 function WaIcon({ size = 18 }: { size?: number }) {
   return (
@@ -37,7 +38,7 @@ export function UnpaidRow({ order, currency }: Props) {
           {order.customer_name ?? <span className="text-muted-foreground">{t('no_customer')}</span>}
         </p>
         <p className="text-[0.8125rem] text-muted-foreground mt-0.5">
-          {t('order_ref', { number: order.order_number, age: relativeTime(order.created_at) })}
+          {t.rich('order_ref', { number: order.order_number, num: orderNumberTag, age: relativeTime(order.created_at) })}
         </p>
       </Link>
       <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0 sm:w-20 sm:text-right">

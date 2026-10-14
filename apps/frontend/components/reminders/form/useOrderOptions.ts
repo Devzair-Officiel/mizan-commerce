@@ -5,6 +5,7 @@ import { orderDue } from '@/components/customers/detail/followupMessage';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import { useOrder, useOrders } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 /** Valeur du menu pour « Aucune commande » (le formulaire garde une chaîne vide). */
 export const NO_ORDER = 'none';
@@ -28,8 +29,8 @@ export function useOrderOptions(customer: string, order: string) {
   const label = (o: OrderLike) => {
     const amount = orderDue(o);
     return amount > 0
-      ? t('order_option', { number: o.order_number, amount: formatMoney(amount, shop?.currency ?? 'EUR') })
-      : t('order_option_settled', { number: o.order_number });
+      ? t('order_option', { number: isolateNumber(o.order_number), amount: formatMoney(amount, shop?.currency ?? 'EUR') })
+      : t('order_option_settled', { number: isolateNumber(o.order_number) });
   };
   return [{ value: NO_ORDER, label: t('order_none') }, ...orders.map((o) => ({ value: o.id, label: label(o) }))];
 }

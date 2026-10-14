@@ -10,6 +10,7 @@ import { useSaveReminder } from '@/components/reminders/form/useSaveReminder';
 import { useBackOr } from '@/lib/hooks/useBackOr';
 import { useFormatDate } from '@/lib/hooks/useFormat';
 import { useReminder } from '@/lib/hooks/useReminders';
+import { useShop } from '@/lib/hooks/useShop';
 
 const SUBTITLE_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
 
@@ -19,7 +20,10 @@ export default function EditReminderPage() {
   const { id } = useParams<{ id: string }>();
   const formatDate = useFormatDate();
   const back = useBackOr('/reminders');
-  const { data: reminder, isLoading } = useReminder(id);
+  const { data: reminder, isLoading: reminderLoading } = useReminder(id);
+  // Le fuseau de la boutique donne la date et l'heure affichées dans le formulaire.
+  const { isLoading: shopLoading } = useShop();
+  const isLoading = reminderLoading || shopLoading;
   const { save, isPending, conflict } = useSaveReminder(id, back);
 
   if (isLoading || !reminder) {

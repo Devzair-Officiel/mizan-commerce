@@ -4,19 +4,20 @@ import { useWatch, type Control, type FieldErrors, type UseFormRegister, type Us
 import { useTranslations } from 'next-intl';
 import { FormField } from '@/components/form/FormField';
 import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
-import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { cn } from '@/lib/utils';
 import { inOneWeekAt, nextMondayAt, toDateInput, toTimeInput, todayAt, tomorrowAt } from '../reminderDates';
 import type { ReminderFormValues } from './useReminderForm';
 
 const TIME: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
 
-/** Raccourcis de « Quand » : le libellé reçoit l'heure formatée dans la langue de l'interface. */
+/** Raccourcis de « Quand », à l'heure de la boutique : le libellé reçoit l'heure formatée dans la langue de l'interface. */
 const SHORTCUTS = [
-  { key: 'today', date: () => todayAt(18) },
-  { key: 'tomorrow', date: () => tomorrowAt(9) },
-  { key: 'monday', date: () => nextMondayAt(9) },
-  { key: 'week', date: () => inOneWeekAt(9) },
+  { key: 'today', date: (tz: string) => todayAt(18, tz) },
+  { key: 'tomorrow', date: (tz: string) => tomorrowAt(9, tz) },
+  { key: 'monday', date: (tz: string) => nextMondayAt(9, tz) },
+  { key: 'week', date: (tz: string) => inOneWeekAt(9, tz) },
 ] as const;
 
 interface ReminderWhenFieldProps {
@@ -32,12 +33,13 @@ interface ReminderWhenFieldProps {
  */
 export function ReminderWhenField({ control, register, setValue, errors }: ReminderWhenFieldProps) {
   const t = useTranslations('reminders.form');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
+  const tz = useShopTimeZone();
   const [date, time] = useWatch({ control, name: ['date', 'time'] });
 
   function pick(d: Date) {
-    setValue('date', toDateInput(d), { shouldDirty: true, shouldValidate: true });
-    setValue('time', toTimeInput(d), { shouldDirty: true, shouldValidate: true });
+    setValue('date', toDateInput(d, tz), { shouldDirty: true, shouldValidate: true });
+    setValue('time', toTimeInput(d, tz), { shouldDirty: true, shouldValidate: true });
   }
 
   return (
@@ -48,8 +50,8 @@ export function ReminderWhenField({ control, register, setValue, errors }: Remin
       </legend>
       <div className="flex flex-wrap gap-2">
         {SHORTCUTS.map(({ key, date: at }) => {
-          const d = at();
-          const active = toDateInput(d) === date && toTimeInput(d) === time;
+          const d = at(tz);
+          const active = toDateInput(d, tz) === date && toTimeInput(d, tz) === time;
           return (
             <button key={key} type="button" aria-pressed={active} onClick={() => pick(d)}
               className={cn(

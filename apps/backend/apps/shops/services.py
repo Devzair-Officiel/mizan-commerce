@@ -8,8 +8,9 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
-from apps.core.permissions import TOGGLEABLE_MODULES
+from apps.core.permissions import MODULE_REMINDERS, TOGGLEABLE_MODULES
 from apps.core.storage import delete_object, upload_fileobj
+from apps.notes.models import Reminder
 from apps.subscriptions.permissions import shop_has_feature
 
 from .models import Shop, ShopMember
@@ -133,7 +134,8 @@ def update_member_permissions(
     """Met à jour le rôle et/ou les permissions d'un membre.
 
     On ne peut **pas** modifier le rôle d'un `owner`. Les permissions sont
-    ignorées pour les admins (toujours accès total).
+    ignorées pour les admins (toujours accès total). Un employé qui perd les
+    rappels rend ceux qui lui étaient attribués à toute l'équipe.
     """
     if member.role == ShopMember.ROLE_OWNER and role is not None and role != ShopMember.ROLE_OWNER:  # noqa: E501
         raise ValidationError({'role': "Impossible de retirer le rôle owner."})
@@ -149,6 +151,10 @@ def update_member_permissions(
         fields.append('permissions')
     if fields:
         member.save(update_fields=fields)
+    if not member.has_module(MODULE_REMINDERS):
+        # Sans les rappels, ceux qui lui étaient attribués reviennent à toute
+        # l'équipe : sinon ils ne seraient plus dans le badge de personne.
+        Reminder.objects.filter(shop=member.shop, assigned_to=member, status='pending').update(assigned_to=None)  # noqa: E501
     return member
 
 

@@ -7,6 +7,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
 import { RemindersCard } from '@/components/reminders/RemindersCard';
+import { useCan } from '@/lib/hooks/useMe';
 import type { Order } from '@/lib/hooks/useOrders';
 import { OrderActivityTimeline } from './OrderActivityTimeline';
 import { OrderCustomerCard } from './OrderCustomerCard';
@@ -21,6 +22,7 @@ import { OrderStatusStepper } from './OrderStatusStepper';
 import type { OrderDetailState } from './useOrderDetailState';
 import { useOrderMenuActions } from './useOrderMenuActions';
 import { useOrderPrimaryAction } from './useOrderPrimaryAction';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 /**
  * Détail d'une commande. Desktop : objet à gauche (suivi, articles, rappels, notes, historique),
@@ -31,11 +33,13 @@ export function OrderDetailView({ order, state }: { order: Order; state: OrderDe
   const { actions } = state;
   const primary = useOrderPrimaryAction(order, actions);
   const menu = useOrderMenuActions(order, actions, primary?.key);
+  const canReminders = useCan('reminders');
+  const canMessages = useCan('messages');
 
   return (
     <>
       <div className="contents lg:hidden">
-        <TopBar back hideSearch title={order.order_number} action={<DetailActionsMenu actions={menu} variant="sheet" />} />
+        <TopBar back hideSearch title={isolateNumber(order.order_number)} action={<DetailActionsMenu actions={menu} variant="sheet" />} />
       </div>
       <OrderDetailHeader order={order} primary={primary} menu={menu} />
       <div className={`flex flex-col gap-4 p-4 lg:pt-5 ${primary ? 'pb-28' : ''} lg:pb-8`}>
@@ -44,7 +48,7 @@ export function OrderDetailView({ order, state }: { order: Order; state: OrderDe
           <div className={DETAIL_COLUMN}>
             <DetailSlot order="max-lg:order-1"><OrderStatusStepper order={order} actions={actions} /></DetailSlot>
             <DetailSlot order="max-lg:order-3"><OrderItemsCard order={order} /></DetailSlot>
-            <DetailSlot order="max-lg:order-6"><RemindersCard link="order" id={order.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-6">{canReminders && <RemindersCard link="order" id={order.id} />}</DetailSlot>
             <DetailSlot order="max-lg:order-7"><OrderNotesCard orderId={order.id} /></DetailSlot>
             <DetailSlot order="max-lg:order-8"><OrderActivityTimeline orderId={order.id} /></DetailSlot>
           </div>
@@ -56,7 +60,7 @@ export function OrderDetailView({ order, state }: { order: Order; state: OrderDe
             <DetailSlot order="max-lg:order-5">
               <OrderInvoiceCard order={order} onIssue={actions.openInvoice} issueIsPrimary={primary?.key === 'issue_invoice'} />
             </DetailSlot>
-            <DetailSlot order="max-lg:order-9"><PreparedMessageHistory orderId={order.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-9">{canMessages && <PreparedMessageHistory orderId={order.id} />}</DetailSlot>
           </div>
         </div>
       </div>

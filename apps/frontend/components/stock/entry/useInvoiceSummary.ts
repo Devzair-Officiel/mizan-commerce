@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import type { OcrResult } from '@/lib/hooks/useOcr';
 import { useFormat } from '@/lib/hooks/useFormat';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -17,8 +18,8 @@ export function useInvoiceSummary(result: OcrResult | undefined): string | null 
   if (invoice?.invoice_number) {
     const date = invoice.invoice_date;
     parts.push(date
-      ? t('read_number_date', { number: invoice.invoice_number, date: ISO_DATE.test(date) ? f.date(date, { day: 'numeric', month: 'short', year: 'numeric' }) : date })
-      : t('read_number', { number: invoice.invoice_number }));
+      ? t('read_number_date', { number: isolateNumber(invoice.invoice_number), date: ISO_DATE.test(date) ? f.date(date, { day: 'numeric', month: 'short', year: 'numeric' }) : date })
+      : t('read_number', { number: isolateNumber(invoice.invoice_number) }));
   }
   parts.push(t('lines_read', { count: invoice?.lines.length ?? 0 }));
   return parts.join(', ');

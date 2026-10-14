@@ -3,13 +3,11 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { CreditCard, FileText, ShoppingBag, Truck } from 'lucide-react';
+import { orderNumberTag } from '@/components/orders/OrderNumber';
 import type { ActivityEvent } from '@/lib/hooks/useCustomers';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatDateTime, useFormatMoney } from '@/lib/hooks/useFormat';
 import { PAYMENT_TITLE_KEY, PAYMENT_TONE } from './constants';
-
-/** Isole le n° de commande (« 2026-033 ») pour qu'il ne soit pas réordonné dans une phrase en arabe. */
-const isolate = (value: string): string => `\u2068${value}\u2069`;
 
 export function ActivityRow({ item, customerId }: { item: ActivityEvent; customerId: string }) {
   const t = useTranslations('customers.activity');
@@ -26,8 +24,8 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
         <EventIcon className="bg-primary/10 text-primary"><ShoppingBag size={16} /></EventIcon>
         <EventBody
           title={t('order_created')}
-          subtitle={t('order_sub', {
-            number: isolate(item.data.order_number),
+          subtitle={t.rich('order_sub', {
+            number: item.data.order_number, num: orderNumberTag,
             amount: formatMoney(item.data.total_amount, currency, { maximumFractionDigits: 2 }),
           })}
           date={date}
@@ -44,9 +42,9 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
         <EventIcon className={PAYMENT_TONE[status] ?? ''}><CreditCard size={16} /></EventIcon>
         <EventBody
           title={titleKey ? t(titleKey) : t('payment_fallback')}
-          subtitle={t('payment_sub', {
+          subtitle={t.rich('payment_sub', {
             amount: formatMoney(item.data.amount_paid, currency, { maximumFractionDigits: 2 }),
-            number: isolate(item.data.order_number),
+            number: item.data.order_number, num: orderNumberTag,
           })}
           date={date}
         />
@@ -60,7 +58,7 @@ export function ActivityRow({ item, customerId }: { item: ActivityEvent; custome
         <EventIcon className="bg-blue-500/10 text-blue-600 dark:text-blue-400"><Truck size={16} /></EventIcon>
         <EventBody
           title={t('shipment_title')}
-          subtitle={t('shipment_sub', { number: isolate(item.data.order_number) })}
+          subtitle={t.rich('shipment_sub', { number: item.data.order_number, num: orderNumberTag })}
           date={date}
         />
       </EventLink>
@@ -122,7 +120,7 @@ function EventBody({
   date,
 }: {
   title: string;
-  subtitle: string;
+  subtitle: React.ReactNode;
   meta?: string;
   date: string;
 }) {

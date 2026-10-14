@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { useFormSections } from '@/components/form/useFormSections';
 import { ApiError } from '@/lib/api-client';
 import type { ReminderPayload } from '@/lib/hooks/useReminders';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { notify } from '@/lib/notify';
 import { fromInputs, toDateInput, toTimeInput, tomorrowAt } from '../reminderDates';
 
@@ -55,11 +56,11 @@ export interface ReminderDefaults {
   assigned_to?: string | null;
 }
 
-function initialValues(d: ReminderDefaults | undefined): ReminderFormValues {
-  const due = d?.due_at ? new Date(d.due_at) : tomorrowAt(9);
+function initialValues(d: ReminderDefaults | undefined, tz: string): ReminderFormValues {
+  const due = d?.due_at ? new Date(d.due_at) : tomorrowAt(9, tz);
   const category = REMINDER_CATEGORIES.find((c) => c === d?.category) ?? 'free';
   return {
-    title: d?.title ?? '', date: toDateInput(due), time: toTimeInput(due), category,
+    title: d?.title ?? '', date: toDateInput(due, tz), time: toTimeInput(due, tz), category,
     description: d?.description ?? '', customer: d?.customer ?? '', order: d?.order ?? '', assigned_to: d?.assigned_to ?? '',
   };
 }
@@ -80,10 +81,11 @@ function serverFieldErrors(err: unknown): ReminderField[] {
 export function useReminderForm(defaults: ReminderDefaults | undefined, onSubmit: (payload: ReminderPayload) => Promise<void>) {
   const t = useTranslations('reminders.form');
   const schema = useMemo(() => reminderSchema(t), [t]);
+  const tz = useShopTimeZone();
   const form = useForm<ReminderFormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: false,
-    defaultValues: initialValues(defaults),
+    defaultValues: initialValues(defaults, tz),
   });
   const sections = useFormSections(SECTION_OF, form.setFocus);
 
@@ -93,7 +95,7 @@ export function useReminderForm(defaults: ReminderDefaults | undefined, onSubmit
   };
 
   const submit = form.handleSubmit(async ({ date, time, customer, order, assigned_to, ...values }) => {
-    const dueAt = fromInputs(date, time);
+    const dueAt = fromInputs(date, time, tz);
     if (!dueAt) {
       form.setError('date', { type: 'validate', message: t('date_invalid') });
       return sections.reveal('date');

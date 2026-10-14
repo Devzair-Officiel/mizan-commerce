@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Package, Clock, AlertTriangle, Bell } from 'lucide-react';
 import { useFormatMoney, useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
+import { useCan } from '@/lib/hooks/useMe';
 import { useShop } from '@/lib/hooks/useShop';
 import { StatCard } from '@/components/ui/StatCard';
 import { CountersGrid } from '@/components/dashboard/CountersGrid';
@@ -79,11 +80,13 @@ function useActiveShopDashboardData(data: DashboardData) {
   const reminders = getRemindersSub(
     data.today_reminders.count, data.today_reminders.items, t, formatDateTime,
   );
-  return { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders };
+  // Employé sans le module « Rappels » : ni compteur ni liste.
+  const canReminders = useCan('reminders');
+  return { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders, canReminders };
 }
 
 export function ActiveShopDashboard({ data }: Props) {
-  const { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders } =
+  const { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders, canReminders } =
     useActiveShopDashboardData(data);
 
   const { negative_count: negative, out_of_stock_count: outOfStock } = data.low_stock_products;
@@ -122,14 +125,16 @@ export function ActiveShopDashboard({ data }: Props) {
               tone={outOfStock > 0 ? 'red' : 'neutral'}
             />
           )}
-          <StatCard
-            label={t('reminders.title')}
-            value={data.today_reminders.count}
-            sub={reminders.sub}
-            subTone={reminders.tone}
-            href="/reminders"
-            icon={<Bell size={15} />}
-          />
+          {canReminders && (
+            <StatCard
+              label={t('reminders.title')}
+              value={data.today_reminders.count}
+              sub={reminders.sub}
+              subTone={reminders.tone}
+              href="/reminders"
+              icon={<Bell size={15} />}
+            />
+          )}
         </CountersGrid>
       </div>
 
@@ -153,7 +158,9 @@ export function ActiveShopDashboard({ data }: Props) {
             <LowStockList count={data.low_stock_products.count} items={data.low_stock_products.items}
               outOfStockCount={data.low_stock_products.out_of_stock_count} />
           )}
-          <TodayRemindersList count={data.today_reminders.count} items={data.today_reminders.items} />
+          {canReminders && (
+            <TodayRemindersList count={data.today_reminders.count} items={data.today_reminders.items} />
+          )}
         </div>
       </div>
     </>

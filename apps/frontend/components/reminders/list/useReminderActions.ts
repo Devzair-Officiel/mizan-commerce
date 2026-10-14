@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
 import {
   useDeleteReminder, useMarkReminderDone, useReopenReminder, useUpdateReminder, type Reminder,
 } from '@/lib/hooks/useReminders';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { notify } from '@/lib/notify';
 import { inOneHour, nextMondayAt, tomorrowAt } from '../reminderDates';
 
@@ -13,11 +14,11 @@ const DATE_TIME: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric'
 
 export type PostponeKey = 'hour' | 'tomorrow' | 'monday' | 'custom';
 
-/** Choix de « Reporter » ; `custom` ouvre le choix d'une date. */
-export const POSTPONE_OPTIONS: { key: PostponeKey; date?: () => Date }[] = [
+/** Choix de « Reporter », à l'heure de la boutique ; `custom` ouvre le choix d'une date. */
+export const POSTPONE_OPTIONS: { key: PostponeKey; date?: (timeZone: string) => Date }[] = [
   { key: 'hour', date: inOneHour },
-  { key: 'tomorrow', date: () => tomorrowAt(9) },
-  { key: 'monday', date: () => nextMondayAt(9) },
+  { key: 'tomorrow', date: (tz) => tomorrowAt(9, tz) },
+  { key: 'monday', date: (tz) => nextMondayAt(9, tz) },
   { key: 'custom' },
 ];
 
@@ -32,7 +33,8 @@ export function canFollowUp(r: Reminder): boolean {
  */
 export function useReminderActions() {
   const t = useTranslations('reminders.list');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
+  const tz = useShopTimeZone();
   const markDone = useMarkReminderDone();
   const reopen = useReopenReminder();
   const update = useUpdateReminder();
@@ -67,7 +69,7 @@ export function useReminderActions() {
 
   function postpone(r: Reminder, key: PostponeKey) {
     const option = POSTPONE_OPTIONS.find((o) => o.key === key);
-    if (option?.date) postponeTo(r, option.date());
+    if (option?.date) postponeTo(r, option.date(tz));
     else setPickDate(r);
   }
 

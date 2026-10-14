@@ -9,6 +9,7 @@ import { ReminderForm } from '@/components/reminders/form/ReminderForm';
 import { useSaveReminder } from '@/components/reminders/form/useSaveReminder';
 import { useBackOr } from '@/lib/hooks/useBackOr';
 import { useOrder } from '@/lib/hooks/useOrders';
+import { useShop } from '@/lib/hooks/useShop';
 
 /** Ouvert depuis une fiche (`?customer=` ou `?order=`) : liens pré-remplis, retour (« Retour ») vers la fiche. */
 function NewReminderContent() {
@@ -17,8 +18,10 @@ function NewReminderContent() {
   const searchParams = useSearchParams();
   const customerId = searchParams.get('customer') ?? '';
   const orderId = searchParams.get('order') ?? '';
-  // La commande donne son client : attendre qu'elle soit chargée avant de remplir le formulaire.
-  const { data: order, isLoading } = useOrder(orderId);
+  // La commande donne son client, la boutique son fuseau : les attendre avant de remplir le formulaire.
+  const { data: order, isLoading: orderLoading } = useOrder(orderId);
+  const { isLoading: shopLoading } = useShop();
+  const isLoading = orderLoading || shopLoading;
   const back = useBackOr(orderId ? `/orders/${orderId}` : customerId ? `/customers/${customerId}` : '/reminders');
   const { save, isPending, conflict } = useSaveReminder(undefined, back);
 

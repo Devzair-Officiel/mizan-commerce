@@ -1,4 +1,5 @@
 import type { OrderSummary } from '@/lib/hooks/useOrders';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 type WaTranslator = (key: string, params?: Record<string, string | number>) => string;
 type MoneyFmt = (v: string | number, currency: string, opts?: Intl.NumberFormatOptions) => string;
@@ -22,7 +23,7 @@ export function buildFollowupMessage(
   const firstName = name.trim().split(/\s+/)[0] ?? '';
   const money = (v: string | number) => formatMoney(v, currency, { maximumFractionDigits: 2 });
   const lines = orders.map((o) => tWa('order_line', {
-    number: o.order_number,
+    number: isolateNumber(o.order_number),
     date: formatDate(new Date(o.created_at), { day: 'numeric', month: 'short', year: 'numeric' }),
     amount: money(orderDue(o)),
   }));

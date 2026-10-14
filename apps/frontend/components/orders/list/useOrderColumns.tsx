@@ -9,6 +9,7 @@ import type { DataTableColumn } from '@/components/list/dataTableTypes';
 import { bucketOf } from './bucket';
 import { STATUS_BAR } from './constants';
 import { OrderPaymentBadge } from './OrderPaymentBadge';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 function itemsPreview(order: OrderSummary): string {
   return order.items_preview
@@ -51,7 +52,7 @@ export function useOrderColumns(currency: string): DataTableColumn<OrderSummary>
 
   return [
     { key: 'order_number', header: t('column_number'), sortable: true, firstDirection: 'desc',
-      cell: (o) => <span className={`${muted} tabular-nums`}>#{o.order_number}</span> },
+      cell: (o) => <span className={`${muted} tabular-nums`}><OrderNumber>#{o.order_number}</OrderNumber></span> },
     { key: 'customer__name', header: t('column_client_items', { kind }), sortable: true, primary: true,
       cell: (o) => <ClientCell order={o} noClient={t('no_client')} /> },
     { key: 'created_at', header: t('column_date'), sortable: true, firstDirection: 'desc',

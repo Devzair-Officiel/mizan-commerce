@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Bell, Download, Receipt, Undo2, XCircle } from 'lucide-react';
 import type { DetailMenuActions } from '@/components/detail/types';
+import { useCan } from '@/lib/hooks/useMe';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
@@ -23,6 +24,7 @@ export function useOrderMenuActions(
   const t = useTranslations('orders.detail');
   const label = useOrderStatusLabel();
   const { data: shop } = useShop();
+  const canReminders = useCan('reminders');
   const items: OrderAction[] = [];
 
   const revert = order.status === 'cancelled' ? null : getRevertStatus(order.status, shop?.fulfillment_mode ?? null);
@@ -37,7 +39,7 @@ export function useOrderMenuActions(
   if (order.customer && order.customer_phone) {
     items.push({ key: 'whatsapp', icon: WhatsAppIcon, label: t('send_whatsapp'), onSelect: () => actions.openWhatsApp(templateFor(order)) });
   }
-  if (order.customer) {
+  if (order.customer && canReminders) {
     items.push({ key: 'reminder', icon: Bell, label: t('reminder_schedule'), onSelect: actions.scheduleReminder });
   }
   const danger: OrderAction | null = STATUS_ALLOWS_CANCEL.has(order.status)

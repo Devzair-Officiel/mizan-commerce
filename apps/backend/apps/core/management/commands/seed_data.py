@@ -149,9 +149,9 @@ class Command(BaseCommand):
             shop=shop_fr,
             user=sara,
             role="staff",
-            permissions=["products", "orders", "customers", "stock"],
+            permissions=["products", "orders", "customers", "stock", "reminders"],
         )
-        self.stdout.write(f"    + Staff : {sara.email} (4 modules)")
+        self.stdout.write(f"    + Staff : {sara.email} (5 modules)")
 
         shop_fr.catalog_kind = 'both'
         shop_fr.fulfillment_mode = 'on_site'

@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
 import { useCreateReminder, useFindFollowupReminder, useUpdateReminder, type Reminder } from '@/lib/hooks/useReminders';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { notify } from '@/lib/notify';
 import { tomorrowAt } from './reminderDates';
 
@@ -24,7 +25,8 @@ export const FOLLOWUP_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month
  */
 export function useFollowupReminder() {
   const t = useTranslations('reminders.followup');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
+  const tz = useShopTimeZone();
   const find = useFindFollowupReminder();
   const create = useCreateReminder();
   const update = useUpdateReminder();
@@ -38,7 +40,7 @@ export function useFollowupReminder() {
   }
 
   async function schedule(target: FollowupTarget) {
-    const dueAt = tomorrowAt(9).toISOString();
+    const dueAt = tomorrowAt(9, tz).toISOString();
     setChecking(true);
     try {
       const existing = await find(target.customerId);

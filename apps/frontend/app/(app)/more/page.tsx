@@ -5,24 +5,35 @@ import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { Button } from '@/components/ui/button';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import { useMe } from '@/lib/hooks/useMe';
+import { passesGate, type Gate } from '@/lib/navigation';
 import Link from 'next/link';
 
 // Libellés sous `layout.nav.<clé>` ; les entrées Stock n'existent pas pour une boutique de services.
-const MENU_ITEMS = [
-  { href: '/invoices', label: 'invoices', stock: false },
-  { href: '/stock/entree', label: 'stock_in', stock: true },
-  { href: '/stock/sortie', label: 'stock_out', stock: true },
-  { href: '/reminders', label: 'reminders', stock: false },
+// Accès : mêmes règles que le menu (`gate`).
+type MenuItem = {
+  href: string;
+  label: 'invoices' | 'stock_in' | 'stock_out' | 'reminders' | 'notes' | 'zakat' | 'settings';
+  stock: boolean;
+  gate?: Gate;
+};
+
+const MENU_ITEMS: readonly MenuItem[] = [
+  { href: '/invoices', label: 'invoices', stock: false, gate: { kind: 'module', module: 'invoices' } },
+  { href: '/stock/entree', label: 'stock_in', stock: true, gate: { kind: 'module', module: 'stock' } },
+  { href: '/stock/sortie', label: 'stock_out', stock: true, gate: { kind: 'module', module: 'stock' } },
+  { href: '/reminders', label: 'reminders', stock: false, gate: { kind: 'module', module: 'reminders' } },
   { href: '/notes', label: 'notes', stock: false },
-  { href: '/zakat', label: 'zakat', stock: false },
-  { href: '/settings', label: 'settings', stock: false },
-] as const;
+  { href: '/zakat', label: 'zakat', stock: false, gate: { kind: 'admin' } },
+  { href: '/settings', label: 'settings', stock: false, gate: { kind: 'admin' } },
+];
 
 export default function MorePage() {
   const t = useTranslations('layout');
   const router = useRouter();
   const kind = useCatalogKind();
-  const items = MENU_ITEMS.filter((item) => !item.stock || kind !== 'services');
+  const membership = useMe().data?.membership ?? null;
+  const items = MENU_ITEMS.filter((item) => (!item.stock || kind !== 'services') && passesGate(item.gate, membership));
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });

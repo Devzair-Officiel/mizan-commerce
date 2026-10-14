@@ -9,6 +9,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
 import { RemindersCard } from '@/components/reminders/RemindersCard';
 import type { ActivityType, Customer } from '@/lib/hooks/useCustomers';
+import { useCan } from '@/lib/hooks/useMe';
 import { CustomerActivityTimeline } from './CustomerActivityTimeline';
 import { CustomerContactCard } from './CustomerContactCard';
 import { CustomerDetailDialogs } from './CustomerDetailDialogs';
@@ -30,6 +31,8 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
   const { primary, menu } = useCustomerActions(customer, state.actions);
   const [activityFilter, setActivityFilter] = useState<ActivityType | null>(null);
   const [pendingOnly, setPendingOnly] = useState(false);
+  const canReminders = useCan('reminders');
+  const canMessages = useCan('messages');
 
   return (
     <>
@@ -42,7 +45,7 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
         <div className={DETAIL_GRID}>
           <div className={DETAIL_COLUMN}>
             <DetailSlot order="max-lg:order-3"><CustomerOrdersCard customer={customer} /></DetailSlot>
-            <DetailSlot order="max-lg:order-4"><RemindersCard link="customer" id={customer.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-4">{canReminders && <RemindersCard link="customer" id={customer.id} />}</DetailSlot>
             <DetailSlot order="max-lg:order-5">
               <CustomerActivityTimeline customerId={customer.id} activityFilter={activityFilter} pendingOnly={pendingOnly}
                 onFilterChange={setActivityFilter} onTogglePending={hasPending(customer) ? () => setPendingOnly((v) => !v) : undefined} />
@@ -52,7 +55,7 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
           <div className={`${DETAIL_COLUMN} lg:sticky lg:top-6`}>
             <DetailSlot order="max-lg:order-2"><CustomerContactCard customer={customer} actions={state.actions} /></DetailSlot>
             <DetailSlot order="max-lg:order-1"><CustomerSituationCard customer={customer} /></DetailSlot>
-            <DetailSlot order="max-lg:order-7"><PreparedMessageHistory customerId={customer.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-7">{canMessages && <PreparedMessageHistory customerId={customer.id} />}</DetailSlot>
           </div>
         </div>
       </div>

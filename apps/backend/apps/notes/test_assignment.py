@@ -1,5 +1,6 @@
 """Rappels attribués à un membre : filtre « Pour », badge et accueil par membre,
-droits d'attribution et réglages des rappels automatiques."""
+droits d'attribution, module « Rappels » des employés et réglages des rappels
+automatiques."""
 
 from datetime import timedelta
 
@@ -17,9 +18,12 @@ from .models import Reminder
 from .tests import setup
 
 
-def add_member(shop, email: str, role: str = 'staff') -> ShopMember:
+def add_member(
+    shop, email: str, role: str = 'staff',
+    permissions: tuple[str, ...] = ('reminders',),
+) -> ShopMember:
     user = User.objects.create_user(email=email, password='Pass123!Strong', full_name=email)  # noqa: E501
-    return ShopMember.objects.create(shop=shop, user=user, role=role)
+    return ShopMember.objects.create(shop=shop, user=user, role=role, permissions=list(permissions))  # noqa: E501
 
 
 class AssignmentTest(TestCase):
@@ -71,7 +75,7 @@ class AssignmentTest(TestCase):
             self.assertEqual(badges['reminders_due'], count, user.email)
 
     def test_dashboard_counts_per_member(self):
-        self.sara.permissions = ['dashboard']
+        self.sara.permissions = ['dashboard', 'reminders']
         self.sara.save()
         self.client.force_authenticate(user=self.sara.user)
         block = self.client.get(reverse('dashboard-today')).data['today_reminders']
@@ -129,6 +133,121 @@ class AssignmentTest(TestCase):
         self.sara.delete()
         self.for_sara.refresh_from_db()
         self.assertIsNone(self.for_sara.assigned_to)
+
+
+class StaffRemindersModuleTest(TestCase):
+    """Module « Rappels » accordé (ou non) à un employé par un administrateur."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner, self.shop, _ = setup('module@example.com')
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.sara = add_member(self.shop, 'sara@example.com', permissions=('orders', 'reminders'))  # noqa: E501
+        self.ines = add_member(self.shop, 'ines@example.com', permissions=('orders', 'dashboard'))  # noqa: E501
+        now = timezone.now()
+        self.team = Reminder.objects.create(shop=self.shop, author=self.owner, title='Équipe', due_at=now)  # noqa: E501
+        self.for_owner = Reminder.objects.create(
+            shop=self.shop, author=self.owner, title='Patron', due_at=now,
+            assigned_to=self.shop.members.get(user=self.owner),
+        )
+
+    def test_admin_grants_the_module(self):
+        self.client.force_authenticate(user=self.owner)
+        url = reverse('shop-member-detail', kwargs={'pk': self.ines.pk})
+        response = self.client.patch(url, {'permissions': ['orders', 'reminders']}, format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.ines.refresh_from_db()
+        self.assertTrue(self.ines.has_module('reminders'))
+
+    def test_staff_with_module_reads_all_and_creates(self):
+        self.client.force_authenticate(user=self.sara.user)
+        titles = {r['title'] for r in self.client.get(reverse('reminder-list')).data['results']}  # noqa: E501
+        self.assertEqual(titles, {'Équipe', 'Patron'})
+        response = self.client.post(reverse('reminder-list'), {
+            'title': 'Par Sara', 'due_at': timezone.now().isoformat(),
+            'category': 'free',
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Reminder.objects.get(title='Par Sara').author, self.sara.user)
+
+    def test_module_removed_returns_reminders_to_the_team(self):
+        self.team.assigned_to = self.sara
+        self.team.save()
+        self.client.force_authenticate(user=self.owner)
+        url = reverse('shop-member-detail', kwargs={'pk': self.sara.pk})
+        self.client.patch(url, {'permissions': ['orders']}, format='json')
+        self.team.refresh_from_db()
+        self.assertIsNone(self.team.assigned_to)
+
+    def test_staff_with_module_receives_and_sees_badge(self):
+        self.client.force_authenticate(user=self.owner)
+        assignees = {m['id'] for m in self.client.get(reverse('reminder-assignees')).data}  # noqa: E501
+        self.assertIn(str(self.sara.pk), assignees)
+        self.assertNotIn(str(self.ines.pk), assignees)
+        response = self.client.patch(
+            reverse('reminder-detail', kwargs={'pk': self.team.pk}),
+            {'assigned_to': str(self.sara.pk)}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(user=self.sara.user)
+        badges = self.client.get(reverse('dashboard-badges')).data
+        self.assertEqual(badges['reminders_due'], 1)
+
+    def test_staff_without_module_is_refused(self):
+        self.client.force_authenticate(user=self.ines.user)
+        detail = {'pk': self.team.pk}
+        for method, url in (
+            ('get', reverse('reminder-list')),
+            ('post', reverse('reminder-list')),
+            ('get', reverse('reminder-summary')),
+            ('get', reverse('reminder-assignees')),
+            ('get', reverse('reminder-settings')),
+            ('get', reverse('reminder-detail', kwargs=detail)),
+            ('patch', reverse('reminder-detail', kwargs=detail)),
+            ('delete', reverse('reminder-detail', kwargs=detail)),
+            ('post', reverse('reminder-done', kwargs=detail)),
+            ('post', reverse('reminder-reopen', kwargs=detail)),
+        ):
+            response = getattr(self.client, method)(url, {}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN, f'{method} {url}')  # noqa: E501
+        self.assertTrue(Reminder.objects.filter(pk=self.team.pk, status='pending').exists())  # noqa: E501
+
+    def test_staff_without_module_has_no_badge_nor_dashboard_reminders(self):
+        self.client.force_authenticate(user=self.ines.user)
+        self.assertNotIn('reminders_due', self.client.get(reverse('dashboard-badges')).data)  # noqa: E501
+        block = self.client.get(reverse('dashboard-today')).data['today_reminders']
+        self.assertEqual(block, {'count': 0, 'items': []})
+
+    def test_staff_without_module_cannot_be_assigned(self):
+        self.client.force_authenticate(user=self.owner)
+        response = self.client.patch(
+            reverse('reminder-detail', kwargs={'pk': self.team.pk}),
+            {'assigned_to': str(self.ines.pk)}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('assigned_to', response.data['errors'])
+
+    def test_staff_with_module_stays_in_its_shop(self):
+        owner_b, shop_b, _ = setup('module-b@example.com')
+        attach_subscription(shop_b, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        other = Reminder.objects.create(shop=shop_b, author=owner_b, title='Ailleurs', due_at=timezone.now())  # noqa: E501
+        stranger = add_member(shop_b, 'stranger@example.com')
+        self.client.force_authenticate(user=self.sara.user)
+        titles = {r['title'] for r in self.client.get(reverse('reminder-list')).data['results']}  # noqa: E501
+        self.assertNotIn('Ailleurs', titles)
+        for method in ('get', 'patch', 'delete'):
+            url = reverse('reminder-detail', kwargs={'pk': other.pk})
+            response = getattr(self.client, method)(url, {}, format='json')
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND, method)
+        done = self.client.post(reverse('reminder-done', kwargs={'pk': other.pk}))
+        self.assertEqual(done.status_code, status.HTTP_404_NOT_FOUND)
+        assignees = {m['id'] for m in self.client.get(reverse('reminder-assignees')).data}  # noqa: E501
+        self.assertNotIn(str(stranger.pk), assignees)
+        response = self.client.post(reverse('reminder-list'), {
+            'title': 'Pour un inconnu', 'due_at': timezone.now().isoformat(),
+            'category': 'free', 'assigned_to': str(stranger.pk),
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class ReminderSettingsTest(TestCase):

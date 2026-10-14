@@ -8,6 +8,7 @@ import { FormField } from '@/components/form/FormField';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
 import { useFormat } from '@/lib/hooks/useFormat';
 import type { StockEntryForm } from './useStockEntryForm';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 interface StockEntrySupplierSectionProps {
   form: StockEntryForm;
@@ -23,7 +24,7 @@ export function StockEntrySupplierSection({ form, open, onToggle }: StockEntrySu
   const [supplier, number, date] = useWatch({ control: form.control, name: ['supplier_name', 'invoice_number', 'invoice_date'] });
   const summary = [
     supplier.trim(),
-    number.trim() ? t('summary_invoice', { number: number.trim() }) : '',
+    number.trim() ? t('summary_invoice', { number: isolateNumber(number.trim()) }) : '',
     date ? f.date(date, { day: 'numeric', month: 'short', year: 'numeric' }) : '',
   ].filter(Boolean).join(', ');
 

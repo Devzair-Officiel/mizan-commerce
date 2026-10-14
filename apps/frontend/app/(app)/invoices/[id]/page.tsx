@@ -14,6 +14,7 @@ import { LinesList } from '@/components/invoices/detail/LinesList';
 import { TotalsCard } from '@/components/invoices/detail/TotalsCard';
 import { StatusActions } from '@/components/invoices/detail/StatusActions';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 export default function InvoiceDetailPage() {
   const t = useTranslations('invoices.detail');
@@ -61,7 +62,7 @@ export default function InvoiceDetailPage() {
 
   return (
     <>
-      <TopBar title={invoice.number} back />
+      <TopBar title={isolateNumber(invoice.number)} back />
       <div className="flex flex-col gap-4 p-4 pb-24">
         <HeroCard invoice={invoice} payment={payment} />
 

@@ -17,11 +17,12 @@ export type ModuleKey =
   | 'invoices'
   | 'stock'
   | 'messages'
-  | 'dashboard';
+  | 'dashboard'
+  | 'reminders';
 
 export const TOGGLEABLE_MODULES: readonly ModuleKey[] = [
   'products', 'orders', 'customers', 'payments',
-  'invoices', 'stock', 'messages', 'dashboard',
+  'invoices', 'stock', 'messages', 'dashboard', 'reminders',
 ] as const;
 
 export interface Membership {

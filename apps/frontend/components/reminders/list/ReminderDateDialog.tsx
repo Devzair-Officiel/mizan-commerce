@@ -10,6 +10,7 @@ import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import type { Reminder } from '@/lib/hooks/useReminders';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { fromInputs, toDateInput, toTimeInput, tomorrowAt } from '../reminderDates';
 
 interface ReminderDateDialogProps {
@@ -26,13 +27,14 @@ export function ReminderDateDialog({ reminder, onClose, onSubmit }: ReminderDate
     date: z.string().min(1, t('date_required')),
     time: z.string().min(1, t('time_required')),
   });
-  const start = tomorrowAt(9);
+  const tz = useShopTimeZone();
+  const start = tomorrowAt(9, tz);
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { date: toDateInput(start), time: toTimeInput(start) },
+    defaultValues: { date: toDateInput(start, tz), time: toTimeInput(start, tz) },
   });
   const submit = handleSubmit(({ date, time }) => {
-    const iso = fromInputs(date, time);
+    const iso = fromInputs(date, time, tz);
     if (!iso) return;
     onSubmit(new Date(iso));
     onClose();

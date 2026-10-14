@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
 import {
   useCreateReminder, useFindFollowupReminder, useUpdateReminder, type Reminder, type ReminderPayload,
 } from '@/lib/hooks/useReminders';
@@ -36,7 +36,7 @@ function useConflictPrompt() {
 export function useSaveReminder(reminderId: string | undefined, onSaved: () => void) {
   const t = useTranslations('reminders.form');
   const tFollowup = useTranslations('reminders.followup');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
   const find = useFindFollowupReminder();
   const create = useCreateReminder();
   const update = useUpdateReminder();

@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Clock } from 'lucide-react';
 import { orderDue } from '@/components/customers/detail/followupMessage';
-import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
+import { orderNumberTag } from '@/components/orders/OrderNumber';
+import { useFormatShopDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import type { Reminder } from '@/lib/hooks/useReminders';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +28,7 @@ function timeTone(r: Reminder): string {
 /** Ligne d'infos d'un rappel : échéance, client, commande, reste dû d'une relance, membre chargé. */
 export function ReminderRowMeta({ reminder: r, currency }: { reminder: Reminder; currency: string }) {
   const t = useTranslations('reminders.list');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
   const formatMoney = useFormatMoney();
   const timeOnly = r.status === 'pending' && (r.moment === 'today' || r.moment === 'tomorrow');
   const isFollowUp = r.category === 'customer_followup' || r.category === 'unpaid';
@@ -44,7 +45,7 @@ export function ReminderRowMeta({ reminder: r, currency }: { reminder: Reminder;
       {r.order_info && (
         <span>
           {t.rich('order_ref', {
-            number: r.order_info.order_number,
+            number: r.order_info.order_number, num: orderNumberTag,
             link: (chunks) => <Link href={`/orders/${r.order_info?.id}`} className={LINK}>{chunks}</Link>,
           })}
         </span>

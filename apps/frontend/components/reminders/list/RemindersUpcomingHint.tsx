@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import type { ReminderSummary } from '@/lib/hooks/useReminders';
 
-/** Sous « À faire » : « Demain : 1 rappel. Cette semaine : 3 rappels. Voir À venir ». */
+/** Sous « À faire » : « Demain : 1 rappel. Dans les 7 jours : 3 rappels. Voir À venir ». */
 export function RemindersUpcomingHint({ summary, onShow }: { summary: ReminderSummary; onShow: () => void }) {
   const t = useTranslations('reminders.list');
   if (summary.upcoming === 0) return null;

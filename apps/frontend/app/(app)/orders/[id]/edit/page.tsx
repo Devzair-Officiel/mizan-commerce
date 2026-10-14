@@ -9,6 +9,7 @@ import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 import { NewSaleScreen } from '@/components/orders/new/NewSaleScreen';
 import { useOrder, type Order } from '@/lib/hooks/useOrders';
 import { useNewSaleForm } from '@/lib/hooks/useNewSaleForm';
+import { isolateNumber } from '@/components/orders/OrderNumber';
 
 const EDITABLE = ['to_prepare', 'prepared'];
 
@@ -38,8 +39,8 @@ export default function EditOrderPage() {
   const t = useTranslations('orders.edit');
   const tDetail = useTranslations('orders.detail');
   const { data: order, isLoading } = useOrder(id);
-  const title = order ? t('topbar_with_number', { number: order.order_number }) : t('topbar');
-  const shortTitle = order ? t('topbar_short_with_number', { number: order.order_number }) : undefined;
+  const title = order ? t('topbar_with_number', { number: isolateNumber(order.order_number) }) : t('topbar');
+  const shortTitle = order ? t('topbar_short_with_number', { number: isolateNumber(order.order_number) }) : undefined;
 
   return (
     <>

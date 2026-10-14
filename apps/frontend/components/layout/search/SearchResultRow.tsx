@@ -6,6 +6,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { SearchHighlight } from './SearchHighlight';
 import type { SearchProduct, SearchCustomer, SearchOrder } from '@/lib/hooks/useSearch';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 const ROW_BASE = 'flex items-center justify-between px-4 py-3.5 text-start bg-card hover:bg-muted active:bg-muted transition-colors border-t border-border first:border-t-0 cursor-pointer min-h-14 outline-none focus-visible:bg-muted';
 
@@ -64,7 +65,7 @@ export function OrderResultRow({ item, query, isActive, id, onClick }: {
     <div role="option" id={id} aria-selected={isActive} tabIndex={-1} onClick={onClick}
       className={`${ROW_BASE} ${isActive ? 'bg-muted' : ''}`}>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-foreground"><SearchHighlight text={item.order_number} query={query} /></p>
+        <p className="text-sm text-foreground"><OrderNumber><SearchHighlight text={item.order_number} query={query} /></OrderNumber></p>
         <p className="text-xs text-muted-foreground">{item.customer_name ?? t('no_customer_name')}</p>
       </div>
       <div className="shrink-0 ms-3 text-end">

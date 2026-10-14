@@ -5,7 +5,7 @@ from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsShopAdmin, get_member, get_shop
+from apps.core.permissions import HasModulePermission, IsShopAdmin, get_member, get_shop
 from .models import Note, Reminder
 from .serializers import (
     AssigneeSerializer, NoteSerializer, ReminderSerializer, ReminderSettingsSerializer,
@@ -14,6 +14,9 @@ from .services import (
     REMINDER_SCOPES, assignable_members, delete_reminder, filter_reminders,
     get_reminder_settings, reminder_counts, reminders_in_scope,
 )
+
+# Rappels : propriétaire et administrateurs, employés à qui le module est accordé.
+HasRemindersModule = HasModulePermission.for_module('reminders')
 
 
 class NoteListCreateView(generics.ListCreateAPIView):
@@ -55,7 +58,7 @@ class NoteDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ReminderListCreateView(generics.ListCreateAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasRemindersModule)
     serializer_class = ReminderSerializer
     filter_backends = (filters.OrderingFilter,)
     ordering_fields = ('due_at', 'done_at')
@@ -86,7 +89,7 @@ class ReminderListCreateView(generics.ListCreateAPIView):
 class ReminderSummaryView(APIView):
     """Compteurs de la page Rappels (onglets, en-tête, groupes à venir), avec les
     mêmes filtres que la liste."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasRemindersModule)
 
     def get(self, request):
         member = get_member(request.user)
@@ -96,7 +99,7 @@ class ReminderSummaryView(APIView):
 
 
 class ReminderDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasRemindersModule)
     serializer_class = ReminderSerializer
 
     def get_serializer_context(self):
@@ -114,7 +117,7 @@ class ReminderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ReminderDoneView(APIView):
     """Marque un rappel comme terminé."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasRemindersModule)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -130,7 +133,7 @@ class ReminderDoneView(APIView):
 
 class ReminderReopenView(APIView):
     """Remet un rappel en attente."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasRemindersModule)
 
     def post(self, request, pk):
         shop = get_shop(request.user)
@@ -146,7 +149,7 @@ class ReminderReopenView(APIView):
 
 class ReminderAssigneeListView(generics.ListAPIView):
     """Membres à qui attribuer un rappel : ceux qui ont accès aux rappels."""
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, HasRemindersModule)
     serializer_class = AssigneeSerializer
     pagination_class = None
 
@@ -160,9 +163,9 @@ class IsShopAdminOrReadOnly(IsShopAdmin):
 
 
 class ReminderSettingsView(generics.RetrieveUpdateAPIView):
-    """Rappels automatiques : lus par tous, modifiés par le propriétaire et les
-    administrateurs."""
-    permission_classes = (IsAuthenticated, IsShopAdminOrReadOnly)
+    """Rappels automatiques : lus par les membres qui ont les rappels, modifiés par
+    le propriétaire et les administrateurs."""
+    permission_classes = (IsAuthenticated, HasRemindersModule, IsShopAdminOrReadOnly)
     serializer_class = ReminderSettingsSerializer
     http_method_names = ('get', 'patch')
 

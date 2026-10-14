@@ -110,7 +110,8 @@ def seed_audit_shop(*, stdout=None) -> Shop:
         password='Mizan1234!',
     )
     ShopMemberFactory(
-        shop=shop, user=staff, role='staff', permissions=['orders', 'customers'],
+        shop=shop, user=staff, role='staff',
+        permissions=['orders', 'customers', 'reminders'],
     )
     Subscription.objects.update_or_create(
         shop=shop,
