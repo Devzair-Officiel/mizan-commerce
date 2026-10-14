@@ -442,3 +442,110 @@ class CustomerActivityWindowTest(TestCase):
             object_id=str(self.orders[0].pk), object_repr='A-0', changes={'to': 'paid'},
         )
         self.assertNotIn(f'payment-{self.orders[0].pk}', self.ids(limit=1))
+
+
+class CustomerActivityExportTest(TestCase):
+    """Export CSV de l'activité : types, période, format, droits, journal d'audit."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup('export@example.com')
+        User.objects.filter(pk=self.user.pk).update(full_name='Youssef Benali')
+        self.user.refresh_from_db()
+        Shop.objects.filter(pk=self.shop.pk).update(timezone='Europe/Paris')
+        self.shop.refresh_from_db()
+        self.client.force_authenticate(user=self.user)
+        self.customer = Customer.objects.create(shop=self.shop, first_name='Karima', name='Bensouda')  # noqa: E501
+        self.recent = self._order('C-1', '1234.50', paid='1000.00', payment='partial', when=datetime(2026, 9, 30, 21, 30, tzinfo=dt_timezone.utc))  # noqa: E501
+        self.old = self._order('C-0', '20.00', when=datetime(2024, 5, 1, 9, 0, tzinfo=dt_timezone.utc))  # noqa: E501
+        note = Note.objects.create(shop=self.shop, customer=self.customer, order=self.recent, author=self.user, content='=SOMME(A1:A2)')  # noqa: E501
+        Note.objects.filter(pk=note.pk).update(created_at=datetime(2026, 10, 2, 8, 0, tzinfo=dt_timezone.utc))  # noqa: E501
+        self.url = reverse('customer-activity-export', kwargs={'pk': self.customer.pk})
+        self.summary_url = reverse('customer-activity-export-summary', kwargs={'pk': self.customer.pk})  # noqa: E501
+
+    def _order(self, number, total, *, when, paid='0', payment='unpaid'):
+        order = Order.objects.create(
+            shop=self.shop, customer=self.customer, order_number=number, created_by=self.user,  # noqa: E501
+            total_amount=Decimal(total), amount_paid=Decimal(paid), payment_status=payment,  # noqa: E501
+        )
+        Order.objects.filter(pk=order.pk).update(created_at=when)
+        return order
+
+    def _csv(self, **params) -> tuple[bytes, list[list[str]]]:
+        response = self.client.get(self.url, params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = b''.join(response.streaming_content)
+        lines = body.decode('utf-8-sig').splitlines()
+        return body, [line.split(';') for line in lines]
+
+    def test_bom_separator_columns_and_filename(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
+        self.assertIn('activite-karima-bensouda-', response['Content-Disposition'])
+        body, rows = self._csv()
+        self.assertTrue(body.startswith(b'\xef\xbb\xbf'))
+        self.assertEqual(rows[0], ['Date', 'Type', 'Référence', 'Description', 'Montant', 'Statut', 'Auteur'])  # noqa: E501
+        # 2 commandes + 2 paiements + 1 note, du plus récent au plus ancien.
+        self.assertEqual(len(rows), 6)
+        self.assertEqual([r[1] for r in rows[1:]], ['Note', 'Commande', 'Paiement', 'Commande', 'Paiement'])  # noqa: E501
+
+    def test_each_type(self):
+        _, rows = self._csv(types='order')
+        # 21:30 UTC le 30 septembre : 23:30 à Paris, montant au format français.
+        self.assertEqual(rows[1], ['2026-09-30 23:30', 'Commande', 'C-1', 'Commande créée', '1234,50', 'À préparer', 'Youssef Benali'])  # noqa: E501
+        _, rows = self._csv(types='payment')
+        self.assertEqual(rows[1][1:6], ['Paiement', 'C-1', 'Paiement partiel', '1000,00', 'Partiel'])  # noqa: E501
+        _, rows = self._csv(types='note')
+        # Formule neutralisée, référence de la commande liée.
+        self.assertEqual(rows[1][1:], ['Note', 'C-1', "'=SOMME(A1:A2)", '', '', 'Youssef Benali'])  # noqa: E501
+        Order.objects.filter(pk=self.old.pk).update(status='shipped')
+        _, rows = self._csv(types='shipment')
+        self.assertEqual(rows[1][1:6], ['Expédition', 'C-0', 'Expédition mise à jour', '', 'Expédiée'])  # noqa: E501
+
+    def test_period_in_shop_timezone(self):
+        # Le 30 septembre à 23:30 (Paris) est dans octobre en UTC+0 mais pas à Paris.
+        _, rows = self._csv(types='order', **{'from': '2026-10-01', 'to': '2026-10-14'})
+        self.assertEqual(len(rows), 1)
+        _, rows = self._csv(types='order', **{'from': '2025-10-14', 'to': '2026-09-30'})
+        self.assertEqual([r[2] for r in rows[1:]], ['C-1'])
+
+    def test_user_language_decimal_format(self):
+        User.objects.filter(pk=self.user.pk).update(language='en')
+        self.user.refresh_from_db()
+        _, rows = self._csv(types='order')
+        self.assertEqual(rows[0][0], 'Date')
+        self.assertEqual(rows[1][4], '1234.50')
+        # La langue de l'interface l'emporte sur celle du compte.
+        _, rows = self._csv(types='order', lang='fr')
+        self.assertEqual((rows[0][4], rows[1][4]), ('Montant', '1234,50'))
+        _, rows = self._csv(types='order', lang='ar')
+        self.assertEqual((rows[0][0], rows[1][1], rows[1][4]), ('التاريخ', 'طلب', '1234.50'))  # noqa: E501
+
+    def test_summary_counts_rows_before_download(self):
+        data = self.client.get(self.summary_url, {'from': '2025-10-14'}).data
+        self.assertEqual(data['counts'], {'order': 1, 'payment': 1, 'shipment': 0, 'note': 1})  # noqa: E501
+        data = self.client.get(self.summary_url).data
+        self.assertEqual(data['counts']['order'], 2)
+
+    def test_invalid_filters_rejected(self):
+        for params in ({'types': 'order,bogus'}, {'types': ''}, {'from': '2026-10-02', 'to': '2026-10-01'}, {'from': 'hier'}, {'lang': 'de'}):  # noqa: E501
+            self.assertEqual(self.client.get(self.url, params).status_code, status.HTTP_400_BAD_REQUEST, params)  # noqa: E501
+
+    def test_audit_log(self):
+        self._csv(types='order,note', **{'from': '2025-10-14'})
+        log = AuditLog.objects.get(action='customer_activity_export')
+        self.assertEqual((log.shop_id, log.user, log.object_id), (self.shop.id, self.user, str(self.customer.pk)))  # noqa: E501
+        self.assertEqual(log.changes, {'types': ['note', 'order'], 'pending': False, 'rows': 2, 'from': '2025-10-14', 'to': None})  # noqa: E501
+
+    def test_rights_and_isolation(self):
+        staff = User.objects.create_user(email='export-staff@example.com', password='Pass123!Strong')  # noqa: E501
+        ShopMember.objects.create(shop=self.shop, user=staff, role='staff', permissions=['orders'])  # noqa: E501
+        self.client.force_authenticate(user=staff)
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
+        self.assertEqual(self.client.get(self.summary_url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
+        _, shop_b = setup('export-other@example.com')
+        customer_b = Customer.objects.create(shop=shop_b, name='Client B')
+        self.client.force_authenticate(user=self.user)
+        url_b = reverse('customer-activity-export', kwargs={'pk': customer_b.pk})
+        self.assertEqual(self.client.get(url_b).status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(AuditLog.objects.filter(action='customer_activity_export').exists())  # noqa: E501

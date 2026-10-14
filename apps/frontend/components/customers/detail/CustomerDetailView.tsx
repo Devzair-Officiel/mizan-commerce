@@ -47,7 +47,7 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
             <DetailSlot order="max-lg:order-3"><CustomerOrdersCard customer={customer} /></DetailSlot>
             <DetailSlot order="max-lg:order-4">{canReminders && <RemindersCard link="customer" id={customer.id} />}</DetailSlot>
             <DetailSlot order="max-lg:order-5">
-              <CustomerActivityTimeline customerId={customer.id} activityFilter={activityFilter} pendingOnly={pendingOnly}
+              <CustomerActivityTimeline customerId={customer.id} customerName={customer.display_name} activityFilter={activityFilter} pendingOnly={pendingOnly}
                 onFilterChange={setActivityFilter} onTogglePending={hasPending(customer) ? () => setPendingOnly((v) => !v) : undefined} />
             </DetailSlot>
             <DetailSlot order="max-lg:order-6"><CustomerNotesCard customer={customer} notes={state.notes} /></DetailSlot>

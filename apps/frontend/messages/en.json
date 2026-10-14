@@ -499,6 +499,23 @@
       "empty_sub": "Customer activity will appear here.",
       "chip_pending": "To collect"
     },
+    "export": {
+      "button": "Export",
+      "title": "Export activity",
+      "content_label": "Content",
+      "type": "{type, select, order {Orders} payment {Payments} shipment {Shipments} note {Notes} other {Other}}",
+      "period_label": "Period",
+      "period": "{period, select, all {All history} 12m {Last 12 months} custom {Custom} other {Other}}",
+      "from": "From",
+      "to": "To",
+      "pending_note": "Only orders still to be collected, as in the activity shown.",
+      "format": "<b>Spreadsheet file (CSV)</b>, opens in Excel, LibreOffice or Google Sheets.",
+      "rows": "{count, plural, =0 {No rows.} one {# row.} other {# rows.}}",
+      "cancel": "Cancel",
+      "download": "Download the file",
+      "types_required": "Choose at least one content type.",
+      "dates_order": "The end date is before the start date."
+    },
     "activity": {
       "order_created": "Order created",
       "order_sub": "Order <num>{number}</num> · {amount}",

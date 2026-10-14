@@ -1040,6 +1040,23 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-104 — Exporter l'activité d'un client (proposée)
+
+**En tant que** commerçant,  
+**je veux** exporter l'historique d'un client (commandes, paiements, expéditions, notes),  
+**afin de** le conserver, le transmettre à mon comptable ou régler un litige.
+
+### Critères d'acceptation
+
+- Depuis la carte Activité de la fiche client, un bouton « Exporter » ouvre une fenêtre (par le bas sur mobile).
+- L'utilisateur choisit le contenu (pré-coché selon le filtre affiché, avec le nombre de lignes de chaque type) et la période : tout l'historique, les 12 derniers mois ou des dates choisies (jours au fuseau de la boutique).
+- Le nombre de lignes du fichier est annoncé avant le téléchargement.
+- Le fichier est un CSV (UTF-8 avec BOM, séparateur « ; ») : date, type, référence, description, montant, statut, auteur, du plus récent au plus ancien ; en-têtes et séparateur décimal dans la langue de l'interface ; une formule saisie dans une note est neutralisée.
+- Mêmes droits que l'activité (module Clients) ; seuls les clients de la boutique sont exportables.
+- Chaque export est consigné dans le journal d'audit (types, période, nombre de lignes).
+
+---
+
 # 19. URS — Sécurité et droits
 
 ## URS-061 — Séparer les données par boutique
@@ -2229,12 +2246,12 @@ Fonctionnalités :
 - Demande de commande depuis la page
 - Formulaire de contact
 - Statistiques de vues
-- Exports commandes / stock / zakat
+- Exports commandes / stock / zakat, activité d'un client
 
 URS concernées :
 
 ```text
-URS-058 à URS-060
+URS-058 à URS-060, URS-104 (proposée)
 ```
 
 ---

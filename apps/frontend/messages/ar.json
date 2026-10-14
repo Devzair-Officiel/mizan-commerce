@@ -499,6 +499,23 @@
       "empty_sub": "سيظهر نشاط العميل هنا.",
       "chip_pending": "للتحصيل"
     },
+    "export": {
+      "button": "تصدير",
+      "title": "تصدير النشاط",
+      "content_label": "المحتوى",
+      "type": "{type, select, order {الطلبات} payment {المدفوعات} shipment {الشحنات} note {الملاحظات} other {أخرى}}",
+      "period_label": "الفترة",
+      "period": "{period, select, all {كل السجل} 12m {آخر 12 شهرًا} custom {مخصصة} other {أخرى}}",
+      "from": "من",
+      "to": "إلى",
+      "pending_note": "الطلبات التي لم تُحصَّل بعد فقط، كما في النشاط المعروض.",
+      "format": "<b>ملف جدول بيانات (CSV)</b>، يُفتح في Excel أو LibreOffice أو Google Sheets.",
+      "rows": "{count, plural, =0 {لا توجد أسطر.} one {سطر واحد.} two {سطران.} few {# أسطر.} many {# سطرًا.} other {# سطر.}}",
+      "cancel": "إلغاء",
+      "download": "تنزيل الملف",
+      "types_required": "اختر محتوى واحدًا على الأقل.",
+      "dates_order": "تاريخ النهاية يسبق تاريخ البداية."
+    },
     "activity": {
       "order_created": "تم إنشاء الطلب",
       "order_sub": "طلب <num>{number}</num> · {amount}",

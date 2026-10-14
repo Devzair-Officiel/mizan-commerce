@@ -499,6 +499,23 @@
       "empty_sub": "L'activité du client apparaîtra ici.",
       "chip_pending": "À encaisser"
     },
+    "export": {
+      "button": "Exporter",
+      "title": "Exporter l'activité",
+      "content_label": "Contenu",
+      "type": "{type, select, order {Commandes} payment {Paiements} shipment {Expéditions} note {Notes} other {Autre}}",
+      "period_label": "Période",
+      "period": "{period, select, all {Tout l'historique} 12m {12 derniers mois} custom {Personnalisée} other {Autre}}",
+      "from": "Du",
+      "to": "Au",
+      "pending_note": "Seulement les commandes à encaisser, comme l'activité affichée.",
+      "format": "<b>Fichier tableur (CSV)</b>, s'ouvre dans Excel, LibreOffice ou Google Sheets.",
+      "rows": "{count, plural, =0 {Aucune ligne.} one {# ligne.} other {# lignes.}}",
+      "cancel": "Annuler",
+      "download": "Télécharger le fichier",
+      "types_required": "Choisissez au moins un contenu.",
+      "dates_order": "La date de fin précède la date de début."
+    },
     "activity": {
       "order_created": "Commande créée",
       "order_sub": "Commande <num>{number}</num> · {amount}",

@@ -7,9 +7,12 @@ import { useCustomerActivity, type ActivityType } from '@/lib/hooks/useCustomers
 import { SectionCard } from '@/components/ui/SectionCard';
 import { ShowMoreList } from '@/components/ui/ShowMoreList';
 import { ActivityRow, ActivitySkeletonRow } from './ActivityRow';
+import { ActivityExportButton } from './export/ActivityExportButton';
 
 interface CustomerActivityTimelineProps {
   customerId: string;
+  /** Nom du client, rappelé dans la fenêtre d'export. */
+  customerName: string;
   activityFilter: ActivityType | null;
   pendingOnly: boolean;
   onFilterChange: (filter: ActivityType | null) => void;
@@ -18,7 +21,7 @@ interface CustomerActivityTimelineProps {
 }
 
 export function CustomerActivityTimeline({
-  customerId, activityFilter, pendingOnly, onFilterChange, onTogglePending,
+  customerId, customerName, activityFilter, pendingOnly, onFilterChange, onTogglePending,
 }: CustomerActivityTimelineProps) {
   const t = useTranslations('customers.timeline');
   // Une puce change la clé de la requête : la liste repart de 5 éléments.
@@ -39,7 +42,12 @@ export function CustomerActivityTimeline({
 
   return (
     <SectionCard title={t('title')}
-      rightSlot={totalCount > 0 ? <span className="text-muted-foreground tabular-nums">{totalCount}</span> : undefined}>
+      rightSlot={
+        <div className="flex items-center gap-3">
+          {totalCount > 0 && <span className="text-muted-foreground tabular-nums">{totalCount}</span>}
+          <ActivityExportButton customerId={customerId} customerName={customerName} activityFilter={activityFilter} pendingOnly={pendingOnly} />
+        </div>
+      }>
       <div className="overflow-x-auto px-4 py-3 lg:px-5">
         <div className="flex gap-2 w-max">
           {chips.map(({ key, label }) => {

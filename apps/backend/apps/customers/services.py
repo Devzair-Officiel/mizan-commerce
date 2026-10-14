@@ -1,24 +1,33 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import datetime
+import csv
+import heapq
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Iterable, TypedDict
+from zoneinfo import ZoneInfo
 
 import phonenumbers
+from babel.numbers import get_decimal_symbol
 from django.db.models import (
     CharField, Count, DecimalField, Exists, F, Max, OuterRef, Q, QuerySet, Subquery,
     Sum, Value,
 )
-from django.db.models.functions import Cast, Coalesce
+from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
+from django.utils.text import slugify
 
+from apps.accounts.models import User
 from apps.core.models import AuditLog
 from apps.core.pagination import TimelineSource
 from apps.notes.models import Note
 from apps.orders.models import Order
 from apps.orders.services import current_month_bounds
+from apps.shops.models import Shop
 
+from .export_texts import EXPORT_COLUMNS, EXPORT_TEXTS
 from .models import Customer
 
 
@@ -184,7 +193,15 @@ EVENT_ORDER = 'order'
 EVENT_PAYMENT = 'payment'
 EVENT_SHIPMENT = 'shipment'
 EVENT_NOTE = 'note'
-ALL_TYPES: frozenset[str] = frozenset({EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT, EVENT_NOTE})  # noqa: E501
+EVENT_TYPES = (EVENT_ORDER, EVENT_PAYMENT, EVENT_SHIPMENT, EVENT_NOTE)
+ALL_TYPES: frozenset[str] = frozenset(EVENT_TYPES)
+# Date de l'événement dans la requête de chaque type (`event_at` : tirée du journal).
+EVENT_DATE_FIELDS = {
+    EVENT_ORDER: 'created_at', EVENT_PAYMENT: 'event_at',
+    EVENT_SHIPMENT: 'event_at', EVENT_NOTE: 'created_at',
+}
+# Bornes [début, fin) d'une période ; `None` : sans limite.
+Period = tuple[datetime | None, datetime | None]
 
 
 class TimelineEvent(TypedDict):
@@ -269,7 +286,28 @@ def customer_timeline_sources(
     Chaque source est triée par la date de son événement, la plus récente d'abord :
     la timeline n'est jamais chargée en entier.
     """
-    selected = {t for t in (types or ALL_TYPES) if t in ALL_TYPES}
+    querysets = _timeline_querysets(customer, types or ALL_TYPES, pending_only)
+    return [(qs, _TIMELINE_EVENTS[kind]) for kind, qs in querysets.items()]
+
+
+def _within(qs: QuerySet, field: str, period: Period) -> QuerySet:
+    start, end = period
+    if start is not None:
+        qs = qs.filter(**{f'{field}__gte': start})
+    if end is not None:
+        qs = qs.filter(**{f'{field}__lt': end})
+    return qs
+
+
+def _timeline_querysets(
+    customer: Customer,
+    types: Iterable[str],
+    pending_only: bool,
+    period: Period = (None, None),
+) -> dict[str, QuerySet]:
+    """Requête de chaque type d'événement choisi, dans l'ordre de `EVENT_TYPES`,
+    limitée à `period` ([début, fin)) et triée du plus récent au plus ancien."""
+    selected = set(types) & ALL_TYPES
     orders = Order.objects.filter(customer=customer, shop_id=customer.shop_id).only(
         'id', 'shop_id', 'order_number', 'total_amount',
         'status', 'payment_status', 'amount_paid', 'created_at',
@@ -277,24 +315,191 @@ def customer_timeline_sources(
     if pending_only:
         orders = orders.filter(payment_status__in=['unpaid', 'partial']).exclude(status='cancelled')  # noqa: E501
 
-    sources: list[TimelineSource] = []
+    built: dict[str, QuerySet] = {}
     if EVENT_ORDER in selected:
-        sources.append((orders.order_by('-created_at', '-pk'), _order_event))
+        built[EVENT_ORDER] = orders
     if EVENT_PAYMENT in selected:
-        paid = orders.annotate(event_at=_latest_order_log('order_payment_change'))
-        sources.append((paid.order_by('-event_at', '-pk'), _payment_event))
+        built[EVENT_PAYMENT] = orders.annotate(event_at=_latest_order_log('order_payment_change'))  # noqa: E501
     if EVENT_SHIPMENT in selected:
-        shipped = orders.filter(status='shipped').annotate(
+        built[EVENT_SHIPMENT] = orders.filter(status='shipped').annotate(
             event_at=_latest_order_log('order_status_change', to='shipped'),
         )
-        sources.append((shipped.order_by('-event_at', '-pk'), _shipment_event))
     if EVENT_NOTE in selected:
         notes = Note.objects.filter(customer=customer, shop_id=customer.shop_id)
         if pending_only:
             notes = notes.filter(order__in=orders.values('pk'))
-        notes = notes.select_related('author').only(
+        built[EVENT_NOTE] = notes.select_related('author').only(
             'id', 'content', 'order_id', 'created_at',
             'author__full_name', 'author__email',
         )
-        sources.append((notes.order_by('-created_at', '-pk'), _note_event))
-    return sources
+    return {
+        kind: _within(qs, EVENT_DATE_FIELDS[kind], period).order_by(
+            f'-{EVENT_DATE_FIELDS[kind]}', '-pk',
+        )
+        for kind, qs in built.items()
+    }
+
+
+_TIMELINE_EVENTS = {
+    EVENT_ORDER: _order_event,
+    EVENT_PAYMENT: _payment_event,
+    EVENT_SHIPMENT: _shipment_event,
+    EVENT_NOTE: _note_event,
+}
+
+
+
+
+# ── Export CSV de l'activité ─────────────────────────────────────────────────
+
+class _Echo:
+    """Tampon de `csv.writer` : rend la ligne au lieu de l'écrire (réponse en flux)."""
+
+    def write(self, value: str) -> str:
+        return value
+
+
+@dataclass(frozen=True)
+class ActivityExport:
+    filename: str
+    rows: Iterator[str]
+
+
+def local_period(
+    shop: Shop, date_from: date | None, date_to: date | None,
+) -> Period:
+    """Bornes [début, fin) des jours `date_from` à `date_to` inclus, au fuseau de la
+    boutique."""
+    tz = ZoneInfo(shop.timezone)
+    start = datetime.combine(date_from, time.min, tz) if date_from else None
+    end = (
+        datetime.combine(date_to + timedelta(days=1), time.min, tz) if date_to else None
+    )
+    return start, end
+
+
+def activity_counts(
+    customer: Customer, period: Period = (None, None), pending_only: bool = False,
+) -> dict[str, int]:
+    """Nombre d'événements de chaque type pour la période : lignes de l'export."""
+    querysets = _timeline_querysets(customer, ALL_TYPES, pending_only, period)
+    return {kind: querysets[kind].count() for kind in EVENT_TYPES}
+
+
+def _author_name(prefix: str) -> Coalesce:
+    """Nom de l'utilisateur au bout de `prefix`, sinon son e-mail."""
+    return Coalesce(
+        NullIf(F(f'{prefix}full_name'), Value('')), F(f'{prefix}email'),
+        output_field=CharField(),
+    )
+
+
+def _latest_log_author(action: str, **changes: str) -> Coalesce:
+    """Auteur du dernier `AuditLog` `action` de la commande, sinon son créateur."""
+    logs = AuditLog.objects.filter(
+        shop_id=OuterRef('shop_id'),
+        object_id=Cast(OuterRef('pk'), CharField()),
+        action=action,
+        **{f'changes__{key}': value for key, value in changes.items()},
+    ).order_by('-created_at').annotate(name=_author_name('user__')).values('name')[:1]
+    return Coalesce(
+        Subquery(logs), _author_name('created_by__'), output_field=CharField(),
+    )
+
+
+_EXPORT_AUTHORS = {
+    EVENT_ORDER: lambda: {'author_name': _author_name('created_by__')},
+    EVENT_PAYMENT: lambda: {'author_name': _latest_log_author('order_payment_change')},
+    EVENT_SHIPMENT: lambda: {
+        'author_name': _latest_log_author('order_status_change', to='shipped'),
+    },
+    EVENT_NOTE: lambda: {
+        'author_name': _author_name('author__'), 'reference': F('order__order_number'),
+    },
+}
+
+
+def _amount(value: Decimal | None, lang: str) -> str:
+    """Montant au séparateur décimal de la langue, chiffres latins, sans milliers."""
+    if value is None:
+        return ''
+    separator = get_decimal_symbol(lang, numbering_system='latn')
+    return f'{value:.2f}'.replace('.', separator)
+
+
+def _cell(value: str | None) -> str:
+    """Texte saisi : une formule de tableur en tête (=, +, -, @) est neutralisée."""
+    value = value or ''
+    return f"'{value}" if value[:1] in ('=', '+', '-', '@', '\t', '\r') else value
+
+
+def _export_cells(kind: str, item: Order | Note, texts: dict, lang: str) -> list[str]:
+    """Type, référence, description, montant et statut d'un événement."""
+    if isinstance(item, Note):
+        return [texts['types'][kind], item.reference or '', _cell(item.content), '', '']
+    if kind == EVENT_PAYMENT:
+        description = texts['description'][f'payment_{item.payment_status}']
+        return [texts['types'][kind], item.order_number, description,
+                _amount(item.amount_paid, lang), texts['status'][item.payment_status]]
+    amount = _amount(item.total_amount, lang) if kind == EVENT_ORDER else ''
+    status = item.status if kind == EVENT_ORDER else 'shipped'
+    return [texts['types'][kind], item.order_number, texts['description'][kind],
+            amount, texts['status'][status]]
+
+
+def _dated_events(
+    kind: str, qs: QuerySet,
+) -> Iterator[tuple[datetime, str, Order | Note]]:
+    """(date, type, objet) des événements d'un type, lus par paquets, avec l'auteur."""
+    for item in qs.annotate(**_EXPORT_AUTHORS[kind]()).iterator(chunk_size=500):
+        yield getattr(item, EVENT_DATE_FIELDS[kind]), kind, item
+
+
+def _export_lines(
+    querysets: dict[str, QuerySet], tz: ZoneInfo, lang: str,
+) -> Iterator[str]:
+    """BOM, en-tête puis une ligne par événement, du plus récent au plus ancien."""
+    texts = EXPORT_TEXTS[lang]
+    writer = csv.writer(_Echo(), delimiter=';')
+    yield '\ufeff' + writer.writerow([texts['columns'][c] for c in EXPORT_COLUMNS])
+    streams = [_dated_events(kind, qs) for kind, qs in querysets.items()]
+    for occurred_at, kind, item in heapq.merge(*streams, key=lambda e: e[0], reverse=True):  # noqa: E501
+        local = occurred_at.astimezone(tz).strftime('%Y-%m-%d %H:%M')
+        cells = _export_cells(kind, item, texts, lang)
+        yield writer.writerow([local, *cells, _cell(item.author_name)])
+
+
+def export_customer_activity(
+    customer: Customer, *, user: User, types: Iterable[str] | None = None,
+    date_from: date | None = None, date_to: date | None = None,
+    pending_only: bool = False, lang: str | None = None,
+) -> ActivityExport:
+    """Export CSV de l'activité (UTF-8 avec BOM, « ; »), dans la langue `lang` (celle de
+    l'interface), sinon celle du compte de `user`.
+
+    Mêmes événements et filtres que la timeline ; chaque export est consigné dans le
+    journal d'audit (types, période, nombre de lignes).
+    """
+    shop = customer.shop
+    tz = ZoneInfo(shop.timezone)
+    selected = sorted(set(types or ALL_TYPES) & ALL_TYPES)
+    period = local_period(shop, date_from, date_to)
+    querysets = _timeline_querysets(customer, selected, pending_only, period)
+    rows = sum(qs.count() for qs in querysets.values())
+    AuditLog.objects.create(
+        shop_id=shop.id, user=user, action='customer_activity_export',
+        model_name='Customer', object_id=str(customer.id),
+        object_repr=customer.display_name[:200],
+        changes={
+            'types': selected, 'pending': pending_only, 'rows': rows,
+            'from': date_from.isoformat() if date_from else None,
+            'to': date_to.isoformat() if date_to else None,
+        },
+    )
+    lang = next((code for code in (lang, user.language) if code in EXPORT_TEXTS), 'fr')
+    slug = slugify(customer.display_name, allow_unicode=True) or 'client'
+    today = timezone.now().astimezone(tz).date().isoformat()
+    return ActivityExport(
+        filename=f'activite-{slug}-{today}.csv',
+        rows=_export_lines(querysets, tz, lang),
+    )

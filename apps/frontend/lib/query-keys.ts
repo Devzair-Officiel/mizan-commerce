@@ -202,6 +202,12 @@ export const qk = {
       filter: string | null,
       pendingOnly: boolean,
     ) => ['customers', customerId, 'activity', filter, pendingOnly] as const,
+    /** Lignes de l'export de l'activité, par type, pour une période. */
+    activityExport: (
+      customerId: string,
+      range: { from?: string; to?: string },
+      pendingOnly: boolean,
+    ) => ['customers', customerId, 'activity-export', range, pendingOnly] as const,
   },
 
   invoices: {

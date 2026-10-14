@@ -81,9 +81,14 @@ async function chooseTone(page, locale, tone) {
   return radio.isChecked();
 }
 
+/**
+ * Le toast de l'enregistrement précédent peut être encore affiché : il est marqué avant le clic, seul un
+ * nouveau toast (émis après la remise à zéro du formulaire) compte. Sinon la saisie suivante serait effacée.
+ */
 async function save(page, locale) {
+  await page.locator('[data-sonner-toast]').evaluateAll((toasts) => toasts.forEach((el) => { el.dataset.stale = ''; }));
   await visibleButton(page, M(locale, 'submit')).click();
-  return shown(page.locator('[data-sonner-toast]').filter({ hasText: M(locale, 'saved') }));
+  return shown(page.locator('[data-sonner-toast]:not([data-stale])').filter({ hasText: M(locale, 'saved') }));
 }
 
 async function checkLayout(page, ctx, defaults) {

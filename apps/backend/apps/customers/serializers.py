@@ -1,7 +1,10 @@
 from rest_framework import serializers
 
+from .export_texts import EXPORT_TEXTS
 from .models import Customer
-from .services import InvalidPhoneNumber, format_phone_display, normalize_phone
+from .services import (
+    ALL_TYPES, InvalidPhoneNumber, format_phone_display, normalize_phone,
+)
 
 PHONE_INVALID = 'Numéro de téléphone invalide'
 
@@ -90,3 +93,36 @@ class CustomerListSerializer(serializers.ModelSerializer):
             'created_at',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
         )
+
+
+
+
+class ActivityExportQuerySerializer(serializers.Serializer):
+    """Filtres de l'export de l'activité : ceux de la timeline, plus une période."""
+
+    # `allow_blank` : `types=` vide est refusé (DRF l'ignorerait : tous les types).
+    types = serializers.CharField(required=False, allow_blank=True)
+    pending = serializers.BooleanField(required=False, default=False)
+    # Langue de l'interface : en-têtes, libellés et séparateur décimal du fichier.
+    lang = serializers.ChoiceField(choices=sorted(EXPORT_TEXTS), required=False)
+
+    def get_fields(self):
+        # `from` est un mot réservé : les dates arrivent en `from`/`to`.
+        fields = super().get_fields()
+        fields['from'] = serializers.DateField(required=False, source='date_from')
+        fields['to'] = serializers.DateField(required=False, source='date_to')
+        return fields
+
+    def validate_types(self, value: str) -> list[str]:
+        requested = {t.strip() for t in value.split(',') if t.strip()}
+        if not requested:
+            raise serializers.ValidationError('Choisissez au moins un type.')
+        if requested - ALL_TYPES:
+            raise serializers.ValidationError('Type inconnu.')
+        return sorted(requested)
+
+    def validate(self, attrs: dict) -> dict:
+        start, end = attrs.get('date_from'), attrs.get('date_to')
+        if start and end and start > end:
+            raise serializers.ValidationError({'to': 'La fin précède le début.'})
+        return attrs

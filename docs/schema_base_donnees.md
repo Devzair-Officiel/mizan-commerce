@@ -1106,6 +1106,8 @@ Journalisation des actions sensibles (URS-062 + fiche technique §14.4).
 
 **Index** : `(shop_id, created_at DESC)`, `(user_id, created_at DESC)`, `(action, created_at DESC)`.
 
+Export de l'activité d'un client (URS-104, proposée) : une ligne `customer_activity_export` par fichier (famille `data.export`), cible le client, détails = types exportés, filtre « À encaisser », période (`from`/`to`, jours de la boutique) et nombre de lignes.
+
 ---
 
 ## 18. Index et performances recommandés

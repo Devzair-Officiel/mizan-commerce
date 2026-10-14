@@ -428,7 +428,7 @@
 - [~] Puis : pull request, fusion (session Postman abandonnée : Postman n'est plus utilisé, collection retirée du dépôt)
 - [~] Lot 4 (après fusion)
   - [~] Page et formulaire Rappels + assignation à un employé
-  - [ ] Export de l'activité d'un client avec filtres
+  - [~] Export de l'activité d'un client avec filtres (URS-104, proposée) : fenêtre « Exporter » de la carte Activité, contenu et période, nombre de lignes annoncé, CSV en flux (BOM, « ; », langue de l'interface), journal d'audit
   - [~] Bloc Ventes de l'accueil (URS-006) : 7 jours, 12 mois et depuis l'ouverture, courbe avec bulle souris et clavier, tableau équivalent, période gardée sur le compte
   - [~] Modèles de messages WhatsApp et ton (URS-066/067) : ton de la boutique, cinq modèles personnalisables, aperçu, rendu unique côté serveur
   - [~] Rappels automatiques (URS-055 à 057) : relance d'impayé, commandes en attente, résumé du jour par e-mail
