@@ -20,6 +20,7 @@ import { allResults, api, createArticle, deactivate, remove } from './lib/produc
 import { makeImage } from './lib/photos.mjs';
 import { cardToggle, cards, closeCard, fillCard, isFocused, layoutOk, openCard, textbox, visibleButton } from './lib/form.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
+import { dismissedDialog, focusReached } from './lib/wait.mjs';
 
 const report = createReport();
 const FORMATS_NAME = 'Audit formats';
@@ -101,15 +102,12 @@ async function scanBarcode(page, t, ctx, code) {
   await visibleButton(page, t('articles.form.scan_barcode')).click();
   const field = textbox(page, t('articles.form.barcode'));
   // Le focus arrive juste après le clic : on l'attend (2 s au plus).
-  const focused = await field.evaluate((el) => new Promise((resolve) => {
-    const start = Date.now();
-    const poll = () => (el === document.activeElement ? resolve(true) : Date.now() - start > 2000 ? resolve(false) : requestAnimationFrame(poll));
-    poll();
-  }));
+  const focused = await focusReached(field);
   const help = await page.getByRole('status').filter({ hasText: t('articles.form.scan_help') }).count();
   await page.keyboard.type(code);
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
+  // Entrée ne doit rien envoyer : plus aucune requête en cours, on est toujours sur le formulaire.
+  await page.waitForLoadState('networkidle');
   const summary = await closeCard(page, ctx, title);
   const state = { focused, help: help === 1, stayed: page.url().endsWith('/products/new'),
     summary: !ctx.viewport.mobile || summary.includes(fmt(ctx.locale, 'articles.form.barcode_summary', { barcode: code })) };
@@ -181,7 +179,16 @@ async function openFromSheet(page, t, ctx, id, nested) {
   nested.push(...await nestedInteractive(page));
   const title = t('articles.form.section_photo');
   const photo = page.locator('#photos');
-  await page.waitForTimeout(500);
+  // Défilement jusqu'à la carte : on attend qu'elle soit dans l'écran (4 s au plus).
+  await photo.evaluate((el) => new Promise((resolve) => {
+    const start = Date.now();
+    const poll = () => {
+      const box = el.getBoundingClientRect();
+      if ((box.top < innerHeight && box.bottom > 0) || Date.now() - start > 4000) resolve();
+      else requestAnimationFrame(poll);
+    };
+    poll();
+  }));
   const box = await photo.boundingBox();
   const opened = !ctx.viewport.mobile || (await cardToggle(page, title).getAttribute('aria-expanded')) === 'true';
   report.check(opened && box && box.y < ctx.viewport.height && box.y + box.height > 0,
@@ -189,10 +196,8 @@ async function openFromSheet(page, t, ctx, id, nested) {
 }
 
 async function checkLeaveGuard(page, t, ctx, backLabel) {
-  let asked = '';
-  page.once('dialog', (dialog) => { asked = dialog.message(); dialog.dismiss(); });
-  await visibleButton(ctx.viewport.mobile ? page : page.locator('form'), ctx.viewport.mobile ? backLabel : t('ui.form.cancel')).click();
-  await page.waitForTimeout(300);
+  const asked = await dismissedDialog(page,
+    () => visibleButton(ctx.viewport.mobile ? page : page.locator('form'), ctx.viewport.mobile ? backLabel : t('ui.form.cancel')).click());
   report.check(asked === t('layout.common.confirm_leave') && page.url().includes('/edit'),
     `${ctx.label} : quitter sans enregistrer demande confirmation, refus → reste sur le formulaire`);
 }

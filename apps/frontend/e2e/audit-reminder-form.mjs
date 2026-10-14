@@ -63,6 +63,8 @@ const findReminder = async (page, title) =>
 async function choose(page, label, text) {
   await page.getByRole('combobox', { name: label, exact: true }).click();
   await page.getByRole('option').filter({ hasText: text }).first().click();
+  // Liste refermée (animation de sortie) avant l'action suivante : un clic pendant la sortie se perd.
+  await hidden(page.getByRole('listbox'));
 }
 
 async function auditCreate(page, ctx, { customer, order, staff }) {
@@ -155,7 +157,8 @@ async function auditDetailCards(page, ctx, { customer, order }) {
   report.check(await shown(page.getByRole('heading', { name: msg(locale, 'reminders.card.title'), exact: true })) && await shown(link),
     `${label} : fiche commande, carte « Rappels »`);
   await page.getByRole('checkbox', { name: fmt(locale, 'reminders.list.done_aria', { title: linked.title }) }).click();
-  report.check(await hidden(link), `${label} : case ronde de la carte → rappel terminé`);
+  // Terminé côté serveur (notification), puis la carte rechargée sans lui.
+  report.check(await shown(toast(page, fmt(locale, 'reminders.list.done_toast', { title: linked.title }))) && await hidden(link), `${label} : case ronde de la carte → rappel terminé`);
 
   await api(page, 'reminders/', {
     method: 'POST', data: { title: `${TITLE} relance`, due_at: due, category: 'customer_followup', customer: customer.id },
@@ -182,9 +185,11 @@ async function auditDetailCards(page, ctx, { customer, order }) {
   const dialog = page.getByRole('dialog').filter({ hasText: CUSTOMER });
   report.check(await shown(dialog), `${label} : relance déjà prévue pour ce client → fenêtre « décaler »`);
   await dialog.getByRole('button', { name: msg(locale, 'reminders.followup.postpone'), exact: true }).click();
-  const followups = await hidden(dialog)
+  // La fenêtre se ferme avant le retour à la fiche : on attend la fiche.
+  const back = await hidden(dialog) && await page.waitForURL(`**/customers/${customer.id}`, { timeout: 8000 }).then(() => true, () => false);
+  const followups = back
     ? (await api(page, `reminders/?customer=${customer.id}&category=customer_followup`)).results : [];
-  report.check(followups.length === 1 && page.url().includes(`/customers/${customer.id}`),
+  report.check(followups.length === 1,
     `${label} : « ${msg(locale, 'reminders.followup.postpone')} » → un seul rappel de relance, retour à la fiche`);
 }
 

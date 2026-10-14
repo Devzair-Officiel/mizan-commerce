@@ -6,6 +6,8 @@
  * Fenêtre ou menu encore ouvert : la page est verrouillée exprès, rien n'est vérifié.
  */
 
+import { domChange } from './wait.mjs';
+
 /** Fenêtre, menu ou liste d'options ouvert et visible dans la fenêtre du navigateur. */
 function overlayOpen() {
   return [...document.querySelectorAll('[role=dialog], [role=alertdialog], [role=menu], [role=listbox]')].some((el) => {
@@ -106,17 +108,19 @@ async function popupOpen(page) {
  */
 export async function scrollIssues(page, { timeout = 2000 } = {}) {
   const until = Date.now() + timeout;
-  let issues = [];
   for (;;) {
-    // Fermeture animée, verrou libéré au tour suivant de la boucle d'événements : on laisse 2 s.
+    // Fenêtre en train de s'ouvrir (verrou posé avant qu'elle soit visible) ou de se fermer (verrou
+    // libéré au tour suivant de la boucle d'événements) : nouveau contrôle au prochain changement
+    // du DOM, pendant 2 s au plus.
     if (await page.evaluate(overlayOpen)) return [];
-    issues = await page.evaluate(leftovers);
+    let issues = await page.evaluate(leftovers);
     if (issues.length === 0 && await wheelScrolls(page) === false) {
       if (await popupOpen(page)) return [];
       issues = ['la molette ne fait pas défiler la page'];
     }
-    if (issues.length === 0 || Date.now() > until) return issues;
-    await page.waitForTimeout(200);
+    const left = until - Date.now();
+    if (issues.length === 0 || left <= 0) return issues;
+    await domChange(page, left);
   }
 }
 

@@ -12,6 +12,7 @@ import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './
 import { msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { cardToggle, closeCard, isFocused, layoutOk, openCard, textbox, visibleButton } from './lib/form.mjs';
+import { dismissedDialog } from './lib/wait.mjs';
 
 const report = createReport();
 const created = [];
@@ -167,11 +168,8 @@ async function checkCollapsedError(page, t, ctx, { field, value, error, origin }
 /** « Annuler » (desktop) ou le retour de l'en-tête (mobile) demande confirmation. */
 async function checkLeaveGuard(page, t, ctx, customerName) {
   const { label, viewport } = ctx;
-  let asked = '';
-  page.once('dialog', (dialog) => { asked = dialog.message(); dialog.dismiss(); });
   const leave = viewport.mobile ? visibleButton(page, customerName) : visibleButton(page, t('ui.form.cancel'));
-  await leave.click();
-  await page.waitForTimeout(300);
+  const asked = await dismissedDialog(page, () => leave.click());
   report.check(
     asked === t('layout.common.confirm_leave') && page.url().endsWith('/edit'),
     `${label} : ${viewport.mobile ? 'retour' : '« Annuler »'} demande confirmation, refus → reste sur le formulaire`,

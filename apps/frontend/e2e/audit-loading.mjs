@@ -10,6 +10,7 @@
  */
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { api } from './lib/products.mjs';
+import { domChange } from './lib/wait.mjs';
 
 const report = createReport();
 // Anciens textes de chargement seuls (clés retirées des messages) : ils ne doivent plus apparaître.
@@ -56,7 +57,7 @@ async function checkSlow(page, cdp, label, { title, path, name }) {
       if (s.skeleton) cards = Math.max(cards, s.cards);
       loadingText ??= s.loadingText;
       loaded = s.loaded;
-      if (!loaded) await page.waitForTimeout(150);
+      if (!loaded) await domChange(page);
     }
   } finally {
     await cdp.send('Network.emulateNetworkConditions', FAST);

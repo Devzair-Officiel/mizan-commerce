@@ -47,7 +47,7 @@ async function sentMessages(page, filter, count) {
   for (let i = 0; i < 16; i += 1) {
     sent = (await allResults(page, `messages/prepared/?${filter}`)).filter((m) => m.status === 'sent_manually' && m.sent_manually_at);
     if (sent.length >= count) break;
-    await page.waitForTimeout(500);
+    await new Promise((resolve) => { setTimeout(resolve, 500); });
   }
   return sent;
 }
@@ -67,11 +67,8 @@ async function send(page, locale, opener) {
 /** Badges « Envoyé » visibles dans l'historique de la page, relus jusqu'à en trouver `count`. */
 async function historyShows(page, locale, count) {
   const badges = page.getByText(msg(locale, 'messages.history.status_sent_manually'), { exact: true }).filter({ visible: true });
-  for (let i = 0; i < 16; i += 1) {
-    if (await badges.count() === count) return true;
-    await page.waitForTimeout(500);
-  }
-  return false;
+  if (count > 0) await badges.nth(count - 1).waitFor({ timeout: 8000 }).catch(() => {});
+  return await badges.count() === count;
 }
 
 const opensWhatsApp = ({ text, url }) => text.trim().length > 0 && url.startsWith(`https://wa.me/${PHONE.slice(1)}?text=`);

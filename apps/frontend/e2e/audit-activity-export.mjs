@@ -15,6 +15,7 @@ import { fmt, msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
 import { visibleButton } from './lib/form.mjs';
+import { animationsDone } from './lib/wait.mjs';
 
 const report = createReport();
 const nested = [];
@@ -61,16 +62,10 @@ async function openExport(page, ctx, customer) {
 }
 
 /** Fenêtre : par le bas sur mobile, cases et période pré-choisies, nombres de lignes. */
-/** Boîte de la fenêtre une fois l'animation d'ouverture finie (deux mesures identiques). */
+/** Boîte de la fenêtre une fois l'animation d'ouverture finie. */
 async function settledBox(locator) {
-  let previous = null;
-  for (let i = 0; i < 20; i += 1) {
-    const box = await locator.boundingBox();
-    if (previous && box && Math.abs(box.y - previous.y) < 0.5 && Math.abs(box.height - previous.height) < 0.5) return box;
-    previous = box;
-    await locator.page().waitForTimeout(100);
-  }
-  return previous;
+  await animationsDone(locator);
+  return locator.boundingBox();
 }
 
 async function checkDialog(page, ctx, expected) {
@@ -107,7 +102,7 @@ async function checkCustomPeriod(page, ctx) {
   page.on('download', onDownload);
   await visibleButton(page, E(locale, 'download')).click();
   const error = await dialog(page, locale).getByText(E(locale, 'dates_order')).isVisible();
-  await page.waitForTimeout(300);
+  await page.waitForLoadState('networkidle');
   page.off('download', onDownload);
   report.check(error && !downloaded, `${label} : fin avant début → « ${E(locale, 'dates_order')} », rien téléchargé`);
   await choose(radio(page, locale, '12m'));
