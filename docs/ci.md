@@ -11,7 +11,7 @@ Un push sur une branche de travail ne lance rien tant qu'aucune pull request n'e
 |---|---|
 | `backend` | Python 3.12, PostgreSQL 16 et Redis 7 (mêmes images que `docker-compose.yml`) ; `ruff check`, `makemigrations --check --dry-run`, `pytest -n auto` |
 | `frontend` | Node 20 (comme `node:20-alpine`) ; `npm ci`, lint, typecheck, `i18n:check`, `tokens:check`, `text:check`, `deps:check`, build |
-| `docker` | Après `backend` et `frontend` : images de production backend, frontend et ai-service (cache GitHub Actions). Publiées sur GHCR seulement sur un push vers `main` ; construites sans publication sinon |
+| `docker` | Après `backend` et `frontend` : images de production backend, frontend et ai-service (cache GitHub Actions). Publiées sur GHCR seulement sur un push vers `main` ; construites sans publication sinon. L'image PostgreSQL avec WAL-G (`deploy/postgres`) est seulement construite, jamais publiée : le serveur la construit lui-même |
 
 Le CI n'utilise **aucun secret** du dépôt : la publication sur GHCR passe par le `GITHUB_TOKEN` fourni par GitHub. Les variables OVH sont vides, donc `is_storage_configured()` est faux. Les tests d'upload forcent leurs réglages avec `override_settings` et simulent boto3 avec `patch` : aucun test ne contacte le bucket, même en local avec un `.env` complet. Un test qui dépendrait des variables OVH du `.env` passerait en local mais échouerait en CI. Pour le reproduire en local :
 

@@ -13,6 +13,9 @@
 #   ENV_FILE=…   fichier de variables (défaut : deploy/env/<env>.env)
 #   NO_PULL=1    images déjà présentes (construites sur la machine, tests locaux)
 #   NO_RECORD=1  ne pas inscrire la version dans deploy/state/<env>.tags (rollback.sh)
+#
+# L'image PostgreSQL (deploy/postgres, avec WAL-G) est construite ici, sur le
+# serveur, à partir de l'image officielle à jour.
 set -euo pipefail
 
 usage() {
@@ -49,7 +52,11 @@ compose config --quiet  # variable obligatoire manquante : arrêt avant tout cha
 
 if [[ ${NO_PULL:-0} != 1 ]]; then
   log "Récupération des images"
-  compose pull --quiet
+  compose pull --quiet --ignore-buildable
+  log "Image PostgreSQL (WAL-G)"
+  compose build --quiet --pull postgres
+else
+  compose build --quiet postgres
 fi
 
 log "Base de données et Redis"

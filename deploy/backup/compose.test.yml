@@ -1,0 +1,64 @@
+# Test local des sauvegardes (deploy/backup/test-local.sh), jamais sur les
+# buckets OVH : MinIO remplace le bucket de sauvegardes, un petit serveur HTTP
+# reçoit les signaux de surveillance. Ajouté à deploy/app/compose.yml :
+#
+#   docker compose -p mizan-staging --env-file <fichier de test> \
+#     -f deploy/app/compose.yml -f deploy/backup/compose.test.yml --profile backup-test …
+#
+# MinIO n'est plus publié sur Docker Hub ni quay.io : images Chainguard (même
+# logiciel), fixées par empreinte.
+services:
+  minio:
+    image: cgr.dev/chainguard/minio@sha256:2136d593beacf4461187035eca949fe49abd589d5079735025c711ca58fee0c8
+    profiles: [backup-test]
+    entrypoint: ["/usr/bin/minio"]
+    command: ["server", "/data"]
+    user: "65532"
+    environment:
+      MINIO_ROOT_USER: ${BACKUP_S3_ACCESS_KEY:?}
+      MINIO_ROOT_PASSWORD: ${BACKUP_S3_SECRET_KEY:?}
+    tmpfs:
+      - /data:uid=65532
+    healthcheck:
+      test: ["CMD", "/usr/bin/mc", "ready", "local"]
+      interval: 5s
+      retries: 20
+
+  # Crée le bucket de sauvegardes, puis s'arrête.
+  minio-init:
+    image: cgr.dev/chainguard/minio-client@sha256:d8a93c5d335509ff353774eefec8f82fa2a2a975e800139702232d8be3dbe6b9
+    profiles: [backup-test]
+    entrypoint: ["/usr/bin/mc"]
+    command: ["mb", "--ignore-existing", "test/${BACKUP_S3_BUCKET:?}"]
+    environment:
+      MC_HOST_test: http://${BACKUP_S3_ACCESS_KEY:?}:${BACKUP_S3_SECRET_KEY:?}@minio:9000
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # Service de surveillance factice : écrit chaque signal reçu (méthode, chemin,
+  # première ligne du message) dans ses logs.
+  heartbeat:
+    image: python:3.12-alpine
+    profiles: [backup-test]
+    command:
+      - python
+      - -u
+      - -c
+      - |
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        class H(BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                lines = body.decode(errors="replace").strip().splitlines()
+                print("SIGNAL", self.path, "|", lines[-1] if lines else "", flush=True)
+                self.send_response(200)
+                self.end_headers()
+            def log_message(self, *args):
+                pass
+        HTTPServer(("", 8080), H).serve_forever()
+
+  postgres:
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully

@@ -55,7 +55,7 @@
 
 - [~] Créer un VPS ou Public Cloud Instance OVH — VPS dédié retenu ; préparation du serveur documentée (docs/exploitation/deploiement.md), reste à le commander
 - ~~Provisionner PostgreSQL managé OVHcloud~~ — remplacé par PostgreSQL 16 en conteneur sur le VPS
-- [~] PostgreSQL 16 en conteneur (volume nommé, `deploy/app/compose.yml`) — sauvegardes à mettre en place (section Backups)
+- [~] PostgreSQL 16 en conteneur (image `deploy/postgres` avec WAL-G, volume nommé, `deploy/app/compose.yml`) — sauvegardes : section Backups
 - [ ] Provisionner le bucket privé de production (`mizan-production-private`, et `mizan-staging-private` pour staging, prévus dans `deploy/env/*.env.example`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
 - [~] Configurer un nom de domaine + HTTPS (Let's Encrypt via Caddy, `deploy/edge`) — reste les enregistrements DNS
 - [~] Configurer un domaine de staging séparé — `staging.mizan-commerce.com` derrière une authentification basique (Caddy)
@@ -490,9 +490,9 @@
 
 ### Backups
 
-- [ ] Backups PostgreSQL automatiques activés
-- [ ] **Test de restauration mensuel** (un backup non testé n'est pas un backup)
-- [ ] Versioning Object Storage activé si possible
+- [~] Backups PostgreSQL automatiques activés — WAL-G : journal archivé en continu (perte ≤ 1 min), sauvegarde complète chaque nuit, 30 jours, chiffrée, bucket dans une autre région, surveillance par signal ; éprouvé en local avec MinIO (`deploy/backup/test-local.sh`), à activer sur le serveur (bucket, clé, URL de surveillance) — docs/exploitation/sauvegardes.md
+- [~] **Test de restauration mensuel** (un backup non testé n'est pas un backup) — automatique (service `backup`, signal RESTORE_TEST_HEARTBEAT_URL) ; restauration manuelle à un instant précis : `deploy/backup/restore.sh`
+- [~] Versioning Object Storage activé si possible — procédure documentée (bucket privé des fichiers), à activer sur OVH
 - [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging
 
 ### Dette technique connue

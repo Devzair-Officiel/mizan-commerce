@@ -190,3 +190,12 @@ jobs:
             ${{ env.REGISTRY }}/mizan-ai-service:latest
           cache-from: type=gha,scope=ai-service
           cache-to: type=gha,scope=ai-service,mode=max
+      # Construite sur le serveur par deploy/deploy.sh, jamais publiée : ici,
+      # contrôle seulement (téléchargement et somme de contrôle de WAL-G).
+      - name: Image PostgreSQL (WAL-G)
+        uses: docker/build-push-action@v7
+        with:
+          context: deploy/postgres
+          push: false
+          cache-from: type=gha,scope=postgres
+          cache-to: type=gha,scope=postgres,mode=max

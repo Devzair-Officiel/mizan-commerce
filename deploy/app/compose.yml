@@ -7,8 +7,12 @@
 #
 # Aucun port publié : Caddy (deploy/edge) joint frontend et backend par le
 # réseau externe « edge ». Chaque service ne reçoit que ses propres variables.
-# Total des limites mémoire en production ≈ 5,6 Go sur 12 (staging : moins,
+# Total des limites mémoire en production ≈ 6,1 Go sur 12 (staging : moins,
 # réglé dans deploy/env/staging.env).
+#
+# PostgreSQL utilise l'image mizan-postgres:16 (deploy/postgres), construite sur
+# le serveur par deploy.sh : archivage continu du journal et sauvegardes WAL-G
+# (docs/exploitation/sauvegardes.md).
 
 x-logging: &logging
   driver: json-file
@@ -61,6 +65,28 @@ x-django: &django
       condition: service_healthy
   logging: *logging
 
+# Image PostgreSQL avec WAL-G : base, planificateur des sauvegardes, restauration.
+x-postgres-image: &postgres-image
+  image: mizan-postgres:16
+  build:
+    context: ../postgres
+
+# WAL-G : bucket de sauvegardes S3 dans une autre région que le serveur, un
+# préfixe par environnement, chiffrement côté client (libsodium).
+x-walg: &walg
+  WALG_S3_PREFIX: s3://${BACKUP_S3_BUCKET:?}/${APP_ENV:?}
+  AWS_ENDPOINT: ${BACKUP_S3_ENDPOINT_URL:?}
+  AWS_REGION: ${BACKUP_S3_REGION:?}
+  AWS_S3_FORCE_PATH_STYLE: "true"
+  AWS_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY:?}
+  AWS_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_KEY:?}
+  WALG_LIBSODIUM_KEY: ${BACKUP_ENCRYPTION_KEY:?}
+  WALG_LIBSODIUM_KEY_TRANSFORM: hex
+  WALG_COMPRESSION_METHOD: zstd
+  # Une base neuve (volume vide, restauration) ne doit jamais écraser le journal
+  # déjà archivé : WAL-G refuse alors d'envoyer un fichier qui existe.
+  WALG_PREVENT_WAL_OVERWRITE: "true"
+
 # Worker Celery joignable : ping par son nom (default@… ou ocr@…).
 x-celery-healthcheck: &celery-healthcheck
   interval: 60s
@@ -70,10 +96,21 @@ x-celery-healthcheck: &celery-healthcheck
   retries: 3
 
 services:
+  # Archivage continu : chaque segment du journal part dans le bucket de
+  # sauvegardes, au plus 60 s après sa première écriture (perte maximale : 1 min).
   postgres:
-    image: postgres:16
+    <<: *postgres-image
     restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=wal-g wal-push %p
+      - -c
+      - archive_timeout=60
     environment:
+      <<: *walg
       POSTGRES_DB: ${POSTGRES_DB:?}
       POSTGRES_USER: ${POSTGRES_USER:?}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
@@ -86,6 +123,59 @@ services:
       timeout: 5s
       retries: 5
     mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    logging: *logging
+
+  # Planificateur des sauvegardes (deploy/postgres/mizan-backup.sh) : sauvegarde
+  # complète chaque nuit, suppression au-delà de la durée de conservation,
+  # contrôle de l'archivage toutes les 5 min, test de restauration mensuel.
+  # Lit les fichiers de la base en lecture seule.
+  backup:
+    <<: *postgres-image
+    restart: unless-stopped
+    user: postgres
+    command: ["mizan-backup", "scheduler"]
+    environment:
+      <<: *walg
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+      BACKUP_TIME: ${BACKUP_TIME:-02:30}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_HEARTBEAT_URL: ${BACKUP_HEARTBEAT_URL:-}
+      ARCHIVE_HEARTBEAT_URL: ${ARCHIVE_HEARTBEAT_URL:-}
+      ARCHIVE_MAX_DELAY_MINUTES: ${ARCHIVE_MAX_DELAY_MINUTES:-5}
+      RESTORE_TEST_DAY: ${RESTORE_TEST_DAY:-1}
+      RESTORE_TEST_TIME: ${RESTORE_TEST_TIME:-04:00}
+      RESTORE_TEST_HEARTBEAT_URL: ${RESTORE_TEST_HEARTBEAT_URL:-}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data:ro
+      - backup-work:/var/lib/mizan-backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/mizan-backup.alive"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      start_interval: 5s
+      retries: 3
+    mem_limit: ${BACKUP_MEM_LIMIT:-512m}
+    logging: *logging
+
+  # Restauration dans un nouveau volume, sans jamais toucher la base en service :
+  # lancé uniquement par deploy/backup/restore.sh (profil « restore »).
+  restore:
+    <<: *postgres-image
+    profiles: [restore]
+    user: postgres
+    environment:
+      <<: *walg
+      PGUSER: ${POSTGRES_USER:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+    shm_size: 256m
     logging: *logging
 
   # Broker Celery : mot de passe (fichier de configuration généré, jamais sur la
@@ -248,6 +338,10 @@ networks:
     external: true
 
 volumes:
+  # Base en service. POSTGRES_DATA_VOLUME : mise en service d'une base restaurée
+  # par deploy/backup/restore.sh (docs/exploitation/sauvegardes.md).
   postgres-data:
+    name: ${POSTGRES_DATA_VOLUME:-mizan-${APP_ENV:?}_postgres-data}
+  backup-work:
   redis-data:
   ai-models:
