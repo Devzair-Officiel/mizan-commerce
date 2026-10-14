@@ -61,9 +61,9 @@
 
 ### CI/CD
 
-- [ ] Configurer GitHub Actions (ou GitLab CI)
-- [ ] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging
-- [ ] Tests obligatoires multi-tenant (un user de boutique A ne voit pas la boutique B)
+- [~] Configurer GitHub Actions (ou GitLab CI) — `.github/workflows/ci.yml`, Dependabot ; reste à protéger `main` (docs/ci.md)
+- [~] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging — tout sauf le déploiement staging
+- [~] Tests obligatoires multi-tenant (un user de boutique A ne voit pas la boutique B) — dans `pytest`, obligatoires une fois `backend` requis sur `main`
 
 ---
 

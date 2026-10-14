@@ -1,0 +1,38 @@
+# Mises à jour hebdomadaires, regroupées : une pull request par écosystème pour
+# les versions mineures et correctives, une par paquet pour les versions majeures.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /apps/frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    groups:
+      npm-mineures:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /apps/backend  # requirements/base.txt, local.txt, production.txt
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    open-pull-requests-limit: 5
+    groups:
+      pip-mineures:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Paris
+    groups:
+      actions:
+        patterns: ["*"]
