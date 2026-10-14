@@ -1,9 +1,10 @@
+from calendar import monthrange
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from django.db.models import F, Q, Sum
-from django.db.models.functions import TruncDate
+from django.db.models import Count, DateField, F, Min, Q, Sum
+from django.db.models.functions import Trunc
 from django.utils import timezone
 
 from apps.customers.models import Customer, format_display_name
@@ -54,49 +55,145 @@ def _build_today_revenue(shop: Shop, day_start: datetime, day_end: datetime) -> 
     return {"revenue": str(revenue), "orders_count": qs.count()}
 
 
-def _build_yesterday_revenue(shop: Shop, today_local: date, tz: ZoneInfo) -> str:
-    yesterday = today_local - timedelta(days=1)
-    y_start = datetime(yesterday.year, yesterday.month, yesterday.day, tzinfo=tz)
-    y_end = y_start + timedelta(days=1)
-    revenue = Order.objects.filter(
+SALES_PERIODS = ("7d", "12m", "all")
+
+
+def _local_start(day: date, tz: ZoneInfo) -> datetime:
+    return datetime(day.year, day.month, day.day, tzinfo=tz)
+
+
+def _add_months(day: date, months: int) -> date:
+    index = day.year * 12 + day.month - 1 + months
+    year, month = divmod(index, 12)
+    return date(year, month + 1, min(day.day, monthrange(year, month + 1)[1]))
+
+
+def _sales_orders(shop: Shop, start: date, end: date):
+    """Commandes du chiffre d'affaires sur [start, end[ (jours du fuseau de la
+    boutique) : non annulées, à leur date de création, comme le jour de l'accueil."""
+    tz = ZoneInfo(shop.timezone)
+    return Order.objects.filter(
         shop=shop,
-        created_at__gte=y_start,
-        created_at__lt=y_end,
-    ).exclude(status="cancelled").aggregate(
+        created_at__gte=_local_start(start, tz),
+        created_at__lt=_local_start(end, tz),
+    ).exclude(status="cancelled")
+
+
+def _sales_buckets(
+    shop: Shop, start: date, end: date, kind: str,
+) -> list[dict]:
+    """Un point par jour, semaine (lundi) ou mois sur [start, end[, vides compris."""
+    tz = ZoneInfo(shop.timezone)
+    rows = (
+        _sales_orders(shop, start, end)
+        .annotate(bucket=Trunc("created_at", kind, output_field=DateField(), tzinfo=tz))
+        .values("bucket")
+        .annotate(total=Sum("total_amount"), count=Count("id"))
+        .order_by()
+    )
+    by_bucket = {row["bucket"]: (row["total"], row["count"]) for row in rows}
+    points, current = [], start
+    while current < end:
+        total, count = by_bucket.get(current, (Decimal("0"), 0))
+        points.append({"date": current, "revenue": total, "orders_count": count})
+        if kind == "month":
+            current = _add_months(current, 1)
+        else:
+            current += timedelta(days=7 if kind == "week" else 1)
+    return points
+
+
+def _opening_date(shop: Shop, tz: ZoneInfo) -> date:
+    """Création de la boutique, ou première commande si elle est antérieure
+    (historique repris)."""
+    first = Order.objects.filter(shop=shop).exclude(status="cancelled").aggregate(
+        first=Min("created_at"),
+    )["first"]
+    opened = min(shop.created_at, first) if first else shop.created_at
+    return opened.astimezone(tz).date()
+
+
+def _sales_window(shop: Shop, period: str, today: date) -> tuple[date, date, str, date]:
+    """(début, fin exclue, granularité, première date affichée) de la période."""
+    this_month = today.replace(day=1)
+    if period == "7d":
+        start = today - timedelta(days=6)
+        return start, today + timedelta(days=1), "day", start
+    if period == "12m":
+        start = _add_months(this_month, -11)
+        return start, _add_months(this_month, 1), "month", start
+    opened = min(_opening_date(shop, ZoneInfo(shop.timezone)), today)
+    if opened > _add_months(today, -2):
+        # Moins de deux mois d'historique : un point par semaine.
+        monday = today - timedelta(days=today.weekday())
+        first_monday = opened - timedelta(days=opened.weekday())
+        return first_monday, monday + timedelta(days=7), "week", opened
+    return opened.replace(day=1), _add_months(this_month, 1), "month", opened
+
+
+def _sales_comparison(
+    shop: Shop, period: str, start: date, total: Decimal,
+) -> dict | None:
+    if period == "all":
+        return None
+    previous_start = (
+        start - timedelta(days=7) if period == "7d" else _add_months(start, -12)
+    )
+    previous = _sales_orders(shop, previous_start, start).aggregate(
         total=Sum("total_amount"),
     )["total"] or Decimal("0")
-    return str(revenue)
+    change = round((total - previous) / previous * 100) if previous > 0 else None
+    return {"previous_total": str(previous), "change_pct": change}
 
 
-def _build_last_7_days(shop: Shop, today_local: date, tz: ZoneInfo) -> list:
-    window_start = today_local - timedelta(days=6)
-    w_start_dt = datetime(
-        window_start.year, window_start.month, window_start.day, tzinfo=tz
-    )  # noqa: E501
-    w_end_dt = datetime(
-        today_local.year, today_local.month, today_local.day, tzinfo=tz
-    ) + timedelta(days=1)  # noqa: E501
-    rows = (
-        Order.objects.filter(
-            shop=shop,
-            created_at__gte=w_start_dt,
-            created_at__lt=w_end_dt,
+def _month_summary(months: list[dict]) -> dict:
+    """Meilleur mois (s'il a des ventes) et moyenne mensuelle."""
+    best = max(months, key=lambda p: p["revenue"])
+    total = sum((p["revenue"] for p in months), Decimal("0"))
+    return {
+        "best_month": (
+            {"month": best["date"].isoformat(), "revenue": str(best["revenue"])}
+            if best["revenue"] > 0 else None
+        ),
+        "monthly_average": str((total / len(months)).quantize(Decimal("0.01"))),
+    }
+
+
+def build_sales(shop: Shop, period: str, now: datetime | None = None) -> dict:
+    """Ventes de l'accueil sur 7 jours, 12 mois ou depuis l'ouverture, dans le fuseau
+    de la boutique : points, total, comparaison avec la période précédente (sauf
+    « all »), meilleur mois et moyenne mensuelle (sauf « 7d »)."""
+    tz = ZoneInfo(shop.timezone)
+    today = (now or timezone.now()).astimezone(tz).date()
+    start, end, kind, since = _sales_window(shop, period, today)
+    points = _sales_buckets(shop, start, end, kind)
+    total = sum((p["revenue"] for p in points), Decimal("0"))
+    months = points if kind == "month" else []
+    if kind == "week":
+        months = _sales_buckets(
+            shop, since.replace(day=1), _add_months(today.replace(day=1), 1), "month",
         )
-        .exclude(status="cancelled")
-        .annotate(day=TruncDate("created_at", tzinfo=tz))
-        .values("day")
-        .annotate(total=Sum("total_amount"))
+    summary = (
+        _month_summary(months) if months
+        else {"best_month": None, "monthly_average": None}
     )
-    revenue_by_day = {row["day"]: row["total"] or Decimal("0") for row in rows}
-    return [
-        {
-            "date": (window_start + timedelta(days=i)).isoformat(),
-            "revenue": str(
-                revenue_by_day.get(window_start + timedelta(days=i), Decimal("0"))
-            ),  # noqa: E501
-        }
-        for i in range(7)
-    ]
+    return {
+        "period": period,
+        "granularity": kind,
+        "start": since.isoformat(),
+        "points": [
+            {
+                "date": p["date"].isoformat(),
+                "revenue": str(p["revenue"]),
+                "orders_count": p["orders_count"],
+            }
+            for p in points
+        ],
+        "total": str(total),
+        "orders_count": sum(p["orders_count"] for p in points),
+        "comparison": _sales_comparison(shop, period, start, total),
+        **summary,
+    }
 
 
 def _customer_name(row: dict) -> str | None:
@@ -295,19 +392,15 @@ def build_dashboard_today(
     if now is None:
         now = timezone.now()
     tz = ZoneInfo(shop.timezone)
-    day_start, day_end, today_local = _day_bounds(now, tz)
+    day_start, day_end, _ = _day_bounds(now, tz)
 
     today_data = _build_today_revenue(shop, day_start, day_end)
-    yesterday_revenue = _build_yesterday_revenue(shop, today_local, tz)
-    last_7_days = _build_last_7_days(shop, today_local, tz)
 
     return {
         "today": {
             "revenue": today_data["revenue"],
-            "revenue_yesterday": yesterday_revenue,
             "orders_count": today_data["orders_count"],
         },
-        "revenue_last_7_days": last_7_days,
         "orders_to_prepare": _build_orders_to_prepare(shop),
         "unpaid_orders": _build_unpaid_orders(shop),
         "low_stock_products": _build_low_stock(shop),

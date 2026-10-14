@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import type { ProductUnit } from '@/lib/hooks/useProducts';
 import { qk } from '@/lib/query-keys';
@@ -53,18 +53,11 @@ interface DashboardBlock<T> {
   items: T[];
 }
 
-export interface RevenueDayPoint {
-  date: string;
-  revenue: string;
-}
-
 export interface DashboardData {
   today: {
     revenue: string;
-    revenue_yesterday: string;
     orders_count: number;
   };
-  revenue_last_7_days: RevenueDayPoint[];
   orders_to_prepare: DashboardBlock<OrderToPrepare> & { oldest_created_at: string | null };
   unpaid_orders: DashboardBlock<UnpaidOrder> & { total_due: string };
   low_stock_products: DashboardBlock<ProductSummary> & { negative_count: number; out_of_stock_count: number };
@@ -80,5 +73,38 @@ export function useDashboard() {
   return useQuery({
     queryKey: qk.dashboard.today,
     queryFn: () => apiFetch<DashboardData>('/dashboard/today/'),
+  });
+}
+
+export const SALES_PERIODS = ['7d', '12m', 'all'] as const;
+export type SalesPeriod = (typeof SALES_PERIODS)[number];
+export type SalesGranularity = 'day' | 'week' | 'month';
+
+export interface SalesPoint {
+  /** Premier jour du point (jour, lundi de la semaine ou 1er du mois), `YYYY-MM-DD`. */
+  date: string;
+  revenue: string;
+  orders_count: number;
+}
+
+export interface SalesData {
+  period: SalesPeriod;
+  granularity: SalesGranularity;
+  start: string;
+  points: SalesPoint[];
+  total: string;
+  orders_count: number;
+  /** Période précédente de même durée ; `null` pour « depuis le début ». */
+  comparison: { previous_total: string; change_pct: number | null } | null;
+  best_month: { month: string; revenue: string } | null;
+  monthly_average: string | null;
+}
+
+export function useDashboardSales(period: SalesPeriod) {
+  return useQuery({
+    queryKey: qk.dashboard.sales(period),
+    queryFn: () => apiFetch<SalesData>(`/dashboard/sales/?period=${period}`),
+    // Changement de période : la courbe précédente reste affichée jusqu'à la réponse.
+    placeholderData: keepPreviousData,
   });
 }

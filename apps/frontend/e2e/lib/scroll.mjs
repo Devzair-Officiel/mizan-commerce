@@ -43,8 +43,10 @@ function leftovers() {
 /**
  * Point neutre pour la molette : dans la page, hors élément interactif, hors élément fixe
  * (notifications, barres), hors zone qui défile pour son propre compte. null si aucun.
+ * L'élément qui a le focus ne doit pas non plus passer sous le pointeur quand la page défile de
+ * `dy` : sa sortie (mouseleave) refermerait ce que le clavier vient d'ouvrir (bulle d'un graphique).
  */
-function wheelPoint() {
+function wheelPoint(dy) {
   const INTERACTIVE = 'a, button, input, select, textarea, iframe, label, [contenteditable], [tabindex]:not([tabindex="-1"]), '
     + '[role=button], [role=link], [role=menuitem], [role=option], [role=tab], [role=checkbox], [role=switch], [role=slider]';
   const blocked = (el) => {
@@ -61,7 +63,9 @@ function wheelPoint() {
       const px = Math.round(innerWidth * x);
       const py = Math.round(innerHeight * y);
       const el = document.elementFromPoint(px, py);
-      if (el && !blocked(el)) return { x: px, y: py };
+      const focused = document.activeElement !== document.body ? document.activeElement : null;
+      const passing = py + dy >= 0 && py + dy < innerHeight ? document.elementFromPoint(px, py + dy) : null;
+      if (el && !blocked(el) && !(focused && passing && focused.contains(passing))) return { x: px, y: py };
     }
   }
   return null;
@@ -75,10 +79,11 @@ async function wheelScrolls(page) {
     return { top: scrollY, down: scrollY + innerHeight < se.scrollHeight - 30 };
   });
   if (!start) return null;
-  const point = await page.evaluate(wheelPoint);
+  const dy = start.down ? 120 : -120;
+  const point = await page.evaluate(wheelPoint, dy);
   if (!point) return null;
   await page.mouse.move(point.x, point.y);
-  await page.mouse.wheel(0, start.down ? 120 : -120);
+  await page.mouse.wheel(0, dy);
   const moved = await page.waitForFunction((top) => Math.abs(scrollY - top) > 1, start.top, { timeout: 1000 })
     .then(() => true, () => false);
   await page.evaluate((top) => window.scrollTo({ top, behavior: 'instant' }), start.top);

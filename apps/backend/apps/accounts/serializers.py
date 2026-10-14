@@ -36,6 +36,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'email', 'full_name', 'phone', 'email_verified_at', 'created_at',
             'theme_mode', 'primary_color', 'background_theme',
             'primary_color_custom_hex', 'background_custom_hex', 'language',
+            'sales_period',
         )
         read_only_fields = ('id', 'email_verified_at', 'created_at')
 

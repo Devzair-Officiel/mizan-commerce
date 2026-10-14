@@ -168,6 +168,9 @@ L'application est organisée autour des modules suivants :
 - Il affiche les paiements en attente.
 - Il affiche les produits en stock faible.
 - Il affiche les rappels du jour.
+- Il affiche un bloc Ventes (chiffre d'affaires : commandes non annulées, au fuseau de la boutique) sur 7 jours, 12 mois ou depuis l'ouverture de la boutique (un point par mois, ou par semaine avant deux mois d'activité) : courbe, total, évolution par rapport à la période précédente (7 jours et 12 mois), meilleur mois et moyenne mensuelle (12 mois).
+- Au survol ou au clavier, chaque point de la courbe donne son montant et son nombre de commandes ; un tableau équivalent est lu par les lecteurs d'écran.
+- La période choisie est gardée sur le compte de l'utilisateur.
 - L'affichage est optimisé pour mobile.
 
 ---

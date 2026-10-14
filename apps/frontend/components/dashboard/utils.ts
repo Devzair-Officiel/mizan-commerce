@@ -1,8 +1,3 @@
-export function formatCompactRevenue(value: number): string {
-  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}k`;
-  return String(Math.round(value));
-}
-
 export function computeDelta(today: number, yesterday: number): { pct: number; positive: boolean } | null {
   if (yesterday <= 0) return null;
   const pct = ((today - yesterday) / yesterday) * 100;

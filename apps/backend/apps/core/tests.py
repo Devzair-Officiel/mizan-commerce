@@ -23,7 +23,7 @@ from apps.orders.models import Order
 from apps.notes.models import Reminder
 
 from apps.customers.models import Customer
-from apps.core.services import build_dashboard_today, build_nav_badges
+from apps.core.services import build_dashboard_today, build_nav_badges, build_sales
 
 
 def setup(email: str, shop_timezone: str = "Europe/Paris"):
@@ -277,6 +277,177 @@ class DashboardTodayTest(TestCase):
         order_services.create_order(shop_b, user_b)
         data = build_dashboard_today(self.shop)
         self.assertFalse(data["setup"]["has_orders"])
+
+
+class DashboardSalesTest(TestCase):
+    """Bloc Ventes de l'accueil : 7 jours, 12 mois, depuis l'ouverture (fuseau Paris)."""  # noqa: E501
+
+    UTC = ZoneInfo("UTC")
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user, self.shop = setup("sales@example.com")
+        self.client.force_authenticate(user=self.user)
+        # Ouverture ancienne : seules les commandes fixent l'historique de « all ».
+        Shop.objects.filter(pk=self.shop.pk).update(
+            created_at=datetime(2020, 1, 1, tzinfo=self.UTC),
+        )
+        self.shop.refresh_from_db()
+
+    def _order(self, amount: str, when: datetime, status: str | None = None, shop=None):
+        order = order_services.create_order(shop or self.shop, self.user)
+        Order.objects.filter(pk=order.pk).update(
+            total_amount=Decimal(amount), created_at=when, **({"status": status} if status else {}),  # noqa: E501
+        )
+        return order
+
+    def _points(self, data: dict) -> dict[str, tuple[str, int]]:
+        return {p["date"]: (p["revenue"], p["orders_count"]) for p in data["points"]}
+
+    # ── 7 jours ───────────────────────────────────────────────────────────────
+
+    def test_seven_days_day_boundary_in_shop_timezone(self):
+        """23:30 à Paris compte ce jour-là ; 00:30 à Paris compte le lendemain."""
+        now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
+        self._order("10.00", datetime(2025, 1, 15, 22, 30, tzinfo=self.UTC))  # 23:30 le 15  # noqa: E501
+        self._order("20.00", datetime(2025, 1, 15, 23, 30, tzinfo=self.UTC))  # 00:30 le 16  # noqa: E501
+        data = build_sales(self.shop, "7d", now=now)
+        points = self._points(data)
+        self.assertEqual(data["granularity"], "day")
+        self.assertEqual(list(points), [f"2025-01-{d:02d}" for d in range(10, 17)])
+        self.assertEqual(points["2025-01-15"], ("10.00", 1))
+        self.assertEqual(points["2025-01-16"], ("20.00", 1))
+        self.assertEqual(Decimal(data["total"]), Decimal("30.00"))
+        self.assertEqual(data["orders_count"], 2)
+        self.assertIsNone(data["best_month"])
+        self.assertIsNone(data["monthly_average"])
+
+    def test_seven_days_window_excludes_eighth_day_and_cancelled(self):
+        now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
+        self._order("50.00", datetime(2025, 1, 9, 22, 59, tzinfo=self.UTC))  # 23:59 le 9  # noqa: E501
+        self._order("70.00", datetime(2025, 1, 12, 10, 0, tzinfo=self.UTC), status="cancelled")  # noqa: E501
+        data = build_sales(self.shop, "7d", now=now)
+        self.assertEqual(Decimal(data["total"]), Decimal("0"))
+        self.assertEqual(data["orders_count"], 0)
+
+    def test_seven_days_comparison_with_previous_seven_days(self):
+        now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
+        self._order("100.00", datetime(2025, 1, 5, 10, 0, tzinfo=self.UTC))  # période précédente  # noqa: E501
+        self._order("150.00", datetime(2025, 1, 14, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, "7d", now=now)
+        self.assertEqual(data["comparison"], {"previous_total": "100.00", "change_pct": 50})  # noqa: E501
+
+    def test_comparison_without_previous_sales_has_no_percentage(self):
+        now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
+        self._order("150.00", datetime(2025, 1, 14, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, "7d", now=now)
+        self.assertEqual(data["comparison"], {"previous_total": "0", "change_pct": None})  # noqa: E501
+
+    # ── 12 mois ───────────────────────────────────────────────────────────────
+
+    def test_twelve_months_month_boundary_in_shop_timezone(self):
+        """31 janvier 23:30 UTC = 1er février 00:30 à Paris → février."""
+        now = datetime(2025, 3, 10, 12, 0, tzinfo=self.UTC)
+        self._order("40.00", datetime(2025, 1, 31, 22, 30, tzinfo=self.UTC))  # 23:30 le 31 janv.  # noqa: E501
+        self._order("60.00", datetime(2025, 1, 31, 23, 30, tzinfo=self.UTC))  # 00:30 le 1er févr.  # noqa: E501
+        data = build_sales(self.shop, "12m", now=now)
+        points = self._points(data)
+        self.assertEqual(data["granularity"], "month")
+        self.assertEqual(len(points), 12)
+        self.assertEqual(data["points"][0]["date"], "2024-04-01")
+        self.assertEqual(data["points"][-1]["date"], "2025-03-01")
+        self.assertEqual(points["2025-01-01"], ("40.00", 1))
+        self.assertEqual(points["2025-02-01"], ("60.00", 1))
+
+    def test_twelve_months_comparison_best_month_and_average(self):
+        now = datetime(2025, 3, 10, 12, 0, tzinfo=self.UTC)
+        self._order("120.00", datetime(2023, 6, 1, 10, 0, tzinfo=self.UTC))  # période précédente  # noqa: E501
+        self._order("100.00", datetime(2024, 6, 1, 10, 0, tzinfo=self.UTC))
+        self._order("140.00", datetime(2025, 2, 1, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, "12m", now=now)
+        self.assertEqual(data["comparison"], {"previous_total": "120.00", "change_pct": 100})  # noqa: E501
+        self.assertEqual(data["best_month"], {"month": "2025-02-01", "revenue": "140.00"})  # noqa: E501
+        self.assertEqual(data["monthly_average"], "20.00")
+
+    # ── Depuis le début ───────────────────────────────────────────────────────
+
+    def test_all_one_point_per_month_since_first_order(self):
+        """Première commande antérieure à la création de la boutique : l'historique part d'elle."""  # noqa: E501
+        Shop.objects.filter(pk=self.shop.pk).update(
+            created_at=datetime(2025, 3, 1, tzinfo=self.UTC),
+        )
+        self.shop.refresh_from_db()
+        now = datetime(2025, 3, 10, 12, 0, tzinfo=self.UTC)
+        self._order("30.00", datetime(2024, 11, 20, 10, 0, tzinfo=self.UTC))
+        self._order("90.00", datetime(2025, 1, 5, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, "all", now=now)
+        self.assertEqual(data["granularity"], "month")
+        self.assertEqual(data["start"], "2024-11-20")
+        self.assertEqual([p["date"] for p in data["points"]],
+                         ["2024-11-01", "2024-12-01", "2025-01-01", "2025-02-01", "2025-03-01"])  # noqa: E501
+        self.assertIsNone(data["comparison"])
+        self.assertEqual(data["best_month"], {"month": "2025-01-01", "revenue": "90.00"})  # noqa: E501
+        self.assertEqual(data["monthly_average"], "24.00")
+
+    def test_all_new_shop_one_point_per_week(self):
+        """Boutique neuve, sans commande : un point par semaine depuis son ouverture."""
+        Shop.objects.filter(pk=self.shop.pk).update(
+            created_at=datetime(2025, 3, 5, 9, 0, tzinfo=self.UTC),  # mercredi
+        )
+        self.shop.refresh_from_db()
+        now = datetime(2025, 3, 18, 12, 0, tzinfo=self.UTC)  # mardi
+        data = build_sales(self.shop, "all", now=now)
+        self.assertEqual(data["granularity"], "week")
+        self.assertEqual(data["start"], "2025-03-05")
+        self.assertEqual([p["date"] for p in data["points"]], ["2025-03-03", "2025-03-10", "2025-03-17"])  # noqa: E501
+        self.assertEqual(data["total"], "0")
+        self.assertIsNone(data["best_month"])
+        self.assertEqual(data["monthly_average"], "0.00")
+
+    def test_all_week_points_keep_month_summary(self):
+        Shop.objects.filter(pk=self.shop.pk).update(
+            created_at=datetime(2025, 2, 20, 9, 0, tzinfo=self.UTC),
+        )
+        self.shop.refresh_from_db()
+        now = datetime(2025, 3, 18, 12, 0, tzinfo=self.UTC)
+        self._order("25.00", datetime(2025, 2, 24, 10, 0, tzinfo=self.UTC))
+        self._order("75.00", datetime(2025, 3, 17, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, "all", now=now)
+        self.assertEqual(data["granularity"], "week")
+        self.assertEqual(data["best_month"], {"month": "2025-03-01", "revenue": "75.00"})  # noqa: E501
+        self.assertEqual(data["monthly_average"], "50.00")  # février et mars
+
+    # ── API ───────────────────────────────────────────────────────────────────
+
+    def test_api_default_period_and_multitenant_isolation(self):
+        user_b, shop_b = setup("sales_b@example.com")
+        self._order("80.00", timezone.now(), shop=shop_b)
+        self._order("15.00", timezone.now())
+        for period in ("", "?period=7d", "?period=12m", "?period=all"):
+            response = self.client.get(reverse("dashboard-sales") + period)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(Decimal(response.data["total"]), Decimal("15.00"), period)
+        self.assertEqual(self.client.get(reverse("dashboard-sales")).data["period"], "7d")  # noqa: E501
+
+    def test_api_unknown_period(self):
+        response = self.client.get(reverse("dashboard-sales") + "?period=30d")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_api_requires_dashboard_module(self):
+        staff = User.objects.create_user(email="sales_staff@example.com", password="Pass123!Strong")  # noqa: E501
+        ShopMember.objects.create(shop=self.shop, user=staff, role="staff", permissions=["orders"])  # noqa: E501
+        self.client.force_authenticate(user=staff)
+        response = self.client.get(reverse("dashboard-sales"))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_period_remembered_for_user(self):
+        self.assertEqual(self.client.get(reverse("auth-me")).data["sales_period"], "7d")
+        response = self.client.patch(reverse("auth-me"), {"sales_period": "12m"}, format="json")  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.sales_period, "12m")
+        response = self.client.patch(reverse("auth-me"), {"sales_period": "30d"}, format="json")  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class DashboardBadgesTest(TestCase):

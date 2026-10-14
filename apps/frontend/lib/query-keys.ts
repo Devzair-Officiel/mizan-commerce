@@ -161,6 +161,7 @@ export const qk = {
   dashboard: {
     all: ['dashboard'] as const,
     today: ['dashboard', 'today'] as const,
+    sales: (period: string) => ['dashboard', 'sales', period] as const,
   },
 
   shop: {
