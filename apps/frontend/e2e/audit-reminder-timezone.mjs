@@ -3,7 +3,8 @@
  * diffère de celle de la boutique (Kiritimati, UTC+14, ou Pago Pago, UTC−11, selon l'heure).
  * - formulaire : « Aujourd'hui 18:00 » remplit la date et l'heure de la boutique, et le rappel est
  *   enregistré à 18:00 heure de la boutique ;
- * - « Reporter » → « Demain à 9 h » : 9:00 le lendemain, heure de la boutique.
+ * - « Reporter » → « Demain à 9 h » : 9:00 le lendemain, heure de la boutique ;
+ * - accueil : « Rappels du jour » affiche l'heure de la boutique.
  * Rappels d'audit supprimés à la fin de chaque passage.
  */
 import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
@@ -102,6 +103,28 @@ async function checkPostpone(page, ctx) {
     `${label} : « ${name} » → ${at ? `${at.date} ${at.time}` : '—'}, heure de la boutique (attendu ${tomorrow} 09:00)`);
 }
 
+/** Accueil : chaque rappel de « Rappels du jour » est affiché à l'heure de la boutique. */
+async function checkDashboard(page, ctx) {
+  const { label, shopZone, viewport } = ctx;
+  const title = `${TITLE} accueil ${viewport.name}`;
+  // Une heure plus tôt : en retard d'aujourd'hui ou d'hier selon l'heure, toujours dans la liste.
+  await api(page, 'reminders/', {
+    method: 'POST', data: { title, category: 'free', due_at: new Date(Date.now() - 3_600_000).toISOString() },
+  });
+  await goto(page, '/dashboard');
+  const { items } = (await api(page, 'dashboard/today/')).today_reminders;
+  // Titre puis heure, dans le même bloc de la ligne.
+  const rowText = (t) => page.getByText(t, { exact: true }).filter({ visible: true }).first().locator('xpath=..').innerText().catch(() => '');
+  await shown(page.getByText(title, { exact: true }).filter({ visible: true }));
+  const rows = await Promise.all(items.map(async (r) => {
+    const expected = wall(new Date(r.due_at), shopZone).time;
+    return { title: r.title, expected, ok: (await rowText(r.title)).includes(expected) };
+  }));
+  const wrong = rows.filter((r) => !r.ok);
+  report.check(rows.some((r) => r.title === title) && wrong.length === 0,
+    `${label} : accueil, ${rows.length} rappel(s) du jour à l'heure de la boutique${wrong.map((r) => `\n      ${r.title} : attendu ${r.expected}`).join('')}`);
+}
+
 const browser = await launch();
 for (const viewport of VIEWPORTS) {
   console.log(`\n=== ${viewport.name}px`);
@@ -118,6 +141,7 @@ for (const viewport of VIEWPORTS) {
     `${ctx.label} : l'appareil n'est pas le même jour que la boutique`);
     await checkShortcut(page, ctx);
     await checkPostpone(page, ctx);
+    await checkDashboard(page, ctx);
   } finally {
     await cleanup(page);
   }

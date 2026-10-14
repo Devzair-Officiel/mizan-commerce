@@ -1,3 +1,6 @@
+import importlib
+
+from django.apps import apps as django_apps
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -283,3 +286,36 @@ class OnboardingViewTest(TestCase):
         })
         self.assertIn('fulfillment_mode', response.data)
         self.assertNotIn('dashboard_mode', response.data)
+
+
+class GrantRemindersMigrationTest(TestCase):
+    """Migration 0008 : les employés existants reçoivent le module « reminders »."""
+
+    def setUp(self):
+        self.grant = importlib.import_module(
+            'apps.shops.migrations.0008_grant_reminders_to_existing_staff',
+        ).grant_reminders
+        _, self.shop = make_user_with_shop('owner@example.com')
+
+    def member(self, email, role, permissions):
+        user = User.objects.create_user(email=email, password='Pass123!Strong')
+        return ShopMember.objects.create(
+            shop=self.shop, user=user, role=role, permissions=permissions,
+        )
+
+    def test_adds_reminders_to_staff_once(self):
+        staff = self.member('staff@example.com', 'staff', ['orders', 'customers'])
+        empty = self.member('empty@example.com', 'staff', [])
+        already = self.member('already@example.com', 'staff', ['reminders', 'orders'])
+        admin = self.member('admin@example.com', 'admin', [])
+
+        self.grant(django_apps, None)
+        self.grant(django_apps, None)  # relancée : sans effet
+
+        for m in (staff, empty, already, admin):
+            m.refresh_from_db()
+        self.assertEqual(staff.permissions, ['orders', 'customers', 'reminders'])
+        self.assertEqual(empty.permissions, ['reminders'])
+        self.assertEqual(already.permissions, ['reminders', 'orders'])
+        # Un administrateur a déjà tous les modules : sa liste n'est pas touchée.
+        self.assertEqual(admin.permissions, [])

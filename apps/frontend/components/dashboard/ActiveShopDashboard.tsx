@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Package, Clock, AlertTriangle, Bell } from 'lucide-react';
-import { useFormatMoney, useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
+import { useFormatMoney, useFormatShopDate, useRelativeTime } from '@/lib/hooks/useFormat';
 import { useCan } from '@/lib/hooks/useMe';
 import { useShop } from '@/lib/hooks/useShop';
 import { StatCard } from '@/components/ui/StatCard';
@@ -34,7 +34,7 @@ function getRemindersSub(
   count: number,
   items: { is_overdue: boolean; due_at: string }[],
   t: TDashboard,
-  formatDateTime: (v: string, opts?: Intl.DateTimeFormatOptions) => string,
+  formatShopDate: (v: string, opts?: Intl.DateTimeFormatOptions) => string,
 ) {
   if (count === 0) return { sub: undefined, tone: 'neutral' as const };
   const overdueCount = items.filter((r) => r.is_overdue).length;
@@ -42,7 +42,7 @@ function getRemindersSub(
   const sub = overdueCount > 0
     ? t('counters.reminders_late', { count: overdueCount })
     : nextNonOverdue
-      ? t('counters.reminders_next', { time: formatDateTime(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
+      ? t('counters.reminders_next', { time: formatShopDate(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
       : undefined;
   const tone = overdueCount > 0 ? 'amber' as const : 'neutral' as const;
   return { sub, tone };
@@ -66,7 +66,8 @@ function getLowStockSub(negative: number, outOfStock: number, t: TDashboard) {
 function useActiveShopDashboardData(data: DashboardData) {
   const t = useTranslations('dashboard');
   const formatMoney = useFormatMoney();
-  const formatDateTime = useFormatDateTime();
+  // Heure du prochain rappel à l'heure de la boutique, comme la page Rappels.
+  const formatShopDate = useFormatShopDate();
   const relativeTime = useRelativeTime();
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
@@ -78,7 +79,7 @@ function useActiveShopDashboardData(data: DashboardData) {
     ? t('counters.prepare_sub', { age: relativeTime(data.orders_to_prepare.oldest_created_at) })
     : undefined;
   const reminders = getRemindersSub(
-    data.today_reminders.count, data.today_reminders.items, t, formatDateTime,
+    data.today_reminders.count, data.today_reminders.items, t, formatShopDate,
   );
   // Employé sans le module « Rappels » : ni compteur ni liste.
   const canReminders = useCan('reminders');
