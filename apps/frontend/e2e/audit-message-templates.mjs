@@ -6,7 +6,8 @@
  *   commande prépare le même texte ; « Modifier le modèle » de cette fenêtre ouvre le modèle ;
  * - personnaliser un modèle (« Personnalisé », enregistré), puis « Rétablir le texte du ton choisi » ;
  * - une variable inconnue est refusée : message sous le champ, rien d'enregistré ; l'API répond 400
- *   avec la liste des variables permises.
+ *   avec la liste des variables permises ;
+ * - un texte tapé pendant l'enregistrement reste dans le champ, toujours à enregistrer.
  * Commande impayée d'un client dédié « Audit Modèles » (la dernière de la boutique : l'aperçu la
  * reprend) ; les réglages sont remis au ton chaleureux sans personnalisation à chaque passage.
  */
@@ -161,6 +162,39 @@ async function checkUnknownVariable(page, ctx, variables) {
     `${label} : API → 400 avec les variables permises (${res.status()})`);
 }
 
+/**
+ * Saisie pendant l'enregistrement : la requête est retenue le temps de taper un autre texte. Une fois
+ * enregistré, le champ garde ce texte et reste non enregistré (bouton actif) ; le serveur a le premier.
+ */
+async function checkTypingDuringSave(page, ctx) {
+  const { label, locale } = ctx;
+  const field = textbox(page, M(locale, 'text_label'));
+  const [first, second] = ['{client} — 1', '{client} — 2'];
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  let reached;
+  const sent = new Promise((resolve) => { reached = resolve; });
+  await page.route(/\/api\/proxy\/messages\/settings\//, async (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    reached();
+    await held;
+    return route.continue();
+  });
+  await field.fill(first);
+  await page.locator('[data-sonner-toast]').evaluateAll((toasts) => toasts.forEach((el) => { el.dataset.stale = ''; }));
+  await visibleButton(page, M(locale, 'submit')).click();
+  await sent;
+  await field.fill(second);
+  release();
+  const saved = await shown(page.locator('[data-sonner-toast]:not([data-stale])').filter({ hasText: M(locale, 'saved') }));
+  await page.unroute(/\/api\/proxy\/messages\/settings\//);
+  report.check(saved && await field.inputValue() === second && await visibleButton(page, M(locale, 'submit')).isEnabled()
+      && (await settingsOf(page, locale)).texts[TEMPLATE] === first,
+    `${label} : texte tapé pendant l'enregistrement → gardé, toujours à enregistrer (« ${await field.inputValue()} »)`);
+  await visibleButton(page, M(locale, 'reset')).click();
+  await save(page, locale);
+}
+
 const browser = await launch();
 for (const viewport of VIEWPORTS) {
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
@@ -183,6 +217,7 @@ for (const viewport of VIEWPORTS) {
         await checkTone(page, run, data, defaults);
         await checkCustomize(page, run, defaults);
         await checkUnknownVariable(page, run, variables);
+        await checkTypingDuringSave(page, run);
       } catch (error) {
         report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
       }

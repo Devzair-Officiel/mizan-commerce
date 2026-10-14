@@ -11,6 +11,7 @@ import {
   type MessageSettings, type MessageTemplateKey,
 } from '@/lib/hooks/useMessageTemplates';
 import { notify } from '@/lib/notify';
+import { resetKeepingEdits } from '@/components/form/resetKeepingEdits';
 
 /** Même lecture des variables que le serveur (`comms.services._VARIABLE_RE`). */
 const VARIABLE_RE = /\{([^{}]*)\}/g;
@@ -71,7 +72,7 @@ export function useMessageTemplatesForm(settings: MessageSettings, reveal: (key:
   const submit = form.handleSubmit(async (values) => {
     try {
       const saved = await update.mutateAsync({ tone: values.tone, texts: values.custom });
-      form.reset(valuesOf(saved));
+      resetKeepingEdits(form, valuesOf(saved), values);
       notify.success(t('saved'));
     } catch (err) {
       const keys = serverTemplateErrors(err);

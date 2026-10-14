@@ -15,6 +15,7 @@ import { ZakatSection } from '@/components/settings/ZakatSection';
 import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
 import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
+import { resetKeepingEdits } from '@/components/form/resetKeepingEdits';
 
 function defaultsFromShop(shop: Shop): SettingsFormValues {
   return {
@@ -41,16 +42,16 @@ export default function SettingsPage() {
   const { mutateAsync, isPending, isSuccess } = useUpdateShop();
   const { can } = usePlanGating();
 
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<SettingsFormValues>({
-    resolver: zodResolver(settingsSchema),
-  });
+  const form = useForm<SettingsFormValues>({ resolver: zodResolver(settingsSchema) });
+  const { register, handleSubmit, reset, formState: { errors, isDirty } } = form;
 
+  // Données rechargées (après un enregistrement notamment) : la saisie en cours est gardée.
   useEffect(() => {
-    if (shop) reset(defaultsFromShop(shop));
-  }, [shop, reset]);
+    if (shop) resetKeepingEdits(form, defaultsFromShop(shop));
+  }, [shop, form]);
 
   async function onSubmit(values: SettingsFormValues) {
-    await mutateAsync({
+    const saved = await mutateAsync({
       ...values,
       zakat_annual_date: values.zakat_annual_date || null,
       nisab_unit_price: values.nisab_unit_price && parseFloat(values.nisab_unit_price) > 0
@@ -59,7 +60,7 @@ export default function SettingsPage() {
       default_tax_rate: values.default_tax_rate || '0',
       default_payment_terms_days: Number(values.default_payment_terms_days || 30),
     });
-    reset(values);
+    resetKeepingEdits(form, defaultsFromShop(saved), values);
   }
 
   if (isLoading) {
