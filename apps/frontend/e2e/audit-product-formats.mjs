@@ -13,7 +13,7 @@
  *   rend les cartes Prix et Stock avec les valeurs saisies, l'article a un seul format (nom par défaut).
  * Nettoyage : commande annulée et article vendu désactivé ; l'article à format unique est supprimé.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, deactivate, remove } from './lib/products.mjs';
 import { cards, textbox, visibleButton } from './lib/form.mjs';
@@ -264,6 +264,7 @@ for (const viewport of VIEWPORTS) {
   const cleanup = { served: [], unused: [], orders: [] };
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

@@ -7,7 +7,7 @@
  * Les deux articles (« Audit photo haute », « Audit photo large ») sont créés une fois, réactivés
  * au début et désactivés à la fin.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { allResults, api, createArticle, deactivate } from './lib/products.mjs';
 import { makeImage, squarePhotos, tallAndWideSquare, uploadImage } from './lib/photos.mjs';
@@ -84,6 +84,7 @@ for (const viewport of VIEWPORTS) {
   const fixtures = await ensureFixtures(page);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

@@ -11,7 +11,7 @@
  * Nettoyage : commande annulée, articles du parcours désactivés (ils ont servi : la suppression les refuse).
  * `DEBUG=1` affiche les notifications attendues et affichées ; `SHOTS=<dossier>` capture un parcours interrompu.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, createArticle, deactivate } from './lib/products.mjs';
 import { invoicePng } from './lib/invoice.mjs';
@@ -293,6 +293,7 @@ for (const viewport of VIEWPORTS) {
   watch.problems.length = 0;
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

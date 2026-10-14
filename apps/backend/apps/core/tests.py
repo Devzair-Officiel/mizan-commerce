@@ -754,6 +754,27 @@ class ResetAuditShopTest(TestCase):
         user = User.objects.get(email="e2e@example.com")
         self.assertTrue(user.check_password("Mizan1234!"))
 
+    def test_one_shop_per_slot(self) -> None:
+        with override_settings(DEBUG=True):
+            call_command("reset_audit_shop", slots=3, **self.quiet)
+            call_command("reset_audit_shop", slots=2, **self.quiet)
+        owners = Shop.objects.filter(
+            members__user__email__startswith="e2e", members__role="owner"
+        )
+        self.assertEqual(
+            sorted(owners.values_list("name", flat=True)),
+            ["Boutique Audit", "Boutique Audit 2"],
+        )
+        shop = Shop.objects.get(name="Boutique Audit 2")
+        self.assertEqual(
+            set(shop.members.values_list("user__email", flat=True)),
+            {"e2e2@example.com", "e2e2-staff@example.com"},
+        )
+        self.assertEqual(Customer.objects.filter(shop=shop).count(), 2)
+        self.assertTrue(
+            User.objects.get(email="e2e2@example.com").check_password("Mizan1234!")
+        )
+
     def test_other_shops_untouched(self) -> None:
         user = User.objects.create_user(
             email="ext@test.local", password="Pass123!Strong"

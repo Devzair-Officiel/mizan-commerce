@@ -42,3 +42,4 @@ next-env.d.ts
 
 # audits Playwright (e2e/)
 /e2e/node_modules
+/e2e/results

@@ -10,7 +10,7 @@
  * Client dédié « Audit Export » avec trois commandes du jour (annulées à la fin).
  */
 import { readFile } from 'node:fs/promises';
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
@@ -141,6 +141,7 @@ for (const viewport of VIEWPORTS) {
   const expected = (await api(page, `customers/${customer.id}/activity/?types=order&limit=1`)).count;
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

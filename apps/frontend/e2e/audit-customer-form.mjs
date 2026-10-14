@@ -8,7 +8,7 @@
  * Tout se passe dans la boutique du compte d'audit ; les clients créés (« Audit e2e … ») sont
  * archivés à la fin, et la boutique de Youssef est vérifiée intacte.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { cardToggle, closeCard, isFocused, layoutOk, openCard, textbox, visibleButton } from './lib/form.mjs';
@@ -292,6 +292,7 @@ for (const viewport of VIEWPORTS) {
   await ctx.route('https://wa.me/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>wa</title>' }));
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

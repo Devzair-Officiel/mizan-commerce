@@ -4,7 +4,10 @@ Scripts lancés **sans Node sur la machine** : service Docker Compose `e2e` (ima
 
 ```bash
 # Depuis la racine du dépôt, stack démarrée (docker compose up -d)
-docker compose run --rm e2e                                   # tous les audits, boutique d'audit remise à zéro avant
+docker compose run --rm e2e                                   # tous les audits, 3 à la fois, en smoke, boutiques d'audit remises à zéro avant
+docker compose run --rm e2e npm run audit -- sales scroll-lock   # une liste d'audits, en parallèle aussi
+AUDIT_MATRIX=full docker compose run --rm e2e                 # les 8 configurations (avant une pull request)
+AUDIT_JOBS=4 docker compose run --rm e2e                      # 4 audits à la fois (4 boutiques d'audit recréées)
 docker compose run --rm e2e npm run audit:pages               # écrans principaux
 docker compose run --rm e2e npm run audit:customer-form       # formulaire client
 docker compose run --rm e2e npm run audit:customer-name       # nom complet des clients partout
@@ -34,12 +37,20 @@ docker compose exec backend python manage.py reset_audit_shop # remise à zéro 
 
 Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (détaillée dans la sortie).
 
+## Configurations et parallélisme
+
+- `AUDIT_MATRIX` : `smoke` (par défaut) parcourt 1440px fr clair et 360px ar sombre ; `full` les 8 configurations (1440px et 360px × fr et ar × clair et sombre). Les audits qui ne changent ni de langue ni de thème (pages, numéros de commande, fuseau des rappels, rappels d'un employé) passent toujours aux deux tailles.
+- `run-audits.mjs` (`npm run audit`) lance les audits demandés, `AUDIT_JOBS` à la fois (3 par défaut). Chaque audit en cours occupe un **emplacement** : son propre compte et sa propre boutique d'audit (`e2e@example.com`, `e2e2@example.com`, `e2e3@example.com`, avec leurs employées `e2eN-staff@example.com`), recréés par `reset_audit_shop --slots`. Deux audits ne touchent donc jamais aux mêmes données ; les comptes de démo partagés (Youssef, services) ne sont que lus.
+- Sessions partagées entre les audits d'un lancement : la limite `auth` du backend (10 connexions par minute, toutes vues depuis le frontend) n'est pas atteinte.
+- Sortie complète de chaque audit dans `results/<audit>.log` (ignoré par git) ; le lanceur n'affiche que les vérifications en échec et les durées.
+- `npm run audit:<audit>` lance un audit seul, sans le lanceur, sur la boutique `e2e@example.com`.
+
 ## Compte et boutique d'audit
 
-- `e2e@example.com` possède sa propre boutique, « Boutique Audit » (France, EUR, articles et services, vente sur place, Boutique+), avec quelques articles, services, clients et commandes (`apps/backend/apps/core/management/commands/_seed_e2e.py`). « Nadia Relance » a une commande impayée : l'audit y teste « Relancer ».
+- `e2e@example.com` possède sa propre boutique, « Boutique Audit » (et `e2e2@`, `e2e3@`… « Boutique Audit 2 », « 3 »…, identiques, pour les audits lancés en parallèle) (France, EUR, articles et services, vente sur place, Boutique+), avec quelques articles, services, clients et commandes (`apps/backend/apps/core/management/commands/_seed_e2e.py`). « Nadia Relance » a une commande impayée : l'audit y teste « Relancer ».
 - Les audits créent tout ce dont ils ont besoin **dans cette boutique**, jamais dans celles des autres comptes de démo ; l'audit du formulaire client vérifie à la fin qu'aucun client de test n'existe dans la boutique de Youssef.
 - Ils restent **relançables plusieurs fois de suite** : ce qu'ils créent est archivé ou supprimé à la fin, et ce qu'ils modifient est remis en place au début.
-- **Données de départ connues** : `docker compose run --rm e2e` lance d'abord le service `e2e-reset` (`python manage.py reset_audit_shop`, profil `audit`), qui supprime les boutiques dont `e2e@example.com` est propriétaire puis recrée « Boutique Audit » et ses données de départ, comme `seed_data`. Les autres boutiques ne sont pas touchées. Mêmes gardes que `seed_data` : `DEBUG` ou `ALLOW_SEED=1`. Un audit lancé seul repart aussi de ces données ; `--no-deps` les garde telles quelles (le frontend doit alors déjà tourner).
+- **Données de départ connues** : `docker compose run --rm e2e` lance d'abord le service `e2e-reset` (`python manage.py reset_audit_shop`, profil `audit`), qui supprime les boutiques dont un compte d'audit est propriétaire puis recrée une « Boutique Audit » par emplacement et ses données de départ, comme `seed_data`. Les autres boutiques ne sont pas touchées. Mêmes gardes que `seed_data` : `DEBUG` ou `ALLOW_SEED=1`. Un audit lancé seul repart aussi de ces données ; `--no-deps` les garde telles quelles (le frontend doit alors déjà tourner).
 - `seed_data --reset` supprime aussi la boutique et la recrée, avec celles des autres comptes de démo (comptes `@example.*` uniquement).
 - `openSession(browser, viewport, { email })` permet, si besoin, de se connecter avec un autre compte de démo.
 
@@ -47,7 +58,7 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 
 - `lib/watch.mjs` — **console surveillée** : toute erreur ou tout avertissement en console et toute exception non rattrapée font échouer l'audit ; **éléments interactifs imbriqués** (bouton dans un lien, etc.).
 - `lib/scroll.mjs` — **défilement contrôlé après chaque interaction** de chaque audit (clic, saisie, touche, navigation), branché par `openSession` : une fois fenêtres et menus refermés, la page défile à la molette et rien ne reste bloquant sur html, body et `main` (overflow, pointer-events, inert, aria-hidden, verrou de Base UI). Un blocage est compté avec les problèmes de console de l'étape.
-- `lib/session.mjs` — navigateur, connexion (compte `e2e@example.com` par défaut ; une connexion par taille d'écran : la limite `auth` du backend reste basse), langue (`NEXT_LOCALE`) et thème (réponse `/auth/me/` réécrite, préférences du compte intactes).
+- `lib/session.mjs` — configurations (`AUDIT_MATRIX`, `inMatrix`), navigateur, connexion (compte de l'emplacement, `e2e@example.com` par défaut ; une connexion par taille d'écran, ou session partagée par le lanceur : la limite `auth` du backend reste basse), langue (`NEXT_LOCALE`) et thème (réponse `/auth/me/` réécrite, préférences du compte intactes).
 - `lib/messages.mjs` — textes attendus lus dans `../messages/*.json` (montés en lecture seule) : `msg` (texte brut) et `fmt` (paramètres ICU appliqués : `{var}`, `select`, `plural` avec `=n` et `#`).
 - `lib/products.mjs` — appels du backend par le proxy (`api`, `allResults`), création d'un article de test, désactivation ou suppression en fin d'audit.
 - `lib/form.mjs` — gabarit de formulaire v3 : carte repliable (mobile) ouverte, refermée ou remplie avec son résumé, disposition vérifiée (`layoutOk` : deux colonnes et rien à déplier sur desktop, cartes empilées dans l'ordre et facultatives repliées sur mobile).

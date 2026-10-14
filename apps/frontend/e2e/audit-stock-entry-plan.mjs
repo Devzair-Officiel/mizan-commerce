@@ -7,7 +7,7 @@
  * La formule est réécrite dans la réponse `/subscriptions/current/` (comme le thème dans `/auth/me/`) :
  * aucun endpoint ne passe une boutique en Pro tant que Stripe n'est pas branché, la boutique reste en Boutique+.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 
 const report = createReport();
@@ -56,6 +56,7 @@ for (const viewport of VIEWPORTS) {
     if (new URL(req.url()).pathname.startsWith('/api/proxy/ocr/')) ocr.push(`${req.method()} ${new URL(req.url()).pathname}`);
   });
   for (const locale of ['fr', 'ar']) {
+    if (!inMatrix(viewport, locale)) continue;
     const label = `${viewport.name}px ${locale}`;
     console.log(`\n=== ${label}`);
     await setLocale(locale);

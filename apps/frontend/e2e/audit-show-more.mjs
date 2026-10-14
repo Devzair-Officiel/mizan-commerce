@@ -7,7 +7,7 @@
  * - le serveur ne renvoie qu'une fenêtre : première requête en `limit=5`.
  * Données : un client « Audit Voir plus » et ses 7 notes, créés au besoin (l'audit reste relançable).
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, allResults } from './lib/products.mjs';
 
@@ -65,6 +65,7 @@ for (const viewport of VIEWPORTS) {
   });
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

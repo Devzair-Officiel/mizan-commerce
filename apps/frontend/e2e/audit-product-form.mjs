@@ -14,7 +14,7 @@
  * La boutique de services n'affiche ni stock ni unité ; celle de Youssef reste intacte.
  * Les articles créés sont supprimés à la fin (ils n'ont jamais servi) ; « Audit formats » est désactivé.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { allResults, api, createArticle, deactivate, remove } from './lib/products.mjs';
 import { makeImage } from './lib/photos.mjs';
@@ -366,6 +366,7 @@ for (const viewport of VIEWPORTS) {
   const created = [];
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

@@ -8,7 +8,7 @@
  * Employé de la boutique d'audit (Inès Martin, e2e-staff@example.com) : sara est dans la boutique de
  * démo, que les audits ne modifient pas. Il retrouve le module à la fin, rappels d'audit supprimés.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, launch, openSession, STAFF_EMAIL } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
@@ -16,7 +16,6 @@ import { openCard, textbox, visibleButton } from './lib/form.mjs';
 
 const report = createReport();
 const nested = [];
-const STAFF_EMAIL = 'e2e-staff@example.com';
 const TITLE = 'Audit module';
 const SEED_PERMISSIONS = ['orders', 'customers', 'reminders'];
 const shown = (locator) => locator.first().waitFor({ state: 'visible', timeout: 8000 }).then(() => true, () => false);

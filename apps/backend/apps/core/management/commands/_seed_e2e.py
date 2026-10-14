@@ -1,4 +1,4 @@
-"""Boutique des audits Playwright — compte e2e@example.com (articles et services, EUR).
+"""Boutiques des audits Playwright — comptes e2e@example.com, e2e2@… (EUR).
 
 Importé par seed_data.py et reset_audit_shop.py via
 ``from ._seed_e2e import seed_audit_shop``.
@@ -19,10 +19,19 @@ from apps.shops.models import Shop
 from apps.stock.services import create_movement
 from apps.subscriptions.models import Subscription, SubscriptionPlan
 
-AUDIT_EMAIL = 'e2e@example.com'
+# Comptes des boutiques d'audit : un par emplacement, les audits lancés en parallèle
+# (apps/frontend/e2e/run-audits.mjs) travaillent chacun sur leurs propres données.
+AUDIT_EMAIL_RE = r'^e2e[0-9]*@example\.com$'
 
-# Employée de la boutique d'audit : rappels attribués, badge par membre.
-AUDIT_STAFF_EMAIL = 'e2e-staff@example.com'
+
+def audit_emails(slot: int) -> tuple[str, str]:
+    """Propriétaire et employée (rappels attribués, badge) de l'emplacement `slot`.
+
+    1 → e2e@example.com / e2e-staff@example.com,
+    2 → e2e2@example.com / e2e2-staff@example.com…
+    """
+    prefix = 'e2e' if slot == 1 else f'e2e{slot}'
+    return f'{prefix}@example.com', f'{prefix}-staff@example.com'
 
 # Client avec une commande impayée : l'audit y teste « Relancer » (WhatsApp).
 E2E_FOLLOWUP_CUSTOMER = 'Nadia Relance'
@@ -93,18 +102,20 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
         )
 
 
-def seed_audit_shop(*, stdout=None) -> Shop:
-    """Compte e2e@example.com et sa boutique (Boutique+ active). Idempotent."""
+def seed_audit_shop(*, slot: int = 1, stdout=None) -> Shop:
+    """Compte d'audit de l'emplacement `slot` et sa boutique (Boutique+). Idempotent."""
+    email, staff_email = audit_emails(slot)
     e2e = UserFactory(
-        email=AUDIT_EMAIL,
+        email=email,
         full_name='Audit Playwright',
         phone='+33611000100',
         password='Mizan1234!',
     )
-    shop = ShopFactory(name='Boutique Audit', currency='EUR', country='FR')
+    name = 'Boutique Audit' if slot == 1 else f'Boutique Audit {slot}'
+    shop = ShopFactory(name=name, currency='EUR', country='FR')
     ShopMemberFactory(shop=shop, user=e2e, role='owner')
     staff = UserFactory(
-        email=AUDIT_STAFF_EMAIL,
+        email=staff_email,
         full_name='Inès Martin',
         phone='+33611000103',
         password='Mizan1234!',

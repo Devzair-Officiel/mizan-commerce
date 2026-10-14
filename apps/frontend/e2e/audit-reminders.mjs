@@ -14,7 +14,7 @@
  * Tout se passe dans la boutique du compte d'audit ; les rappels créés sont supprimés à la fin de
  * chaque passage.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession, STAFF_EMAIL } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
@@ -24,7 +24,6 @@ const report = createReport();
 const nested = [];
 const CUSTOMER = 'Audit Relance';
 const FOLLOWUP_CUSTOMER = 'Nadia Relance';
-const STAFF_EMAIL = 'e2e-staff@example.com';
 const TITLE = 'Audit rappel';
 const shown = (locator) => locator.first().waitFor({ state: 'visible', timeout: 8000 }).then(() => true, () => false);
 const hidden = (locator) => locator.first().waitFor({ state: 'hidden', timeout: 8000 }).then(() => true, () => false);
@@ -251,6 +250,7 @@ for (const viewport of VIEWPORTS) {
   const data = await setup(page);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

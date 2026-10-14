@@ -8,7 +8,7 @@
  * - libellés de l'axe sans chevauchement et pas de défilement horizontal (360px compris).
  * Une commande du jour (client « Audit Ventes ») donne un point non nul ; annulée à la fin.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
@@ -130,6 +130,7 @@ for (const viewport of VIEWPORTS) {
   const order = await setup(page);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

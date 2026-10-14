@@ -11,7 +11,7 @@
  * ouverte, la page derrière est verrouillée.
  * Article dédié (format « Lot » jamais utilisé), désactivé à la fin.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, createArticle, deactivate } from './lib/products.mjs';
 import { makeImage } from './lib/photos.mjs';
@@ -224,6 +224,7 @@ for (const viewport of VIEWPORTS) {
   });
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

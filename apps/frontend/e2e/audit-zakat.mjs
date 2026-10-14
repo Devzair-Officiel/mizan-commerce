@@ -4,7 +4,7 @@
  * (« Modifier ») est forcée en échec, l'erreur doit apparaître en notification, sans boîte
  * de dialogue du navigateur. Le calcul est supprimé à la fin (audit relançable).
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 
 const report = createReport();
@@ -32,6 +32,7 @@ for (const viewport of VIEWPORTS) {
     route.fulfill({ status: 400, json: { detail: FAILURE } }));
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

@@ -13,7 +13,7 @@
  * Crème, rouge sur Lilas et rose sur Défaut en clair…).
  * Données : un client « Audit En-têtes » avec une commande impayée, un article à deux formats.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { api, allResults, createArticle, deactivate } from './lib/products.mjs';
 
 const report = createReport();
@@ -130,6 +130,7 @@ for (const viewport of VIEWPORTS) {
   const data = await setup(page);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);
