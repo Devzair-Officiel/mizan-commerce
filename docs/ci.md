@@ -1,6 +1,11 @@
 # Intégration continue
 
-Workflow : `.github/workflows/ci.yml` (GitHub Actions). Il se lance sur chaque pull request vers `main` et sur chaque push vers `main` ou `feature/**`. Un nouveau push annule l'exécution en cours de la même branche.
+Workflow : `.github/workflows/ci.yml` (GitHub Actions). Un nouveau push annule l'exécution en cours de la même branche. Il se lance :
+- sur chaque pull request vers `main` ;
+- sur chaque push vers `main` ;
+- à la main (`workflow_dispatch`), pour une branche sans pull request : **Actions → CI → Run workflow**, choisir la branche.
+
+Un push sur une branche de travail ne lance rien tant qu'aucune pull request n'est ouverte : une seule exécution par push. GitHub ne propose `workflow_dispatch` que si le workflow existe sur `main`.
 
 | Job | Contenu |
 |---|---|

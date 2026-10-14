@@ -2,15 +2,18 @@
 # Réglages GitHub (protection de main, jobs obligatoires) : docs/ci.md.
 name: CI
 
+# Une seule exécution par push : la pull request couvre les branches de travail,
+# workflow_dispatch lance le CI à la main sur une branche sans pull request.
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, "feature/**"]
+    branches: [main]
+  workflow_dispatch:
 
 # Un nouveau push annule l'exécution en cours de la même branche.
 concurrency:
-  group: ci-${{ github.event_name }}-${{ github.head_ref || github.ref }}
+  group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
