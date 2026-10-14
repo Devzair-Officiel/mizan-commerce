@@ -110,6 +110,8 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 ## Workflow
 
 - Quand une tâche est ambiguë, **poser une question** avant de coder. Ne pas inventer.
+- **Ne jamais contourner une permission refusée** (par un conteneur, un autre outil ou une autre commande) : s'arrêter et me demander.
+- **Enchaîner les commandes Git et de déploiement avec `&&` ou `set -e`** : s'arrêter à la première erreur, ne jamais continuer sur un état intermédiaire.
 - Pour les modèles ou endpoints, vérifier le schéma dans `docs/schema_base_donnees.md` avant.
 - Toute nouvelle fonctionnalité doit pouvoir se rattacher à un URS (URS-XXX). Si rien ne couvre, le signaler.
 - Après modification du modèle Django : générer la migration et la mentionner explicitement.

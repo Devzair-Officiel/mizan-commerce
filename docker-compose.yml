@@ -24,7 +24,10 @@ services:
       context: ./apps/backend
       target: development                       # utilise le stage "development" du Dockerfile multi-stage
     restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # utilisateur hôte : migrations, __pycache__ et fichiers générés lui appartiennent
     env_file: .env
+    environment:
+      - HOME=/tmp                               # l'uid hôte n'a pas de dossier personnel dans l'image
     volumes:
       - ./apps/backend:/app                     # monte le code local dans le conteneur (hot reload)
     ports:
@@ -38,7 +41,10 @@ services:
       context: ./apps/backend
       target: development                       # même image que backend pour partager le code monté
     restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # comme backend : aucun fichier root dans le code monté
     env_file: .env
+    environment:
+      - HOME=/tmp
     volumes:
       - ./apps/backend:/app                     # hot reload : le code OCR est modifié en dev
     command: celery -A config worker --loglevel=info --queues=ocr --concurrency=1
@@ -51,6 +57,11 @@ services:
       context: ./apps/ai-service            # service FastAPI séparé (V6 : OCR/IA)
     restart: unless-stopped
     env_file: .env                          # transmet AI_SERVICE_API_KEY (jamais commité)
+    # Reste en root : PaddleOCR écrit dans son cache (/root/.paddlex, volume existant en root).
+    # Il n'écrit donc rien dans le code monté : ni __pycache__ ni cache pytest.
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTEST_ADDOPTS=-p no:cacheprovider
     volumes:
       - ./apps/ai-service:/app              # hot reload en dev (uvicorn --reload)
       - paddle_models:/root/.paddlex        # cache modèles PaddleOCR (évite un ~50 Mo de retéléchargement à chaque rebuild)
@@ -63,7 +74,7 @@ services:
       context: ./apps/frontend
       target: development                       # utilise le stage "development" du Dockerfile multi-stage
     restart: unless-stopped
-    user: "1000:1000"                           # correspond à l'utilisateur hôte (houd) pour éviter les conflits de permissions
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # utilisateur hôte (HOST_UID/HOST_GID, 1000 par défaut) : pas de fichier root dans le code
     volumes:
       - ./apps/frontend:/app                    # monte le code local dans le conteneur (hot reload)
       - /app/node_modules                       # empêche le volume hôte d'écraser les node_modules du conteneur
@@ -77,11 +88,11 @@ services:
   e2e:
     image: mcr.microsoft.com/playwright:v1.62.1-noble   # image officielle : Chromium + dépendances, Node inclus
     profiles: ["audit"]                         # ne démarre pas avec la stack : `docker compose run --rm e2e`
-    user: "1000:1000"                           # node_modules créés au nom de l'utilisateur hôte
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # node_modules créés au nom de l'utilisateur hôte
     working_dir: /e2e
     ipc: host                                   # recommandé par Playwright pour Chromium
     environment:
-      - HOME=/tmp                               # cache npm accessible à l'utilisateur 1000
+      - HOME=/tmp                               # cache npm accessible à l'utilisateur hôte
       - NPM_CONFIG_UPDATE_NOTIFIER=false
       - BASE_URL=http://frontend:3000           # frontend du réseau compose
       - AUDIT_MATRIX=${AUDIT_MATRIX:-smoke}     # smoke : 1440 fr clair + 360 ar sombre ; full : les 8 configurations
@@ -103,7 +114,10 @@ services:
       target: development                       # même image que backend, code monté
     profiles: ["audit"]                         # lancé par `docker compose run --rm e2e`, puis s'arrête
     restart: "no"
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     env_file: .env
+    environment:
+      - HOME=/tmp
     volumes:
       - ./apps/backend:/app
     command: ["python", "manage.py", "reset_audit_shop", "--slots", "${AUDIT_JOBS:-3}"]   # une boutique par audit simultané ; DEBUG ou ALLOW_SEED=1 requis, comme seed_data
