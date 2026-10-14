@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { orderNumberTag } from '@/components/orders/OrderNumber';
 import type { StockMovement } from '@/lib/hooks/useStock';
 
 const EXITS = ['loss', 'breakage', 'internal_use', 'adjustment'] as const;
@@ -19,11 +20,11 @@ export function MovementReference({ movement: m }: { movement: StockMovement }) 
       <Link href={`/orders/${m.order_id}`} className="font-semibold text-primary hover:underline">{chunks}</Link>
     );
     const cancelled = m.movement_type === 'release' && m.order_status === 'cancelled';
-    return <>{t.rich(cancelled ? 'order_cancelled' : 'order', { number: m.order_number, link })}</>;
+    return <>{t.rich(cancelled ? 'order_cancelled' : 'order', { number: m.order_number, link, num: orderNumberTag })}</>;
   }
   if (m.supplier_name || m.invoice_number) {
     if (!m.invoice_number) return <span dir="auto">{m.supplier_name}</span>;
-    return <span dir="auto">{m.supplier_name ? t('supplier_invoice', { supplier: m.supplier_name, invoice: m.invoice_number }) : t('invoice', { invoice: m.invoice_number })}</span>;
+    return <span dir="auto">{m.supplier_name ? t.rich('supplier_invoice', { supplier: m.supplier_name, invoice: m.invoice_number, num: orderNumberTag }) : t.rich('invoice', { invoice: m.invoice_number, num: orderNumberTag })}</span>;
   }
   if (isReasoned(m.movement_type)) {
     const kind = t(`kind.${m.movement_type}`);

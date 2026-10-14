@@ -61,7 +61,7 @@ Productivité                notes, reminders
 Zakat                       zakat_calculations
 OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
                             detection_results
-Communication               prepared_messages, telegram_accounts, telegram_publications
+Communication               prepared_messages, message_settings, telegram_accounts, telegram_publications
 Page publique               public_pages, public_page_sections,
                             public_product_visibilities, public_services, contact_buttons
 Projets halal               projects, project_funding_lines, project_documents,
@@ -133,6 +133,8 @@ Compte utilisateur (commerçant ou partenaire potentiel).
 | password_hash | VARCHAR(255) | NOT NULL | Géré par Django (PBKDF2 par défaut) |
 | full_name | VARCHAR(150) | | Nom affiché |
 | phone | VARCHAR(30) | | Téléphone optionnel |
+| language | VARCHAR(2) | NOT NULL, DEFAULT 'fr' | `fr`, `ar`, `en` — langue de l'interface, reprise par les textes écrits hors requête (rappels automatiques, résumé du jour) |
+| sales_period | VARCHAR(3) | NOT NULL, DEFAULT '7d' | `7d`, `12m`, `all` — période du bloc Ventes de l'accueil, gardée d'une visite à l'autre |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | Désactivation (RGPD) |
 | email_verified_at | TIMESTAMPTZ | | Date validation email |
 | last_login_at | TIMESTAMPTZ | | Dernière connexion |
@@ -600,12 +602,34 @@ Note libre, ou liée à un client, ou liée à une commande.
 | category | VARCHAR(30) | | `unpaid`, `customer_followup`, `zakat`, `order_prep`, `free` |
 | customer_id | UUID | FK → customers.id | Optionnel |
 | order_id | UUID | FK → orders.id | Optionnel |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | `pending`, `done`, `dismissed` |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | `pending`, `done`, `dismissed` (rappel automatique supprimé : gardé pour ne pas être recréé, invisible partout) |
 | done_at | TIMESTAMPTZ | | |
+| assigned_to_member_id | UUID | FK → shop_members.id, ON DELETE SET NULL | Membre chargé du rappel ; NULL = toute l'équipe |
+| is_automatic | BOOLEAN | NOT NULL, DEFAULT false | Créé par une tâche (relance d'impayé, commandes en attente, zakat) |
+| auto_key | VARCHAR(80) | NOT NULL, DEFAULT '' | Clé de dédoublonnage des rappels automatiques : `unpaid:{order_id}`, `pending_orders:{date locale}` |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `(shop_id, status, due_at)`.
+**Contrainte** : UNIQUE `(shop_id, auto_key)` quand `auto_key <> ''` — une relance par commande, un rappel de commandes en attente par jour.
+
+---
+
+### `reminder_settings`
+
+Réglages des rappels automatiques (URS-055 à 057), un par boutique, créés à la première lecture. Modifiables par le propriétaire et les administrateurs.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| shop_id | UUID | PK, FK → shops.id ON DELETE CASCADE | |
+| unpaid_followup_enabled | BOOLEAN | NOT NULL, DEFAULT true | Relance des commandes impayées |
+| unpaid_followup_days | SMALLINT | NOT NULL, DEFAULT 3, 1 à 60 | Jours sans paiement avant la relance |
+| pending_orders_enabled | BOOLEAN | NOT NULL, DEFAULT true | Rappel du matin des commandes à préparer |
+| pending_orders_days | SMALLINT | NOT NULL, DEFAULT 2, 1 à 60 | Ancienneté des commandes comptées |
+| daily_summary_enabled | BOOLEAN | NOT NULL, DEFAULT false | E-mail du résumé du jour au propriétaire |
+| daily_summary_hour | SMALLINT | NOT NULL, DEFAULT 8, 0 à 23 | Heure locale d'envoi |
+| daily_summary_sent_on | DATE | | Dernier envoi (date locale) : un e-mail par jour |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 ---
 
@@ -726,7 +750,7 @@ Messages WhatsApp préparés (jamais envoyés automatiquement).
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| template_type | VARCHAR(30) | NOT NULL | `order_confirmation`, `tracking`, `unpaid_followup`, `promo`, `free` |
+| template_type | VARCHAR(30) | NOT NULL | `order_confirmation`, `tracking`, `unpaid_followup`, `thank_you`, `promo`, `free` |
 | context_type | VARCHAR(30) | | `order`, `customer`, `product`, `none` |
 | context_id | UUID | | ID polymorphique selon `context_type` |
 | customer_id | UUID | FK → customers.id | Pour faciliter les requêtes |
@@ -737,6 +761,23 @@ Messages WhatsApp préparés (jamais envoyés automatiquement).
 | sent_manually_at | TIMESTAMPTZ | | Renseigné manuellement par l'utilisateur |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+---
+
+### `message_settings`
+
+Ton et textes personnalisés des modèles de messages WhatsApp d'une boutique (URS-066). Les modèles ne servent qu'à préparer le texte que le commerçant envoie lui-même.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, NOT NULL, UNIQUE, ON DELETE CASCADE | Créé à la première lecture |
+| tone | VARCHAR(20) | NOT NULL, DEFAULT 'warm' | `warm` (chaleureux), `professional` (nom complet du client) |
+| custom_texts | JSONB | NOT NULL, DEFAULT '{}' | `{template_type: texte}` pour `order_confirmation`, `tracking`, `unpaid_followup`, `thank_you`, `promo` ; un modèle absent suit le texte du ton choisi (fr, en, ar, dans le code : `comms/message_texts.py`) |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+Variables permises dans un texte : `{client}`, `{commande}`, `{date}`, `{total}`, `{reste}`, `{articles}`, `{boutique}` ; toute autre est refusée à l'enregistrement.
 
 ---
 
@@ -1064,6 +1105,8 @@ Journalisation des actions sensibles (URS-062 + fiche technique §14.4).
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `(shop_id, created_at DESC)`, `(user_id, created_at DESC)`, `(action, created_at DESC)`.
+
+Export de l'activité d'un client (URS-104, proposée) : une ligne `customer_activity_export` par fichier (famille `data.export`), cible le client, détails = types exportés, filtre « À encaisser », période (`from`/`to`, jours de la boutique) et nombre de lignes.
 
 ---
 

@@ -90,6 +90,17 @@ export interface StockLevelsFilters {
 
 export type ReminderScope = 'todo' | 'upcoming' | 'done';
 
+/** Filtres de la page Rappels, partagés par la liste et les compteurs. */
+export interface ReminderFilters {
+  search?: string;
+  category?: string;
+  /** me | team | identifiant d'un membre. */
+  for?: string;
+  /** Rappels d'une fiche client ou commande. */
+  customer?: string;
+  order?: string;
+}
+
 export const qk = {
   orders: {
     all: ['orders'] as const,
@@ -150,6 +161,7 @@ export const qk = {
   dashboard: {
     all: ['dashboard'] as const,
     today: ['dashboard', 'today'] as const,
+    sales: (period: string) => ['dashboard', 'sales', period] as const,
   },
 
   shop: {
@@ -169,8 +181,13 @@ export const qk = {
 
   reminders: {
     all: ['reminders'] as const,
-    list: (scope: ReminderScope) => ['reminders', scope] as const,
+    list: (scope: ReminderScope, filters: ReminderFilters) => ['reminders', 'list', scope, filters] as const,
+    summary: (filters: ReminderFilters) => ['reminders', 'summary', filters] as const,
+    assignees: ['reminders', 'assignees'] as const,
+    settings: ['reminders', 'settings'] as const,
     followup: (customerId: string) => ['reminders', 'followup', customerId] as const,
+    detail: (id: string) => ['reminders', 'detail', id] as const,
+    linked: (link: 'customer' | 'order', id: string) => ['reminders', link, id] as const,
   },
 
   customers: {
@@ -185,6 +202,12 @@ export const qk = {
       filter: string | null,
       pendingOnly: boolean,
     ) => ['customers', customerId, 'activity', filter, pendingOnly] as const,
+    /** Lignes de l'export de l'activité, par type, pour une période. */
+    activityExport: (
+      customerId: string,
+      range: { from?: string; to?: string },
+      pendingOnly: boolean,
+    ) => ['customers', customerId, 'activity-export', range, pendingOnly] as const,
   },
 
   invoices: {
@@ -212,6 +235,13 @@ export const qk = {
     all: ['geocode'] as const,
     query: (value: string, country: string) =>
       ['geocode', value, country] as const,
+  },
+
+  messageTemplates: {
+    all: ['message-templates'] as const,
+    settings: (lang: string) => ['message-templates', 'settings', lang] as const,
+    preview: (text: string, tone: string, lang: string) => ['message-templates', 'preview', text, tone, lang] as const,
+    compose: (request: object, lang: string) => ['message-templates', 'compose', request, lang] as const,
   },
 
   preparedMessages: {

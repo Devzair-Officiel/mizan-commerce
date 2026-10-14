@@ -13,11 +13,12 @@
  *   rend les cartes Prix et Stock avec les valeurs saisies, l'article a un seul format (nom par défaut).
  * Nettoyage : commande annulée et article vendu désactivé ; l'article à format unique est supprimé.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, deactivate, remove } from './lib/products.mjs';
 import { cards, textbox, visibleButton } from './lib/form.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
+import { focusReached } from './lib/wait.mjs';
 
 const report = createReport();
 const SIZES = ['Taille S', 'Taille M', 'Taille L'];
@@ -60,8 +61,7 @@ async function setReference(page, t, ctx, name, sku) {
   const sheet = page.getByRole('dialog', { name: t('articles.form.section_reference') });
   await sheet.waitFor();
   const field = sheet.getByRole('textbox', { name: t('articles.form.sku'), exact: true });
-  await page.waitForTimeout(300);
-  const focused = await field.evaluate((el) => el === document.activeElement);
+  const focused = await focusReached(field);
   await field.fill(sku);
   await sheet.getByRole('button', { name: t('ui.form.done'), exact: true }).click();
   await sheet.waitFor({ state: 'detached' });
@@ -114,7 +114,7 @@ async function submitCreation(page, t, ctx, nested) {
   await names.nth(2).fill(SIZES[1]);
   const submit = visibleButton(page, f('submit_create_formats', { count: 3 }));
   await submit.click();
-  await page.waitForTimeout(300);
+  await page.getByText(f('format_name_taken'), { exact: true }).filter({ visible: true }).first().waitFor({ timeout: 4000 }).catch(() => {});
   const refused = page.url().endsWith('/products/new') && (await names.nth(2).getAttribute('aria-invalid')) === 'true'
     && await page.getByText(f('format_name_taken'), { exact: true }).filter({ visible: true }).count() === 1;
   report.check(refused, `${ctx.label} : deux formats « ${SIZES[1]} » → « ${f('format_name_taken')} », rien n'est envoyé`);
@@ -264,6 +264,7 @@ for (const viewport of VIEWPORTS) {
   const cleanup = { served: [], unused: [], orders: [] };
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

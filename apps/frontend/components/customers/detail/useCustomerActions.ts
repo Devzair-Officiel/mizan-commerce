@@ -6,6 +6,7 @@ import { Bell, ClipboardPlus, MapPin, PowerOff, RotateCcw, StickyNote } from 'lu
 import type { DetailAction, DetailMenuActions } from '@/components/detail/types';
 import { WhatsAppIcon } from '@/components/orders/detail/constants';
 import type { Customer } from '@/lib/hooks/useCustomers';
+import { useCan } from '@/lib/hooks/useMe';
 import type { CustomerDetailActions } from './useCustomerDetailState';
 
 export type CustomerActionKey = 'followup' | 'new_order' | 'reminder' | 'note' | 'address' | 'deactivate' | 'reactivate';
@@ -24,21 +25,25 @@ export function hasPending(customer: Customer): boolean {
 export function useCustomerActions(customer: Customer, actions: CustomerDetailActions) {
   const t = useTranslations('customers.detail');
   const router = useRouter();
+  const canReminders = useCan('reminders');
+  const canMessages = useCan('messages');
   const newOrder: CustomerAction = {
     key: 'new_order', icon: ClipboardPlus, label: t('new_order'),
     onSelect: () => router.push(`/orders/new?customer=${customer.id}&from=/customers/${customer.id}`),
   };
-  const primary: CustomerAction | null = hasPending(customer) && customer.phone
+  const primary: CustomerAction | null = hasPending(customer) && customer.phone && canMessages
     ? { key: 'followup', icon: WhatsAppIcon, label: t('followup'), onSelect: () => actions.openWhatsApp('followup') }
     : customer.is_active ? newOrder : null;
 
   const items: CustomerAction[] = [];
   if (customer.is_active && primary?.key !== 'new_order') items.push(newOrder);
-  items.push(
-    {
+  if (canReminders) {
+    items.push({
       key: 'reminder', icon: Bell, disabled: actions.pending, label: t('reminder_schedule'),
       onSelect: () => { void actions.scheduleReminder(); },
-    },
+    });
+  }
+  items.push(
     { key: 'note', icon: StickyNote, label: t('add_note'), onSelect: actions.openNoteForm },
     { key: 'address', icon: MapPin, label: t('edit_address'), onSelect: () => router.push(`/customers/${customer.id}/edit`) },
   );

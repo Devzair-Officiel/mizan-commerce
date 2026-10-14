@@ -17,7 +17,8 @@ export interface OrderDetailActions {
   openPayment: (preset: number) => void;
   openInvoice: () => void;
   confirm: (kind: OrderConfirmKind) => void;
-  openWhatsApp: (template: PreparedMessageTemplate) => void;
+  /** Message WhatsApp : sans modèle, celui de l'étape de la commande (choisi par le serveur). */
+  openWhatsApp: (template?: PreparedMessageTemplate) => void;
   /** Rappel de relance du client de la commande (décale celui qui existe déjà). */
   scheduleReminder: () => void;
   /** Une transition est en cours : les boutons qui en déclenchent une sont désactivés. */
@@ -95,7 +96,7 @@ export function useOrderDetailState(id: string) {
   // Le type reste connu pendant l'animation de fermeture (titre stable).
   const [confirmKind, setConfirmKind] = useState<OrderConfirmKind>('cancel');
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [whatsApp, setWhatsApp] = useState<PreparedMessageTemplate | null>(null);
+  const [whatsApp, setWhatsApp] = useState<{ template?: PreparedMessageTemplate } | null>(null);
   const followup = useFollowupReminder();
 
   const actions: OrderDetailActions = {
@@ -103,7 +104,7 @@ export function useOrderDetailState(id: string) {
     openPayment: payment.show,
     openInvoice: invoice.show,
     confirm: (kind) => { setConfirmKind(kind); setConfirmOpen(true); },
-    openWhatsApp: setWhatsApp,
+    openWhatsApp: (template) => setWhatsApp({ template }),
     scheduleReminder: () => {
       if (order?.customer) void followup.schedule({ customerId: order.customer, customerName: order.customer_name ?? '', orderId: order.id });
     },
@@ -118,7 +119,7 @@ export function useOrderDetailState(id: string) {
       close: () => setConfirmOpen(false),
       run: (status: string) => transition.mutateAsync(status).then(() => undefined),
     },
-    whatsApp: { template: whatsApp, close: () => setWhatsApp(null) },
+    whatsApp: { request: whatsApp, close: () => setWhatsApp(null) },
     followupConflict: followup.conflict,
   };
 }

@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
 import { useCreateReminder, useFindFollowupReminder, useUpdateReminder, type Reminder } from '@/lib/hooks/useReminders';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { notify } from '@/lib/notify';
+import { tomorrowAt } from './reminderDates';
 
 /** Client à relancer, et la commande d'où part la relance s'il y en a une. */
 export interface FollowupTarget {
@@ -17,20 +19,14 @@ interface Conflict { target: FollowupTarget; existing: Reminder; dueAt: string }
 
 export const FOLLOWUP_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' };
 
-function tomorrowAtNine(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(9, 0, 0, 0);
-  return d.toISOString();
-}
-
 /**
  * « Marquer à relancer » (fiche client, fiche commande) : rappel pour demain 9 h. Si le client a
  * déjà un rappel de relance en attente, propose de le décaler plutôt que d'en créer un second.
  */
 export function useFollowupReminder() {
   const t = useTranslations('reminders.followup');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
+  const tz = useShopTimeZone();
   const find = useFindFollowupReminder();
   const create = useCreateReminder();
   const update = useUpdateReminder();
@@ -44,7 +40,7 @@ export function useFollowupReminder() {
   }
 
   async function schedule(target: FollowupTarget) {
-    const dueAt = tomorrowAtNine();
+    const dueAt = tomorrowAt(9, tz).toISOString();
     setChecking(true);
     try {
       const existing = await find(target.customerId);

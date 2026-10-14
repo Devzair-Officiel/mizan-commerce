@@ -27,7 +27,8 @@ Documents de référence (à consulter selon le besoin, pas à charger systémat
 
 ```bash
 # Backend (depuis apps/backend)
-docker compose exec backend pytest            # Tests
+docker compose exec backend pytest -n auto    # Tests, en parallèle (pytest-xdist : une base de test par worker)
+docker compose exec backend pytest apps/<app>  # Tests d'une app
 docker compose exec backend pytest path/file::test_name  # Test ciblé
 docker compose exec backend ruff check .      # Lint
 docker compose exec backend ruff format .     # Format
@@ -44,16 +45,17 @@ docker compose exec -T frontend npm run tokens:check  # Obligatoire avant tout c
 docker compose exec -T frontend npm run text:check  # Obligatoire avant tout commit frontend : aucun texte d'interface en dur (JSX, title, aria-label, placeholder, alt) — tout passe par t()
 docker compose exec -T frontend npm run deps:check  # Obligatoire avant tout commit frontend : @base-ui/utils installé une seule fois, à la version qu'attend @base-ui/react — deux copies font deux verrous de défilement qui s'ignorent, et la page reste bloquée (6e3b998)
 docker compose exec -T frontend npm run lint     # ESLint
-docker compose exec -T frontend npm run build    # Build de prod
+docker compose restart frontend && docker compose exec -T frontend npm run build    # Build de prod, toujours après redémarrage du frontend (le serveur de dev grossit jusqu'à faire tuer le build faute de mémoire)
 # npm run test n'existe pas encore — aucune infra Vitest en place
 
 # Stack complète
 docker compose up -d
 
 # Audits navigateur Playwright (sans Node sur la machine, service `e2e` du profil « audit ») — voir apps/frontend/e2e/README.md
-docker compose run --rm e2e                              # tous les audits (console surveillée, éléments imbriqués), boutique d'audit remise à zéro avant
-docker compose run --rm e2e npm run audit:customer-form  # un audit ciblé (remise à zéro aussi ; --no-deps pour garder les données)
-docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée la boutique d'audit (e2e@example.com)
+docker compose run --rm e2e                              # tous les audits, 3 à la fois (AUDIT_JOBS), en smoke (1440 fr clair + 360 ar sombre), boutiques d'audit remises à zéro avant
+docker compose run --rm e2e npm run audit -- sales scroll-lock  # un audit ou une liste (remise à zéro aussi ; --no-deps pour garder les données)
+AUDIT_MATRIX=full docker compose run --rm e2e            # les 8 configurations (fr/ar × clair/sombre × 1440/360)
+docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@example.com)
 ```
 
 ## Code rules — Backend (Python / Django)
@@ -114,7 +116,14 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - À la fin d'une tâche, indiquer la ligne du `docs/plan_avancement.md` à cocher.
 - **À chaque nouvelle app Django** : créer `apps/backend/apps/<app>/factories.py` avec des factories `factory_boy` + `faker` pour tous les modèles de l'app. Ajouter le seeding correspondant dans `apps/core/management/commands/seed_data.py`. Tester avec : `docker compose exec backend python manage.py seed_data`.
 - **Vérifications navigateur : console surveillée, aucune erreur ni avertissement React toléré.** Seule exception : les messages de développement de Next.js qui ne viennent pas de notre code (Fast Refresh, HMR, invitation React DevTools). L'aperçu de la page publique (iframe sandbox, origine opaque) produit en dev des erreurs de ressources de développement : attendues, ne pas assouplir le sandbox. Vérification automatisée : `docker compose run --rm e2e`.
-- **Avant tout commit backend** : lancer `pytest` complet (pas seulement l'app modifiée), puis `ruff check .`. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type.
+- **Vérifications** : suivre la section « Vérifications » ci-dessous. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type : le `pytest -n auto` complet de fin de prompt le rattrape.
+
+## Vérifications
+
+- **Après chaque commit** : tests de l'app modifiée (`pytest apps/<app>`) et `ruff check .` ; côté frontend, lint, typecheck et contrôles npm (i18n, tokens, text, deps) ; audit de la page modifiée en smoke (`docker compose run --rm e2e npm run audit -- <audit>`).
+- **À la fin d'un prompt** : `pytest -n auto` complet, `makemigrations --check`, build (après `docker compose restart frontend`), suite d'audits en smoke (`docker compose run --rm e2e`).
+- **Avant une pull request** : suite d'audits en full (`AUDIT_MATRIX=full docker compose run --rm e2e`).
+- **Mémoire** : build et pytest **jamais en parallèle** (ni build et suite d'audits) ; toujours `docker compose restart frontend` avant un build.
 
 ## Self-check before responding
 

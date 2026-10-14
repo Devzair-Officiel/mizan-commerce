@@ -8,10 +8,11 @@
  * Tout se passe dans la boutique du compte d'audit ; les clients créés (« Audit e2e … ») sont
  * archivés à la fin, et la boutique de Youssef est vérifiée intacte.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { cardToggle, closeCard, isFocused, layoutOk, openCard, textbox, visibleButton } from './lib/form.mjs';
+import { dismissedDialog } from './lib/wait.mjs';
 
 const report = createReport();
 const created = [];
@@ -167,11 +168,8 @@ async function checkCollapsedError(page, t, ctx, { field, value, error, origin }
 /** « Annuler » (desktop) ou le retour de l'en-tête (mobile) demande confirmation. */
 async function checkLeaveGuard(page, t, ctx, customerName) {
   const { label, viewport } = ctx;
-  let asked = '';
-  page.once('dialog', (dialog) => { asked = dialog.message(); dialog.dismiss(); });
   const leave = viewport.mobile ? visibleButton(page, customerName) : visibleButton(page, t('ui.form.cancel'));
-  await leave.click();
-  await page.waitForTimeout(300);
+  const asked = await dismissedDialog(page, () => leave.click());
   report.check(
     asked === t('layout.common.confirm_leave') && page.url().endsWith('/edit'),
     `${label} : ${viewport.mobile ? 'retour' : '« Annuler »'} demande confirmation, refus → reste sur le formulaire`,
@@ -292,6 +290,7 @@ for (const viewport of VIEWPORTS) {
   await ctx.route('https://wa.me/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>wa</title>' }));
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

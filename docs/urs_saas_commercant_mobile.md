@@ -168,6 +168,9 @@ L'application est organisée autour des modules suivants :
 - Il affiche les paiements en attente.
 - Il affiche les produits en stock faible.
 - Il affiche les rappels du jour.
+- Il affiche un bloc Ventes (chiffre d'affaires : commandes non annulées, au fuseau de la boutique) sur 7 jours, 12 mois ou depuis l'ouverture de la boutique (un point par mois, ou par semaine avant deux mois d'activité) : courbe, total, évolution par rapport à la période précédente (7 jours et 12 mois), meilleur mois et moyenne mensuelle (12 mois).
+- Au survol ou au clavier, chaque point de la courbe donne son montant et son nombre de commandes ; un tableau équivalent est lu par les lecteurs d'écran.
+- La période choisie est gardée sur le compte de l'utilisateur.
 - L'affichage est optimisé pour mobile.
 
 ---
@@ -645,9 +648,13 @@ L'application est organisée autour des modules suivants :
 ### Critères d'acceptation
 
 - L'utilisateur peut saisir un titre.
-- L'utilisateur peut choisir une date.
-- Le rappel apparaît sur le dashboard.
-- Le rappel peut être marqué comme terminé.
+- L'utilisateur peut choisir une date et une heure (raccourcis : aujourd'hui 18 h, demain 9 h, lundi 9 h, dans une semaine).
+- L'utilisateur peut choisir une catégorie : relance client, préparation, paiement, libre.
+- Le rappel peut être lié à un client et à une de ses commandes non soldées ; il apparaît alors aussi sur la fiche du client et de la commande.
+- Le rappel peut être attribué à un membre de l'équipe ; sans attribution, il est pour toute l'équipe. Le badge et l'accueil de chaque membre ne comptent que ses rappels et ceux de l'équipe.
+- Le rappel apparaît sur le dashboard et dans la page Rappels (À faire, À venir, Terminés).
+- Le rappel peut être modifié, reporté (dans 1 h, demain 9 h, lundi 9 h, une date au choix) et supprimé.
+- Le rappel peut être marqué comme terminé, avec annulation possible depuis la notification.
 
 ---
 
@@ -948,6 +955,9 @@ L'application est organisée autour des modules suivants :
 - Une commande non payée apparaît dans les alertes.
 - L'utilisateur peut marquer le paiement comme reçu.
 - L'utilisateur peut créer un rappel de relance.
+- Un rappel automatique « Relancer {client} » est créé pour chaque commande impayée ou partiellement payée depuis plus de N jours (3 par défaut), une seule fois par commande : supprimé ou terminé, il n'est jamais recréé.
+- Le propriétaire et les administrateurs peuvent désactiver ces relances ou changer le délai ; les employés voient le réglage sans pouvoir le modifier.
+- Aucun message WhatsApp n'est jamais envoyé automatiquement.
 
 ---
 
@@ -962,6 +972,8 @@ L'application est organisée autour des modules suivants :
 - Les commandes à préparer apparaissent sur le dashboard.
 - L'utilisateur peut changer leur statut.
 - Les commandes préparées disparaissent de cette section.
+- Chaque matin (heure de la boutique), un rappel automatique signale les commandes à préparer depuis plus de N jours (2 par défaut), au plus un par jour.
+- Le propriétaire et les administrateurs peuvent désactiver ce rappel ou changer le délai.
 
 ---
 
@@ -973,10 +985,12 @@ L'application est organisée autour des modules suivants :
 
 ### Critères d'acceptation
 
-- Le résumé affiche les ventes du jour.
+- Le résumé est envoyé par e-mail au propriétaire, dans sa langue, une fois par jour à l'heure choisie (8 h par défaut, heure de la boutique).
+- Il est désactivé par défaut ; le propriétaire et les administrateurs peuvent l'activer.
 - Le résumé affiche les commandes à préparer.
-- Le résumé affiche les impayés.
-- Le résumé affiche les alertes stock.
+- Le résumé affiche les impayés (nombre et montant dû).
+- Le résumé affiche les rappels du jour et ceux en retard.
+- Les ventes du jour et les alertes stock restent consultables sur le dashboard (hors e-mail pour l'instant).
 
 ---
 
@@ -1023,6 +1037,23 @@ L'application est organisée autour des modules suivants :
 - Le PDF affiche les valeurs utilisées.
 - Le PDF affiche le montant estimé.
 - Le PDF mentionne que le calcul est indicatif.
+
+---
+
+## URS-104 — Exporter l'activité d'un client (proposée)
+
+**En tant que** commerçant,  
+**je veux** exporter l'historique d'un client (commandes, paiements, expéditions, notes),  
+**afin de** le conserver, le transmettre à mon comptable ou régler un litige.
+
+### Critères d'acceptation
+
+- Depuis la carte Activité de la fiche client, un bouton « Exporter » ouvre une fenêtre (par le bas sur mobile).
+- L'utilisateur choisit le contenu (pré-coché selon le filtre affiché, avec le nombre de lignes de chaque type) et la période : tout l'historique, les 12 derniers mois ou des dates choisies (jours au fuseau de la boutique).
+- Le nombre de lignes du fichier est annoncé avant le téléchargement.
+- Le fichier est un CSV (UTF-8 avec BOM, séparateur « ; ») : date, type, référence, description, montant, statut, auteur, du plus récent au plus ancien ; en-têtes et séparateur décimal dans la langue de l'interface ; une formule saisie dans une note est neutralisée.
+- Mêmes droits que l'activité (module Clients) ; seuls les clients de la boutique sont exportables.
+- Chaque export est consigné dans le journal d'audit (types, période, nombre de lignes).
 
 ---
 
@@ -1347,11 +1378,16 @@ Elle doit uniquement :
 
 ### Critères d'acceptation
 
-- L'application génère un message à partir d'un contexte : commande, produit, relance ou promotion.
+- L'application génère un message à partir d'un contexte : commande (modèle de son étape : confirmation, commande prête ou remise selon le mode de retrait, remerciement une fois réglée), relance d'impayé (accueil, fiche client, fiche commande, rappels), produit ou promotion.
+- Le message est rendu dans la langue de l'utilisateur (fr, en, ar), avec les montants au format de la boutique et le numéro de commande isolé.
+- Le propriétaire et les administrateurs choisissent le ton de la boutique : chaleureux (par défaut) ou professionnel (nom complet du client).
+- Ils peuvent personnaliser le texte de chaque modèle (Paramètres › Messages WhatsApp) avec les informations `{client}`, `{commande}`, `{date}`, `{total}`, `{reste}`, `{articles}`, `{boutique}` ; une information inconnue est refusée ; « Rétablir » rend le texte du ton choisi.
+- Un aperçu montre le texte sur la dernière commande de la boutique, ou sur un exemple fictif s'il n'y en a pas.
+- Les boutons qui préparent un message ne sont proposés qu'aux membres qui ont le module « Messages ».
 - L'utilisateur peut modifier le message.
 - L'utilisateur peut copier le message.
 - L'utilisateur peut ouvrir WhatsApp avec le message prérempli.
-- L'envoi final reste manuel.
+- L'envoi final reste manuel : rien n'est jamais envoyé automatiquement.
 
 ---
 
@@ -1363,9 +1399,9 @@ Elle doit uniquement :
 
 ### Critères d'acceptation
 
-- Le message peut être marqué comme envoyé.
-- La date d'envoi manuel est enregistrée.
-- Le message reste consultable dans l'historique.
+- Le message peut être marqué comme envoyé ; ouvrir WhatsApp depuis la fenêtre du message préparé l'enregistre directement comme envoyé.
+- La date d'envoi manuel est enregistrée, avec le texte réellement envoyé et le modèle utilisé.
+- Le message reste consultable dans l'historique de la commande et de la fiche client.
 
 ---
 
@@ -2165,10 +2201,12 @@ Fonctionnalités :
 - Historique des messages manuels
 - Publication Telegram programmée
 - Historique Telegram
+- Rappels automatiques : impayés, commandes à préparer, résumé quotidien
 
 URS concernées :
 
 ```text
+URS-055 à URS-057
 URS-066 à URS-069
 ```
 
@@ -2208,12 +2246,12 @@ Fonctionnalités :
 - Demande de commande depuis la page
 - Formulaire de contact
 - Statistiques de vues
-- Exports commandes / stock / zakat
+- Exports commandes / stock / zakat, activité d'un client
 
 URS concernées :
 
 ```text
-URS-058 à URS-060
+URS-058 à URS-060, URS-104 (proposée)
 ```
 
 ---

@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useFormatDate } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
 import { notify } from '@/lib/notify';
 import { FOLLOWUP_DATE, type FollowupConflict } from './useFollowupReminder';
 
 /** Un rappel de relance existe déjà pour ce client : le décaler (choix principal) ou en créer un second. */
 export function FollowupReminderDialog({ conflict }: { conflict: FollowupConflict | null }) {
   const t = useTranslations('reminders.followup');
-  const formatDate = useFormatDate();
+  const formatDate = useFormatShopDate();
   const [busy, setBusy] = useState(false);
   // Le texte reste affiché pendant l'animation de fermeture.
   const [shown, setShown] = useState(conflict);

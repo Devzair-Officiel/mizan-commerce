@@ -8,6 +8,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { buttonVariants } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/orders/detail/constants';
 import type { Customer } from '@/lib/hooks/useCustomers';
+import { useCan } from '@/lib/hooks/useMe';
 import { cn } from '@/lib/utils';
 import type { CustomerDetailActions } from './useCustomerDetailState';
 
@@ -21,6 +22,7 @@ function Line({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 /** Carte « Coordonnées » : téléphone, e-mail, adresse (copier, ouvrir dans Maps), WhatsApp et appel. */
 export function CustomerContactCard({ customer, actions }: { customer: Customer; actions: CustomerDetailActions }) {
   const t = useTranslations('customers.detail');
+  const canMessages = useCan('messages');
   const address = [customer.address_line, customer.postal_code, customer.city].filter(Boolean).join(', ');
   const empty = !customer.phone && !customer.email && !address;
 
@@ -39,11 +41,13 @@ export function CustomerContactCard({ customer, actions }: { customer: Customer;
         </div>
       )}
       {customer.phone && (
-        <div className="grid grid-cols-2 gap-2 border-t border-border px-4 py-3.5 lg:px-5">
-          <button type="button" className={OUTLINE} onClick={() => actions.openWhatsApp('free')}>
-            <span className="text-primary"><WhatsAppIcon size={16} /></span>
-            {t('whatsapp')}
-          </button>
+        <div className={cn('grid gap-2 border-t border-border px-4 py-3.5 lg:px-5', canMessages && 'grid-cols-2')}>
+          {canMessages && (
+            <button type="button" className={OUTLINE} onClick={() => actions.openWhatsApp('free')}>
+              <span className="text-primary"><WhatsAppIcon size={16} /></span>
+              {t('whatsapp')}
+            </button>
+          )}
           <a href={`tel:${customer.phone}`} className={OUTLINE}>
             <Phone className="text-primary" aria-hidden />
             {t('call')}

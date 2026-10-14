@@ -6,7 +6,7 @@
  * l'historique de la fiche commande (messages de la commande) et de la fiche client (tous ses messages).
  * Client dédié « Audit WhatsApp » ; ses messages sont supprimés au début de chaque passage.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
@@ -47,7 +47,7 @@ async function sentMessages(page, filter, count) {
   for (let i = 0; i < 16; i += 1) {
     sent = (await allResults(page, `messages/prepared/?${filter}`)).filter((m) => m.status === 'sent_manually' && m.sent_manually_at);
     if (sent.length >= count) break;
-    await page.waitForTimeout(500);
+    await new Promise((resolve) => { setTimeout(resolve, 500); });
   }
   return sent;
 }
@@ -67,11 +67,8 @@ async function send(page, locale, opener) {
 /** Badges « Envoyé » visibles dans l'historique de la page, relus jusqu'à en trouver `count`. */
 async function historyShows(page, locale, count) {
   const badges = page.getByText(msg(locale, 'messages.history.status_sent_manually'), { exact: true }).filter({ visible: true });
-  for (let i = 0; i < 16; i += 1) {
-    if (await badges.count() === count) return true;
-    await page.waitForTimeout(500);
-  }
-  return false;
+  if (count > 0) await badges.nth(count - 1).waitFor({ timeout: 8000 }).catch(() => {});
+  return await badges.count() === count;
 }
 
 const opensWhatsApp = ({ text, url }) => text.trim().length > 0 && url.startsWith(`https://wa.me/${PHONE.slice(1)}?text=`);
@@ -129,6 +126,7 @@ for (const viewport of VIEWPORTS) {
   const data = await setup(page);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

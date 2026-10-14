@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ChevronRight, Download, Receipt } from 'lucide-react';
+import { orderNumberTag } from '@/components/orders/OrderNumber';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { buttonVariants } from '@/components/ui/button';
 import type { Order } from '@/lib/hooks/useOrders';
@@ -45,7 +46,7 @@ export function OrderInvoiceCard({ order, onIssue, issueIsPrimary }: OrderInvoic
           <Receipt size={18} aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold">{t('number_label', { number: invoice.number })}</span>
+          <span className="block truncate text-sm font-semibold">{t.rich('number_label', { number: invoice.number, num: orderNumberTag })}</span>
           <span className="mt-0.5 block text-[0.8125rem] text-muted-foreground">{t('status', { status: invoice.status })}</span>
         </span>
         <ChevronRight size={18} className="shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />

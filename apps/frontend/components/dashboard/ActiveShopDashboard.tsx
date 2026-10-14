@@ -2,38 +2,27 @@
 
 import { useTranslations } from 'next-intl';
 import { Package, Clock, AlertTriangle, Bell } from 'lucide-react';
-import { useFormatMoney, useFormatDateTime, useRelativeTime } from '@/lib/hooks/useFormat';
+import { useFormatMoney, useFormatShopDate, useRelativeTime } from '@/lib/hooks/useFormat';
+import { useCan } from '@/lib/hooks/useMe';
 import { useShop } from '@/lib/hooks/useShop';
 import { StatCard } from '@/components/ui/StatCard';
 import { CountersGrid } from '@/components/dashboard/CountersGrid';
-import { RevenueCard } from '@/components/dashboard/RevenueCard';
 import { PrepareList } from '@/components/dashboard/PrepareList';
 import { UnpaidList } from '@/components/dashboard/UnpaidList';
 import { LowStockList } from '@/components/dashboard/LowStockList';
 import { TodayRemindersList } from '@/components/dashboard/TodayRemindersList';
-import { computeDelta } from '@/components/dashboard/utils';
+import { SalesCard } from '@/components/dashboard/sales/SalesCard';
 import type { DashboardData } from '@/lib/hooks/useDashboard';
 
 interface Props { data: DashboardData; }
 
 type TDashboard = ReturnType<typeof useTranslations<'dashboard'>>;
 
-function getRevenueDeltaDisplay(today: number, yesterday: number, t: TDashboard) {
-  const delta = computeDelta(today, yesterday);
-  if (delta === null) return { text: undefined, color: 'text-muted-foreground' as const };
-  const text = delta.pct === 0
-    ? t('counters.revenue_delta_same')
-    : t('counters.revenue_delta', { sign: delta.positive ? '+' : '-', pct: Math.abs(delta.pct) });
-  const color = delta.pct === 0 ? 'text-muted-foreground' as const
-    : delta.positive ? 'text-green-600 dark:text-green-400' as const : 'text-amber-700 dark:text-amber-400' as const;
-  return { text, color };
-}
-
 function getRemindersSub(
   count: number,
   items: { is_overdue: boolean; due_at: string }[],
   t: TDashboard,
-  formatDateTime: (v: string, opts?: Intl.DateTimeFormatOptions) => string,
+  formatShopDate: (v: string, opts?: Intl.DateTimeFormatOptions) => string,
 ) {
   if (count === 0) return { sub: undefined, tone: 'neutral' as const };
   const overdueCount = items.filter((r) => r.is_overdue).length;
@@ -41,7 +30,7 @@ function getRemindersSub(
   const sub = overdueCount > 0
     ? t('counters.reminders_late', { count: overdueCount })
     : nextNonOverdue
-      ? t('counters.reminders_next', { time: formatDateTime(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
+      ? t('counters.reminders_next', { time: formatShopDate(nextNonOverdue.due_at, { hour: '2-digit', minute: '2-digit' }) })
       : undefined;
   const tone = overdueCount > 0 ? 'amber' as const : 'neutral' as const;
   return { sub, tone };
@@ -65,25 +54,25 @@ function getLowStockSub(negative: number, outOfStock: number, t: TDashboard) {
 function useActiveShopDashboardData(data: DashboardData) {
   const t = useTranslations('dashboard');
   const formatMoney = useFormatMoney();
-  const formatDateTime = useFormatDateTime();
+  // Heure du prochain rappel à l'heure de la boutique, comme la page Rappels.
+  const formatShopDate = useFormatShopDate();
   const relativeTime = useRelativeTime();
   const { data: shop } = useShop();
   const currency = shop?.currency ?? 'EUR';
   const catalogKind = shop?.catalog_kind ?? 'both';
-  const revenueDelta = getRevenueDeltaDisplay(
-    parseFloat(data.today.revenue), parseFloat(data.today.revenue_yesterday), t,
-  );
   const oldestSub = data.orders_to_prepare.oldest_created_at
     ? t('counters.prepare_sub', { age: relativeTime(data.orders_to_prepare.oldest_created_at) })
     : undefined;
   const reminders = getRemindersSub(
-    data.today_reminders.count, data.today_reminders.items, t, formatDateTime,
+    data.today_reminders.count, data.today_reminders.items, t, formatShopDate,
   );
-  return { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders };
+  // Employé sans le module « Rappels » : ni compteur ni liste.
+  const canReminders = useCan('reminders');
+  return { t, formatMoney, currency, catalogKind, oldestSub, reminders, canReminders };
 }
 
 export function ActiveShopDashboard({ data }: Props) {
-  const { t, formatMoney, currency, catalogKind, revenueDelta, oldestSub, reminders } =
+  const { t, formatMoney, currency, catalogKind, oldestSub, reminders, canReminders } =
     useActiveShopDashboardData(data);
 
   const { negative_count: negative, out_of_stock_count: outOfStock } = data.low_stock_products;
@@ -122,14 +111,16 @@ export function ActiveShopDashboard({ data }: Props) {
               tone={outOfStock > 0 ? 'red' : 'neutral'}
             />
           )}
-          <StatCard
-            label={t('reminders.title')}
-            value={data.today_reminders.count}
-            sub={reminders.sub}
-            subTone={reminders.tone}
-            href="/reminders"
-            icon={<Bell size={15} />}
-          />
+          {canReminders && (
+            <StatCard
+              label={t('reminders.title')}
+              value={data.today_reminders.count}
+              sub={reminders.sub}
+              subTone={reminders.tone}
+              href="/reminders"
+              icon={<Bell size={15} />}
+            />
+          )}
         </CountersGrid>
       </div>
 
@@ -141,19 +132,14 @@ export function ActiveShopDashboard({ data }: Props) {
             totalDue={data.unpaid_orders.total_due} />
         </div>
         <div className="lg:col-span-2 flex flex-col gap-4">
-          <RevenueCard
-            points={data.revenue_last_7_days}
-            currency={currency}
-            todayRevenue={data.today.revenue}
-            todayOrdersCount={data.today.orders_count}
-            revenueDeltaText={revenueDelta.text}
-            revenueDeltaColor={revenueDelta.color}
-          />
+          <SalesCard currency={currency} />
           {catalogKind !== 'services' && (
             <LowStockList count={data.low_stock_products.count} items={data.low_stock_products.items}
               outOfStockCount={data.low_stock_products.out_of_stock_count} />
           )}
-          <TodayRemindersList count={data.today_reminders.count} items={data.today_reminders.items} />
+          {canReminders && (
+            <TodayRemindersList count={data.today_reminders.count} items={data.today_reminders.items} />
+          )}
         </div>
       </div>
     </>

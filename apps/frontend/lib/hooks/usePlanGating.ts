@@ -39,10 +39,10 @@ const FEATURE_MIN_PLAN: Record<Feature, PlanCode> = {
   invoices: 'pro',
   zakat: 'pro',
   whatsapp: 'pro',
+  exports: 'pro',
   public_pages: 'boutique_plus',
   partnerships: 'boutique_plus',
   multi_user: 'boutique_plus',
-  exports: 'boutique_plus',
   ocr: 'boutique_plus',
 };
 

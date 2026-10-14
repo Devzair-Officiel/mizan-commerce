@@ -7,6 +7,7 @@ export type PreparedMessageTemplate =
   | 'order_confirmation'
   | 'tracking'
   | 'unpaid_followup'
+  | 'thank_you'
   | 'promo'
   | 'free';
 

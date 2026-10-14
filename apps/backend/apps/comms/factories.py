@@ -4,7 +4,7 @@ from factory.django import DjangoModelFactory
 from apps.customers.factories import CustomerFactory
 from apps.shops.factories import ShopFactory
 
-from .models import PreparedMessage
+from .models import MessageSettings, PreparedMessage
 
 
 class PreparedMessageFactory(DjangoModelFactory):
@@ -20,3 +20,13 @@ class PreparedMessageFactory(DjangoModelFactory):
     recipient_phone = factory.LazyAttribute(lambda o: o.customer.phone if o.customer else '')  # noqa: E501
     message = factory.Faker('paragraph', nb_sentences=3, locale='fr_FR')
     status = PreparedMessage.Status.PREPARED
+
+
+class MessageSettingsFactory(DjangoModelFactory):
+    class Meta:
+        model = MessageSettings
+        django_get_or_create = ('shop',)
+
+    shop = factory.SubFactory(ShopFactory)
+    tone = MessageSettings.Tone.WARM
+    custom_texts = factory.LazyFunction(dict)

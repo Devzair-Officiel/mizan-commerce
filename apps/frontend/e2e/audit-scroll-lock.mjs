@@ -11,12 +11,13 @@
  * ouverte, la page derrière est verrouillée.
  * Article dédié (format « Lot » jamais utilisé), désactivé à la fin.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, createArticle, deactivate } from './lib/products.mjs';
 import { makeImage } from './lib/photos.mjs';
 import { scrollIssues } from './lib/scroll.mjs';
 import { openCard } from './lib/form.mjs';
+import { animationsDone } from './lib/wait.mjs';
 
 const report = createReport();
 const visible = (locator) => locator.filter({ visible: true });
@@ -188,7 +189,9 @@ async function checkAccountMenus(page, ctx) {
   const menu = viewport.mobile ? 'menu burger' : 'menu du compte';
   await step(page, ctx, `${menu} ouvert, clic à l'extérieur`, async () => {
     await open();
-    await page.waitForTimeout(400);
+    // Ouverture animée : le clic à l'extérieur une fois le menu en place.
+    await overlay(page).first().waitFor();
+    await animationsDone(overlay(page));
     // Le menu burger s'ouvre du côté du début de ligne (à droite en arabe) : clic de l'autre côté.
     const side = locale === 'ar' ? 8 : viewport.width - 8;
     await page.mouse.click(viewport.mobile ? side : viewport.width / 2, viewport.height / 2);
@@ -198,7 +201,7 @@ async function checkAccountMenus(page, ctx) {
     await appearance();
     const drawer = page.getByRole('dialog', { name: msg(locale, 'layout.themeDrawer.title') });
     await drawer.waitFor();
-    await page.waitForTimeout(400);
+    await animationsDone(drawer);
     await button(drawer, msg(locale, 'layout.common.close')).click();
   });
 }
@@ -224,6 +227,7 @@ for (const viewport of VIEWPORTS) {
   });
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

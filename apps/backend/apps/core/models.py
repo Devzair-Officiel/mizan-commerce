@@ -14,6 +14,7 @@ class AuditLog(models.Model):
         ('customer_delete', 'Suppression client'),
         ('product_delete', 'Suppression produit'),
         ('product_deactivate', 'Désactivation produit'),
+        ('customer_activity_export', 'Export activité client'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

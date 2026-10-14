@@ -3,26 +3,30 @@
 import { useTranslations } from 'next-intl';
 import { Bell } from 'lucide-react';
 import { useMarkReminderDone } from '@/lib/hooks/useReminders';
-import { useFormat } from '@/lib/hooks/useFormat';
+import { useFormatShopDate } from '@/lib/hooks/useFormat';
+import { useShopTimeZone } from '@/lib/hooks/useShop';
+import { toDateInput } from '@/components/reminders/reminderDates';
 import { SectionCard } from '@/components/ui/SectionCard';
 import type { ReminderSummary } from '@/lib/hooks/useDashboard';
 
 interface Props { count: number; items: ReminderSummary[]; }
 
 type TRem = ReturnType<typeof useTranslations<'dashboard.reminders'>>;
+type DateFmt = ReturnType<typeof useFormatShopDate>;
 
-function useReminderSubtext(t: TRem, fmt: ReturnType<typeof useFormat>) {
+const DAY = 86_400_000;
+
+/** Heure et jour à l'heure de la boutique, comme la page Rappels. */
+function useReminderSubtext(t: TRem, formatDate: DateFmt, timeZone: string) {
   return (r: ReminderSummary): { text: string; amber: boolean } => {
-    const timeStr = fmt.dateTime(r.due_at, { hour: '2-digit', minute: '2-digit' });
+    const timeStr = formatDate(r.due_at, { hour: '2-digit', minute: '2-digit' });
     if (!r.is_overdue) return { text: timeStr, amber: false };
-    const dueDate = new Date(r.due_at);
-    const now = new Date();
-    const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const dueDayMs = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate()).getTime();
+    const dueDay = toDateInput(new Date(r.due_at), timeZone);
+    const yesterday = toDateInput(new Date(Date.now() - DAY), timeZone);
     let prefix = '';
-    if (dueDayMs === todayMs - 86_400_000) prefix = `${t('date_yesterday')}, `;
-    else if (dueDayMs < todayMs - 86_400_000) {
-      prefix = `${fmt.date(r.due_at, { day: 'numeric', month: 'short' })}, `;
+    if (dueDay === yesterday) prefix = `${t('date_yesterday')}, `;
+    else if (dueDay < yesterday) {
+      prefix = `${formatDate(r.due_at, { day: 'numeric', month: 'short' })}, `;
     }
     return { text: `${t('overdue_label')}, ${prefix}${timeStr}`, amber: true };
   };
@@ -30,9 +34,10 @@ function useReminderSubtext(t: TRem, fmt: ReturnType<typeof useFormat>) {
 
 export function TodayRemindersList({ count, items }: Props) {
   const t = useTranslations('dashboard.reminders');
-  const fmt = useFormat();
+  const formatDate = useFormatShopDate();
+  const timeZone = useShopTimeZone();
   const markDone = useMarkReminderDone();
-  const reminderSubtext = useReminderSubtext(t, fmt);
+  const reminderSubtext = useReminderSubtext(t, formatDate, timeZone);
 
   if (count === 0) {
     return (

@@ -66,8 +66,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
       body,
     });
 
-    const retryData = retryRes.status === 204 ? null : await retryRes.json().catch(() => null);
-    const response = NextResponse.json(retryData, { status: retryRes.status });
+    const response = await relay(retryRes);
 
     const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
     response.cookies.set('access_token', newAccess, {
@@ -81,20 +80,23 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     return response;
   }
 
-  if (res.status === 204) return new NextResponse(null, { status: 204 });
+  return relay(res);
+}
 
-  // Réponses binaires (PDF, images, etc.) : on transmet le buffer tel quel en conservant
-  // content-type et content-disposition. Sinon on traite comme JSON.
+/**
+ * Réponse du backend relayée au navigateur. Hors JSON (PDF, image, CSV…), le corps est transmis
+ * en flux, avec son content-type et son content-disposition : un export n'est pas mis en mémoire.
+ */
+async function relay(res: Response): Promise<NextResponse> {
+  if (res.status === 204) return new NextResponse(null, { status: 204 });
   const contentType = res.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) {
-    const buffer = await res.arrayBuffer();
     const headers = new Headers();
     headers.set('content-type', contentType);
     const disposition = res.headers.get('content-disposition');
     if (disposition) headers.set('content-disposition', disposition);
-    return new NextResponse(buffer, { status: res.status, headers });
+    return new NextResponse(res.body, { status: res.status, headers });
   }
-
   const data = await res.json().catch(() => null);
   return NextResponse.json(data, { status: res.status });
 }

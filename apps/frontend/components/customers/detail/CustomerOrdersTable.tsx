@@ -8,6 +8,7 @@ import type { OrderSummary } from '@/lib/hooks/useOrders';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import { cn } from '@/lib/utils';
 import { OrderStatusDot } from './OrderStatusDot';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 const TH = 'px-4 py-2.5 text-start text-xs font-medium text-muted-foreground first:ps-5 last:pe-5 last:text-end';
 const TD = 'px-4 py-3 align-middle text-sm first:ps-5 last:pe-5 last:text-end';
@@ -29,7 +30,7 @@ export function CustomerOrdersTable({ orders, currency }: { orders: OrderSummary
         {orders.map((o) => (
           <tr key={o.id} onClick={(e) => { if (!(e.target as HTMLElement).closest('a, button')) router.push(`/orders/${o.id}`); }}
             className={cn('cursor-pointer border-t border-border transition-colors hover:bg-muted/50', o.status === 'cancelled' && 'text-muted-foreground')}>
-            <td className={cn(TD, 'font-semibold')}><Link href={`/orders/${o.id}`} className="focus-visible:underline focus-visible:outline-none">{o.order_number}</Link></td>
+            <td className={cn(TD, 'font-semibold')}><Link href={`/orders/${o.id}`} className="focus-visible:underline focus-visible:outline-none"><OrderNumber>{o.order_number}</OrderNumber></Link></td>
             <td className={cn(TD, 'whitespace-nowrap')}>{formatDate(o.created_at, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
             <td className={TD}><OrderStatusDot status={o.status} /></td>
             <td className={TD}><OrderPaymentBadge order={o} currency={currency} showDue={false} /></td>

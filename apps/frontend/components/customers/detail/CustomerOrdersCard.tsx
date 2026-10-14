@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { CustomerOrdersTable } from './CustomerOrdersTable';
 import { OrderStatusDot } from './OrderStatusDot';
 import { SkeletonRows } from '@/components/ui/SkeletonRows';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 /** Carte « Commandes » : les 5 dernières (tableau desktop, lignes mobiles), « Voir plus » et « Voir toutes ». */
 export function CustomerOrdersCard({ customer }: { customer: Customer }) {
@@ -41,7 +42,7 @@ export function CustomerOrdersCard({ customer }: { customer: Customer }) {
                 <Link href={`/orders/${o.id}`}
                   className={cn('grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3 active:bg-muted/50', o.status === 'cancelled' && 'text-muted-foreground')}>
                   <span className="truncate text-sm font-semibold">
-                    {o.order_number}<span className="font-normal text-muted-foreground"> · {formatDate(o.created_at, { day: 'numeric', month: 'short' })}</span>
+                    <OrderNumber>{o.order_number}</OrderNumber><span className="font-normal text-muted-foreground"> · {formatDate(o.created_at, { day: 'numeric', month: 'short' })}</span>
                   </span>
                   <span className="text-end text-sm font-semibold tabular-nums">{formatMoney(o.total_amount, currency)}</span>
                   <OrderStatusDot status={o.status} />

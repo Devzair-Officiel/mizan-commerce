@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Settings2, Users, Globe, Sparkles, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Settings2, Users, Globe, MessageCircle, Sparkles, ChevronRight, type LucideIcon } from 'lucide-react';
 import { SettingsCard } from './SettingsCard';
 
 interface ManagementLink {
@@ -12,11 +12,12 @@ interface ManagementLink {
 
 interface ManagementSectionProps {
   showPublicPage: boolean;
+  showMessages: boolean;
   teamTitle: string;
   teamSubtitle: string;
 }
 
-export function ManagementSection({ showPublicPage, teamTitle, teamSubtitle }: ManagementSectionProps) {
+export function ManagementSection({ showPublicPage, showMessages, teamTitle, teamSubtitle }: ManagementSectionProps) {
   const t = useTranslations('settings.management');
   const links: ManagementLink[] = [
     { href: '/settings/team', icon: Users, title: teamTitle, subtitle: teamSubtitle },
@@ -27,6 +28,9 @@ export function ManagementSection({ showPublicPage, teamTitle, teamSubtitle }: M
           title: t('public_page'),
           subtitle: t('public_page_subtitle'),
         }]
+      : []),
+    ...(showMessages
+      ? [{ href: '/settings/messages', icon: MessageCircle, title: t('messages'), subtitle: t('messages_subtitle') }]
       : []),
     {
       href: '/settings/subscription',

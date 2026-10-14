@@ -23,7 +23,7 @@ function screens({ order, customer, product }) {
     ['sortie stock', '/stock/sortie'], ['rappels', '/reminders'], ['notes', '/notes'],
     ['factures', '/invoices'], ['zakat', '/zakat'], ['plus', '/more'], ['profil', '/profile'],
     ['paramètres', '/settings'], ['équipe', '/settings/team'],
-    ['page publique', '/settings/public-page'], ['abonnement', '/settings/subscription'],
+    ['page publique', '/settings/public-page'], ['messages WhatsApp', '/settings/messages'], ['abonnement', '/settings/subscription'],
   ];
 }
 
@@ -43,7 +43,9 @@ for (const viewport of VIEWPORTS) {
     const before = watch.problems.length;
     await page.goto(BASE + path);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(800);
+    // Chargements terminés (plus de squelette), polices prêtes : les avertissements tardifs sont émis.
+    await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: 8000 }).catch(() => {});
+    await page.evaluate(() => document.fonts.ready.then(() => {}));
     const nested = await nestedInteractive(page);
     const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
     report.check(problems.length === 0, `${name} (${path})${problems.map((p) => `\n      ${p}`).join('')}`);

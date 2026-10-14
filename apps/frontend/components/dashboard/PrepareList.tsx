@@ -7,6 +7,7 @@ import { useFormatMoney, useFormatDate, useFormatDateTime } from '@/lib/hooks/us
 import { useShop } from '@/lib/hooks/useShop';
 import { SectionCard } from '@/components/ui/SectionCard';
 import type { OrderToPrepare } from '@/lib/hooks/useDashboard';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 interface Props {
   count: number;
@@ -81,7 +82,7 @@ export function PrepareList({ count, items }: Props) {
                 <span className="text-sm font-semibold text-foreground truncate">
                   {o.customer_name ?? <span className="text-muted-foreground">{t('no_customer')}</span>}
                 </span>
-                <span className="text-[0.8125rem] text-muted-foreground shrink-0">{o.order_number}</span>
+                <span className="text-[0.8125rem] text-muted-foreground shrink-0"><OrderNumber>{o.order_number}</OrderNumber></span>
               </div>
               {o.items_preview.length > 0 && (
                 <p className="text-[0.8125rem] text-muted-foreground truncate mt-0.5">

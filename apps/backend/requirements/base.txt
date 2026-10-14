@@ -27,6 +27,10 @@ phonenumbers==9.0.41
 # Génération PDF (factures)
 reportlab==4.5.1
 
+# Montants et dates des messages WhatsApp dans la langue du commerçant (données CLDR,
+# comme Intl côté frontend) : format_currency, format_date, format_list.
+Babel==2.18.0
+
 # Sécurité — rate-limit & blocage des tentatives de login
 django-axes==7.1.0
 

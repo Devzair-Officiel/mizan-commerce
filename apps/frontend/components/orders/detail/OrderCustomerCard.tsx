@@ -6,10 +6,10 @@ import { Phone, UserPlus } from 'lucide-react';
 import { customerInitials } from '@/components/customers/detail/constants';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { buttonVariants } from '@/components/ui/button';
+import { useCan } from '@/lib/hooks/useMe';
 import type { Order } from '@/lib/hooks/useOrders';
 import { cn } from '@/lib/utils';
 import { STATUS_ALLOWS_EDIT, WhatsAppIcon } from './constants';
-import { templateFor } from './useOrderMenuActions';
 import type { OrderDetailActions } from './useOrderDetailState';
 
 const OUTLINE = cn(buttonVariants({ variant: 'outline' }), 'h-10 rounded-full bg-card px-4 font-medium');
@@ -17,6 +17,7 @@ const OUTLINE = cn(buttonVariants({ variant: 'outline' }), 'h-10 rounded-full bg
 /** Carte « Client » : identité, contact (WhatsApp, appel) et lien vers la fiche. */
 export function OrderCustomerCard({ order, actions }: { order: Order; actions: OrderDetailActions }) {
   const t = useTranslations('orders.customerCard');
+  const canMessages = useCan('messages');
 
   if (!order.customer) {
     return (
@@ -49,11 +50,13 @@ export function OrderCustomerCard({ order, actions }: { order: Order; actions: O
           </div>
         </div>
         {order.customer_phone && (
-          <div className="mt-3.5 grid grid-cols-2 gap-2">
-            <button type="button" className={OUTLINE} onClick={() => actions.openWhatsApp(templateFor(order))}>
-              <span className="text-primary"><WhatsAppIcon size={16} /></span>
-              {t('whatsapp')}
-            </button>
+          <div className={cn('mt-3.5 grid gap-2', canMessages && 'grid-cols-2')}>
+            {canMessages && (
+              <button type="button" className={OUTLINE} onClick={() => actions.openWhatsApp()}>
+                <span className="text-primary"><WhatsAppIcon size={16} /></span>
+                {t('whatsapp')}
+              </button>
+            )}
             <a href={`tel:${order.customer_phone}`} className={OUTLINE}>
               <Phone className="text-primary" aria-hidden />
               {t('call')}

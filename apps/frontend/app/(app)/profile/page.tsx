@@ -15,12 +15,14 @@ import {
   useMe,
   useUpdateMe,
   useChangePassword,
+  type Me,
 } from '@/lib/hooks/useMe';
 import { ApiError } from '@/lib/api-client';
 import { useShop } from '@/lib/hooks/useShop';
 import { joinPhone, phoneCountry, splitPhone } from '@/lib/phone';
 import { LoadingRegion } from '@/components/ui/LoadingRegion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { resetKeepingEdits } from '@/components/form/resetKeepingEdits';
 
 type PasswordFieldProps = Omit<ComponentProps<typeof FloatingInput>, 'type'>;
 
@@ -61,6 +63,11 @@ function makeProfileSchema(t: ProfileT) {
 
 type ProfileValues = z.infer<ReturnType<typeof makeProfileSchema>>;
 
+function profileValues(me: Pick<Me, 'full_name' | 'phone'>): ProfileValues {
+  const stored = splitPhone(me.phone ?? '');
+  return { full_name: me.full_name ?? '', phone: stored.national, phone_country: stored.country ?? '' };
+}
+
 function makePasswordSchema(t: ProfileT) {
   return z.object({
     old_password: z.string().min(1, t('old_password_required')),
@@ -80,20 +87,19 @@ function ProfileForm() {
   const { mutateAsync, isPending, isSuccess } = useUpdateMe();
   const { data: shop } = useShop();
 
-  const { register, control, handleSubmit, reset, setError, formState: { errors, isDirty } } = useForm<ProfileValues>({
-    resolver: zodResolver(makeProfileSchema(t)),
-  });
+  const form = useForm<ProfileValues>({ resolver: zodResolver(makeProfileSchema(t)) });
+  const { register, control, handleSubmit, setError, formState: { errors, isDirty } } = form;
 
+  // Données rechargées (après un enregistrement notamment) : la saisie en cours est gardée.
   useEffect(() => {
-    if (me) {
-      const stored = splitPhone(me.phone ?? '');
-      reset({ full_name: me.full_name ?? '', phone: stored.national, phone_country: stored.country ?? '' });
-    }
-  }, [me, reset]);
+    if (me) resetKeepingEdits(form, profileValues(me));
+  }, [me, form]);
 
-  async function onSubmit({ full_name, phone, phone_country }: ProfileValues) {
+  async function onSubmit(values: ProfileValues) {
+    const { full_name, phone, phone_country } = values;
     try {
-      await mutateAsync({ full_name, phone: joinPhone(phoneCountry(phone_country || shop?.country), phone) });
+      const saved = await mutateAsync({ full_name, phone: joinPhone(phoneCountry(phone_country || shop?.country), phone) });
+      resetKeepingEdits(form, profileValues(saved), values);
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) setError('phone', { message: t('phone_invalid') });
       else setError('root', { message: t('unexpected_error') });

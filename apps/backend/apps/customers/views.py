@@ -1,3 +1,6 @@
+from django.http import StreamingHttpResponse
+from django.shortcuts import get_object_or_404
+from django.utils.http import content_disposition_header
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -6,12 +9,16 @@ from rest_framework.views import APIView
 
 from apps.core.pagination import WindowPagination
 from apps.core.permissions import HasModulePermission, get_shop
+from apps.subscriptions.permissions import HasPlanForFeature
 
 HasCustomersModule = HasModulePermission.for_module('customers')
+HasExportsPlan = HasPlanForFeature.for_feature('exports')
 from . import services  # noqa: E402
 from .filters import CustomerOrderingFilter  # noqa: E402
 from .models import Customer  # noqa: E402
-from .serializers import CustomerSerializer, CustomerListSerializer  # noqa: E402
+from .serializers import (  # noqa: E402
+    ActivityExportQuerySerializer, CustomerListSerializer, CustomerSerializer,
+)
 from .services import (  # noqa: E402
     ALL_TYPES, CUSTOMER_SEARCH_FIELDS, customer_timeline_sources, customers_with_stats,
 )
@@ -117,3 +124,43 @@ class CustomerActivityView(APIView):
         for it in page:
             it['occurred_at'] = it['occurred_at'].isoformat()
         return paginator.get_paginated_response(page)
+
+
+def _export_filters(request: Request, pk) -> tuple[Customer, dict]:
+    """Client de la boutique (404 sinon) et filtres validés de l'export (400 sinon)."""
+    customer = get_object_or_404(Customer, pk=pk, shop=get_shop(request.user))
+    query = ActivityExportQuerySerializer(data=request.query_params)
+    query.is_valid(raise_exception=True)
+    return customer, query.validated_data
+
+
+class CustomerActivityExportView(APIView):
+    """Export CSV de l'activité, en flux : mêmes filtres et droits que la timeline."""
+
+    permission_classes = (IsAuthenticated, HasExportsPlan, HasCustomersModule)
+
+    def get(self, request: Request, pk) -> StreamingHttpResponse:
+        customer, params = _export_filters(request, pk)
+        export = services.export_customer_activity(
+            customer, user=request.user, types=params.get('types'),
+            date_from=params.get('date_from'), date_to=params.get('date_to'),
+            pending_only=params['pending'], lang=params.get('lang'),
+        )
+        response = StreamingHttpResponse(export.rows, content_type='text/csv; charset=utf-8')  # noqa: E501
+        response['Content-Disposition'] = content_disposition_header(True, export.filename)  # noqa: E501
+        return response
+
+
+class CustomerActivityExportSummaryView(APIView):
+    """Nombre de lignes de l'export par type, avant le téléchargement."""
+
+    permission_classes = (IsAuthenticated, HasExportsPlan, HasCustomersModule)
+
+    def get(self, request: Request, pk) -> Response:
+        customer, params = _export_filters(request, pk)
+        period = services.local_period(
+            customer.shop, params.get('date_from'), params.get('date_to'),
+        )
+        return Response({
+            'counts': services.activity_counts(customer, period, params['pending']),
+        })

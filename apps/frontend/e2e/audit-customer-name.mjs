@@ -7,7 +7,7 @@
  * Le nom est unique par boutique : au début et à la fin, le client d'un passage précédent est
  * renommé puis archivé, sa commande annulée. Tout se passe dans la boutique du compte d'audit.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 import { api, allResults } from './lib/products.mjs';
@@ -109,6 +109,7 @@ for (const viewport of VIEWPORTS) {
   page.on('dialog', (dialog) => dialog.accept());
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

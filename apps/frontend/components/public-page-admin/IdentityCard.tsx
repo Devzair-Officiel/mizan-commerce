@@ -17,6 +17,7 @@ import {
 } from '@/lib/hooks/usePublicPageAdmin';
 import { CoverUploader } from './CoverUploader';
 import { LogoUploader } from './LogoUploader';
+import { resetKeepingEdits } from '@/components/form/resetKeepingEdits';
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const hexRegex = /^#[0-9A-Fa-f]{6}$/;
@@ -58,17 +59,16 @@ export function IdentityCard({ page }: Props) {
   const update = useUpdatePublicPage();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register, handleSubmit, reset, setValue, control,
-    formState: { errors, isDirty },
-  } = useForm<FormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaultsFromPage(page),
   });
+  const { register, handleSubmit, reset, setValue, control, formState: { errors, isDirty } } = form;
 
+  // Page rechargée (après un enregistrement notamment) : la saisie en cours est gardée.
   useEffect(() => {
-    reset(defaultsFromPage(page));
-  }, [page, reset]);
+    resetKeepingEdits(form, defaultsFromPage(page));
+  }, [page, form]);
 
   const currentColor = useWatch({ control, name: 'primary_color' });
   const currentTheme = useWatch({ control, name: 'theme' });
@@ -76,7 +76,8 @@ export function IdentityCard({ page }: Props) {
   async function onSubmit(values: FormValues) {
     setServerError(null);
     try {
-      await update.mutateAsync(values);
+      const saved = await update.mutateAsync(values);
+      resetKeepingEdits(form, defaultsFromPage(saved), values);
     } catch (err) {
       if (err instanceof ApiError) {
         const data = err.data as { slug?: string[]; primary_color?: string[]; detail?: string } | null;

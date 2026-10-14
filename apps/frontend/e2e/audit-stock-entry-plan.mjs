@@ -7,7 +7,7 @@
  * La formule est réécrite dans la réponse `/subscriptions/current/` (comme le thème dans `/auth/me/`) :
  * aucun endpoint ne passe une boutique en Pro tant que Stripe n'est pas branché, la boutique reste en Boutique+.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 
 const report = createReport();
@@ -34,7 +34,7 @@ async function routePlan(ctx, state) {
 async function panel(page, t, locale) {
   const tabpanel = page.getByRole('tabpanel');
   return {
-    card: await tabpanel.getByRole('heading', { name: t('settings.upgrade.title'), exact: true }).isVisible(),
+    card: await tabpanel.getByRole('heading', { name: fmt(locale, 'settings.upgrade.title', { feature: 'ocr' }), exact: true }).isVisible(),
     text: await tabpanel.getByText(fmt(locale, 'settings.upgrade.text', { feature: 'ocr' }), { exact: true }).isVisible(),
     files: await tabpanel.locator('input[type=file]').count(),
   };
@@ -56,6 +56,7 @@ for (const viewport of VIEWPORTS) {
     if (new URL(req.url()).pathname.startsWith('/api/proxy/ocr/')) ocr.push(`${req.method()} ${new URL(req.url()).pathname}`);
   });
   for (const locale of ['fr', 'ar']) {
+    if (!inMatrix(viewport, locale)) continue;
     const label = `${viewport.name}px ${locale}`;
     console.log(`\n=== ${label}`);
     await setLocale(locale);
@@ -71,7 +72,7 @@ for (const viewport of VIEWPORTS) {
       report.check(
         (await invoiceTab.isVisible()) && (await invoiceTab.getAttribute('aria-selected')) === 'true'
           && locked.card && locked.text && locked.files === 0,
-        `${label} : en Pro, onglet facture visible, carte « ${t('settings.upgrade.title')} » à la place de l'envoi (${locked.files} champ fichier)`,
+        `${label} : en Pro, onglet facture visible, carte « ${fmt(locale, 'settings.upgrade.title', { feature: 'ocr' })} » à la place de l'envoi (${locked.files} champ fichier)`,
       );
       report.check(ocr.length === 0, `${label} : en Pro, aucune requête OCR${ocr.length ? ` (${ocr.join(', ')})` : ''}`);
       await page.locator('#stock-entry-tab-manual').click();

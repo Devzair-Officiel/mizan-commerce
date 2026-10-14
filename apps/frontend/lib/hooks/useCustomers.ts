@@ -154,7 +154,8 @@ export function useReactivateCustomer() {
   });
 }
 
-export type ActivityType = 'order' | 'payment' | 'shipment' | 'note';
+export const ACTIVITY_TYPES = ['order', 'payment', 'shipment', 'note'] as const;
+export type ActivityType = typeof ACTIVITY_TYPES[number];
 export type ActivityFilter = ActivityType | null;
 
 interface ActivityBase {
@@ -207,6 +208,50 @@ export function useCustomerActivity(
     { types: filter ?? undefined, pending: pendingOnly ? 'true' : undefined },
     !!customerId,
   );
+}
+
+
+/** Période de l'export : jours inclus au fuseau de la boutique (AAAA-MM-JJ), bornes ouvertes si absentes. */
+export interface ActivityExportRange {
+  from?: string;
+  to?: string;
+}
+
+export interface ActivityExportSummary {
+  counts: Record<ActivityType, number>;
+}
+
+function exportParams(range: ActivityExportRange, pendingOnly: boolean, types?: readonly ActivityType[]): string {
+  const search = new URLSearchParams();
+  if (types) search.set('types', types.join(','));
+  if (range.from) search.set('from', range.from);
+  if (range.to) search.set('to', range.to);
+  if (pendingOnly) search.set('pending', 'true');
+  return search.toString();
+}
+
+/** Lignes de l'export par type pour la période, avant le téléchargement. */
+export function useCustomerActivityExportSummary(
+  customerId: string, range: ActivityExportRange, pendingOnly: boolean, enabled: boolean,
+) {
+  return useQuery({
+    queryKey: qk.customers.activityExport(customerId, range, pendingOnly),
+    queryFn: () => apiFetch<ActivityExportSummary>(
+      `/customers/${customerId}/activity/export/summary/?${exportParams(range, pendingOnly)}`,
+    ),
+    enabled,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * Fichier CSV, via le proxy : le cookie de session est relayé côté serveur, jamais lu ici.
+ * `lang` : langue de l'interface (en-têtes, libellés, séparateur décimal du fichier).
+ */
+export function activityExportUrl(
+  customerId: string, types: readonly ActivityType[], range: ActivityExportRange, pendingOnly: boolean, lang: string,
+): string {
+  return `/api/proxy/customers/${customerId}/activity/export/?${exportParams(range, pendingOnly, types)}&lang=${lang}`;
 }
 
 export function useUpdateCustomer(id: string) {

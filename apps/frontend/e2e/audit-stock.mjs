@@ -11,7 +11,7 @@
  * Nettoyage : commande annulée, articles du parcours désactivés (ils ont servi : la suppression les refuse).
  * `DEBUG=1` affiche les notifications attendues et affichées ; `SHOTS=<dossier>` capture un parcours interrompu.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, createArticle, deactivate } from './lib/products.mjs';
 import { invoicePng } from './lib/invoice.mjs';
@@ -56,7 +56,7 @@ async function addBySearch(page, query) {
   await search.fill(query);
   await page.getByRole('option').first().waitFor();
   await search.press('Enter');
-  await page.waitForTimeout(200);
+  await page.getByRole('textbox', { name: fmt('fr', 'stock.entry.line_quantity', { label: query }), exact: true }).filter({ visible: true }).waitFor();
 }
 
 /** Bouton principal du formulaire (le bouton flottant sur mobile, sous la carte sur desktop). */
@@ -161,7 +161,7 @@ async function checkInvoice(page, browser, ctx, { known, other, stamp }) {
   await sheet.getByRole('combobox').fill(other.name);
   await sheet.getByRole('option').first().waitFor();
   await sheet.getByRole('combobox').press('Enter');
-  await page.waitForTimeout(300);
+  await sheet.waitFor({ state: 'hidden' });
   const before = await stockOf(page, other.variants[0].id);
   await submitButton(page, fmt('fr', 'stock.entry.submit', { units: 10, unitsLabel: '10' })).click();
   const toast = await toastShown(page, fmt('fr', 'stock.invoice.success', { count: 2, units: 10, unitsLabel: '10' }));
@@ -293,6 +293,7 @@ for (const viewport of VIEWPORTS) {
   watch.problems.length = 0;
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

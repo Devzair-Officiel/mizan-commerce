@@ -10,6 +10,7 @@ import type { OrderSummary } from '@/lib/hooks/useOrders';
 import { getAlert } from './alert';
 import { type Bucket, STATUS_BAR } from './constants';
 import { OrderPaymentBadge } from './OrderPaymentBadge';
+import { OrderNumber } from '@/components/orders/OrderNumber';
 
 interface OrderRowProps {
   order: OrderSummary;
@@ -44,7 +45,7 @@ export function OrderRow({ order, bucket, first, currency }: OrderRowProps) {
           <span className={cn('truncate font-semibold', !order.customer_name && 'font-medium text-muted-foreground')}>
             {order.customer_name ?? tList('no_client')}
           </span>
-          <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">#{order.order_number}</span>
+          <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground"><OrderNumber>#{order.order_number}</OrderNumber></span>
           {alert && (
             <span aria-label={alertLabel} title={alertLabel} className={`inline-flex shrink-0 ${alert.colorClass}`}>{alert.icon}</span>
           )}

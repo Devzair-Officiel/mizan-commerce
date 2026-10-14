@@ -84,6 +84,8 @@ services:
       - HOME=/tmp                               # cache npm accessible à l'utilisateur 1000
       - NPM_CONFIG_UPDATE_NOTIFIER=false
       - BASE_URL=http://frontend:3000           # frontend du réseau compose
+      - AUDIT_MATRIX=${AUDIT_MATRIX:-smoke}     # smoke : 1440 fr clair + 360 ar sombre ; full : les 8 configurations
+      - AUDIT_JOBS=${AUDIT_JOBS:-3}             # audits lancés en même temps (une boutique d'audit chacun)
     volumes:
       - ./apps/frontend/e2e:/e2e
       - ./apps/frontend/messages:/messages:ro   # textes attendus (fr/en/ar)
@@ -104,7 +106,7 @@ services:
     env_file: .env
     volumes:
       - ./apps/backend:/app
-    command: ["python", "manage.py", "reset_audit_shop"]   # DEBUG ou ALLOW_SEED=1 requis, comme seed_data
+    command: ["python", "manage.py", "reset_audit_shop", "--slots", "${AUDIT_JOBS:-3}"]   # une boutique par audit simultané ; DEBUG ou ALLOW_SEED=1 requis, comme seed_data
     depends_on:
       - postgres
 

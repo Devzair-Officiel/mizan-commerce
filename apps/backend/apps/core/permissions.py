@@ -37,6 +37,7 @@ MODULE_STOCK = "stock"
 MODULE_MESSAGES = "messages"
 MODULE_DASHBOARD = "dashboard"
 MODULE_LOYALTY = "loyalty"
+MODULE_REMINDERS = "reminders"
 
 TOGGLEABLE_MODULES: tuple[str, ...] = (
     MODULE_PRODUCTS,
@@ -48,6 +49,7 @@ TOGGLEABLE_MODULES: tuple[str, ...] = (
     MODULE_MESSAGES,
     MODULE_DASHBOARD,
     MODULE_LOYALTY,
+    MODULE_REMINDERS,
 )
 
 

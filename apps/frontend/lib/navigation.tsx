@@ -79,7 +79,7 @@ export function getNavGroups(catalogKind: CatalogKind): readonly NavGroup[] {
   groups.push({
     titleKey: 'group_track',
     entries: [
-      { href: '/reminders', labelKey: 'reminders', icon: BellIcon, feature: 'reminders', badgeKey: 'reminders_due' },
+      { href: '/reminders', labelKey: 'reminders', icon: BellIcon, gate: { kind: 'module', module: 'reminders' }, feature: 'reminders', badgeKey: 'reminders_due' },
       { href: '/notes', labelKey: 'notes', icon: NoteIcon, feature: 'notes' },
       { href: '/zakat', labelKey: 'zakat', icon: ZakatIcon, gate: { kind: 'admin' }, feature: 'zakat' },
     ],
@@ -116,7 +116,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     titleKey: 'group_track',
     entries: [
-      { href: '/reminders', labelKey: 'reminders', icon: BellIcon,  feature: 'reminders', badgeKey: 'reminders_due' },
+      { href: '/reminders', labelKey: 'reminders', icon: BellIcon,  gate: { kind: 'module', module: 'reminders' }, feature: 'reminders', badgeKey: 'reminders_due' },
       { href: '/notes',     labelKey: 'notes',     icon: NoteIcon,  feature: 'notes' },
       { href: '/zakat',     labelKey: 'zakat',     icon: ZakatIcon, gate: { kind: 'admin' }, feature: 'zakat' },
     ],

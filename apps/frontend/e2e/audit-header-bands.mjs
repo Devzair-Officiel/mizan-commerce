@@ -13,7 +13,7 @@
  * Crème, rouge sur Lilas et rose sur Défaut en clair…).
  * Données : un client « Audit En-têtes » avec une commande impayée, un article à deux formats.
  */
-import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
+import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { api, allResults, createArticle, deactivate } from './lib/products.mjs';
 
 const report = createReport();
@@ -43,7 +43,15 @@ function bandIssues() {
   };
   const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
   const filled = (el) => { const c = getComputedStyle(el).backgroundColor; return c !== 'transparent' && c !== 'rgba(0, 0, 0, 0)'; };
-  const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 && getComputedStyle(el).visibility !== 'hidden'; };
+  /** Rogné par un ancêtre de 1px (`sr-only`, réservé aux lecteurs d'écran) : pas une bande à l'écran. */
+  const clipped = (el) => {
+    for (let n = el.parentElement; n; n = n.parentElement) {
+      const r = n.getBoundingClientRect();
+      if ((r.width <= 1 || r.height <= 1) && getComputedStyle(n).overflow !== 'visible') return true;
+    }
+    return false;
+  };
+  const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 && getComputedStyle(el).visibility !== 'hidden' && !clipped(el); };
   const probe = document.createElement('div');
   probe.style.background = 'var(--muted)';
   document.body.append(probe);
@@ -122,6 +130,7 @@ for (const viewport of VIEWPORTS) {
   const data = await setup(page);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
       const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
       console.log(`\n=== ${label}`);
       await setLocale(locale);

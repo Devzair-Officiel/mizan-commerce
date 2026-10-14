@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
+import type { Locale } from '@/i18n/locales';
+import type { SalesPeriod } from '@/lib/hooks/useDashboard';
 import type { ThemeMode } from '@/lib/themes';
 
 export type ShopRole = 'owner' | 'admin' | 'staff';
@@ -16,11 +18,12 @@ export type ModuleKey =
   | 'invoices'
   | 'stock'
   | 'messages'
-  | 'dashboard';
+  | 'dashboard'
+  | 'reminders';
 
 export const TOGGLEABLE_MODULES: readonly ModuleKey[] = [
   'products', 'orders', 'customers', 'payments',
-  'invoices', 'stock', 'messages', 'dashboard',
+  'invoices', 'stock', 'messages', 'dashboard', 'reminders',
 ] as const;
 
 export interface Membership {
@@ -46,6 +49,10 @@ export interface Me {
   background_theme: string | null;
   primary_color_custom_hex: string | null;
   background_custom_hex: string | null;
+  /** Langue des e-mails et des rappels automatiques, alignée sur celle de l'interface. */
+  language: Locale;
+  /** Période du bloc Ventes de l'accueil, gardée d'une visite à l'autre. */
+  sales_period: SalesPeriod;
   membership: Membership | null;
 }
 
@@ -57,6 +64,8 @@ export interface MeUpdateData {
   background_theme?: string;
   primary_color_custom_hex?: string;
   background_custom_hex?: string;
+  language?: Locale;
+  sales_period?: SalesPeriod;
 }
 
 export type AppearancePreferencesUpdate = Pick<
@@ -126,6 +135,28 @@ export function useUpdateAppearancePreferences() {
       const previous = qc.getQueryData<Me>(qk.me.all);
       qc.setQueryData<Me>(qk.me.all, (current) => (
         current ? { ...current, ...data } : current
+      ));
+      return { previous };
+    },
+    onError: (_error, _data, context) => {
+      if (context?.previous) qc.setQueryData(qk.me.all, context.previous);
+    },
+  });
+}
+
+/** Période du bloc Ventes : appliquée tout de suite, enregistrée sur le compte. */
+export function useUpdateSalesPeriod() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    scope: { id: 'sales-period' },
+    mutationFn: (salesPeriod: SalesPeriod) =>
+      apiFetch<Me>('/auth/me/', { method: 'PATCH', body: JSON.stringify({ sales_period: salesPeriod }) }),
+    onMutate: async (salesPeriod) => {
+      await qc.cancelQueries({ queryKey: qk.me.all });
+      const previous = qc.getQueryData<Me>(qk.me.all);
+      qc.setQueryData<Me>(qk.me.all, (current) => (
+        current ? { ...current, sales_period: salesPeriod } : current
       ));
       return { previous };
     },

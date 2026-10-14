@@ -84,6 +84,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         )
     ]
 
+    LANGUAGE_CHOICES = [('fr', 'Français'), ('ar', 'العربية'), ('en', 'English')]
+    SALES_PERIOD_CHOICES = [
+        ('7d', '7 jours'), ('12m', '12 mois'), ('all', 'Depuis le début'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(max_length=254, unique=True)
     full_name = models.CharField(max_length=150, blank=True)
@@ -117,6 +122,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         validators=[RegexValidator(  # noqa: E501
             r'^#[0-9a-fA-F]{6}$', 'Couleur hex attendue, ex. #ffffff.',
         )],
+    )
+    # Langue de l'interface, recopiée par le frontend : sert aux e-mails envoyés
+    # hors requête (résumé du jour).
+    language = models.CharField(max_length=2, choices=LANGUAGE_CHOICES, default='fr')
+    # Période du bloc Ventes de l'accueil, gardée d'une visite à l'autre.
+    sales_period = models.CharField(
+        max_length=3, choices=SALES_PERIOD_CHOICES, default='7d',
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

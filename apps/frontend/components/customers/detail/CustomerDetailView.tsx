@@ -7,7 +7,9 @@ import { DETAIL_COLUMN, DETAIL_GRID, DetailSlot } from '@/components/detail/Deta
 import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { TopBar } from '@/components/layout/TopBar';
 import { PreparedMessageHistory } from '@/components/messages/PreparedMessageHistory';
+import { RemindersCard } from '@/components/reminders/RemindersCard';
 import type { ActivityType, Customer } from '@/lib/hooks/useCustomers';
+import { useCan } from '@/lib/hooks/useMe';
 import { CustomerActivityTimeline } from './CustomerActivityTimeline';
 import { CustomerContactCard } from './CustomerContactCard';
 import { CustomerDetailDialogs } from './CustomerDetailDialogs';
@@ -20,7 +22,7 @@ import { hasPending, useCustomerActions } from './useCustomerActions';
 import { useCustomerDetailState } from './useCustomerDetailState';
 
 /**
- * Fiche client. Desktop : historique à gauche (commandes, activité, notes), contact et argent
+ * Fiche client. Desktop : historique à gauche (commandes, rappels, activité, notes), contact et argent
  * à droite (coordonnées, situation, messages). Mobile : une seule pile réordonnée, action
  * principale flottante.
  */
@@ -29,6 +31,8 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
   const { primary, menu } = useCustomerActions(customer, state.actions);
   const [activityFilter, setActivityFilter] = useState<ActivityType | null>(null);
   const [pendingOnly, setPendingOnly] = useState(false);
+  const canReminders = useCan('reminders');
+  const canMessages = useCan('messages');
 
   return (
     <>
@@ -41,16 +45,17 @@ export function CustomerDetailView({ customer }: { customer: Customer }) {
         <div className={DETAIL_GRID}>
           <div className={DETAIL_COLUMN}>
             <DetailSlot order="max-lg:order-3"><CustomerOrdersCard customer={customer} /></DetailSlot>
-            <DetailSlot order="max-lg:order-4">
-              <CustomerActivityTimeline customerId={customer.id} activityFilter={activityFilter} pendingOnly={pendingOnly}
+            <DetailSlot order="max-lg:order-4">{canReminders && <RemindersCard link="customer" id={customer.id} />}</DetailSlot>
+            <DetailSlot order="max-lg:order-5">
+              <CustomerActivityTimeline customerId={customer.id} customerName={customer.display_name} activityFilter={activityFilter} pendingOnly={pendingOnly}
                 onFilterChange={setActivityFilter} onTogglePending={hasPending(customer) ? () => setPendingOnly((v) => !v) : undefined} />
             </DetailSlot>
-            <DetailSlot order="max-lg:order-5"><CustomerNotesCard customer={customer} notes={state.notes} /></DetailSlot>
+            <DetailSlot order="max-lg:order-6"><CustomerNotesCard customer={customer} notes={state.notes} /></DetailSlot>
           </div>
           <div className={`${DETAIL_COLUMN} lg:sticky lg:top-6`}>
             <DetailSlot order="max-lg:order-2"><CustomerContactCard customer={customer} actions={state.actions} /></DetailSlot>
             <DetailSlot order="max-lg:order-1"><CustomerSituationCard customer={customer} /></DetailSlot>
-            <DetailSlot order="max-lg:order-6"><PreparedMessageHistory customerId={customer.id} /></DetailSlot>
+            <DetailSlot order="max-lg:order-7">{canMessages && <PreparedMessageHistory customerId={customer.id} />}</DetailSlot>
           </div>
         </div>
       </div>

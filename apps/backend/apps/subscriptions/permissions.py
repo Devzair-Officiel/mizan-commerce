@@ -38,11 +38,11 @@ FEATURE_MIN_PLAN: dict[str, str] = {
     'invoices': SubscriptionPlan.CODE_PRO,
     'zakat': SubscriptionPlan.CODE_PRO,
     'whatsapp': SubscriptionPlan.CODE_PRO,
+    'exports': SubscriptionPlan.CODE_PRO,
     # Plan Boutique+
     'public_pages': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
     'partnerships': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
     'multi_user': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-    'exports': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
     'ocr': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
 }
 

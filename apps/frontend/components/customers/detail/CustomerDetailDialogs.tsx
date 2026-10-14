@@ -6,45 +6,25 @@ import { FollowupReminderDialog } from '@/components/reminders/FollowupReminderD
 import { WhatsAppIcon } from '@/components/orders/detail/constants';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import type { Customer } from '@/lib/hooks/useCustomers';
-import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
-import { useOrders } from '@/lib/hooks/useOrders';
-import { useShop } from '@/lib/hooks/useShop';
 import { CustomerAddressSheet } from './CustomerAddressSheet';
-import { buildFollowupMessage } from './followupMessage';
-import { hasPending } from './useCustomerActions';
 import type { CustomerDetailState } from './useCustomerDetailState';
 
 /** Fenêtres de la fiche : message WhatsApp, adresse, confirmation de désactivation, rappel de relance déjà prévu. */
 export function CustomerDetailDialogs({ customer, state }: { customer: Customer; state: CustomerDetailState }) {
   const t = useTranslations('customers.detail');
-  const tWa = useTranslations('customers.whatsapp');
-  const tGreeting = useTranslations('messages.prepared');
-  const { data: shop } = useShop();
-  const formatMoney = useFormatMoney();
-  const formatDate = useFormatDate();
-  // Chargées dès l'ouverture de la fiche : le message de relance est prêt au clic.
-  const { data: dueOrders } = useOrders({ customer: customer.id, due: true }, { enabled: hasPending(customer) && !!customer.phone });
   const { kind, close } = state.whatsApp;
-  const firstName = customer.display_name.trim().split(/\s+/)[0] ?? '';
-
-  const message = kind === 'followup'
-    ? buildFollowupMessage(customer.display_name, dueOrders?.results ?? [], customer.pending_amount,
-      { tWa, formatMoney, formatDate, currency: shop?.currency ?? 'EUR' })
-    : firstName ? tGreeting('greeting_named', { name: firstName }) : tGreeting('greeting');
 
   return (
     <>
       <FollowupReminderDialog conflict={state.followupConflict} />
       {kind && customer.phone && (
         <PreparedMessageDialog
-          open
           onClose={close}
-          templateType={kind === 'followup' ? 'unpaid_followup' : 'free'}
+          compose={{ template: kind === 'followup' ? 'unpaid_followup' : 'free', customerId: customer.id }}
           contextType="customer"
           contextId={customer.id}
           customerId={customer.id}
           recipientPhone={customer.phone}
-          initialMessage={message}
           WhatsAppIcon={WhatsAppIcon}
         />
       )}
