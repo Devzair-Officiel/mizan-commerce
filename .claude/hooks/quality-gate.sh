@@ -23,7 +23,7 @@ report=""
 if [ "$backend_changed" -eq 0 ]; then
   docker compose ps --status running --services 2>/dev/null | grep -q '^backend$' && {
     out=$( { docker compose exec -T backend ruff check . \
-          && docker compose exec -T backend python -m pytest; } 2>&1 ) || { fail=1; report+=$'\n--- Backend ---\n'"$out"; }
+          && docker compose exec -T backend python -m pytest -n auto -q; } 2>&1 ) || { fail=1; report+=$'\n--- Backend ---\n'"$out"; }
   }
 fi
 
