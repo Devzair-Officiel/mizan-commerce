@@ -1150,6 +1150,45 @@ Prometheus plus tard
 - consommation base ;
 - tentatives de connexion suspectes.
 
+## Sentry (en place)
+
+**Désactivé tant qu'aucun DSN n'est défini** : sans DSN, rien n'est initialisé et rien ne part. Le build, les tests et le CI tournent sans aucune variable Sentry.
+
+| Côté | Code | Variables |
+|---|---|---|
+| Backend (Django, Celery, Redis) | `apps/backend/apps/core/sentry.py`, appelé à la fin de `config/settings/base.py` | `SENTRY_DSN`, `SENTRY_ENVIRONMENT` (`local`, `staging`, `production` ; `local` par défaut), `SENTRY_RELEASE` (identifiant du commit), `SENTRY_TRACES_SAMPLE_RATE` (0 par défaut) |
+| Frontend (navigateur et serveur Next.js) | `apps/frontend/lib/sentry.ts`, `instrumentation.ts`, `instrumentation-client.ts` | Les mêmes, préfixées `NEXT_PUBLIC_` : en dev dans `apps/frontend/.env.local`, en production en argument de build de l'image (elles sont inlinées dans le bundle) |
+
+**Ce qui est envoyé** :
+- le type d'erreur, la pile d'appels et le message nettoyé ;
+- l'URL, avec ses paramètres sensibles filtrés ;
+- les en-têtes restants (User-Agent…) ;
+- l'environnement et la release ;
+- les traces de performance, seulement si le taux d'échantillonnage dépasse 0.
+
+**Ce qui ne part jamais** :
+- les PII par défaut (`send_default_pii=False`) : ni adresse IP, ni utilisateur ;
+- le corps des requêtes (`max_request_body_size='never'`, `request.data` retiré) et les cookies ;
+- les variables locales des piles d'appels (`include_local_variables=False`) ;
+- les en-têtes `Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie` et `X-CSRFToken` ;
+- la valeur de toute clé qui ressemble à un mot de passe, un jeton, un secret, une clé, une session ou une coordonnée (`email`, `phone`, `whatsapp`…). Elle est remplacée par `[Filtered]`, à toute profondeur et dans les paramètres d'URL (`?uid=…&token=…`) ;
+- les e-mails et numéros de téléphone présents dans un texte (message, fil d'Ariane). Ils sont remplacés par `[email]` et `[phone]` ;
+- la session replay : elle n'est pas activée ;
+- les source maps : elles ne sont pas envoyées (`sourcemaps.disable`).
+
+Le nettoyage se fait dans `before_send` et `before_send_transaction`, la même fonction des deux côtés. Les tests sont dans `apps/backend/apps/core/test_sentry.py`. Sentry ne s'initialise jamais sous pytest, même avec un DSN dans le `.env`.
+
+Les événements du navigateur passent par un tunnel same-origin (`/relais`). Les bloqueurs de publicité ne les arrêtent pas, et la CSP reste en `connect-src 'self'`. La route est exclue de la matcher de `proxy.ts`.
+
+**Vérifier** après avoir renseigné le DSN :
+
+```bash
+docker compose exec backend python manage.py sentry_check
+```
+
+- Si le DSN est défini, la commande envoie un événement de test (niveau `info`) et affiche son identifiant et l'environnement. Il doit apparaître dans le projet Sentry.
+- Sinon, elle répond « Sentry désactivé : SENTRY_DSN n'est pas défini » et sort en erreur, sans rien envoyer.
+
 ---
 
 # 16. CI/CD

@@ -1,6 +1,8 @@
 from pathlib import Path
 import os
 
+from apps.core.sentry import init_sentry
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
@@ -233,3 +235,6 @@ AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SE
 AI_SERVICE_INVOICE_TIMEOUT_SECONDS = float(
     os.environ.get('AI_SERVICE_INVOICE_TIMEOUT_SECONDS', '50'),
 )
+
+# Suivi des erreurs : actif seulement si SENTRY_DSN est défini (apps/core/sentry.py).
+init_sentry()

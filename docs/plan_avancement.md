@@ -40,7 +40,7 @@
 - [x] Mettre `DEBUG=False` par défaut, activer uniquement en local
 - [x] Configurer CORS, CSRF, cookies sécurisés
 - [x] Configurer Celery + Celery Beat avec Redis
-- [ ] Mettre en place Sentry (DSN en env var, désactivé en local)
+- [~] Mettre en place Sentry (DSN en env var, désactivé en local) — backend et frontend, inactifs sans DSN (fiche technique §15) ; reste à créer le projet Sentry et renseigner les DSN
 
 ### Frontend Next.js de base
 
