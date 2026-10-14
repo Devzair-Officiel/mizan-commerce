@@ -444,6 +444,7 @@
   - [ ] Badge d'abonnement (sidebar, menu mobile)
   - [ ] Raccourci clair/sombre dans le menu
   - [ ] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
+  - [ ] Refonte des formules : 4 formules (Gratuit, Solo, Pro, Boutique+), export en Pro ; grille à fournir. Incohérence à résoudre : la formule Gratuite a une limite de 20 commandes par mois, alors que les commandes demandent la formule Pro.
 
 ### Tests
 

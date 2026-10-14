@@ -9,8 +9,10 @@ from rest_framework.views import APIView
 
 from apps.core.pagination import WindowPagination
 from apps.core.permissions import HasModulePermission, get_shop
+from apps.subscriptions.permissions import HasPlanForFeature
 
 HasCustomersModule = HasModulePermission.for_module('customers')
+HasExportsPlan = HasPlanForFeature.for_feature('exports')
 from . import services  # noqa: E402
 from .filters import CustomerOrderingFilter  # noqa: E402
 from .models import Customer  # noqa: E402
@@ -135,7 +137,7 @@ def _export_filters(request: Request, pk) -> tuple[Customer, dict]:
 class CustomerActivityExportView(APIView):
     """Export CSV de l'activité, en flux : mêmes filtres et droits que la timeline."""
 
-    permission_classes = (IsAuthenticated, HasCustomersModule)
+    permission_classes = (IsAuthenticated, HasExportsPlan, HasCustomersModule)
 
     def get(self, request: Request, pk) -> StreamingHttpResponse:
         customer, params = _export_filters(request, pk)
@@ -152,7 +154,7 @@ class CustomerActivityExportView(APIView):
 class CustomerActivityExportSummaryView(APIView):
     """Nombre de lignes de l'export par type, avant le téléchargement."""
 
-    permission_classes = (IsAuthenticated, HasCustomersModule)
+    permission_classes = (IsAuthenticated, HasExportsPlan, HasCustomersModule)
 
     def get(self, request: Request, pk) -> Response:
         customer, params = _export_filters(request, pk)

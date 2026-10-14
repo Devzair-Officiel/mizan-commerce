@@ -1646,8 +1646,8 @@
       "fulfillment_both": "Les deux"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {Disponible avec la formule Pro} other {Disponible avec la formule Boutique+}}",
-      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} other {Cette fonction fait partie de la formule Boutique+.}}",
+      "title": "{feature, select, whatsapp {Disponible avec la formule Pro} exports {Disponible avec la formule Pro} other {Disponible avec la formule Boutique+}}",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} other {Cette fonction fait partie de la formule Boutique+.}}",
       "cta": "Voir les formules"
     },
     "page": {

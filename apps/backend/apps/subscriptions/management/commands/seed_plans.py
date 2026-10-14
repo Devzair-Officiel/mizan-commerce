@@ -42,7 +42,7 @@ PLANS = [
         'max_orders_per_month': None,
         'features_json': [
             'products', 'stock', 'notes', 'reminders',
-            'orders', 'invoices', 'zakat', 'whatsapp',
+            'orders', 'invoices', 'zakat', 'whatsapp', 'exports',
         ],
         'is_active': True,
     },
@@ -57,8 +57,8 @@ PLANS = [
         'max_orders_per_month': None,
         'features_json': [
             'products', 'stock', 'notes', 'reminders',
-            'orders', 'invoices', 'zakat', 'whatsapp',
-            'public_pages', 'partnerships', 'multi_user', 'exports', 'ocr',
+            'orders', 'invoices', 'zakat', 'whatsapp', 'exports',
+            'public_pages', 'partnerships', 'multi_user', 'ocr',
         ],
         'is_active': True,
     },

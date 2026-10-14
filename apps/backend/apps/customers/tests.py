@@ -12,6 +12,7 @@ from apps.accounts.models import User
 from apps.core.models import AuditLog
 from apps.notes.models import Note
 from apps.shops.models import Shop, ShopMember
+from apps.subscriptions.models import Subscription, SubscriptionPlan
 from apps.orders.models import Order
 from .models import Customer
 from .services import build_customers_summary
@@ -22,6 +23,15 @@ def setup(email):
     shop = Shop.objects.create(name=f'Shop {email}')
     ShopMember.objects.create(shop=shop, user=user, role='owner')
     return user, shop
+
+
+def subscribe(shop: Shop, code: str) -> None:
+    """Formule active de la boutique (sans souscription : Gratuit)."""
+    Subscription.objects.update_or_create(shop=shop, defaults={
+        'plan': SubscriptionPlan.objects.get(code=code),
+        'status': Subscription.STATUS_ACTIVE,
+        'current_period_start': timezone.now(),
+    })
 
 
 class CustomerCRUDTest(TestCase):
@@ -450,6 +460,8 @@ class CustomerActivityExportTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user, self.shop = setup('export@example.com')
+        # Export réservé à la formule Pro (et au-delà).
+        subscribe(self.shop, SubscriptionPlan.CODE_PRO)
         User.objects.filter(pk=self.user.pk).update(full_name='Youssef Benali')
         self.user.refresh_from_db()
         Shop.objects.filter(pk=self.shop.pk).update(timezone='Europe/Paris')
@@ -477,6 +489,20 @@ class CustomerActivityExportTest(TestCase):
         body = b''.join(response.streaming_content)
         lines = body.decode('utf-8-sig').splitlines()
         return body, [line.split(';') for line in lines]
+
+    def test_free_plan_forbidden(self):
+        subscribe(self.shop, SubscriptionPlan.CODE_FREE)
+        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
+        self.assertEqual(self.client.get(self.summary_url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
+        self.assertFalse(AuditLog.objects.filter(action='customer_activity_export').exists())
+
+    def test_pro_and_boutique_plus_get_csv(self):
+        for code in (SubscriptionPlan.CODE_PRO, SubscriptionPlan.CODE_BOUTIQUE_PLUS):
+            with self.subTest(code=code):
+                subscribe(self.shop, code)
+                _, rows = self._csv()
+                self.assertEqual(len(rows), 6)
+                self.assertEqual(self.client.get(self.summary_url).status_code, status.HTTP_200_OK)  # noqa: E501
 
     def test_bom_separator_columns_and_filename(self):
         response = self.client.get(self.url)

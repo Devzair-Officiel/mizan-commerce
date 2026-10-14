@@ -1646,8 +1646,8 @@
       "fulfillment_both": "Both"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {Available with the Pro plan} other {Available with the Boutique+ plan}}",
-      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} other {This feature is part of the Boutique+ plan.}}",
+      "title": "{feature, select, whatsapp {Available with the Pro plan} exports {Available with the Pro plan} other {Available with the Boutique+ plan}}",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} other {This feature is part of the Boutique+ plan.}}",
       "cta": "See plans"
     },
     "page": {
