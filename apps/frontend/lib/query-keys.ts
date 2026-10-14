@@ -230,6 +230,13 @@ export const qk = {
       ['geocode', value, country] as const,
   },
 
+  messageTemplates: {
+    all: ['message-templates'] as const,
+    settings: (lang: string) => ['message-templates', 'settings', lang] as const,
+    preview: (text: string, tone: string, lang: string) => ['message-templates', 'preview', text, tone, lang] as const,
+    compose: (request: object, lang: string) => ['message-templates', 'compose', request, lang] as const,
+  },
+
   preparedMessages: {
     all: ['prepared-messages'] as const,
     byOrder: (orderId: string) => ['prepared-messages', 'order', orderId] as const,

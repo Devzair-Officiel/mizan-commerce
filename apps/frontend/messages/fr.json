@@ -499,14 +499,6 @@
       "shipment_title": "Expédition mise à jour",
       "shipment_sub": "Commande <num>{number}</num> · Expédiée",
       "note_title": "Note ajoutée"
-    },
-    "whatsapp": {
-      "hello_named": "Bonjour {name},",
-      "hello": "Bonjour,",
-      "intro": "Sauf erreur de notre part, il reste à régler :",
-      "order_line": "• Commande n°{number} du {date} : {amount}",
-      "total_line": "Total restant : {amount}",
-      "signoff": "Merci d'avance, à bientôt."
     }
   },
   "orders": {
@@ -703,21 +695,6 @@
     },
     "rel": {
       "just_now": "à l'instant"
-    },
-    "whatsapp": {
-      "hello_named": "Bonjour {name},",
-      "hello": "Bonjour,",
-      "status_to_prepare": "Votre commande est en cours de préparation.",
-      "status_prepared": "Votre commande est prête.",
-      "status_shipped": "Votre commande a été expédiée.",
-      "status_cancelled": "Votre commande a été annulée.",
-      "status_fallback": "Mise à jour de votre commande.",
-      "order_line": "Commande n°{number} du {date}",
-      "total_line": "Total : {amount}",
-      "payment_paid": "Paiement : réglé. Merci !",
-      "payment_partial": "Acompte versé : {paid} — Reste à régler : {remaining}",
-      "payment_unpaid": "Paiement : à régler ({amount})",
-      "signoff": "À bientôt."
     },
     "new": {
       "topbar": "Nouvelle commande",
@@ -1461,8 +1438,8 @@
       "send_cta": "Ouvrir WhatsApp",
       "cancel": "Annuler",
       "record_failed": "WhatsApp s'est ouvert, mais le message n'a pas été ajouté à l'historique.",
-      "greeting": "Bonjour,",
-      "greeting_named": "Bonjour {name},"
+      "edit_template": "Modifier le modèle",
+      "compose_failed": "Le message n'a pas pu être préparé. Écrivez-le vous-même ou réessayez."
     },
     "history": {
       "title": "Messages WhatsApp",
@@ -1641,8 +1618,8 @@
       "fulfillment_both": "Les deux"
     },
     "upgrade": {
-      "title": "Disponible avec la formule Boutique+",
-      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} other {Cette fonction fait partie de la formule Boutique+.}}",
+      "title": "{feature, select, whatsapp {Disponible avec la formule Pro} other {Disponible avec la formule Boutique+}}",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} other {Cette fonction fait partie de la formule Boutique+.}}",
       "cta": "Voir les formules"
     },
     "page": {
@@ -1679,11 +1656,44 @@
     },
     "management": {
       "title": "Gestion",
-      "description": "Équipe, vitrine et abonnement de votre boutique.",
+      "description": "Équipe, vitrine, messages et abonnement de votre boutique.",
       "public_page": "Page publique",
       "public_page_subtitle": "Vitrine partageable de votre boutique",
+      "messages": "Messages WhatsApp",
+      "messages_subtitle": "Ton et modèles des messages préparés",
       "subscription": "Abonnement",
       "subscription_subtitle": "Formule, essai et résiliation"
+    },
+    "messages": {
+      "title": "Messages WhatsApp",
+      "subtitle": "Les textes préparés quand vous confirmez une commande ou relancez un client.",
+      "load_failed": "Les modèles n'ont pas pu être chargés.",
+      "tone_title": "Ton",
+      "tone_description": "S'applique à tous les modèles que vous n'avez pas personnalisés.",
+      "tone_aria": "Ton des messages",
+      "tone": "{tone, select, warm {Chaleureux} professional {Professionnel} other {}}",
+      "tone_example": "{tone, select, warm {Bonjour Karima 😊 Petit rappel pour votre commande… Merci et à bientôt !} professional {Bonjour Karima Bensouda, sauf erreur de notre part, la commande… Cordialement.} other {}}",
+      "templates_title": "Modèles",
+      "template_label": "Modèle",
+      "template": "{key, select, order_confirmation {Confirmation de commande} tracking {{mode, select, delivery {Commande remise} other {Commande prête}}} unpaid_followup {Relance d'impayé} thank_you {Remerciement} promo {Promotion} other {}}",
+      "customized": "Personnalisé",
+      "customized_option": "{label} · personnalisé",
+      "text_label": "Texte du message",
+      "insert_label": "Insérer une information :",
+      "insert_aria": "Insérer {variable}",
+      "used_by": "{key, select, order_confirmation {{mode, select, delivery {Utilisé par « WhatsApp » sur une commande, jusqu'à sa remise au livreur.} other {Utilisé par « WhatsApp » sur une commande à préparer.}}} tracking {{mode, select, delivery {Utilisé par « WhatsApp » sur une commande expédiée.} other {Utilisé par « WhatsApp » sur une commande prête.}}} unpaid_followup {Utilisé par « Relancer » sur l'accueil, les fiches et les rappels.} thank_you {{mode, select, delivery {Pas encore proposé dans l'application.} other {Utilisé par « WhatsApp » sur une commande terminée et réglée.}}} promo {Pas encore proposé dans l'application.} other {}}",
+      "reset": "Rétablir le texte du ton choisi",
+      "preview_title": "Aperçu",
+      "preview_caption": "{sample, select, true {Exemple fictif : la commande <num>{number}</num> de {name}} other {Exemple avec la commande <num>{number}</num> de {name}}}",
+      "preview_unknown": "Information inconnue : {names}. Elle resterait telle quelle dans le message.",
+      "preview_failed": "L'aperçu n'a pas pu être chargé.",
+      "preview_note": "Avant chaque envoi, vous pouvez encore modifier le message. Rien ne part sans votre accord.",
+      "text_required": "Saisissez le texte du message, ou rétablissez celui du ton choisi.",
+      "unknown_variable": "Information inconnue : {names}. Informations possibles : {allowed}.",
+      "text_invalid": "Ce texte n'a pas pu être enregistré. Informations possibles : {allowed}.",
+      "saved": "Modèles enregistrés ✓",
+      "save_failed": "Les modèles n'ont pas pu être enregistrés. Réessayez.",
+      "submit": "Enregistrer"
     },
     "invoicing": {
       "title": "Facturation",

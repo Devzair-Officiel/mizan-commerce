@@ -23,7 +23,7 @@ function screens({ order, customer, product }) {
     ['sortie stock', '/stock/sortie'], ['rappels', '/reminders'], ['notes', '/notes'],
     ['factures', '/invoices'], ['zakat', '/zakat'], ['plus', '/more'], ['profil', '/profile'],
     ['paramètres', '/settings'], ['équipe', '/settings/team'],
-    ['page publique', '/settings/public-page'], ['abonnement', '/settings/subscription'],
+    ['page publique', '/settings/public-page'], ['messages WhatsApp', '/settings/messages'], ['abonnement', '/settings/subscription'],
   ];
 }
 

@@ -26,11 +26,12 @@ export function useCustomerActions(customer: Customer, actions: CustomerDetailAc
   const t = useTranslations('customers.detail');
   const router = useRouter();
   const canReminders = useCan('reminders');
+  const canMessages = useCan('messages');
   const newOrder: CustomerAction = {
     key: 'new_order', icon: ClipboardPlus, label: t('new_order'),
     onSelect: () => router.push(`/orders/new?customer=${customer.id}&from=/customers/${customer.id}`),
   };
-  const primary: CustomerAction | null = hasPending(customer) && customer.phone
+  const primary: CustomerAction | null = hasPending(customer) && customer.phone && canMessages
     ? { key: 'followup', icon: WhatsAppIcon, label: t('followup'), onSelect: () => actions.openWhatsApp('followup') }
     : customer.is_active ? newOrder : null;
 

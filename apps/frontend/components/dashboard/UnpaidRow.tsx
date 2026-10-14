@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
-import { buildFollowupMessage } from '@/components/customers/detail/followupMessage';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
 import { orderNumberTag } from '@/components/orders/OrderNumber';
 
@@ -15,21 +14,18 @@ function WaIcon({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
-import { useFormatDate, useFormatMoney, useRelativeTime } from '@/lib/hooks/useFormat';
+import { useFormatMoney, useRelativeTime } from '@/lib/hooks/useFormat';
 import type { UnpaidOrder } from '@/lib/hooks/useDashboard';
+import { useCan } from '@/lib/hooks/useMe';
 
 interface Props { order: UnpaidOrder; currency: string; }
 
 export function UnpaidRow({ order, currency }: Props) {
   const t = useTranslations('dashboard.unpaid');
-  const tWa = useTranslations('customers.whatsapp');
   const formatMoney = useFormatMoney();
-  const formatDate = useFormatDate();
   const relativeTime = useRelativeTime();
+  const canMessages = useCan('messages');
   const [dialogOpen, setDialogOpen] = useState(false);
-  // Même relance que depuis la fiche client, pour cette seule commande.
-  const followup = () => buildFollowupMessage(order.customer_name ?? '', [order], order.amount_due,
-    { tWa, formatMoney, formatDate, currency });
 
   return (
     <div className="flex items-center gap-3 px-5 py-3.5">
@@ -44,7 +40,7 @@ export function UnpaidRow({ order, currency }: Props) {
       <span className="text-sm font-semibold tabular-nums text-amber-700 dark:text-amber-400 shrink-0 sm:w-20 sm:text-right">
         {formatMoney(order.amount_due, currency)}
       </span>
-      {order.customer_phone ? (
+      {order.customer_phone && canMessages ? (
         <>
           <button
             type="button"
@@ -68,14 +64,12 @@ export function UnpaidRow({ order, currency }: Props) {
       )}
       {dialogOpen && (
         <PreparedMessageDialog
-          open
           onClose={() => setDialogOpen(false)}
-          templateType="unpaid_followup"
+          compose={{ template: 'unpaid_followup', orderId: order.id }}
           contextType="order"
           contextId={order.id}
           customerId={order.customer_id}
           recipientPhone={order.customer_phone}
-          initialMessage={followup()}
           WhatsAppIcon={WaIcon}
         />
       )}

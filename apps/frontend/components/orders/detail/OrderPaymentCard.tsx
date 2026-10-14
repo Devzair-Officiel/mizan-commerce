@@ -5,6 +5,7 @@ import { Banknote, Pencil } from 'lucide-react';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { buttonVariants } from '@/components/ui/button';
 import { OrderPaymentBadge } from '@/components/orders/list/OrderPaymentBadge';
+import { useCan } from '@/lib/hooks/useMe';
 import { useShop } from '@/lib/hooks/useShop';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
 import type { Order } from '@/lib/hooks/useOrders';
@@ -33,7 +34,8 @@ export function OrderPaymentCard({ order, actions, collectIsPrimary }: OrderPaym
   const progress = total > 0 ? Math.min(100, Math.round((parseFloat(order.amount_paid) / total) * 100)) : 0;
   const open = order.status !== 'cancelled';
   const canCollect = open && due > 0 && !collectIsPrimary;
-  const canRemind = open && due > 0 && !!order.customer && !!order.customer_phone;
+  const canMessages = useCan('messages');
+  const canRemind = open && due > 0 && !!order.customer && !!order.customer_phone && canMessages;
 
   return (
     <SectionCard title={t('title')} rightSlot={<OrderPaymentBadge order={order} currency={currency} showDue={false} />}>

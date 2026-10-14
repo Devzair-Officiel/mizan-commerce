@@ -35,9 +35,12 @@ async function setup(page) {
   const customer = found.find((c) => c.display_name === CUSTOMER)
     ?? await api(page, 'customers/', { method: 'POST', data: { name: CUSTOMER, phone: PHONE } });
   const existing = (await api(page, `orders/?customer=${customer.id}`)).results[0];
+  // Un article du catalogue : sa sortie de stock donne le mouvement lié à une commande (mouvements, fiche article).
+  const stocked = (await api(page, 'products/')).results.find((p) => p.type === 'product');
+  const variant = (await api(page, `products/${stocked.id}/`)).variants[0].id;
   const created = existing ?? await api(page, 'orders/', {
     method: 'POST',
-    data: { customer: customer.id, items: [{ product_name: TITLE, quantity: 1, unit_price: '9.00' }] },
+    data: { customer: customer.id, items: [{ product_name: TITLE, quantity: 1, unit_price: '9.00' }, { variant, quantity: 1 }] },
   });
   let order = await api(page, `orders/${created.id}/`);
   if (!order.invoice) {

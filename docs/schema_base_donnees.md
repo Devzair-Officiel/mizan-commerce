@@ -61,7 +61,7 @@ Productivité                notes, reminders
 Zakat                       zakat_calculations
 OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
                             detection_results
-Communication               prepared_messages, telegram_accounts, telegram_publications
+Communication               prepared_messages, message_settings, telegram_accounts, telegram_publications
 Page publique               public_pages, public_page_sections,
                             public_product_visibilities, public_services, contact_buttons
 Projets halal               projects, project_funding_lines, project_documents,
@@ -749,7 +749,7 @@ Messages WhatsApp préparés (jamais envoyés automatiquement).
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| template_type | VARCHAR(30) | NOT NULL | `order_confirmation`, `tracking`, `unpaid_followup`, `promo`, `free` |
+| template_type | VARCHAR(30) | NOT NULL | `order_confirmation`, `tracking`, `unpaid_followup`, `thank_you`, `promo`, `free` |
 | context_type | VARCHAR(30) | | `order`, `customer`, `product`, `none` |
 | context_id | UUID | | ID polymorphique selon `context_type` |
 | customer_id | UUID | FK → customers.id | Pour faciliter les requêtes |
@@ -760,6 +760,23 @@ Messages WhatsApp préparés (jamais envoyés automatiquement).
 | sent_manually_at | TIMESTAMPTZ | | Renseigné manuellement par l'utilisateur |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+---
+
+### `message_settings`
+
+Ton et textes personnalisés des modèles de messages WhatsApp d'une boutique (URS-066). Les modèles ne servent qu'à préparer le texte que le commerçant envoie lui-même.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, NOT NULL, UNIQUE, ON DELETE CASCADE | Créé à la première lecture |
+| tone | VARCHAR(20) | NOT NULL, DEFAULT 'warm' | `warm` (chaleureux), `professional` (nom complet du client) |
+| custom_texts | JSONB | NOT NULL, DEFAULT '{}' | `{template_type: texte}` pour `order_confirmation`, `tracking`, `unpaid_followup`, `thank_you`, `promo` ; un modèle absent suit le texte du ton choisi (fr, en, ar, dans le code : `comms/message_texts.py`) |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+Variables permises dans un texte : `{client}`, `{commande}`, `{date}`, `{total}`, `{reste}`, `{articles}`, `{boutique}` ; toute autre est refusée à l'enregistrement.
 
 ---
 

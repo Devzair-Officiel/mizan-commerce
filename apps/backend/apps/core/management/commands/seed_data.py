@@ -75,7 +75,7 @@ class Command(BaseCommand):
 
         from apps.orders.models import Order
         from apps.ocr.models import OcrResult, UploadedDocument
-        from apps.comms.models import PreparedMessage
+        from apps.comms.models import MessageSettings, PreparedMessage
         from apps.public_pages.models import (
             ContactButton,
             PublicCatalogVisibility,
@@ -195,6 +195,22 @@ class Command(BaseCommand):
                 status=PreparedMessage.Status.PREPARED,
             )
             self.stdout.write("    → 2 messages WhatsApp préparés")
+
+        # Ton chaleureux, remerciement personnalisé (« Personnalisé » dans la démo).
+        MessageSettings.objects.get_or_create(
+            shop=shop_fr,
+            defaults={
+                "tone": MessageSettings.Tone.WARM,
+                "custom_texts": {
+                    "thank_you": (
+                        "Merci {client} 🙏\n"
+                        "Votre commande {commande} vous attend, emballée avec soin. "
+                        "Pensez à nous suivre sur Instagram pour les nouveautés !\n"
+                        "{boutique}"
+                    ),
+                },
+            },
+        )
 
         # ── Boutique 2 — Amira (Maroc / MAD) ────────────────────────
         amira = UserFactory(

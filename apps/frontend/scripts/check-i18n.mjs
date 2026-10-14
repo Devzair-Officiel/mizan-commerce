@@ -181,6 +181,12 @@ const TUTOIEMENT_RE = /(?<![\p{L}\p{N}_])(?:tu|ton|ta|tes|toi)(?![\p{L}\p{N}_])|
 // Clés fr dont la valeur contient légitimement l'une de ces formes, avec la raison.
 const TUTOIEMENT_EXCEPTIONS = new Map([
   // ['namespace.cle', 'raison'],
+  ['settings.upgrade.text', 'le ton des messages (nom)'],
+  ['settings.management.messages_subtitle', 'le ton des messages (nom)'],
+  ['settings.messages.tone_title', 'le ton des messages (nom)'],
+  ['settings.messages.tone_aria', 'le ton des messages (nom)'],
+  ['settings.messages.reset', 'le ton des messages (nom)'],
+  ['settings.messages.text_required', 'le ton des messages (nom)'],
 ]);
 
 for (const [key, value] of Object.entries(flat['fr'])) {

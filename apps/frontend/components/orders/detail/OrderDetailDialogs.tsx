@@ -6,26 +6,20 @@ import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDial
 import { FollowupReminderDialog } from '@/components/reminders/FollowupReminderDialog';
 import type { Order } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
-import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { remainingDue, WhatsAppIcon } from './constants';
 import { InvoiceBottomSheet } from './InvoiceBottomSheet';
 import { PaymentBottomSheet } from './PaymentBottomSheet';
 import type { OrderDetailState } from './useOrderDetailState';
-import { buildWhatsAppMessage } from './whatsapp';
 
 type DialogsState = Pick<OrderDetailState, 'payment' | 'invoice' | 'confirm' | 'whatsApp' | 'followupConflict'>;
 
 /** Fenêtres de la page détail : encaissement, facture, confirmations, message WhatsApp, rappel de relance déjà prévu. */
 export function OrderDetailDialogs({ order, state }: { order: Order; state: DialogsState }) {
   const t = useTranslations('orders.detail');
-  const tWa = useTranslations('orders.whatsapp');
   const tc = useTranslations('layout.common');
   const label = useOrderStatusLabel();
   const { data: shop } = useShop();
-  const formatMoney = useFormatMoney();
-  const formatDate = useFormatDate();
-  const currency = shop?.currency ?? 'EUR';
   const { payment, invoice, confirm, whatsApp } = state;
   const kind = shop?.catalog_kind ?? 'both';
   const reactivating = confirm.kind === 'reactivate';
@@ -49,16 +43,14 @@ export function OrderDetailDialogs({ order, state }: { order: Order; state: Dial
         variant={reactivating ? 'default' : 'destructive'}
         onConfirm={() => confirm.run(reactivating ? 'to_prepare' : 'cancelled')}
       />
-      {order.customer && order.customer_phone && (
+      {whatsApp.request && order.customer && order.customer_phone && (
         <PreparedMessageDialog
-          open={whatsApp.template !== null}
           onClose={whatsApp.close}
-          templateType={whatsApp.template ?? 'order_confirmation'}
+          compose={{ ...whatsApp.request, orderId: order.id }}
           contextType="order"
           contextId={order.id}
           customerId={order.customer}
           recipientPhone={order.customer_phone}
-          initialMessage={buildWhatsAppMessage(order, { tWa, formatMoney, formatDate, currency })}
           WhatsAppIcon={WhatsAppIcon}
         />
       )}

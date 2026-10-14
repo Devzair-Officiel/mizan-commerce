@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import PreparedMessage
+from .models import MessageSettings, PreparedMessage
+from .services import (
+    LANGUAGES,
+    MAX_TEXT_LENGTH,
+    TEMPLATE_KEYS,
+    VARIABLES,
+    unknown_variables,
+)
 
 
 class PreparedMessageSerializer(serializers.ModelSerializer):
@@ -93,6 +100,7 @@ class PreparedMessageCreateSerializer(serializers.Serializer):
             PreparedMessage.TemplateType.ORDER_CONFIRMATION,
             PreparedMessage.TemplateType.TRACKING,
             PreparedMessage.TemplateType.UNPAID_FOLLOWUP,
+            PreparedMessage.TemplateType.THANK_YOU,
         )
         # Relance depuis la fiche client : un message composé pour ses commandes dues.
         customer_followup = (
@@ -107,4 +115,84 @@ class PreparedMessageCreateSerializer(serializers.Serializer):
                     {'context_id': 'Une commande est requise pour ce template.'}
                 )
 
+        return data
+
+
+def _allowed_variables() -> list[str]:
+    return [f'{{{name}}}' for name in VARIABLES]
+
+
+def _unknown_message(names: list[str]) -> str:
+    unknown = ', '.join(f'{{{name}}}' for name in names)
+    return f'Variable inconnue : {unknown}. Variables permises : {", ".join(_allowed_variables())}.'  # noqa: E501
+
+
+class MessageSettingsUpdateSerializer(serializers.Serializer):
+    """PATCH /messages/settings/ : ton, et textes par modèle (`null` = texte du ton choisi)."""  # noqa: E501
+
+    tone = serializers.ChoiceField(choices=MessageSettings.Tone.choices, required=False)
+    texts = serializers.DictField(
+        child=serializers.CharField(
+            allow_null=True, allow_blank=True,
+            max_length=MAX_TEXT_LENGTH, trim_whitespace=False,
+        ),
+        required=False,
+    )
+
+    def validate_texts(self, value: dict[str, str | None]) -> dict[str, str | None]:
+        errors: dict[str, list[str]] = {}
+        cleaned: dict[str, str | None] = {}
+        for key, text in value.items():
+            if key not in TEMPLATE_KEYS:
+                errors[key] = ['Modèle inconnu.']
+                continue
+            if text is None:
+                cleaned[key] = None
+                continue
+            text = text.strip()
+            if not text:
+                errors[key] = ['Le texte ne peut pas être vide.']
+            elif names := unknown_variables(text):
+                errors[key] = [_unknown_message(names)]
+            else:
+                cleaned[key] = text
+        if errors:
+            raise serializers.ValidationError(errors)
+        return cleaned
+
+    def validate(self, data: dict) -> dict:
+        if 'tone' not in data and 'texts' not in data:
+            raise serializers.ValidationError('Rien à enregistrer.')
+        return data
+
+    def to_validation_error(self) -> dict:
+        """Erreurs au format de l'API (`detail`, `errors`) et variables permises."""
+        return {
+            'detail': 'Requête invalide.',
+            'errors': self.errors,
+            'allowed_variables': _allowed_variables(),
+        }
+
+
+class MessagePreviewSerializer(serializers.Serializer):
+    """POST /messages/preview/ : texte à rendre, ton et langue de l'aperçu."""
+
+    text = serializers.CharField(max_length=MAX_TEXT_LENGTH, allow_blank=True, trim_whitespace=False)  # noqa: E501
+    tone = serializers.ChoiceField(choices=MessageSettings.Tone.choices, required=False)
+    lang = serializers.ChoiceField(choices=LANGUAGES, required=False)
+
+
+class MessageComposeSerializer(serializers.Serializer):
+    """POST /messages/compose/ : texte d'un message pour une commande ou un client."""
+
+    template = serializers.ChoiceField(
+        choices=PreparedMessage.TemplateType.choices, required=False, allow_null=True,
+    )
+    order_id = serializers.UUIDField(required=False, allow_null=True)
+    customer_id = serializers.UUIDField(required=False, allow_null=True)
+    lang = serializers.ChoiceField(choices=LANGUAGES, required=False)
+
+    def validate(self, data: dict) -> dict:
+        if not data.get('order_id') and not data.get('customer_id'):
+            raise serializers.ValidationError('Une commande ou un client est requis.')
         return data

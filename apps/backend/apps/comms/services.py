@@ -1,108 +1,298 @@
 """Préparation de messages WhatsApp côté serveur.
 
-L'envoi n'est jamais automatique : le service rend le texte à partir d'un contexte
-(commande, client, produit, libre), stocke un `PreparedMessage`, et le commerçant
-ouvre WhatsApp via wa.me pour envoyer manuellement.
+L'envoi n'est jamais automatique : le service rend le texte d'un modèle à partir d'un
+contexte (commande, client), stocke éventuellement un `PreparedMessage`, et le
+commerçant ouvre WhatsApp via wa.me pour envoyer lui-même.
+
+`render` est le seul rendu des modèles : relance de l'accueil, des fiches et des
+rappels, messages d'une commande, aperçu des réglages.
 """
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
+from babel.dates import format_date
+from babel.lists import format_list
+from babel.numbers import format_currency
 from django.db import transaction
 from django.utils import timezone
 
 from apps.customers.models import Customer
 from apps.orders.models import Order
-from apps.products.models import Product
+from apps.orders.services import filter_due
 
-from .models import PreparedMessage
+from .message_texts import DEFAULT_TEXTS, SAMPLE
+from .models import MessageSettings, PreparedMessage
 
 if TYPE_CHECKING:
     from apps.accounts.models import User
     from apps.shops.models import Shop
 
+TemplateType = PreparedMessage.TemplateType
 
-def _first_name(full_name: str) -> str:
-    return (full_name or '').strip().split()[0] if full_name else ''
+# Modèles modifiables dans les réglages, dans l'ordre de la page.
+TEMPLATE_KEYS: tuple[str, ...] = (
+    TemplateType.ORDER_CONFIRMATION,
+    TemplateType.TRACKING,
+    TemplateType.UNPAID_FOLLOWUP,
+    TemplateType.THANK_YOU,
+    TemplateType.PROMO,
+)
+VARIABLES: tuple[str, ...] = (
+    'client', 'commande', 'date', 'total', 'reste', 'articles', 'boutique',
+)
+LANGUAGES: tuple[str, ...] = ('fr', 'en', 'ar')
+MAX_TEXT_LENGTH = 2000
+
+_VARIABLE_RE = re.compile(r'\{([^{}]*)\}')
 
 
-def _greeting(customer: Customer | None) -> str:
-    first = _first_name(customer.display_name) if customer else ''
-    return f'Bonjour {first},' if first else 'Bonjour,'
+def isolate_number(value: str) -> str:
+    """Numéro de commande isolé du sens du texte (U+2066 … U+2069), comme côté frontend."""  # noqa: E501
+    return f'⁦{value}⁩'
 
 
-def _money(amount: Decimal, currency: str) -> str:
-    return f'{amount:.2f} {currency}'
+def resolve_language(lang: str | None, user: User | None = None) -> str:
+    """Langue du message : demandée par le client, sinon celle de l'utilisateur."""
+    for candidate in (lang, getattr(user, 'language', None)):
+        if candidate in LANGUAGES:
+            return candidate
+    return 'fr'
 
 
-def render_template(
-    *,
-    template_type: str,
-    shop: Shop,
-    customer: Customer | None = None,
-    order: Order | None = None,
-    product: Product | None = None,
-    free_message: str | None = None,
+def get_message_settings(shop: Shop) -> MessageSettings:
+    settings, _ = MessageSettings.objects.get_or_create(shop=shop)
+    return settings
+
+
+def default_text(shop: Shop, template: str, tone: str, lang: str) -> str:
+    """Texte par défaut d'un modèle ; « Commande prête / remise » selon le mode de retrait."""  # noqa: E501
+    key = template
+    if template == TemplateType.TRACKING and shop.fulfillment_mode == 'delivery':
+        key = 'tracking_delivery'
+    if template == TemplateType.FREE:
+        key = 'greeting'
+    return DEFAULT_TEXTS[lang][tone][key]
+
+
+def default_texts(shop: Shop, lang: str) -> dict[str, dict[str, str]]:
+    """Textes par défaut des modèles modifiables, pour chaque ton."""
+    return {
+        tone: {key: default_text(shop, key, tone, lang) for key in TEMPLATE_KEYS}
+        for tone in MessageSettings.Tone.values
+    }
+
+
+def template_text(
+    shop: Shop, settings: MessageSettings, template: str, lang: str,
 ) -> str:
-    """Rend le texte d'un message à partir d'un template et de son contexte.
+    """Texte personnalisé du modèle, sinon celui du ton choisi."""
+    custom = (settings.custom_texts or {}).get(template)
+    return custom or default_text(shop, template, settings.tone, lang)
 
-    Lève `ValueError` si le contexte requis pour le template est manquant.
+
+def unknown_variables(text: str) -> list[str]:
+    """Variables `{…}` du texte qui ne font pas partie des variables permises."""
+    seen: list[str] = []
+    for name in _VARIABLE_RE.findall(text):
+        if name not in VARIABLES and name not in seen:
+            seen.append(name)
+    return seen
+
+
+@dataclass
+class MessageContext:
+    """Données d'un message, issues d'une ou plusieurs commandes, ou de l'exemple fictif."""  # noqa: E501
+
+    customer_name: str = ''
+    customer_first_name: str = ''
+    order_numbers: list[str] = field(default_factory=list)
+    date: datetime | None = None
+    total: Decimal | None = None
+    due: Decimal | None = None
+    items: list[str] = field(default_factory=list)
+
+
+def _first_name(customer: Customer) -> str:
+    if customer.first_name.strip():
+        return customer.first_name.strip()
+    parts = customer.display_name.split()
+    return parts[0] if parts else ''
+
+
+def context_for(customer: Customer | None, orders: list[Order]) -> MessageContext:
+    """Contexte d'un client et de ses commandes : montants additionnés, date la plus ancienne."""  # noqa: E501
+    ctx = MessageContext()
+    if customer is not None:
+        ctx.customer_name = customer.display_name
+        ctx.customer_first_name = _first_name(customer)
+    if orders:
+        ctx.order_numbers = [o.order_number for o in orders]
+        ctx.date = min(o.created_at for o in orders)
+        ctx.total = sum((o.total_amount for o in orders), Decimal('0'))
+        ctx.due = sum((o.total_amount - o.amount_paid for o in orders), Decimal('0'))
+        ctx.items = [str(item) for o in orders for item in o.items.all()]
+    return ctx
+
+
+def sample_context(shop: Shop, lang: str) -> MessageContext:
+    """Exemple fictif de l'aperçu : commande d'hier, 44,97 dans la devise de la boutique."""  # noqa: E501
+    sample = SAMPLE[lang]
+    name = str(sample['customer'])
+    now = timezone.now()
+    return MessageContext(
+        customer_name=name,
+        customer_first_name=name.split()[0],
+        order_numbers=[f'{now.astimezone(ZoneInfo(shop.timezone)).year}-054'],
+        date=now - timedelta(days=1),
+        total=Decimal('44.97'),
+        due=Decimal('44.97'),
+        items=list(sample['items']),  # type: ignore[call-overload]
+    )
+
+
+def _money(amount: Decimal, shop: Shop, lang: str) -> str:
+    return format_currency(amount, shop.currency, locale=lang, numbering_system='latn')
+
+
+def _date(value: datetime, shop: Shop, lang: str) -> str:
+    tz = ZoneInfo(shop.timezone)
+    local = value.astimezone(tz).date()
+    same_year = local.year == timezone.now().astimezone(tz).year
+    return format_date(local, 'd MMM' if same_year else 'd MMM y', locale=lang)
+
+
+def variables_for(
+    shop: Shop, tone: str, lang: str, ctx: MessageContext,
+) -> dict[str, str]:
+    """Valeur de chaque variable ; vide quand le contexte ne la fournit pas."""
+    professional = tone == MessageSettings.Tone.PROFESSIONAL
+    return {
+        'client': ctx.customer_name if professional else ctx.customer_first_name,
+        'commande': (
+            format_list([isolate_number(n) for n in ctx.order_numbers], locale=lang)
+            if ctx.order_numbers else ''
+        ),
+        'date': _date(ctx.date, shop, lang) if ctx.date else '',
+        'total': _money(ctx.total, shop, lang) if ctx.total is not None else '',
+        'reste': _money(ctx.due, shop, lang) if ctx.due is not None else '',
+        'articles': format_list(ctx.items, locale=lang) if ctx.items else '',
+        'boutique': shop.name,
+    }
+
+
+def render(text: str, values: dict[str, str]) -> str:
+    """Remplace les variables connues ; une variable vide emporte l'espace d'avant.
+
+    Une variable inconnue reste telle quelle (visible dans l'aperçu).
     """
-    if template_type == PreparedMessage.TemplateType.FREE:
-        if not free_message or not free_message.strip():
-            raise ValueError('Message libre : le contenu est requis.')
-        return free_message.strip()
+    def replace(match: re.Match[str]) -> str:
+        name = match.group(2)
+        if name not in values:
+            return match.group(0)
+        value = values[name]
+        return f'{match.group(1)}{value}' if value else ''
 
-    greeting = _greeting(customer)
-    signoff = f'\n\nMerci,\n{shop.name}'
+    rendered = re.sub(r'( ?)\{([^{}]*)\}', replace, text)
+    lines = [line.rstrip() for line in rendered.split('\n')]
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(lines)).strip()
 
-    if template_type == PreparedMessage.TemplateType.ORDER_CONFIRMATION:
-        if order is None:
-            raise ValueError('Confirmation de commande : commande introuvable.')
-        return (
-            f'{greeting}\n\n'
-            f'Votre commande {order.order_number} a bien été enregistrée. '
-            f'Total : {_money(order.total_amount, shop.currency)}.\n\n'
-            f'Nous vous tiendrons informé(e) dès qu\'elle sera prête.'
-            f'{signoff}'
+
+def suggest_template(shop: Shop, order: Order) -> str:
+    """Modèle adapté à l'étape de la commande et au mode de retrait de la boutique."""
+    if order.status == 'cancelled':
+        return TemplateType.FREE
+    if shop.fulfillment_mode == 'delivery':
+        if order.status == 'shipped':
+            return TemplateType.TRACKING
+        return TemplateType.ORDER_CONFIRMATION
+    if order.status == 'to_prepare':
+        return TemplateType.ORDER_CONFIRMATION
+    if order.status == 'prepared':
+        return TemplateType.TRACKING
+    if order.payment_status == 'paid':
+        return TemplateType.THANK_YOU
+    return TemplateType.UNPAID_FOLLOWUP
+
+
+def compose(
+    *,
+    shop: Shop,
+    lang: str,
+    template: str | None = None,
+    order: Order | None = None,
+    customer: Customer | None = None,
+) -> tuple[str, str]:
+    """Texte d'un message, prêt à envoyer : `(template_type, message)`.
+
+    - Une commande : modèle demandé, sinon celui de son étape (`suggest_template`).
+    - Un client sans commande : relance de toutes ses commandes dues s'il en a,
+      sinon une salutation (`free`). `order` et `customer` doivent appartenir à `shop`.
+    """
+    orders: list[Order] = []
+    if order is not None:
+        customer = customer or order.customer
+        template = template or suggest_template(shop, order)
+        orders = [order]
+    elif customer is not None and template in (None, TemplateType.UNPAID_FOLLOWUP):
+        orders = list(
+            filter_due(Order.objects.filter(shop=shop, customer=customer))
+            .order_by('created_at')
+            .prefetch_related('items')
         )
+        template = TemplateType.UNPAID_FOLLOWUP if orders else TemplateType.FREE
+    template = template or TemplateType.FREE
 
-    if template_type == PreparedMessage.TemplateType.TRACKING:
-        if order is None:
-            raise ValueError('Suivi de colis : commande introuvable.')
-        return (
-            f'{greeting}\n\n'
-            f'Votre commande {order.order_number} est en route. '
-            f'Nous vous informerons dès que possible de son arrivée.'
-            f'{signoff}'
-        )
+    settings = get_message_settings(shop)
+    text = template_text(shop, settings, template, lang)
+    values = variables_for(shop, settings.tone, lang, context_for(customer, orders))
+    return template, render(text, values)
 
-    if template_type == PreparedMessage.TemplateType.UNPAID_FOLLOWUP:
-        if order is None:
-            raise ValueError('Relance impayé : commande introuvable.')
-        remaining = Decimal(order.total_amount) - Decimal(order.amount_paid)
-        return (
-            f'{greeting}\n\n'
-            f'Un petit rappel concernant le solde de '
-            f'{_money(remaining, shop.currency)} sur votre commande '
-            f'{order.order_number}. Merci de nous tenir informés.'
-            f'{signoff}'
-        )
 
-    if template_type == PreparedMessage.TemplateType.PROMO:
-        product_line = (
-            f' Découvrez : {product.name}.' if product else ''
-        )
-        return (
-            f'{greeting}\n\n'
-            f'Nous avons une nouvelle offre qui pourrait vous intéresser.'
-            f'{product_line}\n\nN\'hésitez pas à venir voir !'
-            f'{signoff}'
-        )
+def preview(*, shop: Shop, text: str, lang: str, tone: str | None = None) -> dict[str, object]:  # noqa: E501
+    """Rendu d'un texte sur la dernière commande de la boutique, ou sur l'exemple fictif."""  # noqa: E501
+    settings = get_message_settings(shop)
+    order = (
+        Order.objects.filter(shop=shop, customer__isnull=False)
+        .select_related('customer')
+        .prefetch_related('items')
+        .order_by('-created_at')
+        .first()
+    )
+    ctx = context_for(order.customer, [order]) if order else sample_context(shop, lang)
+    values = variables_for(shop, tone or settings.tone, lang, ctx)
+    return {
+        'message': render(text, values),
+        'order_number': ctx.order_numbers[0],
+        'customer_name': ctx.customer_name,
+        'is_sample': order is None,
+        'unknown_variables': unknown_variables(text),
+    }
 
-    raise ValueError(f'Template inconnu : {template_type}')
+
+@transaction.atomic
+def update_message_settings(
+    settings: MessageSettings, *, tone: str | None, texts: dict[str, str | None] | None,
+) -> MessageSettings:
+    """Ton et textes personnalisés ; `None` rétablit le texte du ton choisi."""
+    if tone is not None:
+        settings.tone = tone
+    if texts is not None:
+        merged = dict(settings.custom_texts or {})
+        for key, value in texts.items():
+            if value is None:
+                merged.pop(key, None)
+            else:
+                merged[key] = value
+        settings.custom_texts = merged
+    settings.save()
+    return settings
 
 
 @transaction.atomic
@@ -119,15 +309,14 @@ def prepare_message(
 ) -> PreparedMessage:
     """Crée un `PreparedMessage` pour la boutique.
 
-    - Résout le contexte (commande / client / produit) en vérifiant l'appartenance
+    - Résout le contexte (commande / client) en vérifiant l'appartenance
       à la boutique. Toute tentative cross-tenant est traitée comme un 404 métier.
-    - Si `custom_message` est fourni, il prime sur le template rendu.
+    - Si `custom_message` est fourni, il prime sur le modèle rendu.
     - Pour `template_type=free`, `custom_message` est obligatoire.
     - `sent` : WhatsApp vient de s'ouvrir avec ce texte, le message est enregistré
       directement comme envoyé (historique des fiches client et commande).
     """
     order: Order | None = None
-    product: Product | None = None
 
     if context_type == PreparedMessage.ContextType.ORDER and context_id:
         order = Order.objects.filter(shop=shop, id=context_id).select_related('customer').first()  # noqa: E501
@@ -135,10 +324,6 @@ def prepare_message(
             raise ValueError('Commande introuvable.')
         if customer is None:
             customer = order.customer
-    elif context_type == PreparedMessage.ContextType.PRODUCT and context_id:
-        product = Product.objects.filter(shop=shop, id=context_id).first()
-        if product is None:
-            raise ValueError('Produit introuvable.')
     elif context_type == PreparedMessage.ContextType.CUSTOMER and context_id and customer is None:  # noqa: E501
         customer = Customer.objects.filter(shop=shop, id=context_id).first()
         if customer is None:
@@ -149,14 +334,12 @@ def prepare_message(
 
     if custom_message and custom_message.strip():
         message = custom_message.strip()
+    elif template_type == TemplateType.FREE:
+        raise ValueError('Message libre : le contenu est requis.')
     else:
-        message = render_template(
-            template_type=template_type,
-            shop=shop,
-            customer=customer,
-            order=order,
-            product=product,
-            free_message=custom_message,
+        _, message = compose(
+            shop=shop, lang=resolve_language(None, user), template=template_type,
+            order=order, customer=customer,
         )
 
     return PreparedMessage.objects.create(

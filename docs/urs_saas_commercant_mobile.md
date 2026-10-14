@@ -1358,11 +1358,16 @@ Elle doit uniquement :
 
 ### Critères d'acceptation
 
-- L'application génère un message à partir d'un contexte : commande, produit, relance ou promotion.
+- L'application génère un message à partir d'un contexte : commande (modèle de son étape : confirmation, commande prête ou remise selon le mode de retrait, remerciement une fois réglée), relance d'impayé (accueil, fiche client, fiche commande, rappels), produit ou promotion.
+- Le message est rendu dans la langue de l'utilisateur (fr, en, ar), avec les montants au format de la boutique et le numéro de commande isolé.
+- Le propriétaire et les administrateurs choisissent le ton de la boutique : chaleureux (par défaut) ou professionnel (nom complet du client).
+- Ils peuvent personnaliser le texte de chaque modèle (Paramètres › Messages WhatsApp) avec les informations `{client}`, `{commande}`, `{date}`, `{total}`, `{reste}`, `{articles}`, `{boutique}` ; une information inconnue est refusée ; « Rétablir » rend le texte du ton choisi.
+- Un aperçu montre le texte sur la dernière commande de la boutique, ou sur un exemple fictif s'il n'y en a pas.
+- Les boutons qui préparent un message ne sont proposés qu'aux membres qui ont le module « Messages ».
 - L'utilisateur peut modifier le message.
 - L'utilisateur peut copier le message.
 - L'utilisateur peut ouvrir WhatsApp avec le message prérempli.
-- L'envoi final reste manuel.
+- L'envoi final reste manuel : rien n'est jamais envoyé automatiquement.
 
 ---
 
@@ -1374,9 +1379,9 @@ Elle doit uniquement :
 
 ### Critères d'acceptation
 
-- Le message peut être marqué comme envoyé.
-- La date d'envoi manuel est enregistrée.
-- Le message reste consultable dans l'historique.
+- Le message peut être marqué comme envoyé ; ouvrir WhatsApp depuis la fenêtre du message préparé l'enregistre directement comme envoyé.
+- La date d'envoi manuel est enregistrée, avec le texte réellement envoyé et le modèle utilisé.
+- Le message reste consultable dans l'historique de la commande et de la fiche client.
 
 ---
 

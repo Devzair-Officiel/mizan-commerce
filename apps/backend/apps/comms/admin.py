@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import PreparedMessage
+from .models import MessageSettings, PreparedMessage
 
 
 @admin.register(PreparedMessage)
@@ -18,3 +18,10 @@ class PreparedMessageAdmin(admin.ModelAdmin):
     search_fields = ('recipient_name', 'recipient_phone', 'message')
     readonly_fields = ('id', 'created_at', 'updated_at')
     autocomplete_fields = ('customer',)
+
+
+@admin.register(MessageSettings)
+class MessageSettingsAdmin(admin.ModelAdmin):
+    list_display = ('shop', 'tone', 'updated_at')
+    list_filter = ('tone',)
+    readonly_fields = ('id', 'created_at', 'updated_at')

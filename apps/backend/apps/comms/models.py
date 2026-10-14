@@ -17,8 +17,10 @@ class PreparedMessage(models.Model):
 
     class TemplateType(models.TextChoices):
         ORDER_CONFIRMATION = 'order_confirmation', 'Confirmation de commande'
-        TRACKING = 'tracking', 'Suivi de colis'
+        # Commande prête (retrait sur place) ou remise au livreur (livraison).
+        TRACKING = 'tracking', 'Commande prête / remise'
         UNPAID_FOLLOWUP = 'unpaid_followup', 'Relance impayé'
+        THANK_YOU = 'thank_you', 'Remerciement'
         PROMO = 'promo', 'Promotion'
         FREE = 'free', 'Libre'
 
@@ -73,3 +75,30 @@ class PreparedMessage(models.Model):
 
     def __str__(self) -> str:
         return f'{self.get_template_type_display()} → {self.recipient_name or self.recipient_phone or "?"}'  # noqa: E501
+
+
+class MessageSettings(models.Model):
+    """Ton et textes personnalisés des messages WhatsApp d'une boutique (URS-066).
+
+    Un modèle sans texte personnalisé utilise le texte par défaut du ton choisi
+    (`message_texts.DEFAULT_TEXTS`). Les modèles ne servent qu'à préparer le texte :
+    rien n'est jamais envoyé automatiquement.
+    """
+
+    class Tone(models.TextChoices):
+        WARM = 'warm', 'Chaleureux'
+        PROFESSIONAL = 'professional', 'Professionnel'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='message_settings')  # noqa: E501
+    tone = models.CharField(max_length=20, choices=Tone.choices, default=Tone.WARM)
+    # {template_type: texte} ; un modèle absent suit le texte du ton choisi.
+    custom_texts = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'message_settings'
+
+    def __str__(self) -> str:
+        return f'{self.shop} — {self.get_tone_display()}'

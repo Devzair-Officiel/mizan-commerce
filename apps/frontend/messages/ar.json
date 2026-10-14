@@ -499,14 +499,6 @@
       "shipment_title": "تحديث الشحنة",
       "shipment_sub": "طلب <num>{number}</num> · تم الشحن",
       "note_title": "تمت إضافة ملاحظة"
-    },
-    "whatsapp": {
-      "hello_named": "مرحبًا {name}،",
-      "hello": "مرحبًا،",
-      "intro": "ما لم نكن مخطئين، لا يزال المبلغ التالي مستحقًا:",
-      "order_line": "• الطلب رقم {number} بتاريخ {date}: {amount}",
-      "total_line": "الإجمالي المستحق: {amount}",
-      "signoff": "شكرًا مسبقًا، إلى اللقاء."
     }
   },
   "orders": {
@@ -703,21 +695,6 @@
     },
     "rel": {
       "just_now": "الآن"
-    },
-    "whatsapp": {
-      "hello_named": "مرحبًا {name}،",
-      "hello": "مرحبًا،",
-      "status_to_prepare": "طلبك قيد التحضير.",
-      "status_prepared": "طلبك جاهز.",
-      "status_shipped": "تم إرسال طلبك.",
-      "status_cancelled": "تم إلغاء طلبك.",
-      "status_fallback": "تحديث بشأن طلبك.",
-      "order_line": "طلب رقم {number} بتاريخ {date}",
-      "total_line": "الإجمالي: {amount}",
-      "payment_paid": "الدفع: مُسوّى. شكرًا!",
-      "payment_partial": "العربون المدفوع: {paid} — المتبقّي: {remaining}",
-      "payment_unpaid": "الدفع: مستحق ({amount})",
-      "signoff": "إلى اللقاء قريبًا."
     },
     "new": {
       "topbar": "طلب جديد",
@@ -1461,8 +1438,8 @@
       "send_cta": "فتح واتساب",
       "cancel": "إلغاء",
       "record_failed": "فُتح واتساب، لكن لم تُضف الرسالة إلى السجل.",
-      "greeting": "السلام عليكم،",
-      "greeting_named": "السلام عليكم {name}،"
+      "edit_template": "تعديل النموذج",
+      "compose_failed": "تعذّر تجهيز الرسالة. اكتبوها بأنفسكم أو حاولوا مرة أخرى."
     },
     "history": {
       "title": "رسائل واتساب",
@@ -1641,8 +1618,8 @@
       "fulfillment_both": "الاثنان"
     },
     "upgrade": {
-      "title": "متاح مع باقة Boutique+",
-      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} other {هذه الميزة جزء من باقة Boutique+.}}",
+      "title": "{feature, select, whatsapp {متاح مع باقة Pro} other {متاح مع باقة Boutique+}}",
+      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} whatsapp {جهّزوا رسائل واتساب بلمسة واحدة، بأسلوب متجركم ونصوصه.} other {هذه الميزة جزء من باقة Boutique+.}}",
       "cta": "عرض الباقات"
     },
     "page": {
@@ -1679,11 +1656,44 @@
     },
     "management": {
       "title": "الإدارة",
-      "description": "فريق متجركم وواجهته واشتراكه.",
+      "description": "فريق متجركم وواجهته ورسائله واشتراكه.",
       "public_page": "الصفحة العامة",
       "public_page_subtitle": "واجهة قابلة للمشاركة لمتجركم",
+      "messages": "رسائل واتساب",
+      "messages_subtitle": "أسلوب الرسائل المُعدّة ونماذجها",
       "subscription": "الاشتراك",
       "subscription_subtitle": "الباقة والتجربة والإلغاء"
+    },
+    "messages": {
+      "title": "رسائل واتساب",
+      "subtitle": "النصوص المُعدّة عندما تؤكدون طلبًا أو تذكّرون عميلًا.",
+      "load_failed": "تعذّر تحميل النماذج.",
+      "tone_title": "الأسلوب",
+      "tone_description": "يُطبَّق على كل النماذج التي لم تخصّصوها.",
+      "tone_aria": "أسلوب الرسائل",
+      "tone": "{tone, select, warm {ودّي} professional {مهني} other {}}",
+      "tone_example": "{tone, select, warm {مرحبًا كريمة 😊 تذكير صغير بخصوص طلبك… شكرًا وإلى اللقاء!} professional {مرحبًا كريمة بنسودة، ما لم نكن مخطئين، فإن الطلب… مع خالص التحية.} other {}}",
+      "templates_title": "النماذج",
+      "template_label": "النموذج",
+      "template": "{key, select, order_confirmation {تأكيد الطلب} tracking {{mode, select, delivery {تسليم الطلب} other {الطلب جاهز}}} unpaid_followup {تذكير بالدفع} thank_you {شكر} promo {عرض ترويجي} other {}}",
+      "customized": "مُخصّص",
+      "customized_option": "{label} · مُخصّص",
+      "text_label": "نص الرسالة",
+      "insert_label": "إدراج معلومة:",
+      "insert_aria": "إدراج {variable}",
+      "used_by": "{key, select, order_confirmation {{mode, select, delivery {يُستخدم في «واتساب» على الطلب إلى أن يُسلَّم لعامل التوصيل.} other {يُستخدم في «واتساب» على طلب قيد التحضير.}}} tracking {{mode, select, delivery {يُستخدم في «واتساب» على طلب مُرسَل.} other {يُستخدم في «واتساب» على طلب جاهز.}}} unpaid_followup {يُستخدم في «تذكير» في الرئيسية وبطاقات العملاء والتذكيرات.} thank_you {{mode, select, delivery {غير مقترح في التطبيق بعد.} other {يُستخدم في «واتساب» على طلب مكتمل ومدفوع.}}} promo {غير مقترح في التطبيق بعد.} other {}}",
+      "reset": "استعادة نص الأسلوب المختار",
+      "preview_title": "معاينة",
+      "preview_caption": "{sample, select, true {مثال افتراضي: الطلب <num>{number}</num> لـ{name}} other {مثال بالطلب <num>{number}</num> لـ{name}}}",
+      "preview_unknown": "معلومة غير معروفة: {names}. ستبقى كما هي في الرسالة.",
+      "preview_failed": "تعذّر تحميل المعاينة.",
+      "preview_note": "قبل كل إرسال، يمكنكم تعديل الرسالة. لا يُرسَل شيء دون موافقتكم.",
+      "text_required": "اكتبوا نص الرسالة، أو استعيدوا نص الأسلوب المختار.",
+      "unknown_variable": "معلومة غير معروفة: {names}. المعلومات الممكنة: {allowed}.",
+      "text_invalid": "تعذّر حفظ هذا النص. المعلومات الممكنة: {allowed}.",
+      "saved": "تم حفظ النماذج ✓",
+      "save_failed": "تعذّر حفظ النماذج. حاولوا مرة أخرى.",
+      "submit": "حفظ"
     },
     "invoicing": {
       "title": "الفوترة",

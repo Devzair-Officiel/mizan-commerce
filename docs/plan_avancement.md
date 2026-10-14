@@ -430,7 +430,7 @@
   - [~] Page et formulaire Rappels + assignation à un employé
   - [ ] Export de l'activité d'un client avec filtres
   - [ ] Bloc Ventes de l'accueil sur 12 mois et depuis la création
-  - [ ] Modèles de messages WhatsApp et ton
+  - [~] Modèles de messages WhatsApp et ton (URS-066/067) : ton de la boutique, cinq modèles personnalisables, aperçu, rendu unique côté serveur
   - [~] Rappels automatiques (URS-055 à 057) : relance d'impayé, commandes en attente, résumé du jour par e-mail
 - [ ] Lot 5 — Factures fournisseur
   - [ ] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image

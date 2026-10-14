@@ -499,14 +499,6 @@
       "shipment_title": "Shipment updated",
       "shipment_sub": "Order <num>{number}</num> · Shipped",
       "note_title": "Note added"
-    },
-    "whatsapp": {
-      "hello_named": "Hello {name},",
-      "hello": "Hello,",
-      "intro": "Unless we are mistaken, the following is still due:",
-      "order_line": "• Order no. {number} of {date}: {amount}",
-      "total_line": "Total due: {amount}",
-      "signoff": "Thank you in advance, see you soon."
     }
   },
   "orders": {
@@ -703,21 +695,6 @@
     },
     "rel": {
       "just_now": "just now"
-    },
-    "whatsapp": {
-      "hello_named": "Hello {name},",
-      "hello": "Hello,",
-      "status_to_prepare": "Your order is being prepared.",
-      "status_prepared": "Your order is ready.",
-      "status_shipped": "Your order has been shipped.",
-      "status_cancelled": "Your order has been cancelled.",
-      "status_fallback": "Update on your order.",
-      "order_line": "Order #{number} dated {date}",
-      "total_line": "Total: {amount}",
-      "payment_paid": "Payment: settled. Thank you!",
-      "payment_partial": "Deposit paid: {paid} — Remaining: {remaining}",
-      "payment_unpaid": "Payment: due ({amount})",
-      "signoff": "See you soon."
     },
     "new": {
       "topbar": "New order",
@@ -1461,8 +1438,8 @@
       "send_cta": "Open WhatsApp",
       "cancel": "Cancel",
       "record_failed": "WhatsApp opened, but the message was not added to the history.",
-      "greeting": "Hello,",
-      "greeting_named": "Hello {name},"
+      "edit_template": "Edit template",
+      "compose_failed": "The message couldn't be prepared. Write it yourself or try again."
     },
     "history": {
       "title": "WhatsApp messages",
@@ -1641,8 +1618,8 @@
       "fulfillment_both": "Both"
     },
     "upgrade": {
-      "title": "Available with the Boutique+ plan",
-      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} other {This feature is part of the Boutique+ plan.}}",
+      "title": "{feature, select, whatsapp {Available with the Pro plan} other {Available with the Boutique+ plan}}",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} other {This feature is part of the Boutique+ plan.}}",
       "cta": "See plans"
     },
     "page": {
@@ -1679,11 +1656,44 @@
     },
     "management": {
       "title": "Management",
-      "description": "Your shop's team, storefront and subscription.",
+      "description": "Your shop's team, storefront, messages and subscription.",
       "public_page": "Public page",
       "public_page_subtitle": "Shareable storefront for your shop",
+      "messages": "WhatsApp messages",
+      "messages_subtitle": "Tone and templates of prepared messages",
       "subscription": "Subscription",
       "subscription_subtitle": "Plan, trial and cancellation"
+    },
+    "messages": {
+      "title": "WhatsApp messages",
+      "subtitle": "The texts prepared when you confirm an order or follow up with a customer.",
+      "load_failed": "The templates couldn't be loaded.",
+      "tone_title": "Tone",
+      "tone_description": "Applies to every template you haven't customised.",
+      "tone_aria": "Message tone",
+      "tone": "{tone, select, warm {Friendly} professional {Professional} other {}}",
+      "tone_example": "{tone, select, warm {Hi Karima 😊 Just a quick reminder about your order… Thanks and see you soon!} professional {Dear Karima Bensouda, unless we are mistaken, order… Kind regards.} other {}}",
+      "templates_title": "Templates",
+      "template_label": "Template",
+      "template": "{key, select, order_confirmation {Order confirmation} tracking {{mode, select, delivery {Order handed over} other {Order ready}}} unpaid_followup {Payment reminder} thank_you {Thank you} promo {Promotion} other {}}",
+      "customized": "Customised",
+      "customized_option": "{label} · customised",
+      "text_label": "Message text",
+      "insert_label": "Insert a detail:",
+      "insert_aria": "Insert {variable}",
+      "used_by": "{key, select, order_confirmation {{mode, select, delivery {Used by “WhatsApp” on an order, until it is handed to the courier.} other {Used by “WhatsApp” on an order to prepare.}}} tracking {{mode, select, delivery {Used by “WhatsApp” on a shipped order.} other {Used by “WhatsApp” on a ready order.}}} unpaid_followup {Used by “Follow up” on the home page, customer pages and reminders.} thank_you {{mode, select, delivery {Not offered in the app yet.} other {Used by “WhatsApp” on a completed, paid order.}}} promo {Not offered in the app yet.} other {}}",
+      "reset": "Restore the chosen tone's text",
+      "preview_title": "Preview",
+      "preview_caption": "{sample, select, true {Sample: order <num>{number}</num> from {name}} other {Example with order <num>{number}</num> from {name}}}",
+      "preview_unknown": "Unknown detail: {names}. It would stay as is in the message.",
+      "preview_failed": "The preview couldn't be loaded.",
+      "preview_note": "Before each send, you can still edit the message. Nothing goes out without your approval.",
+      "text_required": "Enter the message text, or restore the chosen tone's text.",
+      "unknown_variable": "Unknown detail: {names}. Available details: {allowed}.",
+      "text_invalid": "This text couldn't be saved. Available details: {allowed}.",
+      "saved": "Templates saved ✓",
+      "save_failed": "The templates couldn't be saved. Please try again.",
+      "submit": "Save"
     },
     "invoicing": {
       "title": "Invoicing",

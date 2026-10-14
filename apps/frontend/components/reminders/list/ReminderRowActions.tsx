@@ -7,6 +7,7 @@ import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import type { DetailAction } from '@/components/detail/types';
 import type { Reminder } from '@/lib/hooks/useReminders';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
+import { useCan } from '@/lib/hooks/useMe';
 import { ReminderPostponeMenu } from './ReminderPostponeMenu';
 import { canFollowUp, type ReminderActions } from './useReminderActions';
 
@@ -21,7 +22,8 @@ export function ReminderRowActions({ reminder: r, actions }: { reminder: Reminde
   const router = useRouter();
   const isDesktop = useIsDesktop();
   const pending = r.status === 'pending';
-  const followUp = canFollowUp(r);
+  // Message WhatsApp : module « Messages » (le serveur refuse sans lui).
+  const followUp = useCan('messages') && canFollowUp(r);
 
   const edit: DetailAction = { key: 'edit', label: t('edit'), icon: Pencil, onSelect: () => router.push(`/reminders/${r.id}/edit`) };
   const remove: DetailAction = { key: 'delete', label: t('delete'), icon: Trash2, destructive: true, onSelect: () => actions.askDelete(r) };

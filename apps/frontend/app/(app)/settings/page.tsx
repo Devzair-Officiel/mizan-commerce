@@ -79,6 +79,7 @@ export default function SettingsPage() {
         <IdentitySection shop={shop} register={register} errors={errors} />
         <ManagementSection
           showPublicPage={can('public_pages')}
+          showMessages={can('whatsapp')}
           teamTitle={tTeam('title')}
           teamSubtitle={tTeam('subtitle')}
         />

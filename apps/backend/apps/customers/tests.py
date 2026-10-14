@@ -372,7 +372,7 @@ class CustomerDisplayNameTest(TestCase):
             context_type=PreparedMessage.ContextType.ORDER, context_id=self.order.pk,
         )
         self.assertEqual(message.recipient_name, 'Karima Bensouda')
-        self.assertTrue(message.message.startswith('Bonjour Karima,'))
+        self.assertTrue(message.message.startswith('Bonjour Karima 😊'))
 
 
 class CustomerActivityWindowTest(TestCase):
