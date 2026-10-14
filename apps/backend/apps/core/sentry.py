@@ -8,7 +8,6 @@ Vérification : `python manage.py sentry_check`.
 from __future__ import annotations
 
 import os
-import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -17,44 +16,24 @@ from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
-FILTERED = '[Filtered]'
+from apps.core.redaction import FILTERED, is_sensitive, mask
 
 # En-têtes retirés de chaque événement.
 _DROPPED_HEADERS = frozenset({
     'authorization', 'proxy-authorization', 'cookie', 'set-cookie', 'x-csrftoken',
 })
 
-# Clé (dictionnaire, en-tête, paramètre d'URL) qui évoque un secret ou une
-# coordonnée de client : sa valeur est remplacée par FILTERED.
-_SENSITIVE_KEY = re.compile(
-    r'pass|pwd|secret|token|key|auth|cookie|session|csrf|credential|signature'
-    r'|dsn|uid|e-?mail|phone|t[eé]l[eé]phone|mobile|whatsapp',
-    re.IGNORECASE,
-)
-
-_EMAIL = re.compile(r'[\w.+-]+@[\w-]+(?:\.[\w-]+)+')
-# Format international (E.164, espaces tolérés) et national à 10 chiffres.
-_PHONE = re.compile(r'\+\d(?:[ .-]?\d){7,14}|\b0\d(?:[ .-]?\d{2}){4}\b')
-
-
-def _mask(text: str) -> str:
-    return _PHONE.sub('[phone]', _EMAIL.sub('[email]', text))
-
-
-def _is_sensitive(key: object) -> bool:
-    return isinstance(key, str) and bool(_SENSITIVE_KEY.search(key))
-
 
 def _scrub(value: Any) -> Any:
     if isinstance(value, dict):
         return {
-            key: FILTERED if _is_sensitive(key) else _scrub(item)
+            key: FILTERED if is_sensitive(key) else _scrub(item)
             for key, item in value.items()
         }
     if isinstance(value, list | tuple):
         return [_scrub(item) for item in value]
     if isinstance(value, str):
-        return _mask(value)
+        return mask(value)
     return value
 
 
@@ -62,7 +41,7 @@ def _scrub_query(query: str) -> str:
     pairs = []
     for pair in query.split('&'):
         name, sep, raw = pair.partition('=')
-        value = FILTERED if sep and _is_sensitive(name) else _mask(raw)
+        value = FILTERED if sep and is_sensitive(name) else mask(raw)
         pairs.append(f'{name}{sep}{value}')
     return '&'.join(pairs)
 

@@ -1,0 +1,253 @@
+# Un environnement complet de Mizan : production ou staging, même fichier.
+# Lancé par deploy/deploy.sh, qui fixe le nom de projet (mizan-<env>), le
+# fichier de variables (deploy/env/<env>.env) et l'étiquette d'image :
+#
+#   docker compose -p mizan-production --env-file deploy/env/production.env \
+#     -f deploy/app/compose.yml up -d
+#
+# Aucun port publié : Caddy (deploy/edge) joint frontend et backend par le
+# réseau externe « edge ». Chaque service ne reçoit que ses propres variables.
+# Total des limites mémoire en production ≈ 5,6 Go sur 12 (staging : moins,
+# réglé dans deploy/env/staging.env).
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+# Django : backend (gunicorn), workers Celery et Celery Beat. Même image.
+x-django: &django
+  image: ghcr.io/devzair-officiel/mizan-backend:${IMAGE_TAG:?IMAGE_TAG manquant (deploy/deploy.sh)}
+  restart: unless-stopped
+  environment:
+    SECRET_KEY: ${SECRET_KEY:?}
+    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?}
+    CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?}
+    CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}
+    FRONTEND_URL: ${FRONTEND_URL:?}
+    DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
+    POSTGRES_DB: ${POSTGRES_DB:?}
+    POSTGRES_USER: ${POSTGRES_USER:?}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379/0
+    EMAIL_HOST: ${EMAIL_HOST:?}
+    EMAIL_PORT: ${EMAIL_PORT:-587}
+    EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+    EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+    DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:?}
+    RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-}
+    RECAPTCHA_MIN_SCORE: ${RECAPTCHA_MIN_SCORE:-0.5}
+    OVH_S3_ACCESS_KEY: ${OVH_S3_ACCESS_KEY:?}
+    OVH_S3_SECRET_KEY: ${OVH_S3_SECRET_KEY:?}
+    OVH_S3_ENDPOINT_URL: ${OVH_S3_ENDPOINT_URL:?}
+    OVH_S3_REGION: ${OVH_S3_REGION:?}
+    OVH_S3_BUCKET_PRIVATE: ${OVH_S3_BUCKET_PRIVATE:?}
+    AI_SERVICE_URL: http://ai-service:8000
+    AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:?}
+    AI_SERVICE_TIMEOUT_SECONDS: ${AI_SERVICE_TIMEOUT_SECONDS:-5}
+    AI_SERVICE_OCR_TIMEOUT_SECONDS: ${AI_SERVICE_OCR_TIMEOUT_SECONDS:-60}
+    AI_SERVICE_INVOICE_TIMEOUT_SECONDS: ${AI_SERVICE_INVOICE_TIMEOUT_SECONDS:-50}
+    SENTRY_DSN: ${SENTRY_DSN:-}
+    SENTRY_ENVIRONMENT: ${APP_ENV:?}
+    SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0}
+    GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  logging: *logging
+
+# Worker Celery joignable : ping par son nom (default@… ou ocr@…).
+x-celery-healthcheck: &celery-healthcheck
+  interval: 60s
+  timeout: 20s
+  start_period: 30s
+  start_interval: 5s
+  retries: 3
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    shm_size: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: ${POSTGRES_MEM_LIMIT:-1g}
+    logging: *logging
+
+  # Broker Celery : mot de passe (fichier de configuration généré, jamais sur la
+  # ligne de commande), persistance AOF, aucune éviction (une tâche ne se perd pas).
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    user: redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-192mb}
+    command:
+      - sh
+      - -c
+      - |
+        umask 077
+        printf 'requirepass %s\n' "$$REDIS_PASSWORD" > /tmp/redis.conf
+        exec redis-server /tmp/redis.conf --appendonly yes \
+          --maxmemory "$$REDIS_MAXMEMORY" --maxmemory-policy noeviction
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: ${REDIS_MEM_LIMIT:-256m}
+    logging: *logging
+
+  backend:
+    <<: *django
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5)"
+      interval: 15s
+      timeout: 10s
+      start_period: 20s
+      start_interval: 5s
+      retries: 3
+    mem_limit: ${BACKEND_MEM_LIMIT:-768m}
+    networks:
+      default:
+      edge:
+        aliases:
+          - mizan-${APP_ENV:?}-backend
+
+  celery-default:
+    <<: *django
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --queues=celery
+      - --hostname=default@%h
+      - --concurrency=${CELERY_DEFAULT_CONCURRENCY:-2}
+      - --loglevel=INFO
+    healthcheck:
+      <<: *celery-healthcheck
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"default@$$HOSTNAME\" --timeout 10"]
+    mem_limit: ${CELERY_DEFAULT_MEM_LIMIT:-512m}
+
+  # File « ocr » : appels HTTP au service IA, un à la fois.
+  celery-ocr:
+    <<: *django
+    command:
+      - celery
+      - -A
+      - config
+      - worker
+      - --queues=ocr
+      - --hostname=ocr@%h
+      - --concurrency=1
+      - --loglevel=INFO
+    healthcheck:
+      <<: *celery-healthcheck
+      test: ["CMD-SHELL", "celery -A config inspect ping -d \"ocr@$$HOSTNAME\" --timeout 10"]
+    mem_limit: ${CELERY_OCR_MEM_LIMIT:-384m}
+
+  # Une seule instance par environnement (sinon les tâches planifiées partent en double).
+  celery-beat:
+    <<: *django
+    command:
+      - celery
+      - -A
+      - config
+      - beat
+      - --schedule=/tmp/celerybeat-schedule
+      - --loglevel=INFO
+    healthcheck:
+      # Beat n'a pas de sonde propre : on vérifie qu'il joint le broker.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, redis; redis.Redis.from_url(os.environ['REDIS_URL'], socket_timeout=5).ping()"
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    mem_limit: ${CELERY_BEAT_MEM_LIMIT:-192m}
+
+  frontend:
+    image: ghcr.io/devzair-officiel/mizan-frontend:${IMAGE_TAG:?}
+    restart: unless-stopped
+    environment:
+      API_URL: http://backend:8000/api
+      COOKIE_SECURE: "true"
+      MAPTILER_API_KEY: ${MAPTILER_API_KEY:-}
+      SENTRY_ENVIRONMENT: ${APP_ENV:?}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/favicon.ico"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      start_interval: 5s
+      retries: 3
+    mem_limit: ${FRONTEND_MEM_LIMIT:-512m}
+    networks:
+      default:
+      edge:
+        aliases:
+          - mizan-${APP_ENV:?}-frontend
+    logging: *logging
+
+  ai-service:
+    image: ghcr.io/devzair-officiel/mizan-ai-service:${IMAGE_TAG:?}
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:?}
+      AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:?}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_INVOICE_MODEL: ${OPENAI_INVOICE_MODEL:-gpt-5-mini}
+      OPENAI_INVOICE_TIMEOUT_SECONDS: ${OPENAI_INVOICE_TIMEOUT_SECONDS:-45}
+      PADDLE_OCR_CPU_THREADS: ${PADDLE_OCR_CPU_THREADS:-2}
+    volumes:
+      - ai-models:/home/app/.paddlex  # modèles PaddleOCR, téléchargés au premier appel
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      start_interval: 5s
+      retries: 3
+    mem_limit: ${AI_SERVICE_MEM_LIMIT:-2g}
+    logging: *logging
+
+networks:
+  edge:
+    name: edge
+    external: true
+
+volumes:
+  postgres-data:
+  redis-data:
+  ai-models:

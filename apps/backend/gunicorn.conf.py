@@ -12,3 +12,23 @@ worker_tmp_dir = "/dev/shm"
 accesslog = "-"
 errorlog = "-"
 loglevel = "info"
+# Ligne d'accès sans IP, sans paramètres d'URL ni user-agent : méthode, chemin,
+# statut, taille, durée (ms). Format JSON commun avec Django :
+# apps/core/json_logging.py.
+access_log_format = "%(m)s %(U)s %(s)s %(B)s %(M)sms"
+logconfig_dict = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"json": {"()": "apps.core.json_logging.JsonFormatter"}},
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            "formatter": "json",
+        },
+    },
+    "loggers": {
+        name: {"handlers": ["console"], "level": "INFO", "propagate": False}
+        for name in ("gunicorn.error", "gunicorn.access")
+    },
+}

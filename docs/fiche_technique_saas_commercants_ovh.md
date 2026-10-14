@@ -1008,6 +1008,8 @@ Commencer avec WeasyPrint pour générer des PDF à partir de HTML/CSS.
 
 # 13. Déploiement OVH
 
+> **Choix retenu** (fondations, étape 3a) : VPS dédié avec Docker Compose, Caddy en reverse proxy (HTTPS automatique) et PostgreSQL 16 en conteneur. Procédure : `docs/exploitation/deploiement.md`. Les mentions de Nginx/Traefik et de PostgreSQL managé ci-dessous restent des options d'évolution.
+
 ## 13.1 Infrastructure recommandée au départ
 
 ```text

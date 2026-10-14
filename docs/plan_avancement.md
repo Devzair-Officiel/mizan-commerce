@@ -53,16 +53,17 @@
 
 ### Infrastructure OVH (peut être différé)
 
-- [ ] Créer un VPS ou Public Cloud Instance OVH
-- [ ] Provisionner PostgreSQL managé OVHcloud
-- [ ] Provisionner le bucket privé de production (ex. `mizan-prod-private`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
-- [ ] Configurer un nom de domaine + HTTPS (Let's Encrypt via Nginx/Traefik)
-- [ ] Configurer un domaine de staging séparé
+- [~] Créer un VPS ou Public Cloud Instance OVH — VPS dédié retenu ; préparation du serveur documentée (docs/exploitation/deploiement.md), reste à le commander
+- ~~Provisionner PostgreSQL managé OVHcloud~~ — remplacé par PostgreSQL 16 en conteneur sur le VPS
+- [~] PostgreSQL 16 en conteneur (volume nommé, `deploy/app/compose.yml`) — sauvegardes à mettre en place (section Backups)
+- [ ] Provisionner le bucket privé de production (`mizan-production-private`, et `mizan-staging-private` pour staging, prévus dans `deploy/env/*.env.example`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
+- [~] Configurer un nom de domaine + HTTPS (Let's Encrypt via Caddy, `deploy/edge`) — reste les enregistrements DNS
+- [~] Configurer un domaine de staging séparé — `staging.mizan-commerce.com` derrière une authentification basique (Caddy)
 
 ### CI/CD
 
 - [~] Configurer GitHub Actions (ou GitLab CI) — `.github/workflows/ci.yml`, Dependabot ; reste à protéger `main` (docs/ci.md)
-- [~] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging — tout sauf le déploiement staging
+- [~] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging — images publiées sur GHCR à chaque push sur `main` ; déploiement staging manuel (`deploy/deploy.sh`)
 - [~] Tests obligatoires multi-tenant (un user de boutique A ne voit pas la boutique B) — dans `pytest`, obligatoires une fois `backend` requis sur `main`
 
 ---
@@ -482,9 +483,9 @@
 
 ### Monitoring
 
-- [ ] Sentry actif sur backend + frontend
-- [ ] UptimeRobot ou Better Stack configuré
-- [ ] Logs structurés (JSON) en production
+- [~] Sentry actif sur backend + frontend — intégré, inactif tant que les DSN ne sont pas renseignés
+- [ ] UptimeRobot ou Better Stack configuré — sonde prête : `/healthz` (base + Redis, sans authentification)
+- [~] Logs structurés (JSON) en production — Django, gunicorn et Celery sur stdout, données personnelles masquées
 - [ ] Alertes mail sur erreurs critiques
 
 ### Backups
@@ -492,7 +493,7 @@
 - [ ] Backups PostgreSQL automatiques activés
 - [ ] **Test de restauration mensuel** (un backup non testé n'est pas un backup)
 - [ ] Versioning Object Storage activé si possible
-- [ ] Plan de rollback documenté
+- [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging
 
 ### Dette technique connue
 

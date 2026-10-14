@@ -37,7 +37,8 @@ COPY . .
 # Valeurs factices, le temps de la commande seulement (non conservées dans l'image) :
 # production.py exige ces variables, collectstatic n'en utilise aucune.
 RUN SECRET_KEY=collectstatic-only-not-a-secret-0123456789-abcdefghijklmnop \
-    ALLOWED_HOSTS=build CSRF_TRUSTED_ORIGINS=https://build CORS_ALLOWED_ORIGINS=https://build \
+    DJANGO_ALLOWED_HOSTS=build CSRF_TRUSTED_ORIGINS=https://build CORS_ALLOWED_ORIGINS=https://build \
+    FRONTEND_URL=https://build POSTGRES_PASSWORD=build REDIS_URL=redis://build \
     OVH_S3_BUCKET_PRIVATE=build OVH_S3_ENDPOINT_URL=https://build \
     OVH_S3_ACCESS_KEY=build OVH_S3_SECRET_KEY=build \
     python manage.py collectstatic --noinput
