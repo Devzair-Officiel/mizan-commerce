@@ -4,7 +4,7 @@
  *   « Articles » (aria-expanded, Catalogue et Stock dessous), groupe Compte (profil, paramètres, abonnement),
  *   pied fixe (clair / sombre / système, langue, Se déconnecter) ; le contenu commence après la sidebar ;
  * - repliée en rail (80px) : icônes nommées (aria-label), sous-menu en flyout au survol et au clavier, ouvert
- *   côté fin de ligne (à droite en français, à gauche en arabe), Échap rend le focus ; menu du compte (thème, langue) ;
+ *   côté fin de ligne (à droite en français, à gauche en arabe), Échap rend le focus ; menu du compte au clavier (thème, langue) ;
  * - la préférence est gardée sur le compte : après rechargement, la sidebar reste repliée, puis redéployée.
  * La sidebar est remise déployée à la fin de chaque passage.
  */
@@ -112,8 +112,10 @@ async function checkRail(page, locale, label) {
   report.check(await contentAfterSidebar(page, locale), `${label} : contenu après le rail`);
   await checkFlyout(page, locale, label);
 
+  // Au clavier : en développement, l'indicateur de Next.js recouvre l'avatar en bas à gauche et prendrait le clic.
   const account = aside(page).getByRole('button', { name: msg(locale, 'layout.sidebar.account_menu') });
-  await account.click();
+  await account.focus();
+  await page.keyboard.press('Enter');
   const menu = page.getByRole('menu');
   await menu.waitFor();
   const radios = await menu.getByRole('menuitemradio').count();
