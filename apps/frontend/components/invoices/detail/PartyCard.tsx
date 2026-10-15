@@ -1,24 +1,18 @@
+import type { ReactNode } from 'react';
+import { SectionCard } from '@/components/ui/SectionCard';
+
 interface PartyCardProps {
-  title: string;
-  name: string;
-  address: string;
-  extras: (string | undefined)[];
+  title: string; name: string; address: string; extras: (string | undefined)[];
+  mark?: ReactNode; rightLink?: { href: string; label: string };
 }
 
-export function PartyCard({ title, name, address, extras }: PartyCardProps) {
-  const visibleExtras = extras.filter(Boolean) as string[];
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-1">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{title}</p>
-      <p className="text-sm font-semibold text-foreground">{name}</p>
-      {address && (
-        <p className="text-xs text-muted-foreground whitespace-pre-wrap">{address}</p>
-      )}
-      {visibleExtras.map((extra) => (
-        <p key={extra} className="text-xs text-muted-foreground">
-          {extra}
-        </p>
-      ))}
+export function PartyCard({ title, name, address, extras, mark, rightLink }: PartyCardProps) {
+  return <SectionCard title={title} rightLink={rightLink}>
+    <div className="flex flex-col gap-2 px-4 py-4 lg:px-5">
+      {mark}
+      <p className="text-sm font-semibold break-words">{name}</p>
+      {address && <p className="text-[0.8125rem] text-muted-foreground whitespace-pre-wrap break-words">{address}</p>}
+      {extras.filter(Boolean).map((extra, index) => <p key={index} dir="ltr" className="text-xs text-muted-foreground break-words">{extra}</p>)}
     </div>
-  );
+  </SectionCard>;
 }

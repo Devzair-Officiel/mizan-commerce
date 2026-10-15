@@ -208,10 +208,10 @@ def _upload_page_image(
 
 
 def upload_page_logo(page: PublicPage, file: InMemoryUploadedFile) -> PublicPage:
-    return _upload_page_image(
-        page=page, file=file, kind='logo',
-        max_size_mb=PUBLIC_PAGE_LOGO_MAX_SIZE_MB,
-    )
+    from apps.shops.services import upload_shop_logo
+    upload_shop_logo(shop=page.shop, file=file)
+    page.refresh_from_db()
+    return page
 
 
 def upload_page_cover(page: PublicPage, file: InMemoryUploadedFile) -> PublicPage:
@@ -232,7 +232,10 @@ def _delete_page_image(*, page: PublicPage, kind: str) -> PublicPage:
 
 
 def delete_page_logo(page: PublicPage) -> PublicPage:
-    return _delete_page_image(page=page, kind='logo')
+    from apps.shops.services import delete_shop_logo
+    delete_shop_logo(page.shop)
+    page.refresh_from_db()
+    return page
 
 
 def delete_page_cover(page: PublicPage) -> PublicPage:

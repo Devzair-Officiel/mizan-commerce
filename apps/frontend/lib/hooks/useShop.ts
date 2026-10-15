@@ -87,7 +87,10 @@ export function useUploadShopLogo() {
       }
       return res.json() as Promise<Shop>;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shop.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: qk.shop.all }),
+      qc.invalidateQueries({ queryKey: qk.publicPage.all }),
+    ]),
   });
 }
 
@@ -95,7 +98,10 @@ export function useDeleteShopLogo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<Shop>('/shop/logo/', { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shop.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: qk.shop.all }),
+      qc.invalidateQueries({ queryKey: qk.publicPage.all }),
+    ]),
   });
 }
 

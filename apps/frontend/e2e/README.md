@@ -26,6 +26,7 @@ docker compose run --rm e2e npm run audit:whatsapp            # messages WhatsAp
 docker compose run --rm e2e npm run audit:message-templates   # modèles de messages : ton, aperçu, personnaliser/rétablir, variable inconnue, saisie pendant l'enregistrement
 docker compose run --rm e2e npm run audit:sales               # bloc Ventes de l'accueil : trois périodes, bulle souris et clavier, période gardée
 docker compose run --rm e2e npm run audit:activity-export     # export de l'activité d'un client : fenêtre, nombre de lignes, CSV téléchargé
+docker compose run --rm e2e npm run audit:invoices            # factures : liste serveur, filtres, détail figé, PDF et annulation
 docker compose run --rm e2e npm run audit:scroll-lock         # fenêtres et menus enchaînés : la page défile toujours
 docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-tête teintées : fond muted, contrastes ≥ 4,5:1
 docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »
@@ -134,3 +135,5 @@ Seulement les messages de l'outillage de développement qui ne viennent pas de n
 - Version de Playwright figée dans `package.json` ; elle doit correspondre au tag de l'image dans `docker-compose.yml`.
 - `next.config.ts` autorise l'hôte `frontend` en développement (`allowedDevOrigins`) et Chromium traite `http://frontend:3000` comme origine sûre (`crypto.randomUUID`, utilisé par la nouvelle commande). Ce drapeau n'est lu que par le canal `chromium` (nouveau mode sans interface) : le « headless shell » par défaut l'ignore.
 - Les limites de requêtes `user` et `anon` sont relevées dans `config/settings/local.py` pour que les audits ne les atteignent pas.
+
+- `audit-invoice-settings.mjs` — Paramètres › Factures : gabarit v3 desktop/mobile, trois modes de couleur et contraste, TVA, virement et masquage des coordonnées bancaires, options au clavier, enregistrement, persistance, vrai téléchargement PDF, console propre. Inclus dans `npm run audit` ; ciblage : `docker compose run --rm e2e npm run audit -- invoice-settings`.

@@ -531,6 +531,7 @@ class DashboardBadgesTest(TestCase):
         self.assertEqual(badges.get("orders_to_prepare"), 1)
 
 
+@override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
 class SeedDataTest(TestCase):
     """Vérifie que seed_data --reset produit le jeu de données attendu."""
 
@@ -648,6 +649,7 @@ class SeedDataTest(TestCase):
                 self.assertTrue(allows(shop, "public_pages"), shop.name)
 
 
+@override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
 class SeedDataSecurityTest(TestCase):
     """Garde DEBUG, isolation des boutiques externes, idempotence du --reset."""
 
@@ -706,6 +708,7 @@ class SeedDataSecurityTest(TestCase):
         self.assertEqual(snapshot(), before)
 
 
+@override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
 class ResetAuditShopTest(TestCase):
     """reset_audit_shop : boutique d'audit remise à neuf, les autres intactes."""
 

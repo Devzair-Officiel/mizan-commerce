@@ -1,30 +1,23 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
-import { formatInvoiceMoney, type Invoice } from '@/lib/hooks/useInvoices';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { useFormatMoney, useFormatNumber } from '@/lib/hooks/useFormat';
+import type { Invoice } from '@/lib/hooks/useInvoices';
 
 export function LinesList({ invoice }: { invoice: Invoice }) {
   const t = useTranslations('invoices.detail');
-  return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden">
-      <div className="px-4 py-3 border-b border-border header-band">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t('lines_title')}
-        </h2>
-      </div>
-      <ul className="divide-y divide-border">
-        {invoice.lines.map((line) => (
-          <li key={line.id} className="flex items-start gap-3 px-4 py-3">
-            <div className="flex flex-1 flex-col min-w-0">
-              <p className="text-sm font-medium text-foreground">{line.description}</p>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {parseFloat(line.quantity)} × {formatInvoiceMoney(line.unit_price_ht, invoice.currency)}
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-foreground tabular-nums shrink-0">
-              {formatInvoiceMoney(line.line_subtotal_ht, invoice.currency)}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  const money = useFormatMoney();
+  const number = useFormatNumber();
+  return <SectionCard title={t('lines_title')}>
+    <ul className="divide-y divide-border">
+      {invoice.lines.map(line => <li key={line.id} className="flex items-start gap-3 px-4 py-3.5 lg:px-5">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">{line.description}</p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">{number(Number(line.quantity))} × {money(line.unit_price_ht, invoice.currency)}</p>
+        </div>
+        <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">{money(line.line_subtotal_ht, invoice.currency)}</span>
+      </li>)}
+    </ul>
+  </SectionCard>;
 }

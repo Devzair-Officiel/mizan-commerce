@@ -1,159 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { ShoppingBag, User } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { useInvoice, useUpdateInvoiceStatus } from '@/lib/hooks/useInvoices';
-import { getPaymentDisplay } from '@/components/invoices/detail/payment';
-import { HeroCard } from '@/components/invoices/detail/HeroCard';
-import { PartyCard } from '@/components/invoices/detail/PartyCard';
-import { LinesList } from '@/components/invoices/detail/LinesList';
-import { TotalsCard } from '@/components/invoices/detail/TotalsCard';
-import { StatusActions } from '@/components/invoices/detail/StatusActions';
-import { ConfirmDialog } from '@/components/ui/dialog';
-import { isolateNumber } from '@/components/orders/OrderNumber';
+import { DetailPageSkeleton } from '@/components/detail/DetailPageSkeleton';
+import { InvoiceDetailView } from '@/components/invoices/detail/InvoiceDetailView';
+import { useInvoiceDetailState } from '@/components/invoices/detail/useInvoiceDetailState';
 
 export default function InvoiceDetailPage() {
-  const t = useTranslations('invoices.detail');
   const { id } = useParams<{ id: string }>();
-  const { data: invoice, isLoading } = useInvoice(id);
-  const updateStatus = useUpdateInvoiceStatus(id);
-  const [confirmPaid, setConfirmPaid] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(false);
-
-  if (isLoading) {
-    return (
-      <>
-        <TopBar title={t('title')} back />
-        <div className="flex flex-col gap-3 p-4">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-xl border border-border bg-card p-4">
-              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
-              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
-            </div>
-          ))}
-        </div>
-      </>
-    );
-  }
-
-  if (!invoice) {
-    return (
-      <>
-        <TopBar title={t('title')} back />
-        <p className="p-4 text-sm text-destructive">{t('not_found')}</p>
-      </>
-    );
-  }
-
-  const payment = getPaymentDisplay(invoice);
-  const showPaymentBreakdown = payment.state === 'partial';
-
-  async function handleMarkPaid() {
-    await updateStatus.mutateAsync('paid');
-  }
-
-  async function handleCancel() {
-    await updateStatus.mutateAsync('cancelled');
-  }
-
-  return (
-    <>
-      <TopBar title={isolateNumber(invoice.number)} back />
-      <div className="flex flex-col gap-4 p-4 pb-24">
-        <HeroCard invoice={invoice} payment={payment} />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <PartyCard
-            title={t('seller')}
-            name={invoice.seller_name}
-            address={invoice.seller_address}
-            extras={[invoice.seller_tax_id]}
-          />
-          <PartyCard
-            title={t('buyer')}
-            name={invoice.buyer_name || '—'}
-            address={invoice.buyer_address}
-            extras={[invoice.buyer_email, invoice.buyer_phone]}
-          />
-        </div>
-
-        <LinesList invoice={invoice} />
-
-        <TotalsCard
-          invoice={invoice}
-          showPaymentBreakdown={showPaymentBreakdown}
-          amountPaid={payment.amountPaid}
-          remaining={payment.remaining}
-        />
-
-        {invoice.notes && (
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t('notes')}</h2>
-            <p className="text-sm text-foreground whitespace-pre-wrap">{invoice.notes}</p>
-          </div>
-        )}
-        {invoice.seller_legal_mentions && (
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-              {t('legal_mentions')}
-            </h2>
-            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
-              {invoice.seller_legal_mentions}
-            </p>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2">
-          {invoice.order && (
-            <Link
-              href={`/orders/${invoice.order}`}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors"
-            >
-              <ShoppingBag className="text-muted-foreground shrink-0" size={18} />
-              <p className="text-sm font-medium text-foreground flex-1">{t('linked_order')}</p>
-            </Link>
-          )}
-          {invoice.customer && (
-            <Link
-              href={`/customers/${invoice.customer}`}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-primary/40 transition-colors"
-            >
-              <User className="text-muted-foreground shrink-0" size={18} />
-              <p className="text-sm font-medium text-foreground flex-1">{t('customer_card')}</p>
-            </Link>
-          )}
-        </div>
-
-        <StatusActions
-          invoice={invoice}
-          isPending={updateStatus.isPending}
-          onMarkPaid={() => setConfirmPaid(true)}
-          onCancel={() => setConfirmCancel(true)}
-        />
-
-        <ConfirmDialog
-          open={confirmPaid}
-          onOpenChange={setConfirmPaid}
-          title={t('confirm_paid_title')}
-          description={t('confirm_paid_body')}
-          onConfirm={handleMarkPaid}
-          confirmLabel={t('confirm')}
-        />
-
-        <ConfirmDialog
-          open={confirmCancel}
-          onOpenChange={setConfirmCancel}
-          title={t('confirm_cancel_title')}
-          description={t('confirm_cancel_body')}
-          onConfirm={handleCancel}
-          variant="destructive"
-          confirmLabel={t('cancel_invoice')}
-        />
-      </div>
-    </>
-  );
+  const t = useTranslations('invoices.detail');
+  const state = useInvoiceDetailState(id);
+  if (state.invoice) return <InvoiceDetailView invoice={state.invoice} state={state} />;
+  if (state.isLoading) return <DetailPageSkeleton title={t('title')} left={[3, 6, 4]} right={[5, 3, 2]} />;
+  return <><TopBar title={t('title')} back hideSearch /><p role="alert" className="p-4 text-sm text-destructive">{t('not_found')}</p></>;
 }

@@ -164,6 +164,17 @@ Boutique (entité racine du multi-tenant).
 | tax_id | VARCHAR(64) | DEFAULT `''` | Identifiant fiscal — SIRET, n° TVA intracom, NIF, EIN, etc. Format libre (pas d'imposition). |
 | legal_mentions | TEXT | DEFAULT `''` | Mentions légales imprimées en pied de facture (auto-liquidation, franchise en base, n° RCS…). |
 | default_tax_rate | DECIMAL(5,2) | NOT NULL, DEFAULT 0 | Taux TVA (en %) appliqué par défaut à la création d'une facture. 0 = non assujetti. Surchargeable par appel. |
+| invoice_color_mode | VARCHAR(9) | NOT NULL, DEFAULT `automatic` | `automatic`, `custom`, `neutral` |
+| invoice_color | VARCHAR(7) | NOT NULL, DEFAULT `#367762` | Couleur choisie ; assombrie pour un contraste blanc ≥ 4,5:1 |
+| invoice_auto_color | VARCHAR(7) | DEFAULT `''` | Couleur dominante Pillow du logo (hors blanc, noir, gris, transparence), assombrie ; vide = neutre |
+| invoice_vat_regime | VARCHAR(10) | NOT NULL, DEFAULT `exempt` | `exempt` (art. 293 B), `applicable` (numéro TVA requis dans les réglages) |
+| siret | VARCHAR(14) | DEFAULT `''` | 14 chiffres, espaces normalisés à la saisie |
+| vat_number | VARCHAR(32) | DEFAULT `''` | Numéro de TVA si applicable |
+| invoice_payment_methods | JSONB | DEFAULT `[]` | Liste validée : `cash`, `card`, `transfer`, `cheque` |
+| invoice_iban | VARCHAR(34) | DEFAULT `''` | IBAN vérifié (modulo 97), imprimé seulement avec `transfer` |
+| invoice_bic | VARCHAR(11) | DEFAULT `''` | BIC 8 ou 11 caractères ; même règle d’affichage |
+| invoice_show_account_summary | BOOLEAN | DEFAULT false | Récapitulatif figé à l’émission |
+| invoice_show_order | BOOLEAN | DEFAULT true | Numéro et date de commande figés à l’émission |
 | default_payment_terms_days | SMALLINT | NOT NULL, DEFAULT 30 | Délai de paiement par défaut (jours) — utilisé pour calculer `invoices.due_date`. |
 | catalog_kind | VARCHAR(10) | NOT NULL, DEFAULT 'both' | Choix onboarding : `products`, `services`, `both`. Modifiable ensuite depuis les réglages. |
 | dashboard_mode | VARCHAR(10) | NOT NULL, DEFAULT 'complete' | Choix onboarding : `minimal` ou `complete`. |
@@ -179,6 +190,10 @@ Boutique (entité racine du multi-tenant).
 **Note** : le champ `invoice_prefix` introduit en migration `shops.0003` a été **retiré** en migration `shops.0004_remove_shop_invoice_prefix` — le préfixe est aujourd'hui fixé à `fact-` dans `invoices.services.INVOICE_PREFIX`.
 
 ---
+
+Les réglages factures sont exposés par `GET/PATCH /api/shop/invoice-settings/`, réservés au propriétaire et aux administrateurs ; `GET /api/shop/invoice-settings/example/` génère un exemple avec les valeurs enregistrées, sans écriture ni consommation de numéro. `legal_mentions` reste le champ libre existant, `default_payment_terms_days = 0` signifie à réception (sinon 1–365 jours). La franchise force une TVA nulle. Les anciennes boutiques à taux non nul conservent le régime applicable (migration `shops.0009`).
+
+Le logo est partagé avec `public_pages.logo_object_key`, synchronisé par les deux parcours d’envoi/retrait. Le logo de la page publique existante est repris à la migration. Extraction de couleur à chaque envoi/remplacement, retour neutre au retrait. Les mutations du logo et l’émission verrouillent la boutique : un logo référencé par `invoices.presentation.logo_object_key` n’est jamais supprimé du stockage.
 
 ### `shop_members`
 
@@ -498,6 +513,7 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 | seller_address | TEXT | DEFAULT `''` | Snapshot `shop.legal_address` |
 | seller_tax_id | VARCHAR(64) | DEFAULT `''` | Snapshot `shop.tax_id` (SIRET, n° TVA, NIF, EIN… format libre) |
 | seller_legal_mentions | TEXT | DEFAULT `''` | Snapshot `shop.legal_mentions` — imprimé en pied de facture |
+| presentation | JSONB | NOT NULL, DEFAULT `{}` | Instantané versionné d’apparence, langue, règlement, commande et compte (voir ci-dessous) |
 | seller_country | VARCHAR(2) | DEFAULT `''` | Snapshot `shop.country` |
 | buyer_name | VARCHAR(200) | DEFAULT `''` | Snapshot du `display_name` du client à l'émission |
 | buyer_address | TEXT | DEFAULT `''` | Snapshot |
@@ -518,6 +534,10 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 | pdf_object_key | VARCHAR(500) | DEFAULT `''` | Fichier PDF généré (ReportLab), stocké en bucket privé |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+`presentation` version 1 contient : `language` (`fr`/`en`, arabe → français), `issued_date` (jour local de la boutique), `color` (hex accessible ou vide pour neutre), `logo_object_key` (référence privée conservée), `activity`, `contacts` (type/valeur), `siret`, `vat_regime`, `vat_number`, `payment_terms_days`, `payment_methods`, `iban`/`bic` (vides sans virement), `order_number`/`order_date` (vides si option désactivée), `show_account_summary`, `account_summary`. Aucun de ces champs n’est relu depuis les réglages lors du rendu PDF. Les factures anciennes gardent `{}` et leurs instantanés existants, sans inventer de valeurs historiques.
+
+`account_summary` contient `previous_invoices` (numéro, dû net), `previous_balance`, `payments_received`, `current_invoice`, `total_balance`, tous les montants en chaînes décimales. Sont retenues seulement les autres factures du même client et de la même boutique, émises strictement avant, non annulées et non soldées. Le solde précédent est déjà net de leurs règlements ; `payments_received` désigne les règlements de la présente facture à l’émission, déduits une seule fois. `total_balance = previous_balance + current_invoice − payments_received`. Sans client identifié : solde précédent nul. Ce récapitulatif reste figé même après paiement des anciennes factures.
 
 **Contrainte** : `UNIQUE (shop_id, number)` — le numéro est strictement unique dans la boutique.
 **Index** : `(shop_id, -issued_at)`, `(shop_id, status)`.
@@ -541,6 +561,8 @@ Ligne de facture — snapshot d'un item de commande au moment de l'émission. D�
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | Redondant pour sécurité |
 | invoice_id | UUID | FK → invoices.id, RESTRICT, NOT NULL | |
+| product_name | VARCHAR(200) | DEFAULT `''` | Nom figé, affiché au-dessus du format |
+| variant_name | VARCHAR(120) | DEFAULT `''` | Format figé, vide pour le format par défaut ; anciennes lignes gardées telles quelles |
 | description | VARCHAR(300) | NOT NULL | Concaténation `product_name (variant_name)` snapshottée depuis `order_items` |
 | quantity | DECIMAL(12,3) | NOT NULL | Quantité facturée |
 | unit_price_ht | DECIMAL(12,2) | NOT NULL | Prix unitaire HT snapshotté |

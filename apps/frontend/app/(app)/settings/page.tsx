@@ -10,7 +10,6 @@ import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { settingsSchema, type SettingsFormValues } from '@/components/settings/schema';
 import { IdentitySection } from '@/components/settings/IdentitySection';
 import { ManagementSection } from '@/components/settings/ManagementSection';
-import { InvoicingSection } from '@/components/settings/InvoicingSection';
 import { ZakatSection } from '@/components/settings/ZakatSection';
 import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
@@ -84,7 +83,6 @@ export default function SettingsPage() {
           teamTitle={tTeam('title')}
           teamSubtitle={tTeam('subtitle')}
         />
-        <InvoicingSection register={register} />
         <ZakatSection register={register} shop={shop} />
         <PreferencesSection register={register} />
 

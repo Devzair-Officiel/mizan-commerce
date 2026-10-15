@@ -30,3 +30,6 @@ DEPLOIEMENT.md
 # Déploiement : variables remplies et versions déployées, propres à chaque serveur
 deploy/env/*.env
 deploy/state/
+
+# Aperçus PDF régénérables (les fichiers de recette sont dans docs/recette/lot6)
+apps/backend/artifacts/

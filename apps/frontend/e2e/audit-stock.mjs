@@ -222,6 +222,8 @@ async function checkInvoice(page, browser, ctx, { known, other, stamp, created }
   created.push(article.id);
   await ignoreLine(page, 'port');
   const ignored = await badgeCount(page, 'ignored') === 1;
+  report.check(await page.locator('[data-invoice-restore]:focus').count() === 1,
+    `${ctx.label} : ignorer une ligne place le focus sur « Rétablir »`);
   const before = await stockOf(page, other.variants[0].id);
   await submitButton(page, fmt('fr', 'stock.entry.submit', { units: 13, unitsLabel: '13' })).click();
   const toast = await toastShown(page, fmt('fr', 'stock.invoice.success', { count: 3, units: 13, unitsLabel: '13' }));

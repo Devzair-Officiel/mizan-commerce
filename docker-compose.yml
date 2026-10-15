@@ -1,3 +1,44 @@
+# Supervision de développement, bibliothèque standard seulement : aucun paquet ajouté.
+# Arrêt gracieux du worker avant chaque relance, y compris à l'arrêt du conteneur.
+x-celery-dev-command: &celery-dev-command
+  - python
+  - -u
+  - -c
+  - |
+    import os, signal, subprocess, time
+    from pathlib import Path
+    worker = None
+    stopping = False
+    def stop(*_):
+        global stopping
+        stopping = True
+    def shutdown():
+        if worker is not None and worker.poll() is None:
+            worker.terminate()
+            try:
+                worker.wait(timeout=25)
+            except subprocess.TimeoutExpired:
+                worker.kill()
+                worker.wait()
+    def files():
+        return {str(p): p.stat().st_mtime_ns for root in ('apps', 'config')
+                for p in Path(root).rglob('*.py') if p.is_file()}
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    try:
+        while not stopping:
+            stamp = files()
+            worker = subprocess.Popen(['celery', '-A', 'config', 'worker', '--loglevel=info',
+                                       '--queues=' + os.environ['CELERY_DEV_QUEUE'], '--concurrency=1'])
+            while not stopping and worker.poll() is None and files() == stamp:
+                time.sleep(1)
+            shutdown()
+            if not stopping:
+                print('Code Python modifié ou worker arrêté : redémarrage Celery', flush=True)
+                time.sleep(1)
+    finally:
+        shutdown()
+
 services:
 
   postgres:
@@ -36,6 +77,24 @@ services:
       - postgres                                # attend que postgres démarre avant de lancer le backend
       - redis
 
+  celery-default:
+    build:
+      context: ./apps/backend
+      target: development
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    env_file: .env
+    environment:
+      - HOME=/tmp
+      - CELERY_DEV_QUEUE=celery
+    volumes:
+      - ./apps/backend:/app
+    command: *celery-dev-command
+    stop_grace_period: 35s
+    depends_on:
+      - postgres
+      - redis
+
   celery-ocr:
     build:
       context: ./apps/backend
@@ -45,9 +104,11 @@ services:
     env_file: .env
     environment:
       - HOME=/tmp
+      - CELERY_DEV_QUEUE=ocr
     volumes:
       - ./apps/backend:/app                     # hot reload : le code OCR est modifié en dev
-    command: celery -A config worker --loglevel=info --queues=ocr --concurrency=1
+    command: *celery-dev-command
+    stop_grace_period: 35s
     depends_on:
       - postgres
       - redis

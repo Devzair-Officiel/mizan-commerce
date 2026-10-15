@@ -454,6 +454,9 @@ class Command(BaseCommand):
             )
             self.stdout.write(f"  ✓ Page publique : /boutique/{page_fr.slug}")
 
+        from ._seed_logo import seed_demo_logo
+        seed_demo_logo(shop_fr, self.stdout)
+
         page_ma, ma_created = PublicPage.objects.get_or_create(
             shop=shop_ma,
             defaults={

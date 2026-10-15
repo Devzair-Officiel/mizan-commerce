@@ -1,14 +1,20 @@
+from collections.abc import Mapping
 from datetime import date, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from django.db import transaction
+from django.db.models import Count, F, Q, QuerySet, Sum
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from apps.orders.models import Order
+from apps.orders.services import current_month_bounds
 from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
 from apps.shops.models import Shop
 
 from .models import Invoice, InvoiceLine, InvoiceSequence
+from .settings import snapshot_presentation
 
 INVOICE_PREFIX = 'fact'
 
@@ -36,7 +42,9 @@ def _next_invoice_number(shop: Shop, issued_on: date) -> str:
     sans transaction lève `TransactionManagementError`. Le verrou ligne empêche deux
     émissions concurrentes de générer le même numéro — garantie de continuité légale.
     """  # noqa: E501
-    sequence, _created = InvoiceSequence.objects.select_for_update().get_or_create(shop=shop)  # noqa: E501
+    sequence, _created = InvoiceSequence.objects.select_for_update().get_or_create(
+        shop=shop
+    )  # noqa: E501
     sequence.last_number += 1
     sequence.save(update_fields=['last_number', 'updated_at'])
 
@@ -106,6 +114,10 @@ def _build_lines_from_order(invoice: Invoice, order: Order) -> list[InvoiceLine]
                 shop=invoice.shop,
                 invoice=invoice,
                 description=description,
+                product_name=item.product_name,
+                variant_name=''
+                if is_default_variant(item.variant_name)
+                else item.variant_name,
                 quantity=qty,
                 unit_price_ht=unit_ht,
                 line_subtotal_ht=subtotal,
@@ -130,7 +142,9 @@ def _compute_totals(
     """
     subtotal_ht = sum((line.line_subtotal_ht for line in lines), Decimal('0'))
     subtotal_ht = subtotal_ht.quantize(Decimal('0.01'))
-    taxable_base = (subtotal_ht - discount_amount + shipping_amount).quantize(Decimal('0.01'))  # noqa: E501
+    taxable_base = (subtotal_ht - discount_amount + shipping_amount).quantize(
+        Decimal('0.01')
+    )  # noqa: E501
     tax_amount = (taxable_base * tax_rate / Decimal('100')).quantize(Decimal('0.01'))
     total_ttc = (taxable_base + tax_amount).quantize(Decimal('0.01'))
     return subtotal_ht, tax_amount, total_ttc
@@ -144,6 +158,7 @@ def issue_invoice_from_order(
     tax_rate: Decimal | None = None,
     payment_terms_days: int | None = None,
     notes: str = '',
+    language: str | None = None,
 ) -> Invoice:
     """Émet une facture définitive à partir d'une commande.
 
@@ -154,19 +169,81 @@ def issue_invoice_from_order(
     `tax_rate` et `payment_terms_days` peuvent être surchargés par appel ; sinon on prend
     les valeurs par défaut de la boutique.
     """  # noqa: E501
+    shop = Shop.objects.select_for_update().get(pk=shop.pk)
+    order = (
+        Order.objects.select_for_update(of=('self',))
+        .select_related('customer')
+        .get(pk=order.pk, shop=shop)
+    )
     if not order.items.exists():
         raise EmptyOrderError()
 
-    existing = Invoice.objects.filter(order=order).values_list('pk', flat=True).first()
+    existing = (
+        Invoice.objects.filter(shop=shop, order=order)
+        .values_list('pk', flat=True)
+        .first()
+    )
     if existing is not None:
         raise InvoiceAlreadyExistsError(invoice_id=existing)
 
     now = timezone.now()
-    number = _next_invoice_number(shop, now.date())
+    issued_on = now.astimezone(ZoneInfo(shop.timezone)).date()
+    number = _next_invoice_number(shop, issued_on)
 
+    effective_tax_rate, effective_terms, language = _invoice_options(
+        shop,
+        tax_rate,
+        payment_terms_days,
+        language,
+    )
+    invoice = _new_invoice(
+        shop, order, now, issued_on, number, effective_tax_rate, effective_terms, notes
+    )
+    lines = _build_lines_from_order(invoice, order)
+    invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = _compute_totals(
+        lines,
+        invoice.tax_rate,
+        invoice.discount_amount,
+        invoice.shipping_amount,
+    )
+    invoice.presentation = snapshot_presentation(
+        invoice, shop, language=language, terms=effective_terms
+    )
+    invoice.save()
+    InvoiceLine.objects.bulk_create(lines)
+    return invoice
+
+
+def _invoice_options(
+    shop: Shop,
+    tax_rate: Decimal | None,
+    payment_terms_days: int | None,
+    language: str | None,
+) -> tuple[Decimal, int, str]:
     effective_tax_rate = tax_rate if tax_rate is not None else shop.default_tax_rate
-    effective_terms = payment_terms_days if payment_terms_days is not None else shop.default_payment_terms_days  # noqa: E501
+    if shop.invoice_vat_regime == 'exempt':
+        effective_tax_rate = Decimal('0')
+    effective_terms = (
+        payment_terms_days
+        if payment_terms_days is not None
+        else shop.default_payment_terms_days
+    )  # noqa: E501
 
+    if not 0 <= effective_terms <= 365 or not 0 <= effective_tax_rate <= 100:
+        raise ValidationError('Taux ou délai invalide.')
+    if language is None:
+        language = (
+            shop.members.filter(role='owner')
+            .values_list('user__language', flat=True)
+            .first()
+            or 'fr'
+        )
+    return effective_tax_rate, effective_terms, language
+
+
+def _new_invoice(
+    shop, order, now, issued_on, number, effective_tax_rate, effective_terms, notes
+) -> Invoice:
     # Synchro initiale avec le statut de la commande : si elle est déjà payée
     # ou annulée, la facture naît dans le même état.
     if order.status == 'cancelled':
@@ -185,7 +262,7 @@ def issue_invoice_from_order(
         number=number,
         status=initial_status,
         issued_at=now,
-        due_date=(now + timedelta(days=effective_terms)).date(),
+        due_date=issued_on + timedelta(days=effective_terms),
         paid_at=now if initial_status == Invoice.STATUS_PAID else None,
         cancelled_at=now if initial_status == Invoice.STATUS_CANCELLED else None,
         currency=shop.currency,
@@ -198,16 +275,6 @@ def issue_invoice_from_order(
     _snapshot_seller_from_shop(invoice, shop)
     _snapshot_buyer_from_order(invoice, order)
 
-    lines = _build_lines_from_order(invoice, order)
-    subtotal_ht, tax_amount, total_ttc = _compute_totals(
-        lines, invoice.tax_rate, discount_amount, shipping_amount,
-    )
-    invoice.subtotal_ht = subtotal_ht
-    invoice.tax_amount = tax_amount
-    invoice.total_ttc = total_ttc
-
-    invoice.save()
-    InvoiceLine.objects.bulk_create(lines)
     return invoice
 
 
@@ -235,7 +302,9 @@ def sync_invoice_from_order(order: Order) -> None:
     if order.status == 'cancelled':
         invoice.status = Invoice.STATUS_CANCELLED
         invoice.cancelled_at = now
-        invoice.save(update_fields=['status', 'amount_paid', 'cancelled_at', 'updated_at'])  # noqa: E501
+        invoice.save(
+            update_fields=['status', 'amount_paid', 'cancelled_at', 'updated_at']
+        )  # noqa: E501
         return
 
     if order.payment_status == 'paid':
@@ -274,3 +343,63 @@ def cancel_invoice(invoice: Invoice) -> Invoice:
     invoice.cancelled_at = timezone.now()
     invoice.save(update_fields=['status', 'cancelled_at', 'updated_at'])
     return invoice
+
+
+# Liste, indicateurs et facettes (URS-097 / URS-099).
+DUE = Q(status="issued", total_ttc__gt=F("amount_paid"))
+PAYMENTS = {
+    "due": DUE,
+    "unpaid": Q(status="issued", amount_paid=0),
+    "partial": DUE & Q(amount_paid__gt=0),
+    "paid": Q(status="paid"),
+}
+
+
+def filter_invoices(
+    qs: QuerySet, shop: Shop, params: Mapping[str, str], *, skip: str = ""
+) -> QuerySet:
+    if skip != "status" and params.get("status"):
+        qs = qs.filter(status=params["status"])
+    if skip != "payment" and params.get("payment") in PAYMENTS:
+        qs = qs.filter(PAYMENTS[params["payment"]])
+    period = params.get("period")
+    if period in ("issued_month", "paid_month"):
+        start, end = current_month_bounds(shop)
+        if period == "paid_month":
+            qs = qs.filter(status="paid", paid_at__gte=start, paid_at__lt=end)
+        else:
+            qs = qs.filter(issued_at__gte=start, issued_at__lt=end)
+    return qs
+
+
+def invoice_facets(shop: Shop, qs: QuerySet, params: Mapping[str, str]) -> dict:
+    """Chaque menu compte la recherche et tous les filtres sauf le sien."""
+    statuses = filter_invoices(qs, shop, params, skip="status").aggregate(
+        all=Count("id"),
+        **{s: Count("id", filter=Q(status=s)) for s, _ in Invoice.STATUS_CHOICES},
+    )
+    payments = filter_invoices(qs, shop, params, skip="payment").aggregate(
+        all=Count("id"),
+        **{name: Count("id", filter=condition) for name, condition in PAYMENTS.items()},
+    )
+    return {"status": statuses, "payment": payments}
+
+
+def invoice_summary(shop: Shop) -> dict:
+    """Mêmes ensembles que les filtres des trois indicateurs cliquables."""
+    qs = Invoice.objects.filter(shop=shop)
+    due = qs.filter(DUE).aggregate(
+        count=Count("id"), amount=Sum(F("total_ttc") - F("amount_paid"))
+    )
+    result = {
+        "due": {"count": due["count"], "amount": str(due["amount"] or Decimal("0"))}
+    }
+    for period in ("issued_month", "paid_month"):
+        values = filter_invoices(qs, shop, {"period": period}).aggregate(
+            count=Count("id"), amount=Sum("total_ttc")
+        )
+        result[period] = {
+            "count": values["count"],
+            "amount": str(values["amount"] or Decimal("0")),
+        }
+    return result

@@ -72,6 +72,9 @@ class Invoice(models.Model):
     seller_legal_mentions = models.TextField(blank=True)
     seller_country = models.CharField(max_length=2, blank=True)
 
+    # Apparence, langue, règlement, commande et compte client figés à l'émission.
+    presentation = models.JSONField(default=dict, blank=True)
+
     # ── Snapshot client ────────────────────────────────────────────────────
     buyer_name = models.CharField(max_length=200, blank=True)
     buyer_address = models.TextField(blank=True)
@@ -131,6 +134,8 @@ class InvoiceLine(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='lines')  # noqa: E501
 
     description = models.CharField(max_length=300)
+    product_name = models.CharField(max_length=200, blank=True)
+    variant_name = models.CharField(max_length=120, blank=True)
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
     unit_price_ht = models.DecimalField(max_digits=12, decimal_places=2)
     line_subtotal_ht = models.DecimalField(max_digits=14, decimal_places=2)
