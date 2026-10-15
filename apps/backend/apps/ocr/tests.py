@@ -32,9 +32,9 @@ WEBP_BYTES = b'RIFF\x00\x00\x00\x00WEBP' + b'\x00' * 8
 
 
 def make_user_shop(
-    email: str, plan_code: str = SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+    email: str, plan_code: str = SubscriptionPlan.CODE_BOUTIQUE,
 ) -> tuple[User, Shop]:
-    """Boutique de test en Boutique+ par défaut : l'import de facture en dépend."""
+    """Boutique de test en Boutique par défaut : l'import de facture en dépend."""
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}')
     ShopMember.objects.create(shop=shop, user=user, role='owner')
@@ -1571,7 +1571,7 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Formule : l'import de facture fournisseur est réservé à Boutique+
+# Formule : l'import de facture fournisseur est réservé à Boutique
 # ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -1584,7 +1584,7 @@ class OcrPlanGatingTest(TestCase):
     def setUp(self) -> None:
         self.client = APIClient()
         self.owner, self.shop = make_user_shop(
-            'owner@example.com', plan_code=SubscriptionPlan.CODE_PRO,
+            'owner@example.com', plan_code=SubscriptionPlan.CODE_SOLO,
         )
         self.ocr = OcrResult.objects.create(
             shop=self.shop,
@@ -1611,8 +1611,8 @@ class OcrPlanGatingTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(OcrResult.objects.filter(shop=self.shop).count(), 1)
 
-    def test_boutique_plus_is_allowed(self) -> None:
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+    def test_boutique_is_allowed(self) -> None:
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         self.assertEqual(self._upload().status_code, status.HTTP_201_CREATED)
         detail = f'/api/ocr/results/{self.ocr.pk}/'
         self.assertEqual(self.client.get(detail).status_code, status.HTTP_200_OK)

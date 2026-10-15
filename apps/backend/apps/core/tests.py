@@ -625,12 +625,12 @@ class SeedDataTest(TestCase):
             Product.objects.filter(shop=shop, type="service", is_active=True).exists()
         )
 
-    def test_fr_shop_is_boutique_plus(self):
-        """La boutique FR (employée + page publique) est en formule Boutique+."""
+    def test_fr_shop_is_boutique(self):
+        """La boutique FR (employée + page publique) est en formule Boutique."""
         from apps.subscriptions.models import SubscriptionPlan
 
         shop = self._shop("La Boutique de Youssef")
-        self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE)
 
     def test_seeded_shops_have_plan_for_their_features(self):
         """Une boutique de démo n'utilise pas de fonction absente de sa formule."""

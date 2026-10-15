@@ -28,7 +28,7 @@
       "title": "Create an account",
       "headline_lead": "Launch your shop in",
       "headline_accent": "two minutes",
-      "subtitle": "14-day Boutique+ free trial. No credit card required.",
+      "subtitle": "14-day Boutique free trial. No credit card required.",
       "submit": "Start for free",
       "submitting": "Creating…",
       "full_name": "Full name",
@@ -219,11 +219,11 @@
       "back_home": "Back to home"
     },
     "trial": {
-      "banner_expired": "Boutique+ trial ended. Upgrade to a paid plan to restore all features.",
+      "banner_expired": "Boutique trial ended. Upgrade to a paid plan to restore all features.",
       "banner_expired_cta": "See plans",
-      "banner_today": "Your Boutique+ trial ends today.",
-      "banner_tomorrow": "Your Boutique+ trial ends tomorrow.",
-      "banner_days": "Your Boutique+ trial ends in {days} days.",
+      "banner_today": "Your Boutique trial ends today.",
+      "banner_tomorrow": "Your Boutique trial ends tomorrow.",
+      "banner_days": "Your Boutique trial ends in {days} days.",
       "banner_cta": "Manage",
       "card_expired": "Trial ended",
       "badge_trial": "Trial · {days, plural, =0 {last day} one {# day} other {# days}}"
@@ -1566,7 +1566,7 @@
       "delete_error": "Could not remove this member."
     },
     "readonly_title": "Current members",
-    "readonly_note": "Without the Boutique+ plan, these members can no longer sign in. Their accounts and access are kept."
+    "readonly_note": "Without the Boutique plan, these members can no longer sign in. Their accounts and access are kept."
   },
   "ui": {
     "phone": {
@@ -1673,8 +1673,8 @@
       "fulfillment_both": "Both"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {Available with the Pro plan} exports {Available with the Pro plan} other {Available with the Boutique+ plan}}",
-      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} other {This feature is part of the Boutique+ plan.}}",
+      "title": "{feature, select, whatsapp {Available with the Solo plan} other {Available with the Boutique plan}}",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} other {This feature is part of the Boutique plan.}}",
       "cta": "See plans"
     },
     "page": {
@@ -1785,36 +1785,47 @@
       "trial_remaining": "{days, plural, =0 {Trial ending today.} one {Trial in progress — # day left.} other {Trial in progress — # days left.}}",
       "period_end": "Ends: {date}.",
       "plan_active": "{name} plan active.",
-      "per_month": "€{price} / month",
+      "per_month": "{price} / month",
       "plans": {
         "free": {
-          "name": "Free",
-          "description": "The essentials to get started.",
-          "f1": "Up to 50 active products",
-          "f2": "20 orders per month",
-          "f3": "Stock, notes, reminders"
+          "name": "Discovery",
+          "description": "The essentials to get started, no commitment.",
+          "f1": "Up to {kind, select, products {{products, plural, one {# item} other {# items}}} services {{products, plural, one {# service} other {# services}}} other {{products, plural, one {# item} other {# items}}}} in your catalogue",
+          "f2": "{orders} sales per month",
+          "f3": "{customers} customers",
+          "f4": "Stock, notes and reminders",
+          "f5": "Zakat calculation"
         },
-        "pro": {
-          "name": "Pro",
-          "description": "To run your whole business.",
-          "f1": "Unlimited products and orders",
+        "solo": {
+          "name": "Solo",
+          "description": "For shopkeepers who run their shop alone.",
+          "f1": "Unlimited catalogue, sales and customers",
           "f2": "PDF invoices",
-          "f3": "Zakat calculation",
-          "f4": "Ready-made WhatsApp messages"
+          "f3": "Ready-made WhatsApp messages",
+          "f4": "Automatic unpaid follow-ups"
         },
-        "boutique_plus": {
-          "name": "Boutique+",
-          "description": "Advanced tools and partnerships.",
-          "f1": "Everything in Pro",
-          "f2": "Shareable public page",
-          "f3": "Multiple users",
-          "f4": "Accounting exports"
+        "boutique": {
+          "name": "Boutique",
+          "description": "For a shop with a small team.",
+          "f1": "Everything in Solo",
+          "f2": "{staff, plural, one {# staff member} other {Up to # staff members}}",
+          "f3": "Invoices in your colours, with your logo",
+          "f4": "Shareable public page",
+          "f5": "Exports and supplier invoice import"
+        },
+        "commerce_plus": {
+          "name": "Commerce+",
+          "description": "For growing businesses.",
+          "f1": "Everything in Boutique",
+          "f2": "Unlimited staff",
+          "f3": "Activity log",
+          "f4": "Priority support"
         }
       },
       "current": "Current plan",
       "coming_soon": "Coming soon",
       "cancel_title": "Cancel",
-      "cancel_text": "You will switch to the Free plan immediately. You will lose access to paid features but your data stays intact.",
+      "cancel_text": "You will switch to the Discovery plan immediately. You will lose access to paid features but your data stays intact.",
       "cancel_cta": "Cancel my plan",
       "cancel_confirm": "Confirm cancellation",
       "cancelling": "Cancelling…",
@@ -1851,7 +1862,7 @@
   },
   "suspended": {
     "title": "Access suspended",
-    "text": "The shop no longer has the Boutique+ plan. Contact the owner to restore your access.",
+    "text": "The shop no longer has the Boutique plan. Contact the owner to restore your access.",
     "logout": "Sign out"
   },
   "zakat": {

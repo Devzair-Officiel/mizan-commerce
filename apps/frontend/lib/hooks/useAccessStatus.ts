@@ -5,7 +5,7 @@ export type AccessStatus = 'checking' | 'suspended' | 'restored' | 'signed_out';
 
 /**
  * Écran « Accès suspendu » : vérifie régulièrement (et au retour sur l'app) si la boutique
- * a repris Boutique+. Appel direct au proxy, sans `apiFetch` qui renverrait vers cet écran.
+ * a repris Boutique. Appel direct au proxy, sans `apiFetch` qui renverrait vers cet écran.
  */
 export function useAccessStatus(): AccessStatus {
   const { data } = useQuery({

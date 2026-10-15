@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
@@ -9,6 +10,7 @@ from rest_framework.views import APIView
 
 from apps.core.pagination import WindowPagination
 from apps.core.permissions import HasModulePermission, get_shop
+from apps.subscriptions.limits import enforce_customer_limit
 from apps.subscriptions.permissions import HasPlanForFeature
 
 HasCustomersModule = HasModulePermission.for_module('customers')
@@ -48,8 +50,11 @@ class CustomerListCreateView(generics.ListCreateAPIView):
             customers_with_stats(shop), shop, self.request.query_params,
         )
 
+    @transaction.atomic
     def perform_create(self, serializer):
-        serializer.save(shop=get_shop(self.request.user))
+        shop = get_shop(self.request.user)
+        enforce_customer_limit(shop)
+        serializer.save(shop=shop)
 
 
 class CustomerSummaryView(APIView):

@@ -45,7 +45,7 @@ class ShopDetailViewTest(TestCase):
 
 
 class TeamPlanGatingTest(TestCase):
-    """Ajout et modification d'un employé : Boutique+. Lecture et retrait : ouverts."""
+    """Ajout et modification d'un employé : Boutique. Lecture et retrait : ouverts."""
 
     def setUp(self):
         self.client = APIClient()
@@ -67,7 +67,7 @@ class TeamPlanGatingTest(TestCase):
         return self.client.patch(url, {'role': 'admin'}, format='json')
 
     def test_pro_cannot_add_or_update_member(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         self.assertEqual(self._create().status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(self._update().status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(User.objects.filter(email='nouveau@example.com').exists())
@@ -75,7 +75,7 @@ class TeamPlanGatingTest(TestCase):
         self.assertEqual(self.staff.role, 'staff')
 
     def test_pro_can_still_list_and_remove_members(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         response = self.client.get(reverse('shop-members'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 2)
@@ -84,15 +84,15 @@ class TeamPlanGatingTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ShopMember.objects.filter(pk=self.staff.pk).exists())
 
-    def test_boutique_plus_can_add_and_update_member(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+    def test_boutique_can_add_and_update_member(self):
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         self.assertEqual(self._create().status_code, status.HTTP_201_CREATED)
         self.assertEqual(self._update().status_code, status.HTTP_200_OK)
         self.staff.refresh_from_db()
         self.assertEqual(self.staff.role, 'admin')
 
     def test_member_phone_is_normalized_with_shop_country(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         self.shop.country = 'MA'
         self.shop.save(update_fields=['country'])
         payload = {
@@ -112,7 +112,7 @@ class TeamPlanGatingTest(TestCase):
 
 
 class StaffSuspensionTest(TestCase):
-    """Sans Boutique+, employés et admins sont refusés partout ; le propriétaire jamais.
+    """Sans Boutique, employés et admins sont refusés partout ; le propriétaire jamais.
 
     Vrais jetons JWT : `force_authenticate` contournerait la classe d'authentification
     qui porte la suspension.
@@ -125,7 +125,7 @@ class StaffSuspensionTest(TestCase):
         self.staff = self._add_member(self.shop, 'sara@example.com', 'staff')
         self.other_owner, self.other_shop = make_user_with_shop('other@example.com')
         self.other_staff = self._add_member(self.other_shop, 'karim@example.com', 'staff')  # noqa: E501
-        attach_subscription(self.other_shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)  # noqa: E501
+        attach_subscription(self.other_shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)  # noqa: E501
 
     @staticmethod
     def _add_member(shop, email, role):
@@ -143,27 +143,27 @@ class StaffSuspensionTest(TestCase):
         self.assertEqual(response.data['code'], 'staff_suspended_plan')
 
     def test_pro_suspends_staff_and_admin_everywhere(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         for user in (self.staff, self.admin):
             for name in ('shop-detail', 'auth-me', 'shop-members'):
                 self.assertSuspended(self._get(user, name))
 
     def test_owner_is_never_suspended(self):
         self.assertEqual(self._get(self.owner).status_code, status.HTTP_200_OK)
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         self.assertEqual(self._get(self.owner).status_code, status.HTTP_200_OK)
         self.assertEqual(self._get(self.owner, 'shop-members').status_code, status.HTTP_200_OK)  # noqa: E501
 
-    def test_boutique_plus_restores_access_with_same_token(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+    def test_boutique_restores_access_with_same_token(self):
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         self.assertSuspended(self._get(self.staff))
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         for user in (self.staff, self.admin):
             self.assertEqual(self._get(user).status_code, status.HTTP_200_OK)
         self.assertEqual(ShopMember.objects.get(user=self.staff).role, 'staff')
 
     def test_login_still_succeeds_when_suspended(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         response = self.client.post(reverse('auth-login'), {
             'email': 'sara@example.com', 'password': 'Pass123!Strong',
         }, format='json')
@@ -171,12 +171,12 @@ class StaffSuspensionTest(TestCase):
         self.assertIn('access', response.data)
 
     def test_suspension_is_scoped_to_the_member_shop(self):
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         response = self._get(self.other_staff)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], str(self.other_shop.id))
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
-        attach_subscription(self.other_shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
+        attach_subscription(self.other_shop, plan_code=SubscriptionPlan.CODE_SOLO)
         self.assertEqual(self._get(self.staff).status_code, status.HTTP_200_OK)
         self.assertSuspended(self._get(self.other_staff))
 

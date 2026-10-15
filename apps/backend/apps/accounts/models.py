@@ -96,8 +96,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     email_verified_at = models.DateTimeField(null=True, blank=True)
-    # URS-100 — Posé une seule fois quand le compte consomme son essai 14j Boutique+.
-    # Toute boutique créée ensuite par ce user démarre directement sur le plan Gratuit.
+    # URS-100 — Posé une seule fois quand le compte consomme son essai 14j Boutique.
+    # Toute boutique créée ensuite par ce user démarre sur la formule Découverte.
     trial_consumed_at = models.DateTimeField(null=True, blank=True)
     # Préférences d'apparence propres au compte. Elles restent nulles jusqu'à
     # la première synchronisation afin de pouvoir importer le thème local des

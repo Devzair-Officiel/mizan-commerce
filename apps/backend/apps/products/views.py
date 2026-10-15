@@ -45,9 +45,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
-        from apps.subscriptions.limits import enforce_product_limit
         shop = get_shop(self.request.user)
-        enforce_product_limit(shop)
         data = dict(serializer.validated_data)
         rows = data.pop('variants', [])
         variant = data.pop('variant', None)

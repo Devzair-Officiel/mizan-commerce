@@ -9,7 +9,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'code', 'name', 'description',
             'price_amount', 'currency', 'billing_period',
-            'max_products', 'max_orders_per_month',
+            'max_products', 'max_orders_per_month', 'max_customers', 'max_members',
             'features_json', 'is_active',
         )
         read_only_fields = fields
@@ -63,17 +63,11 @@ class SubscriptionChangeSerializer(serializers.Serializer):
 
     Tant que Stripe n'est pas branché, seul un **downgrade vers `free`** est
     autorisé (résiliation manuelle de l'essai ou du plan payant). Tout autre
-    changement renvoie 400 — pas question d'offrir Pro ou Boutique+
+    changement renvoie 400 — pas question d'offrir une formule payante
     gratuitement par cet endpoint.
     """
 
-    plan_code = serializers.ChoiceField(
-        choices=[
-            SubscriptionPlan.CODE_FREE,
-            SubscriptionPlan.CODE_PRO,
-            SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-        ],
-    )
+    plan_code = serializers.ChoiceField(choices=SubscriptionPlan.TIER_ORDER)
 
     def validate_plan_code(self, value: str) -> str:
         if value != SubscriptionPlan.CODE_FREE:

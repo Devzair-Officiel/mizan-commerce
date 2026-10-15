@@ -1,6 +1,7 @@
-"""Re-seed des 3 plans canoniques.
+"""Re-seed des 4 plans canoniques.
 
-La data migration `subscriptions.0002_seed_plans` pose les plans au bootstrap.
+Les data migrations `subscriptions.0002_seed_plans` et `0004_rename_plans`
+posent les plans au bootstrap.
 Ce command sert au cas où l'admin veut rafraîchir les libellés, prix, ou
 features_json en dev/staging sans repasser par une migration.
 
@@ -18,55 +19,77 @@ from django.core.management.base import BaseCommand
 
 from apps.subscriptions.models import SubscriptionPlan
 
+_FREE = ['products', 'stock', 'notes', 'reminders', 'orders', 'zakat']
+_SOLO = _FREE + ['invoices', 'whatsapp', 'zakat_history', 'auto_reminders']
+_BOUTIQUE = _SOLO + [
+    'multi_user', 'roles_permissions', 'invoice_branding', 'message_templates',
+    'daily_digest', 'sales_stats', 'exports', 'public_pages', 'loyalty', 'ocr',
+    'visual_inventory', 'qr_codes', 'partnerships',
+]
+_COMMERCE_PLUS = _BOUTIQUE + ['audit_log', 'priority_support']
+
 PLANS = [
     {
         'code': SubscriptionPlan.CODE_FREE,
-        'name': 'Gratuit',
-        'description': "L'essentiel pour bien commencer.",
+        'name': 'Découverte',
+        'description': "L'essentiel pour démarrer, sans engagement.",
         'price_amount': Decimal('0'),
         'currency': 'EUR',
         'billing_period': SubscriptionPlan.PERIOD_LIFETIME,
-        'max_products': 50,
-        'max_orders_per_month': 20,
-        'features_json': ['products', 'stock', 'notes', 'reminders'],
+        'max_products': 30,
+        'max_orders_per_month': 15,
+        'max_customers': 15,
+        'max_members': 1,
+        'features_json': _FREE,
         'is_active': True,
     },
     {
-        'code': SubscriptionPlan.CODE_PRO,
-        'name': 'Pro',
-        'description': 'Pour gérer tout votre commerce.',
+        'code': SubscriptionPlan.CODE_SOLO,
+        'name': 'Solo',
+        'description': 'Pour le commerçant qui gère seul sa boutique.',
         'price_amount': Decimal('9'),
         'currency': 'EUR',
         'billing_period': SubscriptionPlan.PERIOD_MONTH,
         'max_products': None,
         'max_orders_per_month': None,
-        'features_json': [
-            'products', 'stock', 'notes', 'reminders',
-            'orders', 'invoices', 'zakat', 'whatsapp', 'exports',
-        ],
+        'max_customers': None,
+        'max_members': 1,
+        'features_json': _SOLO,
         'is_active': True,
     },
     {
-        'code': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-        'name': 'Boutique+',
-        'description': 'Outils avancés et partenariats.',
+        'code': SubscriptionPlan.CODE_BOUTIQUE,
+        'name': 'Boutique',
+        'description': 'Pour une boutique avec une petite équipe.',
         'price_amount': Decimal('19'),
         'currency': 'EUR',
         'billing_period': SubscriptionPlan.PERIOD_MONTH,
         'max_products': None,
         'max_orders_per_month': None,
-        'features_json': [
-            'products', 'stock', 'notes', 'reminders',
-            'orders', 'invoices', 'zakat', 'whatsapp', 'exports',
-            'public_pages', 'partnerships', 'multi_user', 'ocr',
-        ],
+        'max_customers': None,
+        'max_members': 4,
+        'features_json': _BOUTIQUE,
+        'is_active': True,
+    },
+    {
+        'code': SubscriptionPlan.CODE_COMMERCE_PLUS,
+        'name': 'Commerce+',
+        'description': 'Pour les commerces qui grandissent.',
+        'price_amount': Decimal('39'),
+        'currency': 'EUR',
+        'billing_period': SubscriptionPlan.PERIOD_MONTH,
+        'max_products': None,
+        'max_orders_per_month': None,
+        'max_customers': None,
+        'max_members': None,
+        'features_json': _COMMERCE_PLUS,
         'is_active': True,
     },
 ]
 
 
 class Command(BaseCommand):
-    help = 'Re-seed les 3 plans canoniques (free / pro / boutique_plus).'
+    help = 'Re-seed les 4 plans canoniques (free / solo / boutique / commerce_plus).'
 
     def handle(self, *args, **options):
         for data in PLANS:

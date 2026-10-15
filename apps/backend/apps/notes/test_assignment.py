@@ -30,7 +30,7 @@ class AssignmentTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.owner, self.shop, _ = setup('owner@example.com')
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         self.owner_member = self.shop.members.get(user=self.owner)
         self.sara = add_member(self.shop, 'sara@example.com')
         self.ines = add_member(self.shop, 'ines@example.com')
@@ -109,8 +109,8 @@ class AssignmentTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_assign_to_member_without_access_is_refused(self):
-        # Sans Boutique+, les employés sont suspendus : plus d'accès aux rappels.
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        # Sans Boutique, les employés sont suspendus : plus d'accès aux rappels.
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         self.client.force_authenticate(user=self.owner)
         url = reverse('reminder-detail', kwargs={'pk': self.team.pk})
         response = self.client.patch(url, {'assigned_to': str(self.sara.pk)}, format='json')  # noqa: E501
@@ -124,7 +124,7 @@ class AssignmentTest(TestCase):
         data = self.client.get(reverse('reminder-assignees')).data
         self.assertEqual(len(data), 3)
         self.assertEqual([m['id'] for m in data if m['is_me']], [str(self.sara.pk)])
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_PRO)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         self.client.force_authenticate(user=self.owner)
         data = self.client.get(reverse('reminder-assignees')).data
         self.assertEqual([m['id'] for m in data], [str(self.owner_member.pk)])
@@ -141,7 +141,7 @@ class StaffRemindersModuleTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.owner, self.shop, _ = setup('module@example.com')
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         self.sara = add_member(self.shop, 'sara@example.com', permissions=('orders', 'reminders'))  # noqa: E501
         self.ines = add_member(self.shop, 'ines@example.com', permissions=('orders', 'dashboard'))  # noqa: E501
         now = timezone.now()
@@ -229,7 +229,7 @@ class StaffRemindersModuleTest(TestCase):
 
     def test_staff_with_module_stays_in_its_shop(self):
         owner_b, shop_b, _ = setup('module-b@example.com')
-        attach_subscription(shop_b, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        attach_subscription(shop_b, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         other = Reminder.objects.create(shop=shop_b, author=owner_b, title='Ailleurs', due_at=timezone.now())  # noqa: E501
         stranger = add_member(shop_b, 'stranger@example.com')
         self.client.force_authenticate(user=self.sara.user)
@@ -254,7 +254,7 @@ class ReminderSettingsTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.owner, self.shop, _ = setup('settings@example.com')
-        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
         self.url = reverse('reminder-settings')
 
     def test_defaults(self):

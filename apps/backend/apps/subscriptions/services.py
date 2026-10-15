@@ -21,8 +21,8 @@ def start_trial_or_default(shop, user) -> Subscription:
     """Crée la souscription initiale d'une nouvelle boutique.
 
     URS-100 — Le premier compte d'un utilisateur démarre sur un essai 14 jours
-    Boutique+. Toute boutique créée ensuite par le même user démarre directement
-    sur le plan Gratuit (le trial est lié au *compte*, pas à la *boutique*).
+    Boutique. Toute boutique créée ensuite par le même user démarre directement
+    sur le formule Découverte (le trial est lié au *compte*, pas à la *boutique*).
 
     Idempotent côté shop : si la boutique a déjà un abonnement, on le retourne.
     Idempotent côté user : si `trial_consumed_at` est déjà posé, pas de nouvel
@@ -34,7 +34,7 @@ def start_trial_or_default(shop, user) -> Subscription:
         return existing
 
     if user.trial_consumed_at is None:
-        plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE)
         now = timezone.now()
         subscription = Subscription.objects.create(
             shop=shop,
@@ -61,13 +61,13 @@ def start_trial_or_default(shop, user) -> Subscription:
 
 @transaction.atomic
 def downgrade_to_free(subscription: Subscription) -> Subscription:
-    """Résilie la souscription courante et bascule la boutique sur Gratuit.
+    """Résilie la souscription courante et bascule la boutique sur Découverte.
 
     Utilisé par l'endpoint POST /subscriptions/change/ tant que la facturation
     Stripe n'est pas branchée — c'est le seul changement de plan autorisé via
     API publique.
 
-    Idempotent : un appel sur une souscription déjà sur Gratuit est un no-op.
+    Idempotent : un appel sur une souscription déjà sur Découverte est un no-op.
     """
 
     free_plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
@@ -88,7 +88,7 @@ def downgrade_to_free(subscription: Subscription) -> Subscription:
 
 
 def expire_trial(subscription: Subscription) -> Subscription:
-    """Bascule un abonnement en essai expiré sur le plan Gratuit.
+    """Bascule un abonnement en essai expiré sur le formule Découverte.
 
     Utilisé par la tâche Celery `expire_trials` (run quotidien) et par les
     callsites lazy qui détectent un trial dont la date est dépassée.

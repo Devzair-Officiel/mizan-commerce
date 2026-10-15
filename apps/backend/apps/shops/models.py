@@ -128,11 +128,11 @@ class Shop(models.Model):
         """Renvoie le `SubscriptionPlan` réellement applicable maintenant.
 
         Si l'essai 14j est dépassé mais que la tâche Celery `expire_trials` n'a
-        pas encore tourné, on rebascule sur Gratuit côté lecture pour gater
+        pas encore tourné, on rebascule sur Découverte côté lecture pour gater
         immédiatement les fonctionnalités. La DB sera réconciliée par le run
         quotidien (et par `services.expire_trial()` au prochain accès écrivain).
 
-        Renvoie le plan Gratuit pour toute boutique sans souscription (cas
+        Renvoie le formule Découverte pour toute boutique sans souscription (cas
         ancien stock, tests, ou migration en cours).
         """
         # Import local pour éviter la dépendance circulaire shops ↔ subscriptions

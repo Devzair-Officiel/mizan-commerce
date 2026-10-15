@@ -103,7 +103,7 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
 
 
 def seed_audit_shop(*, slot: int = 1, stdout=None) -> Shop:
-    """Compte d'audit de l'emplacement `slot` et sa boutique (Boutique+). Idempotent."""
+    """Compte d'audit de l'emplacement `slot` et sa boutique (Boutique). Idempotent."""
     email, staff_email = audit_emails(slot)
     e2e = UserFactory(
         email=email,
@@ -127,7 +127,7 @@ def seed_audit_shop(*, slot: int = 1, stdout=None) -> Shop:
     Subscription.objects.update_or_create(
         shop=shop,
         defaults={
-            'plan': SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS),  # noqa: E501
+            'plan': SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE),  # noqa: E501
             'status': Subscription.STATUS_ACTIVE,
             'current_period_start': timezone.now(),
             'current_period_end': None,

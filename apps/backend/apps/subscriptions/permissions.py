@@ -24,26 +24,42 @@ from .models import SubscriptionPlan
 if TYPE_CHECKING:
     from apps.shops.models import Shop
 
-# Mapping feature → plan minimum requis. Source de vérité du gating commercial.
-# Toute feature absente de ce mapping est gatée fermée (fail-closed) : un
+# Mapping feature → plan minimum requis. Source de vérité du gating commercial ;
+# `features_json` de chaque plan en est la projection (cohérence vérifiée par les
+# tests). Toute feature absente de ce mapping est gatée fermée (fail-closed) : un
 # endpoint mal câblé refuse l'accès plutôt que d'ouvrir un trou silencieux.
+# Certaines clés n'ont pas encore de code (visual_inventory, qr_codes…) : elles
+# sont déclarées pour que la grille soit complète, sans endpoint derrière.
 FEATURE_MIN_PLAN: dict[str, str] = {
-    # Plan Gratuit
+    # Découverte
     'products': SubscriptionPlan.CODE_FREE,
     'stock': SubscriptionPlan.CODE_FREE,
     'notes': SubscriptionPlan.CODE_FREE,
     'reminders': SubscriptionPlan.CODE_FREE,
-    # Plan Pro
-    'orders': SubscriptionPlan.CODE_PRO,
-    'invoices': SubscriptionPlan.CODE_PRO,
-    'zakat': SubscriptionPlan.CODE_PRO,
-    'whatsapp': SubscriptionPlan.CODE_PRO,
-    'exports': SubscriptionPlan.CODE_PRO,
-    # Plan Boutique+
-    'public_pages': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-    'partnerships': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-    'multi_user': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-    'ocr': SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+    'orders': SubscriptionPlan.CODE_FREE,
+    'zakat': SubscriptionPlan.CODE_FREE,
+    # Solo
+    'invoices': SubscriptionPlan.CODE_SOLO,
+    'whatsapp': SubscriptionPlan.CODE_SOLO,
+    'zakat_history': SubscriptionPlan.CODE_SOLO,
+    'auto_reminders': SubscriptionPlan.CODE_SOLO,
+    # Boutique
+    'multi_user': SubscriptionPlan.CODE_BOUTIQUE,
+    'roles_permissions': SubscriptionPlan.CODE_BOUTIQUE,
+    'invoice_branding': SubscriptionPlan.CODE_BOUTIQUE,
+    'message_templates': SubscriptionPlan.CODE_BOUTIQUE,
+    'daily_digest': SubscriptionPlan.CODE_BOUTIQUE,
+    'sales_stats': SubscriptionPlan.CODE_BOUTIQUE,
+    'exports': SubscriptionPlan.CODE_BOUTIQUE,
+    'public_pages': SubscriptionPlan.CODE_BOUTIQUE,
+    'loyalty': SubscriptionPlan.CODE_BOUTIQUE,
+    'ocr': SubscriptionPlan.CODE_BOUTIQUE,
+    'visual_inventory': SubscriptionPlan.CODE_BOUTIQUE,
+    'qr_codes': SubscriptionPlan.CODE_BOUTIQUE,
+    'partnerships': SubscriptionPlan.CODE_BOUTIQUE,
+    # Commerce+
+    'audit_log': SubscriptionPlan.CODE_COMMERCE_PLUS,
+    'priority_support': SubscriptionPlan.CODE_COMMERCE_PLUS,
 }
 
 

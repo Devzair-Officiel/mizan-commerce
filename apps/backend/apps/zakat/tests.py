@@ -17,7 +17,7 @@ def setup(email: str, currency: str = 'EUR'):
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}', currency=currency)
     ShopMember.objects.create(shop=shop, user=user, role='owner')
-    attach_subscription(shop)  # Plan Pro requis pour les endpoints zakat.
+    attach_subscription(shop)  # Formule Solo par défaut.
     return user, shop
 
 

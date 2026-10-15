@@ -26,7 +26,7 @@ def setup(email):
 
 
 def subscribe(shop: Shop, code: str) -> None:
-    """Formule active de la boutique (sans souscription : Gratuit)."""
+    """Formule active de la boutique (sans souscription : Découverte)."""
     Subscription.objects.update_or_create(shop=shop, defaults={
         'plan': SubscriptionPlan.objects.get(code=code),
         'status': Subscription.STATUS_ACTIVE,
@@ -319,7 +319,7 @@ class CustomerDisplayNameTest(TestCase):
 
         self.client = APIClient()
         self.user, self.shop = setup('display@example.com')
-        attach_subscription(self.shop)  # Plan Pro requis pour les commandes.
+        attach_subscription(self.shop)  # Formule Solo par défaut.
         self.client.force_authenticate(user=self.user)
         self.karima = Customer.objects.create(shop=self.shop, first_name='Karima', name='Bensouda')  # noqa: E501
         self.ali = Customer.objects.create(shop=self.shop, name='Ali  Haddad')
@@ -460,8 +460,8 @@ class CustomerActivityExportTest(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user, self.shop = setup('export@example.com')
-        # Export réservé à la formule Pro (et au-delà).
-        subscribe(self.shop, SubscriptionPlan.CODE_PRO)
+        # Export réservé à la formule Boutique (et au-delà).
+        subscribe(self.shop, SubscriptionPlan.CODE_BOUTIQUE)
         User.objects.filter(pk=self.user.pk).update(full_name='Youssef Benali')
         self.user.refresh_from_db()
         Shop.objects.filter(pk=self.shop.pk).update(timezone='Europe/Paris')
@@ -490,14 +490,16 @@ class CustomerActivityExportTest(TestCase):
         lines = body.decode('utf-8-sig').splitlines()
         return body, [line.split(';') for line in lines]
 
-    def test_free_plan_forbidden(self):
-        subscribe(self.shop, SubscriptionPlan.CODE_FREE)
-        self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
-        self.assertEqual(self.client.get(self.summary_url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
+    def test_free_and_solo_plans_forbidden(self):
+        for code in (SubscriptionPlan.CODE_FREE, SubscriptionPlan.CODE_SOLO):
+            with self.subTest(code=code):
+                subscribe(self.shop, code)
+                self.assertEqual(self.client.get(self.url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
+                self.assertEqual(self.client.get(self.summary_url).status_code, status.HTTP_403_FORBIDDEN)  # noqa: E501
         self.assertFalse(AuditLog.objects.filter(action='customer_activity_export').exists())
 
-    def test_pro_and_boutique_plus_get_csv(self):
-        for code in (SubscriptionPlan.CODE_PRO, SubscriptionPlan.CODE_BOUTIQUE_PLUS):
+    def test_boutique_and_commerce_plus_get_csv(self):
+        for code in (SubscriptionPlan.CODE_BOUTIQUE, SubscriptionPlan.CODE_COMMERCE_PLUS):  # noqa: E501
             with self.subTest(code=code):
                 subscribe(self.shop, code)
                 _, rows = self._csv()

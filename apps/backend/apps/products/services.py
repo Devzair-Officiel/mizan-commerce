@@ -309,8 +309,12 @@ def create_product(
 
     Le stock initial d'un format (`initial_stock` de sa ligne, articles
     seulement) passe par une entrée de stock, au prix d'achat du format.
+    La limite de la formule est vérifiée dans la même transaction.
     """
+    from apps.subscriptions.limits import enforce_product_limit
+
     with transaction.atomic():
+        enforce_product_limit(shop)
         product = Product.objects.create(shop=shop, **data)
         if variants:
             _check_variant_rows(product, variants, current={})

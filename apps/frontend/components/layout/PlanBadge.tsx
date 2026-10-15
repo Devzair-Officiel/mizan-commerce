@@ -9,7 +9,7 @@ const TONES: Record<PlanBadgeState['kind'], string> = {
   plan: 'bg-secondary text-secondary-foreground',
 };
 
-/** Pastille de la formule courante : « Pro », « Boutique+ »…, « Essai · 12 j » ou « Essai terminé ». */
+/** Pastille de la formule courante : « Solo », « Boutique »…, « Essai · 12 j » ou « Essai terminé ». */
 export function PlanBadge({ state }: { state: PlanBadgeState }) {
   const t = useTranslations('layout.trial');
 

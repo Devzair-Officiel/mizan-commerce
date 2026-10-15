@@ -28,7 +28,7 @@ def _owner_with_page(email: str, slug: str) -> tuple[APIClient, Shop, PublicPage
     Subscription.objects.update_or_create(
         shop=shop,
         defaults={
-            'plan': SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS),  # noqa: E501
+            'plan': SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE),  # noqa: E501
             'status': Subscription.STATUS_ACTIVE,
             'current_period_start': timezone.now(),
         },

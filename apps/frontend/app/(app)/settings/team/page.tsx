@@ -61,7 +61,7 @@ function TeamContent() {
   );
 }
 
-/** Hors Boutique+ : les membres restent visibles et peuvent être retirés, pas modifiés. */
+/** Hors Boutique : les membres restent visibles et peuvent être retirés, pas modifiés. */
 function ReadOnlyMembers() {
   const t = useTranslations('team');
   return (

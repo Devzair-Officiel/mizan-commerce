@@ -1,4 +1,4 @@
-/** Code renvoyé par le backend quand la boutique d'un employé ou d'un admin n'a plus Boutique+. */
+/** Code renvoyé par le backend quand la boutique d'un employé ou d'un admin n'a plus Boutique. */
 const STAFF_SUSPENDED_CODE = 'staff_suspended_plan';
 export const SUSPENDED_PATH = '/suspended';
 

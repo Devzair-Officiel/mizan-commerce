@@ -19,7 +19,7 @@ interface ActivityExportButtonProps {
 
 /**
  * « Exporter » dans la bande de la carte Activité : ouvre la fenêtre d'export, pré-réglée sur le filtre
- * affiché. En dessous de la formule Pro, le bouton reste là et ouvre la carte de mise à niveau, sans appel au serveur.
+ * affiché. En dessous de la formule Boutique, le bouton reste là et ouvre la carte de mise à niveau, sans appel au serveur.
  */
 export function ActivityExportButton({ customerId, customerName, activityFilter, pendingOnly }: ActivityExportButtonProps) {
   const t = useTranslations('customers.export');

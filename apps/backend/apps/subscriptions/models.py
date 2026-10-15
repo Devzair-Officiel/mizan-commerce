@@ -8,17 +8,19 @@ from django.utils import timezone
 class SubscriptionPlan(models.Model):
     """Plan tarifaire géré par l'admin de la plateforme.
 
-    Conforme à `docs/schema_base_donnees.md` §15. Trois plans seedés au démarrage
-    (`free`, `pro`, `boutique_plus`). Les commerçants ne créent pas de plans —
-    ils en souscrivent un.
+    Conforme à `docs/schema_base_donnees.md` §16. Quatre plans seedés par
+    migration : Découverte (`free`), Solo (`solo`), Boutique (`boutique`) et
+    Commerce+ (`commerce_plus`). Les commerçants ne créent pas de plans — ils en
+    souscrivent un.
     """
 
     CODE_FREE = 'free'
-    CODE_PRO = 'pro'
-    CODE_BOUTIQUE_PLUS = 'boutique_plus'
+    CODE_SOLO = 'solo'
+    CODE_BOUTIQUE = 'boutique'
+    CODE_COMMERCE_PLUS = 'commerce_plus'
     # Ordre hiérarchique — utilisé par le gating (FEATURE_MIN_PLAN). Plus l'index
     # est élevé, plus le plan débloque de fonctionnalités.
-    TIER_ORDER = (CODE_FREE, CODE_PRO, CODE_BOUTIQUE_PLUS)
+    TIER_ORDER = (CODE_FREE, CODE_SOLO, CODE_BOUTIQUE, CODE_COMMERCE_PLUS)
 
     PERIOD_MONTH = 'month'
     PERIOD_YEAR = 'year'
@@ -43,6 +45,9 @@ class SubscriptionPlan(models.Model):
     # qualitatif (modules), ces limites quantitatives s'appliquent en sus.
     max_products = models.PositiveIntegerField(null=True, blank=True)
     max_orders_per_month = models.PositiveIntegerField(null=True, blank=True)
+    max_customers = models.PositiveIntegerField(null=True, blank=True)
+    # Membres de la boutique, propriétaire compris.
+    max_members = models.PositiveIntegerField(null=True, blank=True)
     features_json = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

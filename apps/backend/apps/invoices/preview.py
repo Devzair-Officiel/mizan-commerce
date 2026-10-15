@@ -29,7 +29,8 @@ def _reference_shop(neutral: bool) -> Shop:
 
 def reference_invoice(*, neutral: bool = False, lines: int = 3) -> Invoice:
     shop = _reference_shop(neutral)
-    invoice = example_invoice(shop, 'fr')
+    # Maquette de référence : la boutique n'est pas en base, pas de formule à lire.
+    invoice = example_invoice(shop, 'fr', branded=True)
     invoice.number = 'fact-131026-0007'
     invoice.issued_at = datetime(2026, 10, 13, 10, tzinfo=timezone.utc)
     invoice.due_date = datetime(2026, 11, 12).date()

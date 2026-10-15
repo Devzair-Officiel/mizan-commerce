@@ -24,7 +24,7 @@ def setup(email, fulfillment_mode=None):
     user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(name=f'Shop {email}', fulfillment_mode=fulfillment_mode)
     ShopMember.objects.create(shop=shop, user=user, role='owner')
-    attach_subscription(shop)  # Plan Pro requis pour les endpoints orders.
+    attach_subscription(shop)  # Formule Solo par défaut.
     product = Product.objects.create(shop=shop, name='Article test')
     variant = ProductVariant.objects.create(
         shop=shop, product=product, packaging_name='Par défaut',

@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from apps.public_pages.models import ContactButton, PublicPage
 from apps.shops.models import Shop
+from apps.subscriptions.permissions import shop_has_feature
 from .colors import accessible_color
 from .models import Invoice, InvoiceLine
 
@@ -43,8 +44,21 @@ def update_invoice_settings(shop: Shop, data: dict) -> Shop:
 
 
 def snapshot_presentation(
-    invoice: Invoice, shop: Shop, *, language: str, terms: int
+    invoice: Invoice,
+    shop: Shop,
+    *,
+    language: str,
+    terms: int,
+    branded: bool | None = None,
 ) -> dict:
+    """Instantané de présentation figé à l'émission.
+
+    Logo et couleur d'accent relèvent de `invoice_branding` (formule Boutique) :
+    en dessous, la facture sort neutre, les réglages restent enregistrés.
+    `branded` force le choix (maquette de référence, sans boutique en base).
+    """
+    if branded is None:
+        branded = shop_has_feature(shop, 'invoice_branding')
     page = PublicPage.objects.filter(shop=shop).first()
     contacts = ContactButton.objects.filter(
         page__shop=shop, type__in=('email', 'phone')
@@ -58,8 +72,8 @@ def snapshot_presentation(
         .date()
         .isoformat(),
         'language': 'en' if language == 'en' else 'fr',
-        'color': resolved_color(shop),
-        'logo_object_key': shop.logo_object_key,
+        'color': resolved_color(shop) if branded else '',
+        'logo_object_key': shop.logo_object_key if branded else '',
         'activity': page.tagline if page else '',
         'contacts': [{'type': c.type, 'value': c.value} for c in contacts],
         'siret': shop.siret,
@@ -115,7 +129,9 @@ def account_summary(invoice: Invoice) -> dict:
     }
 
 
-def example_invoice(shop: Shop, language: str) -> Invoice:
+def example_invoice(
+    shop: Shop, language: str, branded: bool | None = None
+) -> Invoice:
     """Exemple en mémoire : aucun numéro consommé, aucune facture enregistrée."""
     now = timezone.now()
     issued_on = now.astimezone(ZoneInfo(shop.timezone)).date()
@@ -146,7 +162,11 @@ def example_invoice(shop: Shop, language: str) -> Invoice:
     )
     invoice.total_ttc = invoice.subtotal_ht + invoice.tax_amount
     invoice.presentation = snapshot_presentation(
-        invoice, shop, language=language, terms=shop.default_payment_terms_days
+        invoice,
+        shop,
+        language=language,
+        terms=shop.default_payment_terms_days,
+        branded=branded,
     )
     if shop.invoice_show_order:
         invoice.presentation.update(

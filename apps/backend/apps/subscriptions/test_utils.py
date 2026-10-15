@@ -2,12 +2,12 @@
 
 Depuis que `HasPlanForFeature` gate les endpoints (orders/invoices/zakat/…),
 toute classe `TestCase` qui frappe ces vues doit attribuer une souscription au
-shop de test, sinon `effective_plan` retombe sur Gratuit → 403.
+shop de test, sinon `effective_plan` retombe sur Découverte (free) → 403.
 
 Usage type dans un setUp :
 
     from apps.subscriptions.test_utils import attach_subscription
-    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_PRO)
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_SOLO)
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from django.utils import timezone
 from .models import Subscription, SubscriptionPlan
 
 
-def attach_subscription(shop, plan_code: str = SubscriptionPlan.CODE_PRO) -> Subscription:  # noqa: E501
+def attach_subscription(shop, plan_code: str = SubscriptionPlan.CODE_SOLO) -> Subscription:  # noqa: E501
     """Attache une souscription `active` au shop pour les tests.
 
     Idempotent : si le shop a déjà une souscription, on la met à jour.

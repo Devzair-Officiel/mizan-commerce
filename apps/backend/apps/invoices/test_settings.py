@@ -15,6 +15,8 @@ from apps.public_pages.factories import PublicPageFactory
 from apps.public_pages.services import upload_page_logo
 from apps.shops.models import ShopMember
 from apps.shops.services import delete_shop_logo, upload_shop_logo
+from apps.subscriptions.models import SubscriptionPlan
+from apps.subscriptions.test_utils import attach_subscription
 from .colors import accessible_color, inspect_logo, white_contrast
 from .models import Invoice, InvoiceSequence
 from .pdf import build_invoice_pdf
@@ -301,6 +303,8 @@ def test_account_summary_is_net_isolated_and_frozen(context) -> None:
 @pytest.mark.django_db
 def test_logo_shared_and_kept_when_referenced(context, settings) -> None:
     user, shop, variant, customer = context
+    # Le logo n'apparaît sur la facture qu'à partir de la formule Boutique.
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
     settings.AWS_S3_ENDPOINT_URL = 'https://storage.example.com'
     settings.AWS_ACCESS_KEY_ID = 'test'
     page = PublicPageFactory(shop=shop)

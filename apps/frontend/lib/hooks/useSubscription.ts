@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 
-export type PlanCode = 'free' | 'pro' | 'boutique_plus';
+export type PlanCode = 'free' | 'solo' | 'boutique' | 'commerce_plus';
 export type SubscriptionStatus =
   | 'trialing'
   | 'active'
@@ -25,6 +25,9 @@ export interface SubscriptionPlan {
   billing_period: 'month' | 'year' | 'lifetime' | '';
   max_products: number | null;
   max_orders_per_month: number | null;
+  max_customers: number | null;
+  /** Membres de la boutique, propriétaire compris. */
+  max_members: number | null;
   features_json: string[];
   is_active: boolean;
 }
@@ -41,13 +44,22 @@ export interface Subscription {
   /**
    * Plan *réellement* en vigueur côté gating. Diffère de `plan.code` si le
    * trial est expiré mais que la tâche Celery n'a pas encore rebasculé sur
-   * Gratuit — le frontend doit donc gater sur `effective_plan_code`, pas
+   * Découverte — le frontend doit donc gater sur `effective_plan_code`, pas
    * sur `plan.code`.
    */
   effective_plan_code: PlanCode;
   days_remaining: number | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Grille des formules actives, triée par prix (catalogue commun à toutes les boutiques). */
+export function usePlans() {
+  return useQuery({
+    queryKey: qk.subscription.plans,
+    queryFn: () => apiFetch<SubscriptionPlan[]>('/subscriptions/plans/'),
+    staleTime: Infinity,
+  });
 }
 
 export function useSubscription() {
@@ -58,7 +70,7 @@ export function useSubscription() {
 }
 
 /**
- * Résilie la souscription courante et bascule sur Gratuit.
+ * Résilie la souscription courante et bascule sur Découverte.
  *
  * Tant que Stripe n'est pas branché, c'est la seule mutation acceptée par
  * `POST /api/subscriptions/change/`. Un envoi avec `plan_code` autre que

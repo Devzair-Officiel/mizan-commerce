@@ -2,24 +2,24 @@
  * Audit du compte : badge d'abonnement (sidebar à 1440px, menu burger à 360px) et raccourci clair/sombre du header,
  * en français et en arabe, en clair et en sombre :
  * - la ligne « Abonnement » porte la formule courante, au nom renvoyé par l'API : celui de la vraie souscription de la
- *   boutique d'audit, « Pro », « Essai · 12 j » pendant l'essai, « Essai terminé » après l'essai ; zone ≥ 44px (36px dans la sidebar desktop),
+ *   boutique d'audit, « Solo », « Essai · 12 j » pendant l'essai, « Essai terminé » après l'essai ; zone ≥ 44px (36px dans la sidebar desktop),
  *   dans les limites du panneau (à droite en arabe), et elle mène à Paramètres → Abonnement ;
  * - le raccourci du header (≥ 44px) est collé à la loupe sur mobile, à la barre de recherche sur desktop, côté début de
  *   ligne ; il bascule le thème, son libellé suit, puis le thème revient.
- * Pro, essai et essai terminé sont réécrits dans la réponse `/subscriptions/current/` (comme audit-stock-entry-plan).
+ * Solo, essai et essai terminé sont réécrits dans la réponse `/subscriptions/current/` (comme audit-stock-entry-plan).
  */
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { animationsDone } from './lib/wait.mjs';
 
 const report = createReport();
-const PRO = { code: 'pro', name: 'Pro' };
+const SOLO = { code: 'solo', name: 'Solo' };
 const TRIAL_DAYS = 12;
 
 const STATES = {
-  boutique_plus: (s) => s,
+  boutique: (s) => s,
   trial: (s) => ({ ...s, status: 'trialing', is_trial_expired: false, days_remaining: TRIAL_DAYS }),
-  pro: (s) => ({ ...s, status: 'active', effective_plan_code: 'pro', plan: { ...s.plan, ...PRO }, days_remaining: null }),
+  solo: (s) => ({ ...s, status: 'active', effective_plan_code: 'solo', plan: { ...s.plan, ...SOLO }, days_remaining: null }),
   expired: (s) => ({ ...s, status: 'active', is_trial_expired: true, effective_plan_code: 'free', days_remaining: null }),
 };
 
@@ -40,7 +40,7 @@ async function routePlan(ctx, state) {
 function expectedPill(locale, state) {
   if (state.name === 'trial') return fmt(locale, 'layout.trial.badge_trial', { days: TRIAL_DAYS });
   if (state.name === 'expired') return msg(locale, 'layout.trial.card_expired');
-  return state.name === 'pro' ? PRO.name : state.realName;
+  return state.name === 'solo' ? SOLO.name : state.realName;
 }
 
 const inside = (box, panel) => box && panel && box.x >= panel.x - 1 && box.x + box.width <= panel.x + panel.width + 1;
@@ -111,7 +111,7 @@ async function checkThemeShortcut(page, locale, label) {
 const browser = await launch();
 for (const viewport of VIEWPORTS) {
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const state = { name: 'boutique_plus' };
+  const state = { name: 'boutique' };
   await routePlan(ctx, state);
   for (const locale of ['fr', 'ar']) {
     for (const theme of ['light', 'dark']) {
@@ -123,7 +123,7 @@ for (const viewport of VIEWPORTS) {
       watch.setLabel(label);
       const before = watch.problems.length;
       try {
-        for (const name of ['boutique_plus', 'pro', 'expired', 'trial']) {
+        for (const name of ['boutique', 'solo', 'expired', 'trial']) {
           state.name = name;
           await checkBadge(page, viewport, locale, label, state);
         }
@@ -131,7 +131,7 @@ for (const viewport of VIEWPORTS) {
       } catch (error) {
         report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
       } finally {
-        state.name = 'boutique_plus';
+        state.name = 'boutique';
       }
       const problems = watch.problems.slice(before);
       report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);

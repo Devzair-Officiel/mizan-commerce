@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 
-/** Fonctions réservées à une formule (Pro ou Boutique+) pour lesquelles une page ou un onglet est masqué. */
+/** Fonctions réservées à une formule (Solo et au-delà) pour lesquelles une page ou un onglet est masqué. */
 export type UpgradeFeature = 'multi_user' | 'public_pages' | 'ocr' | 'whatsapp' | 'exports';
 
 /** Carte « Disponible avec la formule … », à la place d'une page ou d'un onglet hors formule. */

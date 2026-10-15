@@ -25,7 +25,7 @@ class CustomerFollowupTest(TestCase):
         ShopMember.objects.create(shop=self.shop, user=user, role='owner')
         Subscription.objects.create(
             shop=self.shop,
-            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS),
+            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE),
             status=Subscription.STATUS_ACTIVE,
             current_period_start=timezone.now(),
         )
@@ -74,7 +74,7 @@ class MessageHistoryTest(TestCase):
         ShopMember.objects.create(shop=self.shop, user=user, role='owner')
         Subscription.objects.create(
             shop=self.shop,
-            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS),
+            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE),
             status=Subscription.STATUS_ACTIVE,
             current_period_start=timezone.now(),
         )
@@ -149,7 +149,7 @@ class MessageTemplatesTest(TestCase):
         self.client.force_authenticate(user=self.owner)
 
     @staticmethod
-    def make_shop(name, owner, plan=SubscriptionPlan.CODE_BOUTIQUE_PLUS):
+    def make_shop(name, owner, plan=SubscriptionPlan.CODE_BOUTIQUE):
         shop = Shop.objects.create(name=name, country='FR')
         ShopMember.objects.create(shop=shop, user=owner, role='owner')
         Subscription.objects.create(
