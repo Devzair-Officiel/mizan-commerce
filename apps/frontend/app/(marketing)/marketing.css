@@ -157,29 +157,36 @@
 
 /* HERO */
 .mkt .hero {
+  /* Halo clair en haut à gauche, lueur derrière la scène pour détacher l'arche verte du fond. */
   background:
-    radial-gradient(130% 90% at 80% -10%, rgba(42,108,87,0.5), transparent 55%),
-    radial-gradient(90% 70% at 0% 110%, rgba(203,162,74,0.10), transparent 60%),
-    var(--mkt-green-850);
+    radial-gradient(55% 60% at 6% -8%, color-mix(in srgb, var(--mkt-gold-soft) 16%, transparent), transparent 70%),
+    radial-gradient(50% 60% at 76% 52%, color-mix(in srgb, var(--mkt-green-600) 70%, transparent), transparent 72%),
+    radial-gradient(35% 40% at 78% 70%, color-mix(in srgb, var(--mkt-gold-soft) 9%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--mkt-green-800) 0%, var(--mkt-green-850) 45%, var(--mkt-green-900) 100%);
   color: var(--mkt-cream);
   position: relative; overflow: hidden;
 }
+/* Hero plus large que le reste de la page (.wrap = 1180px) et à hauteur d'écran sous la nav (78px) :
+   les deux blocs occupent tout l'en-tête au lieu de rester serrés au centre. */
 .mkt .hero-grid {
-  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 40px; align-items: center;
-  padding: 84px 0 96px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(64px, 10vw, 200px); align-items: center;
+  max-width: 1640px; min-height: calc(100svh - 78px);
+  padding: 72px clamp(28px, 5vw, 96px) 80px;
 }
-.mkt .hero h1 { font-size: clamp(42px, 5.2vw, 72px); line-height: 1.14; }
+.mkt .hero h1 { font-size: clamp(42px, 5.2vw, 60px); line-height: 1.14; }
 .mkt .hero h1 em { color: var(--mkt-gold-soft); font-style: normal; }
 .mkt .hero h1 .serif-i { color: var(--mkt-gold-soft); }
-.mkt .hero-sub { font-size: 21px; color: rgba(246,241,230,0.78); max-width: 540px; margin: 30px 0 34px; }
+.mkt .hero-sub { font-size: 21px; color: rgba(246,241,230,0.78); max-width: 640px; margin: 30px 0 34px; }
 .mkt .hero-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
 .mkt .hero-trust { display: flex; align-items: center; gap: 18px; margin-top: 26px; color: rgba(246,241,230,0.6); font-size: 15px; font-weight: 600; }
 .mkt .hero-trust .chk { width: 20px; height: 20px; border-radius: 50%; background: rgba(227,201,135,0.18); display: inline-flex; align-items: center; justify-content: center; margin-right: 7px; }
-.mkt .hero-phones { position: relative; display: flex; justify-content: center; align-items: flex-end; min-height: 560px; }
 .mkt .phone-float { animation: mkt-float 6s ease-in-out infinite; }
 @keyframes mkt-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
-.mkt .hero-back { position: absolute; right: -4%; bottom: 40px; opacity: 0.9; transform: scale(0.86) rotate(4deg); filter: blur(0.2px); z-index: 1; }
-.mkt .hero-front { position: relative; z-index: 2; }
+.mkt .hero-scene { display: flex; justify-content: flex-end; }
+.mkt .hero-scene-img { width: 100%; max-width: 720px; height: auto; }
+@media (prefers-reduced-motion: reduce) {
+  .mkt .hero-scene-img.phone-float { animation: none; }
+}
 
 /* Phone mock — scale piloté par --phone-scale, surchargeable en média-query */
 .mkt .phone-mock {
@@ -341,11 +348,9 @@
   .mkt .nav-right { display: none; }
   .mkt .nav-burger { display: inline-flex; align-items: center; justify-content: center; }
 
-  .mkt .hero-grid { grid-template-columns: 1fr; gap: 10px; padding: 60px 0 40px; }
-  /* Un seul téléphone sous 960px — le 2ᵉ déborde et casse la marge droite */
-  .mkt .hero-back { display: none; }
-  .mkt .hero-phones { min-height: 0; margin-top: 10px; }
-  .mkt .hero-front { --phone-scale: 0.44; }
+  .mkt .hero-grid { grid-template-columns: 1fr; gap: 10px; min-height: 0; padding: 60px 28px 40px; }
+  .mkt .hero-scene { justify-content: center; margin-top: 10px; }
+  .mkt .hero-scene-img { width: min(90vw, 600px); max-width: 100%; }
   .mkt .section { padding: 80px 0; }
   .mkt .sec-head { margin-bottom: 40px; }
   .mkt .feat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -377,7 +382,6 @@
   .mkt .feat-grid { grid-template-columns: 1fr; }
   .mkt .foot-grid { grid-template-columns: 1fr; gap: 28px; }
   .mkt .hero-actions .btn { flex: 1; justify-content: center; }
-  .mkt .hero-front { --phone-scale: 0.36; }
   /* Sceau halal : ne déborde plus sur les petits écrans (<360px) */
   .mkt .halal-seal { width: min(280px, 76vw); height: min(280px, 76vw); }
   .mkt .halal-seal .ar { font-size: clamp(64px, 22vw, 84px); }
