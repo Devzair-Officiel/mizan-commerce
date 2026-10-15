@@ -24,7 +24,7 @@ export function MenuRow({ icon, label, onClick, badge, active = false, danger = 
     <button
       type="button"
       onClick={onClick}
-      className={`relative flex w-full items-center gap-3 min-h-13.5 ps-3 pe-3.5 text-start transition-colors ${
+      className={`relative flex w-full items-center gap-3 min-h-13.5 ps-3 pe-3.5 text-start transition-all active:scale-[0.98] ${
         active ? 'bg-secondary' : 'hover:bg-muted/40 active:bg-muted/60'
       }`}
     >

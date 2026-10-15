@@ -10,7 +10,7 @@ import { useShop } from '@/lib/hooks/useShop';
 import { passesGate, useNavGroups } from '@/lib/navigation';
 import { SidebarNavGroup } from './SidebarNavGroup';
 import { SidebarAccountMenu } from './SidebarAccountMenu';
-import { SidebarTrialCard } from './SidebarTrialCard';
+import { SidebarPlanBadge } from './SidebarPlanBadge';
 
 export function DesktopSidebar() {
   const tNav = useTranslations('layout.nav');
@@ -74,9 +74,9 @@ export function DesktopSidebar() {
         ))}
       </nav>
 
-      {/* Footer : carte essai + menu compte */}
+      {/* Footer : formule courante + menu compte */}
       <div className="pb-3 border-t border-border pt-3">
-        <SidebarTrialCard />
+        <SidebarPlanBadge />
         <SidebarAccountMenu
           me={me ?? null}
           membership={membership}

@@ -10,7 +10,7 @@ import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 import { MenuHeader } from '@/components/layout/MenuHeader';
 import { MenuSection } from '@/components/layout/MenuSection';
 import { MenuRow } from '@/components/layout/MenuRow';
-import { MenuTrialCard } from '@/components/layout/MenuTrialCard';
+import { MenuPlanBadge } from '@/components/layout/MenuPlanBadge';
 import { useShop } from '@/lib/hooks/useShop';
 import { useMe } from '@/lib/hooks/useMe';
 import { useNavGroups, passesGate, isNavActive, ACCOUNT_ENTRIES, type NavGroup } from '@/lib/navigation';
@@ -130,7 +130,7 @@ export function BurgerMenuDrawer() {
             <h2 className="m-0 px-1.5 text-sm font-bold text-foreground tracking-[-0.005em]">{tc('language')}</h2>
             <LanguageSwitcher />
           </section>
-          <MenuTrialCard onNavigate={handleNav} />
+          <MenuPlanBadge onNavigate={handleNav} />
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <MenuRow icon={<LogOut className="h-4.5 w-4.5" />} label={tc('logout')} onClick={handleLogout} danger isFirst />
           </div>

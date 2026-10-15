@@ -29,7 +29,8 @@
     "audit:scroll-lock": "node audit-scroll-lock.mjs",
     "audit:header-bands": "node audit-header-bands.mjs",
     "audit:show-more": "node audit-show-more.mjs",
-    "audit:stock-entry-plan": "node audit-stock-entry-plan.mjs"
+    "audit:stock-entry-plan": "node audit-stock-entry-plan.mjs",
+    "audit:account-menu": "node audit-account-menu.mjs"
   },
   "dependencies": {
     "playwright": "1.62.1"

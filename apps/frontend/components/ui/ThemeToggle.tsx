@@ -8,23 +8,25 @@ import { useAccountTheme } from '@/lib/hooks/useAccountTheme';
 import { useIsClient } from '@/lib/hooks/useIsClient';
 import { ColorPickerSheet } from '@/components/ui/color-picker';
 
+/** Bascule clair ↔ sombre du header, enregistrée sur le compte ; sur grand écran, même pastille que la barre de recherche. */
 export function ThemeToggleButton() {
   const tc = useTranslations('layout.themeDrawer');
   const { resolvedTheme } = useTheme();
   const { setThemeMode } = useAccountTheme();
   const mounted = useIsClient();
 
-  if (!mounted) return <div className="h-8 w-8" />;
+  if (!mounted) return <div className="h-11 w-11 shrink-0" />;
 
   const isDark = resolvedTheme === 'dark';
 
   return (
     <button
+      type="button"
       onClick={() => setThemeMode(isDark ? 'light' : 'dark')}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-all active:scale-95 lg:border lg:border-border lg:bg-card"
       aria-label={isDark ? tc('switch_to_light') : tc('switch_to_dark')}
     >
-      {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+      {isDark ? <SunIcon className="h-4.5 w-4.5" /> : <MoonIcon className="h-4.5 w-4.5" />}
     </button>
   );
 }

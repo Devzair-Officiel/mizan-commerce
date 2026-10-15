@@ -12,6 +12,9 @@ import { LOCALE_LABELS } from '@/components/layout/LanguageSwitcher';
 import { useLocaleSwitch } from '@/lib/hooks/useLocaleSwitch';
 import { SidebarAccountTrigger } from './SidebarAccountTrigger';
 
+/** Entrée du menu compte : 44 px de haut au minimum (design_principles.md §1). */
+const ITEM_CLS = 'flex min-h-11 items-center gap-3 rounded-lg ps-3 pe-3 text-sm text-foreground hover:bg-muted data-highlighted:bg-muted cursor-pointer transition-all active:scale-[0.98]';
+
 function AccountNavItems({
   entries,
   pathname,
@@ -29,7 +32,7 @@ function AccountNavItems({
         return (
           <Menu.Item
             key={href}
-            className={`flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm cursor-pointer transition-colors ${
+            className={`flex min-h-11 items-center gap-3 rounded-lg ps-3 pe-3 text-sm cursor-pointer transition-all active:scale-[0.98] ${
               active
                 ? 'bg-secondary text-secondary-foreground font-semibold'
                 : 'text-foreground hover:bg-muted data-highlighted:bg-muted'
@@ -87,7 +90,7 @@ export function SidebarAccountMenu({
                   key={loc}
                   value={loc}
                   lang={loc}
-                  className="flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm cursor-pointer transition-colors text-foreground hover:bg-muted data-highlighted:bg-muted"
+                  className={ITEM_CLS}
                 >
                   <Menu.RadioItemIndicator className="h-4 w-4 shrink-0 flex items-center justify-center">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -99,14 +102,14 @@ export function SidebarAccountMenu({
             </Menu.RadioGroup>
             <Menu.Separator className="my-1 border-t border-border" />
             <Menu.Item
-              className="flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm text-foreground hover:bg-muted data-highlighted:bg-muted cursor-pointer transition-colors"
+              className={ITEM_CLS}
               onClick={toggleThemeDrawer}
             >
               <Palette className="h-4 w-4 shrink-0 text-muted-foreground" />
               {tc('appearance')}
             </Menu.Item>
             <Menu.Item
-              className="flex items-center gap-3 rounded-lg ps-3 pe-3 py-2.5 text-sm text-foreground hover:bg-muted data-highlighted:bg-muted cursor-pointer transition-colors"
+              className={ITEM_CLS}
               onClick={onLogout}
             >
               <LogoutIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
