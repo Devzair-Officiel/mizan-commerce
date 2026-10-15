@@ -1,9 +1,9 @@
 /**
  * Audit du compte : badge d'abonnement (sidebar à 1440px, menu burger à 360px) et raccourci clair/sombre du header,
  * en français et en arabe, en clair et en sombre :
- * - le badge affiche la formule courante : « Boutique+ » (la vraie souscription de la boutique d'audit),
- *   « Pro », « Essai · 12 j » pendant l'essai, « Essai terminé » et « Gratuit » après l'essai ; zone ≥ 44px,
- *   dans les limites du panneau (à droite en arabe), et il mène à Paramètres → Abonnement ;
+ * - la ligne « Abonnement » porte la formule courante, au nom renvoyé par l'API : celui de la vraie souscription de la
+ *   boutique d'audit, « Pro », « Essai · 12 j » pendant l'essai, « Essai terminé » après l'essai ; zone ≥ 44px (36px dans la sidebar desktop),
+ *   dans les limites du panneau (à droite en arabe), et elle mène à Paramètres → Abonnement ;
  * - le raccourci du header (≥ 44px) est collé à la loupe sur mobile, à la barre de recherche sur desktop, côté début de
  *   ligne ; il bascule le thème, son libellé suit, puis le thème revient.
  * Pro, essai et essai terminé sont réécrits dans la réponse `/subscriptions/current/` (comme audit-stock-entry-plan).
@@ -28,6 +28,7 @@ async function routePlan(ctx, state) {
     try {
       const response = await route.fetch();
       const subscription = await response.json();
+      state.realName ??= subscription.plan.name;
       await route.fulfill({ response, json: STATES[state.name](subscription) });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
@@ -35,13 +36,11 @@ async function routePlan(ctx, state) {
   });
 }
 
-/** Libellé attendu du badge pour l'état `name`. */
-const expectedLabel = (locale, name) => msg(locale, name === 'expired' ? 'layout.trial.card_expired' : 'settings.subscription.title');
-
-/** Pastille attendue : la formule, ou les jours d'essai restants. */
-function expectedPill(locale, name) {
-  if (name === 'trial') return fmt(locale, 'layout.trial.badge_trial', { days: TRIAL_DAYS });
-  return msg(locale, `settings.subscription.plans.${name === 'expired' ? 'free' : name}.name`);
+/** Pastille attendue : le nom de la formule tel que l'API le donne, les jours d'essai restants, ou l'essai terminé. */
+function expectedPill(locale, state) {
+  if (state.name === 'trial') return fmt(locale, 'layout.trial.badge_trial', { days: TRIAL_DAYS });
+  if (state.name === 'expired') return msg(locale, 'layout.trial.card_expired');
+  return state.name === 'pro' ? PRO.name : state.realName;
 }
 
 const inside = (box, panel) => box && panel && box.x >= panel.x - 1 && box.x + box.width <= panel.x + panel.width + 1;
@@ -61,15 +60,18 @@ async function openMenu(page, viewport, locale, label) {
   return { panel, badge: panel.getByRole('button').filter({ hasText: label }) };
 }
 
-async function checkBadge(page, viewport, locale, label, name) {
-  const want = expectedLabel(locale, name);
+async function checkBadge(page, viewport, locale, label, state) {
+  const { name } = state;
+  const want = msg(locale, 'settings.subscription.title');
   const { panel, badge } = await openMenu(page, viewport, locale, want);
   await badge.waitFor({ timeout: 10000 });
-  const pill = expectedPill(locale, name);
+  const pill = expectedPill(locale, state);
   const text = (await badge.innerText()).replace(/\s+/g, ' ').trim();
   const box = await badge.boundingBox();
   report.check(text.includes(want) && text.includes(pill), `${label} : ${name}, badge « ${text} » (attendu « ${want} » + « ${pill} »)`);
-  report.check(box.height >= 44 && inside(box, await panel.boundingBox()), `${label} : ${name}, badge de ${Math.round(box.height)}px de haut, dans le panneau`);
+  // Lignes de 36px dans la sidebar desktop (pointeur fin, maquette du lot 7a), 44px au doigt.
+  const minHeight = viewport.mobile ? 44 : 36;
+  report.check(box.height >= minHeight - 0.5 && inside(box, await panel.boundingBox()), `${label} : ${name}, badge de ${Math.round(box.height)}px de haut (≥ ${minHeight}), dans le panneau`);
   if (name !== 'trial') return;
   await badge.click();
   await page.waitForURL(/\/settings\/subscription$/);
@@ -123,7 +125,7 @@ for (const viewport of VIEWPORTS) {
       try {
         for (const name of ['boutique_plus', 'pro', 'expired', 'trial']) {
           state.name = name;
-          await checkBadge(page, viewport, locale, label, name);
+          await checkBadge(page, viewport, locale, label, state);
         }
         await checkThemeShortcut(page, locale, label);
       } catch (error) {

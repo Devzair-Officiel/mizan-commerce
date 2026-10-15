@@ -1,15 +1,17 @@
-import type { PlanCode, Subscription } from '@/lib/hooks/useSubscription';
+import type { Subscription } from '@/lib/hooks/useSubscription';
 
-/** Ce qu'affiche le badge d'abonnement de la sidebar et du menu mobile. */
+/**
+ * Ce qu'affiche le badge d'abonnement (sidebar, menu mobile) : le nom de la formule tel que
+ * GET /subscriptions/current/ le renvoie, sans logique propre à une formule.
+ */
 export type PlanBadgeState =
   | { kind: 'trial'; days: number }
-  | { kind: 'expired'; plan: PlanCode }
-  | { kind: 'plan'; plan: PlanCode };
+  | { kind: 'expired' }
+  | { kind: 'plan'; name: string };
 
 export function planBadgeState(subscription: Subscription): PlanBadgeState {
-  const plan = subscription.effective_plan_code;
-  if (subscription.is_trial_expired && plan === 'free') return { kind: 'expired', plan };
+  if (subscription.is_trial_expired) return { kind: 'expired' };
   const days = subscription.days_remaining;
   if (subscription.status === 'trialing' && days !== null && days >= 0) return { kind: 'trial', days };
-  return { kind: 'plan', plan };
+  return { kind: 'plan', name: subscription.plan.name };
 }

@@ -130,6 +130,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     sales_period = models.CharField(
         max_length=3, choices=SALES_PERIOD_CHOICES, default='7d',
     )
+    # Sidebar desktop repliée en rail, gardée d'une visite à l'autre.
+    sidebar_collapsed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

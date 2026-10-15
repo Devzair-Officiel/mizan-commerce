@@ -3,20 +3,22 @@
 import { useTranslations } from 'next-intl';
 import type { PlanBadgeState } from './planBadgeState';
 
-/** Pastille de la formule courante : « Pro », « Gratuit »… ou « Essai · 12 j ». */
+const TONES: Record<PlanBadgeState['kind'], string> = {
+  trial: 'bg-primary text-primary-foreground',
+  expired: 'bg-destructive/10 text-destructive',
+  plan: 'bg-secondary text-secondary-foreground',
+};
+
+/** Pastille de la formule courante : « Pro », « Boutique+ »…, « Essai · 12 j » ou « Essai terminé ». */
 export function PlanBadge({ state }: { state: PlanBadgeState }) {
   const t = useTranslations('layout.trial');
-  const tPlans = useTranslations('settings.subscription.plans');
 
-  const label = state.kind === 'trial' ? t('badge_trial', { days: state.days }) : tPlans(`${state.plan}.name`);
-  const tone = state.kind === 'trial'
-    ? 'bg-primary text-primary-foreground'
-    : state.plan === 'free'
-      ? 'bg-muted text-foreground'
-      : 'bg-secondary text-secondary-foreground';
+  const label = state.kind === 'trial'
+    ? t('badge_trial', { days: state.days })
+    : state.kind === 'expired' ? t('card_expired') : state.name;
 
   return (
-    <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums ${tone}`}>
+    <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums ${TONES[state.kind]}`}>
       {label}
     </span>
   );

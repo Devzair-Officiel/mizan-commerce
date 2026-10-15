@@ -135,6 +135,7 @@ Compte utilisateur (commerçant ou partenaire potentiel).
 | phone | VARCHAR(30) | | Téléphone optionnel |
 | language | VARCHAR(2) | NOT NULL, DEFAULT 'fr' | `fr`, `ar`, `en` — langue de l'interface, reprise par les textes écrits hors requête (rappels automatiques, résumé du jour) |
 | sales_period | VARCHAR(3) | NOT NULL, DEFAULT '7d' | `7d`, `12m`, `all` — période du bloc Ventes de l'accueil, gardée d'une visite à l'autre |
+| sidebar_collapsed | BOOLEAN | NOT NULL, DEFAULT false | Sidebar desktop repliée en rail, gardée d'une visite à l'autre |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | Désactivation (RGPD) |
 | email_verified_at | TIMESTAMPTZ | | Date validation email |
 | last_login_at | TIMESTAMPTZ | | Dernière connexion |

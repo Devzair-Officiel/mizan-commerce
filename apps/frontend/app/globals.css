@@ -78,14 +78,15 @@
   --input:                oklch(0.90 0.014 90);
   --ring:                 oklch(0.52 0.075 170);
   --radius: 0.625rem;
-  --sidebar:                    oklch(0.945 0.012 90);
-  --sidebar-foreground:         oklch(0.27 0.02 170);
-  --sidebar-primary:            oklch(0.52 0.075 170);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent:             oklch(0.93 0.0225 170);
-  --sidebar-accent-foreground:  oklch(0.30 0.0450 170);
-  --sidebar-border:             oklch(0.90 0.014 90);
-  --sidebar-ring:               oklch(0.52 0.075 170);
+  /* Sidebar desktop : suit le thème appliqué en JS (lib/themes.ts), clair, sombre ou personnalisé. */
+  --sidebar:                    var(--card);
+  --sidebar-foreground:         var(--foreground);
+  --sidebar-primary:            var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent:             var(--secondary);
+  --sidebar-accent-foreground:  var(--secondary-foreground);
+  --sidebar-border:             var(--border);
+  --sidebar-ring:               var(--ring);
   --bg-gradient: linear-gradient(to bottom, oklch(0.985 0.006 85) 0%, oklch(0.965 0.012 85) 100%);
 }
 

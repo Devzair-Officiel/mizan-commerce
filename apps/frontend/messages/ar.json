@@ -156,6 +156,13 @@
       "role_admin": "مدير",
       "role_staff": "عضو"
     },
+    "sidebar": {
+      "nav_label": "التنقل الرئيسي",
+      "collapse": "طي القائمة",
+      "expand": "توسيع القائمة",
+      "theme": "المظهر",
+      "account_menu": "الحساب والتفضيلات"
+    },
     "search": {
       "title": "بحث",
       "placeholder": "ابحث عن طلب، عميل…",

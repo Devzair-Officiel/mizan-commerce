@@ -156,6 +156,13 @@
       "role_admin": "administrateur",
       "role_staff": "membre"
     },
+    "sidebar": {
+      "nav_label": "Navigation principale",
+      "collapse": "Replier le menu",
+      "expand": "Déplier le menu",
+      "theme": "Thème",
+      "account_menu": "Compte et préférences"
+    },
     "search": {
       "title": "Recherche",
       "placeholder": "Rechercher une commande, un client…",

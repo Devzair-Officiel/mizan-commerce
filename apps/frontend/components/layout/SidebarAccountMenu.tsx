@@ -1,118 +1,81 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Palette } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { LogOut, Palette } from 'lucide-react';
 import { Menu } from '@base-ui/react/menu';
-import { isNavActive, ACCOUNT_ENTRIES, passesGate, type NavLabelKey } from '@/lib/navigation';
-import { LogoutIcon } from '@/lib/navigation';
-import type { ModuleKey, ShopRole } from '@/lib/hooks/useMe';
-import { LOCALES } from '@/i18n/locales';
+import { BRIGHTNESS_OPTIONS } from '@/components/ui/BrightnessToggle';
+import { LOCALES, isLocale } from '@/i18n/locales';
 import { LOCALE_LABELS } from '@/components/layout/LanguageSwitcher';
+import { useAccountTheme } from '@/lib/hooks/useAccountTheme';
 import { useLocaleSwitch } from '@/lib/hooks/useLocaleSwitch';
+import { isThemeMode } from '@/lib/themes';
+import { PlanBadge } from './PlanBadge';
+import type { PlanBadgeState } from './planBadgeState';
 import { SidebarAccountTrigger } from './SidebarAccountTrigger';
 
 /** Entrée du menu compte : 44 px de haut au minimum (design_principles.md §1). */
-const ITEM_CLS = 'flex min-h-11 items-center gap-3 rounded-lg ps-3 pe-3 text-sm text-foreground hover:bg-muted data-highlighted:bg-muted cursor-pointer transition-all active:scale-[0.98]';
+const ITEM_BASE = 'flex min-h-11 items-center gap-3 rounded-lg ps-3 pe-3 text-sm outline-none data-highlighted:bg-muted cursor-pointer transition-all active:scale-[0.98]';
+const ITEM_CLS = `${ITEM_BASE} text-sidebar-foreground`;
+const LABEL_CLS = 'px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground';
 
-function AccountNavItems({
-  entries,
-  pathname,
-  router,
-}: {
-  entries: typeof ACCOUNT_ENTRIES;
-  pathname: string;
-  router: ReturnType<typeof useRouter>;
-}) {
-  const tNav = useTranslations('layout.nav');
-  return (
-    <>
-      {entries.map(({ href, labelKey, icon: Icon }) => {
-        const active = isNavActive(href, pathname);
-        return (
-          <Menu.Item
-            key={href}
-            className={`flex min-h-11 items-center gap-3 rounded-lg ps-3 pe-3 text-sm cursor-pointer transition-all active:scale-[0.98] ${
-              active
-                ? 'bg-secondary text-secondary-foreground font-semibold'
-                : 'text-foreground hover:bg-muted data-highlighted:bg-muted'
-            }`}
-            onClick={() => router.push(href)}
-          >
-            <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-            {tNav(labelKey as NavLabelKey)}
-          </Menu.Item>
-        );
-      })}
-    </>
-  );
-}
-
-export function SidebarAccountMenu({
-  me,
-  membership,
-  pathname,
-  onLogout,
-  toggleThemeDrawer,
-}: {
-  me: { full_name: string } | null;
-  membership: { is_admin: boolean; permissions: ModuleKey[]; role: ShopRole } | null;
-  pathname: string;
+/** Menu du compte du rail : formule, clair / sombre / système, Apparence, langue, Se déconnecter. S'ouvre côté fin de ligne. */
+export function SidebarAccountMenu({ fullName, plan, onAppearance, onLogout }: {
+  fullName: string | null;
+  plan: PlanBadgeState | null;
+  onAppearance: () => void;
   onLogout: () => void;
-  toggleThemeDrawer: () => void;
 }) {
+  const t = useTranslations('layout.themeDrawer');
   const tc = useTranslations('layout.common');
-  const router = useRouter();
+  const tSidebar = useTranslations('layout.sidebar');
+  const { theme } = useTheme();
+  const { setThemeMode } = useAccountTheme();
   const { current: currentLocale, switchLocale } = useLocaleSwitch();
-
-  const allowedAccountEntries = ACCOUNT_ENTRIES.filter((e) =>
-    passesGate(e.gate, membership),
-  );
 
   return (
     <Menu.Root>
-      <SidebarAccountTrigger
-        fullName={me?.full_name ?? null}
-        role={membership?.role ?? null}
-      />
+      <SidebarAccountTrigger fullName={fullName} plan={plan} label={[fullName, tSidebar('account_menu')].filter(Boolean).join(' · ')} />
       <Menu.Portal>
-        <Menu.Positioner side="top" align="start" sideOffset={6} className="z-50 w-52">
-          <Menu.Popup className="rounded-xl border border-border bg-card shadow-lg p-1 outline-none">
-            <AccountNavItems entries={allowedAccountEntries} pathname={pathname} router={router} />
-            <Menu.Separator className="my-1 border-t border-border" />
-            <Menu.RadioGroup
-              value={currentLocale}
-              onValueChange={(v) => switchLocale(v as typeof LOCALES[number])}
-              aria-label={tc('language')}
-            >
-              {LOCALES.map((loc) => (
-                <Menu.RadioItem
-                  key={loc}
-                  value={loc}
-                  lang={loc}
-                  className={ITEM_CLS}
-                >
-                  <Menu.RadioItemIndicator className="h-4 w-4 shrink-0 flex items-center justify-center">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  </Menu.RadioItemIndicator>
-                  <span className="empty:hidden" />
-                  {LOCALE_LABELS[loc]}
-                </Menu.RadioItem>
-              ))}
-            </Menu.RadioGroup>
-            <Menu.Separator className="my-1 border-t border-border" />
-            <Menu.Item
-              className={ITEM_CLS}
-              onClick={toggleThemeDrawer}
-            >
-              <Palette className="h-4 w-4 shrink-0 text-muted-foreground" />
-              {tc('appearance')}
-            </Menu.Item>
-            <Menu.Item
-              className={ITEM_CLS}
-              onClick={onLogout}
-            >
-              <LogoutIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        {/* Déclencheur de 44px centré dans le rail de 80px : 18px jusqu'au bord, puis 8px d'écart. */}
+        <Menu.Positioner side="inline-end" align="end" sideOffset={26} className="z-50 w-60">
+          <Menu.Popup className="rounded-xl border border-sidebar-border bg-sidebar/70 p-1.5 shadow-lg backdrop-blur-xl outline-none">
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-sidebar-foreground">{fullName ?? '—'}</span>
+              {plan && <PlanBadge state={plan} />}
+            </div>
+            <Menu.Separator className="my-1 border-t border-sidebar-border" />
+            <Menu.Group>
+              <Menu.GroupLabel className={LABEL_CLS}>{tSidebar('theme')}</Menu.GroupLabel>
+              <Menu.RadioGroup value={isThemeMode(theme) ? theme : 'system'} onValueChange={(v) => { if (isThemeMode(v)) setThemeMode(v); }}>
+                {BRIGHTNESS_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
+                  <Menu.RadioItem key={value} value={value} closeOnClick={false} className={ITEM_CLS}>
+                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="flex-1">{t(labelKey)}</span>
+                    <Menu.RadioItemIndicator className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  </Menu.RadioItem>
+                ))}
+              </Menu.RadioGroup>
+              <Menu.Item className={ITEM_CLS} onClick={onAppearance}>
+                <Palette className="h-4 w-4 shrink-0 text-muted-foreground" />
+                {tc('appearance')}
+              </Menu.Item>
+            </Menu.Group>
+            <Menu.Separator className="my-1 border-t border-sidebar-border" />
+            <Menu.Group>
+              <Menu.GroupLabel className={LABEL_CLS}>{tc('language')}</Menu.GroupLabel>
+              <Menu.RadioGroup value={currentLocale} onValueChange={(v) => { if (isLocale(v)) switchLocale(v); }}>
+                {LOCALES.map((loc) => (
+                  <Menu.RadioItem key={loc} value={loc} lang={loc} className={ITEM_CLS}>
+                    <span className="flex-1">{LOCALE_LABELS[loc]}</span>
+                    <Menu.RadioItemIndicator className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  </Menu.RadioItem>
+                ))}
+              </Menu.RadioGroup>
+            </Menu.Group>
+            <Menu.Separator className="my-1 border-t border-sidebar-border" />
+            <Menu.Item className={`${ITEM_BASE} text-destructive`} onClick={onLogout}>
+              <LogOut className="h-4 w-4 shrink-0 rtl:-scale-x-100" />
               {tc('logout')}
             </Menu.Item>
           </Menu.Popup>

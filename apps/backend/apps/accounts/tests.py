@@ -153,6 +153,16 @@ class AuthFlowTest(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.primary_color, 'sage')
 
+    def test_me_remembers_sidebar_collapsed(self):
+        self.client.force_authenticate(user=self.user)
+        self.assertFalse(self.client.get(reverse('auth-me')).data['sidebar_collapsed'])
+        response = self.client.patch(
+            reverse('auth-me'), {'sidebar_collapsed': True}, format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.sidebar_collapsed)
+
     def test_change_password(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(reverse('auth-change-password'), {

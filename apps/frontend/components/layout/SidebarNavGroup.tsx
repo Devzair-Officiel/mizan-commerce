@@ -1,75 +1,67 @@
 'use client';
 
-import Link from 'next/link';
+import { useId, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { isNavActive, passesGate, type NavGroup, type NavLabelKey } from '@/lib/navigation';
+import { passesGate, type NavEntry } from '@/lib/navigation';
 import type { ModuleKey } from '@/lib/hooks/useMe';
 import type { Feature } from '@/lib/hooks/usePlanGating';
 import { useNavBadges } from '@/lib/hooks/useNavBadges';
+import { SidebarNavAccordion, type SidebarSubItem } from './SidebarNavAccordion';
+import { SidebarNavFlyout } from './SidebarNavFlyout';
+import { SidebarNavItem } from './SidebarNavItem';
 
-export function SidebarNavGroup({
-  group,
-  membership,
-  can,
-  pathname,
-}: {
-  group: NavGroup;
+/**
+ * Groupe de la sidebar desktop. Déployée : titre en 15 px gras, items indentés de 10 px dessous (Accueil, sans titre,
+ * reste à plat). Rail : un filet sépare les groupes. Une entrée à sous-menu devient accordéon, ou flyout en rail.
+ */
+export function SidebarNavGroup({ title, entries, membership, can, isActive, collapsed, children }: {
+  title?: string;
+  entries: readonly NavEntry[];
   membership: { is_admin: boolean; permissions: ModuleKey[] } | null;
   can: (feature: Feature) => boolean;
-  pathname: string;
+  isActive: (href: string) => boolean;
+  collapsed: boolean;
+  /** Lignes ajoutées en fin de groupe (Abonnement dans Compte). */
+  children?: ReactNode;
 }) {
   const tNav = useTranslations('layout.nav');
   const { data: badges } = useNavBadges();
+  const titleId = useId();
 
-  const visible = group.entries.filter(
-    (e) => passesGate(e.gate, membership) && (e.feature ? can(e.feature) : true),
-  );
+  const allowed = (e: NavEntry) => passesGate(e.gate, membership) && (e.feature ? can(e.feature) : true);
+  const toItem = (e: NavEntry): SidebarSubItem => ({
+    href: e.href, label: tNav(e.labelKey), count: e.badgeKey ? (badges?.[e.badgeKey] ?? 0) : 0, countAlert: e.badgeKey === 'low_stock',
+  });
+  const visible = entries
+    .map((e) => ({ entry: e, items: (e.children ?? []).filter(allowed).map(toItem) }))
+    .filter(({ entry, items }) => (entry.children ? items.length > 0 : allowed(entry)));
 
-  if (visible.length === 0) return null;
+  if (visible.length === 0 && !children) return null;
 
   return (
-    <div className={group.titleKey ? 'mt-3' : ''}>
-      {group.titleKey && (
-        <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground select-none">
-          {tNav(group.titleKey)}
+    <div className={title ? (collapsed ? 'mt-2 border-t border-sidebar-border pt-2' : 'mt-3') : ''}>
+      {title && (
+        <p id={titleId} className={collapsed ? 'sr-only' : 'px-2.5 pb-1 text-[0.9375rem] font-bold text-sidebar-foreground select-none'}>
+          {title}
         </p>
       )}
-      <div className="flex flex-col gap-0.5">
-        {visible.map(({ href, labelKey, icon: Icon, badgeKey }) => {
-          const active = isNavActive(href, pathname);
-          const badgeCount = badgeKey ? (badges?.[badgeKey] ?? 0) : 0;
+      <ul aria-labelledby={title ? titleId : undefined} className={`flex flex-col gap-0.5 ${title && !collapsed ? 'ps-2.5' : ''}`}>
+        {visible.map(({ entry, items }) => {
+          const label = tNav(entry.labelKey);
+          if (entry.children) {
+            const Submenu = collapsed ? SidebarNavFlyout : SidebarNavAccordion;
+            return <Submenu key={entry.href} entry={entry} label={label} items={items} isActive={isActive} />;
+          }
+          const { count, countAlert } = toItem(entry);
           return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 rounded-xl ps-3 pe-3 py-2.5 text-sm transition-colors ${
-                active
-                  ? 'bg-secondary text-secondary-foreground font-semibold'
-                  : 'text-foreground hover:bg-muted'
-              }`}
-            >
-              <Icon
-                className={`h-5 w-5 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`}
-              />
-              {tNav(labelKey as NavLabelKey)}
-              {badgeCount > 0 && (
-                <span
-                  aria-hidden="true"
-                  className={`ms-auto min-w-5.5 h-5.5 px-1.5 rounded-full text-xs font-semibold tabular-nums flex items-center justify-center leading-none ${
-                    badgeKey === 'low_stock'
-                      ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-400'
-                      : active
-                      ? 'bg-card text-foreground'
-                      : 'bg-muted text-foreground'
-                  }`}
-                >
-                  {badgeCount > 99 ? '99+' : badgeCount}
-                </span>
-              )}
-            </Link>
+            <li key={entry.href}>
+              <SidebarNavItem href={entry.href} label={label} icon={entry.icon} active={isActive(entry.href)}
+                collapsed={collapsed} count={count} countAlert={countAlert} />
+            </li>
           );
         })}
-      </div>
+        {children}
+      </ul>
     </div>
   );
 }

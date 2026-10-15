@@ -53,6 +53,8 @@ export interface Me {
   language: Locale;
   /** Période du bloc Ventes de l'accueil, gardée d'une visite à l'autre. */
   sales_period: SalesPeriod;
+  /** Sidebar desktop repliée en rail, gardée d'une visite à l'autre. */
+  sidebar_collapsed: boolean;
   membership: Membership | null;
 }
 
@@ -66,6 +68,7 @@ export interface MeUpdateData {
   background_custom_hex?: string;
   language?: Locale;
   sales_period?: SalesPeriod;
+  sidebar_collapsed?: boolean;
 }
 
 export type AppearancePreferencesUpdate = Pick<
@@ -157,6 +160,28 @@ export function useUpdateSalesPeriod() {
       const previous = qc.getQueryData<Me>(qk.me.all);
       qc.setQueryData<Me>(qk.me.all, (current) => (
         current ? { ...current, sales_period: salesPeriod } : current
+      ));
+      return { previous };
+    },
+    onError: (_error, _data, context) => {
+      if (context?.previous) qc.setQueryData(qk.me.all, context.previous);
+    },
+  });
+}
+
+/** Sidebar desktop dépliée ou en rail : appliqué tout de suite, enregistré sur le compte. */
+export function useUpdateSidebarCollapsed() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    scope: { id: 'sidebar-collapsed' },
+    mutationFn: (collapsed: boolean) =>
+      apiFetch<Me>('/auth/me/', { method: 'PATCH', body: JSON.stringify({ sidebar_collapsed: collapsed }) }),
+    onMutate: async (collapsed) => {
+      await qc.cancelQueries({ queryKey: qk.me.all });
+      const previous = qc.getQueryData<Me>(qk.me.all);
+      qc.setQueryData<Me>(qk.me.all, (current) => (
+        current ? { ...current, sidebar_collapsed: collapsed } : current
       ));
       return { previous };
     },
