@@ -14,7 +14,7 @@
  */
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
-import { animationsDone } from './lib/wait.mjs';
+import { animationsDone, positionStable } from './lib/wait.mjs';
 
 const report = createReport();
 const near = (a, b, tolerance = 2) => Math.abs(a - b) <= tolerance;
@@ -118,12 +118,16 @@ async function checkHoverShift(page, nav, locale, label) {
 /** « ⋯ » du pied : popover au-dessus (Apparence, palettes, langue, Se déconnecter), Échap rend le focus. */
 async function checkFooterMenu(page, locale, label) {
   const more = aside(page).getByRole('button', { name: msg(locale, 'layout.sidebar.account_menu'), exact: true });
+  await positionStable(more);
   await more.click();
   const menu = page.getByRole('menu');
   await menu.waitFor();
   await animationsDone(menu);
+  // Le popover est d'abord placé sur sa taille de départ, puis replacé une fois son contenu mesuré.
+  await positionStable(menu);
   const [menuBox, moreBox] = [await menu.boundingBox(), await more.boundingBox()];
-  report.check(menuBox.y + menuBox.height <= moreBox.y + 1, `${label} : « ⋯ » du pied, popover au-dessus`);
+  report.check(menuBox.y + menuBox.height <= moreBox.y + 1,
+    `${label} : « ⋯ » du pied, popover au-dessus (bas à ${Math.round(menuBox.y + menuBox.height)}px, « ⋯ » à ${Math.round(moreBox.y)}px)`);
   const radios = await menu.getByRole('menuitemradio').count();
   const palettes = menu.getByRole('menuitem', { name: msg(locale, 'layout.sidebar.palettes'), exact: true });
   const logout = menu.getByRole('menuitem', { name: msg(locale, 'layout.common.logout'), exact: true });

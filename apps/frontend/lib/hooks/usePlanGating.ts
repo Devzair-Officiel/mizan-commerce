@@ -50,9 +50,13 @@ function tierIndex(code: PlanCode): number {
   return TIER_ORDER.indexOf(code);
 }
 
+/** Formule la moins chère qui ouvre la fonction (carte de mise à niveau). */
+export function featureMinPlan(feature: Feature): PlanCode {
+  return FEATURE_MIN_PLAN[feature];
+}
+
 export function hasFeature(planCode: PlanCode, feature: Feature): boolean {
-  const required = FEATURE_MIN_PLAN[feature];
-  return tierIndex(planCode) >= tierIndex(required);
+  return tierIndex(planCode) >= tierIndex(featureMinPlan(feature));
 }
 
 /**

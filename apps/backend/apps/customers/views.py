@@ -91,6 +91,13 @@ class CustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return customers_with_stats(get_shop(self.request.user))
 
+    @transaction.atomic
+    def perform_update(self, serializer):
+        # Réactiver un client reprend un slot de la formule (verrou de la création).
+        if serializer.validated_data.get('is_active') and not serializer.instance.is_active:  # noqa: E501
+            enforce_customer_limit(get_shop(self.request.user), reactivating=serializer.instance)  # noqa: E501
+        serializer.save()
+
     def perform_destroy(self, instance):
         # Soft delete
         instance.is_active = False

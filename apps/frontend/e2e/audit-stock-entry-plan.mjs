@@ -34,8 +34,8 @@ async function routePlan(ctx, state) {
 async function panel(page, t, locale) {
   const tabpanel = page.getByRole('tabpanel');
   return {
-    card: await tabpanel.getByRole('heading', { name: fmt(locale, 'settings.upgrade.title', { feature: 'ocr' }), exact: true }).isVisible(),
-    text: await tabpanel.getByText(fmt(locale, 'settings.upgrade.text', { feature: 'ocr' }), { exact: true }).isVisible(),
+    card: await tabpanel.getByRole('heading', { name: fmt(locale, 'settings.upgrade.title', { feature: 'ocr', plan: 'boutique' }), exact: true }).isVisible(),
+    text: await tabpanel.getByText(fmt(locale, 'settings.upgrade.text', { feature: 'ocr', plan: 'boutique' }), { exact: true }).isVisible(),
     files: await tabpanel.locator('input[type=file]').count(),
   };
 }
@@ -72,7 +72,7 @@ for (const viewport of VIEWPORTS) {
       report.check(
         (await invoiceTab.isVisible()) && (await invoiceTab.getAttribute('aria-selected')) === 'true'
           && locked.card && locked.text && locked.files === 0,
-        `${label} : en Solo, onglet facture visible, carte « ${fmt(locale, 'settings.upgrade.title', { feature: 'ocr' })} » à la place de l'envoi (${locked.files} champ fichier)`,
+        `${label} : en Solo, onglet facture visible, carte « ${fmt(locale, 'settings.upgrade.title', { feature: 'ocr', plan: 'boutique' })} » à la place de l'envoi (${locked.files} champ fichier)`,
       );
       report.check(ocr.length === 0, `${label} : en Solo, aucune requête OCR${ocr.length ? ` (${ocr.join(', ')})` : ''}`);
       await page.locator('#stock-entry-tab-manual').click();

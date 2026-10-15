@@ -6,7 +6,9 @@ import { useTranslations } from 'next-intl';
 import { Plus } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
 import { useMe, useUpdateSidebarCollapsed } from '@/lib/hooks/useMe';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { usePlanGating } from '@/lib/hooks/usePlanGating';
+import { useLimitGuard } from '@/lib/hooks/usePlanUsage';
 import { useSubscription } from '@/lib/hooks/useSubscription';
 import { ACCOUNT_ENTRIES, SUBSCRIPTION_HREF, isNavActive, passesGate, useSidebarNavGroups } from '@/lib/navigation';
 import { planBadgeState } from './planBadgeState';
@@ -42,6 +44,7 @@ export function DesktopSidebar() {
   const fullName = me?.full_name ?? null;
 
   const canCreateOrder = passesGate({ kind: 'module', module: 'orders' }, membership) && can('orders');
+  const saleGuard = useLimitGuard(canCreateOrder ? 'orders_this_month' : undefined);
   // Paramètres boutique n'est pas actif sur la page Abonnement, qui a sa propre ligne.
   const isActive = (href: string) => isNavActive(href, pathname)
     && !(href === '/settings' && isNavActive(SUBSCRIPTION_HREF, pathname));
@@ -62,11 +65,12 @@ export function DesktopSidebar() {
       {canCreateOrder && (
         <div className={collapsed ? 'flex justify-center pb-2' : 'px-3 pb-2'}>
           {/* Teinté : texte primary rapproché du texte courant (40 %) pour garder 4,5:1 sur bg-primary/12 et les halos, en clair et en sombre. */}
-          <Link href="/orders/new" aria-label={collapsed ? tNav('new_sale') : undefined} title={collapsed ? tNav('new_sale') : undefined}
+          <Link href="/orders/new" onClick={saleGuard.onClick} aria-label={collapsed ? tNav('new_sale') : undefined} title={collapsed ? tNav('new_sale') : undefined}
             className={`flex items-center justify-center gap-2 rounded-full bg-primary/12 text-sm font-semibold text-[color-mix(in_oklch,var(--primary)_60%,var(--foreground))] transition-all hover:bg-primary/18 active:scale-95 ${collapsed ? 'h-11 w-11' : 'h-10 w-full px-4'}`}>
             <Plus className="h-4.5 w-4.5" strokeWidth={2.5} />
             {!collapsed && tNav('new_sale')}
           </Link>
+          <UpgradeSheet {...saleGuard.sheet} />
         </div>
       )}
 

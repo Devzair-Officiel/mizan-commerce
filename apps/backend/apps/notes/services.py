@@ -297,9 +297,12 @@ def build_daily_summary(shop: Shop, owner: ShopMember, now: datetime) -> tuple[s
 
 def send_daily_summary(shop: Shop, config: ReminderSettings, now: datetime) -> int:
     """E-mail du résumé du jour au propriétaire, à l'heure réglée (fuseau de la
-    boutique), une fois par jour. Jamais d'envoi WhatsApp automatique."""
+    boutique), une fois par jour. Jamais d'envoi WhatsApp automatique.
+    Fonction de la formule Boutique : réglage conservé, envoi suspendu en dessous."""
     today = now.astimezone(ZoneInfo(shop.timezone))
     if not config.daily_summary_enabled or today.hour != config.daily_summary_hour:
+        return 0
+    if not shop_has_feature(shop, 'daily_digest'):
         return 0
     owner = _owner(shop)
     if owner is None:

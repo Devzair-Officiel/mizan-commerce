@@ -565,14 +565,31 @@ def update_product(
     data: Mapping[str, object],
     variants: Sequence[Mapping[str, object]] | None = None,
 ) -> Product:
-    """Informations de l'article et, avec `variants`, ses formats : une transaction."""
+    """Informations de l'article et, avec `variants`, ses formats : une transaction.
+
+    Réactiver l'article (`is_active` à vrai) reprend un slot de la formule.
+    """
+    from apps.subscriptions.limits import enforce_product_limit
+
     with transaction.atomic():
+        if data.get('is_active') and not product.is_active:
+            enforce_product_limit(product.shop, reactivating=product)
         for field, value in data.items():
             setattr(product, field, value)
         product.save()
         if variants is not None:
             sync_variants(product, user, variants)
     return product
+
+
+def reactivate_product(product: Product) -> None:
+    """Remet l'article en vente, dans la limite d'articles actifs de la formule."""
+    from apps.subscriptions.limits import enforce_product_limit
+
+    with transaction.atomic():
+        enforce_product_limit(product.shop, reactivating=product)
+        product.is_active = True
+        product.save(update_fields=['is_active', 'updated_at'])
 
 
 SALES_DAYS = 30

@@ -19,6 +19,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Sparkles, Check, Loader2 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
+import { PlanUsage } from '@/components/subscription/PlanUsage';
 import { Button } from '@/components/ui/button';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
@@ -110,6 +111,7 @@ export default function SubscriptionPage() {
               )}
             </div>
           </div>
+          {subscription.usage && <PlanUsage usage={subscription.usage} />}
         </section>
 
         <div className="flex flex-col gap-3">

@@ -6,7 +6,9 @@ import { useTranslations } from 'next-intl';
 import { Sparkles } from 'lucide-react';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useNavBadges } from '@/lib/hooks/useNavBadges';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { confirmLeave } from '@/lib/dirtyGuard';
+import { useLimitGuard } from '@/lib/hooks/usePlanUsage';
 
 function isNavActive(href: string, pathname: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
@@ -44,21 +46,29 @@ function NavItem({ href, label, icon, active, badge, confirmMsg }: NavItemProps)
   );
 }
 
+/** Limite de ventes du mois atteinte : la carte de mise à niveau s'ouvre au lieu de la vente. */
 function SellButton({ label, confirmMsg }: { label: string; confirmMsg: string }) {
+  const guard = useLimitGuard('orders_this_month');
   return (
-    <Link
-      href="/orders/new"
-      aria-label={label}
-      onClick={(e) => { if (!confirmLeave(confirmMsg)) e.preventDefault(); }}
-      className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-14 py-2"
-    >
-      <span className="flex items-center justify-center h-14 w-14 rounded-full bg-primary shadow-md ring-4 ring-card -mt-7 active:scale-95 transition-transform">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-      </span>
-      <span className="text-[0.6875rem] leading-none text-foreground font-semibold">{label}</span>
-    </Link>
+    <>
+      <Link
+        href="/orders/new"
+        aria-label={label}
+        onClick={(e) => {
+          guard.onClick(e);
+          if (!e.defaultPrevented && !confirmLeave(confirmMsg)) e.preventDefault();
+        }}
+        className="flex flex-col items-center justify-center gap-0.5 flex-1 min-h-14 py-2"
+      >
+        <span className="flex items-center justify-center h-14 w-14 rounded-full bg-primary shadow-md ring-4 ring-card -mt-7 active:scale-95 transition-transform">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+        <span className="text-[0.6875rem] leading-none text-foreground font-semibold">{label}</span>
+      </Link>
+      <UpgradeSheet {...guard.sheet} />
+    </>
   );
 }
 

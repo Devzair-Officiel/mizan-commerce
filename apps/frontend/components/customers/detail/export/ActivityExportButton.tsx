@@ -6,8 +6,7 @@ import { Download } from 'lucide-react';
 import type { ActivityFilter } from '@/lib/hooks/useCustomers';
 import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { HEADER_LINK } from '@/components/form/fieldStyles';
-import { UpgradeCard } from '@/components/subscription/UpgradeCard';
-import { BottomSheet } from '@/components/ui/BottomSheet';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { ActivityExportDialog } from './ActivityExportDialog';
 
 interface ActivityExportButtonProps {
@@ -31,11 +30,8 @@ export function ActivityExportButton({ customerId, customerName, activityFilter,
         <Download size={14} aria-hidden />
         {t('button')}
       </button>
-      {open && !allowed && (
-        <BottomSheet open onClose={() => setOpen(false)} title={t('title')} description={customerName}>
-          <UpgradeCard feature="exports" />
-        </BottomSheet>
-      )}
+      <UpgradeSheet open={open && !allowed} onClose={() => setOpen(false)} feature="exports"
+        title={t('title')} description={customerName} />
       {open && allowed && (
         <ActivityExportDialog customerId={customerId} customerName={customerName} activityFilter={activityFilter}
           pendingOnly={pendingOnly} onClose={() => setOpen(false)} />

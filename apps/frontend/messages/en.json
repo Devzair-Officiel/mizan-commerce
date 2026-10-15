@@ -1673,9 +1673,16 @@
       "fulfillment_both": "Both"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {Available with the Solo plan} other {Available with the Boutique plan}}",
-      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} other {This feature is part of the Boutique plan.}}",
+      "title": "{feature, select, products {{kind, select, products {Unlimited items with the Solo plan} services {Unlimited services with the Solo plan} other {Unlimited items and services with the Solo plan}}} orders_this_month {Unlimited sales with the Solo plan} customers {Unlimited customers with the Solo plan} members {More members with the {plan, select, commerce_plus {Commerce+} other {Boutique}} plan} other {Available with the {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}} plan}}",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} invoices {Issue numbered invoices and send them to your customers as PDFs.} invoice_branding {Add your logo and your shop's colour to every invoice.} products {{kind, select, products {Add as many items as you like, without archiving anything.} services {Offer as many services as you like, without archiving anything.} other {Grow your catalogue without limits, without archiving anything.}}} orders_this_month {Record every sale of the month, with no cap.} customers {Keep track of all your customers, with no limit on records.} members {{plan, select, commerce_plus {Invite your whole team, with no member limit.} other {Work as a team: up to 4 members, each with their own role.}}} other {Upgrade your plan to save time every day.}}",
       "cta": "See plans"
+    },
+    "usage": {
+      "limit_title": "Your plan's limit is reached",
+      "products": "{kind, select, products {{count} / {limit} active items} services {{count} / {limit} active services} other {{count} / {limit} active items and services}}",
+      "orders_this_month": "{count} / {limit} sales this month",
+      "customers": "{count} / {limit} active customers",
+      "members": "{count} / {limit} members"
     },
     "page": {
       "title": "Shop settings",

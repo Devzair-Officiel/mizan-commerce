@@ -32,6 +32,15 @@ export interface SubscriptionPlan {
   is_active: boolean;
 }
 
+/** Compteurs des jauges d'usage (`shop_usage` côté backend). */
+export type UsageKey = 'products' | 'orders_this_month' | 'customers' | 'members';
+
+export interface UsageCounter {
+  count: number;
+  /** `null` : illimité dans la formule effective. */
+  limit: number | null;
+}
+
 export interface Subscription {
   id: string;
   plan: SubscriptionPlan;
@@ -49,6 +58,8 @@ export interface Subscription {
    */
   effective_plan_code: PlanCode;
   days_remaining: number | null;
+  /** Usage de la boutique face aux limites de la formule effective. */
+  usage: Record<UsageKey, UsageCounter>;
   created_at: string;
   updated_at: string;
 }
@@ -62,11 +73,13 @@ export function usePlans() {
   });
 }
 
+export const subscriptionQuery = {
+  queryKey: qk.subscription.current,
+  queryFn: () => apiFetch<Subscription>('/subscriptions/current/'),
+};
+
 export function useSubscription() {
-  return useQuery({
-    queryKey: qk.subscription.current,
-    queryFn: () => apiFetch<Subscription>('/subscriptions/current/'),
-  });
+  return useQuery(subscriptionQuery);
 }
 
 /**

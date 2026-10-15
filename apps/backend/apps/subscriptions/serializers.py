@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from .limits import UsageCounter, shop_usage
 from .models import Subscription, SubscriptionPlan
 
 
@@ -26,6 +27,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     plan = SubscriptionPlanSerializer(read_only=True)
     effective_plan_code = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
+    usage = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscription
@@ -36,9 +38,14 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'is_trial_expired',
             'effective_plan_code',
             'days_remaining',
+            'usage',
             'created_at', 'updated_at',
         )
         read_only_fields = fields
+
+    def get_usage(self, obj: Subscription) -> dict[str, UsageCounter]:
+        """Compteurs des jauges face aux limites de la formule effective."""
+        return shop_usage(obj.shop)
 
     def get_effective_plan_code(self, obj: Subscription) -> str:
         return obj.shop.effective_plan.code

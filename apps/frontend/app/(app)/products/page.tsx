@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ListCreateButton } from '@/components/list/ListCreateButton';
+import { UsageBanner } from '@/components/subscription/UsageBanner';
 import { useProductsInfinite, useProductsPage } from '@/lib/hooks/useProducts';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useShop } from '@/lib/hooks/useShop';
@@ -43,10 +44,11 @@ function ProductsContent() {
       <TopBar
         title={t('title', { kind })}
         subtitle={hasLoaded ? t('count', { kind, count: totalCount }) : undefined}
-        action={<ListCreateButton href="/products/new" label={t('new_cta', { kind })} />}
+        action={<ListCreateButton href="/products/new" label={t('new_cta', { kind })} usage="products" />}
         hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
+        <UsageBanner usageKey="products" />
         <ProductsStatCards kind={kind} active={state.activeCards} onToggle={state.toggleCard} />
         {/* La recherche reste visible même quand elle ne trouve rien. */}
         <div className="lg:hidden"><ProductsFiltersMobile state={state} /></div>

@@ -1673,9 +1673,16 @@
       "fulfillment_both": "الاثنان"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {متاح مع باقة Solo} other {متاح مع باقة Boutique}}",
-      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} whatsapp {جهّزوا رسائل واتساب بلمسة واحدة، بأسلوب متجركم ونصوصه.} exports {نزّلوا نشاط عملائكم في ملف CSV يُفتح في جدول بيانات.} other {هذه الميزة جزء من باقة Boutique.}}",
+      "title": "{feature, select, products {{kind, select, products {منتجات غير محدودة مع باقة Solo} services {خدمات غير محدودة مع باقة Solo} other {منتجات وخدمات غير محدودة مع باقة Solo}}} orders_this_month {مبيعات غير محدودة مع باقة Solo} customers {عملاء غير محدودين مع باقة Solo} members {أعضاء أكثر مع باقة {plan, select, commerce_plus {Commerce+} other {Boutique}}} other {متاح مع باقة {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}}}",
+      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} whatsapp {جهّزوا رسائل واتساب بلمسة واحدة، بأسلوب متجركم ونصوصه.} exports {نزّلوا نشاط عملائكم في ملف CSV يُفتح في جدول بيانات.} invoices {أصدروا فواتير مرقّمة وأرسلوها إلى عملائكم بصيغة PDF.} invoice_branding {أضيفوا شعاركم ولون متجركم على كل فاتورة.} products {{kind, select, products {أضيفوا ما تشاؤون من المنتجات دون أرشفة أي منها.} services {اعرضوا ما تشاؤون من الخدمات دون أرشفة أي منها.} other {وسّعوا كتالوجكم بلا حدود ودون أرشفة أي عنصر.}}} orders_this_month {سجّلوا كل مبيعات الشهر دون سقف.} customers {تابعوا جميع عملائكم دون حدّ لعدد البطاقات.} members {{plan, select, commerce_plus {ادعوا فريقكم بالكامل دون حدّ لعدد الأعضاء.} other {اعملوا كفريق: حتى 4 أعضاء، لكلّ منهم دوره.}}} other {انتقلوا إلى الباقة الأعلى لتوفير الوقت كل يوم.}}",
       "cta": "عرض الباقات"
+    },
+    "usage": {
+      "limit_title": "بلغتم حدّ باقتكم",
+      "products": "{kind, select, products {{count} / {limit} منتجات نشطة} services {{count} / {limit} خدمات نشطة} other {{count} / {limit} منتجات وخدمات نشطة}}",
+      "orders_this_month": "{count} / {limit} مبيعات هذا الشهر",
+      "customers": "{count} / {limit} عملاء نشطين",
+      "members": "{count} / {limit} أعضاء"
     },
     "page": {
       "title": "إعدادات المتجر",

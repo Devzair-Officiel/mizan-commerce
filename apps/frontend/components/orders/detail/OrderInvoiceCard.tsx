@@ -7,12 +7,16 @@ import { orderNumberTag } from '@/components/orders/OrderNumber';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { buttonVariants } from '@/components/ui/button';
 import type { Order } from '@/lib/hooks/useOrders';
+import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { cn } from '@/lib/utils';
 
 const OUTLINE = cn(buttonVariants({ variant: 'outline' }), 'h-10 rounded-full bg-card px-4 font-medium');
+const ROW = 'flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-muted/50 lg:px-5';
+const PDF_LINK = 'inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-primary hover:underline';
 
 interface OrderInvoiceCardProps {
   order: Order;
+  /** Émission ; hors formule Solo, ouvre la carte de mise à niveau (facture et PDF compris). */
   onIssue: () => void;
   /** L'émission est déjà l'action principale de la page : la carte n'en montre qu'un rappel. */
   issueIsPrimary: boolean;
@@ -21,6 +25,7 @@ interface OrderInvoiceCardProps {
 /** Carte « Facture » : facture liée (lien + PDF) ou bouton d'émission. Masquée si annulée ou vide. */
 export function OrderInvoiceCard({ order, onIssue, issueIsPrimary }: OrderInvoiceCardProps) {
   const t = useTranslations('orders.invoiceCard');
+  const locked = !usePlanGating().can('invoices');
   if (order.status === 'cancelled' || order.items.length === 0) return null;
   const invoice = order.invoice;
 
@@ -41,22 +46,32 @@ export function OrderInvoiceCard({ order, onIssue, issueIsPrimary }: OrderInvoic
 
   return (
     <SectionCard title={t('title')}>
-      <Link href={`/invoices/${invoice.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/50 lg:px-5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-          <Receipt size={18} aria-hidden />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold">{t.rich('number_label', { number: invoice.number, num: orderNumberTag })}</span>
-          <span className="mt-0.5 block text-[0.8125rem] text-muted-foreground">{t('status', { status: invoice.status })}</span>
-        </span>
-        <ChevronRight size={18} className="shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
-      </Link>
+      {locked
+        ? <button type="button" onClick={onIssue} className={ROW}><InvoiceRow invoice={invoice} /></button>
+        : <Link href={`/invoices/${invoice.id}`} className={ROW}><InvoiceRow invoice={invoice} /></Link>}
       <div className="border-t border-border px-4 py-3 lg:px-5">
-        <a href={`/api/proxy/invoices/${invoice.id}/pdf/`} target="_blank" rel="noopener"
-          className="inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-primary hover:underline">
-          <Download size={14} aria-hidden />{t('download_cta')}
-        </a>
+        {locked
+          ? <button type="button" onClick={onIssue} className={PDF_LINK}><Download size={14} aria-hidden />{t('download_cta')}</button>
+          : <a href={`/api/proxy/invoices/${invoice.id}/pdf/`} target="_blank" rel="noopener" className={PDF_LINK}>
+            <Download size={14} aria-hidden />{t('download_cta')}
+          </a>}
       </div>
     </SectionCard>
+  );
+}
+
+function InvoiceRow({ invoice }: { invoice: NonNullable<Order['invoice']> }) {
+  const t = useTranslations('orders.invoiceCard');
+  return (
+    <>
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+        <Receipt size={18} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">{t.rich('number_label', { number: invoice.number, num: orderNumberTag })}</span>
+        <span className="mt-0.5 block text-[0.8125rem] text-muted-foreground">{t('status', { status: invoice.status })}</span>
+      </span>
+      <ChevronRight size={18} className="shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
+    </>
   );
 }

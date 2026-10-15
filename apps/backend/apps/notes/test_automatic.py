@@ -191,7 +191,7 @@ class PendingOrdersTest(TestCase):
 class DailySummaryTest(TestCase):
     def setUp(self):
         self.user, self.shop, self.customer = automatic_shop(
-            'summary@example.com', plan=SubscriptionPlan.CODE_FREE,
+            'summary@example.com', plan=SubscriptionPlan.CODE_BOUTIQUE,
         )
         self.user.full_name = 'Youssef'
         self.user.save()
@@ -235,6 +235,12 @@ class DailySummaryTest(TestCase):
         config = get_reminder_settings(self.shop)
         config.daily_summary_enabled = False
         config.save()
+        run_automatic_reminders(utc(9, 23))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_not_sent_below_boutique(self):
+        # Résumé du jour : formule Boutique. Le réglage reste, l'envoi est suspendu.
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         run_automatic_reminders(utc(9, 23))
         self.assertEqual(len(mail.outbox), 0)
 

@@ -1673,9 +1673,16 @@
       "fulfillment_both": "Les deux"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {Disponible avec la formule Solo} other {Disponible avec la formule Boutique}}",
-      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} other {Cette fonction fait partie de la formule Boutique.}}",
+      "title": "{feature, select, products {{kind, select, products {Articles illimités avec la formule Solo} services {Services illimités avec la formule Solo} other {Articles et services illimités avec la formule Solo}}} orders_this_month {Ventes illimitées avec la formule Solo} customers {Clients illimités avec la formule Solo} members {Plus de membres avec la formule {plan, select, commerce_plus {Commerce+} other {Boutique}}} other {Disponible avec la formule {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}}}",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} invoices {Émettez des factures numérotées et envoyez-les en PDF à vos clients.} invoice_branding {Ajoutez votre logo et la couleur de votre boutique sur chacune de vos factures.} products {{kind, select, products {Ajoutez autant d'articles que vous le souhaitez, sans rien archiver.} services {Proposez autant de services que vous le souhaitez, sans rien archiver.} other {Développez votre catalogue sans limite, sans rien archiver.}}} orders_this_month {Enregistrez toutes vos ventes du mois, sans plafond.} customers {Suivez tous vos clients, sans limite de fiches.} members {{plan, select, commerce_plus {Invitez toute votre équipe, sans limite de membres.} other {Travaillez à plusieurs : jusqu'à 4 membres, chacun avec son rôle.}}} other {Passez à la formule supérieure pour gagner du temps au quotidien.}}",
       "cta": "Voir les formules"
+    },
+    "usage": {
+      "limit_title": "Limite de votre formule atteinte",
+      "products": "{kind, select, products {{count} / {limit} articles actifs} services {{count} / {limit} services actifs} other {{count} / {limit} articles et services actifs}}",
+      "orders_this_month": "{count} / {limit} ventes ce mois",
+      "customers": "{count} / {limit} clients actifs",
+      "members": "{count} / {limit} membres"
     },
     "page": {
       "title": "Paramètres boutique",

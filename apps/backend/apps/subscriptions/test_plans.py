@@ -269,6 +269,48 @@ class LimitExceededTest(TestCase):
         )
         self._assert_limit_error(response, "customers", 15)
 
+    def test_product_reactivation(self) -> None:
+        """Réactiver reprend un slot : refusé à la limite (action et PATCH)."""
+        Product.objects.bulk_create(
+            Product(shop=self.shop, name=f"P{i}") for i in range(30)
+        )
+        archived = Product.objects.create(
+            shop=self.shop, name="Archivé", is_active=False
+        )
+        response = self.client.post(f"/api/products/{archived.pk}/reactivate/")
+        self._assert_limit_error(response, "products", 30)
+        response = self.client.patch(
+            f"/api/products/{archived.pk}/", {"is_active": True}, format="json"
+        )
+        self._assert_limit_error(response, "products", 30)
+        archived.refresh_from_db()
+        self.assertFalse(archived.is_active)
+
+        Product.objects.filter(shop=self.shop, name="P0").update(is_active=False)
+        response = self.client.post(f"/api/products/{archived.pk}/reactivate/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        archived.refresh_from_db()
+        self.assertTrue(archived.is_active)
+
+    def test_customer_reactivation(self) -> None:
+        Customer.objects.bulk_create(
+            Customer(shop=self.shop, name=f"C{i}") for i in range(15)
+        )
+        inactive = Customer.objects.create(
+            shop=self.shop, name="Inactif", is_active=False
+        )
+        url = f"/api/customers/{inactive.pk}/"
+        response = self.client.patch(url, {"is_active": True}, format="json")
+        self._assert_limit_error(response, "customers", 15)
+        inactive.refresh_from_db()
+        self.assertFalse(inactive.is_active)
+        # Modifier un client actif à la limite reste possible.
+        active = Customer.objects.filter(shop=self.shop).first()
+        response = self.client.patch(
+            f"/api/customers/{active.pk}/", {"city": "Lyon"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_members_on_boutique(self) -> None:
         """Boutique : propriétaire + 3. Le 5e membre est refusé."""
         attach_subscription(self.shop, plan_code=BOUTIQUE)
@@ -315,6 +357,52 @@ class LimitExceededTest(TestCase):
             "/api/customers/", {"name": "Encore"}, format="json"
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class UsageTest(TestCase):
+    """GET /subscriptions/current/ expose l'usage de la boutique face à sa formule."""
+
+    def test_counts_and_limits_of_the_shop_only(self) -> None:
+        user, shop = make_shop("usage@example.com", FREE)
+        other_user, other = make_shop("usage-other@example.com", FREE)
+        Product.objects.bulk_create(Product(shop=shop, name=f"P{i}") for i in range(3))
+        Product.objects.create(shop=shop, name="Archivé", is_active=False)
+        Customer.objects.create(shop=shop, name="Client")
+        Customer.objects.create(shop=shop, name="Inactif", is_active=False)
+        Order.objects.create(shop=shop, order_number="2026-001", created_by=user)
+        Product.objects.bulk_create(Product(shop=other, name=f"O{i}") for i in range(9))
+        Customer.objects.bulk_create(
+            Customer(shop=other, name=f"O{i}") for i in range(9)
+        )
+        Order.objects.create(shop=other, order_number="2026-001", created_by=other_user)
+
+        client = APIClient()
+        client.force_authenticate(user=user)
+        usage = client.get("/api/subscriptions/current/").data["usage"]
+        self.assertEqual(
+            usage,
+            {
+                "products": {"count": 3, "limit": 30},
+                "orders_this_month": {"count": 1, "limit": 15},
+                "customers": {"count": 1, "limit": 15},
+                "members": {"count": 1, "limit": 1},
+            },
+        )
+
+    def test_unlimited_is_null(self) -> None:
+        user, _ = make_shop("usage-plus@example.com", COMMERCE_PLUS)
+        client = APIClient()
+        client.force_authenticate(user=user)
+        usage = client.get("/api/subscriptions/current/").data["usage"]
+        self.assertEqual(
+            {key: value["limit"] for key, value in usage.items()},
+            {
+                "products": None,
+                "orders_this_month": None,
+                "customers": None,
+                "members": None,
+            },
+        )
 
 
 class LimitMultiTenantTest(TestCase):
@@ -464,6 +552,55 @@ class LimitConcurrencyTest(TransactionTestCase):
         results = self._race(create)
         self._assert_one_winner(results)
         self.assertEqual(ShopMember.objects.filter(shop=shop).count(), 4)
+
+    def test_product_reactivation(self) -> None:
+        """Deux réactivations simultanées sur le dernier slot : une seule passe."""
+        from apps.products.services import reactivate_product
+
+        _, shop = make_shop("race-reactivate@example.com", FREE)
+        Product.objects.bulk_create(Product(shop=shop, name=f"P{i}") for i in range(29))
+        archived = iter(
+            Product.objects.bulk_create(
+                Product(shop=shop, name=f"A{i}", is_active=False) for i in range(2)
+            )
+        )
+        lock = threading.Lock()
+
+        def reactivate() -> None:
+            with lock:
+                product = next(archived)
+            reactivate_product(Product.objects.get(pk=product.pk))
+
+        results = self._race(reactivate)
+        self._assert_one_winner(results)
+        self.assertEqual(Product.objects.filter(shop=shop, is_active=True).count(), 30)
+
+    def test_customer_reactivation(self) -> None:
+        user, shop = make_shop("race-reactivate-c@example.com", FREE)
+        Customer.objects.bulk_create(
+            Customer(shop=shop, name=f"C{i}") for i in range(14)
+        )
+        inactive = iter(
+            Customer.objects.bulk_create(
+                Customer(shop=shop, name=f"I{i}", is_active=False) for i in range(2)
+            )
+        )
+        lock = threading.Lock()
+
+        def reactivate() -> None:
+            with lock:
+                customer = next(inactive)
+            client = APIClient()
+            client.force_authenticate(user=user)
+            response = client.patch(
+                f"/api/customers/{customer.pk}/", {"is_active": True}, format="json"
+            )
+            if response.status_code != status.HTTP_200_OK:
+                raise ValidationError(response.data)
+
+        results = self._race(reactivate)
+        self._assert_one_winner(results)
+        self.assertEqual(Customer.objects.filter(shop=shop, is_active=True).count(), 15)
 
 
 class RenamePlansMigrationTest(TestCase):

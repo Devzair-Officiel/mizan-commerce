@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ListCreateButton } from '@/components/list/ListCreateButton';
+import { UsageBanner } from '@/components/subscription/UsageBanner';
 import { useCustomersInfinite, useCustomersList } from '@/lib/hooks/useCustomers';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
@@ -41,10 +42,11 @@ function CustomersContent() {
       <TopBar
         title={t('title')}
         subtitle={hasLoaded ? t('count', { count: totalCount }) : undefined}
-        action={<ListCreateButton href="/customers/new" label={t('new_cta')} />}
+        action={<ListCreateButton href="/customers/new" label={t('new_cta')} usage="customers" />}
         hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
+        <UsageBanner usageKey="customers" />
         <CustomersStatCards currency={currency} active={state.activeCards} onToggle={state.toggleCard} />
         {/* La recherche reste visible même quand elle ne trouve rien. */}
         <div className="lg:hidden"><CustomersFiltersMobile state={state} /></div>

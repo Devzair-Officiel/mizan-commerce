@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { TopBar } from '@/components/layout/TopBar';
-import { UpgradeCard, type UpgradeFeature } from '@/components/subscription/UpgradeCard';
+import { UpgradeCard, type LockedFeature } from '@/components/subscription/UpgradeCard';
 import { useSubscription } from '@/lib/hooks/useSubscription';
 import { hasFeature } from '@/lib/hooks/usePlanGating';
 
@@ -13,7 +13,7 @@ import { hasFeature } from '@/lib/hooks/usePlanGating';
  * `belowCard` : ce qui reste permis hors formule, affiché sous la carte.
  */
 export function FeatureGate({ feature, title, back, belowCard, children }: {
-  feature: UpgradeFeature; title: string; back?: boolean; belowCard?: ReactNode; children: ReactNode;
+  feature: LockedFeature; title: string; back?: boolean; belowCard?: ReactNode; children: ReactNode;
 }) {
   const { data: subscription, isLoading } = useSubscription();
 

@@ -122,9 +122,7 @@ class ProductReactivateView(generics.GenericAPIView):
         return Product.objects.filter(shop=shop)
 
     def post(self, request, *args, **kwargs):
-        product = self.get_object()
-        product.is_active = True
-        product.save(update_fields=['is_active', 'updated_at'])
+        services.reactivate_product(self.get_object())
         return Response({'detail': 'Produit réactivé.'})
 
 

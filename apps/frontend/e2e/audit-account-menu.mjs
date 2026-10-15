@@ -1,8 +1,8 @@
 /**
  * Audit du compte : badge d'abonnement (sidebar à 1440px, menu burger à 360px) et raccourci clair/sombre du header,
  * en français et en arabe, en clair et en sombre :
- * - la ligne « Abonnement » porte la formule courante, au nom renvoyé par l'API : celui de la vraie souscription de la
- *   boutique d'audit, « Solo », « Essai · 12 j » pendant l'essai, « Essai terminé » après l'essai ; zone ≥ 44px (36px dans la sidebar desktop),
+ * - la ligne « Abonnement » porte la formule courante, au nom traduit par code (pas le nom brut de l'API) : celle de
+ *   la vraie souscription de la boutique d'audit, « Solo », « Essai · 12 j » pendant l'essai, « Essai terminé » après l'essai ; zone ≥ 44px (36px dans la sidebar desktop),
  *   dans les limites du panneau (à droite en arabe), et elle mène à Paramètres → Abonnement ;
  * - le raccourci du header (≥ 44px) est collé à la loupe sur mobile, à la barre de recherche sur desktop, côté début de
  *   ligne ; il bascule le thème, son libellé suit, puis le thème revient.
@@ -13,7 +13,8 @@ import { fmt, msg } from './lib/messages.mjs';
 import { animationsDone } from './lib/wait.mjs';
 
 const report = createReport();
-const SOLO = { code: 'solo', name: 'Solo' };
+// Nom d'API volontairement différent : la pastille doit afficher la traduction du code, pas ce nom.
+const SOLO = { code: 'solo', name: 'Nom API brut' };
 const TRIAL_DAYS = 12;
 
 const STATES = {
@@ -28,7 +29,7 @@ async function routePlan(ctx, state) {
     try {
       const response = await route.fetch();
       const subscription = await response.json();
-      state.realName ??= subscription.plan.name;
+      state.realCode ??= subscription.plan.code;
       await route.fulfill({ response, json: STATES[state.name](subscription) });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
@@ -36,11 +37,11 @@ async function routePlan(ctx, state) {
   });
 }
 
-/** Pastille attendue : le nom de la formule tel que l'API le donne, les jours d'essai restants, ou l'essai terminé. */
+/** Pastille attendue : le nom traduit de la formule, les jours d'essai restants, ou l'essai terminé. */
 function expectedPill(locale, state) {
   if (state.name === 'trial') return fmt(locale, 'layout.trial.badge_trial', { days: TRIAL_DAYS });
   if (state.name === 'expired') return msg(locale, 'layout.trial.card_expired');
-  return state.name === 'solo' ? SOLO.name : state.realName;
+  return msg(locale, `settings.subscription.plans.${state.name === 'solo' ? SOLO.code : state.realCode}.name`);
 }
 
 const inside = (box, panel) => box && panel && box.x >= panel.x - 1 && box.x + box.width <= panel.x + panel.width + 1;
