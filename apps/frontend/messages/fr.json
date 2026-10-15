@@ -2390,7 +2390,36 @@
       "filter": "{value, select, issued {Émises} paid {Payées} cancelled {Annulées} other {Toutes}}",
       "empty_title": "Aucune facture",
       "empty_body": "Les factures se créent depuis une commande.",
-      "no_customer": "Sans client"
+      "no_customer": "Sans client",
+      "count": "{count, plural, one {# facture} other {# factures}}",
+      "stats": {
+        "due": "À encaisser",
+        "issued_month": "Émises ce mois-ci",
+        "paid_month": "Payées ce mois-ci"
+      },
+      "search_label": "Rechercher des factures",
+      "search_placeholder": "Numéro ou client",
+      "status_title": "Statut",
+      "payment_title": "Paiement",
+      "period_title": "Période",
+      "all_periods": "Toutes les périodes",
+      "sort_title": "Trier par",
+      "clear_filters": "Effacer les filtres",
+      "apply": "Appliquer",
+      "show_results": "Voir les {count} factures",
+      "load_more": "Charger plus",
+      "empty_filtered": "Aucune facture ne correspond",
+      "load_error": "Impossible de charger les factures. Réessayez.",
+      "payment_filter": "{value, select, due {À encaisser} unpaid {Non payées} partial {Partielles} paid {Payées} other {Tous}}",
+      "columns": {
+        "number": "Numéro",
+        "buyer_name": "Client",
+        "issued_at": "Date",
+        "due_date": "Échéance",
+        "total_ttc": "Montant",
+        "status": "Statut"
+      },
+      "sort_label": "Trié par {field}, {dir, select, asc {ordre croissant} other {ordre décroissant}}"
     },
     "detail": {
       "title": "Facture",
@@ -2411,7 +2440,16 @@
       "confirm_paid_body": "Cette facture sera enregistrée comme intégralement réglée.",
       "confirm": "Confirmer",
       "confirm_cancel_title": "Annuler cette facture ?",
-      "confirm_cancel_body": "Le numéro reste réservé et la trace est conservée."
+      "confirm_cancel_body": "Le numéro reste réservé et la trace est conservée.",
+      "seller_logo": "Logo du vendeur",
+      "order_title": "Commande liée",
+      "open_order": "Ouvrir",
+      "order_number": "Numéro",
+      "order_date": "Date",
+      "preview": "Aperçu de la facture",
+      "status_saved": "Statut de la facture enregistré.",
+      "status_error": "Impossible de modifier le statut. Réessayez.",
+      "keep_invoice": "Conserver la facture"
     },
     "totals": {
       "subtotal": "Sous-total HT",
@@ -2421,8 +2459,19 @@
       "tax_rate": "TVA {rate} %",
       "not_applicable": "Non applicable",
       "total": "Total TTC",
-      "paid": "Payé",
-      "remaining": "Reste à payer"
+      "paid": "Règlement reçu",
+      "remaining": "Reste à payer",
+      "title": "Totaux et règlement",
+      "due_date": "Échéance"
+    },
+    "status": "{value, select, issued {Émise} paid {Payée} other {Annulée}}",
+    "remaining": "{amount} dus",
+    "account": {
+      "title": "Récapitulatif du compte",
+      "previous": "Solde dû avant cette facture",
+      "payments": "Règlements reçus sur cette facture",
+      "current": "Présente facture",
+      "balance": "Solde total du compte"
     }
   },
   "reminders": {

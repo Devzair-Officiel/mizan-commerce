@@ -442,6 +442,7 @@
   - [~] Récapitulatif du compte client en option
   - [~] Mentions légales configurables
   - [~] Réglages dédiés, instantanés d’émission, PDF A4 paginés et exemples
+  - [~] Pages liste et détail au gabarit (§9/§10), indicateurs, facettes et tri serveur, audit smoke
   - [ ] Dette : factures PDF en arabe (français utilisé en attendant)
 - [ ] Lot 7 — Compte et réglages
   - [ ] Badge d'abonnement (sidebar, menu mobile)

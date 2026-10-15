@@ -25,6 +25,7 @@
     "audit:message-templates": "node audit-message-templates.mjs",
     "audit:sales": "node audit-sales.mjs",
     "audit:activity-export": "node audit-activity-export.mjs",
+    "audit:invoices": "node audit-invoices.mjs",
     "audit:scroll-lock": "node audit-scroll-lock.mjs",
     "audit:header-bands": "node audit-header-bands.mjs",
     "audit:show-more": "node audit-show-more.mjs",

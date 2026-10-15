@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api-client';
-import { qk } from '@/lib/query-keys';
+import { qk, type InvoicesListFilters } from '@/lib/query-keys';
 
 export type InvoiceStatus = 'issued' | 'paid' | 'cancelled';
 
@@ -49,6 +49,7 @@ export interface Invoice {
   tax_amount: string;
   total_ttc: string;
   amount_paid: string;
+  logo_url?: string | null;
   presentation?: {
     siret?: string;
     vat_number?: string;
@@ -56,6 +57,19 @@ export interface Invoice {
     bic?: string;
     payment_methods?: string[];
     contacts?: { type: string; value: string }[];
+    color?: string;
+    activity?: string;
+    vat_regime?: 'exempt' | 'applicable';
+    order_number?: string;
+    order_date?: string;
+    show_account_summary?: boolean;
+    account_summary?: {
+      previous_invoices: { number: string; due: string }[];
+      previous_balance: string;
+      payments_received: string;
+      current_invoice: string;
+      total_balance: string;
+    } | null;
   };
   notes: string;
   lines: InvoiceLine[];
@@ -70,13 +84,52 @@ export interface IssueInvoicePayload {
   notes?: string;
 }
 
-export function useInvoices(status?: InvoiceStatus) {
+function listParams(filters: InvoicesListFilters): URLSearchParams {
   const params = new URLSearchParams();
-  if (status) params.set('status', status);
-  const qs = params.toString();
+  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, String(value));
+  return params;
+}
+
+export function useInvoices(filters: InvoicesListFilters = {}, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: qk.invoices.list(status ?? null),
-    queryFn: () => apiFetch<PaginatedResponse<Invoice>>(`/invoices/${qs ? `?${qs}` : ''}`),
+    queryKey: qk.invoices.list(filters),
+    queryFn: () => apiFetch<PaginatedResponse<Invoice>>(`/invoices/?${listParams(filters)}`),
+    enabled: options?.enabled,
+  });
+}
+
+export function useInvoicesInfinite(filters: InvoicesListFilters, options?: { enabled?: boolean }) {
+  return useInfiniteQuery({
+    queryKey: qk.invoices.infinite(filters),
+    queryFn: ({ pageParam = 1 }) => apiFetch<PaginatedResponse<Invoice>>(`/invoices/?${listParams({ ...filters, page: pageParam })}`),
+    initialPageParam: 1,
+    getNextPageParam: (last, _, page) => last.next ? page + 1 : undefined,
+    enabled: options?.enabled,
+  });
+}
+
+export interface InvoicesSummary {
+  due: { count: number; amount: string };
+  issued_month: { count: number; amount: string };
+  paid_month: { count: number; amount: string };
+}
+
+export interface InvoicesFacets {
+  status: Record<'all' | InvoiceStatus, number>;
+  payment: Record<'all' | 'due' | 'unpaid' | 'partial' | 'paid', number>;
+}
+
+export function useInvoicesSummary() {
+  return useQuery({ queryKey: qk.invoices.summary, queryFn: () => apiFetch<InvoicesSummary>('/invoices/summary/') });
+}
+
+export function useInvoicesFacets(filters: InvoicesListFilters, options?: { enabled?: boolean }) {
+  const params = { ...filters, ordering: undefined, page: undefined };
+  return useQuery({
+    queryKey: qk.invoices.facets(params),
+    queryFn: () => apiFetch<InvoicesFacets>(`/invoices/facets/?${listParams(params)}`),
+    placeholderData: keepPreviousData,
+    enabled: options?.enabled,
   });
 }
 
@@ -114,10 +167,4 @@ export function useUpdateInvoiceStatus(id: string) {
       if (invoice?.order) qc.invalidateQueries({ queryKey: qk.orders.detail(invoice.order) });
     },
   });
-}
-
-export function formatInvoiceMoney(value: string | number, currency: string): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (Number.isNaN(num)) return `0,00 ${currency}`;
-  return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }

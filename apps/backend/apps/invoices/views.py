@@ -1,5 +1,6 @@
 from django.http import HttpResponse
-from rest_framework import generics, status
+from django.db.models import QuerySet
+from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +14,7 @@ from apps.orders.models import Order  # noqa: E402
 
 from . import services  # noqa: E402
 from .models import Invoice  # noqa: E402
+from .filters import INVOICE_SEARCH_FIELDS, InvoiceOrderingFilter  # noqa: E402
 from .serializers import (  # noqa: E402
     InvoiceIssueSerializer,
     InvoiceSerializer,
@@ -25,13 +27,17 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
 
     permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
     serializer_class = InvoiceSerializer
+    filter_backends = (filters.SearchFilter, InvoiceOrderingFilter)
+    search_fields = INVOICE_SEARCH_FIELDS
+    ordering_fields = (
+        'number', 'buyer_name', 'issued_at', 'due_date', 'total_ttc', 'status',
+    )
+    ordering = ('-issued_at',)
 
-    def get_queryset(self):
-        qs = Invoice.objects.filter(shop=get_shop(self.request.user)).prefetch_related('lines')  # noqa: E501
-        status_filter = self.request.query_params.get('status')
-        if status_filter in (Invoice.STATUS_ISSUED, Invoice.STATUS_PAID, Invoice.STATUS_CANCELLED):  # noqa: E501
-            qs = qs.filter(status=status_filter)
-        return qs
+    def get_queryset(self) -> QuerySet:
+        shop = get_shop(self.request.user)
+        qs = Invoice.objects.filter(shop=shop).prefetch_related('lines')
+        return services.filter_invoices(qs, shop, self.request.query_params)
 
     def create(self, request, *args, **kwargs):
         shop = get_shop(request.user)
@@ -70,6 +76,25 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
             InvoiceSerializer(invoice).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class InvoiceSummaryView(APIView):
+    permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
+
+    def get(self, request) -> Response:
+        return Response(services.invoice_summary(get_shop(request.user)))
+
+
+class InvoiceFacetsView(APIView):
+    permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
+    search_fields = INVOICE_SEARCH_FIELDS
+
+    def get(self, request) -> Response:
+        shop = get_shop(request.user)
+        qs = filters.SearchFilter().filter_queryset(
+            request, Invoice.objects.filter(shop=shop), self
+        )
+        return Response(services.invoice_facets(shop, qs, request.query_params))
 
 
 class InvoiceDetailView(generics.RetrieveAPIView):

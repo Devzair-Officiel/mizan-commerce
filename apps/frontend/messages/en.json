@@ -2390,7 +2390,36 @@
       "filter": "{value, select, issued {Issued} paid {Paid} cancelled {Cancelled} other {All}}",
       "empty_title": "No invoices",
       "empty_body": "Invoices are created from an order.",
-      "no_customer": "No customer"
+      "no_customer": "No customer",
+      "count": "{count, plural, one {# invoice} other {# invoices}}",
+      "stats": {
+        "due": "To collect",
+        "issued_month": "Issued this month",
+        "paid_month": "Paid this month"
+      },
+      "search_label": "Search invoices",
+      "search_placeholder": "Number or customer",
+      "status_title": "Status",
+      "payment_title": "Payment",
+      "period_title": "Period",
+      "all_periods": "All periods",
+      "sort_title": "Sort by",
+      "clear_filters": "Clear filters",
+      "apply": "Apply",
+      "show_results": "Show {count} invoices",
+      "load_more": "Load more",
+      "empty_filtered": "No matching invoices",
+      "load_error": "Unable to load invoices. Try again.",
+      "payment_filter": "{value, select, due {To collect} unpaid {Unpaid} partial {Partial} paid {Paid} other {All}}",
+      "columns": {
+        "number": "Number",
+        "buyer_name": "Customer",
+        "issued_at": "Date",
+        "due_date": "Due date",
+        "total_ttc": "Amount",
+        "status": "Status"
+      },
+      "sort_label": "Sorted by {field}, {dir, select, asc {ascending} other {descending}}"
     },
     "detail": {
       "title": "Invoice",
@@ -2411,7 +2440,16 @@
       "confirm_paid_body": "This invoice will be recorded as fully paid.",
       "confirm": "Confirm",
       "confirm_cancel_title": "Cancel this invoice?",
-      "confirm_cancel_body": "The number stays reserved and the record is kept."
+      "confirm_cancel_body": "The number stays reserved and the record is kept.",
+      "seller_logo": "Seller logo",
+      "order_title": "Linked order",
+      "open_order": "Open",
+      "order_number": "Number",
+      "order_date": "Date",
+      "preview": "Invoice preview",
+      "status_saved": "Invoice status saved.",
+      "status_error": "Unable to change the status. Try again.",
+      "keep_invoice": "Keep invoice"
     },
     "totals": {
       "subtotal": "Subtotal (excl. tax)",
@@ -2421,8 +2459,19 @@
       "tax_rate": "VAT {rate}%",
       "not_applicable": "Not applicable",
       "total": "Total (incl. tax)",
-      "paid": "Paid",
-      "remaining": "Remaining"
+      "paid": "Payment received",
+      "remaining": "Remaining",
+      "title": "Totals and payment",
+      "due_date": "Due date"
+    },
+    "status": "{value, select, issued {Issued} paid {Paid} other {Cancelled}}",
+    "remaining": "{amount} due",
+    "account": {
+      "title": "Account summary",
+      "previous": "Balance before this invoice",
+      "payments": "Payments received on this invoice",
+      "current": "This invoice",
+      "balance": "Total account balance"
     }
   },
   "reminders": {

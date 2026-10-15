@@ -101,6 +101,15 @@ export interface ReminderFilters {
   order?: string;
 }
 
+export interface InvoicesListFilters {
+  status?: 'issued' | 'paid' | 'cancelled';
+  payment?: 'due' | 'unpaid' | 'partial' | 'paid';
+  period?: 'issued_month' | 'paid_month';
+  search?: string;
+  ordering?: string;
+  page?: number;
+}
+
 export const qk = {
   orders: {
     all: ['orders'] as const,
@@ -213,7 +222,10 @@ export const qk = {
 
   invoices: {
     all: ['invoices'] as const,
-    list: (status: string | null) => ['invoices', { status }] as const,
+    list: (filters: InvoicesListFilters) => ['invoices', 'list', filters] as const,
+    infinite: (filters: InvoicesListFilters) => ['invoices', 'infinite', filters] as const,
+    summary: ['invoices', 'summary'] as const,
+    facets: (filters: InvoicesListFilters) => ['invoices', 'facets', filters] as const,
     detail: (id: string) => ['invoices', id] as const,
   },
 

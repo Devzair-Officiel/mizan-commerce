@@ -1,57 +1,30 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
-import { formatInvoiceMoney, type Invoice } from '@/lib/hooks/useInvoices';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { DetailRow } from '@/components/detail/DetailRow';
+import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
+import type { Invoice } from '@/lib/hooks/useInvoices';
+import { InvoicePaymentBadge } from '../shared/InvoicePaymentBadge';
+import { getPaymentDisplay } from './payment';
 
-interface TotalsCardProps {
-  invoice: Invoice;
-  showPaymentBreakdown: boolean;
-  amountPaid: number;
-  remaining: number;
-}
-
-export function TotalsCard({ invoice, showPaymentBreakdown, amountPaid, remaining }: TotalsCardProps) {
+export function TotalsCard({ invoice: i }: { invoice: Invoice }) {
   const t = useTranslations('invoices.totals');
-  const taxRate = parseFloat(invoice.tax_rate);
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-2">
-      <div className="flex justify-between text-sm text-muted-foreground">
-        <span>{t('subtotal')}</span>
-        <span className="tabular-nums">{formatInvoiceMoney(invoice.subtotal_ht, invoice.currency)}</span>
-      </div>
-      {parseFloat(invoice.discount_amount) > 0 && (
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>{t('discount')}</span>
-          <span className="tabular-nums">− {formatInvoiceMoney(invoice.discount_amount, invoice.currency)}</span>
-        </div>
-      )}
-      {parseFloat(invoice.shipping_amount) > 0 && (
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>{t('shipping')}</span>
-          <span className="tabular-nums">{formatInvoiceMoney(invoice.shipping_amount, invoice.currency)}</span>
-        </div>
-      )}
-      <div className="flex justify-between text-sm text-muted-foreground">
-        <span>{taxRate > 0 ? t('tax_rate', { rate: taxRate }) : t('tax')}</span>
-        <span className="tabular-nums">
-          {taxRate > 0 ? formatInvoiceMoney(invoice.tax_amount, invoice.currency) : t('not_applicable')}
-        </span>
-      </div>
-      <div className="flex justify-between text-base font-bold text-foreground pt-2 border-t border-border">
-        <span>{t('total')}</span>
-        <span className="tabular-nums">{formatInvoiceMoney(invoice.total_ttc, invoice.currency)}</span>
-      </div>
-      {showPaymentBreakdown && (
-        <>
-          <div className="flex justify-between text-sm text-muted-foreground pt-1">
-            <span>{t('paid')}</span>
-            <span className="tabular-nums">{formatInvoiceMoney(amountPaid, invoice.currency)}</span>
-          </div>
-          <div className="flex justify-between text-sm font-semibold text-amber-700 dark:text-amber-400">
-            <span>{t('remaining')}</span>
-            <span className="tabular-nums">{formatInvoiceMoney(remaining, invoice.currency)}</span>
-          </div>
-        </>
-      )}
-    </div>
-  );
+  const money = useFormatMoney();
+  const date = useFormatDate();
+  const m = (value: string | number) => money(value, i.currency);
+  const payment = getPaymentDisplay(i);
+  const vat = Number(i.tax_rate) > 0 || i.presentation?.vat_regime === 'applicable';
+  return <SectionCard title={t('title')} rightSlot={<InvoicePaymentBadge invoice={i} />} wrap>
+    <dl className="divide-y divide-border">
+      <DetailRow label={t('subtotal')}>{m(i.subtotal_ht)}</DetailRow>
+      {Number(i.discount_amount) > 0 && <DetailRow label={t('discount')}>− {m(i.discount_amount)}</DetailRow>}
+      {Number(i.shipping_amount) > 0 && <DetailRow label={t('shipping')}>{m(i.shipping_amount)}</DetailRow>}
+      <DetailRow label={vat ? t('tax_rate', { rate: Number(i.tax_rate) }) : t('tax')}>{vat ? m(i.tax_amount) : t('not_applicable')}</DetailRow>
+      <DetailRow label={t('total')} className="text-base">{m(i.total_ttc)}</DetailRow>
+      <DetailRow label={t('paid')} className="text-green-700 dark:text-green-400">{m(payment.amountPaid)}</DetailRow>
+      <DetailRow label={t('remaining')} className={payment.remaining > 0 ? 'text-amber-700 dark:text-amber-400' : undefined}>{m(payment.remaining)}</DetailRow>
+      <DetailRow label={t('due_date')}>{date(i.due_date, { dateStyle: 'long', timeZone: 'UTC' })}</DetailRow>
+    </dl>
+  </SectionCard>;
 }

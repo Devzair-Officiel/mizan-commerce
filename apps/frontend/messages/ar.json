@@ -2390,7 +2390,36 @@
       "filter": "{value, select, issued {الصادرة} paid {المدفوعة} cancelled {الملغاة} other {الكل}}",
       "empty_title": "لا توجد فواتير",
       "empty_body": "تُنشأ الفواتير من الطلبات.",
-      "no_customer": "بدون عميل"
+      "no_customer": "بدون عميل",
+      "count": "{count, plural, one {# فاتورة} other {# فواتير}}",
+      "stats": {
+        "due": "للتحصيل",
+        "issued_month": "صادرة هذا الشهر",
+        "paid_month": "مدفوعة هذا الشهر"
+      },
+      "search_label": "البحث عن الفواتير",
+      "search_placeholder": "الرقم أو العميل",
+      "status_title": "الحالة",
+      "payment_title": "الدفع",
+      "period_title": "الفترة",
+      "all_periods": "كل الفترات",
+      "sort_title": "الترتيب حسب",
+      "clear_filters": "مسح الفلاتر",
+      "apply": "تطبيق",
+      "show_results": "عرض {count} فواتير",
+      "load_more": "تحميل المزيد",
+      "empty_filtered": "لا توجد فواتير مطابقة",
+      "load_error": "تعذر تحميل الفواتير. يرجى المحاولة مجددًا.",
+      "payment_filter": "{value, select, due {للتحصيل} unpaid {غير مدفوعة} partial {مدفوعة جزئيًا} paid {مدفوعة} other {الكل}}",
+      "columns": {
+        "number": "الرقم",
+        "buyer_name": "العميل",
+        "issued_at": "التاريخ",
+        "due_date": "الاستحقاق",
+        "total_ttc": "المبلغ",
+        "status": "الحالة"
+      },
+      "sort_label": "مرتبة حسب {field}، {dir, select, asc {تصاعديًا} other {تنازليًا}}"
     },
     "detail": {
       "title": "فاتورة",
@@ -2411,7 +2440,16 @@
       "confirm_paid_body": "ستُسجَّل هذه الفاتورة كمدفوعة بالكامل.",
       "confirm": "تأكيد",
       "confirm_cancel_title": "إلغاء هذه الفاتورة؟",
-      "confirm_cancel_body": "يبقى الرقم محجوزًا ويُحتفظ بالسجل."
+      "confirm_cancel_body": "يبقى الرقم محجوزًا ويُحتفظ بالسجل.",
+      "seller_logo": "شعار البائع",
+      "order_title": "الطلب المرتبط",
+      "open_order": "فتح",
+      "order_number": "الرقم",
+      "order_date": "التاريخ",
+      "preview": "معاينة الفاتورة",
+      "status_saved": "تم حفظ حالة الفاتورة.",
+      "status_error": "تعذر تغيير الحالة. يرجى المحاولة مجددًا.",
+      "keep_invoice": "الاحتفاظ بالفاتورة"
     },
     "totals": {
       "subtotal": "المجموع الفرعي دون ضريبة",
@@ -2421,8 +2459,19 @@
       "tax_rate": "ض.ق.م {rate}٪",
       "not_applicable": "غير مطبّقة",
       "total": "المجموع شامل الضريبة",
-      "paid": "المدفوع",
-      "remaining": "المتبقي"
+      "paid": "المبلغ المستلم",
+      "remaining": "المتبقي",
+      "title": "الإجماليات والدفع",
+      "due_date": "تاريخ الاستحقاق"
+    },
+    "status": "{value, select, issued {صادرة} paid {مدفوعة} other {ملغاة}}",
+    "remaining": "{amount} مستحق",
+    "account": {
+      "title": "ملخص الحساب",
+      "previous": "الرصيد المستحق قبل هذه الفاتورة",
+      "payments": "الدفعات المستلمة لهذه الفاتورة",
+      "current": "الفاتورة الحالية",
+      "balance": "إجمالي رصيد الحساب"
     }
   },
   "reminders": {

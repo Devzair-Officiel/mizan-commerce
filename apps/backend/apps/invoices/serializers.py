@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from apps.core.storage import get_signed_url, is_storage_configured
 
 from .models import Invoice, InvoiceLine
 from .services import display_line_description
@@ -27,6 +28,11 @@ class InvoiceSerializer(serializers.ModelSerializer):
     """  # noqa: E501
 
     lines = InvoiceLineSerializer(many=True, read_only=True)
+    logo_url = serializers.SerializerMethodField()
+
+    def get_logo_url(self, invoice: Invoice) -> str | None:
+        key = invoice.presentation.get('logo_object_key')
+        return get_signed_url(key) if key and is_storage_configured() else None
 
     class Meta:
         model = Invoice
@@ -40,7 +46,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'currency', 'tax_rate', 'subtotal_ht',
             'discount_amount', 'shipping_amount',
             'tax_amount', 'total_ttc',
-            'amount_paid', 'presentation',
+            'amount_paid', 'presentation', 'logo_url',
             'notes', 'lines',
             'created_at', 'updated_at',
         )

@@ -26,6 +26,7 @@ docker compose run --rm e2e npm run audit:whatsapp            # messages WhatsAp
 docker compose run --rm e2e npm run audit:message-templates   # modèles de messages : ton, aperçu, personnaliser/rétablir, variable inconnue, saisie pendant l'enregistrement
 docker compose run --rm e2e npm run audit:sales               # bloc Ventes de l'accueil : trois périodes, bulle souris et clavier, période gardée
 docker compose run --rm e2e npm run audit:activity-export     # export de l'activité d'un client : fenêtre, nombre de lignes, CSV téléchargé
+docker compose run --rm e2e npm run audit:invoices            # factures : liste serveur, filtres, détail figé, PDF et annulation
 docker compose run --rm e2e npm run audit:scroll-lock         # fenêtres et menus enchaînés : la page défile toujours
 docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-tête teintées : fond muted, contrastes ≥ 4,5:1
 docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »
