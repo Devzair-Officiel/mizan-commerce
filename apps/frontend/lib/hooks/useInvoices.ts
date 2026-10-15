@@ -49,6 +49,14 @@ export interface Invoice {
   tax_amount: string;
   total_ttc: string;
   amount_paid: string;
+  presentation?: {
+    siret?: string;
+    vat_number?: string;
+    iban?: string;
+    bic?: string;
+    payment_methods?: string[];
+    contacts?: { type: string; value: string }[];
+  };
   notes: string;
   lines: InvoiceLine[];
   created_at: string;

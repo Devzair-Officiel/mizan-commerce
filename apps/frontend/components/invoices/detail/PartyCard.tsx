@@ -15,7 +15,7 @@ export function PartyCard({ title, name, address, extras }: PartyCardProps) {
         <p className="text-xs text-muted-foreground whitespace-pre-wrap">{address}</p>
       )}
       {visibleExtras.map((extra) => (
-        <p key={extra} className="text-xs text-muted-foreground">
+        <p key={extra} dir="ltr" className="text-xs text-muted-foreground break-words">
           {extra}
         </p>
       ))}

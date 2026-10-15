@@ -19,6 +19,7 @@ class InvoiceSettingsSerializer(serializers.ModelSerializer):
         required=False, allow_blank=True, max_length=80
     )
     invoice_bic = serializers.CharField(required=False, allow_blank=True, max_length=32)
+    vat_number = serializers.CharField(required=False, allow_blank=True, max_length=80)
     siret = serializers.CharField(required=False, allow_blank=True, max_length=32)
     invoice_payment_methods = serializers.ListField(
         child=serializers.ChoiceField(choices=PAYMENT_METHODS)
@@ -71,7 +72,7 @@ class InvoiceSettingsSerializer(serializers.ModelSerializer):
 
     def validate_siret(self, value: str) -> str:
         value = re.sub(r'\s', '', value)
-        if value and not re.fullmatch(r'\d{14}', value):
+        if value and not re.fullmatch(r'[0-9]{14}', value):
             raise serializers.ValidationError('Le SIRET doit contenir 14 chiffres.')
         return value
 
@@ -79,12 +80,22 @@ class InvoiceSettingsSerializer(serializers.ModelSerializer):
         value = re.sub(r'\s', '', value).upper()
         if value:
             if not re.fullmatch(r'[A-Z]{2}\d{2}[A-Z0-9]{11,30}', value):
-                raise serializers.ValidationError('IBAN invalide.')
+                raise serializers.ValidationError(
+                    'La clé de contrôle ou le format de l’IBAN est invalide.'
+                )
             digits = ''.join(
                 str(ord(c) - 55) if c.isalpha() else c for c in value[4:] + value[:4]
             )
             if int(digits) % 97 != 1:
-                raise serializers.ValidationError('IBAN invalide.')
+                raise serializers.ValidationError(
+                    'La clé de contrôle ou le format de l’IBAN est invalide.'
+                )
+        return value
+
+    def validate_vat_number(self, value: str) -> str:
+        value = re.sub(r'\s', '', value)
+        if len(value) > 32:
+            raise serializers.ValidationError('Le numéro de TVA est trop long.')
         return value
 
     def validate_invoice_bic(self, value: str) -> str:

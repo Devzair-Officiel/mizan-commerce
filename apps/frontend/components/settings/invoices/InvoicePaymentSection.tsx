@@ -7,12 +7,13 @@ import { FormSection } from '@/components/form/FormSection';
 import { FormField } from '@/components/form/FormField';
 import { FormSelect } from '@/components/form/FormSelect';
 import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
+import { InvoiceIdentifierField } from './InvoiceIdentifierField';
 import type { InvoiceSettingsValues } from './schema';
 
 export function InvoicePaymentSection({ form }: { form: UseFormReturn<InvoiceSettingsValues> }) {
   const t = useTranslations('invoice_settings');
   const [days, methods] = useWatch({ control: form.control, name: ['default_payment_terms_days', 'invoice_payment_methods'] });
-  const error = (name: keyof InvoiceSettingsValues) => form.formState.errors[name] ? t('invalid_value') : undefined;
+  const error = (name: keyof InvoiceSettingsValues) => form.formState.errors[name] ? t(name === 'invoice_iban' ? 'iban_invalid' : 'invalid_value') : undefined;
   return (
     <FormSection icon={Receipt} title={t('payment')} status="optional" order="max-lg:order-3">
       <div className={FIELD_ROW}>
@@ -34,9 +35,7 @@ export function InvoicePaymentSection({ form }: { form: UseFormReturn<InvoiceSet
         ))}
       </fieldset>
       {methods.includes('transfer') && <>
-        <FormField label={t('iban')} help={t('bank_help')} error={error('invoice_iban')}>
-          {(c) => <input {...c} {...form.register('invoice_iban')} dir="ltr" className={FIELD_CONTROL} />}
-        </FormField>
+        <InvoiceIdentifierField form={form} name="invoice_iban" label={t('iban')} help={t('bank_help')} error={error('invoice_iban')} />
         <FormField label={t('bic')} error={error('invoice_bic')}>
           {(c) => <input {...c} {...form.register('invoice_bic')} dir="ltr" className={FIELD_CONTROL} />}
         </FormField>

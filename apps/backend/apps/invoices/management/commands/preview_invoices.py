@@ -8,7 +8,7 @@ from apps.invoices.preview import reference_invoice
 
 
 class Command(BaseCommand):
-    help = 'Génère les PDF couleur, neutre, trois pages et leurs premières pages PNG.'
+    help = 'Génère les PDF de recette et les PNG de toutes leurs pages.'
 
     def add_arguments(self, parser) -> None:
         parser.add_argument('--output', default='/app/artifacts/lot6')
@@ -29,9 +29,16 @@ class Command(BaseCommand):
                         f'Exemple attendu sur 3 pages, obtenu {len(document)}'
                     )
                 (root / f'{name}.pdf').write_bytes(pdf)
-                page = document[0]
-                bitmap = page.render(scale=4 / 3)
-                bitmap.to_pil().save(root / f'{name}.png')
-                bitmap.close()
-                page.close()
+                for index, page in enumerate(document):
+                    bitmap = page.render(scale=4 / 3)
+                    filename = (
+                        f'{name}-p{index + 1}.png'
+                        if len(document) > 1
+                        else f'{name}.png'
+                    )
+                    bitmap.to_pil().save(root / filename)
+                    if index == 0 and len(document) > 1:
+                        bitmap.to_pil().save(root / f'{name}.png')
+                    bitmap.close()
+                    page.close()
                 self.stdout.write(f'{root / name} : PDF {len(document)} page(s) + PNG')

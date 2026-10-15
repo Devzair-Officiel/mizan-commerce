@@ -35,8 +35,9 @@ export function InvoiceSettingsForm({ settings, onLeave }: { settings: InvoiceSe
       notify.success(t('saved'));
     } catch (error) {
       if (error instanceof ApiError && error.data && typeof error.data === 'object') {
-        for (const field of Object.keys(values) as (keyof InvoiceSettingsValues)[]) {
-          if (field in error.data) form.setError(field, { message: t('invalid_value') }, { shouldFocus: true });
+        const fields = 'errors' in error.data ? error.data.errors : error.data;
+        if (fields && typeof fields === 'object') for (const field of Object.keys(values) as (keyof InvoiceSettingsValues)[]) {
+          if (field in fields) form.setError(field, { message: t('invalid_value') }, { shouldFocus: true });
         }
       }
       notify.error(t('save_error'));

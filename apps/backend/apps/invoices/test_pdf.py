@@ -49,11 +49,9 @@ def test_multipage_has_repeated_table_headers_and_numbered_footers() -> None:
     for i, page in enumerate(pages, 1):
         assert f'Page {i} sur 3' in page
         assert 'Merci de votre confiance.' in page
-        assert '91234567800012' in page
-    # Les pages contenant des lignes répètent leur en-tête de tableau.
+        assert '912 345 678 00012' in page
     for page in pages:
-        if 'Article de démonstration' in page:
-            assert 'DÉSIGNATION' in page
+        assert 'DÉSIGNATION' in page
     assert 'Article de démonstration 50' in ''.join(pages)
     assert 'SOLDE TOTAL' not in pages[0]  # le récapitulatif suit les lignes.
 
@@ -131,3 +129,28 @@ def test_zero_rate_is_distinct_from_vat_exemption() -> None:
     assert 'TVA 0 %' in text
     assert 'Non applicable' not in text
     assert '293 B' not in text
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('count', [18, 28, 50])
+def test_rows_and_financial_blocks_stay_whole_across_page_breaks(count: int) -> None:
+    invoice = reference_invoice(lines=count)
+    lines = list(invoice.lines.all())
+    # Une ligne haute doit rester entière à proximité d'un saut de page.
+    lines[15].product_name = 'Début ligne indivisible ' + 'description détaillée ' * 6
+    lines[15].variant_name = 'Fin ligne indivisible'
+    pages = text_pages(build_invoice_pdf(invoice))
+    joined = [' '.join(page.split()) for page in pages]
+    row_page = next(page for page in joined if 'Début ligne indivisible' in page)
+    assert 'Fin ligne indivisible' in row_page
+    totals_page = next(page for page in joined if 'Sous-total HT' in page)
+    assert 'RESTE À PAYER' in totals_page
+    summary_page = next(
+        page for page in joined if 'RÉCAPITULATIF DU COMPTE CLIENT' in page
+    )
+    assert 'Solde total du compte' in summary_page
+    payment_page = next(page for page in joined if 'RÈGLEMENT' in page)
+    assert 'MENTIONS' in payment_page and 'Aucun escompte' in payment_page
+    for i, page in enumerate(joined, 1):
+        assert f'Page {i} sur {len(pages)}' in page
+        assert 'Merci de votre confiance.' in page

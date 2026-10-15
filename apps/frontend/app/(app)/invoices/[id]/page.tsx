@@ -14,6 +14,8 @@ import { LinesList } from '@/components/invoices/detail/LinesList';
 import { TotalsCard } from '@/components/invoices/detail/TotalsCard';
 import { StatusActions } from '@/components/invoices/detail/StatusActions';
 import { ConfirmDialog } from '@/components/ui/dialog';
+import { InvoiceSellerCard } from '@/components/invoices/detail/InvoiceSellerCard';
+import { formatInvoicePhone } from '@/lib/invoiceFormatting';
 import { isolateNumber } from '@/components/orders/OrderNumber';
 
 export default function InvoiceDetailPage() {
@@ -67,17 +69,12 @@ export default function InvoiceDetailPage() {
         <HeroCard invoice={invoice} payment={payment} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <PartyCard
-            title={t('seller')}
-            name={invoice.seller_name}
-            address={invoice.seller_address}
-            extras={[invoice.seller_tax_id]}
-          />
+          <InvoiceSellerCard invoice={invoice} />
           <PartyCard
             title={t('buyer')}
             name={invoice.buyer_name || '—'}
             address={invoice.buyer_address}
-            extras={[invoice.buyer_email, invoice.buyer_phone]}
+            extras={[invoice.buyer_email, formatInvoicePhone(invoice.buyer_phone, invoice.buyer_country)]}
           />
         </div>
 

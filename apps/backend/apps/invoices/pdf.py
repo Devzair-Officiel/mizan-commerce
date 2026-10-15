@@ -7,6 +7,7 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import SimpleDocTemplate, Spacer
 
 from .models import Invoice
+from .formatting import format_siret
 from .pdf_blocks import (
     header,
     lines_table,
@@ -67,7 +68,7 @@ def footer_paragraph(style: InvoiceStyle):
     parts = [invoice.seller_name, invoice.seller_address.replace('\n', ', ')]
     siret = style.snapshot.get('siret')
     if siret:
-        parts.append('SIRET ' + siret)
+        parts.append('SIRET ' + format_siret(siret))
     parts.append(style.text('thanks'))
     return style.paragraph(
         xml(' · '.join(p for p in parts if p)), size=8.25, color=MUTED, align=1

@@ -49,8 +49,9 @@ def reference_invoice(*, neutral: bool = False, lines: int = 3) -> Invoice:
             'contacts': [
                 {
                     'type': 'email',
-                    'value': 'contact@boutique-youssef.fr · 01 23 45 67 89',
-                }
+                    'value': 'contact@boutique-youssef.fr',
+                },
+                {'type': 'phone', 'value': '+33123456789'},
             ],
             'order_number': '2026-054',
             'order_date': '2026-10-13',

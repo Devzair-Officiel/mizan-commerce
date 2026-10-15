@@ -11,6 +11,13 @@ from apps.core.storage import download_bytes, is_storage_configured
 from apps.products.constants import is_default_variant
 from .pdf_style import BORDER, MUTED, STRIPE, WIDTH, InvoiceStyle, table, xml
 from .services import display_line_description
+from .formatting import (
+    format_iban,
+    format_invoice_phone,
+    format_siret,
+    format_tax_id,
+    format_vat_number,
+)
 
 
 def status_key(style: InvoiceStyle) -> str:
@@ -112,8 +119,8 @@ def _party_content(
     return [
         style.heading(title),
         Spacer(1, 6),
-        style.paragraph(xml(name or '—'), bold=True, line_height=1.6),
-        *[style.paragraph(xml(value), line_height=1.6) for value in values if value],
+        style.paragraph(xml(name or '—'), bold=True, line_height=1.4),
+        *[style.paragraph(xml(value), line_height=1.4) for value in values if value],
     ]
 
 
@@ -121,20 +128,32 @@ def parties(style: InvoiceStyle) -> Table:
     invoice = style.invoice
     seller_values = [invoice.seller_address]
     if style.snapshot.get('siret'):
-        seller_values.append('SIRET ' + style.snapshot['siret'])
+        seller_values.append('SIRET ' + format_siret(style.snapshot['siret']))
     if invoice.seller_tax_id and invoice.seller_tax_id != style.snapshot.get('siret'):
-        seller_values.append(style.text('tax_id') + ' : ' + invoice.seller_tax_id)
+        seller_values.append(
+            style.text('tax_id') + ' : ' + format_tax_id(invoice.seller_tax_id)
+        )
     if style.snapshot.get('vat_number'):
-        seller_values.append(style.text('vat') + ' : ' + style.snapshot['vat_number'])
-    seller_values.extend(
-        contact['value'] for contact in style.snapshot.get('contacts', [])
-    )
+        seller_values.append(
+            style.text('vat') + ' : ' + format_vat_number(style.snapshot['vat_number'])
+        )
+    contacts = [
+        format_invoice_phone(contact['value'], invoice.seller_country)
+        if contact['type'] == 'phone'
+        else contact['value']
+        for contact in style.snapshot.get('contacts', [])
+    ]
+    seller_values.extend(contacts)
     seller = _party_content(style, 'seller', invoice.seller_name, seller_values)
     buyer = _party_content(
         style,
         'buyer',
         invoice.buyer_name,
-        [invoice.buyer_address, invoice.buyer_email, invoice.buyer_phone],
+        [
+            invoice.buyer_address,
+            invoice.buyer_email,
+            format_invoice_phone(invoice.buyer_phone, invoice.buyer_country),
+        ],
     )
     width = (WIDTH - 12) / 2
 
@@ -187,7 +206,7 @@ def lines_table(style: InvoiceStyle) -> Table:
         padding=8.25,
         repeatRows=1,
         cornerRadii=[7.5, 7.5, 0, 0],
-        splitInRow=1,
+        splitInRow=0,
         commands=[
             ('BACKGROUND', (0, 0), (-1, 0), style.accent),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, STRIPE]),
@@ -299,16 +318,21 @@ def summary(style: InvoiceStyle) -> list:
         for i, (label, value) in enumerate(values)
     ]
     return [
-        Spacer(1, 19.5),
-        style.heading('summary'),
-        Spacer(1, 7.5),
-        table(
-            rows,
-            [WIDTH - 115, 115],
-            padding=5.25,
-            commands=[('LINEABOVE', (0, -1), (-1, -1), 0.6, BORDER)],
-            splitInRow=1,
-        ),
+        KeepTogether(
+            [
+                Spacer(1, 15),
+                style.heading('summary'),
+                Spacer(1, 7.5),
+                table(
+                    rows,
+                    [WIDTH - 115, 115],
+                    padding=5.25,
+                    commands=[('LINEABOVE', (0, -1), (-1, -1), 0.6, BORDER)],
+                    splitInRow=0,
+                    splitByRow=0,
+                ),
+            ]
+        )
     ]
 
 
@@ -329,10 +353,17 @@ def payment_and_mentions(style: InvoiceStyle) -> list:
     if style.snapshot.get('iban') and 'transfer' in style.snapshot.get(
         'payment_methods', []
     ):
-        bank = 'IBAN ' + style.snapshot['iban']
+        payment.append(
+            style.paragraph(
+                xml('IBAN ' + format_iban(style.snapshot['iban'])), size=9, color=MUTED
+            )
+        )
         if style.snapshot.get('bic'):
-            bank += ' · BIC ' + style.snapshot['bic']
-        payment.append(style.paragraph(xml(bank), size=9, color=MUTED))
+            payment.append(
+                style.paragraph(
+                    xml('BIC ' + style.snapshot['bic']), size=9, color=MUTED
+                )
+            )
     legal = invoice.seller_legal_mentions
     if style.snapshot.get('vat_regime') == 'exempt':
         legal = style.text('exempt') + '\n' + legal
@@ -343,6 +374,15 @@ def payment_and_mentions(style: InvoiceStyle) -> list:
     ]
     width = (WIDTH - 12) / 2
     return [
-        Spacer(1, 19.5),
-        table([[payment, '', mentions]], [width, 12, width], splitInRow=1),
+        KeepTogether(
+            [
+                Spacer(1, 15),
+                table(
+                    [[payment, '', mentions]],
+                    [width, 12, width],
+                    splitInRow=0,
+                    splitByRow=0,
+                ),
+            ]
+        )
     ]

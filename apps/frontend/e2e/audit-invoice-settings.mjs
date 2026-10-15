@@ -1,8 +1,10 @@
 /** Réglages Factures : couleurs, contraste, TVA, virement, options, enregistrement et PDF. */
 import { readFile, mkdir } from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { msg } from './lib/messages.mjs';
 import { layoutOk } from './lib/form.mjs';
+import { api, createArticle } from './lib/products.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 
 const report = createReport();
@@ -65,6 +67,60 @@ async function checkLegalPaymentOptions(page, t, label) {
   await save(page, t, label);
 }
 
+async function checkIdentifierFormatting(page, t, label) {
+  const siret = page.getByLabel(t('siret'), { exact: true });
+  const iban = page.getByLabel(t('iban'), { exact: true });
+  const vat = page.getByLabel(t('vat_number'), { exact: false });
+  const before = await api(page, 'shop/invoice-settings/');
+  await siret.fill('912 345 678 0001');
+  await visible(page.getByRole('button', { name: t('save'), exact: true })).click();
+  await page.getByText(t('siret_invalid'), { exact: true }).waitFor();
+  report.check((await api(page, 'shop/invoice-settings/')).siret === before.siret
+    && await siret.getAttribute('aria-invalid') === 'true', `${label} : SIRET invalide, erreur précise sous le champ, valeur enregistrée intacte`);
+  await siret.fill('91234567800012');
+  await siret.blur();
+  await page.getByLabel(t('transfer'), { exact: true }).check();
+  await iban.fill('FR75 3000 6000 0112 3456 7890 189');
+  await visible(page.getByRole('button', { name: t('save'), exact: true })).click();
+  await page.getByText(t('iban_invalid'), { exact: true }).waitFor();
+  report.check((await api(page, 'shop/invoice-settings/')).invoice_iban === before.invoice_iban
+    && await iban.getAttribute('aria-invalid') === 'true', `${label} : mauvaise clé IBAN, erreur précise sous le champ, valeur enregistrée intacte`);
+  await iban.fill('FR76 3000 6000 0112 3456 7890 189');
+  await iban.blur();
+  await vat.fill('FR12 345 678 901');
+  await vat.blur();
+  const saved = await save(page, t, label);
+  await page.reload();
+  await siret.waitFor();
+  report.check(saved.siret === '91234567800012' && saved.vat_number === 'FR12345678901'
+    && saved.invoice_iban === 'FR7630006000011234567890189'
+    && await siret.inputValue() === '912 345 678 00012'
+    && await vat.inputValue() === 'FR12 345 678 901'
+    && await iban.inputValue() === 'FR76 3000 6000 0112 3456 7890 189',
+  `${label} : champs lisibles après rechargement, espaces tolérés et valeurs compactes en base`);
+}
+
+async function checkInvoiceDetail(page, label) {
+  const customer = await api(page, 'customers/', { method: 'POST', data: {
+    name: `Audit Facture ${Date.now()}`, phone: '+33612345678', country: 'FR',
+  } });
+  const article = await createArticle(page, { name: `Article facture ${Date.now()}`, price: '10' });
+  const order = await api(page, 'orders/', { method: 'POST', data: {
+    customer: customer.id, items: [{ variant: article.variants[0].id, quantity: 1 }],
+  } });
+  const invoice = await api(page, 'invoices/', { method: 'POST', data: { order_id: order.id } });
+  await page.goto(`${BASE}/invoices/${invoice.id}`);
+  await page.getByText('912 345 678 00012', { exact: false }).waitFor();
+  const text = await page.locator('main').innerText();
+  const after = await api(page, `invoices/${invoice.id}/`);
+  report.check(['912 345 678 00012', 'FR76 3000 6000 0112 3456 7890 189', 'FR12 345 678 901', '+33 6 12 34 56 78'].every((v) => text.includes(v)),
+    `${label} : SIRET, IBAN, TVA et téléphone lisibles dans le détail de facture`);
+  report.check(isDeepStrictEqual(after.presentation, invoice.presentation), `${label} : instantané enregistré inchangé après affichage`);
+  report.check(after.buyer_phone === '+33612345678', `${label} : téléphone enregistré inchangé après affichage`);
+  await page.goto(`${BASE}/settings/invoices`);
+  await page.locator('[data-invoice-preview]').waitFor();
+}
+
 async function download(page, t, label) {
   const [file] = await Promise.all([
     page.waitForEvent('download'), page.getByRole('link', { name: t('download'), exact: true }).click(),
@@ -96,6 +152,8 @@ try {
         report.check(await layoutOk(page, { viewport }, { order: ['appearance', 'legal', 'payment', 'options', 'preview'].map(t), side: [t('preview')] }), `${label} : gabarit v3, aperçu à droite ou en bas sur mobile`);
         await checkColors(page, t, label);
         await checkLegalPaymentOptions(page, t, label);
+        await checkIdentifierFormatting(page, t, label);
+        await checkInvoiceDetail(page, label);
         await download(page, t, label);
         await page.reload();
         await page.getByRole('heading', { name: t('appearance'), exact: true }).waitFor();

@@ -2666,6 +2666,8 @@
     "save_error": "Les réglages n’ont pas pu être enregistrés. Vérifiez les champs et réessayez.",
     "invalid_value": "Vérifiez cette valeur.",
     "load_error": "Les réglages n’ont pas pu être chargés.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "siret_invalid": "Le SIRET doit contenir 14 chiffres.",
+    "iban_invalid": "Vérifiez l’IBAN : son format ou sa clé de contrôle est invalide."
   }
 }

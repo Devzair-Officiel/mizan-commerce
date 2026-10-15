@@ -2666,6 +2666,8 @@
     "save_error": "Could not save settings. Check the fields and try again.",
     "invalid_value": "Check this value.",
     "load_error": "Could not load settings.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "siret_invalid": "The SIRET must contain 14 digits.",
+    "iban_invalid": "Check the IBAN: its format or checksum is invalid."
   }
 }

@@ -347,3 +347,46 @@ def test_logo_invalid_content_is_rejected_before_storage(context, settings) -> N
                 ),
             )
         upload.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_spaced_identifiers_save_as_the_same_compact_values(client, context) -> None:
+    response = client.patch(
+        reverse('invoice-settings'),
+        {
+            'siret': '912\u00a0345 678 00012',
+            'vat_number': 'FR12 345 678 901',
+            'invoice_vat_regime': 'applicable',
+            'invoice_iban': 'FR76 3000 6000 0112 3456 7890 189',
+        },
+        format='json',
+    )
+    assert response.status_code == 200
+    context[1].refresh_from_db()
+    assert context[1].siret == '91234567800012'
+    assert context[1].vat_number == 'FR12345678901'
+    assert context[1].invoice_iban == 'FR7630006000011234567890189'
+    assert client.get(reverse('invoice-settings')).data['siret'] == '91234567800012'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'payload,field,fragment',
+    [
+        ({'siret': '912 345 678 0001'}, 'siret', '14 chiffres'),
+        (
+            {'invoice_iban': 'FR75 3000 6000 0112 3456 7890 189'},
+            'invoice_iban',
+            'clé de contrôle',
+        ),
+    ],
+)
+def test_identifier_errors_are_specific_and_do_not_change_saved_values(
+    client, context, payload: dict, field: str, fragment: str
+) -> None:
+    before = getattr(context[1], field)
+    response = client.patch(reverse('invoice-settings'), payload, format='json')
+    assert response.status_code == 400
+    assert fragment in str(response.data['errors'][field])
+    context[1].refresh_from_db()
+    assert getattr(context[1], field) == before

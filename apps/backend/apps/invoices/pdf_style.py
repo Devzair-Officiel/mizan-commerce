@@ -92,9 +92,11 @@ class InvoiceStyle:
         )
 
     def heading(self, key: str) -> Paragraph:
-        return self.paragraph(
+        heading = self.paragraph(
             xml(self.text(key).upper()), size=8.25, color=self.accent, bold=True
         )
+        heading.keepWithNext = True
+        return heading
 
 
 def table(
