@@ -435,7 +435,8 @@ def seed_stock_fr(shop, user, customers) -> None:
     """Démo de l'écran Stock (idempotent).
 
     - une entrée reçue de Lin & Co avec sa facture (fournisseur, prix d'achat) ;
-    - une association mémorisée pour ce fournisseur (facture suivante) ;
+    - une association mémorisée pour ce fournisseur (facture suivante) et ses
+      frais de port, ignorés d'office ;
     - une commande à préparer qui fait passer les Espadrilles 43 en négatif.
     """
     by_sku = {
@@ -455,6 +456,10 @@ def seed_stock_fr(shop, user, customers) -> None:
     SupplierLineMatch.objects.get_or_create(
         shop=shop, supplier_key="lin co", label_key="echarpe lin nat",
         defaults={"variant": by_sku["ECH-LIN-008"], "created_by": user},
+    )
+    SupplierLineMatch.objects.get_or_create(
+        shop=shop, supplier_key="lin co", label_key="frais de port",
+        defaults={"variant": None, "is_ignored": True, "created_by": user},
     )
     negative = by_sku["ESP-TOI-007-43"]
     if not OrderItem.objects.filter(variant=negative).exists():

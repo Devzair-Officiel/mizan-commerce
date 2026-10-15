@@ -1,7 +1,8 @@
 """Logique métier OCR.
 
-Cette étape ne fait qu'ingérer une photo de facture fournisseur :
-- validation légère de la signature binaire du fichier ;
+Cette étape ne fait qu'ingérer une photo ou un PDF de facture fournisseur :
+- validation légère de la signature binaire du fichier (et, pour un PDF,
+  mot de passe et nombre de pages — voir `pdf.py`) ;
 - upload dans l'Object Storage privé ;
 - création d'un `UploadedDocument` + d'un `OcrResult` (status=pending).
 
@@ -24,6 +25,7 @@ from apps.stock.services import EntryLine, EntryReference, create_entry
 
 from .matching import line_label_key, normalize_text
 from .models import OcrResult, SupplierLineMatch, UploadedDocument
+from .pdf import validate_invoice_pdf
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -101,6 +103,7 @@ _MIME_TO_EXTENSION: dict[str, str] = {
     'image/jpeg': 'jpg',
     'image/png': 'png',
     'image/webp': 'webp',
+    'application/pdf': 'pdf',
 }
 
 
@@ -117,9 +120,9 @@ def validate_file_signature(file: UploadedFile, declared_mime: str) -> None:
     number » du fichier pour détecter un binaire qui ne correspond pas à
     l'image annoncée. Implémentation volontairement minimaliste : pas de
     dépendance externe (python-magic, filetype…), on couvre uniquement les
-    trois formats acceptés à cette étape.
+    formats acceptés à cette étape.
     """
-    # 12 octets suffisent pour distinguer JPEG / PNG / WebP.
+    # 12 octets suffisent pour distinguer JPEG / PNG / WebP / PDF.
     file.seek(0)
     header = file.read(12)
     file.seek(0)
@@ -130,6 +133,8 @@ def validate_file_signature(file: UploadedFile, declared_mime: str) -> None:
         ok = header.startswith(b'\x89PNG\r\n\x1a\n')
     elif declared_mime == 'image/webp':
         ok = header[:4] == b'RIFF' and header[8:12] == b'WEBP'
+    elif declared_mime == 'application/pdf':
+        ok = header.startswith(b'%PDF-')
     else:
         ok = False
 
@@ -145,7 +150,7 @@ def create_supplier_invoice_upload(
     user: User,
     file: UploadedFile,
 ) -> SupplierInvoiceUpload:
-    """Ingère une photo de facture fournisseur.
+    """Ingère une photo ou un PDF de facture fournisseur.
 
     Contrat :
     - `shop` provient de `get_shop(request.user)` — jamais du client.
@@ -163,6 +168,8 @@ def create_supplier_invoice_upload(
     # pas se retrouver à uploader un binaire arbitraire même si le serializer
     # a été court-circuité par un usage direct du service.
     validate_file_signature(file, file.content_type)
+    if file.content_type == 'application/pdf':
+        validate_invoice_pdf(file)
 
     upload_fileobj(file, object_key, file.content_type)
 
@@ -662,42 +669,77 @@ def _invoice_lines(result: OcrResult) -> list[dict]:
     return [line if isinstance(line, dict) else {} for line in lines]
 
 
+def _matching_lines(result: OcrResult) -> list[dict]:
+    """Lignes du namespace `matching`, celles qui portent un index valide."""
+    matching = (result.structured_data or {}).get('matching') or {}
+    return [
+        line for line in matching.get('lines') or []
+        if isinstance(line, dict) and isinstance(line.get('invoice_line_index'), int)
+    ]
+
+
 def _automatic_associations(result: OcrResult) -> dict[int, str | None]:
     """Format associé automatiquement à chaque ligne lue (namespace `matching`)."""
-    matching = (result.structured_data or {}).get('matching') or {}
     associations: dict[int, str | None] = {}
-    for line in matching.get('lines') or []:
-        if isinstance(line, dict) and isinstance(line.get('invoice_line_index'), int):
-            association = line.get('association')
-            associations[line['invoice_line_index']] = (
-                str(association.get('variant_id'))
-                if isinstance(association, dict) else None
-            )
+    for line in _matching_lines(result):
+        association = line.get('association')
+        associations[line['invoice_line_index']] = (
+            str(association.get('variant_id'))
+            if isinstance(association, dict) else None
+        )
     return associations
 
 
-def _remember_manual_matches(
-    shop: Shop, user: User, result: OcrResult,
-    lines: list[InvoiceEntryLine], invoice_lines: list[dict],
+def _automatically_ignored(result: OcrResult) -> set[int]:
+    """Lignes lues ignorées d'office (libellé déjà ignoré chez ce fournisseur)."""
+    return {
+        line['invoice_line_index'] for line in _matching_lines(result)
+        if line.get('ignored') is True
+    }
+
+
+def _remember_line(
+    shop: Shop, user: User, supplier_key: str, read: dict,
+    variant: ProductVariant | None,
 ) -> None:
-    """Mémorise chaque ligne lue associée à la main (ou associée autrement)."""
+    """Mémorise une ligne lue : associée à `variant`, ou ignorée (`None`)."""
+    label = line_label_key(
+        read.get('description'), read.get('supplier_reference'),
+    )[:500]
+    if label:
+        SupplierLineMatch.objects.update_or_create(
+            shop=shop, supplier_key=supplier_key, label_key=label,
+            defaults={
+                'variant': variant, 'is_ignored': variant is None,
+                'created_by': user,
+            },
+        )
+
+
+def _remember_choices(
+    shop: Shop, user: User, result: OcrResult,
+    lines: list[InvoiceEntryLine], ignored: list[int], invoice_lines: list[dict],
+) -> None:
+    """Mémorise les choix du commerçant pour les prochaines factures du fournisseur.
+
+    - ligne associée à la main (ou autrement que l'association automatique) ;
+    - ligne ignorée d'office puis rétablie : l'association remplace l'oubli ;
+    - ligne ignorée : ignorée d'office la prochaine fois.
+    """
     invoice = (result.structured_data or {}).get('invoice') or {}
     supplier_key = normalize_text(invoice.get('supplier_name'))[:255]
     automatic = _automatic_associations(result)
+    restored = _automatically_ignored(result)
     for item in lines:
         index = item.invoice_line_index
         variant = item.line.variant
-        if index is None or automatic.get(index) == str(variant.pk):
+        if index is None or (
+            automatic.get(index) == str(variant.pk) and index not in restored
+        ):
             continue
-        read = invoice_lines[index]
-        label = line_label_key(
-            read.get('description'), read.get('supplier_reference'),
-        )[:500]
-        if label:
-            SupplierLineMatch.objects.update_or_create(
-                shop=shop, supplier_key=supplier_key, label_key=label,
-                defaults={'variant': variant, 'created_by': user},
-            )
+        _remember_line(shop, user, supplier_key, invoice_lines[index], variant)
+    for index in ignored:
+        _remember_line(shop, user, supplier_key, invoice_lines[index], None)
 
 
 def _mark_recorded(
@@ -735,12 +777,17 @@ def record_invoice_entry(
     document_id: UUID,
     lines: list[InvoiceEntryLine],
     reference: EntryReference,
+    ignored_line_indices: list[int] | None = None,
 ) -> list[StockMovement]:
     """Entrée de stock depuis une facture lue, tout ou rien.
+
+    `ignored_line_indices` : lignes lues exclues de l'entrée (frais de port,
+    remise…), ignorées d'office sur les prochaines factures du fournisseur.
 
     L'OcrResult est verrouillé : deux validations simultanées de la même
     facture ne peuvent pas ajouter deux fois le stock.
     """
+    ignored = ignored_line_indices or []
     with transaction.atomic():
         result = (
             OcrResult.objects.select_for_update()
@@ -764,10 +811,14 @@ def record_invoice_entry(
             for item in lines
         ):
             raise ValidationError({'lines': ['Ligne de facture inconnue.']})
+        if any(index >= len(invoice_lines) for index in ignored):
+            raise ValidationError(
+                {'ignored_line_indices': ['Ligne de facture inconnue.']},
+            )
         movements = create_entry(
             shop, user, [item.line for item in lines],
             reference._replace(ocr_result=result),
         )
-        _remember_manual_matches(shop, user, result, lines, invoice_lines)
+        _remember_choices(shop, user, result, lines, ignored, invoice_lines)
         _mark_recorded(result, user, lines, invoice_lines)
         return movements

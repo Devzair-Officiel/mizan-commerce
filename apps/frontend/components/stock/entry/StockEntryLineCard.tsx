@@ -6,6 +6,7 @@ import { EntryPriceField } from './EntryPriceField';
 import { EntryQuantityField } from './EntryQuantityField';
 import { EntryRemoveButton } from './EntryRemoveButton';
 import { EntryStockChange } from './EntryStockChange';
+import { InvoiceIgnoredLine } from './InvoiceIgnoredLine';
 import { InvoiceLineArticle } from './InvoiceLineArticle';
 import { InvoiceLineStateBadge } from './InvoiceLineStateBadge';
 import { currencySymbol, type StockEntryLineProps } from './stockEntryLineTypes';
@@ -16,20 +17,21 @@ export function StockEntryLineCard({ form, index, currencyCode, invoice, onRemov
   const t = useTranslations('stock.entry');
   const tc = useTranslations('stock.common');
   const { line, label, added, total } = useEntryLine(form, index, currencyCode);
+  if (invoice && line.ignored) return <InvoiceIgnoredLine form={form} index={index} label={label} readLabel={line.readLabel} total={total} layout="card" />;
 
   return (
     <li className="flex flex-col gap-3 px-4 py-3.5">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           {invoice
-            ? <InvoiceLineArticle form={form} index={index} candidates={invoice.candidates} />
+            ? <InvoiceLineArticle form={form} index={index} candidates={invoice.candidates} currencyCode={currencyCode} />
             : <StockVariantCell productName={line.name} packagingName={line.packaging} />}
         </div>
         <EntryRemoveButton label={label} onClick={onRemove} />
       </div>
       {invoice ? (
         <div className="flex min-w-0 items-center gap-2">
-          <InvoiceLineStateBadge associated={line.variant !== ''} />
+          <InvoiceLineStateBadge state={line.variant !== '' ? 'associated' : 'to_associate'} />
           <span dir="auto" className="truncate font-mono text-xs text-muted-foreground">{line.readLabel}</span>
         </div>
       ) : (

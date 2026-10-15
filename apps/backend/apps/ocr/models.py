@@ -103,8 +103,10 @@ class SupplierLineMatch(models.Model):
     """Association mémorisée : ligne lue chez un fournisseur → format du catalogue.
 
     Enregistrée quand le commerçant associe une ligne de facture à la main ; la
-    facture suivante du même fournisseur réutilise l'association. Les clés sont
-    normalisées (sans accents, sans casse, espaces réduits) par
+    facture suivante du même fournisseur réutilise l'association. Une ligne
+    ignorée (frais de port, remise…) est mémorisée sans format, avec
+    `is_ignored` : elle est ignorée d'office sur les factures suivantes. Les
+    clés sont normalisées (sans accents, sans casse, espaces réduits) par
     `matching.normalize_text`.
     """
 
@@ -116,8 +118,10 @@ class SupplierLineMatch(models.Model):
     label_key = models.CharField(max_length=500)
     variant = models.ForeignKey(
         'products.ProductVariant', on_delete=models.CASCADE,
-        related_name='supplier_line_matches',
+        null=True, blank=True, related_name='supplier_line_matches',
     )
+    # Ligne à ignorer chez ce fournisseur (sans format associé).
+    is_ignored = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='+',
@@ -132,7 +136,16 @@ class SupplierLineMatch(models.Model):
                 fields=['shop', 'supplier_key', 'label_key'],
                 name='uniq_supplier_line_match',
             ),
+            # Ignorée : sans format ; associée : avec un format.
+            models.CheckConstraint(
+                condition=(
+                    models.Q(is_ignored=True, variant__isnull=True)
+                    | models.Q(is_ignored=False, variant__isnull=False)
+                ),
+                name='supplier_line_match_ignored_xor_variant',
+            ),
         ]
 
     def __str__(self) -> str:
-        return f'{self.supplier_key or "—"} / {self.label_key} → {self.variant_id}'
+        target = 'ignorée' if self.is_ignored else self.variant_id
+        return f'{self.supplier_key or "—"} / {self.label_key} → {target}'

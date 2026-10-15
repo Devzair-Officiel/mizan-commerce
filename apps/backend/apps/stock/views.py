@@ -132,6 +132,7 @@ class StockEntryView(APIView):
             movements = record_invoice_entry(
                 shop=shop, user=request.user, document_id=d['ocr_document'],
                 reference=reference,
+                ignored_line_indices=d['ignored_line_indices'],
                 lines=[
                     InvoiceEntryLine(line, raw['invoice_line_index'])
                     for line, raw in zip(lines, d['lines'], strict=True)

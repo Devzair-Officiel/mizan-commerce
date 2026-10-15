@@ -8,6 +8,7 @@ from django.core.files.uploadedfile import UploadedFile
 from rest_framework import serializers
 
 from .models import OcrResult, UploadedDocument
+from .pdf import InvalidInvoicePdfError, validate_invoice_pdf
 from .services import (
     REVIEW_SCHEMA_VERSION,
     InvalidFileSignatureError,
@@ -16,7 +17,11 @@ from .services import (
 
 
 class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
-    """Valide la requête d'upload : présence, taille, MIME, signature réelle."""
+    """Valide la requête d'upload : présence, taille, MIME, signature réelle.
+
+    Pour un PDF : ouverture réelle (mot de passe, document illisible, nombre
+    de pages), message destiné au commerçant.
+    """
 
     document = serializers.FileField()
 
@@ -25,21 +30,27 @@ class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
         allowed_types: set[str] = settings.OCR_DOCUMENT_ALLOWED_TYPES
 
         if file.size == 0:
-            raise serializers.ValidationError('Le fichier est vide.')
+            raise serializers.ValidationError('Le fichier est vide.', code='empty')
         if file.size > max_bytes:
             raise serializers.ValidationError(
-                f'Le document ne doit pas dépasser {settings.OCR_DOCUMENT_MAX_SIZE_MB} Mo.'  # noqa: E501
+                f'Le document ne doit pas dépasser {settings.OCR_DOCUMENT_MAX_SIZE_MB} Mo.',  # noqa: E501
+                code='too_large',
             )
         if file.content_type not in allowed_types:
             raise serializers.ValidationError(
                 f'Type de fichier non autorisé : {file.content_type}. '
-                'Formats acceptés : JPEG, PNG, WebP.'
+                'Formats acceptés : JPEG, PNG, WebP, PDF.',
+                code='type',
             )
         # Ne pas se fier uniquement au content_type : le client peut le forger.
         try:
             validate_file_signature(file, file.content_type)
+            if file.content_type == 'application/pdf':
+                validate_invoice_pdf(file)
         except InvalidFileSignatureError as exc:
-            raise serializers.ValidationError(str(exc)) from exc
+            raise serializers.ValidationError(str(exc), code='signature') from exc
+        except InvalidInvoicePdfError as exc:
+            raise serializers.ValidationError(str(exc), code=exc.code) from exc
         return file
 
 
@@ -204,6 +215,8 @@ class _MatchingLineSerializer(serializers.Serializer):
     candidates = _MatchingCandidateSerializer(many=True)
     # Association déterministe ; `null` : ligne « à associer ».
     association = _MatchingCandidateSerializer(allow_null=True)
+    # Ignorée d'office : ce libellé a déjà été ignoré chez ce fournisseur.
+    ignored = serializers.BooleanField(default=False)
 
 
 class _MatchingSerializer(serializers.Serializer):
@@ -260,6 +273,7 @@ def _sanitize_matching_line(entry: object) -> dict | None:
         'invoice_line_index': index_raw,
         'candidates': candidates,
         'association': _sanitize_matching_candidate(entry.get('association')),
+        'ignored': entry.get('ignored') is True,
     }
 
 

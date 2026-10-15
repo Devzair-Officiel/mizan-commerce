@@ -1,6 +1,7 @@
 /**
- * Facture fournisseur de test : une page HTML simple capturée en PNG, lue ensuite par la vraie
- * chaîne OCR (PaddleOCR puis structuration). Gros caractères et tableau net : la lecture reste stable.
+ * Facture fournisseur de test : une page HTML simple capturée en PNG, ou imprimée en PDF avec texte,
+ * lue ensuite par la vraie chaîne (OCR pour le PNG, texte lu directement pour le PDF, puis
+ * structuration). Gros caractères et tableau net : la lecture reste stable.
  */
 const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
@@ -24,6 +25,15 @@ export async function invoicePng(browser, invoice) {
   const page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
   await page.setContent(invoiceHtml(invoice));
   const buffer = await page.screenshot({ fullPage: true });
+  await page.close();
+  return buffer;
+}
+
+/** PDF avec texte de la facture (une page A4) : le texte est lu directement, sans OCR. */
+export async function invoicePdf(browser, invoice) {
+  const page = await browser.newPage();
+  await page.setContent(invoiceHtml(invoice));
+  const buffer = await page.pdf({ format: 'A4', printBackground: true, scale: 0.75 });
   await page.close();
   return buffer;
 }

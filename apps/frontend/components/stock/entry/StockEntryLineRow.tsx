@@ -6,6 +6,7 @@ import { EntryPriceField } from './EntryPriceField';
 import { EntryQuantityField } from './EntryQuantityField';
 import { EntryRemoveButton } from './EntryRemoveButton';
 import { EntryStockChange } from './EntryStockChange';
+import { InvoiceIgnoredLine } from './InvoiceIgnoredLine';
 import { InvoiceLineArticle } from './InvoiceLineArticle';
 import { InvoiceLineStateBadge } from './InvoiceLineStateBadge';
 import { currencySymbol, type StockEntryLineProps } from './stockEntryLineTypes';
@@ -17,17 +18,18 @@ const CELL = 'px-4.5 py-3 align-middle';
 export function StockEntryLineRow({ form, index, currencyCode, invoice, onRemove }: StockEntryLineProps) {
   const t = useTranslations('stock.common');
   const { line, label, added, total } = useEntryLine(form, index, currencyCode);
+  if (invoice && line.ignored) return <InvoiceIgnoredLine form={form} index={index} label={label} readLabel={line.readLabel} total={total} layout="row" />;
 
   return (
     <tr className="border-t border-border">
       <td className={`${CELL} max-w-64`}>
         {invoice
-          ? <InvoiceLineArticle form={form} index={index} candidates={invoice.candidates} />
+          ? <InvoiceLineArticle form={form} index={index} candidates={invoice.candidates} currencyCode={currencyCode} />
           : <StockVariantCell productName={line.name} packagingName={line.packaging} />}
       </td>
       {invoice ? (
         <>
-          <td className={CELL}><InvoiceLineStateBadge associated={line.variant !== ''} /></td>
+          <td className={CELL}><InvoiceLineStateBadge state={line.variant !== '' ? 'associated' : 'to_associate'} /></td>
           <td className={`${CELL} max-w-48`}>
             <span dir="auto" className="block truncate font-mono text-[0.8125rem] text-muted-foreground">{line.readLabel}</span>
           </td>

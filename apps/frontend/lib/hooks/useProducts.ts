@@ -186,6 +186,8 @@ export interface ProductFormData {
   name: string;
   type?: ProductType;
   description?: string;
+  /** Création seulement : format unique, créé avec l'article en un seul appel. */
+  variant?: ProductVariantFormData;
 }
 
 export type ProductOrdering = 'name' | '-name' | '-created_at';
@@ -310,7 +312,8 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (data: ProductFormData) =>
       apiFetch<ProductDetail>('/products/', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.products.all }),
+    // Un article créé avec son format apparaît aussi dans les niveaux et la recherche du stock.
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: qk.products.all }), qc.invalidateQueries({ queryKey: qk.stock.all })]),
   });
 }
 

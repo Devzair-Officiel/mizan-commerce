@@ -107,17 +107,29 @@ class StockEntrySerializer(serializers.Serializer):
     invoice_number = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')  # noqa: E501
     invoice_date = serializers.DateField(required=False, allow_null=True, default=None)
     ocr_document = serializers.UUIDField(required=False, allow_null=True, default=None)
+    # Lignes de la facture lue exclues de l'entrée (frais de port, remise…).
+    ignored_line_indices = serializers.ListField(
+        child=serializers.IntegerField(min_value=0),
+        required=False, default=list, max_length=200,
+    )
 
     def validate(self, data: dict) -> dict:
         indices = [line['invoice_line_index'] for line in data['lines']]
         given = [i for i in indices if i is not None]
-        if given and data['ocr_document'] is None:
+        ignored = data['ignored_line_indices']
+        if (given or ignored) and data['ocr_document'] is None:
             raise serializers.ValidationError(
                 {'lines': 'Une ligne de facture suppose une facture (ocr_document).'},
             )
         if len(given) != len(set(given)):
             raise serializers.ValidationError(
                 {'lines': 'Une même ligne de facture ne peut servir deux fois.'},
+            )
+        if len(ignored) != len(set(ignored)) or set(ignored) & set(given):
+            raise serializers.ValidationError(
+                {'ignored_line_indices': (
+                    'Une ligne ignorée ne peut être ni répétée ni entrée.'
+                )},
             )
         return data
 

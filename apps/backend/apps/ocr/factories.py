@@ -38,10 +38,19 @@ class OcrResultFactory(DjangoModelFactory):
 
 
 class SupplierLineMatchFactory(DjangoModelFactory):
-    """Association mémorisée : libellé d'un fournisseur → format (clés normalisées)."""
+    """Association mémorisée : libellé d'un fournisseur → format (clés normalisées).
+
+    `SupplierLineMatchFactory(ignored=True, shop=…)` : ligne ignorée, sans format.
+    """
 
     class Meta:
         model = SupplierLineMatch
+
+    class Params:
+        ignored = factory.Trait(
+            variant=None, is_ignored=True,
+            shop=factory.SubFactory(ShopFactory),
+        )
 
     variant = factory.SubFactory(ProductVariantFactory)
     shop = factory.SelfAttribute('variant.shop')

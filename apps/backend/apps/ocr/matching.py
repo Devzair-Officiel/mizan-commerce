@@ -4,8 +4,11 @@ Objectif : à partir d'une facture structurée (`AiInvoiceExtraction`), associer
 chaque ligne facture à un `ProductVariant` de la boutique courante, dans cet
 ordre : code-barres, référence, association déjà mémorisée pour ce fournisseur
 (`SupplierLineMatch`), puis nom normalisé. Une ligne sans association unique
-reste « à associer ». En complément, chaque ligne reçoit une liste ordonnée de
-candidats (suggestions pour l'association à la main).
+reste « à associer ». Une ligne déjà ignorée chez ce fournisseur (frais
+de port, remise…) est marquée `ignored` ; son association et ses candidats
+restent calculés, pour pouvoir la rétablir. En complément, chaque ligne
+reçoit une liste ordonnée de candidats (suggestions pour l'association à la
+main).
 
 Rien n'est ajouté au stock ici : l'entrée de stock validée par le commerçant
 reste la seule écriture.
@@ -103,6 +106,8 @@ class MatchedInvoiceLine(NamedTuple):
     candidates: list[VariantCandidate]
     # Association déterministe (unique) ; `None` : ligne « à associer ».
     association: VariantCandidate | None = None
+    # Ignorée d'office : ce libellé a déjà été ignoré chez ce fournisseur.
+    ignored: bool = False
 
 
 class InvoiceMatchingResult(NamedTuple):
@@ -292,20 +297,31 @@ def _associate_line(
     return _unique(found, _KIND_NAME_EXACT)
 
 
+class _SupplierMemory(NamedTuple):
+    # Libellé → format associé (formats éligibles seulement).
+    associations: dict[str, _NormalizedVariant]
+    # Libellés ignorés chez ce fournisseur.
+    ignored: set[str]
+
+
 def _supplier_memory(
     shop_id: UUID,
     supplier_name: str | None,
     variants: list[_NormalizedVariant],
-) -> dict[str, _NormalizedVariant]:
-    """Associations mémorisées pour ce fournisseur, limitées aux formats éligibles."""
+) -> _SupplierMemory:
+    """Associations et lignes ignorées mémorisées pour ce fournisseur."""
     by_pk = {str(v.variant.pk): v for v in variants}
     rows = SupplierLineMatch.objects.filter(
         shop_id=shop_id, supplier_key=_normalize_text(supplier_name),
-    ).values_list('label_key', 'variant_id')
-    return {
-        label: by_pk[str(variant_id)]
-        for label, variant_id in rows if str(variant_id) in by_pk
-    }
+    ).values_list('label_key', 'variant_id', 'is_ignored')
+    return _SupplierMemory(
+        associations={
+            label: by_pk[str(variant_id)]
+            for label, variant_id, ignored in rows
+            if not ignored and str(variant_id) in by_pk
+        },
+        ignored={label for label, _variant_id, ignored in rows if ignored},
+    )
 
 
 def match_invoice_lines_to_variants(
@@ -355,7 +371,12 @@ def match_invoice_lines_to_variants(
         MatchedInvoiceLine(
             invoice_line_index=index,
             candidates=_match_line(invoice_line, normalized),
-            association=_associate_line(invoice_line, normalized, memory),
+            association=_associate_line(
+                invoice_line, normalized, memory.associations,
+            ),
+            ignored=line_label_key(
+                invoice_line.description, invoice_line.supplier_reference,
+            ) in memory.ignored,
         )
         for index, invoice_line in enumerate(extraction.lines)
     ]

@@ -27,6 +27,7 @@ ALLOWED_MIME_TYPES: frozenset[str] = frozenset({
     'image/jpeg',
     'image/png',
     'image/webp',
+    'application/pdf',
 })
 
 
@@ -56,6 +57,9 @@ _PNG_MAGIC = _Signature(magic=b'\x89PNG\r\n\x1a\n')
 # WebP : `RIFF....WEBP` — on vérifie RIFF au début et WEBP à l'offset 8.
 _WEBP_MAGIC_RIFF = _Signature(magic=b'RIFF')
 _WEBP_MAGIC_WEBP = _Signature(magic=b'WEBP', offset=8)
+# PDF : en-tête `%PDF-` en tête de fichier (le mot de passe et le nombre de
+# pages sont vérifiés à l'ouverture, voir `pdf.py`).
+_PDF_MAGIC = _Signature(magic=b'%PDF-')
 
 
 def _matches(header: bytes, sig: _Signature) -> bool:
@@ -70,6 +74,8 @@ def _signature_matches_mime(header: bytes, mime_type: str) -> bool:
         return _matches(header, _PNG_MAGIC)
     if mime_type == 'image/webp':
         return _matches(header, _WEBP_MAGIC_RIFF) and _matches(header, _WEBP_MAGIC_WEBP)
+    if mime_type == 'application/pdf':
+        return _matches(header, _PDF_MAGIC)
     return False
 
 

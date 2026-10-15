@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -31,14 +32,27 @@ from .services import (
 )
 from .tasks import process_invoice_ocr
 
+if TYPE_CHECKING:
+    from rest_framework.utils.serializer_helpers import ReturnDict
+
 logger = logging.getLogger(__name__)
 
 HasStockModule = HasModulePermission.for_module('stock')
 HasOcrPlan = HasPlanForFeature.for_feature('ocr')
 
 
+def _invalid_upload(errors: ReturnDict) -> Response:
+    """400 au format habituel (`detail`, `errors`), plus le `code` du refus du
+    document (`pdf_protected`, `pdf_too_many_pages`…) : le frontend le traduit."""
+    document_errors = errors.get('document') or []
+    payload: dict[str, object] = {'detail': 'Requête invalide.', 'errors': errors}
+    if document_errors:
+        payload['code'] = document_errors[0].code
+    return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+
+
 class SupplierInvoiceUploadView(APIView):
-    """Upload d'une photo de facture fournisseur (URS-042).
+    """Upload d'une photo ou d'un PDF de facture fournisseur (URS-042).
 
     Ingère le fichier, crée `UploadedDocument` + `OcrResult(status='pending')`,
     puis déclenche l'OCR de manière asynchrone via Celery. La réponse est
@@ -57,7 +71,8 @@ class SupplierInvoiceUploadView(APIView):
             )
 
         serializer = SupplierInvoiceUploadRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return _invalid_upload(serializer.errors)
 
         shop = get_shop(request.user)
         result = create_supplier_invoice_upload(
