@@ -766,7 +766,12 @@ class ResetAuditShopTest(TestCase):
         )
         self.assertEqual(
             sorted(owners.values_list("name", flat=True)),
-            ["Boutique Audit", "Boutique Audit 2"],
+            ["Boutique Audit", "Boutique Audit 2", "Boutique Audit Factures"],
+        )
+        invoices = Shop.objects.get(name="Boutique Audit Factures")
+        self.assertEqual(
+            set(invoices.members.values_list("user__email", flat=True)),
+            {"e2e-invoices@example.com", "e2e-invoices-staff@example.com"},
         )
         shop = Shop.objects.get(name="Boutique Audit 2")
         self.assertEqual(

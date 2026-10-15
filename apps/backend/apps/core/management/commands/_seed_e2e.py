@@ -21,17 +21,30 @@ from apps.subscriptions.models import Subscription, SubscriptionPlan
 
 # Comptes des boutiques d'audit : un par emplacement, les audits lancés en parallèle
 # (apps/frontend/e2e/run-audits.mjs) travaillent chacun sur leurs propres données.
-AUDIT_EMAIL_RE = r'^e2e[0-9]*@example\.com$'
+# S'y ajoute la boutique réservée à audit-invoices, qui compte ses factures au plus
+# près : celles d'invoice-settings et d'order-numbers ne doivent pas s'y mêler.
+INVOICES_AUDIT = 'invoices'
+AUDIT_EMAIL_RE = r'^e2e([0-9]*|-invoices)@example\.com$'
 
 
-def audit_emails(slot: int) -> tuple[str, str]:
+def audit_emails(slot: int | str) -> tuple[str, str]:
     """Propriétaire et employée (rappels attribués, badge) de l'emplacement `slot`.
 
     1 → e2e@example.com / e2e-staff@example.com,
-    2 → e2e2@example.com / e2e2-staff@example.com…
+    2 → e2e2@example.com / e2e2-staff@example.com…,
+    'invoices' → e2e-invoices@example.com / e2e-invoices-staff@example.com.
     """
-    prefix = 'e2e' if slot == 1 else f'e2e{slot}'
+    if isinstance(slot, str):
+        prefix = f'e2e-{slot}'
+    else:
+        prefix = 'e2e' if slot == 1 else f'e2e{slot}'
     return f'{prefix}@example.com', f'{prefix}-staff@example.com'
+
+
+def _shop_name(slot: int | str) -> str:
+    if slot == INVOICES_AUDIT:
+        return 'Boutique Audit Factures'
+    return 'Boutique Audit' if slot == 1 else f'Boutique Audit {slot}'
 
 # Client avec une commande impayée : l'audit y teste « Relancer » (WhatsApp).
 E2E_FOLLOWUP_CUSTOMER = 'Nadia Relance'
@@ -102,8 +115,11 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
         )
 
 
-def seed_audit_shop(*, slot: int = 1, stdout=None) -> Shop:
-    """Compte d'audit de l'emplacement `slot` et sa boutique (Boutique). Idempotent."""
+def seed_audit_shop(*, slot: int | str = 1, stdout=None) -> Shop:
+    """Compte d'audit de l'emplacement `slot` et sa boutique (Boutique). Idempotent.
+
+    `slot` est un numéro d'emplacement, ou `INVOICES_AUDIT` pour la boutique réservée.
+    """
     email, staff_email = audit_emails(slot)
     e2e = UserFactory(
         email=email,
@@ -111,8 +127,7 @@ def seed_audit_shop(*, slot: int = 1, stdout=None) -> Shop:
         phone='+33611000100',
         password='Mizan1234!',
     )
-    name = 'Boutique Audit' if slot == 1 else f'Boutique Audit {slot}'
-    shop = ShopFactory(name=name, currency='EUR', country='FR')
+    shop = ShopFactory(name=_shop_name(slot), currency='EUR', country='FR')
     ShopMemberFactory(shop=shop, user=e2e, role='owner')
     staff = UserFactory(
         email=staff_email,

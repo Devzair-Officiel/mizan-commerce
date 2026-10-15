@@ -3,7 +3,8 @@ Remet les boutiques des audits Playwright dans leur état de départ.
 
 Supprime les boutiques dont un compte d'audit (e2e@example.com, e2e2@…) est
 propriétaire (cascade), puis recrée une boutique par emplacement (`--slots`,
-audits lancés en parallèle) comme seed_data. Aucune autre boutique n'est touchée.
+audits lancés en parallèle) comme seed_data, plus celle réservée à audit-invoices
+(e2e-invoices@example.com). Aucune autre boutique n'est touchée.
 Lancée automatiquement avant `docker compose run --rm e2e` (service e2e-reset).
 
 Usage :
@@ -18,7 +19,7 @@ from django.db import transaction
 
 from apps.shops.models import Shop
 
-from ._seed_e2e import AUDIT_EMAIL_RE, seed_audit_shop
+from ._seed_e2e import AUDIT_EMAIL_RE, INVOICES_AUDIT, seed_audit_shop
 
 # Audits lancés en même temps par défaut (AUDIT_JOBS de run-audits.mjs).
 DEFAULT_SLOTS = 3
@@ -51,6 +52,6 @@ class Command(BaseCommand):
         count = shops.count()
         shops.delete()  # CASCADE supprime toutes les données liées
         self.stdout.write(self.style.WARNING(f"  {count} boutique(s) d'audit supprimée(s)."))  # noqa: E501
-        for slot in range(1, slots + 1):
+        for slot in (*range(1, slots + 1), INVOICES_AUDIT):
             shop = seed_audit_shop(slot=slot, stdout=self.stdout)
             self.stdout.write(self.style.SUCCESS(f"Boutique d'audit recréée : {shop.name}"))  # noqa: E501

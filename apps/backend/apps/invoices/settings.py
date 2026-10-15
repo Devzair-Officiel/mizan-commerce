@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from django.db import transaction
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from apps.public_pages.models import ContactButton, PublicPage
 from apps.shops.models import Shop
@@ -15,6 +16,9 @@ from .models import Invoice, InvoiceLine
 
 
 PAYMENT_METHODS = ('cash', 'card', 'transfer', 'cheque')
+# Réglages de `invoice_branding` (formule Boutique). Le logo, lui, est celui de la
+# boutique (identité) : son envoi reste ouvert, seul le PDF l'écarte sous Boutique.
+BRANDING_FIELDS = ('invoice_color_mode', 'invoice_color')
 
 
 def resolved_color(shop: Shop) -> str:
@@ -30,13 +34,36 @@ def resolved_color(shop: Shop) -> str:
     return accessible_color(color) if color else ''
 
 
+def _enforce_branding(shop: Shop, data: dict) -> None:
+    """Refuse un changement de couleur sous Boutique (400, format des limites).
+
+    Le formulaire renvoie tous ses champs : une valeur inchangée passe, pour que les
+    autres réglages restent enregistrables.
+    """
+    stored = {
+        'invoice_color_mode': shop.invoice_color_mode,
+        'invoice_color': accessible_color(shop.invoice_color),
+    }
+    changed = [f for f in BRANDING_FIELDS if f in data and data[f] != stored[f]]
+    if changed and not shop_has_feature(shop, 'invoice_branding'):
+        raise ValidationError({
+            'detail': (
+                f'Votre formule « {shop.effective_plan.name} » ne comprend pas la '
+                'couleur des factures. Passez à la formule Boutique pour la choisir.'
+            ),
+            'code': 'plan_feature_required',
+            'feature': 'invoice_branding',
+        })
+
+
 @transaction.atomic
 def update_invoice_settings(shop: Shop, data: dict) -> Shop:
     shop = Shop.objects.select_for_update().get(pk=shop.pk)
+    if 'invoice_color' in data:
+        data = {**data, 'invoice_color': accessible_color(data['invoice_color'])}
+    _enforce_branding(shop, data)
     for field, value in data.items():
-        setattr(
-            shop, field, accessible_color(value) if field == 'invoice_color' else value
-        )
+        setattr(shop, field, value)
     if shop.invoice_vat_regime == 'exempt':
         shop.default_tax_rate = Decimal('0')
     shop.save()

@@ -536,6 +536,15 @@
       surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de
       cette liste au fur et à mesure qu'il est découpé.
 
+- [ ] Limites de formule (URS-100) : plusieurs boutons de création n'ont pas de garde côté
+      client à la limite (actions rapides, états vides, « Nouvelle vente » depuis une fiche
+      client, accueil d'une nouvelle boutique, /orders/new). Le serveur refuse (400), mais
+      la carte de mise à niveau ne s'ouvre pas avant le formulaire.
+
+- [ ] Réglage du résumé quotidien modifiable sous la formule Boutique (Découverte, Solo) alors
+      que l'envoi y est suspendu : le verrouiller côté réglages, comme les autres options
+      réservées à Boutique.
+
 ---
 
 ## Légende et bonnes pratiques d'usage
