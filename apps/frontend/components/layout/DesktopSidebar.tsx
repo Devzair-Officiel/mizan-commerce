@@ -53,16 +53,17 @@ export function DesktopSidebar() {
   }
 
   return (
+    // Vitre : fond laiteux flouté, reflet clair en haut (before) et arête lumineuse sur le bord (after).
     <aside id={SIDEBAR_ID} data-collapsed={collapsed || undefined}
-      className={`group/sidebar hidden lg:flex flex-col fixed inset-y-0 inset-s-0 z-30 border-e border-sidebar-border bg-sidebar/15 backdrop-blur-xl text-sidebar-foreground transition-[width] duration-200 ${collapsed ? 'w-20' : 'w-68'}`}>
+      className={`group/sidebar hidden lg:flex flex-col fixed inset-y-0 inset-s-0 z-30 border-e border-sidebar-border bg-sidebar/45 backdrop-blur-2xl backdrop-saturate-150 text-sidebar-foreground transition-[width] duration-200 before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-b before:from-card/60 before:to-transparent before:to-45% dark:before:from-foreground/8 after:pointer-events-none after:absolute after:inset-y-0 after:inset-e-0 after:w-px after:bg-card/80 dark:after:bg-foreground/12 ${collapsed ? 'w-20' : 'w-68'}`}>
       <SidebarHeader collapsed={collapsed} />
       <SidebarEdgeToggle collapsed={collapsed} onToggle={() => setCollapsed.mutate(!collapsed)} controls={SIDEBAR_ID} />
 
       {canCreateOrder && (
         <div className={collapsed ? 'flex justify-center pb-2' : 'px-3 pb-2'}>
-          {/* Teinté : texte primary rapproché du texte courant (25 %) pour garder 4,5:1 sur bg-primary/12, en clair et en sombre. */}
+          {/* Teinté : texte primary rapproché du texte courant (40 %) pour garder 4,5:1 sur bg-primary/12 et les halos, en clair et en sombre. */}
           <Link href="/orders/new" aria-label={collapsed ? tNav('new_sale') : undefined} title={collapsed ? tNav('new_sale') : undefined}
-            className={`flex items-center justify-center gap-2 rounded-full bg-primary/12 text-sm font-semibold text-[color-mix(in_oklch,var(--primary)_75%,var(--foreground))] transition-all hover:bg-primary/18 active:scale-95 ${collapsed ? 'h-11 w-11' : 'h-10 w-full px-4'}`}>
+            className={`flex items-center justify-center gap-2 rounded-full bg-primary/12 text-sm font-semibold text-[color-mix(in_oklch,var(--primary)_60%,var(--foreground))] transition-all hover:bg-primary/18 active:scale-95 ${collapsed ? 'h-11 w-11' : 'h-10 w-full px-4'}`}>
             <Plus className="h-4.5 w-4.5" strokeWidth={2.5} />
             {!collapsed && tNav('new_sale')}
           </Link>
