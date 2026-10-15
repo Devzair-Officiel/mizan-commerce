@@ -25,7 +25,7 @@ const STRUCK = 'block truncate text-muted-foreground line-through';
 export function InvoiceIgnoredLine({ form, index, label, readLabel, total, layout }: InvoiceIgnoredLineProps) {
   const t = useTranslations('stock.invoice');
   const restore = (
-    <Button type="button" variant="ghost" size="sm" aria-label={t('restore_line', { label: readLabel })}
+    <Button data-invoice-restore={index} type="button" variant="ghost" size="sm" aria-label={t('restore_line', { label: readLabel })}
       onClick={() => form.setValue(`lines.${index}.ignored`, false, { shouldDirty: true })} className="h-9 rounded-full px-3">
       <RotateCcw aria-hidden />
       {t('restore')}

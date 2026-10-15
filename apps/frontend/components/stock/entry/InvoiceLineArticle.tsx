@@ -39,7 +39,14 @@ export function InvoiceLineArticle({ form, index, candidates, currencyCode }: In
 
   const unassociated = variant ? undefined : {
     onCreate: () => setSheet('create'),
-    onIgnore: () => form.setValue(`lines.${index}.ignored`, true, opts),
+    onIgnore: () => {
+      form.setValue(`lines.${index}.ignored`, true, opts);
+      // Après le démontage de la fenêtre, viser la ligne visible (carte ou tableau).
+      requestAnimationFrame(() => {
+        const buttons = document.querySelectorAll<HTMLButtonElement>(`[data-invoice-restore="${index}"]`);
+        Array.from(buttons).find((button) => button.getClientRects().length > 0)?.focus();
+      });
+    },
   };
 
   return (
