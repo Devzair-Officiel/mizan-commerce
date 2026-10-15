@@ -54,7 +54,7 @@ export function DesktopSidebar() {
 
   return (
     <aside id={SIDEBAR_ID} data-collapsed={collapsed || undefined}
-      className={`group/sidebar hidden lg:flex flex-col fixed inset-y-0 inset-s-0 z-30 border-e border-sidebar-border bg-sidebar/55 backdrop-blur-xl text-sidebar-foreground transition-[width] duration-200 ${collapsed ? 'w-20' : 'w-68'}`}>
+      className={`group/sidebar hidden lg:flex flex-col fixed inset-y-0 inset-s-0 z-30 border-e border-sidebar-border bg-sidebar/15 backdrop-blur-xl text-sidebar-foreground transition-[width] duration-200 ${collapsed ? 'w-20' : 'w-68'}`}>
       <SidebarHeader collapsed={collapsed} />
       <SidebarEdgeToggle collapsed={collapsed} onToggle={() => setCollapsed.mutate(!collapsed)} controls={SIDEBAR_ID} />
 
