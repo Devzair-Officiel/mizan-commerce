@@ -39,10 +39,15 @@ class Shop(models.Model):
     # Pas de valeur par défaut sur le prix : le cours fluctue, l'utilisateur doit le saisir.  # noqa: E501
     # Argent par défaut comme méthode (plus inclusif, recommandé pour la zakat commerciale).  # noqa: E501
     nisab_method = models.CharField(
-        max_length=8, choices=NISAB_METHOD_CHOICES, default=NISAB_METHOD_SILVER,
+        max_length=8,
+        choices=NISAB_METHOD_CHOICES,
+        default=NISAB_METHOD_SILVER,
     )
     nisab_unit_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
     )
     logo_object_key = models.CharField(max_length=500, blank=True)
 
@@ -56,18 +61,50 @@ class Shop(models.Model):
     legal_mentions = models.TextField(blank=True)
     # Taux par défaut appliqué à la création d'une facture (0 si non assujetti).
     default_tax_rate = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0,
+        max_digits=5,
+        decimal_places=2,
+        default=0,
     )
     default_payment_terms_days = models.PositiveSmallIntegerField(default=30)
+
+    # Réglages factures (URS-094 à URS-099) ; les mentions libres restent réutilisées.
+    invoice_color_mode = models.CharField(
+        max_length=9,
+        default='automatic',
+        choices=[
+            ('automatic', 'Automatique'),
+            ('custom', 'Au choix'),
+            ('neutral', 'Neutre'),
+        ],
+    )
+    invoice_color = models.CharField(max_length=7, default='#367762')
+    invoice_auto_color = models.CharField(max_length=7, blank=True)
+    invoice_vat_regime = models.CharField(
+        max_length=10,
+        default='exempt',
+        choices=[('exempt', 'Franchise en base'), ('applicable', 'TVA applicable')],
+    )
+    siret = models.CharField(max_length=14, blank=True)
+    vat_number = models.CharField(max_length=32, blank=True)
+    invoice_payment_methods = models.JSONField(default=list, blank=True)
+    invoice_iban = models.CharField(max_length=34, blank=True)
+    invoice_bic = models.CharField(max_length=11, blank=True)
+    invoice_show_account_summary = models.BooleanField(default=False)
+    invoice_show_order = models.BooleanField(default=True)
 
     # ── Onboarding ──────────────────────────────────────────────────────────
     # Choix saisis dans le wizard 1er login, modifiables ensuite depuis les
     # réglages. `onboarding_completed_at` non null = wizard validé (ou skippé).
     catalog_kind = models.CharField(
-        max_length=10, choices=CATALOG_KIND_CHOICES, default=CATALOG_BOTH,
+        max_length=10,
+        choices=CATALOG_KIND_CHOICES,
+        default=CATALOG_BOTH,
     )
     fulfillment_mode = models.CharField(
-        max_length=10, choices=FULFILLMENT_MODE_CHOICES, null=True, blank=True,
+        max_length=10,
+        choices=FULFILLMENT_MODE_CHOICES,
+        null=True,
+        blank=True,
     )
     onboarding_completed_at = models.DateTimeField(null=True, blank=True)
 
@@ -79,6 +116,7 @@ class Shop(models.Model):
 
     def save(self, *args, **kwargs):
         from .services import timezone_for_country
+
         self.timezone = timezone_for_country(self.country)
         super().save(*args, **kwargs)
 
@@ -121,7 +159,11 @@ class ShopMember(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='members')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shop_memberships')  # noqa: E501
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='shop_memberships',
+    )  # noqa: E501
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_OWNER)
     permissions = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

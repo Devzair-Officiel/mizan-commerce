@@ -165,12 +165,12 @@ class ShopLogoView(APIView):
         file = request.FILES.get('logo')
         if not file:
             return Response({'detail': 'Champ « logo » requis.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
-        upload_shop_logo(shop=shop, file=file)
+        shop = upload_shop_logo(shop=shop, file=file)
         return Response(ShopSerializer(shop, context={'request': request}).data)
 
     def delete(self, request) -> Response:
         shop = self._get_shop()
-        delete_shop_logo(shop)
+        shop = delete_shop_logo(shop)
         return Response(ShopSerializer(shop, context={'request': request}).data)
 
 

@@ -50,6 +50,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
                 tax_rate=payload.validated_data.get('tax_rate'),
                 payment_terms_days=payload.validated_data.get('payment_terms_days'),
                 notes=payload.validated_data.get('notes', ''),
+                language=request.user.language,
             )
         except services.EmptyOrderError:
             return Response(

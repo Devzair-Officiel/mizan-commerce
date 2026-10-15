@@ -84,7 +84,7 @@ def build_invoice_pdf(invoice: Invoice) -> bytes:
         leftMargin=18 * mm, rightMargin=18 * mm,
         topMargin=18 * mm, bottomMargin=18 * mm,
         title=f'Facture {invoice.number}',
-        author=invoice.seller_name,
+        author=invoice.seller_name, invariant=1,
     )
 
     styles = getSampleStyleSheet()

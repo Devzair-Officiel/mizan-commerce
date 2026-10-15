@@ -28,6 +28,7 @@ def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, Pr
         tax_id='FR123456789',
         legal_mentions='SIRET: 12345678900012',
         default_tax_rate=Decimal('20.00'),
+        invoice_vat_regime='applicable', vat_number='FR123456789',
         default_payment_terms_days=30,
     )
     ShopMember.objects.create(shop=shop, user=user, role='owner')

@@ -37,40 +37,84 @@ def timezone_for_country(country: str | None) -> str:
     return COUNTRY_TIMEZONES.get(country.upper(), DEFAULT_TIMEZONE)
 
 
+@transaction.atomic
 def upload_shop_logo(shop: Shop, file: InMemoryUploadedFile) -> Shop:
     """Upload un nouveau logo, met à jour ``shop.logo_object_key`` et supprime
     l'ancien fichier S3 (best-effort, sans faire échouer l'upload)."""
+    shop = Shop.objects.select_for_update().get(pk=shop.pk)
     max_bytes = SHOP_LOGO_MAX_SIZE_MB * 1024 * 1024
     if file.size > max_bytes:
-        raise ValidationError(f"Le logo ne doit pas dépasser {SHOP_LOGO_MAX_SIZE_MB} Mo.")  # noqa: E501
+        raise ValidationError(
+            f'Le logo ne doit pas dépasser {SHOP_LOGO_MAX_SIZE_MB} Mo.'
+        )  # noqa: E501
     if file.content_type not in SHOP_LOGO_ALLOWED_TYPES:
         raise ValidationError(
-            f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.",  # noqa: E501
+            f'Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.',  # noqa: E501
         )
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
-        raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")  # noqa: E501
+        raise ValidationError(
+            "L'upload vers Object Storage n'est pas configuré sur cet environnement."
+        )  # noqa: E501
 
-    ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else 'jpg'
-    new_key = f"shops/{shop.pk}/logo-{uuid.uuid4()}.{ext}"
+    from apps.invoices.colors import inspect_logo
+
+    color, ext = inspect_logo(file.read(), file.content_type)
+    file.seek(0)
+    new_key = f'shops/{shop.pk}/logo-{uuid.uuid4()}.{ext}'
 
     upload_fileobj(file, new_key, file.content_type)
 
     old_key = shop.logo_object_key
     shop.logo_object_key = new_key
-    shop.save(update_fields=['logo_object_key', 'updated_at'])
+    shop.invoice_auto_color = color
+    shop.save(update_fields=['logo_object_key', 'invoice_auto_color', 'updated_at'])
+    from apps.public_pages.models import PublicPage
+
+    page_keys = list(
+        PublicPage.objects.filter(shop=shop).values_list('logo_object_key', flat=True)
+    )
+    PublicPage.objects.filter(shop=shop).update(logo_object_key=new_key)
+    for key in page_keys:
+        delete_unused_logo(shop, key)
 
     if old_key and old_key != new_key:
-        delete_object(old_key)
+        delete_unused_logo(shop, old_key)
 
     return shop
 
 
+def delete_unused_logo(shop: Shop, key: str) -> None:
+    """Conserve les logos des factures et ceux encore utilisés par la boutique."""
+    from apps.invoices.models import Invoice
+    from apps.public_pages.models import PublicPage
+
+    if (
+        not key
+        or Invoice.objects.filter(shop=shop, presentation__logo_object_key=key).exists()
+    ):
+        return
+    if Shop.objects.filter(pk=shop.pk, logo_object_key=key).exists():
+        return
+    if PublicPage.objects.filter(shop=shop, logo_object_key=key).exists():
+        return
+    delete_object(key)
+
+
+@transaction.atomic
 def delete_shop_logo(shop: Shop) -> Shop:
-    old_key = shop.logo_object_key
+    from apps.public_pages.models import PublicPage
+
+    shop = Shop.objects.select_for_update().get(pk=shop.pk)
+    old_keys = [
+        shop.logo_object_key,
+        *PublicPage.objects.filter(shop=shop).values_list('logo_object_key', flat=True),
+    ]
     shop.logo_object_key = ''
-    shop.save(update_fields=['logo_object_key', 'updated_at'])
-    if old_key:
-        delete_object(old_key)
+    shop.invoice_auto_color = ''
+    shop.save(update_fields=['logo_object_key', 'invoice_auto_color', 'updated_at'])
+    PublicPage.objects.filter(shop=shop).update(logo_object_key='')
+    for key in set(old_keys):
+        delete_unused_logo(shop, key)
     return shop
 
 
@@ -79,7 +123,7 @@ def _validate_permissions(perms: list[str]) -> list[str]:
     invalid = [p for p in cleaned if p not in TOGGLEABLE_MODULES]
     if invalid:
         raise ValidationError(
-            {'permissions': f"Modules inconnus : {', '.join(invalid)}"},
+            {'permissions': f'Modules inconnus : {", ".join(invalid)}'},
         )
     return cleaned
 
@@ -113,9 +157,13 @@ def create_staff_member(
         # Un user existant ne peut pas être réutilisé s'il est déjà membre de
         # cette boutique. S'il n'a aucune boutique on lui rattache, sinon erreur.
         if ShopMember.objects.filter(shop=shop, user=user).exists():
-            raise ValidationError({'email': 'Cet utilisateur est déjà membre de la boutique.'})  # noqa: E501
+            raise ValidationError(
+                {'email': 'Cet utilisateur est déjà membre de la boutique.'}
+            )  # noqa: E501
         if ShopMember.objects.filter(user=user).exists():
-            raise ValidationError({'email': 'Cet email est déjà associé à une autre boutique.'})  # noqa: E501
+            raise ValidationError(
+                {'email': 'Cet email est déjà associé à une autre boutique.'}
+            )  # noqa: E501
 
     return ShopMember.objects.create(
         shop=shop,
@@ -137,13 +185,17 @@ def update_member_permissions(
     ignorées pour les admins (toujours accès total). Un employé qui perd les
     rappels rend ceux qui lui étaient attribués à toute l'équipe.
     """
-    if member.role == ShopMember.ROLE_OWNER and role is not None and role != ShopMember.ROLE_OWNER:  # noqa: E501
-        raise ValidationError({'role': "Impossible de retirer le rôle owner."})
+    if (
+        member.role == ShopMember.ROLE_OWNER
+        and role is not None
+        and role != ShopMember.ROLE_OWNER
+    ):  # noqa: E501
+        raise ValidationError({'role': 'Impossible de retirer le rôle owner.'})
 
     fields = []
     if role is not None and role != member.role:
         if role not in {ShopMember.ROLE_ADMIN, ShopMember.ROLE_STAFF}:
-            raise ValidationError({'role': "Rôle invalide pour cette opération."})
+            raise ValidationError({'role': 'Rôle invalide pour cette opération.'})
         member.role = role
         fields.append('role')
     if permissions is not None:
@@ -154,14 +206,16 @@ def update_member_permissions(
     if not member.has_module(MODULE_REMINDERS):
         # Sans les rappels, ceux qui lui étaient attribués reviennent à toute
         # l'équipe : sinon ils ne seraient plus dans le badge de personne.
-        Reminder.objects.filter(shop=member.shop, assigned_to=member, status='pending').update(assigned_to=None)  # noqa: E501
+        Reminder.objects.filter(
+            shop=member.shop, assigned_to=member, status='pending'
+        ).update(assigned_to=None)  # noqa: E501
     return member
 
 
 def remove_member(member: ShopMember) -> None:
     """Supprime un membre de la boutique. Un `owner` ne peut pas être supprimé."""
     if member.role == ShopMember.ROLE_OWNER:
-        raise ValidationError("Impossible de retirer le propriétaire de la boutique.")
+        raise ValidationError('Impossible de retirer le propriétaire de la boutique.')
     member.delete()
 
 

@@ -40,7 +40,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'currency', 'tax_rate', 'subtotal_ht',
             'discount_amount', 'shipping_amount',
             'tax_amount', 'total_ttc',
-            'amount_paid',
+            'amount_paid', 'presentation',
             'notes', 'lines',
             'created_at', 'updated_at',
         )
