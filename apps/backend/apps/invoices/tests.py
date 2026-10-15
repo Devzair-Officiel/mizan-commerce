@@ -1,5 +1,4 @@
 from decimal import Decimal
-from unittest import mock
 
 from django.test import TestCase
 from django.urls import reverse
@@ -14,7 +13,7 @@ from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
 
-from . import pdf, services
+from . import services
 from .models import Invoice, InvoiceLine
 
 
@@ -262,12 +261,17 @@ class InvoiceLineVariantLabelTest(TestCase):
         response = self.client.get(reverse('invoice-detail', kwargs={'pk': invoice.pk}))  # noqa: E501
         self.assertEqual(response.data['lines'][0]['description'], 'Casquette en toile')  # noqa: E501
 
-        with mock.patch.object(pdf, 'Paragraph', wraps=pdf.Paragraph) as paragraph:
-            response = self.client.get(reverse('invoice-pdf', kwargs={'pk': invoice.pk}))  # noqa: E501
+        import pypdfium2 as pdfium
+        response = self.client.get(reverse('invoice-pdf', kwargs={'pk': invoice.pk}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        texts = [str(c.args[0]) for c in paragraph.call_args_list if c.args]
-        self.assertIn('Casquette en toile', texts)
-        self.assertFalse([t for t in texts if DEFAULT_VARIANT_NAME in t])
+        with pdfium.PdfDocument(response.content) as document:
+            page = document[0]
+            text_page = page.get_textpage()
+            text = text_page.get_text_range()
+            text_page.close()
+            page.close()
+        self.assertIn('Casquette en toile', text)
+        self.assertNotIn(DEFAULT_VARIANT_NAME, text)
         self.assertEqual(invoice.lines.get().description, frozen)
 
 

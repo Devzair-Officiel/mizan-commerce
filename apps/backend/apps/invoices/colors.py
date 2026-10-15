@@ -39,7 +39,8 @@ def inspect_logo(content: bytes, content_type: str) -> tuple[str, str]:
             source.verify()
         with Image.open(BytesIO(content)) as source:
             source.thumbnail((128, 128))
-            pixels = list(source.convert('RGBA').getdata())
+            data = source.convert('RGBA').tobytes()
+            pixels = zip(data[0::4], data[1::4], data[2::4], data[3::4])
     except (
         UnidentifiedImageError,
         OSError,

@@ -187,6 +187,36 @@ def issue_invoice_from_order(
     issued_on = now.astimezone(ZoneInfo(shop.timezone)).date()
     number = _next_invoice_number(shop, issued_on)
 
+    effective_tax_rate, effective_terms, language = _invoice_options(
+        shop,
+        tax_rate,
+        payment_terms_days,
+        language,
+    )
+    invoice = _new_invoice(
+        shop, order, now, issued_on, number, effective_tax_rate, effective_terms, notes
+    )
+    lines = _build_lines_from_order(invoice, order)
+    invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = _compute_totals(
+        lines,
+        invoice.tax_rate,
+        invoice.discount_amount,
+        invoice.shipping_amount,
+    )
+    invoice.presentation = snapshot_presentation(
+        invoice, shop, language=language, terms=effective_terms
+    )
+    invoice.save()
+    InvoiceLine.objects.bulk_create(lines)
+    return invoice
+
+
+def _invoice_options(
+    shop: Shop,
+    tax_rate: Decimal | None,
+    payment_terms_days: int | None,
+    language: str | None,
+) -> tuple[Decimal, int, str]:
     effective_tax_rate = tax_rate if tax_rate is not None else shop.default_tax_rate
     if shop.invoice_vat_regime == 'exempt':
         effective_tax_rate = Decimal('0')
@@ -205,22 +235,7 @@ def issue_invoice_from_order(
             .first()
             or 'fr'
         )
-    invoice = _new_invoice(
-        shop, order, now, issued_on, number, effective_tax_rate, effective_terms, notes
-    )
-    lines = _build_lines_from_order(invoice, order)
-    invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = _compute_totals(
-        lines,
-        invoice.tax_rate,
-        invoice.discount_amount,
-        invoice.shipping_amount,
-    )
-    invoice.presentation = snapshot_presentation(
-        invoice, shop, language=language, terms=effective_terms
-    )
-    invoice.save()
-    InvoiceLine.objects.bulk_create(lines)
-    return invoice
+    return effective_tax_rate, effective_terms, language
 
 
 def _new_invoice(

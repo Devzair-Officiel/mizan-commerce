@@ -436,11 +436,13 @@
 - [~] Lot 5 — Factures fournisseur
   - [~] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
   - [~] Création d'un article depuis une ligne « à associer », pré-remplie et mémorisée (article seulement : une entrée de stock ne porte pas sur un service) ; ligne ignorée (frais de port, remise…), mémorisée pour le fournisseur et rétablissable
-- [ ] Lot 6 — Factures clients
-  - [ ] Nouveau design (référence : facture Nidemiel)
-  - [ ] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
-  - [ ] Récapitulatif du compte client en option
-  - [ ] Mentions légales configurables
+- [~] Lot 6 — Factures clients
+  - [~] Nouveau design (référence : maquettes couleur et neutre validées)
+  - [~] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
+  - [~] Récapitulatif du compte client en option
+  - [~] Mentions légales configurables
+  - [~] Réglages dédiés, instantanés d’émission, PDF A4 paginés et exemples
+  - [ ] Dette : factures PDF en arabe (français utilisé en attendant)
 - [ ] Lot 7 — Compte et réglages
   - [ ] Badge d'abonnement (sidebar, menu mobile)
   - [ ] Raccourci clair/sombre dans le menu

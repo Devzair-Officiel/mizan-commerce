@@ -54,6 +54,9 @@ def snapshot_presentation(
     order = invoice.order
     return {
         'version': 1,
+        'issued_date': invoice.issued_at.astimezone(ZoneInfo(shop.timezone))
+        .date()
+        .isoformat(),
         'language': 'en' if language == 'en' else 'fr',
         'color': resolved_color(shop),
         'logo_object_key': shop.logo_object_key,
@@ -145,6 +148,10 @@ def example_invoice(shop: Shop, language: str) -> Invoice:
     invoice.presentation = snapshot_presentation(
         invoice, shop, language=language, terms=shop.default_payment_terms_days
     )
+    if shop.invoice_show_order:
+        invoice.presentation.update(
+            order_number='EXEMPLE-0001', order_date=issued_on.isoformat()
+        )
     lines = [
         InvoiceLine(
             shop=shop,
