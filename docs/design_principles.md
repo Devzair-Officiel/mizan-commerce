@@ -70,14 +70,13 @@ Je suis un designer produit mobile-first. Je raisonne ergonomie avant esthétiqu
 
 ## 7. Grand écran (≥ lg)
 
-- **Sidebar** : 240 px fixe, `inset-s-0` (logique RTL). Groupes de navigation avec titres `text-xs font-semibold uppercase tracking-wide text-muted-foreground`. Entrée active : `bg-secondary text-secondary-foreground font-semibold`, icône `text-primary`. Menu compte ancré en bas, ouvre un Base UI Menu `side="top"`.
+- **Sidebar** : 288 px fixe (`w-72`), `inset-s-0` (logique RTL), `bg-background`. Même contenu et même design que le BurgerMenu (composant partagé `AppMenu`) : en-tête boutique, groupes en cartes `MenuSection`/`MenuRow`, section Compte (profil, paramètres, Apparence), Langue, badge d'abonnement, Se déconnecter — tout à plat, sans sous-menu. Différences desktop : lignes en liens (`<Link>`), entrée Accueil et « Nouvelle commande » en tête, entrées hors formule masquées.
 - **Contenu** : conteneur `max-w-400 mx-auto pt-8`, marges latérales progressives `lg:px-8 xl:px-12 2xl:px-16` (32 / 48 / 64 px) pour que le contenu respire sur grand écran. Le conteneur fournit le padding latéral desktop ; TopBar et pages utilisent `p-4` / `px-4`, jamais de `lg:px-*` dans une page. Pages formulaires pas encore migrées (settings, profil, édition produit) : ajouter `max-w-3xl mx-auto w-full` sur leur div ou form racine pour éviter l'étirement sur très grand écran ; une page au gabarit de formulaire (§ 11) prend `max-w-280`.
 - **TopBar desktop** : non-sticky, pas de blur/border, titre `text-[28px] font-semibold tracking-tight` aligné à gauche, lien retour au-dessus du titre, barre de recherche `h-11 w-80 rounded-full bg-card border border-border` à droite. Le breadcrumb reste mobile uniquement (`lg:hidden`).
 - **Propriétés logiques** : toujours `ms/me/ps/pe/start/end` (jamais `ml/mr/pl/pr/left/right`) pour le support RTL.
 - **Action de création** : chaque page de liste porte sa propre action de création dans l'en-tête, à droite du titre (« Nouvelle commande », « Nouveau client »…), voir §9. « Nouvelle commande » reste dans la sidebar comme raccourci global. Une seule CTA principale par écran : pas d'autre bouton primaire dans la page.
-- **Bandeau unique** : la carte d'essai (`SidebarTrialCard`) vit dans la sidebar desktop. Ne jamais afficher deux bandeaux d'information simultanément.
-- **Couleur réservée aux signaux** : les titres de section de la sidebar sont `text-muted-foreground` (neutre), pas `text-primary`. La couleur primaire reste réservée aux états actifs et aux signaux.
-- **Menu compte ancré** : sur grand écran, le menu compte (Base UI `side="top"`) remplace le BottomSheet pour les actions de compte — exception au pattern §4 « Actions secondaires : BottomSheet ».
+- **Bandeau unique** : la formule courante (`MenuPlanBadge` : essai, Pro, essai terminé) vit dans le menu, sidebar ou burger. Ne jamais afficher deux bandeaux d'information simultanément.
+- **Couleur réservée aux signaux** : la couleur primaire reste réservée aux états actifs (tuile d'icône de la ligne active) et aux signaux.
 - **Filtres en menu** : sur grand écran, les filtres d'une liste s'ouvrent dans un Base UI Menu (`FilterMenuButton`) — autre exception au §4. Sur mobile, ils restent dans la feuille « Filtres ».
 - **`hideSearch` sur TopBar** : passer `hideSearch` sur toute page qui possède son propre champ de recherche (Commandes, Catalogue, Clients) et sur toute page de création/édition (Nouvelle commande, nouveau produit/client, édition produit/client). La recherche globale reste visible sur le tableau de bord et les pages de détail sans champ local.
 
@@ -96,9 +95,9 @@ Application :
 - Sur les écrans de saisie, la `MobileSubmitBar` se place juste au-dessus de la barre du bas (`bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px))`), version compacte (`py-2`, bouton `h-11`). Le contenu de la page conserve assez de `pb` pour ne pas être caché derrière les deux barres.
 - **Garde de saisie** : si l'utilisateur a commencé à saisir (articles ou client renseignés), quitter par la barre du bas, le BurgerMenu ou la flèche retour déclenche une confirmation native (`window.confirm`). La page appelle `registerDirtyChecker` à l'effet et `unregisterDirtyChecker` au démontage.
 - **Plus de fil d'Ariane sur mobile** : le `<Breadcrumb>` est supprimé ; la flèche retour suffit.
-- **Bandeau d'essai dans le menu** : `SidebarTrialCard` vit exclusivement dans le BurgerMenu. Un seul point d'accès, jamais deux bandeaux simultanés.
+- **Formule dans le menu** : `MenuPlanBadge` vit exclusivement dans le BurgerMenu. Un seul point d'accès, jamais deux bandeaux simultanés.
 - **Barre du bas** : 5 emplacements fixes (Accueil, Clients, Vendre au centre, Commandes, Catalogue). `bg-card border-t`. Onglet actif : icône dans pastille `bg-secondary`, libellé `text-primary font-semibold`. « Vendre » : bouton `h-14 w-14`, `ring-4 ring-card`, `-mt-7` → `/orders/new` direct. Badge : style neutre `bg-muted text-foreground` avec liseré `border-card`.
-- **BurgerMenu** : `bg-card`, entièrement défilable (pas de pied fixe). En-tête avec carré `M` bg-primary + nom boutique. Groupes issus de `lib/navigation.tsx`, sans les entrées déjà dans la barre du bas. Badge Stock : `bg-destructive/10 text-destructive`. Badge Rappels : `bg-muted text-foreground`.
+- **BurgerMenu** : `bg-background`, contenu `AppMenu` partagé avec la sidebar desktop, entièrement défilable (pas de pied fixe). En-tête avec carré `M` bg-primary + nom boutique. Groupes issus de `lib/navigation.tsx`, sans les entrées déjà dans la barre du bas. Badge Stock : `bg-destructive/10 text-destructive`. Badge Rappels : `bg-muted text-foreground`.
 
 ## 9. Gabarit des pages de liste
 

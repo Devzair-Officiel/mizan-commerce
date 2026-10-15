@@ -447,6 +447,7 @@
 - [~] Lot 7 — Compte et réglages
   - [x] Badge d'abonnement (sidebar, menu mobile) — formule courante, « Essai · N j », « Essai terminé » ; remplace les cartes d'essai, audit `account-menu`
   - [x] Raccourci clair/sombre dans le header (à côté de la loupe sur mobile, avant la barre de recherche sur desktop)
+  - [x] Sidebar desktop alignée sur le menu mobile (`AppMenu` partagé) : même organisation et même design, tout à plat (Compte, Apparence, Langue, abonnement, Se déconnecter), sans sous-menu
   - [ ] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
   - [ ] Refonte des formules : 4 formules (Gratuit, Solo, Pro, Boutique+), export en Pro ; grille à fournir. Incohérence à résoudre : la formule Gratuite a une limite de 20 commandes par mois, alors que les commandes demandent la formule Pro.
 

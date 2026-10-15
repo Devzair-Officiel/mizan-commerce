@@ -6,8 +6,9 @@ interface MenuHeaderProps {
   logoUrl?: string | null;
   displayName: string;
   subtitle: string;
-  onClose: () => void;
-  closeLabel: string;
+  /** Bouton de fermeture du menu burger ; absent dans la sidebar desktop. */
+  onClose?: () => void;
+  closeLabel?: string;
 }
 
 export function MenuHeader({ logoUrl, displayName, subtitle, onClose, closeLabel }: MenuHeaderProps) {
@@ -28,16 +29,18 @@ export function MenuHeader({ logoUrl, displayName, subtitle, onClose, closeLabel
         <div className="text-base font-bold text-foreground leading-tight truncate">{displayName}</div>
         {subtitle && <div className="text-[0.8125rem] text-muted-foreground truncate mt-0.5">{subtitle}</div>}
       </div>
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label={closeLabel}
-        className="h-11 w-11 flex items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors shrink-0"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M6 6l12 12M18 6 6 18" />
-        </svg>
-      </button>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={closeLabel}
+          className="h-11 w-11 flex items-center justify-center rounded-full text-foreground hover:bg-muted transition-colors shrink-0"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

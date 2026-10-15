@@ -4,6 +4,7 @@
  * - le badge affiche la formule courante : « Boutique+ » (la vraie souscription de la boutique d'audit),
  *   « Pro », « Essai · 12 j » pendant l'essai, « Essai terminé » et « Gratuit » après l'essai ; zone ≥ 44px,
  *   dans les limites du panneau (à droite en arabe), et il mène à Paramètres → Abonnement ;
+ * - desktop : la sidebar reprend le menu burger à plat (Compte, Langue, Se déconnecter), sans sous-menu ;
  * - le raccourci du header (≥ 44px) est collé à la loupe sur mobile, à la barre de recherche sur desktop, côté début de
  *   ligne ; il bascule le thème, son libellé suit, puis le thème revient.
  * Pro, essai et essai terminé sont réécrits dans la réponse `/subscriptions/current/` (comme audit-stock-entry-plan).
@@ -106,6 +107,25 @@ async function checkThemeShortcut(page, locale, label) {
   report.check((await isDark(page)) === start, `${label} : second appui, thème d'origine rétabli`);
 }
 
+/** Desktop : la sidebar reprend le menu burger à plat (Compte, Langue, Se déconnecter), sans sous-menu. */
+async function checkSidebar(page, locale, label) {
+  await page.goto(`${BASE}/dashboard`);
+  await page.waitForLoadState('networkidle');
+  const aside = page.locator('aside').filter({ visible: true }).first();
+  const profile = aside.getByRole('link', { name: msg(locale, 'layout.nav.profile'), exact: true });
+  const logout = aside.getByRole('button', { name: msg(locale, 'layout.common.logout'), exact: true });
+  const flat = (await aside.locator('[aria-haspopup]').count()) === 0
+    && (await aside.getByRole('heading', { name: msg(locale, 'layout.burgerMenu.account_section'), exact: true }).count()) === 1
+    && (await aside.getByRole('group', { name: msg(locale, 'layout.common.language'), exact: true }).count()) === 1
+    && (await profile.count()) === 1 && (await logout.count()) === 1;
+  report.check(flat, `${label} : sidebar à plat — Compte, Langue et « Se déconnecter », sans sous-menu`);
+  const rows = await Promise.all([profile, logout].map((l) => l.boundingBox()));
+  report.check(rows.every((b) => b && b.height >= 44), `${label} : lignes de la sidebar ≥ 44px`);
+  await profile.click();
+  await page.waitForURL(/\/profile$/);
+  report.check(true, `${label} : « ${msg(locale, 'layout.nav.profile')} » ouvre le profil`);
+}
+
 const browser = await launch();
 for (const viewport of VIEWPORTS) {
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
@@ -125,6 +145,7 @@ for (const viewport of VIEWPORTS) {
           state.name = name;
           await checkBadge(page, viewport, locale, label, name);
         }
+        if (!viewport.mobile) await checkSidebar(page, locale, label);
         await checkThemeShortcut(page, locale, label);
       } catch (error) {
         report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);

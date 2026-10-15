@@ -177,28 +177,26 @@ async function checkFilters(page, ctx) {
   });
 }
 
-/** Apparence : depuis le menu du compte (desktop) ou le menu burger (mobile), fermée par « Fermer ». */
+/** Apparence : depuis la sidebar (desktop, à plat) ou le menu burger (mobile), fermée par « Fermer ». */
 async function checkAccountMenus(page, ctx) {
   const { locale, viewport } = ctx;
-  const open = viewport.mobile
-    ? () => button(page, msg(locale, 'layout.common.menu')).click()
-    : () => page.locator('aside button[aria-haspopup=menu]').filter({ visible: true }).first().click();
-  const appearance = viewport.mobile
-    ? () => button(page.getByRole('dialog', { name: msg(locale, 'layout.common.menu') }), msg(locale, 'layout.common.appearance')).click()
-    : () => page.getByRole('menuitem').filter({ hasText: msg(locale, 'layout.common.appearance') }).click();
-  const menu = viewport.mobile ? 'menu burger' : 'menu du compte';
-  await step(page, ctx, `${menu} ouvert, clic à l'extérieur`, async () => {
-    await open();
-    // Ouverture animée : le clic à l'extérieur une fois le menu en place.
-    await overlay(page).first().waitFor();
-    await animationsDone(overlay(page));
-    // Le menu burger s'ouvre du côté du début de ligne (à droite en arabe) : clic de l'autre côté.
-    const side = locale === 'ar' ? 8 : viewport.width - 8;
-    await page.mouse.click(viewport.mobile ? side : viewport.width / 2, viewport.height / 2);
-  });
-  await step(page, ctx, `« Apparence » depuis le ${menu}, fermée par « Fermer »`, async () => {
-    await open();
-    await appearance();
+  const burger = () => page.getByRole('dialog', { name: msg(locale, 'layout.common.menu') });
+  const openBurger = () => button(page, msg(locale, 'layout.common.menu')).click();
+  if (viewport.mobile) {
+    await step(page, ctx, 'menu burger ouvert, clic à l\'extérieur', async () => {
+      await openBurger();
+      // Ouverture animée : le clic à l'extérieur une fois le menu en place.
+      await overlay(page).first().waitFor();
+      await animationsDone(overlay(page));
+      // Le menu burger s'ouvre du côté du début de ligne (à droite en arabe) : clic de l'autre côté.
+      await page.mouse.click(locale === 'ar' ? 8 : viewport.width - 8, viewport.height / 2);
+    });
+  }
+  const where = viewport.mobile ? 'menu burger' : 'la sidebar';
+  await step(page, ctx, `« Apparence » depuis ${where}, fermée par « Fermer »`, async () => {
+    if (viewport.mobile) await openBurger();
+    const scope = viewport.mobile ? burger() : page.locator('aside').filter({ visible: true }).first();
+    await button(scope, msg(locale, 'layout.common.appearance')).click();
     const drawer = page.getByRole('dialog', { name: msg(locale, 'layout.themeDrawer.title') });
     await drawer.waitFor();
     await animationsDone(drawer);
