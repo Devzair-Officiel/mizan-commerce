@@ -66,6 +66,8 @@ export interface OcrMatchingLine {
   candidates: OcrMatchingCandidate[];
   /** Association déterministe (code-barres, référence, mémoire fournisseur, nom) ; `null` : « à associer ». */
   association: OcrMatchingCandidate | null;
+  /** Ignorée d'office : ce libellé a déjà été ignoré chez ce fournisseur. */
+  ignored: boolean;
 }
 
 export interface OcrMatching {

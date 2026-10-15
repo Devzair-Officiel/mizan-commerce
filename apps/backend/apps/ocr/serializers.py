@@ -215,6 +215,8 @@ class _MatchingLineSerializer(serializers.Serializer):
     candidates = _MatchingCandidateSerializer(many=True)
     # Association déterministe ; `null` : ligne « à associer ».
     association = _MatchingCandidateSerializer(allow_null=True)
+    # Ignorée d'office : ce libellé a déjà été ignoré chez ce fournisseur.
+    ignored = serializers.BooleanField(default=False)
 
 
 class _MatchingSerializer(serializers.Serializer):
@@ -271,6 +273,7 @@ def _sanitize_matching_line(entry: object) -> dict | None:
         'invoice_line_index': index_raw,
         'candidates': candidates,
         'association': _sanitize_matching_candidate(entry.get('association')),
+        'ignored': entry.get('ignored') is True,
     }
 
 

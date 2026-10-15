@@ -705,7 +705,7 @@ Résultat d'OCR sur un document.
 
 ### `supplier_line_matches`
 
-Association mémorisée d'une ligne de facture fournisseur à un format, faite à la main lors d'une entrée. Réutilisée par le matching déterministe des factures suivantes du même fournisseur (après code-barres et référence, avant le nom normalisé).
+Association mémorisée d'une ligne de facture fournisseur à un format, faite à la main lors d'une entrée. Réutilisée par le matching déterministe des factures suivantes du même fournisseur (après code-barres et référence, avant le nom normalisé). Une ligne ignorée lors d'une entrée (frais de port, remise…) est mémorisée sans format (`is_ignored`) : elle est ignorée d'office sur les factures suivantes du même fournisseur, et peut être rétablie.
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
@@ -713,12 +713,15 @@ Association mémorisée d'une ligne de facture fournisseur à un format, faite �
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
 | supplier_key | VARCHAR(255) | NOT NULL, DEFAULT `''` | Nom du fournisseur normalisé (sans accents, sans casse, espaces réduits) |
 | label_key | VARCHAR(500) | NOT NULL | Libellé de la ligne normalisé (à défaut, sa référence fournisseur) |
-| variant_id | UUID | FK → product_variants.id, CASCADE, NOT NULL | Format associé |
+| variant_id | UUID | FK → product_variants.id, CASCADE, NULL | Format associé ; NULL pour une ligne ignorée |
+| is_ignored | BOOLEAN | NOT NULL, DEFAULT false | Ligne à ignorer chez ce fournisseur |
 | created_by_id | UUID | FK → users.id, SET_NULL | Auteur de l'association |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
-**Contrainte** : `UNIQUE (shop_id, supplier_key, label_key)` — une nouvelle association à la main remplace la précédente.
+**Contraintes** :
+- `UNIQUE (shop_id, supplier_key, label_key)` — un nouveau choix (association à la main, ligne ignorée ou rétablie) remplace le précédent ;
+- `CHECK ((is_ignored AND variant_id IS NULL) OR (NOT is_ignored AND variant_id IS NOT NULL))`.
 
 ---
 

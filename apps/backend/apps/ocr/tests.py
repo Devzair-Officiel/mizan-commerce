@@ -3711,3 +3711,212 @@ class InvoiceStockEntryTest(TestCase):
         response = self._post(foreign)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(StockMovement.objects.exists())
+
+
+class InvoiceUnrecognisedLineTest(TestCase):
+    """Ligne « à associer » : article créé puis associé, ou ligne ignorée."""
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.user, self.shop = make_user_shop('unrecognised@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.sandales = _make_variant(
+            self.shop, _make_product(self.shop, 'Sandales cuir'), 'Pointure 41',
+        )
+        self.document = make_document(self.shop, self.user)
+        self.ocr = self._ocr(self.document)
+
+    def _ocr(
+        self, document: UploadedDocument, ignored: tuple[int, ...] = (),
+    ) -> OcrResult:
+        lines = [
+            {'description': description, 'supplier_reference': None,
+             'quantity': quantity, 'unit_price': price, 'line_total': None,
+             'source_line_indices': [index]}
+            for index, (description, quantity, price) in enumerate([
+                ('Sandales cuir pointure 41', '2', '12.00'),
+                ('SAC-4412 Sac toile naturelle', '5', '4.50'),
+                ('Frais de port', '1', '6.90'),
+            ])
+        ]
+        association = {
+            'variant_id': str(self.sandales.pk),
+            'product_id': str(self.sandales.product_id),
+            'product_name': 'Sandales cuir', 'packaging_name': 'Pointure 41',
+            'match_kind': 'name_exact', 'similarity_score': 100,
+        }
+        return OcrResult.objects.create(
+            shop=document.shop, uploaded_document=document,
+            status=OcrResult.STATUS_DONE, raw_text='',
+            structured_data={
+                'invoice': {'supplier_name': 'Lin & Co', 'invoice_number': 'F-120',
+                            'invoice_date': '2026-10-12', 'lines': lines},
+                'matching': {'status': 'done', 'lines': [
+                    {'invoice_line_index': index, 'candidates': [],
+                     'association': association if index == 0 else None,
+                     'ignored': index in ignored}
+                    for index in range(3)
+                ]},
+            },
+        )
+
+    def _post(
+        self, lines: list[tuple[ProductVariant, int]], ignored: list[int],
+        document: UploadedDocument | None = None,
+    ) -> object:
+        return self.client.post(reverse('stock-entries'), {
+            'ocr_document': str((document or self.document).pk),
+            'supplier_name': 'Lin & Co',
+            'lines': [
+                {'variant': str(variant.pk), 'quantity': '1',
+                 'unit_purchase_price': '4.50', 'invoice_line_index': index}
+                for variant, index in lines
+            ],
+            'ignored_line_indices': ignored,
+        }, format='json')
+
+    def _next_invoice(self, supplier: str = 'LIN & CO') -> list[object]:
+        from .matching import match_invoice_lines_to_variants
+
+        extraction = _invoice_extraction([
+            _invoice_line('Sac-4412 sac toile NATURELLE'),
+            _invoice_line('FRAIS DE PORT'),
+        ])._replace(supplier_name=supplier)
+        return match_invoice_lines_to_variants(
+            shop_id=self.shop.id, extraction=extraction,
+        ).lines
+
+    def _memory(self) -> list[tuple[str, object, bool]]:
+        from .models import SupplierLineMatch
+
+        return sorted(
+            SupplierLineMatch.objects.filter(shop=self.shop)
+            .values_list('label_key', 'variant_id', 'is_ignored'),
+        )
+
+    def test_created_article_is_associated_and_remembered(self) -> None:
+        response = self.client.post(reverse('product-list'), {
+            'name': 'Sac toile naturelle', 'type': 'product',
+            'variant': {
+                'packaging_name': 'Par défaut', 'base_quantity': '1',
+                'unit': 'piece', 'selling_price': '9.00', 'purchase_price': '4.50',
+            },
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        sac = ProductVariant.objects.get(pk=response.data['variants'][0]['id'])
+
+        response = self._post([(self.sandales, 0), (sac, 1)], ignored=[2])
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        sac.refresh_from_db()
+        self.assertEqual(sac.stock_quantity, 1)
+        self.assertEqual(self._memory(), [
+            ('frais de port', None, True),
+            ('sac 4412 sac toile naturelle', sac.pk, False),
+        ])
+        bag, shipping = self._next_invoice()
+        self.assertEqual(
+            (bag.association.variant_id, bag.association.match_kind, bag.ignored),
+            (str(sac.pk), 'supplier_memory', False),
+        )
+        self.assertTrue(shipping.ignored)
+
+    def test_ignored_line_is_left_out_of_the_entry(self) -> None:
+        response = self._post([(self.sandales, 0), (self.sandales, 1)], ignored=[2])
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(StockMovement.objects.filter(ocr_result=self.ocr).count(), 2)
+        self.ocr.refresh_from_db()
+        decisions = [
+            line['decision'] for line in self.ocr.structured_data['review']['lines']
+        ]
+        self.assertEqual(decisions, ['stock', 'stock', 'ignore'])
+
+    def test_ignored_line_is_ignored_for_this_supplier_only(self) -> None:
+        self._post([(self.sandales, 0), (self.sandales, 1)], ignored=[2])
+        self.assertTrue(self._next_invoice()[1].ignored)
+        self.assertFalse(self._next_invoice(supplier='Autre fournisseur')[1].ignored)
+
+    def test_ignored_flag_reaches_the_review_screen(self) -> None:
+        from .matching import InvoiceMatchingResult
+        from .tasks import _matching_to_jsonable
+
+        self._post([(self.sandales, 0), (self.sandales, 1)], ignored=[2])
+        jsonable = _matching_to_jsonable(InvoiceMatchingResult(self._next_invoice()))
+        self.assertEqual([line['ignored'] for line in jsonable['lines']], [False, True])
+        document = make_document(self.shop, self.user)
+        ocr = self._ocr(document, ignored=(2,))
+        response = self.client.get(
+            reverse('ocr-result-detail', kwargs={'ocr_result_id': str(ocr.pk)}),
+        )
+        self.assertEqual(
+            [line['ignored'] for line in response.data['matching']['lines']],
+            [False, False, True],
+        )
+
+    def test_restored_line_replaces_the_ignored_memory(self) -> None:
+        self._post([(self.sandales, 0), (self.sandales, 1)], ignored=[2])
+        # Facture suivante : frais ignorés d'office, rétablis et entrés.
+        document = make_document(self.shop, self.user)
+        self._ocr(document, ignored=(2,))
+        response = self._post(
+            [(self.sandales, 0), (self.sandales, 2)], ignored=[1], document=document,
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self._memory(), [
+            ('frais de port', self.sandales.pk, False),
+            ('sac 4412 sac toile naturelle', None, True),
+        ])
+        bag, shipping = self._next_invoice()
+        self.assertTrue(bag.ignored)
+        self.assertFalse(shipping.ignored)
+        self.assertEqual(shipping.association.variant_id, str(self.sandales.pk))
+
+    def test_restored_line_with_its_automatic_association_is_remembered(self) -> None:
+        # Ligne 0 associée d'office ET ignorée d'office, rétablie telle quelle.
+        from .models import SupplierLineMatch
+
+        SupplierLineMatch.objects.create(
+            shop=self.shop, supplier_key='lin co',
+            label_key='sandales cuir pointure 41', is_ignored=True,
+        )
+        document = make_document(self.shop, self.user)
+        self._ocr(document, ignored=(0,))
+        response = self._post([(self.sandales, 0)], ignored=[1, 2], document=document)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn(
+            ('sandales cuir pointure 41', self.sandales.pk, False), self._memory(),
+        )
+
+    def test_ignored_indices_are_validated(self) -> None:
+        cases = [
+            [1, 1],  # répétée
+            [0],  # ignorée et entrée
+            [7],  # inconnue : tout est annulé
+        ]
+        for ignored in cases:
+            with self.subTest(ignored=ignored):
+                response = self._post([(self.sandales, 0)], ignored=ignored)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(reverse('stock-entries'), {
+            'lines': [{'variant': str(self.sandales.pk), 'quantity': '1'}],
+            'ignored_line_indices': [2],
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(StockMovement.objects.exists())
+        self.assertEqual(self._memory(), [])
+
+    def test_ignored_line_memory_is_isolated_per_shop(self) -> None:
+        from .models import SupplierLineMatch
+
+        other_user, other_shop = make_user_shop('unrecognised-other@example.com')
+        SupplierLineMatch.objects.create(
+            shop=other_shop, supplier_key='lin co', label_key='frais de port',
+            is_ignored=True,
+        )
+        self.assertFalse(self._next_invoice()[1].ignored)
+        # La facture d'une autre boutique ne peut servir à mémoriser un oubli.
+        foreign = make_document(other_shop, other_user)
+        self._ocr(foreign)
+        response = self._post([(self.sandales, 0)], ignored=[2], document=foreign)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self._memory(), [])
+        self.assertFalse(StockMovement.objects.exists())

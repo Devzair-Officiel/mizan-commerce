@@ -13,8 +13,8 @@ type Translate = (key: 'quantity_invalid' | 'amount_invalid' | 'lines_empty' | '
 
 function entrySchema(t: Translate) {
   const line = z.object({
-    /** Format associé ; vide pour une ligne de facture « à associer ». */
-    variant: z.string().refine((v) => v !== '', t('line_unassociated')),
+    /** Format associé ; vide pour une ligne de facture « à associer » ou ignorée. */
+    variant: z.string(),
     name: z.string(),
     packaging: z.string(),
     /** Stock actuel ; `null` pour une ligne de facture (pas de colonne Stock). */
@@ -24,7 +24,9 @@ function entrySchema(t: Translate) {
     invoiceIndex: z.number().nullable(),
     /** Texte lu sur la facture. */
     readLabel: z.string(),
-  });
+    /** Ligne de facture ignorée (frais de port, remise…) : hors de l'entrée. */
+    ignored: z.boolean(),
+  }).refine((l) => l.ignored || l.variant !== '', { path: ['variant'], message: t('line_unassociated') });
   return z.object({
     lines: z.array(line).min(1, t('lines_empty')),
     supplier_name: z.string().trim().max(255),
@@ -42,7 +44,7 @@ export const EMPTY_ENTRY: StockEntryValues = { lines: [], supplier_name: '', inv
 /** Ligne saisie à la main : une unité, au dernier prix d'achat. */
 export const lineFromLevel = (level: StockLevel): StockEntryLineValues => ({
   variant: level.id, name: level.product_name, packaging: level.packaging_name, stock: level.stock_quantity,
-  quantity: '1', price: level.purchase_price ?? '', invoiceIndex: null, readLabel: '',
+  quantity: '1', price: level.purchase_price ?? '', invoiceIndex: null, readLabel: '', ignored: false,
 });
 
 /** Total d'une ligne en centimes arrondis (affichage), `null` sans prix ou quantité lisible. */
@@ -52,8 +54,9 @@ export function lineTotal(quantity: string, price: string): number | null {
   return Number.isFinite(q) && Number.isFinite(p) ? Math.round(q * p * 100) / 100 : null;
 }
 
-/** Pied du tableau : lignes, unités reçues, total d'achat et lignes à associer. */
-function entryTotals(lines: StockEntryLineValues[]) {
+/** Pied du tableau : lignes entrées, unités reçues, total d'achat et lignes à associer (hors lignes ignorées). */
+function entryTotals(all: StockEntryLineValues[]) {
+  const lines = all.filter((l) => !l.ignored);
   let units = 0;
   let amount = 0;
   for (const line of lines) {
@@ -67,8 +70,9 @@ export type StockEntryTotals = ReturnType<typeof entryTotals>;
 
 /** Valeurs du formulaire au format de `POST /stock/entries/`. */
 export function entryPayload(values: StockEntryValues, ocrDocument: string | null): StockEntryPayload {
+  const ignored = values.lines.filter((l) => l.ignored).flatMap((l) => (l.invoiceIndex === null ? [] : [l.invoiceIndex]));
   return {
-    lines: values.lines.map((l) => ({
+    lines: values.lines.filter((l) => !l.ignored).map((l) => ({
       variant: l.variant,
       quantity: toDecimal(l.quantity),
       unit_purchase_price: l.price.trim() ? toDecimal(l.price) : null,
@@ -78,6 +82,7 @@ export function entryPayload(values: StockEntryValues, ocrDocument: string | nul
     invoice_number: values.invoice_number,
     invoice_date: values.invoice_date || null,
     ocr_document: ocrDocument,
+    ...(ignored.length > 0 ? { ignored_line_indices: ignored } : {}),
   };
 }
 

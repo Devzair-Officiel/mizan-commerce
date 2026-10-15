@@ -170,6 +170,8 @@ export interface StockEntryPayload {
   invoice_date?: string | null;
   /** Facture lue (document envoyé) : l'entrée lui est rattachée. */
   ocr_document?: string | null;
+  /** Lignes de la facture lue exclues de l'entrée, ignorées d'office chez ce fournisseur ensuite. */
+  ignored_line_indices?: number[];
 }
 
 export type StockExitReason = 'loss' | 'breakage' | 'internal_use';

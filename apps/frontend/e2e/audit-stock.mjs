@@ -2,8 +2,9 @@
  * Audit du stock (C4), à 1440px et 360px :
  * - parcours complet en français et en clair, une fois par taille : une vente fait passer un format
  *   en négatif (avertissement dans la nouvelle commande, filtre et indicateur « Négatif »), l'entrée
- *   rapide le régularise ; entrée de 3 articles à la main ; facture en PDF avec une ligne à associer,
- *   puis facture suivante du même fournisseur (photo) associée toute seule ; sortie pour casse refusée au-delà du
+ *   rapide le régularise ; entrée de 3 articles à la main ; facture en PDF avec une ligne associée à la
+ *   main, un article créé depuis sa ligne et des frais de port ignorés, puis facture suivante du même
+ *   fournisseur (photo) associée et ignorée toute seule, ligne rétablie ; sortie pour casse refusée au-delà du
  *   stock ; correction d'inventaire ; suppression d'un article jamais utilisé, refus pour un article vendu ;
  * - écrans du stock en français et en arabe, clair et sombre : console propre, aucun élément imbriqué ;
  * - boutique de services : ni page ni entrée Stock.
@@ -147,39 +148,106 @@ async function readInvoice(page, browser, invoice, { pdf = false } = {}) {
 
 const badgeCount = (page, key) => visible(page.getByText(msg('fr', `stock.invoice.${key}`), { exact: true })).count();
 
-/**
- * Facture en PDF avec texte : une ligne associée par son nom, une à associer ; la suivante du même
- * fournisseur (une photo) s'associe seule.
- */
-async function checkInvoice(page, browser, ctx, { known, other, stamp }) {
-  const supplier = `Fournisseur Audit ${stamp}`;
-  const number = stamp.replace(' ', '-');
-  const unknown = `CARTON AUDIT ${stamp}`;
-  const lines = [{ label: known.name, quantity: 4, price: '2.50' }, { label: unknown, quantity: 6, price: '1.20' }];
-  await readInvoice(page, browser, { supplier, number: `FA-${number}-1`, date: '03/10/2026', lines }, { pdf: true });
-  const blocked = submitButton(page, fmt('fr', 'stock.invoice.associate_to_continue', { count: 1 }));
-  const pdfCard = await visible(page.getByText('facture.pdf', { exact: true })).count() > 0 && await page.locator('main img[src^="blob:"]').count() === 0;
-  report.check(pdfCard && await badgeCount(page, 'associated') >= 1 && await badgeCount(page, 'to_associate') >= 1 && await blocked.isDisabled(),
-    `${ctx.label} : facture PDF avec texte lue — une ligne « Associée », une « À associer », bouton « ${fmt('fr', 'stock.invoice.associate_to_continue', { count: 1 })} » désactivé`);
+const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Bouton « Choisir l'article » de la ligne dont le libellé lu contient `word`. */
+const chooseFor = (page, word) => visible(page.getByRole('button', {
+  name: new RegExp(`^${reEscape(fmt('fr', 'stock.invoice.choose_article_for', { label: '' }).split('«')[0])}.*${reEscape(word)}`, 'i'),
+})).first();
+/** Action de la fenêtre « Choisir l'article » (son nom accessible reprend la précision). */
+const pickerAction = (sheet, key) => sheet.getByRole('button', { name: new RegExp(`^${reEscape(msg('fr', `stock.invoice.${key}`))}`) });
 
-  await visible(page.getByRole('button', { name: new RegExp(fmt('fr', 'stock.invoice.choose_article_for', { label: '' }).split('«')[0]) })).first().click();
+const amountOf = (value) => Number(value.replace(',', '.'));
+
+/** Ligne associée à un article existant par la recherche de la fenêtre. */
+async function pickExisting(page, word, article) {
+  await chooseFor(page, word).click();
   const sheet = page.getByRole('dialog');
-  await sheet.getByRole('combobox').fill(other.name);
+  await sheet.getByRole('combobox').fill(article.name);
   await sheet.getByRole('option').first().waitFor();
   await sheet.getByRole('combobox').press('Enter');
   await sheet.waitFor({ state: 'hidden' });
-  const before = await stockOf(page, other.variants[0].id);
-  await submitButton(page, fmt('fr', 'stock.entry.submit', { units: 10, unitsLabel: '10' })).click();
-  const toast = await toastShown(page, fmt('fr', 'stock.invoice.success', { count: 2, units: 10, unitsLabel: '10' }));
-  report.check(toast && await stockOf(page, other.variants[0].id) === before + 6,
-    `${ctx.label} : ligne associée à la main, facture enregistrée (+6 sur l'article choisi)`);
+}
 
-  await readInvoice(page, browser, { supplier, number: `FA-${number}-2`, date: '04/10/2026', lines: [lines[1]] });
-  const ready = submitButton(page, fmt('fr', 'stock.entry.submit', { units: 6, unitsLabel: '6' }));
-  report.check(await badgeCount(page, 'to_associate') === 0 && await ready.isEnabled(),
-    `${ctx.label} : facture suivante du même fournisseur — « ${unknown} » associée toute seule`);
+/** « Créer cet article » : nom prérempli sans le code, prix d'achat de la ligne, marge en direct. Rend le format créé. */
+async function createFromLine(page, ctx, word, name) {
+  await chooseFor(page, word).click();
+  const sheet = page.getByRole('dialog');
+  await pickerAction(sheet, 'create_article').click();
+  const form = page.getByRole('dialog', { name: msg('fr', 'stock.invoice.create_title') });
+  const field = (key) => form.getByRole('textbox', { name: msg('fr', `articles.form.${key}`) });
+  await field('name').waitFor();
+  const [prefilled, purchase] = [await field('name').inputValue(), await field('purchase_price').inputValue()];
+  await field('name').fill(name);
+  await field('selling_price').fill('5,00');
+  const marginShown = await visible(form.getByText(fmt('fr', 'articles.form.margin_rate', { margin: '76' }))).count() > 0;
+  const created = page.waitForResponse((r) => /\/api\/proxy\/products\/?$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST' && r.status() === 201);
+  await button(form, msg('fr', 'stock.invoice.create_submit')).click();
+  const product = await (await created).json();
+  const toast = await toastShown(page, fmt('fr', 'stock.invoice.create_success', { name }));
+  await form.waitFor({ state: 'hidden' });
+  report.check(/osier/i.test(prefilled) && !prefilled.includes('4412') && amountOf(purchase) === 1.2 && marginShown && toast,
+    `${ctx.label} : « Créer cet article » — nom prérempli sans le code (« ${prefilled} »), prix d'achat ${purchase}, marge 76 % en direct, article créé et associé`);
+  return { id: product.id, variant: product.variants[0].id };
+}
+
+/** « Ignorer cette ligne » depuis la fenêtre « Choisir l'article ». */
+async function ignoreLine(page, word) {
+  await chooseFor(page, word).click();
+  const sheet = page.getByRole('dialog');
+  await pickerAction(sheet, 'ignore_line').click();
+  await sheet.waitFor({ state: 'hidden' });
+}
+
+/**
+ * Facture en PDF avec texte : une ligne associée par son nom, une associée à la main, une créée depuis
+ * la ligne, des frais de port ignorés ; la suivante du même fournisseur (une photo) associe et ignore
+ * seule les mêmes lignes, et une ligne ignorée se rétablit.
+ */
+async function checkInvoice(page, browser, ctx, { known, other, stamp, created }) {
+  const supplier = `Fournisseur Audit ${stamp}`;
+  const number = stamp.replace(' ', '-');
+  const [carton, basket, shipping] = [
+    { label: `CARTON AUDIT ${stamp}`, quantity: 6, price: '1.20' },
+    { label: `REF-4412 Panier osier ${stamp}`, quantity: 3, price: '1.20' },
+    { label: 'Frais de port', quantity: 1, price: '8.90' },
+  ];
+  await readInvoice(page, browser, { supplier, number: `FA-${number}-1`, date: '03/10/2026', lines: [{ label: known.name, quantity: 4, price: '2.50' }, carton, basket, shipping] }, { pdf: true });
+  const blocked = submitButton(page, fmt('fr', 'stock.invoice.associate_to_continue', { count: 3 }));
+  const pdfCard = await visible(page.getByText('facture.pdf', { exact: true })).count() > 0 && await page.locator('main img[src^="blob:"]').count() === 0;
+  report.check(pdfCard && await badgeCount(page, 'associated') >= 1 && await badgeCount(page, 'to_associate') >= 3 && await blocked.isDisabled(),
+    `${ctx.label} : facture PDF avec texte lue — une ligne « Associée », trois « À associer », bouton « ${fmt('fr', 'stock.invoice.associate_to_continue', { count: 3 })} » désactivé`);
+
+  await pickExisting(page, 'CARTON', other);
+  const article = await createFromLine(page, ctx, 'osier', `Audit stock Delta ${stamp}`);
+  created.push(article.id);
+  await ignoreLine(page, 'port');
+  const ignored = await badgeCount(page, 'ignored') === 1;
+  const before = await stockOf(page, other.variants[0].id);
+  await submitButton(page, fmt('fr', 'stock.entry.submit', { units: 13, unitsLabel: '13' })).click();
+  const toast = await toastShown(page, fmt('fr', 'stock.invoice.success', { count: 3, units: 13, unitsLabel: '13' }));
+  report.check(ignored && toast && await stockOf(page, other.variants[0].id) === before + 6 && await stockOf(page, article.variant) === 3,
+    `${ctx.label} : frais de port « Ignorée », facture enregistrée sans eux (+6 sur l'article choisi, +3 sur l'article créé)`);
+
+  await checkNextInvoice(page, browser, ctx, { supplier, number, lines: [carton, basket, shipping], article });
+}
+
+/** Facture suivante du même fournisseur : associations et ligne ignorée retrouvées ; « Rétablir » puis ignorer à nouveau. */
+async function checkNextInvoice(page, browser, ctx, { supplier, number, lines, article }) {
+  await readInvoice(page, browser, { supplier, number: `FA-${number}-2`, date: '04/10/2026', lines });
+  const ready = submitButton(page, fmt('fr', 'stock.entry.submit', { units: 9, unitsLabel: '9' }));
+  report.check(await badgeCount(page, 'to_associate') === 0 && await badgeCount(page, 'ignored') === 1 && await ready.isEnabled(),
+    `${ctx.label} : facture suivante du même fournisseur — articles associés et frais de port ignorés tout seuls`);
+
+  const restoreName = new RegExp(`^${reEscape(fmt('fr', 'stock.invoice.restore_line', { label: '' }).split('«')[0])}`);
+  await visible(page.getByRole('button', { name: restoreName })).first().click();
+  const blocked = submitButton(page, fmt('fr', 'stock.invoice.associate_to_continue', { count: 1 }));
+  const restored = await badgeCount(page, 'ignored') === 0 && await badgeCount(page, 'to_associate') === 1 && await blocked.isDisabled();
+  await ignoreLine(page, 'port');
+  report.check(restored && await badgeCount(page, 'ignored') === 1 && await ready.isEnabled(),
+    `${ctx.label} : « Rétablir » remet la ligne « À associer » (bouton bloqué), l'ignorer à nouveau débloque l'enregistrement`);
   await ready.click();
-  await toastShown(page, fmt('fr', 'stock.invoice.success', { count: 1, units: 6, unitsLabel: '6' }));
+  const toast = await toastShown(page, fmt('fr', 'stock.invoice.success', { count: 2, units: 9, unitsLabel: '9' }));
+  report.check(toast && await stockOf(page, article.variant) === 6, `${ctx.label} : facture suivante enregistrée (+3 sur l'article créé)`);
 }
 
 /** Sortie pour casse au-delà du stock : refusée côté client et côté serveur. */
@@ -237,13 +305,14 @@ async function journey(browser, page, ctx) {
   // Mots distincts : la recherche exige chaque mot, « A » seul trouverait tous les articles.
   const make = (word, stock) => createArticle(page, { name: `Audit stock ${word} ${stamp}`, price: '10.00', stock });
   const [a, b, c] = [await make('Alpha', 1), await make('Bravo', 0), await make('Charlie', 4)];
+  const created = [];
   let order = null;
   try {
     await checkSaleWarning(page, ctx, a);
     order = await checkNegativeBySale(page, ctx, a, []);
     await checkQuickEntry(page, ctx, a);
     await checkManualEntry(page, ctx, [a, b, c]);
-    await checkInvoice(page, browser, ctx, { known: c, other: b, stamp });
+    await checkInvoice(page, browser, ctx, { known: c, other: b, stamp, created });
     await checkExitRefused(page, ctx, c);
     await checkAdjustment(page, ctx, b);
     await checkMovements(page, ctx, a, order);
@@ -254,7 +323,7 @@ async function journey(browser, page, ctx) {
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/stock-${ctx.viewport.name}.png`, fullPage: true });
   } finally {
     if (order) await api(page, `orders/${order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
-    await deactivate(page, [a.id, b.id, c.id]);
+    await deactivate(page, [a.id, b.id, c.id, ...created]);
   }
 }
 

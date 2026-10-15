@@ -324,6 +324,7 @@ def _matching_to_jsonable(result: InvoiceMatchingResult) -> dict:
                     _candidate_to_jsonable(line.association)
                     if line.association is not None else None
                 ),
+                'ignored': line.ignored,
             }
             for line in result.lines
         ],

@@ -10,13 +10,13 @@ function readDecimal(value: string | null, digits: number, positive: boolean): s
   return digits === 2 ? n.toFixed(2) : String(Number(n.toFixed(digits)));
 }
 
-/** Lignes préremplies depuis la facture lue : quantité, prix, texte lu et association trouvée. */
+/** Lignes préremplies depuis la facture lue : quantité, prix, texte lu, association trouvée et ligne ignorée d'office. */
 export function invoiceDefaults(result: OcrResult): StockEntryValues {
   const invoice = result.invoice;
-  const matching = new Map((result.matching?.lines ?? []).map((line) => [line.invoice_line_index, line.association]));
+  const matching = new Map((result.matching?.lines ?? []).map((line) => [line.invoice_line_index, line]));
   return {
     lines: (invoice?.lines ?? []).map((line, index) => {
-      const association = matching.get(index) ?? null;
+      const association = matching.get(index)?.association ?? null;
       return {
         variant: association?.variant_id ?? '',
         name: association?.product_name ?? '',
@@ -26,6 +26,7 @@ export function invoiceDefaults(result: OcrResult): StockEntryValues {
         price: readDecimal(line.unit_price, 2, false) ?? '',
         invoiceIndex: index,
         readLabel: line.description.trim() || line.supplier_reference || '',
+        ignored: matching.get(index)?.ignored === true,
       };
     }),
     supplier_name: (invoice?.supplier_name ?? '').slice(0, 255),
