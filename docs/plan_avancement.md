@@ -433,9 +433,9 @@
   - [~] Bloc Ventes de l'accueil (URS-006) : 7 jours, 12 mois et depuis l'ouverture, courbe avec bulle souris et clavier, tableau équivalent, période gardée sur le compte
   - [~] Modèles de messages WhatsApp et ton (URS-066/067) : ton de la boutique, cinq modèles personnalisables, aperçu, rendu unique côté serveur
   - [~] Rappels automatiques (URS-055 à 057) : relance d'impayé, commandes en attente, résumé du jour par e-mail
-- [ ] Lot 5 — Factures fournisseur
-  - [ ] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
-  - [ ] Création d'un article ou d'un service depuis une ligne « à associer », pré-remplie et mémorisée
+- [~] Lot 5 — Factures fournisseur
+  - [~] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
+  - [~] Création d'un article depuis une ligne « à associer », pré-remplie et mémorisée (article seulement : une entrée de stock ne porte pas sur un service) ; ligne ignorée (frais de port, remise…), mémorisée pour le fournisseur et rétablissable
 - [ ] Lot 6 — Factures clients
   - [ ] Nouveau design (référence : facture Nidemiel)
   - [ ] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
