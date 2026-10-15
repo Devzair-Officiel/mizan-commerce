@@ -166,6 +166,7 @@ export const qk = {
 
   shop: {
     all: ['shop'] as const,
+    invoiceSettings: ['shop', 'invoice-settings'] as const,
   },
 
   shopMembers: {

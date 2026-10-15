@@ -138,7 +138,10 @@ export function useUploadPageLogo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (blob: Blob) => uploadPageImage('logo', blob),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.publicPage.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: qk.publicPage.all }),
+      qc.invalidateQueries({ queryKey: qk.shop.all }),
+    ]),
   });
 }
 
@@ -146,7 +149,10 @@ export function useDeletePageLogo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch<PublicPage>('/public-page/logo/', { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.publicPage.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: qk.publicPage.all }),
+      qc.invalidateQueries({ queryKey: qk.shop.all }),
+    ]),
   });
 }
 

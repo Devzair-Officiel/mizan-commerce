@@ -22,7 +22,7 @@ function screens({ order, customer, product }) {
     ['nouvel article', '/products/new'], ['stock', '/stock'], ['entrée stock', '/stock/entree'],
     ['sortie stock', '/stock/sortie'], ['rappels', '/reminders'], ['notes', '/notes'],
     ['factures', '/invoices'], ['zakat', '/zakat'], ['plus', '/more'], ['profil', '/profile'],
-    ['paramètres', '/settings'], ['équipe', '/settings/team'],
+    ['paramètres', '/settings'], ['paramètres factures', '/settings/invoices'], ['équipe', '/settings/team'],
     ['page publique', '/settings/public-page'], ['messages WhatsApp', '/settings/messages'], ['abonnement', '/settings/subscription'],
   ];
 }

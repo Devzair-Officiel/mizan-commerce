@@ -24,3 +24,11 @@ docker compose run --rm e2e npm run audit -- invoice-settings
 Captures desktop/mobile : `apps/frontend/e2e/results/invoice-settings-*.png` ; détail : `apps/frontend/e2e/results/invoice-settings.log`. L’audit vérifie les trois modes, l’assombrissement, l’enregistrement, la TVA, les coordonnées bancaires conditionnelles, les options au clavier, le téléchargement PDF, la persistance, la disposition et la console.
 
 Le PDF utilise seulement l’instantané à l’émission. Le statut et le montant payé suivent les évolutions autorisées du règlement ; les coordonnées, mentions, couleurs, logo, langue, commande et récapitulatif restent figés. Le récapitulatif déduit les règlements des anciennes factures de leur solde dû, puis ceux de la présente facture une seule fois. Les PDF en arabe restent une dette du plan : rendu français pour ces comptes.
+
+## Vérifications finales
+
+- Backend : `pytest -n auto` complet, **870 tests réussis** ; `ruff check .` et `makemigrations --check` conformes.
+- Migrations créées et appliquées en développement : `shops.0009_shop_invoice_auto_color_shop_invoice_bic_and_more`, `invoices.0006_invoice_presentation_invoiceline_product_name_and_more`.
+- Frontend : typecheck, lint et contrôles i18n/tokens/text/deps réussis ; ESLint conserve ses 7 avertissements préexistants, sans nouvelle erreur.
+- Build de production réussi après redémarrage du frontend.
+- Suite navigateur complète : **25 audits smoke conformes**, dont Paramètres › Factures, en 345 secondes. Console surveillée par les audits.
