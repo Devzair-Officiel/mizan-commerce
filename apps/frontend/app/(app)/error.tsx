@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,10 @@ export default function AppError({
 }) {
   const t = useTranslations('ui.error');
   useEffect(() => {
-    // Surface dans la console pour le dev — en prod, c'est Next.js qui capture via digest.
+    // Surface dans la console pour le dev, et dans Sentry s'il est configuré (lib/sentry.ts).
     // Aucun détail technique n'est exposé à l'utilisateur.
     console.error('App error boundary:', error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (

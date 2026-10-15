@@ -38,3 +38,6 @@ django-axes==7.1.0
 # `urllib.request` reste utilisé pour les sondes GET simples ; httpx s'ajoute
 # uniquement quand on doit POSTer un fichier binaire avec un timeout net.
 httpx==0.28.1
+
+# Suivi des erreurs : actif seulement si SENTRY_DSN est défini (apps/core/sentry.py)
+sentry-sdk==2.72.0

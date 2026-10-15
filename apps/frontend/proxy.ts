@@ -109,7 +109,8 @@ function detectLocaleFromAcceptLanguage(header: string): Locale {
 }
 
 export const config = {
-  // Exclure routes API, statiques Next, optimisation d'images, favicons.
+  // Exclure routes API, tunnel Sentry (`/relais`, next.config.ts), statiques Next,
+  // optimisation d'images, favicons.
   // Ne JAMAIS inclure `/api/*` (boucle sur les routes d'auth elles-mêmes).
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)'],
+  matcher: ['/((?!api|relais|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)'],
 };

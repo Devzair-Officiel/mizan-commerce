@@ -40,7 +40,7 @@
 - [x] Mettre `DEBUG=False` par défaut, activer uniquement en local
 - [x] Configurer CORS, CSRF, cookies sécurisés
 - [x] Configurer Celery + Celery Beat avec Redis
-- [ ] Mettre en place Sentry (DSN en env var, désactivé en local)
+- [~] Mettre en place Sentry (DSN en env var, désactivé en local) — backend et frontend, inactifs sans DSN (fiche technique §15) ; reste à créer le projet Sentry et renseigner les DSN
 
 ### Frontend Next.js de base
 
@@ -53,17 +53,18 @@
 
 ### Infrastructure OVH (peut être différé)
 
-- [ ] Créer un VPS ou Public Cloud Instance OVH
-- [ ] Provisionner PostgreSQL managé OVHcloud
-- [ ] Provisionner le bucket privé de production (ex. `mizan-prod-private`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
-- [ ] Configurer un nom de domaine + HTTPS (Let's Encrypt via Nginx/Traefik)
-- [ ] Configurer un domaine de staging séparé
+- [~] Créer un VPS ou Public Cloud Instance OVH — VPS dédié retenu ; préparation du serveur documentée (docs/exploitation/deploiement.md), reste à le commander
+- ~~Provisionner PostgreSQL managé OVHcloud~~ — remplacé par PostgreSQL 16 en conteneur sur le VPS
+- [~] PostgreSQL 16 en conteneur (image `deploy/postgres` avec WAL-G, volume nommé, `deploy/app/compose.yml`) — sauvegardes : section Backups
+- [ ] Provisionner le bucket privé de production (`mizan-production-private`, et `mizan-staging-private` pour staging, prévus dans `deploy/env/*.env.example`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
+- [~] Configurer un nom de domaine + HTTPS (Let's Encrypt via Caddy, `deploy/edge`) — reste les enregistrements DNS
+- [~] Configurer un domaine de staging séparé — `staging.mizan-commerce.com` derrière une authentification basique (Caddy)
 
 ### CI/CD
 
-- [ ] Configurer GitHub Actions (ou GitLab CI)
-- [ ] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging
-- [ ] Tests obligatoires multi-tenant (un user de boutique A ne voit pas la boutique B)
+- [~] Configurer GitHub Actions (ou GitLab CI) — `.github/workflows/ci.yml`, Dependabot ; reste à protéger `main` (docs/ci.md)
+- [~] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging — images publiées sur GHCR à chaque push sur `main` ; déploiement staging manuel (`deploy/deploy.sh`)
+- [~] Tests obligatoires multi-tenant (un user de boutique A ne voit pas la boutique B) — dans `pytest`, obligatoires une fois `backend` requis sur `main`
 
 ---
 
@@ -482,17 +483,17 @@
 
 ### Monitoring
 
-- [ ] Sentry actif sur backend + frontend
-- [ ] UptimeRobot ou Better Stack configuré
-- [ ] Logs structurés (JSON) en production
+- [~] Sentry actif sur backend + frontend — intégré, inactif tant que les DSN ne sont pas renseignés
+- [ ] UptimeRobot ou Better Stack configuré — sonde prête : `/healthz` (base + Redis, sans authentification)
+- [~] Logs structurés (JSON) en production — Django, gunicorn et Celery sur stdout, données personnelles masquées
 - [ ] Alertes mail sur erreurs critiques
 
 ### Backups
 
-- [ ] Backups PostgreSQL automatiques activés
-- [ ] **Test de restauration mensuel** (un backup non testé n'est pas un backup)
-- [ ] Versioning Object Storage activé si possible
-- [ ] Plan de rollback documenté
+- [~] Backups PostgreSQL automatiques activés — WAL-G : journal archivé en continu (perte ≤ 1 min), sauvegarde complète chaque nuit, 30 jours, chiffrée, bucket dans une autre région, surveillance par signal ; éprouvé en local avec MinIO (`deploy/backup/test-local.sh`), à activer sur le serveur (bucket, clé, URL de surveillance) — docs/exploitation/sauvegardes.md
+- [~] **Test de restauration mensuel** (un backup non testé n'est pas un backup) — automatique (service `backup`, signal RESTORE_TEST_HEARTBEAT_URL) ; restauration manuelle à un instant précis : `deploy/backup/restore.sh`
+- [~] Versioning Object Storage activé si possible — procédure documentée (bucket privé des fichiers), à activer sur OVH
+- [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging
 
 ### Dette technique connue
 

@@ -1,0 +1,10 @@
+# Production (importé par deploy/edge/Caddyfile). www redirige vers le domaine nu.
+www.{$PRODUCTION_DOMAIN} {
+	import security_headers
+	redir https://{$PRODUCTION_DOMAIN}{uri} permanent
+}
+
+{$PRODUCTION_DOMAIN} {
+	import security_headers
+	import app production
+}

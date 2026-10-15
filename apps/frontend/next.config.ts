@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // next-intl résout la locale dynamiquement via `i18n/request.ts` (cookie + Accept-Language),
 // pas via préfixe d'URL — l'app reste sur des routes sans `[locale]`.
@@ -111,4 +112,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+// Sentry (instrumentation*.ts, lib/sentry.ts) : inactif sans NEXT_PUBLIC_SENTRY_DSN.
+export default withSentryConfig(withNextIntl(nextConfig), {
+  // Tunnel same-origin : les bloqueurs de publicité laissent passer les événements, la CSP
+  // reste en connect-src 'self'. Route fixe, exclue de la matcher de proxy.ts.
+  tunnelRoute: "/relais",
+  // Pas d'envoi des source maps tant qu'aucun jeton Sentry n'est fourni au CI.
+  sourcemaps: { disable: true },
+  telemetry: false,
+  silent: true,
+});

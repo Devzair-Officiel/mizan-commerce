@@ -1,0 +1,43 @@
+# Routage public de Mizan (deploy/edge/compose.yml). Les {$VAR} viennent de
+# deploy/env/edge.env, lues au démarrage de Caddy.
+#
+# Seul le frontend Next.js est exposé : le navigateur n'appelle jamais Django
+# directement (les appels authentifiés passent par /app/api/*, côté serveur).
+# De Django, seule la route /healthz est routée. L'admin Django n'est jamais
+# exposé : accès par tunnel SSH (docs/exploitation/deploiement.md).
+{
+	email {$ACME_EMAIL}
+	# Vide en production. Tests locaux : « local_certs » (autorité interne de Caddy).
+	{$CADDY_GLOBAL_OPTIONS}
+}
+
+# En-têtes de sécurité. Next.js pose déjà sa CSP (frame-ancestors 'self' sur la
+# page publique /boutique, intégrable) : « ? » ne pose l'en-tête que s'il manque.
+(security_headers) {
+	header {
+		defer
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		?Referrer-Policy strict-origin-when-cross-origin
+		?Content-Security-Policy "frame-ancestors 'none'"
+		?X-Frame-Options DENY
+		-Server
+		-X-Powered-By
+	}
+}
+
+# Un environnement : {args[0]} = production ou staging. Les noms d'hôte sont les
+# alias des conteneurs sur le réseau edge (deploy/app/compose.yml).
+(app) {
+	encode zstd gzip
+	handle /healthz {
+		reverse_proxy mizan-{args[0]}-backend:8000
+	}
+	handle {
+		reverse_proxy mizan-{args[0]}-frontend:3000
+	}
+}
+
+# Sites servis par ce serveur (deploy/env/edge.env) : « * » pour les deux,
+# « production » ou « staging » si staging tourne sur un autre serveur.
+import sites/{$EDGE_SITES:*}.caddy

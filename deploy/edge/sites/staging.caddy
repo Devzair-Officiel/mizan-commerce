@@ -1,0 +1,11 @@
+# Staging (importé par deploy/edge/Caddyfile).
+# Authentification HTTP basique, sauf /healthz (surveillance externe).
+{$STAGING_DOMAIN} {
+	import security_headers
+	header X-Robots-Tag "noindex, nofollow"
+	@protected not path /healthz
+	basic_auth @protected {
+		{$STAGING_BASIC_AUTH_USER} {$STAGING_BASIC_AUTH_HASH}
+	}
+	import app staging
+}

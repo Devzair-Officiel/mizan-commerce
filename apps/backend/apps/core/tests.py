@@ -1003,9 +1003,12 @@ class ProductionStorageSettingsTest(TestCase):
 
     ENV = {
         "SECRET_KEY": "x" * 50,
-        "ALLOWED_HOSTS": "mizan.example.com",
+        "DJANGO_ALLOWED_HOSTS": "mizan.example.com",
         "CSRF_TRUSTED_ORIGINS": "https://mizan.example.com",
         "CORS_ALLOWED_ORIGINS": "https://mizan.example.com",
+        "FRONTEND_URL": "https://mizan.example.com",
+        "POSTGRES_PASSWORD": "test-password",
+        "REDIS_URL": "redis://:test@redis:6379/0",
         "OVH_S3_BUCKET_PRIVATE": "mizan-prod-private",
         "OVH_S3_ENDPOINT_URL": "https://s3.example.com",
         "OVH_S3_ACCESS_KEY": "test-access",
@@ -1034,3 +1037,36 @@ class ProductionStorageSettingsTest(TestCase):
                 with self.subTest(name=name, value=value):
                     with self.assertRaisesMessage(ImproperlyConfigured, name):
                         self.load_production(**{name: value})
+
+    def test_missing_required_variable_is_refused(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        for name in ("SECRET_KEY", "DJANGO_ALLOWED_HOSTS", "CSRF_TRUSTED_ORIGINS",
+                     "CORS_ALLOWED_ORIGINS", "FRONTEND_URL", "POSTGRES_PASSWORD",
+                     "REDIS_URL"):
+            for value in (None, "  "):
+                with self.subTest(name=name, value=value):
+                    with self.assertRaisesMessage(ImproperlyConfigured, name):
+                        self.load_production(**{name: value})
+
+    def test_short_or_default_secret_key_is_refused(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        for value in ("x" * 49, "change-me-in-production"):
+            with self.subTest(value=value):
+                with self.assertRaisesMessage(ImproperlyConfigured, "SECRET_KEY"):
+                    self.load_production(SECRET_KEY=value)
+
+    def test_internal_hosts_and_redis_url(self):
+        settings = self.load_production()
+        self.assertEqual(
+            settings["ALLOWED_HOSTS"], ["mizan.example.com", "backend", "localhost"],
+        )
+        self.assertEqual(settings["CELERY_BROKER_URL"], "redis://:test@redis:6379/0")
+        self.assertEqual(settings["DATABASES"]["default"]["PASSWORD"], "test-password")
+        self.assertIn(
+            "whitenoise.middleware.WhiteNoiseMiddleware", settings["MIDDLEWARE"],
+        )
+        self.assertEqual(
+            settings["MIDDLEWARE"][0], "apps.core.health.HealthCheckMiddleware",
+        )

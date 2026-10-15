@@ -1,0 +1,201 @@
+# Intégration continue : backend, frontend et images Docker.
+# Réglages GitHub (protection de main, jobs obligatoires) : docs/ci.md.
+name: CI
+
+# Une seule exécution par push : la pull request couvre les branches de travail,
+# workflow_dispatch lance le CI à la main sur une branche sans pull request.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Un nouveau push annule l'exécution en cours de la même pull request. Sur main,
+# les exécutions se suivent : une publication d'images n'est jamais interrompue.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/backend
+    services:
+      # Mêmes images que docker-compose.yml.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: mizan
+          POSTGRES_USER: mizan
+          POSTGRES_PASSWORD: mizan
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mizan"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_DB: mizan
+      POSTGRES_USER: mizan
+      POSTGRES_PASSWORD: mizan
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://localhost:6379/0
+      SECRET_KEY: ci-secret-key-not-for-production
+      # Aucun secret : stockage OVH non configuré (is_storage_configured() faux),
+      # les tests d'upload forcent leurs réglages et simulent boto3.
+      OVH_S3_ACCESS_KEY: ""
+      OVH_S3_SECRET_KEY: ""
+      OVH_S3_ENDPOINT_URL: ""
+      OVH_S3_BUCKET_PRIVATE: ""
+      AI_SERVICE_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/backend/requirements/*.txt
+      - name: Dépendances
+        run: pip install -r requirements/local.txt
+      - name: Ruff
+        run: ruff check .
+      - name: Migrations à jour
+        run: python manage.py makemigrations --check --dry-run
+      - name: Tests
+        run: pytest -n auto
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/frontend
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"  # même version que l'image node:20-alpine du Dockerfile
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+      - name: Dépendances
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Messages (fr/en/ar)
+        run: npm run i18n:check
+      - name: Couleurs via tokens
+        run: npm run tokens:check
+      - name: Aucun texte en dur
+        run: npm run text:check
+      - name: Dépendances uniques
+        run: npm run deps:check
+      - name: Build
+        run: npm run build
+        env:
+          # Valeurs factices : le build n'appelle pas l'API.
+          API_URL: http://localhost:8000/api
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ""
+
+  # Images de production. Sur un push vers main, une fois backend et frontend
+  # verts : publiées sur GHCR, étiquetées avec l'identifiant du commit et latest.
+  # Ailleurs : construites sans publication.
+  docker:
+    name: docker
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUSH: ${{ github.event_name == 'push' }}
+      REGISTRY: ghcr.io/devzair-officiel
+      LABELS: |
+        org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+        org.opencontainers.image.revision=${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Connexion à GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image backend
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/backend
+          target: production
+          push: ${{ env.PUSH }}
+          build-args: RELEASE=${{ github.sha }}
+          labels: ${{ env.LABELS }}
+          tags: |
+            ${{ env.REGISTRY }}/mizan-backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/mizan-backend:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+      # NEXT_PUBLIC_* : inlinées dans le bundle, donc fixées à la construction.
+      # Variables du dépôt (Settings → Secrets and variables → Actions → Variables) :
+      # valeurs publiques, communes à staging et à la production (docs/ci.md).
+      - name: Image frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/frontend
+          target: production
+          push: ${{ env.PUSH }}
+          build-args: |
+            NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ vars.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${{ vars.NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE }}
+            NEXT_PUBLIC_SENTRY_RELEASE=${{ github.sha }}
+          labels: ${{ env.LABELS }}
+          tags: |
+            ${{ env.REGISTRY }}/mizan-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/mizan-frontend:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+      - name: Image ai-service
+        uses: docker/build-push-action@v7
+        with:
+          context: apps/ai-service
+          target: production
+          push: ${{ env.PUSH }}
+          labels: ${{ env.LABELS }}
+          tags: |
+            ${{ env.REGISTRY }}/mizan-ai-service:${{ github.sha }}
+            ${{ env.REGISTRY }}/mizan-ai-service:latest
+          cache-from: type=gha,scope=ai-service
+          cache-to: type=gha,scope=ai-service,mode=max
+      # Construite sur le serveur par deploy/deploy.sh, jamais publiée : ici,
+      # contrôle seulement (téléchargement et somme de contrôle de WAL-G).
+      - name: Image PostgreSQL (WAL-G)
+        uses: docker/build-push-action@v7
+        with:
+          context: deploy/postgres
+          push: false
+          cache-from: type=gha,scope=postgres
+          cache-to: type=gha,scope=postgres,mode=max

@@ -1,7 +1,5 @@
-# Image unique — un stage suffit tant que dev et prod partagent la même
-# chaîne de dépendances. Passer à un multi-stage si un jour la prod doit
-# retirer les outils de build (aucun ici pour l'instant).
-FROM python:3.12-slim
+# ── base : dépendances système et Python ──────────────────────────────────────
+FROM python:3.12-slim AS base
 WORKDIR /app
 
 # Dépendances système strictement nécessaires à PaddlePaddle + PaddleOCR CPU :
@@ -25,14 +23,31 @@ RUN apt-get update \
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+EXPOSE 8000
 
+# ── development (docker-compose.yml : code monté, rechargement à chaud) ───────
+FROM base AS development
+COPY . .
 # Cache des modèles PaddleOCR. Un volume Docker (docker-compose.yml) monte ce
 # chemin pour éviter de retélécharger les modèles à chaque rebuild.
 ENV PADDLE_PDX_CACHE_HOME=/root/.paddlex
-
-EXPOSE 8000
-
-# `--reload` couvre le dev (le code est monté). En prod, `docker-compose.prod.yml`
-# surcharge le `command:` pour retirer `--reload`.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ── production (deploy/app/compose.yml) ───────────────────────────────────────
+# Utilisateur non root : seul le cache des modèles lui appartient (volume nommé,
+# initialisé avec ces droits au premier montage). Les modèles se téléchargent
+# au premier appel OCR.
+FROM base AS production
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HOME=/home/app \
+    PADDLE_PDX_CACHE_HOME=/home/app/.paddlex
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --create-home --home-dir /home/app \
+        --shell /usr/sbin/nologin app \
+    && mkdir -p /home/app/.paddlex \
+    && chown app:app /home/app/.paddlex
+COPY . .
+USER app
+# Un seul processus : le pipeline OCR occupe ~1 Go en mémoire par processus.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

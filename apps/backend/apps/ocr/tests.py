@@ -1389,6 +1389,11 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
 # ═══════════════════════════════════════════════════════════════════════════
 
 
+@override_settings(
+    # Stockage « configuré » sans dépendre du .env : l'upload reste patché.
+    AWS_S3_ENDPOINT_URL='https://s3.example.com',
+    AWS_ACCESS_KEY_ID='fake-access-key',
+)
 class OcrPlanGatingTest(TestCase):
     def setUp(self) -> None:
         self.client = APIClient()
