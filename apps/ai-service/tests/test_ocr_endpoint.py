@@ -141,7 +141,7 @@ def test_extract_text_accepts_webp() -> None:
 
 def test_extract_text_rejects_forbidden_mime() -> None:
     response = _post_with_valid_key(
-        {'document': ('a.pdf', b'%PDF-1.4\n%any', 'application/pdf')},
+        {'document': ('a.txt', b'facture', 'text/plain')},
     )
     assert response.status_code == 400
     assert response.json()['detail'] == 'Type de fichier non autorisé.'

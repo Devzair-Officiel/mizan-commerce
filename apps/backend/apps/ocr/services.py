@@ -1,7 +1,8 @@
 """Logique métier OCR.
 
-Cette étape ne fait qu'ingérer une photo de facture fournisseur :
-- validation légère de la signature binaire du fichier ;
+Cette étape ne fait qu'ingérer une photo ou un PDF de facture fournisseur :
+- validation légère de la signature binaire du fichier (et, pour un PDF,
+  mot de passe et nombre de pages — voir `pdf.py`) ;
 - upload dans l'Object Storage privé ;
 - création d'un `UploadedDocument` + d'un `OcrResult` (status=pending).
 
@@ -24,6 +25,7 @@ from apps.stock.services import EntryLine, EntryReference, create_entry
 
 from .matching import line_label_key, normalize_text
 from .models import OcrResult, SupplierLineMatch, UploadedDocument
+from .pdf import validate_invoice_pdf
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -101,6 +103,7 @@ _MIME_TO_EXTENSION: dict[str, str] = {
     'image/jpeg': 'jpg',
     'image/png': 'png',
     'image/webp': 'webp',
+    'application/pdf': 'pdf',
 }
 
 
@@ -117,9 +120,9 @@ def validate_file_signature(file: UploadedFile, declared_mime: str) -> None:
     number » du fichier pour détecter un binaire qui ne correspond pas à
     l'image annoncée. Implémentation volontairement minimaliste : pas de
     dépendance externe (python-magic, filetype…), on couvre uniquement les
-    trois formats acceptés à cette étape.
+    formats acceptés à cette étape.
     """
-    # 12 octets suffisent pour distinguer JPEG / PNG / WebP.
+    # 12 octets suffisent pour distinguer JPEG / PNG / WebP / PDF.
     file.seek(0)
     header = file.read(12)
     file.seek(0)
@@ -130,6 +133,8 @@ def validate_file_signature(file: UploadedFile, declared_mime: str) -> None:
         ok = header.startswith(b'\x89PNG\r\n\x1a\n')
     elif declared_mime == 'image/webp':
         ok = header[:4] == b'RIFF' and header[8:12] == b'WEBP'
+    elif declared_mime == 'application/pdf':
+        ok = header.startswith(b'%PDF-')
     else:
         ok = False
 
@@ -145,7 +150,7 @@ def create_supplier_invoice_upload(
     user: User,
     file: UploadedFile,
 ) -> SupplierInvoiceUpload:
-    """Ingère une photo de facture fournisseur.
+    """Ingère une photo ou un PDF de facture fournisseur.
 
     Contrat :
     - `shop` provient de `get_shop(request.user)` — jamais du client.
@@ -163,6 +168,8 @@ def create_supplier_invoice_upload(
     # pas se retrouver à uploader un binaire arbitraire même si le serializer
     # a été court-circuité par un usage direct du service.
     validate_file_signature(file, file.content_type)
+    if file.content_type == 'application/pdf':
+        validate_invoice_pdf(file)
 
     upload_fileobj(file, object_key, file.content_type)
 

@@ -2,19 +2,19 @@
  * Audit du stock (C4), à 1440px et 360px :
  * - parcours complet en français et en clair, une fois par taille : une vente fait passer un format
  *   en négatif (avertissement dans la nouvelle commande, filtre et indicateur « Négatif »), l'entrée
- *   rapide le régularise ; entrée de 3 articles à la main ; facture avec une ligne à associer, puis
- *   facture suivante du même fournisseur associée toute seule ; sortie pour casse refusée au-delà du
+ *   rapide le régularise ; entrée de 3 articles à la main ; facture en PDF avec une ligne à associer,
+ *   puis facture suivante du même fournisseur (photo) associée toute seule ; sortie pour casse refusée au-delà du
  *   stock ; correction d'inventaire ; suppression d'un article jamais utilisé, refus pour un article vendu ;
  * - écrans du stock en français et en arabe, clair et sombre : console propre, aucun élément imbriqué ;
  * - boutique de services : ni page ni entrée Stock.
- * La facture passe par la vraie chaîne OCR (PaddleOCR puis structuration) : environ 10 s par lecture.
+ * La facture passe par la vraie chaîne (texte du PDF ou PaddleOCR, puis structuration) : environ 10 s par lecture.
  * Nettoyage : commande annulée, articles du parcours désactivés (ils ont servi : la suppression les refuse).
  * `DEBUG=1` affiche les notifications attendues et affichées ; `SHOTS=<dossier>` capture un parcours interrompu.
  */
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, createArticle, deactivate } from './lib/products.mjs';
-import { invoicePng } from './lib/invoice.mjs';
+import { invoicePdf, invoicePng } from './lib/invoice.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 
 const report = createReport();
@@ -134,27 +134,33 @@ async function checkManualEntry(page, ctx, articles) {
     `${ctx.label} : entrée de 3 articles à la main (+2, +3, +4), notification, stocks mis à jour`);
 }
 
-/** Envoie la facture et attend la revue des lignes (lecture réelle). */
-async function readInvoice(page, browser, invoice) {
+/** Envoie la facture (photo PNG, ou PDF avec texte si `pdf`) et attend la revue des lignes (lecture réelle). */
+async function readInvoice(page, browser, invoice, { pdf = false } = {}) {
   await open(page, '/stock/entree?mode=facture');
-  const png = await invoicePng(browser, invoice);
-  await page.locator('input[type=file]').setInputFiles({ name: 'facture.png', mimeType: 'image/png', buffer: png });
+  const file = pdf
+    ? { name: 'facture.pdf', mimeType: 'application/pdf', buffer: await invoicePdf(browser, invoice) }
+    : { name: 'facture.png', mimeType: 'image/png', buffer: await invoicePng(browser, invoice) };
+  await page.locator('input[type=file]').setInputFiles(file);
   await visible(page.getByText(msg('fr', 'stock.invoice.check_lines'))).first().waitFor({ timeout: 120000 });
   await page.waitForLoadState('networkidle');
 }
 
 const badgeCount = (page, key) => visible(page.getByText(msg('fr', `stock.invoice.${key}`), { exact: true })).count();
 
-/** Facture : une ligne associée par son nom, une à associer ; la suivante du même fournisseur s'associe seule. */
+/**
+ * Facture en PDF avec texte : une ligne associée par son nom, une à associer ; la suivante du même
+ * fournisseur (une photo) s'associe seule.
+ */
 async function checkInvoice(page, browser, ctx, { known, other, stamp }) {
   const supplier = `Fournisseur Audit ${stamp}`;
   const number = stamp.replace(' ', '-');
   const unknown = `CARTON AUDIT ${stamp}`;
   const lines = [{ label: known.name, quantity: 4, price: '2.50' }, { label: unknown, quantity: 6, price: '1.20' }];
-  await readInvoice(page, browser, { supplier, number: `FA-${number}-1`, date: '03/10/2026', lines });
+  await readInvoice(page, browser, { supplier, number: `FA-${number}-1`, date: '03/10/2026', lines }, { pdf: true });
   const blocked = submitButton(page, fmt('fr', 'stock.invoice.associate_to_continue', { count: 1 }));
-  report.check(await badgeCount(page, 'associated') >= 1 && await badgeCount(page, 'to_associate') >= 1 && await blocked.isDisabled(),
-    `${ctx.label} : facture lue — une ligne « Associée », une « À associer », bouton « ${fmt('fr', 'stock.invoice.associate_to_continue', { count: 1 })} » désactivé`);
+  const pdfCard = await visible(page.getByText('facture.pdf', { exact: true })).count() > 0 && await page.locator('main img[src^="blob:"]').count() === 0;
+  report.check(pdfCard && await badgeCount(page, 'associated') >= 1 && await badgeCount(page, 'to_associate') >= 1 && await blocked.isDisabled(),
+    `${ctx.label} : facture PDF avec texte lue — une ligne « Associée », une « À associer », bouton « ${fmt('fr', 'stock.invoice.associate_to_continue', { count: 1 })} » désactivé`);
 
   await visible(page.getByRole('button', { name: new RegExp(fmt('fr', 'stock.invoice.choose_article_for', { label: '' }).split('«')[0]) })).first().click();
   const sheet = page.getByRole('dialog');

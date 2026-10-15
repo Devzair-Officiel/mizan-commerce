@@ -186,10 +186,14 @@ AWS_QUERYSTRING_EXPIRE = 3600  # URL signées valides 1h
 PRODUCT_IMAGE_MAX_SIZE_MB = 5
 PRODUCT_IMAGE_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
 
-# OCR — photo de facture fournisseur (URS-042). Volontairement distinct des
-# constantes PRODUCT_IMAGE_* : les deux domaines évoluent indépendamment.
+# OCR — photo ou PDF de facture fournisseur (URS-042). Volontairement distinct
+# des constantes PRODUCT_IMAGE_* : les deux domaines évoluent indépendamment.
 OCR_DOCUMENT_MAX_SIZE_MB = 10
-OCR_DOCUMENT_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+OCR_DOCUMENT_ALLOWED_TYPES = {
+    'image/jpeg', 'image/png', 'image/webp', 'application/pdf',
+}
+# Pages d'une facture PDF (même borne côté ai-service : app/pdf.py).
+OCR_PDF_MAX_PAGES = 5
 
 # Celery
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
@@ -229,7 +233,8 @@ AI_SERVICE_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_TIMEOUT_SECONDS', 
 # Timeout dédié à l'inférence OCR — beaucoup plus large que les sondes health :
 # le premier appel dans un worker déclenche le chargement du pipeline PaddleOCR
 # (téléchargement + chargement modèles ~15 s) puis l'inférence proprement dite.
-AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SECONDS', '60'))  # noqa: E501
+# Un PDF scanné de 5 pages, c'est 5 lectures d'image : d'où 180 s.
+AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SECONDS', '180'))  # noqa: E501
 # Timeout dédié à la structuration LLM (POC 6B). Doit rester légèrement
 # supérieur au timeout OpenAI configuré côté ai-service (par défaut 45 s) :
 # on veut que FastAPI puisse gérer son propre timeout et renvoyer un 502

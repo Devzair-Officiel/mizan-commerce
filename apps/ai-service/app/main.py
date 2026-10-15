@@ -4,7 +4,8 @@ Endpoints exposés :
 
 - `GET  /health`                        : sonde publique du processus.
 - `GET  /internal/health`               : sonde protégée (auth service-to-service).
-- `POST /internal/ocr/extract-text`     : OCR pur d'une image (protégé).
+- `POST /internal/ocr/extract-text`     : OCR pur d'une image ou d'un PDF
+  (texte lu directement s'il y en a, sinon pages rendues puis OCR — protégé).
 - `POST /internal/invoice/structure`    : proposition structurée d'une
   facture à partir d'une sortie OCR, via un LLM externe (protégé, POC 6A).
 
@@ -32,6 +33,7 @@ from .invoice_extraction import (
     extract_invoice_structure,
 )
 from .ocr import OcrEngineError, extract_text_from_image
+from .pdf import extract_text_from_pdf
 from .schemas import InvoiceExtraction, InvoiceStructureRequest, OcrExtractionResult
 from .security import require_internal_api_key
 
@@ -82,9 +84,12 @@ def internal_health() -> dict[str, str | bool]:
     response_model=OcrExtractionResult,
 )
 async def extract_text(document: UploadFile = File(...)) -> OcrExtractionResult:
-    """Extrait le texte brut d'un document image via PaddleOCR.
+    """Extrait le texte brut d'un document image (PaddleOCR) ou PDF.
 
-    - Validation locale : taille, MIME, signature binaire.
+    - Validation locale : taille, MIME, signature binaire ; pour un PDF,
+      mot de passe et nombre de pages à l'ouverture (400).
+    - PDF : texte lu directement sur les pages qui en ont, les autres
+      rendues en image puis passées au même OCR (voir `pdf.py`).
     - Écriture dans un `tempfile` : le nom fourni par le client n'est
       jamais utilisé comme chemin disque.
     - Suppression garantie du fichier temporaire même en cas d'erreur OCR.
@@ -103,6 +108,9 @@ async def extract_text(document: UploadFile = File(...)) -> OcrExtractionResult:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
+
+    if document.content_type == 'application/pdf':
+        return _extract_pdf(content)
 
     # `delete=False` pour pouvoir passer le chemin à PaddleOCR (qui rouvre
     # le fichier) puis supprimer explicitement dans le `finally`. On ignore
@@ -130,6 +138,22 @@ async def extract_text(document: UploadFile = File(...)) -> OcrExtractionResult:
             os.unlink(tmp.name)
         except FileNotFoundError:
             pass
+
+
+def _extract_pdf(content: bytes) -> OcrExtractionResult:
+    try:
+        return extract_text_from_pdf(content, read_image=extract_text_from_image)
+    except FileValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except OcrEngineError as exc:
+        logger.warning('OCR engine error: %s', exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Erreur interne du moteur OCR.',
+        ) from exc
 
 
 @app.post(

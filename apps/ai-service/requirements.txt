@@ -15,6 +15,11 @@ python-multipart==0.0.20
 paddlepaddle==3.3.1
 paddleocr==3.7.0
 
+# Factures PDF (app/pdf.py) : texte lu directement, ou page rendue en image pour
+# l'OCR. Roue autonome (PDFium embarqué, aucune dépendance système) ; déjà tirée
+# par paddlex, épinglée ici parce que le code l'utilise directement.
+pypdfium2==5.12.1
+
 # Extraction structurée de facture (POC 6A) — Responses API + Structured Outputs.
 # `openai==2.54.0` supporte `client.responses.parse(text_format=<PydanticModel>)`
 # et retourne `response.output_parsed` typé. Version stable en date d'août 2026,

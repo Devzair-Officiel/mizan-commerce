@@ -2,7 +2,7 @@
 
 import { Camera, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { INVOICE_MAX_MB } from './invoiceFile';
+import { INVOICE_MAX_MB, INVOICE_PDF_MAX_PAGES } from './invoiceFile';
 import { InvoicePhotoInput } from './InvoicePhotoInput';
 
 interface InvoiceUploadPromptProps {
@@ -10,7 +10,7 @@ interface InvoiceUploadPromptProps {
   onFile: (file: File) => void;
 }
 
-/** Avant l'envoi : ce qui va se passer, et le bouton qui ouvre l'appareil photo ou les fichiers. */
+/** Avant l'envoi : ce qui va se passer, et le bouton qui ouvre l'appareil photo ou les fichiers (photo ou PDF). */
 export function InvoiceUploadPrompt({ problem, onFile }: InvoiceUploadPromptProps) {
   const t = useTranslations('stock.invoice');
   return (
@@ -20,7 +20,7 @@ export function InvoiceUploadPrompt({ problem, onFile }: InvoiceUploadPromptProp
       </span>
       <div className="flex max-w-md flex-col gap-1">
         <p className="text-[0.9375rem] font-semibold text-foreground">{t('prompt_title')}</p>
-        <p className="text-sm text-muted-foreground">{t('prompt_help', { max: INVOICE_MAX_MB })}</p>
+        <p className="text-sm text-muted-foreground">{t('prompt_help', { max: INVOICE_MAX_MB, pages: INVOICE_PDF_MAX_PAGES })}</p>
       </div>
       <InvoicePhotoInput onFile={onFile}
         className="mt-1 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">

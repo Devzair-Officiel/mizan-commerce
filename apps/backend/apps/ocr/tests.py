@@ -1,4 +1,5 @@
 from decimal import Decimal
+from pathlib import Path
 from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
@@ -209,7 +210,9 @@ class SupplierInvoiceUploadViewTest(TestCase):
             response = self.client.post(
                 self.URL, {'document': self._jpeg()}, format='multipart',
             )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )  # noqa: E501
         mock_upload.assert_called_once()
 
     def test_staff_with_stock_module_can_upload(self) -> None:
@@ -222,7 +225,9 @@ class SupplierInvoiceUploadViewTest(TestCase):
             response = self.client.post(
                 self.URL, {'document': self._jpeg()}, format='multipart',
             )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )  # noqa: E501
 
     def test_staff_without_stock_module_denied(self) -> None:
         staff = User.objects.create_user(email='staff-nostock@example.com', password='Pass123!Strong')  # noqa: E501
@@ -247,12 +252,14 @@ class SupplierInvoiceUploadViewTest(TestCase):
 
     def test_disallowed_mime_returns_400(self) -> None:
         self.client.force_authenticate(user=self.owner)
-        # Contenu PDF-like avec content_type PDF → refusé par la liste blanche.
-        pdf = SimpleUploadedFile(
-            'facture.pdf', b'%PDF-1.4 fake', content_type='application/pdf',
+        # Type hors liste blanche (archive), même avec un nom de fichier anodin.
+        archive = SimpleUploadedFile(
+            'facture.zip', b'PK\x03\x04fake', content_type='application/zip',
         )
         with patch('apps.ocr.services.upload_fileobj') as mock_upload:
-            response = self.client.post(self.URL, {'document': pdf}, format='multipart')
+            response = self.client.post(
+                self.URL, {'document': archive}, format='multipart',
+            )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_upload.assert_not_called()
 
@@ -288,7 +295,9 @@ class SupplierInvoiceUploadViewTest(TestCase):
                 response = self.client.post(
                     self.URL, {'document': factory()}, format='multipart',
                 )
-            self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
+            self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )  # noqa: E501
 
     # ── Storage non configuré ───────────────────────────────────────────
     @override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
@@ -359,6 +368,179 @@ class SupplierInvoiceUploadViewTest(TestCase):
         doc = UploadedDocument.objects.get(pk=response.data['document_id'])
         self.assertEqual(doc.shop, self.shop)
         self.assertNotEqual(doc.shop, other_shop)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Factures fournisseur en PDF
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Fichiers de quelques Ko générés avec reportlab (copiés dans
+# apps/ai-service/tests/fixtures/ pour la lecture côté service IA).
+PDF_FIXTURES = Path(__file__).parent / 'fixtures'
+
+
+def pdf_upload(name: str, content: bytes | None = None) -> SimpleUploadedFile:
+    data = content if content is not None else (PDF_FIXTURES / name).read_bytes()
+    return SimpleUploadedFile(name, data, content_type='application/pdf')
+
+
+@override_settings(
+    AWS_S3_ENDPOINT_URL='https://s3.example.com',
+    AWS_ACCESS_KEY_ID='fake-access-key',
+)
+class SupplierInvoicePdfUploadTest(TestCase):
+    """Envoi d'un PDF : vrai type (signature), mot de passe, nombre de pages."""
+
+    URL = '/api/ocr/invoices/'
+
+    def setUp(self) -> None:
+        self.client = APIClient()
+        self.owner, self.shop = make_user_shop('owner@example.com')
+        self.client.force_authenticate(user=self.owner)
+        self.mock_delay = self.enterContext(
+            patch('apps.ocr.views.process_invoice_ocr.delay'),
+        )
+        self.mock_upload = self.enterContext(patch('apps.ocr.services.upload_fileobj'))
+
+    def _post(self, file: SimpleUploadedFile) -> object:
+        return self.client.post(self.URL, {'document': file}, format='multipart')
+
+    def _refused(self, file: SimpleUploadedFile, code: str) -> str:
+        response = self._post(file)
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST, response.content,
+        )
+        # Le code du refus est traduit par le frontend (fr, en, ar).
+        self.assertEqual(response.data['code'], code)
+        self.mock_upload.assert_not_called()
+        self.mock_delay.assert_not_called()
+        self.assertFalse(UploadedDocument.objects.exists())
+        return str(response.data['errors']['document'][0])
+
+    def test_text_pdf_accepted_and_stored_as_pdf(self) -> None:
+        response = self._post(pdf_upload('invoice_text.pdf'))
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )
+        doc = UploadedDocument.objects.get(pk=response.data['document_id'])
+        self.assertEqual(doc.mime_type, 'application/pdf')
+        self.assertTrue(doc.object_key.startswith(f'ocr/{self.shop.pk}/supplier-invoices/'))
+        self.assertTrue(doc.object_key.endswith('.pdf'))
+        self.mock_upload.assert_called_once()
+        self.mock_delay.assert_called_once_with(str(response.data['ocr_result_id']))
+
+    def test_scanned_pdf_accepted(self) -> None:
+        """Sans texte : accepté, les pages seront rendues puis lues par l'OCR."""
+        response = self._post(pdf_upload('invoice_scanned.pdf'))
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )
+
+    def test_protected_pdf_refused_with_clear_message(self) -> None:
+        message = self._refused(pdf_upload('invoice_protected.pdf'), 'pdf_protected')
+        self.assertIn('protégé par un mot de passe', message)
+
+    def test_pdf_with_too_many_pages_refused(self) -> None:
+        message = self._refused(
+            pdf_upload('invoice_six_pages.pdf'), 'pdf_too_many_pages',
+        )
+        self.assertIn('6 pages : 5 au maximum', message)
+
+    def test_fake_pdf_refused_by_its_signature(self) -> None:
+        """Extension .pdf et type annoncé PDF, contenu texte."""
+        message = self._refused(pdf_upload('not_a_pdf.pdf'), 'signature')
+        self.assertEqual(
+            message, 'Le contenu du fichier ne correspond pas au type déclaré.',
+        )
+
+    def test_pdf_disguised_as_image_refused(self) -> None:
+        file = SimpleUploadedFile(
+            'facture.jpg',
+            (PDF_FIXTURES / 'invoice_text.pdf').read_bytes(),
+            content_type='image/jpeg',
+        )
+        self._refused(file, 'signature')
+
+    def test_damaged_pdf_refused(self) -> None:
+        truncated = (PDF_FIXTURES / 'invoice_text.pdf').read_bytes()[:200]
+        message = self._refused(pdf_upload('facture.pdf', truncated), 'pdf_unreadable')
+        self.assertIn('illisible ou endommagé', message)
+
+    def test_pdf_over_size_limit_refused(self) -> None:
+        padding = b'\x00' * (10 * 1024 * 1024)
+        oversized = (PDF_FIXTURES / 'invoice_text.pdf').read_bytes() + padding
+        message = self._refused(pdf_upload('facture.pdf', oversized), 'too_large')
+        self.assertIn('10 Mo', message)
+
+    def test_service_revalidates_protected_pdf(self) -> None:
+        """Le service refait le contrôle, même appelé sans le serializer."""
+        from .pdf import InvalidInvoicePdfError
+        from .services import create_supplier_invoice_upload
+
+        with self.assertRaises(InvalidInvoicePdfError):
+            create_supplier_invoice_upload(
+                shop=self.shop,
+                user=self.owner,
+                file=pdf_upload('invoice_protected.pdf'),
+            )
+        self.mock_upload.assert_not_called()
+
+    def test_other_shop_cannot_read_the_pdf_result(self) -> None:
+        response = self._post(pdf_upload('invoice_text.pdf'))
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )
+        other_user, _other_shop = make_user_shop('other@example.com')
+        other = APIClient()
+        other.force_authenticate(user=other_user)
+        detail = other.get(f"/api/ocr/results/{response.data['ocr_result_id']}/")
+        self.assertEqual(detail.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ProcessInvoicePdfTaskTest(TestCase):
+    """Un PDF suit la même chaîne qu'une photo : texte, structuration, association."""
+
+    def setUp(self) -> None:
+        self.user, self.shop = make_user_shop('owner@example.com')
+        self.document = UploadedDocument.objects.create(
+            shop=self.shop,
+            uploaded_by_user=self.user,
+            document_type=UploadedDocument.DOCUMENT_TYPE_SUPPLIER_INVOICE,
+            object_key=f'ocr/{self.shop.pk}/supplier-invoices/facture.pdf',
+            original_filename='facture.pdf',
+            mime_type='application/pdf',
+            size_bytes=1763,
+        )
+        self.ocr = OcrResult.objects.create(
+            shop=self.shop, uploaded_document=self.document,
+        )
+
+    def test_pdf_is_sent_as_pdf_then_matched_like_a_photo(self) -> None:
+        from .tasks import process_invoice_ocr
+
+        product = _make_product(self.shop, 'Article A')
+        variant = _make_variant(self.shop, product, 'Standard', sku='SKU-A')
+        content = (PDF_FIXTURES / 'invoice_text.pdf').read_bytes()
+        with (
+            patch('apps.ocr.tasks.download_bytes', return_value=content),
+            patch(
+                'apps.ocr.tasks.extract_text_with_ai_service',
+                return_value=_fake_extraction(),
+            ) as mock_extract,
+            patch(
+                'apps.ocr.tasks.structure_invoice_with_ai_service',
+                return_value=_fake_invoice(),
+            ),
+        ):
+            outcome = process_invoice_ocr.run(str(self.ocr.pk))
+
+        self.assertEqual(outcome, 'done')
+        kwargs = mock_extract.call_args.kwargs
+        self.assertEqual(kwargs['content'], content)
+        self.assertEqual(kwargs['mime_type'], 'application/pdf')
+        self.ocr.refresh_from_db()
+        (line,) = self.ocr.structured_data['matching']['lines']
+        self.assertEqual(line['association']['variant_id'], str(variant.pk))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1341,7 +1523,9 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
         ):
             response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')  # noqa: E501
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )  # noqa: E501
         mock_delay.assert_called_once()
         # L'argument passé DOIT être l'UUID de l'OcrResult créé, en str
         # (JSON-serializable pour Celery/Redis).
@@ -1359,7 +1543,9 @@ class SupplierInvoiceUploadTriggersCeleryTest(TestCase):
         ):
             response = self.client.post(self.URL, {'document': self._jpeg()}, format='multipart')  # noqa: E501
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)  # noqa: E501
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )  # noqa: E501
         mock_ai.assert_not_called()
         mock_s3.assert_not_called()
 
