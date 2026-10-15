@@ -1,42 +1,27 @@
 'use client';
 
 import { Menu } from '@base-ui/react/menu';
-import type { ShopRole } from '@/lib/hooks/useMe';
-import { useTranslations } from 'next-intl';
+import { getInitials } from '@/components/customers/detail/constants';
+import type { PlanBadgeState } from './planBadgeState';
 
-export function SidebarAccountTrigger({
-  fullName,
-  role,
-}: {
+const DOT_TONES: Record<PlanBadgeState['kind'], string> = {
+  trial: 'bg-primary',
+  expired: 'bg-destructive',
+  plan: 'bg-secondary-foreground',
+};
+
+/** Avatar du rail, pastille de formule dans le coin ; ouvre le menu du compte (thème, langue, déconnexion). */
+export function SidebarAccountTrigger({ fullName, plan, label }: {
   fullName: string | null;
-  role: ShopRole | null;
+  plan: PlanBadgeState | null;
+  /** Nom de l'utilisateur et formule, lus par les lecteurs d'écran. */
+  label: string;
 }) {
-  const tTeam = useTranslations('team');
-
-  const initials =
-    fullName
-      ?.split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((n) => n[0]?.toUpperCase() ?? '')
-      .join('') ?? '?';
-
   return (
-    <Menu.Trigger className="flex w-full items-center gap-3 rounded-xl ps-3 pe-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors data-popup-open:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none outline-none mx-0 px-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground text-xs font-semibold">
-        {initials}
-      </span>
-      <span className="flex-1 min-w-0 text-start">
-        <span className="block truncate">{fullName ?? '—'}</span>
-        {role && (
-          <span className="block truncate text-xs text-muted-foreground font-normal">
-            {tTeam(`role.${role}`)}
-          </span>
-        )}
-      </span>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-muted-foreground shrink-0">
-        <path d="M18 15l-6-6-6 6" />
-      </svg>
+    <Menu.Trigger aria-label={label} title={label}
+      className="relative mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground text-xs font-semibold transition-all hover:ring-2 hover:ring-sidebar-border active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring data-popup-open:ring-2 data-popup-open:ring-sidebar-ring">
+      {fullName ? getInitials(fullName) : '?'}
+      {plan && <span className={`absolute -bottom-0.5 -inset-e-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-sidebar ${DOT_TONES[plan.kind]}`} />}
     </Menu.Trigger>
   );
 }

@@ -22,7 +22,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <AccountLanguageSync />
             <LegacyTokenCleaner />
             <OnboardingGate />
-            <div className="flex flex-col flex-1 lg:ms-60">
+            <div className="flex flex-col flex-1">
               <main className="flex-1 pb-20 lg:pb-8">
                 <div className="lg:max-w-400 lg:mx-auto lg:px-8 lg:pt-8 xl:px-12 2xl:px-16">
                   {children}

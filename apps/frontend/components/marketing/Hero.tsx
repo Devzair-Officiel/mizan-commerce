@@ -1,8 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { SiteIcon } from './SiteIcon';
-import { PhoneMock } from './PhoneFrame';
-import { AppHome } from './screens/AppHome';
-import { AppCommandes } from './screens/AppCommandes';
 
 export function Hero() {
   return (
@@ -11,11 +9,12 @@ export function Hero() {
         <div>
           <span className="eyebrow on-dark">L&apos;équilibre de votre commerce</span>
           <h1 style={{ marginTop: 22 }}>
-            Tout votre commerce, <em className="serif-i">dans une seule app.</em>
+            Tout votre commerce, <em className="serif-i">au même endroit.</em>
           </h1>
           <p className="hero-sub">
-            Stock, commandes, clients, zakat et messages : mizan rassemble votre activité au même endroit.
-            Pensé pour le téléphone, pensé halal.
+            Stocks, commandes, clients, factures et zakat : Mizan réunit l&apos;essentiel de votre activité dans
+            une seule application. Gardez une vision claire de votre commerce, simplifiez votre quotidien et
+            concentrez-vous sur ce qui compte vraiment.
           </p>
           <div className="hero-actions">
             <Link className="btn btn-gold" href="/register">
@@ -35,9 +34,18 @@ export function Hero() {
             </span>
           </div>
         </div>
-        <div className="hero-phones">
-          <div className="hero-back"><PhoneMock Screen={AppCommandes} scale={0.42} /></div>
-          <div className="hero-front phone-float"><PhoneMock Screen={AppHome} scale={0.46} /></div>
+        <div className="hero-scene">
+          {/* LCP de la landing : `priority` est déprécié en Next 16, eager + fetchPriority le remplace. */}
+          <Image
+            className="hero-scene-img phone-float"
+            src="/landing/hero-scene-1100.webp"
+            width={1100}
+            height={825}
+            sizes="(max-width: 960px) 90vw, 720px"
+            loading="eager"
+            fetchPriority="high"
+            alt="L'application Mizan sur téléphone : tableau de bord du jour et suivi des ventes"
+          />
         </div>
       </div>
     </header>

@@ -156,6 +156,14 @@
       "role_admin": "administrator",
       "role_staff": "member"
     },
+    "sidebar": {
+      "nav_label": "Main navigation",
+      "collapse": "Collapse menu",
+      "expand": "Expand menu",
+      "theme": "Theme",
+      "account_menu": "Account and preferences",
+      "palettes": "Color palettes"
+    },
     "search": {
       "title": "Search",
       "placeholder": "Search orders, customers…",
@@ -217,12 +225,8 @@
       "banner_tomorrow": "Your Boutique+ trial ends tomorrow.",
       "banner_days": "Your Boutique+ trial ends in {days} days.",
       "banner_cta": "Manage",
-      "card_days": "{days, plural, =0 {Expires today} one {# day left} other {# days left}}",
       "card_expired": "Trial ended",
-      "card_expired_cta": "See plans",
-      "card_cta": "Upgrade",
-      "menu_trial_title": "Boutique+ Trial",
-      "menu_trial_sub": "{days, plural, =0 {Expires today} one {# day left} other {# days left}} — manage subscription"
+      "badge_trial": "Trial · {days, plural, =0 {last day} one {# day} other {# days}}"
     }
   },
   "dashboard": {

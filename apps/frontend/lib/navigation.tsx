@@ -20,6 +20,8 @@ export type NavEntry = {
   gate?: Gate;
   feature?: Feature;
   badgeKey?: BadgeKey;
+  /** Sous-menu d'un seul niveau (sidebar desktop uniquement). */
+  children?: readonly NavEntry[];
 };
 
 export type NavGroup = {
@@ -91,6 +93,30 @@ export function useNavGroups(): readonly NavGroup[] {
   const { data: shop } = useShop();
   return getNavGroups(shop?.catalog_kind ?? 'both');
 }
+
+/**
+ * Sidebar desktop : le groupe Catalogue devient l'entrée Articles du groupe Vendre,
+ * dépliée en Catalogue (/products) et Stock (/stock). Le menu mobile garde getNavGroups.
+ */
+export function getSidebarNavGroups(catalogKind: CatalogKind): readonly NavGroup[] {
+  const groups = getNavGroups(catalogKind);
+  const catalog = groups.find((g) => g.titleKey === 'group_catalog');
+  const [products, ...others] = catalog?.entries ?? [];
+  if (!catalog || !products) return groups;
+  const articles: NavEntry = { ...products, children: [{ ...products, labelKey: 'catalogue' }, ...others] };
+  return groups
+    .filter((g) => g !== catalog)
+    .map((g) => (g.titleKey === 'group_sell'
+      ? { ...g, entries: [...g.entries.slice(0, 2), articles, ...g.entries.slice(2)] }
+      : g));
+}
+
+export function useSidebarNavGroups(): readonly NavGroup[] {
+  const { data: shop } = useShop();
+  return getSidebarNavGroups(shop?.catalog_kind ?? 'both');
+}
+
+export const SUBSCRIPTION_HREF = '/settings/subscription';
 
 export const NAV_GROUPS: readonly NavGroup[] = [
   {

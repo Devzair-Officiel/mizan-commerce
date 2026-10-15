@@ -6,46 +6,36 @@ import { useTheme } from 'next-themes';
 import { useColorTheme } from '@/components/providers/ColorThemeProvider';
 import { useAccountTheme } from '@/lib/hooks/useAccountTheme';
 import { useIsClient } from '@/lib/hooks/useIsClient';
+import { BrightnessToggle } from '@/components/ui/BrightnessToggle';
 import { ColorPickerSheet } from '@/components/ui/color-picker';
 
+/** Bascule clair ↔ sombre du header, enregistrée sur le compte ; sur grand écran, même pastille que la barre de recherche. */
 export function ThemeToggleButton() {
   const tc = useTranslations('layout.themeDrawer');
   const { resolvedTheme } = useTheme();
   const { setThemeMode } = useAccountTheme();
   const mounted = useIsClient();
 
-  if (!mounted) return <div className="h-8 w-8" />;
+  if (!mounted) return <div className="h-11 w-11 shrink-0" />;
 
   const isDark = resolvedTheme === 'dark';
 
   return (
     <button
+      type="button"
       onClick={() => setThemeMode(isDark ? 'light' : 'dark')}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-all active:scale-95 lg:border lg:border-border lg:bg-card"
       aria-label={isDark ? tc('switch_to_light') : tc('switch_to_dark')}
     >
-      {isDark ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+      {isDark ? <SunIcon className="h-4.5 w-4.5" /> : <MoonIcon className="h-4.5 w-4.5" />}
     </button>
   );
 }
 
-type BrightnessOption = {
-  value: 'light' | 'dark' | 'system';
-  labelKey: 'brightness_light' | 'brightness_dark' | 'brightness_system';
-  icon: (props: { className?: string }) => React.JSX.Element;
-};
-
-const BRIGHTNESS_OPTIONS: readonly BrightnessOption[] = [
-  { value: 'light',  labelKey: 'brightness_light',  icon: SunIcon },
-  { value: 'dark',   labelKey: 'brightness_dark',   icon: MoonIcon },
-  { value: 'system', labelKey: 'brightness_system', icon: SystemIcon },
-];
-
 export function ThemeToggle() {
   const t = useTranslations('layout.themeDrawer');
-  const { theme } = useTheme();
   const { primaryId, bgId, primaryCustomHex, bgCustomHex, primaryColors, backgrounds } = useColorTheme();
-  const { setThemeMode, setPrimaryId, setBgId, setAccountPrimaryCustomHex, setAccountBgCustomHex } = useAccountTheme();
+  const { setPrimaryId, setBgId, setAccountPrimaryCustomHex, setAccountBgCustomHex } = useAccountTheme();
   const mounted = useIsClient();
 
   const [primaryPickerOpen, setPrimaryPickerOpen] = useState(false);
@@ -57,23 +47,7 @@ export function ThemeToggle() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Mode clair / sombre */}
-      <div className="flex rounded-xl border border-border overflow-hidden text-sm font-medium">
-        {BRIGHTNESS_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
-          <button
-            key={value}
-            onClick={() => setThemeMode(value)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 transition-colors ${
-              theme === value
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card text-muted-foreground hover:text-foreground'
-            } ${value !== 'light' ? 'border-l border-border' : ''}`}
-          >
-            <Icon className="h-3.5 w-3.5" />
-            {t(labelKey)}
-          </button>
-        ))}
-      </div>
+      <BrightnessToggle />
 
       {/* Couleur principale */}
       <div>
@@ -212,15 +186,6 @@ function MoonIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-    </svg>
-  );
-}
-
-function SystemIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <path strokeLinecap="round" d="M8 21h8M12 17v4" />
     </svg>
   );
 }

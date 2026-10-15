@@ -78,15 +78,22 @@
   --input:                oklch(0.90 0.014 90);
   --ring:                 oklch(0.52 0.075 170);
   --radius: 0.625rem;
-  --sidebar:                    oklch(0.945 0.012 90);
-  --sidebar-foreground:         oklch(0.27 0.02 170);
-  --sidebar-primary:            oklch(0.52 0.075 170);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent:             oklch(0.93 0.0225 170);
-  --sidebar-accent-foreground:  oklch(0.30 0.0450 170);
-  --sidebar-border:             oklch(0.90 0.014 90);
-  --sidebar-ring:               oklch(0.52 0.075 170);
+  /* Sidebar desktop : suit le thème appliqué en JS (lib/themes.ts), clair, sombre ou personnalisé. */
+  --sidebar:                    var(--card);
+  --sidebar-foreground:         var(--foreground);
+  --sidebar-primary:            var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent:             var(--secondary);
+  --sidebar-accent-foreground:  var(--secondary-foreground);
+  --sidebar-border:             var(--border);
+  --sidebar-ring:               var(--ring);
   --bg-gradient: linear-gradient(to bottom, oklch(0.985 0.006 85) 0%, oklch(0.965 0.012 85) 100%);
+  /* Couche d'ambiance derrière toute l'app (body::before) : halos sauge et miel, vus à travers la sidebar translucide. */
+  --ambient-sage:  oklch(0.82 0.060 165 / 0.45);
+  --ambient-honey: oklch(0.90 0.085 85 / 0.45);
+  /* Halos plus nets sous la sidebar : c'est eux que le verre dépoli floute (desktop, pages à sidebar). */
+  --ambient-orb-sage:  oklch(0.74 0.110 165 / 0.85);
+  --ambient-orb-honey: oklch(0.86 0.120 80 / 0.70);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -115,6 +122,10 @@
 
 .dark {
   --bg-gradient: linear-gradient(to bottom, oklch(0.26 0.012 170) 0%, oklch(0.22 0.012 170) 100%);
+  --ambient-sage:  oklch(0.48 0.070 170 / 0.30);
+  --ambient-honey: oklch(0.55 0.080 75 / 0.16);
+  --ambient-orb-sage:  oklch(0.50 0.100 170 / 0.60);
+  --ambient-orb-honey: oklch(0.60 0.110 70 / 0.40);
   --destructive: oklch(0.75 0.16 21);
 }
 
@@ -170,14 +181,37 @@
     /* Fond solide de secours visible si le pseudo-élément ne charge pas encore */
     background: var(--background);
   }
-  /* Gradient fixe au viewport — ne se retile pas au scroll */
+  /* Gradient fixe au viewport — ne se retile pas au scroll. Deux halos nets sous la sidebar
+     (floutés par la vitre : l'effet se voit ; seulement quand la sidebar desktop est là), puis halos doux. */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: var(--bg-gradient, var(--background));
+    background:
+      var(--ambient-orbs, none),
+      radial-gradient(70% 55% at 0% 0%, var(--ambient-sage), transparent 70%),
+      radial-gradient(55% 45% at 100% 5%, color-mix(in oklch, var(--ambient-sage) 70%, transparent), transparent 70%),
+      radial-gradient(80% 50% at 50% 100%, var(--ambient-honey), transparent 70%),
+      var(--bg-gradient, var(--background));
     pointer-events: none;
+  }
+  @media (min-width: 64rem) {
+    html:has(#desktop-sidebar) {
+      --ambient-orbs:
+        radial-gradient(circle 140px at 136px 190px, var(--ambient-orb-sage) 0 62%, transparent 70%),
+        radial-gradient(circle 150px at 70px calc(100% - 170px), var(--ambient-orb-honey) 0 62%, transparent 70%);
+    }
+    /* Rail de 80px : les halos restent dessous, plus petits. */
+    html:has(#desktop-sidebar[data-collapsed]) {
+      --ambient-orbs:
+        radial-gradient(circle 60px at 40px 190px, var(--ambient-orb-sage) 0 62%, transparent 70%),
+        radial-gradient(circle 60px at 40px calc(100% - 170px), var(--ambient-orb-honey) 0 62%, transparent 70%);
+    }
+  }
+  /* Les halos suivent la sidebar, à droite en arabe. */
+  html[dir='rtl'] body::before {
+    transform: scaleX(-1);
   }
   body {
     @apply text-foreground min-h-full;

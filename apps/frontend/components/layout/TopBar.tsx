@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { confirmLeave } from '@/lib/dirtyGuard';
 import { Search } from 'lucide-react';
+import { ThemeToggleButton } from '@/components/ui/ThemeToggle';
 import { BurgerButton } from './BurgerMenu';
 import { useSearchOverlay, DesktopSearchPopover } from './SearchOverlay';
 
@@ -143,6 +144,8 @@ export function TopBar({ title, shortTitle, subtitle, action, back, backLabel, o
         {/* Right actions */}
         <div className="shrink-0 flex items-center gap-1 lg:gap-3 lg:mb-1">
           {action}
+          {/* Clair / sombre — à côté de la loupe (mobile), avant la barre de recherche (desktop) */}
+          {!hideSearch && <ThemeToggleButton />}
           {/* Desktop search — hidden on pages that use hideSearch; Ctrl+K still works via SearchProvider */}
           {!hideSearch && <TopBarDesktopSearch />}
           {/* Mobile search button — always visible unless hideSearch */}

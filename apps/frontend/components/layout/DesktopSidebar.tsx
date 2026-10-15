@@ -3,28 +3,49 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Plus } from 'lucide-react';
 import { useThemeDrawer } from '@/components/layout/ThemeDrawer';
-import { useMe } from '@/lib/hooks/useMe';
+import { useMe, useUpdateSidebarCollapsed } from '@/lib/hooks/useMe';
 import { usePlanGating } from '@/lib/hooks/usePlanGating';
-import { useShop } from '@/lib/hooks/useShop';
-import { passesGate, useNavGroups } from '@/lib/navigation';
-import { SidebarNavGroup } from './SidebarNavGroup';
+import { useSubscription } from '@/lib/hooks/useSubscription';
+import { ACCOUNT_ENTRIES, SUBSCRIPTION_HREF, isNavActive, passesGate, useSidebarNavGroups } from '@/lib/navigation';
+import { planBadgeState } from './planBadgeState';
 import { SidebarAccountMenu } from './SidebarAccountMenu';
-import { SidebarTrialCard } from './SidebarTrialCard';
+import { SidebarAccountTrigger } from './SidebarAccountTrigger';
+import { SidebarEdgeToggle } from './SidebarEdgeToggle';
+import { SidebarFooter } from './SidebarFooter';
+import { SidebarHeader } from './SidebarHeader';
+import { SidebarNavGroup } from './SidebarNavGroup';
+import { SidebarPlanBadge } from './SidebarPlanBadge';
 
+const SIDEBAR_ID = 'desktop-sidebar';
+
+/**
+ * Sidebar desktop translucide : déployée (272 px) ou en rail (80 px), préférence gardée sur le compte.
+ * La navigation défile seule entre l'en-tête et le pied, qui restent fixes ; bouton replier / déplier sur le bord (Ctrl+B).
+ */
 export function DesktopSidebar() {
   const tNav = useTranslations('layout.nav');
+  const tSidebar = useTranslations('layout.sidebar');
+  const tBurger = useTranslations('layout.burgerMenu');
   const pathname = usePathname();
   const router = useRouter();
   const { toggle: toggleThemeDrawer } = useThemeDrawer();
   const { data: me } = useMe();
-  const { data: shop } = useShop();
-  const membership = me?.membership ?? null;
+  const { data: subscription } = useSubscription();
+  const setCollapsed = useUpdateSidebarCollapsed();
   const { can } = usePlanGating();
-  const navGroups = useNavGroups();
+  const navGroups = useSidebarNavGroups();
+  const membership = me?.membership ?? null;
+  const collapsed = me?.sidebar_collapsed ?? false;
+  const plan = subscription ? planBadgeState(subscription) : null;
+  const fullName = me?.full_name ?? null;
 
-  const canCreateOrder =
-    passesGate({ kind: 'module', module: 'orders' }, membership) && can('orders');
+  const canCreateOrder = passesGate({ kind: 'module', module: 'orders' }, membership) && can('orders');
+  // Paramètres boutique n'est pas actif sur la page Abonnement, qui a sa propre ligne.
+  const isActive = (href: string) => isNavActive(href, pathname)
+    && !(href === '/settings' && isNavActive(SUBSCRIPTION_HREF, pathname));
+  const groupProps = { membership, can, isActive, collapsed };
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -32,59 +53,42 @@ export function DesktopSidebar() {
   }
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 shrink-0 fixed inset-y-0 inset-s-0 z-30 border-e border-border bg-card">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-border shrink-0">
-        <span className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground text-sm font-bold select-none">
-          M
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-bold text-foreground leading-tight">Mizan</div>
-          {shop?.name && (
-            <div className="text-xs text-muted-foreground truncate leading-tight">{shop.name}</div>
-          )}
-        </div>
-      </div>
+    // Vitre : fond laiteux flouté, reflet clair en haut (before) et arête lumineuse sur le bord (after).
+    <aside id={SIDEBAR_ID} data-collapsed={collapsed || undefined}
+      className={`group/sidebar hidden lg:flex flex-col fixed inset-y-0 inset-s-0 z-30 border-e border-sidebar-border bg-sidebar/45 backdrop-blur-2xl backdrop-saturate-150 text-sidebar-foreground transition-[width] duration-200 before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:bg-linear-to-b before:from-card/60 before:to-transparent before:to-45% dark:before:from-foreground/8 after:pointer-events-none after:absolute after:inset-y-0 after:inset-e-0 after:w-px after:bg-card/80 dark:after:bg-foreground/12 ${collapsed ? 'w-20' : 'w-68'}`}>
+      <SidebarHeader collapsed={collapsed} />
+      <SidebarEdgeToggle collapsed={collapsed} onToggle={() => setCollapsed.mutate(!collapsed)} controls={SIDEBAR_ID} />
 
-      {/* Nouvelle vente */}
       {canCreateOrder && (
-        <div className="px-3 pt-4 pb-2">
-          <Link
-            href="/orders/new"
-            className="flex items-center justify-center gap-2.5 w-full rounded-full h-11 px-4 text-sm font-semibold text-primary-foreground bg-primary transition-all hover:opacity-90 active:scale-95"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            {tNav('new_sale')}
+        <div className={collapsed ? 'flex justify-center pb-2' : 'px-3 pb-2'}>
+          {/* Teinté : texte primary rapproché du texte courant (40 %) pour garder 4,5:1 sur bg-primary/12 et les halos, en clair et en sombre. */}
+          <Link href="/orders/new" aria-label={collapsed ? tNav('new_sale') : undefined} title={collapsed ? tNav('new_sale') : undefined}
+            className={`flex items-center justify-center gap-2 rounded-full bg-primary/12 text-sm font-semibold text-[color-mix(in_oklch,var(--primary)_60%,var(--foreground))] transition-all hover:bg-primary/18 active:scale-95 ${collapsed ? 'h-11 w-11' : 'h-10 w-full px-4'}`}>
+            <Plus className="h-4.5 w-4.5" strokeWidth={2.5} />
+            {!collapsed && tNav('new_sale')}
           </Link>
         </div>
       )}
 
-      {/* Navigation groupée */}
-      <nav className="flex flex-col flex-1 overflow-y-auto px-3 py-2 gap-0.5">
-        {navGroups.map((group, idx) => (
-          <SidebarNavGroup
-            key={idx}
-            group={group}
-            membership={membership}
-            can={can}
-            pathname={pathname}
-          />
+      <nav aria-label={tSidebar('nav_label')} className={`flex-1 min-h-0 overflow-y-auto overscroll-contain pb-3 ${collapsed ? 'px-2' : 'px-3'}`}>
+        {navGroups.map((group) => (
+          <SidebarNavGroup key={group.titleKey ?? 'home'} title={group.titleKey ? tNav(group.titleKey) : undefined}
+            entries={group.entries} {...groupProps} />
         ))}
+        <SidebarNavGroup title={tBurger('account_section')} entries={ACCOUNT_ENTRIES} {...groupProps}>
+          <SidebarPlanBadge collapsed={collapsed} active={isActive(SUBSCRIPTION_HREF)} />
+        </SidebarNavGroup>
       </nav>
 
-      {/* Footer : carte essai + menu compte */}
-      <div className="pb-3 border-t border-border pt-3">
-        <SidebarTrialCard />
-        <SidebarAccountMenu
-          me={me ?? null}
-          membership={membership}
-          pathname={pathname}
-          onLogout={handleLogout}
-          toggleThemeDrawer={toggleThemeDrawer}
-        />
-      </div>
+      {collapsed ? (
+        <div className="shrink-0 border-t border-sidebar-border py-3">
+          <SidebarAccountMenu side="inline-end" fullName={fullName} plan={plan} onAppearance={toggleThemeDrawer} onLogout={handleLogout}
+            trigger={<SidebarAccountTrigger fullName={fullName} plan={plan}
+              label={[fullName, tSidebar('account_menu')].filter(Boolean).join(' · ')} />} />
+        </div>
+      ) : (
+        <SidebarFooter fullName={fullName} role={membership?.role ?? null} plan={plan} onAppearance={toggleThemeDrawer} onLogout={handleLogout} />
+      )}
     </aside>
   );
 }

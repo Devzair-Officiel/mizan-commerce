@@ -156,6 +156,14 @@
       "role_admin": "administrateur",
       "role_staff": "membre"
     },
+    "sidebar": {
+      "nav_label": "Navigation principale",
+      "collapse": "Replier le menu",
+      "expand": "Déplier le menu",
+      "theme": "Thème",
+      "account_menu": "Compte et préférences",
+      "palettes": "Palettes de couleurs"
+    },
     "search": {
       "title": "Recherche",
       "placeholder": "Rechercher une commande, un client…",
@@ -217,12 +225,8 @@
       "banner_tomorrow": "Votre essai Boutique+ se termine demain.",
       "banner_days": "Votre essai Boutique+ se termine dans {days} jours.",
       "banner_cta": "Gérer",
-      "card_days": "{days, plural, =0 {Expiration aujourd'hui} one {# jour restant} other {# jours restants}}",
       "card_expired": "Essai terminé",
-      "card_expired_cta": "Voir les formules",
-      "card_cta": "Passer à Pro",
-      "menu_trial_title": "Essai Boutique+",
-      "menu_trial_sub": "Encore {days, plural, =0 {aujourd'hui} one {# jour} other {# jours}} — gérer mon abonnement"
+      "badge_trial": "Essai · {days, plural, =0 {dernier jour} one {# j} other {# j}}"
     }
   },
   "dashboard": {

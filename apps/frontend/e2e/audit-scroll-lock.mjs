@@ -2,9 +2,9 @@
  * Audit du défilement de la page (page bloquée après plusieurs actions), à 1440px et 360px, en clair
  * et en sombre, en français et en arabe. Enchaîne ouvertures et fermetures :
  * - fenêtres : fenêtre du bas / fenêtre centrée (BottomSheet), confirmation (Dialog), recadrage d'image ;
- * - menus : « ⋯ » de la fiche et d'un format, filtres de la liste, compte (desktop), menu burger (mobile) ;
+ * - menus : « ⋯ » de la fiche et d'un format, filtres de la liste, menu burger (mobile) ;
  * - liste d'options (Select) dans une fenêtre ; fenêtre ouverte depuis un menu (« ⋯ » → Modifier,
- *   compte ou burger → Apparence) ; retour arrière pendant qu'une fenêtre ou un menu est ouvert ;
+ *   « ⋯ » du pied de la sidebar → Palettes, ou burger → Apparence) ; retour arrière pendant qu'une fenêtre ou un menu est ouvert ;
  * - fermeture par Échap, par clic à l'extérieur, par le bouton ; notification après un enregistrement.
  * Après chaque action, fenêtres et menus refermés : la page défile à la molette et rien ne reste
  * bloquant sur html, body et le contenu principal (voir lib/scroll.mjs). Pendant qu'une fenêtre est
@@ -177,27 +177,32 @@ async function checkFilters(page, ctx) {
   });
 }
 
-/** Apparence : depuis le menu du compte (desktop) ou le menu burger (mobile), fermée par « Fermer ». */
+/**
+ * Apparence : depuis le menu burger (mobile) ou « ⋯ » du pied de la sidebar → Palettes de couleurs (desktop), fermée par « Fermer ».
+ * Le menu du compte du rail est parcouru par audit-sidebar.
+ */
 async function checkAccountMenus(page, ctx) {
   const { locale, viewport } = ctx;
-  const open = viewport.mobile
-    ? () => button(page, msg(locale, 'layout.common.menu')).click()
-    : () => page.locator('aside button[aria-haspopup=menu]').filter({ visible: true }).first().click();
+  const open = () => button(page, msg(locale, 'layout.common.menu')).click();
   const appearance = viewport.mobile
     ? () => button(page.getByRole('dialog', { name: msg(locale, 'layout.common.menu') }), msg(locale, 'layout.common.appearance')).click()
-    : () => page.getByRole('menuitem').filter({ hasText: msg(locale, 'layout.common.appearance') }).click();
-  const menu = viewport.mobile ? 'menu burger' : 'menu du compte';
-  await step(page, ctx, `${menu} ouvert, clic à l'extérieur`, async () => {
+    : async () => {
+      // Desktop : « ⋯ » du pied (ou avatar du rail), puis « Palettes de couleurs » dans le menu du compte.
+      await page.locator('aside').filter({ visible: true }).getByRole('button', { name: msg(locale, 'layout.sidebar.account_menu') }).click();
+      await page.getByRole('menuitem', { name: msg(locale, 'layout.sidebar.palettes'), exact: true }).click();
+    };
+  const menu = viewport.mobile ? 'menu burger' : 'pied de la sidebar';
+  if (viewport.mobile) await step(page, ctx, `${menu} ouvert, clic à l'extérieur`, async () => {
     await open();
     // Ouverture animée : le clic à l'extérieur une fois le menu en place.
     await overlay(page).first().waitFor();
     await animationsDone(overlay(page));
     // Le menu burger s'ouvre du côté du début de ligne (à droite en arabe) : clic de l'autre côté.
     const side = locale === 'ar' ? 8 : viewport.width - 8;
-    await page.mouse.click(viewport.mobile ? side : viewport.width / 2, viewport.height / 2);
+    await page.mouse.click(side, viewport.height / 2);
   });
   await step(page, ctx, `« Apparence » depuis le ${menu}, fermée par « Fermer »`, async () => {
-    await open();
+    if (viewport.mobile) await open();
     await appearance();
     const drawer = page.getByRole('dialog', { name: msg(locale, 'layout.themeDrawer.title') });
     await drawer.waitFor();
