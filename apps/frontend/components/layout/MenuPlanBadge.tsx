@@ -3,12 +3,12 @@
 import { AlertCircle, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSubscription } from '@/lib/hooks/useSubscription';
-import { MenuRow, type MenuRowNav } from './MenuRow';
+import { MenuRow } from './MenuRow';
 import { PlanBadge } from './PlanBadge';
 import { planBadgeState } from './planBadgeState';
 
-/** Formule courante dans le menu (burger et sidebar) ; mène à Paramètres → Abonnement. */
-export function MenuPlanBadge({ nav }: { nav: MenuRowNav }) {
+/** Formule courante dans le menu mobile ; mène à Paramètres → Abonnement. */
+export function MenuPlanBadge({ onNavigate }: { onNavigate: (href: string) => void }) {
   const t = useTranslations('layout.trial');
   const tSub = useTranslations('settings.subscription');
   const { data: subscription, isLoading } = useSubscription();
@@ -25,7 +25,7 @@ export function MenuPlanBadge({ nav }: { nav: MenuRowNav }) {
       <MenuRow
         icon={<Icon className="h-4.5 w-4.5" />}
         label={expired ? t('card_expired') : tSub('title')}
-        {...nav}
+        onClick={() => onNavigate('/settings/subscription')}
         badge={<PlanBadge state={state} />}
         danger={expired}
         isFirst
