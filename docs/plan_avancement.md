@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-07 (correctif police Geist + Noto Sans Arabic)
+**Dernière mise à jour** : 2026-10-15
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
 
 ---
@@ -437,12 +437,12 @@
   - [~] Import PDF : texte lu directement si le PDF en contient, sinon lecture d'image
   - [~] Création d'un article depuis une ligne « à associer », pré-remplie et mémorisée (article seulement : une entrée de stock ne porte pas sur un service) ; ligne ignorée (frais de port, remise…), mémorisée pour le fournisseur et rétablissable
 - [~] Lot 6 — Factures clients
-  - [~] Nouveau design (référence : maquettes couleur et neutre validées)
-  - [~] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
-  - [~] Récapitulatif du compte client en option
-  - [~] Mentions légales configurables
-  - [~] Réglages dédiés, instantanés d’émission, PDF A4 paginés et exemples
-  - [~] Pages liste et détail au gabarit (§9/§10), indicateurs, facettes et tri serveur, audit smoke
+  - [x] Nouveau design (référence : maquettes couleur et neutre validées)
+  - [x] Logo et couleur d'accent : automatique (tirée du logo, contraste vérifié), au choix ou neutre
+  - [x] Récapitulatif du compte client en option
+  - [x] Mentions légales configurables
+  - [x] Réglages dédiés, instantanés d’émission, PDF A4 paginés et exemples
+  - [x] Pages liste et détail au gabarit (§9/§10), indicateurs, facettes et tri serveur, audit smoke
   - [ ] Dette : factures PDF en arabe (français utilisé en attendant)
 - [ ] Lot 7 — Compte et réglages
   - [ ] Badge d'abonnement (sidebar, menu mobile)
