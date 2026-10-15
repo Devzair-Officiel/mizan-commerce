@@ -4,7 +4,7 @@
  * - fenêtres : fenêtre du bas / fenêtre centrée (BottomSheet), confirmation (Dialog), recadrage d'image ;
  * - menus : « ⋯ » de la fiche et d'un format, filtres de la liste, menu burger (mobile) ;
  * - liste d'options (Select) dans une fenêtre ; fenêtre ouverte depuis un menu (« ⋯ » → Modifier,
- *   pied de la sidebar ou burger → Apparence) ; retour arrière pendant qu'une fenêtre ou un menu est ouvert ;
+ *   « ⋯ » du pied de la sidebar → Palettes, ou burger → Apparence) ; retour arrière pendant qu'une fenêtre ou un menu est ouvert ;
  * - fermeture par Échap, par clic à l'extérieur, par le bouton ; notification après un enregistrement.
  * Après chaque action, fenêtres et menus refermés : la page défile à la molette et rien ne reste
  * bloquant sur html, body et le contenu principal (voir lib/scroll.mjs). Pendant qu'une fenêtre est
@@ -178,7 +178,7 @@ async function checkFilters(page, ctx) {
 }
 
 /**
- * Apparence : depuis le menu burger (mobile) ou le pied de la sidebar déployée (desktop), fermée par « Fermer ».
+ * Apparence : depuis le menu burger (mobile) ou « ⋯ » du pied de la sidebar → Palettes de couleurs (desktop), fermée par « Fermer ».
  * Le menu du compte du rail est parcouru par audit-sidebar.
  */
 async function checkAccountMenus(page, ctx) {
@@ -186,7 +186,11 @@ async function checkAccountMenus(page, ctx) {
   const open = () => button(page, msg(locale, 'layout.common.menu')).click();
   const appearance = viewport.mobile
     ? () => button(page.getByRole('dialog', { name: msg(locale, 'layout.common.menu') }), msg(locale, 'layout.common.appearance')).click()
-    : () => button(page.locator('aside').filter({ visible: true }), msg(locale, 'layout.common.appearance')).click();
+    : async () => {
+      // Desktop : « ⋯ » du pied (ou avatar du rail), puis « Palettes de couleurs » dans le menu du compte.
+      await page.locator('aside').filter({ visible: true }).getByRole('button', { name: msg(locale, 'layout.sidebar.account_menu') }).click();
+      await page.getByRole('menuitem', { name: msg(locale, 'layout.sidebar.palettes'), exact: true }).click();
+    };
   const menu = viewport.mobile ? 'menu burger' : 'pied de la sidebar';
   if (viewport.mobile) await step(page, ctx, `${menu} ouvert, clic à l'extérieur`, async () => {
     await open();

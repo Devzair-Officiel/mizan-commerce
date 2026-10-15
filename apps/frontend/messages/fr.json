@@ -161,7 +161,8 @@
       "collapse": "Replier le menu",
       "expand": "Déplier le menu",
       "theme": "Thème",
-      "account_menu": "Compte et préférences"
+      "account_menu": "Compte et préférences",
+      "palettes": "Palettes de couleurs"
     },
     "search": {
       "title": "Recherche",

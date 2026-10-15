@@ -4,7 +4,7 @@ import { useId, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { NavEntry } from '@/lib/navigation';
 import { SidebarNavCount } from './SidebarNavCount';
-import { SidebarNavItem } from './SidebarNavItem';
+import { SIDEBAR_HOVER_SHIFT, SidebarNavItem } from './SidebarNavItem';
 
 export type SidebarSubItem = { href: string; label: string; count: number; countAlert: boolean };
 
@@ -33,8 +33,8 @@ export function SidebarNavAccordion({ entry, label, items, isActive }: {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setChoice(!open)}
-        className={`flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm whitespace-nowrap transition-colors hover:bg-muted ${
-          childActive && !open ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold' : 'text-sidebar-foreground'
+        className={`flex h-9 w-full items-center gap-3 rounded-lg px-2.5 text-sm whitespace-nowrap hover:bg-muted ${
+          childActive && !open ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold' : `text-sidebar-foreground ${SIDEBAR_HOVER_SHIFT}`
         }`}
       >
         <Icon className={`h-5 w-5 shrink-0 ${childActive ? 'text-primary' : 'text-muted-foreground'}`} />

@@ -24,14 +24,7 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   en: 'English',
 };
 
-/** Libellés courts du pied de la sidebar desktop ; le nom complet reste lu par les lecteurs d'écran. */
-export const LOCALE_SHORT_LABELS: Record<Locale, string> = {
-  fr: 'FR',
-  ar: 'ع',
-  en: 'EN',
-};
-
-export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+export function LanguageSwitcher() {
   const tc = useTranslations('layout.common');
   const { current, switchLocale } = useLocaleSwitch();
 
@@ -50,14 +43,13 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
             onClick={() => switchLocale(loc)}
             aria-pressed={active}
             lang={loc}
-            aria-label={compact ? LOCALE_LABELS[loc] : undefined}
-            className={`flex-1 ${compact ? 'h-7' : 'h-9.5'} flex items-center justify-center rounded-[0.625rem] px-2 text-[13px] font-medium transition-all ${
+            className={`flex-1 h-9.5 flex items-center justify-center rounded-[0.625rem] px-2 text-[13px] font-medium transition-all ${
               active
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground hover:bg-card/50'
             }`}
           >
-            {compact ? LOCALE_SHORT_LABELS[loc] : LOCALE_LABELS[loc]}
+            {LOCALE_LABELS[loc]}
           </button>
         );
       })}

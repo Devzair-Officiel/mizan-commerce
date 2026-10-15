@@ -8,6 +8,10 @@ import { SidebarNavCount } from './SidebarNavCount';
  * Ligne de la sidebar desktop. Déployée : 36 px, une seule ligne ; sous-item (`sub`) : 32 px sans icône.
  * Rail : icône seule dans une zone de 44 px, libellé en aria-label.
  */
+
+/** Survol d'un item déployé non actif : 3 px vers l'intérieur (inversé en RTL) et fondu du fond, sans mouvement si réduit. */
+export const SIDEBAR_HOVER_SHIFT = 'transition-[background-color,translate] duration-150 ease-out motion-safe:hover:translate-x-0.75 motion-safe:rtl:hover:-translate-x-0.75';
+
 export function SidebarNavItem({
   href, label, icon: Icon, active, collapsed, sub = false, count = 0, countAlert = false, danger = false, pill,
 }: {
@@ -41,7 +45,7 @@ export function SidebarNavItem({
 
   return (
     <Link href={href} aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-3 rounded-lg px-2.5 text-sm whitespace-nowrap transition-colors ${sub ? 'h-8' : 'h-9'} ${tone}`}>
+      className={`flex items-center gap-3 rounded-lg px-2.5 text-sm whitespace-nowrap ${sub ? 'h-8' : 'h-9'} ${tone} ${active ? '' : SIDEBAR_HOVER_SHIFT}`}>
       {!sub && <Icon className={`h-5 w-5 shrink-0 ${iconTone}`} />}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <SidebarNavCount count={count} alert={countAlert} />
