@@ -54,7 +54,7 @@ export default function SubscriptionPage() {
 
   return (
     <div className="mx-auto w-full max-w-280">
-      <TopBar title={t('title')} />
+      <TopBar hideSearch title={t('title')} />
       {(subscription.isLoading || plans.isLoading) && <SectionsSkeleton sections={[3, 4, 5]} className="px-4 pt-4 pb-32" />}
       {(subscription.isError || plans.isError) && (
         <div role="alert" className="flex flex-col items-start gap-3 p-5 text-sm">

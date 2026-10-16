@@ -145,11 +145,12 @@ try {
         setTheme(theme);
         watch.setLabel(label);
         await page.goto(`${BASE}/settings`);
-        await page.locator('a[href="/settings/invoices"]').click();
+        await page.locator('a[href="/settings/invoices"]').filter({ visible: true }).click();
         await page.waitForURL(/\/settings\/invoices$/);
         await page.getByRole('heading', { name: t('appearance'), exact: true }).waitFor();
         await page.waitForLoadState('networkidle');
-        report.check(await layoutOk(page, { viewport }, { order: ['appearance', 'legal', 'payment', 'options', 'preview'].map(t), side: [t('preview')] }), `${label} : gabarit v3, aperçu à droite ou en bas sur mobile`);
+        const contentWidth = await page.locator('[data-settings-content]').evaluate((el) => el.clientWidth);
+        report.check(await layoutOk(page, { viewport: { ...viewport, mobile: contentWidth < 880 } }, { order: ['appearance', 'legal', 'payment', 'options', 'preview'].map(t), side: [t('preview')] }), `${label} : gabarit v3, aperçu à droite dès 880 px de conteneur, sinon en bas`);
         await checkColors(page, t, label);
         await checkLegalPaymentOptions(page, t, label);
         await checkIdentifierFormatting(page, t, label);

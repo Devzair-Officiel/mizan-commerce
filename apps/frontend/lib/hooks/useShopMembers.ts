@@ -50,7 +50,10 @@ export function useCreateShopMember() {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shopMembers.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: qk.shopMembers.all }),
+      qc.invalidateQueries({ queryKey: qk.subscription.current }),
+    ]),
   });
 }
 
@@ -71,6 +74,9 @@ export function useDeleteShopMember() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<void>(`/shop/members/${id}/`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.shopMembers.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: qk.shopMembers.all }),
+      qc.invalidateQueries({ queryKey: qk.subscription.current }),
+    ]),
   });
 }

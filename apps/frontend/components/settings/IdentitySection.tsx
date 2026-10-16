@@ -24,7 +24,7 @@ export function IdentitySection({ shop, register, errors }: IdentitySectionProps
         <FloatingInput id="name" label={t('name')} {...register('name')} />
         {errors.name && <p className="text-[11px] text-destructive px-1">{t('name_required')}</p>}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FloatingSelect id="currency" label={t('currency')} {...register('currency')}>
           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </FloatingSelect>

@@ -51,7 +51,7 @@ export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: C
 
   return (
     <SectionCard title={t('current_plan')}>
-      <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8" data-current-plan={code}>
+      <div className="flex flex-col gap-4 p-5 @[640px]/settings:flex-row @[640px]/settings:items-center @[640px]/settings:justify-between @[640px]/settings:gap-5" data-current-plan={code}>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xl font-semibold text-foreground">{name}</p>
@@ -72,7 +72,7 @@ export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: C
           {!showCta && code !== 'free' && <p className="mt-2 text-xs text-muted-foreground">{t('no_commitment')}</p>}
         </div>
         {showCta && (
-          <div className="flex flex-col gap-2 text-center lg:w-72 lg:shrink-0">
+          <div className="flex flex-col gap-2 text-center @[640px]/settings:w-64 @[640px]/settings:shrink-0">
             <Button type="button" onClick={() => onChoosePlan(code, 'month')} className="h-11 w-full rounded-full px-5 active:scale-[0.98]">
               {t('keep_cta', { name, price })}
             </Button>

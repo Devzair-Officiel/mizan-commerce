@@ -7,7 +7,7 @@
  *   sans carte « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
  * - Découverte : jauges de la formule, pas de résiliation ;
  * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
- * Partout : 4 cartes côte à côte sur desktop, pastille « Recommandé » à cheval sur le haut de la carte
+ * Partout : 4 cartes ou 2 × 2 selon la largeur du conteneur desktop, pastille « Recommandé » à cheval sur le haut de la carte
  * Boutique, côté début de ligne (à droite en arabe), CTA en bas de chaque carte, après la liste, à la même
  * hauteur d'une carte à l'autre (Découverte : son texte à la place du bouton), une par onglet sur mobile (onglet par défaut : formule
  * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre la fenêtre
@@ -129,7 +129,7 @@ async function checkCards(page, locale, label, mode, mobile) {
   const defaultTab = mode === 'paid' ? 'solo' : 'boutique';
   const cards = await visibleCards(page);
   report.check(mobile ? cards.join() === defaultTab : cards.join() === 'free,solo,boutique,commerce_plus',
-    `${label} : ${mobile ? `une carte, onglet par défaut ${defaultTab}` : '4 cartes côte à côte'} (${cards.join(', ')})`);
+    `${label} : ${mobile ? `une carte, onglet par défaut ${defaultTab}` : '4 cartes visibles'} (${cards.join(', ')})`);
   if (mobile) {
     await page.getByRole('tab', { name: msg(locale, 'settings.subscription.plans.commerce_plus.name') }).click();
     report.check((await visibleCards(page)).join() === 'commerce_plus', `${label} : l'onglet Commerce+ montre sa carte`);
@@ -156,7 +156,16 @@ async function checkCtaBottom(page, locale, label, mobile) {
       placements.push(...await ctaPlacement(page));
     }
   }
-  const sameLine = mobile || new Set(placements.map((p) => p.top)).size === 1;
+  const sameLine = mobile || await page.locator('[data-plan]').filter({ visible: true }).evaluateAll((cards) => {
+    const rows = new Map();
+    for (const card of cards) {
+      const row = Math.round(card.getBoundingClientRect().top);
+      const cta = Math.round(card.querySelector('[data-plan-cta]').getBoundingClientRect().top);
+      if (rows.has(row) && rows.get(row) !== cta) return false;
+      rows.set(row, cta);
+    }
+    return true;
+  });
   report.check(placements.length === 4 && placements.every((p) => p.atBottom && p.height === 44) && sameLine,
     `${label} : CTA en bas de carte, après la liste${mobile ? ', onglet par onglet' : ', alignés sur une ligne'} `
       + `(${placements.map((p) => `${p.plan}${p.atBottom ? '' : ' ✗'}@${p.top}`).join(', ')})`);
