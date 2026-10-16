@@ -455,6 +455,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] Paramètres boutique et Équipe (7c-2) : sous-navigation desktop collante (208 px), liens verrouillés visibles et formule traduite, « Autres réglages » sur mobile ; cartes Boutique à plat et barre d'enregistrement dans la colonne ; formules sur 4 colonnes dès 880 px de conteneur, sinon 2 × 2 sur desktop ; Équipe en tableau / cartes, usage et plafond API, places disponibles et ajout limité via `UpgradeSheet` ; audits `settings`, `team` et audits existants adaptés
     - [x] Mon profil (7c-3) : en-tête du compte et vérification d’email, cartes Informations / Mot de passe côte à côte sur desktop et empilées sur mobile, composants et logique existants conservés ; audit `profile`, six maquettes 7c versionnées
     - [x] Pages marketing : grille 4 offres (Pricing, Faq)
+    - [x] Pages marketing (7d-2) : largeur globale 1400 px, marges fluides, cartes et notes alignées, pastille Boutique flottante, CTA final et anneaux du sceau contenus sur mobile ; recette aux six largeurs ci-dessous
   - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 
@@ -607,6 +608,25 @@ grilles 4 / 2 / 1 et seuils 639 / 640 / 1099 / 1100 px ; aucune erreur navigateu
 Écart préexistant hors lot : à 360 px, le bouton « Créer mon compte — gratuit »
 de `components/marketing/FinalCta.tsx` déborde de 24 px (document large de 384 px).
 Pricing et FAQ ne débordent pas. Validation staging non effectuée dans ce lot.
+
+Recette 7d-2 du 2026-10-16 : toutes les sections examinées à 360 / 768 / 1024 /
+1440 / 1920 / 2560 px. Conteneur global 1400 px et padding `clamp(20px, 4vw, 56px)` ;
+titres de section limités à 720 px, FAQ à 800 px, titre/texte final à 760 / 540 px,
+tous centrés. Même structure des quatre cartes, prix alignés par rangée, boutons
+de 56 px et notes avec 40,3 px réservés ; « Commencer gratuitement » sur une ligne
+à 1440 px. Le CTA final et le débordement de 9 px des anneaux du sceau halal révélé
+après sa correction sont corrigés : aucun défilement horizontal aux six largeurs.
+Images proportionnelles, prix mensuels/annuels vérifiés, aucune erreur navigateur.
+Contrôles Docker 7d-2 validés : lint (0 erreur, 7 avertissements préexistants),
+typecheck, text, deps, i18n, tokens et build. Pas de validation staging dans ce lot.
+
+Traitements particuliers : le hero conserve son gabarit de 1640 px et son image
+proportionnelle ; « Comment ça marche » conserve sa maquette fixe de 330 × 670 px.
+Cette dernière laisse un espace latéral marqué à 1920 / 2560 px : un réagencement
+du visuel demanderait un lot graphique dédié. Les marges de lecture de la FAQ et
+du CTA final sont intentionnelles. Écart éditorial préexistant hors de ce lot de
+largeur : Features conserve « Bientôt » et les sections Features / How / Halal
+annoncent encore les partenariats ; à réconcilier avec la checklist avant lancement.
 
 ## Légende et bonnes pratiques d'usage
 

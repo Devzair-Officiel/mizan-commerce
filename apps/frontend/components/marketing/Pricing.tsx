@@ -14,7 +14,7 @@ type Plan = {
   cta: string;
   kind: 'btn-dark' | 'btn-gold';
   feature?: boolean;
-  trialNote?: string;
+  note: string;
 };
 
 const PLANS: Plan[] = [
@@ -26,6 +26,7 @@ const PLANS: Plan[] = [
     feats: ['30 articles', '15 ventes par mois', '15 clients', 'Stock, notes et rappels', 'Calcul de la zakat'],
     cta: 'Commencer gratuitement',
     kind: 'btn-dark',
+    note: 'Sans carte bancaire',
   },
   {
     name: 'Solo',
@@ -35,6 +36,7 @@ const PLANS: Plan[] = [
     feats: ['Ventes, articles et clients illimités', 'Factures PDF numérotées', 'Messages WhatsApp prêts à envoyer', 'Relance automatique des impayés'],
     cta: 'Choisir Solo',
     kind: 'btn-dark',
+    note: 'Sans engagement',
   },
   {
     tag: 'Recommandé',
@@ -55,7 +57,7 @@ const PLANS: Plan[] = [
     ],
     cta: 'Essayer 14 jours gratuit',
     kind: 'btn-gold',
-    trialNote: '14 jours offerts pour les nouveaux comptes',
+    note: '14 jours offerts pour les nouveaux comptes',
   },
   {
     name: 'Commerce+',
@@ -65,6 +67,7 @@ const PLANS: Plan[] = [
     feats: ['Tout Boutique inclus', 'Équipe illimitée', "Journal d'activité", 'Support prioritaire'],
     cta: 'Choisir Commerce+',
     kind: 'btn-dark',
+    note: 'Sans engagement',
   },
 ];
 
@@ -89,7 +92,7 @@ export function Pricing() {
         <div className="price-grid">
           {PLANS.map((p, i) => (
             <div className={'plan' + (p.feature ? ' feature' : '')} key={i}>
-              <div className="tag">{p.tag}</div>
+              {p.tag && <div className="tag">{p.tag}</div>}
               <div className="pname">{p.name}</div>
               <div className="pdesc">{p.desc}</div>
               <div className="amt">
@@ -107,7 +110,7 @@ export function Pricing() {
                 ))}
               </ul>
               <Link className={'btn ' + p.kind} href="/register">{p.cta}</Link>
-              {p.trialNote && <p className="plan-trial">{p.trialNote}</p>}
+              <p className="plan-trial">{p.note}</p>
             </div>
           ))}
         </div>
