@@ -11,7 +11,7 @@ import { useUpdateInvoiceSettings, type InvoiceSettings } from '@/lib/hooks/useI
 import { FormActions } from '@/components/form/FormActions';
 import { resetKeepingEdits } from '@/components/form/resetKeepingEdits';
 import { useFormLeave } from '@/components/form/useFormLeave';
-import { FORM_COLUMN, FORM_COLUMNS } from '@/components/form/fieldStyles';
+import { SETTINGS_COLUMN, SETTINGS_COLUMNS } from '@/components/settings/layoutStyles';
 import { invoiceFormValues, invoiceSettingsSchema, type InvoiceSettingsValues } from './schema';
 import { InvoiceAppearanceSection } from './InvoiceAppearanceSection';
 import { InvoiceLegalSection } from './InvoiceLegalSection';
@@ -46,14 +46,14 @@ export function InvoiceSettingsForm({ settings, onLeave }: { settings: InvoiceSe
 
   return (
     <form noValidate onSubmit={form.handleSubmit(save)} className="flex flex-col gap-5 px-4 pt-4 pb-28 lg:pt-0 lg:pb-8">
-      <div className={FORM_COLUMNS}>
-        <div className={FORM_COLUMN}>
+      <div className={SETTINGS_COLUMNS}>
+        <div className={SETTINGS_COLUMN}>
           <InvoiceAppearanceSection form={form} settings={settings} shop={shop} />
           <InvoiceLegalSection form={form} />
           <InvoicePaymentSection form={form} />
           <InvoiceOptionsSection form={form} />
         </div>
-        <div className={`${FORM_COLUMN} lg:sticky lg:top-6`}>
+        <div className={`${SETTINGS_COLUMN} @[880px]/settings:sticky @[880px]/settings:top-6`}>
           <InvoicePreview control={form.control} settings={settings} />
         </div>
       </div>

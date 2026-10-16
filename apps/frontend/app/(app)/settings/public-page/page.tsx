@@ -29,7 +29,7 @@ function PublicPageContent() {
 
   return (
     <>
-      <TopBar title={t('title')} />
+      <TopBar hideSearch title={t('title')} />
 
       <div className="flex flex-col gap-4 px-4 pt-4 pb-32">
         {isLoading && <SectionsSkeleton sections={[1, 3, 2]} />}

@@ -1566,7 +1566,24 @@
       "delete_error": "Impossible de retirer ce membre."
     },
     "readonly_title": "Membres actuels",
-    "readonly_note": "Sans la formule Boutique, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés."
+    "readonly_note": "Sans la formule Boutique, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés.",
+    "members_title": "Membres",
+    "columns": {
+      "member": "Membre",
+      "role": "Rôle",
+      "access": "Accès",
+      "actions": "Actions"
+    },
+    "modules_count": "{count, plural, one {# module} other {# modules}}",
+    "available_places": "{count, plural, one {# place disponible} other {# places disponibles}}",
+    "unlimited_members": "{count} membres, sans limite",
+    "plan_capacity": "Formule {name} : {unlimited, select, yes {membres illimités} other {{limit} membres, propriétaire compris}}.",
+    "edit_member": "Modifier {name}",
+    "remove_member": "Retirer {name}",
+    "load_error": "Impossible de charger les membres.",
+    "retry": "Réessayer",
+    "empty_title": "Votre équipe commence ici",
+    "usage_error": "Impossible de charger le plafond de votre formule."
   },
   "ui": {
     "phone": {
@@ -1694,7 +1711,10 @@
     "page": {
       "title": "Paramètres boutique",
       "loading_title": "Paramètres",
-      "saved": "Modifications enregistrées ✓"
+      "saved": "Modifications enregistrées ✓",
+      "load_error": "Impossible de charger les réglages de votre boutique.",
+      "retry": "Réessayer",
+      "save_error": "Impossible d’enregistrer vos modifications."
     },
     "actions": {
       "unsaved": "Modifications non enregistrées",
@@ -1724,7 +1744,7 @@
       "delete_error": "Erreur lors de la suppression."
     },
     "management": {
-      "title": "Gestion",
+      "title": "Autres réglages",
       "description": "Équipe, vitrine, messages et abonnement de votre boutique.",
       "public_page": "Page publique",
       "public_page_subtitle": "Vitrine partageable de votre boutique",
@@ -1866,6 +1886,17 @@
       "cancel_hint": "Retour immédiat sur Découverte, vos données restent intactes.",
       "load_error": "Impossible de charger votre abonnement.",
       "retry": "Réessayer"
+    },
+    "navigation": {
+      "label": "Réglages",
+      "shop": "Boutique",
+      "team": "Équipe",
+      "invoices": "Factures",
+      "messages": "Messages",
+      "public_page": "Page publique",
+      "subscription": "Abonnement",
+      "requires_plan": "Formule {name} requise",
+      "team_subtitle": "Membres et accès"
     }
   },
   "onboarding": {

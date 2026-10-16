@@ -76,6 +76,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
             type="button"
             variant="outline"
             size="sm"
+            className="h-11 rounded-full active:scale-[0.98]"
             onClick={handlePickFile}
             disabled={uploadLogo.isPending}
           >
@@ -86,7 +87,7 @@ export function LogoUploader({ shop }: LogoUploaderProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="text-destructive hover:text-destructive"
+              className="h-11 rounded-full text-destructive hover:text-destructive active:scale-[0.98]"
               onClick={() => setConfirmDelete(true)}
               disabled={deleteLogo.isPending}
             >

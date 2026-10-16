@@ -74,17 +74,17 @@ async function grantFromTeamPage(owner, viewport) {
   const label = `${viewport.name}px page Équipe`;
   const moduleLabel = msg('fr', 'team.modules.reminders');
   await goto(owner, '/settings/team');
-  const cardOf = owner.locator('article').filter({ hasText: STAFF_EMAIL });
-  await cardOf.getByRole('button', { name: msg('fr', 'team.actions.edit') }).click();
+  const cardOf = owner.locator('[data-member-row], [data-member-card]').filter({ visible: true }).filter({ hasText: STAFF_EMAIL });
+  await cardOf.getByRole('button', { name: new RegExp(`^${msg('fr', 'team.actions.edit')}`) }).click();
   const sheet = owner.getByRole('dialog');
   const toggle = sheet.getByRole('button', { name: moduleLabel, exact: true });
   report.check(await shown(toggle) && (await toggle.getAttribute('aria-pressed')) === 'false',
     `${label} : module « ${moduleLabel} » proposé, non coché`);
   await toggle.click();
   await visibleButton(sheet, msg('fr', 'team.form.submit_update')).click();
-  report.check(await hidden(sheet) && await shown(cardOf.getByText(moduleLabel, { exact: true }))
+  report.check(await hidden(sheet) && await shown(cardOf.getByText(moduleLabel))
     && (await member(owner)).permissions.includes('reminders'),
-  `${label} : « ${moduleLabel} » coché et enregistré, affiché sur la carte de l'employé`);
+  `${label} : « ${moduleLabel} » coché et enregistré, présent dans le résumé des accès`);
 }
 
 /** Avec le module : attribution depuis le formulaire, badge et « Pour moi » de l'employé, création. */

@@ -5,6 +5,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { UpgradeCard, type LockedFeature } from '@/components/subscription/UpgradeCard';
 import { useSubscription } from '@/lib/hooks/useSubscription';
 import { hasFeature } from '@/lib/hooks/usePlanGating';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
 /**
  * Page réservée à une formule : sans elle, la carte de mise à niveau remplace le contenu.
@@ -17,11 +18,11 @@ export function FeatureGate({ feature, title, back, belowCard, children }: {
 }) {
   const { data: subscription, isLoading } = useSubscription();
 
-  if (isLoading) return <TopBar title={title} back={back} />;
+  if (isLoading) return <><TopBar hideSearch title={title} back={back} /><SectionsSkeleton sections={[3, 3]} className="px-4 pt-4 pb-32" /></>;
   if (subscription && !hasFeature(subscription.effective_plan_code, feature)) {
     return (
       <>
-        <TopBar title={title} back={back} />
+        <TopBar hideSearch title={title} back={back} />
         <div className="px-4 pt-4 pb-32 lg:pb-4 flex flex-col gap-6">
           <UpgradeCard feature={feature} />
           {belowCard}

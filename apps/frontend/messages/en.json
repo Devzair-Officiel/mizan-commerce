@@ -1566,7 +1566,24 @@
       "delete_error": "Could not remove this member."
     },
     "readonly_title": "Current members",
-    "readonly_note": "Without the Boutique plan, these members can no longer sign in. Their accounts and access are kept."
+    "readonly_note": "Without the Boutique plan, these members can no longer sign in. Their accounts and access are kept.",
+    "members_title": "Members",
+    "columns": {
+      "member": "Member",
+      "role": "Role",
+      "access": "Access",
+      "actions": "Actions"
+    },
+    "modules_count": "{count, plural, one {# module} other {# modules}}",
+    "available_places": "{count, plural, one {# place available} other {# places available}}",
+    "unlimited_members": "{count} members, unlimited",
+    "plan_capacity": "{name} plan: {unlimited, select, yes {unlimited members} other {{limit} members, including the owner}}.",
+    "edit_member": "Edit {name}",
+    "remove_member": "Remove {name}",
+    "load_error": "Unable to load members.",
+    "retry": "Try again",
+    "empty_title": "Your team starts here",
+    "usage_error": "Unable to load your plan’s member limit."
   },
   "ui": {
     "phone": {
@@ -1694,7 +1711,10 @@
     "page": {
       "title": "Shop settings",
       "loading_title": "Settings",
-      "saved": "Changes saved ✓"
+      "saved": "Changes saved ✓",
+      "load_error": "Unable to load your shop settings.",
+      "retry": "Try again",
+      "save_error": "Unable to save your changes."
     },
     "actions": {
       "unsaved": "Unsaved changes",
@@ -1724,7 +1744,7 @@
       "delete_error": "Error while deleting."
     },
     "management": {
-      "title": "Management",
+      "title": "Other settings",
       "description": "Your shop's team, storefront, messages and subscription.",
       "public_page": "Public page",
       "public_page_subtitle": "Shareable storefront for your shop",
@@ -1866,6 +1886,17 @@
       "cancel_hint": "You go straight back to Discovery; your data stays intact.",
       "load_error": "Unable to load your subscription.",
       "retry": "Try again"
+    },
+    "navigation": {
+      "label": "Settings",
+      "shop": "Shop",
+      "team": "Team",
+      "invoices": "Invoices",
+      "messages": "Messages",
+      "public_page": "Public page",
+      "subscription": "Subscription",
+      "requires_plan": "{name} plan required",
+      "team_subtitle": "Members and access"
     }
   },
   "onboarding": {

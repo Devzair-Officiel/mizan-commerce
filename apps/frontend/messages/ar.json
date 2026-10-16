@@ -1566,7 +1566,24 @@
       "delete_error": "تعذّر إزالة هذا العضو."
     },
     "readonly_title": "الأعضاء الحاليون",
-    "readonly_note": "بدون باقة Boutique لا يمكن لهؤلاء الأعضاء تسجيل الدخول. تُحفظ حساباتهم وصلاحياتهم."
+    "readonly_note": "بدون باقة Boutique لا يمكن لهؤلاء الأعضاء تسجيل الدخول. تُحفظ حساباتهم وصلاحياتهم.",
+    "members_title": "الأعضاء",
+    "columns": {
+      "member": "العضو",
+      "role": "الدور",
+      "access": "الصلاحيات",
+      "actions": "الإجراءات"
+    },
+    "modules_count": "{count, plural, zero {# وحدات} one {# وحدة} two {# وحدتان} few {# وحدات} many {# وحدة} other {# وحدة}}",
+    "available_places": "{count, plural, zero {# أماكن متاحة} one {# مكان متاح} two {# مكانان متاحان} few {# أماكن متاحة} many {# مكانًا متاحًا} other {# مكان متاح}}",
+    "unlimited_members": "{count} أعضاء، بلا حد",
+    "plan_capacity": "خطة {name}: {unlimited, select, yes {أعضاء بلا حد} other {{limit} أعضاء، بمن فيهم المالك}}.",
+    "edit_member": "تعديل {name}",
+    "remove_member": "إزالة {name}",
+    "load_error": "تعذّر تحميل الأعضاء.",
+    "retry": "إعادة المحاولة",
+    "empty_title": "فريقكم يبدأ هنا",
+    "usage_error": "تعذّر تحميل الحد الأقصى للأعضاء في خطتكم."
   },
   "ui": {
     "phone": {
@@ -1694,7 +1711,10 @@
     "page": {
       "title": "إعدادات المتجر",
       "loading_title": "الإعدادات",
-      "saved": "تم حفظ التعديلات ✓"
+      "saved": "تم حفظ التعديلات ✓",
+      "load_error": "تعذّر تحميل إعدادات متجركم.",
+      "retry": "إعادة المحاولة",
+      "save_error": "تعذّر حفظ تعديلاتكم."
     },
     "actions": {
       "unsaved": "تعديلات غير محفوظة",
@@ -1724,7 +1744,7 @@
       "delete_error": "حدث خطأ أثناء الحذف."
     },
     "management": {
-      "title": "الإدارة",
+      "title": "إعدادات أخرى",
       "description": "فريق متجركم وواجهته ورسائله واشتراكه.",
       "public_page": "الصفحة العامة",
       "public_page_subtitle": "واجهة قابلة للمشاركة لمتجركم",
@@ -1866,6 +1886,17 @@
       "cancel_hint": "عودة فورية إلى باقة اكتشاف، وتبقى بياناتكم سليمة.",
       "load_error": "تعذّر تحميل اشتراككم.",
       "retry": "إعادة المحاولة"
+    },
+    "navigation": {
+      "label": "الإعدادات",
+      "shop": "المتجر",
+      "team": "الفريق",
+      "invoices": "الفواتير",
+      "messages": "الرسائل",
+      "public_page": "الصفحة العامة",
+      "subscription": "الاشتراك",
+      "requires_plan": "تتطلب خطة {name}",
+      "team_subtitle": "الأعضاء والصلاحيات"
     }
   },
   "onboarding": {

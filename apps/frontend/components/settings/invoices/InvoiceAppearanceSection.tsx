@@ -5,7 +5,7 @@ import { useWatch, type UseFormReturn } from 'react-hook-form';
 import { Palette } from 'lucide-react';
 import { FormSection } from '@/components/form/FormSection';
 import { FormField } from '@/components/form/FormField';
-import { FIELD_CONTROL } from '@/components/form/fieldStyles';
+import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
 import { LogoUploader } from '@/components/settings/LogoUploader';
 import { UpgradeCard } from '@/components/subscription/UpgradeCard';
 import { usePlanGating } from '@/lib/hooks/usePlanGating';
@@ -29,7 +29,7 @@ export function InvoiceAppearanceSection({ form, settings, shop }: {
         <LogoUploader shop={shop} />
         <fieldset className="flex min-w-0 flex-col gap-2">
           <legend className="mb-2 text-[0.8125rem] font-medium">{t('color')}</legend>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          <div className={FIELD_ROW}>
             {(['automatic', 'custom', 'neutral'] as const).map((choice) => (
               <label key={choice} className={`flex min-w-0 cursor-pointer items-start gap-2.5 rounded-xl border p-3.5 ${mode === choice ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card'}`}>
                 <input type="radio" value={choice} {...form.register('invoice_color_mode')} className="mt-0.5 size-4 shrink-0 accent-primary" />

@@ -9,21 +9,17 @@ interface StickyActionBarProps {
 
 export function StickyActionBar({ isDirty, isPending, onReset }: StickyActionBarProps) {
   const t = useTranslations('settings.actions');
+  if (!isDirty) return null;
   return (
-    <div
-      aria-hidden={!isDirty}
-      className={`fixed left-0 right-0 z-40 px-4 pb-safe pointer-events-none transition-[transform,opacity] duration-200 bottom-16 lg:bottom-4 lg:left-60 ${
-        isDirty ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-      }`}
-    >
-      <div className={`mx-auto max-w-xl flex items-center gap-2 rounded-2xl border border-border bg-card/95 backdrop-blur px-3 py-2 shadow-lg ${isDirty ? 'pointer-events-auto' : ''}`}>
-        <p className="flex-1 text-xs font-medium text-muted-foreground px-1">
+    <div data-settings-actions className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-30 w-full lg:bottom-4">
+      <div className="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur">
+        <p role="status" className="me-auto text-xs font-medium text-muted-foreground max-sm:w-full">
           {t('unsaved')}
         </p>
-        <Button type="button" variant="ghost" disabled={isPending} onClick={onReset}>
+        <Button type="button" variant="ghost" className="h-11 rounded-full active:scale-[0.98]" disabled={isPending} onClick={onReset}>
           {t('cancel')}
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" className="h-11 rounded-full active:scale-[0.98]" disabled={isPending}>
           {isPending ? t('saving') : t('save')}
         </Button>
       </div>

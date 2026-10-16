@@ -15,7 +15,7 @@ interface PlanPickerProps {
   onChoosePlan: (code: PlanCode, period: BillingPeriod) => void;
 }
 
-/** « Choisir une formule » : 4 cartes côte à côte sur desktop, une par onglet sur mobile. */
+/** « Choisir une formule » : 4 cartes ou 2 × 2 selon le conteneur desktop, une par onglet sur mobile. */
 export function PlanPicker({ plans, subscription, isTrial, onChoosePlan }: PlanPickerProps) {
   const t = useTranslations('settings.subscription');
   const current = subscription.effective_plan_code;
@@ -24,13 +24,13 @@ export function PlanPicker({ plans, subscription, isTrial, onChoosePlan }: PlanP
   const stateOf = (code: PlanCode): PlanCardState => (code !== current ? 'other' : isTrial ? 'trial' : 'current');
 
   return (
-    <section aria-labelledby="choose-plan-title" className="flex flex-col gap-4">
+    <section aria-labelledby="choose-plan-title" className="@container/plans flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="choose-plan-title" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('choose_title')}</h2>
         <BillingPeriodToggle value={period} onChange={setPeriod} freeMonths={freeMonthsPerYear(plans)} />
       </div>
       <PlanTabs codes={plans.map((plan) => plan.code)} active={tab} onChange={setTab} />
-      <div className="grid gap-4 lg:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-2 @[880px]/plans:grid-cols-4">
         {plans.map((plan) => (
           <PlanCard key={plan.code} plan={plan} period={period} state={stateOf(plan.code)} status={subscription.status}
             recommended={plan.code === RECOMMENDED_PLAN} hiddenOnMobile={plan.code !== tab} onChoose={onChoosePlan} />

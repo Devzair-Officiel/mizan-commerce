@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { List, MessageSquare } from 'lucide-react';
 import { FormActions } from '@/components/form/FormActions';
 import { FormSection } from '@/components/form/FormSection';
-import { FORM_COLUMN, FORM_COLUMNS } from '@/components/form/fieldStyles';
+import { SETTINGS_COLUMN, SETTINGS_COLUMNS } from '@/components/settings/layoutStyles';
 import { useFormLeave } from '@/components/form/useFormLeave';
 import { MESSAGE_TEMPLATES, type MessageSettings, type MessageTemplateKey } from '@/lib/hooks/useMessageTemplates';
 import { useShop } from '@/lib/hooks/useShop';
@@ -44,8 +44,8 @@ export function MessageTemplatesForm({ settings, initialTemplate, onLeave }: Mes
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-5 px-4 pt-4 pb-28 lg:pt-0 lg:pb-8">
-      <div className={FORM_COLUMNS}>
-        <div className={FORM_COLUMN}>
+      <div className={SETTINGS_COLUMNS}>
+        <div className={SETTINGS_COLUMN}>
           <FormSection icon={MessageSquare} order="max-lg:order-1" title={t('tone_title')} description={t('tone_description')}>
             <ToneCards value={tone} onChange={(value) => setValue('tone', value, { shouldDirty: true })} />
           </FormSection>
@@ -55,7 +55,7 @@ export function MessageTemplatesForm({ settings, initialTemplate, onLeave }: Mes
               usedBy={t('used_by', { key: selected, mode })} variables={settings.variables} />
           </FormSection>
         </div>
-        <div className={FORM_COLUMN}>
+        <div className={SETTINGS_COLUMN}>
           <MessagePreviewCard text={text} tone={tone} />
         </div>
       </div>

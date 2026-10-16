@@ -6,13 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { useShop, useUpdateShop, type Shop } from '@/lib/hooks/useShop';
-import { usePlanGating } from '@/lib/hooks/usePlanGating';
+import { notify } from '@/lib/notify';
 import { settingsSchema, type SettingsFormValues } from '@/components/settings/schema';
 import { IdentitySection } from '@/components/settings/IdentitySection';
 import { ManagementSection } from '@/components/settings/ManagementSection';
 import { ZakatSection } from '@/components/settings/ZakatSection';
 import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
+import { Button } from '@/components/ui/button';
 import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 import { resetKeepingEdits } from '@/components/form/resetKeepingEdits';
 
@@ -36,10 +37,8 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
 
 export default function SettingsPage() {
   const t = useTranslations('settings.page');
-  const tTeam = useTranslations('team');
-  const { data: shop, isLoading } = useShop();
-  const { mutateAsync, isPending, isSuccess } = useUpdateShop();
-  const { can } = usePlanGating();
+  const { data: shop, isLoading, isError, refetch } = useShop();
+  const { mutateAsync, isPending } = useUpdateShop();
 
   const form = useForm<SettingsFormValues>({ resolver: zodResolver(settingsSchema) });
   const { register, handleSubmit, reset, formState: { errors, isDirty } } = form;
@@ -50,45 +49,51 @@ export default function SettingsPage() {
   }, [shop, form]);
 
   async function onSubmit(values: SettingsFormValues) {
-    const saved = await mutateAsync({
-      ...values,
-      zakat_annual_date: values.zakat_annual_date || null,
-      nisab_unit_price: values.nisab_unit_price && parseFloat(values.nisab_unit_price) > 0
-        ? values.nisab_unit_price
-        : null,
-      default_tax_rate: values.default_tax_rate || '0',
-      default_payment_terms_days: Number(values.default_payment_terms_days || 30),
-    });
-    resetKeepingEdits(form, defaultsFromShop(saved), values);
+    try {
+      const saved = await mutateAsync({
+        ...values,
+        zakat_annual_date: values.zakat_annual_date || null,
+        nisab_unit_price: values.nisab_unit_price && parseFloat(values.nisab_unit_price) > 0
+          ? values.nisab_unit_price
+          : null,
+        default_tax_rate: values.default_tax_rate || '0',
+        default_payment_terms_days: Number(values.default_payment_terms_days || 30),
+      });
+      resetKeepingEdits(form, defaultsFromShop(saved), values);
+      notify.success(t('saved'));
+    } catch {
+      notify.error(t('save_error'));
+    }
   }
 
   if (isLoading) {
     return (
       <>
-        <TopBar title={t('loading_title')} />
+        <TopBar hideSearch title={t('loading_title')} />
         <SectionsSkeleton sections={[4, 3, 3]} className="mx-auto w-full max-w-3xl px-4 pt-4 pb-32" />
       </>
     );
   }
 
+  if (isError || !shop) return (
+    <>
+      <TopBar hideSearch title={t('title')} />
+      <div role="alert" className="flex flex-col items-start gap-3 p-5 text-sm">
+        <p>{t('load_error')}</p>
+        <Button type="button" variant="outline" onClick={() => refetch()}>{t('retry')}</Button>
+      </div>
+    </>
+  );
+
   return (
     <>
-      <TopBar title={t('title')} />
+      <TopBar hideSearch title={t('title')} />
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32 max-w-3xl mx-auto w-full">
         <IdentitySection shop={shop} register={register} errors={errors} />
-        <ManagementSection
-          showPublicPage={can('public_pages')}
-          showMessages={can('whatsapp')}
-          teamTitle={tTeam('title')}
-          teamSubtitle={tTeam('subtitle')}
-        />
+        <ManagementSection />
         <ZakatSection register={register} shop={shop} />
         <PreferencesSection register={register} />
-
-        {isSuccess && !isDirty && (
-          <p className="text-sm text-green-700 dark:text-green-400 text-center">{t('saved')}</p>
-        )}
 
         <StickyActionBar
           isDirty={isDirty}
