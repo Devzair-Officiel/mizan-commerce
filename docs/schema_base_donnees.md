@@ -1089,9 +1089,11 @@ L'essai de 14 jours à l'inscription porte sur `boutique`. Les limites sont vér
 | name | VARCHAR(100) | NOT NULL | |
 | description | TEXT | | |
 | price_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | 0 pour gratuit |
+| price_yearly_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Prix d'un an payé d'avance, 0 pour gratuit |
 | currency | VARCHAR(3) | NOT NULL, DEFAULT 'EUR' | |
 | billing_period | VARCHAR(20) | | `month`, `year`, `lifetime` |
 | stripe_price_id | VARCHAR(100) | | ID Stripe |
+| stripe_price_id_yearly | VARCHAR(100) | | ID Stripe du prix annuel |
 | max_products | INTEGER | | NULL = illimité |
 | max_orders_per_month | INTEGER | | NULL = illimité |
 | max_customers | INTEGER | | Clients actifs. NULL = illimité |

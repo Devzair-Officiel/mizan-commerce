@@ -1682,7 +1682,8 @@
       "products": "{kind, select, products {{count} / {limit} منتجات نشطة} services {{count} / {limit} خدمات نشطة} other {{count} / {limit} منتجات وخدمات نشطة}}",
       "orders_this_month": "{count} / {limit} مبيعات هذا الشهر",
       "customers": "{count} / {limit} عملاء نشطين",
-      "members": "{count} / {limit} أعضاء"
+      "members": "{count} / {limit} أعضاء",
+      "level": "{level, select, near {قريب من الحدّ} reached {تم بلوغ الحدّ} other {تجاوز الحدّ}}"
     },
     "page": {
       "title": "إعدادات المتجر",
@@ -1789,10 +1790,7 @@
       "title": "الاشتراك",
       "current_plan": "باقتكم",
       "trial": "تجربة",
-      "trial_remaining": "{days, plural, =0 {تنتهي التجربة اليوم.} one {التجربة جارية — يبقى يوم واحد.} two {التجربة جارية — يبقى يومان.} few {التجربة جارية — تبقى # أيام.} many {التجربة جارية — يبقى # يومًا.} other {التجربة جارية — يبقى # يوم.}}",
-      "period_end": "النهاية: {date}.",
-      "plan_active": "باقة {name} مفعّلة.",
-      "per_month": "{price} / شهريًا",
+      "plan_active": "باقة {name} مفعّلة · {price} / شهريًا",
       "plans": {
         "free": {
           "name": "اكتشاف",
@@ -1815,10 +1813,11 @@
           "name": "Boutique",
           "description": "لمتجر بفريق صغير.",
           "f1": "كل مزايا Solo",
-          "f2": "{staff, plural, one {موظف واحد} other {حتى # موظفين}}",
+          "f2": "{staff, plural, one {موظف واحد بدوره} other {حتى # موظفين، لكلٍّ دوره}}",
           "f3": "فواتير بألوانكم وشعاركم",
-          "f4": "صفحة عامة قابلة للمشاركة",
-          "f5": "التصدير واستيراد فواتير المورّدين"
+          "f4": "ملخص يومي بالبريد الإلكتروني",
+          "f5": "صفحة عامة قابلة للمشاركة",
+          "f6": "التصدير واستيراد فواتير المورّدين"
         },
         "commerce_plus": {
           "name": "Commerce+",
@@ -1830,14 +1829,37 @@
         }
       },
       "current": "الباقة الحالية",
-      "coming_soon": "قريبًا",
-      "cancel_title": "إلغاء الاشتراك",
+      "cancel_title": "إلغاء باقتكم؟",
       "cancel_text": "ستنتقلون فورًا إلى باقة اكتشاف. ستفقدون الوصول إلى الميزات المدفوعة لكن بياناتكم تبقى سليمة.",
       "cancel_cta": "إلغاء باقتي",
-      "cancel_confirm": "تأكيد الإلغاء",
-      "cancelling": "جارٍ الإلغاء…",
+      "cancel_confirm": "إلغاء الباقة",
       "cancel_back": "تراجع",
-      "cancel_error": "تعذّر الإلغاء حاليًا. حاولوا لاحقًا."
+      "cancel_error": "تعذّر الإلغاء حاليًا. حاولوا لاحقًا.",
+      "trial_left": "{days, plural, =0 {آخر يوم في التجربة} one {يبقى يوم واحد} two {يبقى يومان} few {تبقى # أيام} many {يبقى # يومًا} other {يبقى # يوم}} · تنتهي في {date}",
+      "trial_day": "اليوم {day} من {total}",
+      "free_forever": "مجانية، دون حدّ زمني",
+      "keep_cta": "الاحتفاظ بباقة {name} · {price} / شهريًا",
+      "keep_short": "الاحتفاظ بباقة {name}",
+      "no_commitment": "دون التزام، يمكنكم الإلغاء في أي وقت.",
+      "activity_title": "نشاطكم",
+      "activity_limits": "حدود باقة اكتشاف",
+      "activity_after": "{status, select, trialing {عند انتهاء التجربة، تُطبَّق باقة اكتشاف} other {إذا ألغيتم، تُطبَّق باقة اكتشاف}}: تبقى بياناتكم سليمة، لكن الإضافة تُحظر بعد هذه الحدود.",
+      "choose_title": "اختيار باقة",
+      "period_label": "فترة الفوترة",
+      "period": "{period, select, year {سنوي} other {شهري}}",
+      "free_months": "{months, plural, zero {# شهر مجانًا} one {شهر مجاني} two {شهران مجانًا} few {# أشهر مجانًا} many {# شهرًا مجانًا} other {# شهر مجانًا}}",
+      "plans_label": "الباقات",
+      "recommended": "موصى بها",
+      "per": "{period, select, year {/ سنويًا} other {/ شهريًا}}",
+      "price_alt": "{period, select, year {أو {price} شهريًا} other {أو {price} سنويًا}}",
+      "choose_cta": "اختيار {name}",
+      "free_fallback": "{status, select, trialing {تُطبَّق بعد التجربة} other {تُطبَّق إذا ألغيتم}}",
+      "checkout_title": "{name} · {price} {period, select, year {سنويًا} other {شهريًا}}",
+      "payment_pending": "الدفع عبر الإنترنت غير مفعّل بعد. ستتمكنون من الاشتراك في هذه الباقة هنا فور إتاحته.",
+      "payment_ok": "حسنًا",
+      "cancel_hint": "عودة فورية إلى باقة اكتشاف، وتبقى بياناتكم سليمة.",
+      "load_error": "تعذّر تحميل اشتراككم.",
+      "retry": "إعادة المحاولة"
     }
   },
   "onboarding": {

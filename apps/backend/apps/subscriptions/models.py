@@ -36,11 +36,14 @@ class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     price_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
+    # Prix d'un an payé d'avance (0 pour Découverte) ; la remise se déduit des prix.
+    price_yearly_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
     currency = models.CharField(max_length=3, default='EUR')
     billing_period = models.CharField(max_length=20, choices=PERIOD_CHOICES, blank=True)
     # Préparé pour la future intégration Stripe — laissé vide tant que la couche
     # facturation n'est pas branchée.
     stripe_price_id = models.CharField(max_length=100, blank=True)
+    stripe_price_id_yearly = models.CharField(max_length=100, blank=True)
     # NULL = illimité côté schéma. Le mapping FEATURE_MIN_PLAN gère le gating
     # qualitatif (modules), ces limites quantitatives s'appliquent en sus.
     max_products = models.PositiveIntegerField(null=True, blank=True)

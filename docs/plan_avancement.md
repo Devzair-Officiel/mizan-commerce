@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-15
+**Dernière mise à jour** : 2026-10-16
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
 
 ---
@@ -449,6 +449,8 @@
   - [x] Raccourci clair/sombre dans le header (à côté de la loupe sur mobile, avant la barre de recherche sur desktop)
   - [x] Menu desktop : sidebar translucide déployée (272 px) ou en rail (80 px, préférence gardée sur le compte), accordéon Articles → Catalogue / Stock, groupe Compte avec Abonnement, pied d'une ligne dont « ⋯ » ouvre le menu du compte (apparence, langue, Se déconnecter), bouton replier/déplier sur le bord et Ctrl+B, sans défilement à 1440×900, flyout du rail au survol et au clavier, audit `sidebar`
   - [ ] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
+    - [x] Page Abonnement (7c-1) : votre formule (essai « Jour N sur 14 », CTA « Garder »), votre activité comparée aux plafonds Découverte, choix de formule mensuel / annuel (prix annuels 0 / 90 / 190 / 390 €, migration 0005), 4 cartes sur desktop et onglets sur mobile, paiement en ligne pas encore activé (`UpgradeSheet`), résiliation discrète ; audit `subscription`
+    - [ ] Pages marketing : grille 4 offres (Pricing, Faq)
   - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 

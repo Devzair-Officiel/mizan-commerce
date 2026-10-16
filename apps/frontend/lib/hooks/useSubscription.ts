@@ -21,6 +21,8 @@ export interface SubscriptionPlan {
   name: string;
   description: string;
   price_amount: string;
+  /** Prix d'un an payé d'avance (« 0.00 » pour Découverte). */
+  price_yearly_amount: string;
   currency: string;
   billing_period: 'month' | 'year' | 'lifetime' | '';
   max_products: number | null;

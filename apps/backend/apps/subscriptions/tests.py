@@ -198,6 +198,24 @@ class SubscriptionChangeEndpointTest(TestCase):
         response = self.client.post(self.url, {'plan_code': SubscriptionPlan.CODE_SOLO})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_no_paid_plan_without_payment(self):
+        # Seule la résiliation passe : aucune formule payante, même celle de l'essai,
+        # ne s'obtient par cet endpoint, et la souscription reste intacte.
+        self.client.force_authenticate(user=self.user)
+        before = Subscription.objects.get(shop=self.shop)
+        paid = SubscriptionPlan.TIER_ORDER[1:]
+        for code in [*paid, 'enterprise', '']:
+            with self.subTest(code=code):
+                response = self.client.post(
+                    self.url, {'plan_code': code, 'status': Subscription.STATUS_ACTIVE},
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                after = Subscription.objects.get(shop=self.shop)
+                self.assertEqual(
+                    (after.plan_id, after.status, after.current_period_end),
+                    (before.plan_id, before.status, before.current_period_end),
+                )
+
     def test_staff_cannot_downgrade(self):
         staff_user = _make_user('staff@example.com')
         ShopMember.objects.create(user=staff_user, shop=self.shop, role='staff')

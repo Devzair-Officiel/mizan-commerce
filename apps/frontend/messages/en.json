@@ -1682,7 +1682,8 @@
       "products": "{kind, select, products {{count} / {limit} active items} services {{count} / {limit} active services} other {{count} / {limit} active items and services}}",
       "orders_this_month": "{count} / {limit} sales this month",
       "customers": "{count} / {limit} active customers",
-      "members": "{count} / {limit} members"
+      "members": "{count} / {limit} members",
+      "level": "{level, select, near {Nearly at the limit} reached {Limit reached} other {Over the limit}}"
     },
     "page": {
       "title": "Shop settings",
@@ -1789,10 +1790,7 @@
       "title": "Subscription",
       "current_plan": "Your plan",
       "trial": "Trial",
-      "trial_remaining": "{days, plural, =0 {Trial ending today.} one {Trial in progress — # day left.} other {Trial in progress — # days left.}}",
-      "period_end": "Ends: {date}.",
-      "plan_active": "{name} plan active.",
-      "per_month": "{price} / month",
+      "plan_active": "{name} plan active · {price} / month",
       "plans": {
         "free": {
           "name": "Discovery",
@@ -1815,10 +1813,11 @@
           "name": "Boutique",
           "description": "For a shop with a small team.",
           "f1": "Everything in Solo",
-          "f2": "{staff, plural, one {# staff member} other {Up to # staff members}}",
+          "f2": "{staff, plural, one {# staff member, with their role} other {Up to # staff members, each with their role}}",
           "f3": "Invoices in your colours, with your logo",
-          "f4": "Shareable public page",
-          "f5": "Exports and supplier invoice import"
+          "f4": "Daily summary by email",
+          "f5": "Shareable public page",
+          "f6": "Exports and supplier invoice import"
         },
         "commerce_plus": {
           "name": "Commerce+",
@@ -1830,14 +1829,37 @@
         }
       },
       "current": "Current plan",
-      "coming_soon": "Coming soon",
-      "cancel_title": "Cancel",
+      "cancel_title": "Cancel your plan?",
       "cancel_text": "You will switch to the Discovery plan immediately. You will lose access to paid features but your data stays intact.",
       "cancel_cta": "Cancel my plan",
-      "cancel_confirm": "Confirm cancellation",
-      "cancelling": "Cancelling…",
+      "cancel_confirm": "Cancel plan",
       "cancel_back": "Back",
-      "cancel_error": "Unable to cancel right now. Please try again later."
+      "cancel_error": "Unable to cancel right now. Please try again later.",
+      "trial_left": "{days, plural, =0 {Last day of your trial} one {# day left} other {# days left}} · ends {date}",
+      "trial_day": "Day {day} of {total}",
+      "free_forever": "Free, with no time limit",
+      "keep_cta": "Keep {name} · {price} / month",
+      "keep_short": "Keep {name}",
+      "no_commitment": "No commitment, cancel anytime.",
+      "activity_title": "Your activity",
+      "activity_limits": "Discovery limits",
+      "activity_after": "{status, select, trialing {When your trial ends, the Discovery plan applies} other {If you cancel, the Discovery plan applies}}: your data stays intact, but creating more is blocked beyond these limits.",
+      "choose_title": "Choose a plan",
+      "period_label": "Billing period",
+      "period": "{period, select, year {Yearly} other {Monthly}}",
+      "free_months": "{months, plural, one {# month free} other {# months free}}",
+      "plans_label": "Plans",
+      "recommended": "Recommended",
+      "per": "{period, select, year {/ year} other {/ month}}",
+      "price_alt": "{period, select, year {or {price} per month} other {or {price} per year}}",
+      "choose_cta": "Choose {name}",
+      "free_fallback": "{status, select, trialing {Applies after your trial} other {Applies if you cancel}}",
+      "checkout_title": "{name} · {price} {period, select, year {per year} other {per month}}",
+      "payment_pending": "Online payment is not available yet. You will be able to subscribe to this plan here as soon as it opens.",
+      "payment_ok": "Got it",
+      "cancel_hint": "You go straight back to Discovery; your data stays intact.",
+      "load_error": "Unable to load your subscription.",
+      "retry": "Try again"
     }
   },
   "onboarding": {

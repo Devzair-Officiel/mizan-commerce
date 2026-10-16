@@ -5,7 +5,7 @@ import type { UsageCounter, UsageKey } from '@/lib/hooks/useSubscription';
 
 const ORDER: readonly UsageKey[] = ['orders_this_month', 'products', 'customers', 'members'];
 
-/** Jauges de la carte « Formule actuelle » : seuls les compteurs limités par la formule. */
+/** Jauges de « Votre activité » : seuls les compteurs limités (par la formule, ou par Découverte en comparaison). */
 export function PlanUsage({ usage }: { usage: Record<UsageKey, UsageCounter> }) {
   const limited = ORDER.flatMap((key) => {
     const { count, limit } = usage[key];
@@ -13,7 +13,7 @@ export function PlanUsage({ usage }: { usage: Record<UsageKey, UsageCounter> }) 
   });
   if (limited.length === 0) return null;
   return (
-    <div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+    <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
       {limited.map(({ key, count, limit }) => <UsageGauge key={key} usageKey={key} count={count} limit={limit} />)}
     </div>
   );
