@@ -32,7 +32,8 @@
     "audit:stock-entry-plan": "node audit-stock-entry-plan.mjs",
     "audit:account-menu": "node audit-account-menu.mjs",
     "audit:sidebar": "node audit-sidebar.mjs",
-    "audit:usage": "node audit-usage.mjs"
+    "audit:usage": "node audit-usage.mjs",
+    "audit:subscription": "node audit-subscription.mjs"
   },
   "dependencies": {
     "playwright": "1.62.1"

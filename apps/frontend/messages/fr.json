@@ -1682,7 +1682,14 @@
       "products": "{kind, select, products {{count} / {limit} articles actifs} services {{count} / {limit} services actifs} other {{count} / {limit} articles et services actifs}}",
       "orders_this_month": "{count} / {limit} ventes ce mois",
       "customers": "{count} / {limit} clients actifs",
-      "members": "{count} / {limit} membres"
+      "members": "{count} / {limit} membres",
+      "level": "{level, select, ok {Dans la limite} near {Bientôt à la limite} reached {Limite atteinte} other {Au-delà de la limite}}",
+      "short": {
+        "orders_this_month": "Ventes ce mois",
+        "products": "{kind, select, products {Articles actifs} services {Services actifs} other {Articles et services actifs}}",
+        "customers": "Clients actifs",
+        "members": "Membres de l'équipe"
+      }
     },
     "page": {
       "title": "Paramètres boutique",
@@ -1789,10 +1796,7 @@
       "title": "Abonnement",
       "current_plan": "Votre formule",
       "trial": "Essai",
-      "trial_remaining": "{days, plural, =0 {Essai se terminant aujourd'hui.} one {Essai en cours — # jour restant.} other {Essai en cours — # jours restants.}}",
-      "period_end": "Fin : {date}.",
-      "plan_active": "Formule {name} active.",
-      "per_month": "{price} / mois",
+      "plan_active": "Formule {name} active · {price} / mois",
       "plans": {
         "free": {
           "name": "Découverte",
@@ -1815,10 +1819,11 @@
           "name": "Boutique",
           "description": "Pour une boutique avec une petite équipe.",
           "f1": "Tout Solo inclus",
-          "f2": "{staff, plural, one {# employé} other {Jusqu'à # employés}}",
+          "f2": "{staff, plural, one {# employé, avec son rôle} other {Jusqu'à # employés, chacun avec son rôle}}",
           "f3": "Factures à vos couleurs, avec votre logo",
-          "f4": "Page publique partageable",
-          "f5": "Exports et import de factures fournisseur"
+          "f4": "Résumé quotidien par e-mail",
+          "f5": "Page publique partageable",
+          "f6": "Exports et import de factures fournisseur"
         },
         "commerce_plus": {
           "name": "Commerce+",
@@ -1830,14 +1835,37 @@
         }
       },
       "current": "Formule actuelle",
-      "coming_soon": "Bientôt disponible",
-      "cancel_title": "Résilier",
+      "cancel_title": "Résilier votre formule ?",
       "cancel_text": "Vous passerez immédiatement sur la formule Découverte. Vous perdrez l'accès aux fonctionnalités payantes mais vos données restent intactes.",
       "cancel_cta": "Résilier ma formule",
-      "cancel_confirm": "Confirmer la résiliation",
-      "cancelling": "Résiliation…",
+      "cancel_confirm": "Résilier",
       "cancel_back": "Annuler",
-      "cancel_error": "Impossible de résilier pour le moment. Réessayez plus tard."
+      "cancel_error": "Impossible de résilier pour le moment. Réessayez plus tard.",
+      "trial_left": "{days, plural, =0 {Dernier jour d'essai} one {# jour restant} other {# jours restants}} · fin le {date}",
+      "trial_day": "Jour {day} sur {total}",
+      "free_forever": "Gratuit, sans limite de durée",
+      "keep_cta": "Garder {name} · {price} / mois",
+      "keep_short": "Garder {name}",
+      "no_commitment": "Sans engagement, résiliable à tout moment.",
+      "activity_title": "Votre activité",
+      "activity_limits": "Plafonds Découverte",
+      "activity_after": "{status, select, trialing {À la fin de l'essai, la formule Découverte s'applique} other {Si vous résiliez, la formule Découverte s'applique}} : vos données restent intactes, mais la création est bloquée au-delà de ces plafonds.",
+      "choose_title": "Choisir une formule",
+      "period_label": "Période de facturation",
+      "period": "{period, select, year {Annuel} other {Mensuel}}",
+      "free_months": "{months, plural, one {# mois offert} other {# mois offerts}}",
+      "plans_label": "Formules",
+      "recommended": "Recommandé",
+      "per": "{period, select, year {/ an} other {/ mois}}",
+      "price_alt": "{period, select, year {ou {price} par mois} other {ou {price} par an}}",
+      "choose_cta": "Choisir {name}",
+      "free_fallback": "{status, select, trialing {Appliquée après l'essai} other {Appliquée si vous résiliez}}",
+      "checkout_title": "{name} · {price} {period, select, year {par an} other {par mois}}",
+      "payment_pending": "Le paiement en ligne n'est pas encore activé. Vous pourrez souscrire à cette formule ici dès son ouverture.",
+      "payment_ok": "Compris",
+      "cancel_hint": "Retour immédiat sur Découverte, vos données restent intactes.",
+      "load_error": "Impossible de charger votre abonnement.",
+      "retry": "Réessayer"
     }
   },
   "onboarding": {

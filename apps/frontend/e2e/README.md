@@ -34,6 +34,7 @@ docker compose run --rm e2e npm run audit:stock-entry-plan    # entrée de stock
 docker compose run --rm e2e npm run audit:account-menu        # menu compte : badge d'abonnement (essai, Solo, essai terminé) et raccourci clair/sombre du header
 docker compose run --rm e2e npm run audit:sidebar             # sidebar desktop : déployée sans défilement à 1440×900, survol décalé (RTL), « ⋯ » du pied, bouton de bord et Ctrl+B, rail, flyout (survol, clavier, RTL), préférence gardée sur le compte
 docker compose run --rm e2e npm run audit:usage               # jauges d'usage en Découverte (fr clair 1440, ar sombre 360) : bandeau ambre puis rouge, « Nouvelle commande » ouvre la carte Solo, jauges de l'abonnement
+docker compose run --rm e2e npm run audit:subscription        # page Abonnement en essai, Découverte et Solo (fr clair 1440, ar sombre 360) : votre formule, activité face aux plafonds Découverte, 4 cartes ou onglets, Mensuel / Annuel, CTA sans requête, résiliation confirmée
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
 docker compose run --rm --no-deps e2e npm run audit:stock     # sans remise à zéro : garde les données actuelles
 docker compose exec backend python manage.py reset_audit_shop # remise à zéro seule, à la main

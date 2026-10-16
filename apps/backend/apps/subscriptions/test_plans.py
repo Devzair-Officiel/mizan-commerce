@@ -116,6 +116,11 @@ class PlanCatalogTest(TestCase):
             list(SubscriptionPlan.TIER_ORDER),
         )
         self.assertIn("max_members", response.data[0])
+        self.assertEqual(
+            [p["price_yearly_amount"] for p in response.data],
+            ["0.00", "90.00", "190.00", "390.00"],
+        )
+        self.assertNotIn("stripe_price_id_yearly", response.data[0])
 
     def test_plans_endpoint_requires_authentication(self) -> None:
         response = APIClient().get("/api/subscriptions/plans/")
