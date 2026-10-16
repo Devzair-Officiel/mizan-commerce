@@ -154,8 +154,8 @@ def assignable_members(shop: Shop) -> QuerySet[ShopMember]:
 
     Le propriétaire et les administrateurs, et les employés à qui le module
     `reminders` est accordé (même règle que `ShopMember.has_module`). Sans
-    Boutique+, employés et administrateurs sont suspendus (`is_member_suspended`) :
-    seul le propriétaire reste.
+    la formule Boutique, employés et administrateurs sont suspendus
+    (`is_member_suspended`) : seul le propriétaire reste.
     """
     members = shop.members.select_related('user').order_by('created_at')
     if not shop_has_feature(shop, 'multi_user'):
@@ -297,9 +297,12 @@ def build_daily_summary(shop: Shop, owner: ShopMember, now: datetime) -> tuple[s
 
 def send_daily_summary(shop: Shop, config: ReminderSettings, now: datetime) -> int:
     """E-mail du résumé du jour au propriétaire, à l'heure réglée (fuseau de la
-    boutique), une fois par jour. Jamais d'envoi WhatsApp automatique."""
+    boutique), une fois par jour. Jamais d'envoi WhatsApp automatique.
+    Fonction de la formule Boutique : réglage conservé, envoi suspendu en dessous."""
     today = now.astimezone(ZoneInfo(shop.timezone))
     if not config.daily_summary_enabled or today.hour != config.daily_summary_hour:
+        return 0
+    if not shop_has_feature(shop, 'daily_digest'):
         return 0
     owner = _owner(shop)
     if owner is None:
@@ -324,7 +327,9 @@ def run_automatic_reminders(now: datetime | None = None) -> dict[str, int]:
             config = get_reminder_settings(shop)
             if shop_has_feature(shop, 'orders'):
                 language = _language(_owner(shop))
-                totals['unpaid_followups'] += create_unpaid_followups(shop, config, now, language)  # noqa: E501
+                # La relance d'impayé est une fonction de la formule Solo.
+                if shop_has_feature(shop, 'auto_reminders'):
+                    totals['unpaid_followups'] += create_unpaid_followups(shop, config, now, language)  # noqa: E501
                 totals['pending_orders'] += create_pending_orders_reminder(shop, config, now, language)  # noqa: E501
             totals['daily_summaries'] += send_daily_summary(shop, config, now)
         except Exception:

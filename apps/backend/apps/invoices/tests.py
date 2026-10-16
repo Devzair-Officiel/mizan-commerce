@@ -32,7 +32,7 @@ def _make_shop(email: str, *, with_variant: bool = True) -> tuple[User, Shop, Pr
     )
     ShopMember.objects.create(shop=shop, user=user, role='owner')
     from apps.subscriptions.test_utils import attach_subscription
-    attach_subscription(shop)  # Plan Pro requis pour les endpoints invoices.
+    attach_subscription(shop)  # Formule Solo requise pour les endpoints invoices.
 
     variant = None
     if with_variant:

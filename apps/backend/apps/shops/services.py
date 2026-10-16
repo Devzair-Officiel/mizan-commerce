@@ -11,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 from apps.core.permissions import MODULE_REMINDERS, TOGGLEABLE_MODULES
 from apps.core.storage import delete_object, upload_fileobj
 from apps.notes.models import Reminder
+from apps.subscriptions.limits import enforce_member_limit
 from apps.subscriptions.permissions import shop_has_feature
 
 from .models import Shop, ShopMember
@@ -140,11 +141,13 @@ def create_staff_member(
 ) -> ShopMember:
     """Crée un nouvel utilisateur `staff` et son `ShopMember` sur la boutique courante.
 
-    Raises ``ValidationError`` si l'email est déjà utilisé sur la boutique ou si
-    les permissions contiennent des modules inconnus.
+    Raises ``ValidationError`` si l'email est déjà utilisé sur la boutique, si
+    les permissions contiennent des modules inconnus ou si la formule n'admet
+    plus de membre.
     """
     User = get_user_model()
     perms = _validate_permissions(permissions)
+    enforce_member_limit(shop)
 
     user, created = User.objects.get_or_create(
         email=email,
@@ -220,7 +223,7 @@ def remove_member(member: ShopMember) -> None:
 
 
 def is_member_suspended(member: ShopMember) -> bool:
-    """Un employé ou un admin perd l'accès tant que la boutique n'a pas Boutique+.
+    """Un employé ou un admin perd l'accès tant que la boutique n'a pas Boutique.
 
     Le propriétaire n'est jamais suspendu. Les comptes et les droits sont conservés :
     l'accès revient dès que la formule inclut de nouveau `multi_user`.

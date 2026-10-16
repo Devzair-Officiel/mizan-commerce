@@ -39,3 +39,22 @@ export async function dismissedDialog(page, action) {
   await action();
   return dialog;
 }
+
+/**
+ * Position de l'élément stable : même boîte sur deux images consécutives (2 s au plus), pour ne pas
+ * cliquer sur un élément encore emporté par une mise en page (barre latérale qui se déploie, données qui arrivent).
+ */
+export function positionStable(locator) {
+  return locator.evaluate((el) => new Promise((resolve) => {
+    const start = Date.now();
+    let last = '';
+    const poll = () => {
+      const { x, y, width, height } = el.getBoundingClientRect();
+      const box = `${x},${y},${width},${height}`;
+      if (box === last || Date.now() - start > 2000) return resolve();
+      last = box;
+      requestAnimationFrame(poll);
+    };
+    poll();
+  }));
+}

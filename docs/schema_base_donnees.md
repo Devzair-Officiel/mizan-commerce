@@ -186,7 +186,7 @@ Boutique (entité racine du multi-tenant).
 **Règles métier** :
 - `timezone` est **dérivé** de `country` à chaque enregistrement (surcharge de `Shop.save()`), pas saisi librement.
 - Les champs `legal_address`, `tax_id`, `legal_mentions`, `default_tax_rate`, `default_payment_terms_days` sont **snapshottés dans `invoices`** au moment de l'émission — leur modification n'affecte pas les factures déjà émises.
-- Le plan d'abonnement effectif s'obtient via `shop.effective_plan` (voir `subscriptions` §16) : bascule automatique sur Gratuit si l'essai est expiré ou si la souscription est `cancelled`/`paused`.
+- Le plan d'abonnement effectif s'obtient via `shop.effective_plan` (voir `subscriptions` §16) : bascule automatique sur Découverte (`free`) si l'essai est expiré ou si la souscription est `cancelled`/`paused`.
 
 **Note** : le champ `invoice_prefix` introduit en migration `shops.0003` a été **retiré** en migration `shops.0004_remove_shop_invoice_prefix` — le préfixe est aujourd'hui fixé à `fact-` dans `invoices.services.INVOICE_PREFIX`.
 
@@ -1071,10 +1071,21 @@ Signalements d'un projet ou d'un profil.
 
 Plans tarifaires (gérés par l'admin de la plateforme, pas par les commerçants).
 
+Grille 2026 (migration `0004_rename_plans`, codes renommés en place) :
+
+| code | Nom | Prix | Produits actifs | Ventes / mois | Clients actifs | Membres |
+|---|---|---|---|---|---|---|
+| `free` | Découverte | 0 € | 30 | 15 | 15 | 1 |
+| `solo` (ex-`pro`) | Solo | 9 € / mois | ∞ | ∞ | ∞ | 1 |
+| `boutique` (ex-`boutique_plus`) | Boutique | 19 € / mois | ∞ | ∞ | ∞ | 4 |
+| `commerce_plus` | Commerce+ | 39 € / mois | ∞ | ∞ | ∞ | ∞ |
+
+L'essai de 14 jours à l'inscription porte sur `boutique`. Les limites sont vérifiées sous verrou de la ligne `shops` (`select_for_update`), dans la transaction de création.
+
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| code | VARCHAR(50) | NOT NULL, UNIQUE | Ex: `free`, `pro_monthly`, `pro_yearly` |
+| code | VARCHAR(50) | NOT NULL, UNIQUE | `free`, `solo`, `boutique`, `commerce_plus` (ordre des paliers) |
 | name | VARCHAR(100) | NOT NULL | |
 | description | TEXT | | |
 | price_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | 0 pour gratuit |
@@ -1083,7 +1094,9 @@ Plans tarifaires (gérés par l'admin de la plateforme, pas par les commerçants
 | stripe_price_id | VARCHAR(100) | | ID Stripe |
 | max_products | INTEGER | | NULL = illimité |
 | max_orders_per_month | INTEGER | | NULL = illimité |
-| features_json | JSONB | | Liste fonctionnalités incluses |
+| max_customers | INTEGER | | Clients actifs. NULL = illimité |
+| max_members | INTEGER | | Membres, propriétaire compris. NULL = illimité |
+| features_json | JSONB | | Liste fonctionnalités incluses (projection de `FEATURE_MIN_PLAN`) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |

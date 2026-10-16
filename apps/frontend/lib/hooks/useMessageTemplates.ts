@@ -93,7 +93,7 @@ export function useMessagePreview(text: string, tone: MessageTone) {
 }
 
 /** Texte du message préparé, rendu par le serveur avec les modèles de la boutique. */
-export function useComposedMessage({ template, orderId, customerId }: ComposeRequest) {
+export function useComposedMessage({ template, orderId, customerId }: ComposeRequest, enabled = true) {
   const lang = useLocale();
   const request = { template: template ?? null, order_id: orderId ?? null, customer_id: customerId ?? null };
   return useQuery({
@@ -104,5 +104,6 @@ export function useComposedMessage({ template, orderId, customerId }: ComposeReq
     }),
     // Recalculé à chaque ouverture : la commande ou les modèles ont pu changer.
     gcTime: 0,
+    enabled,
   });
 }

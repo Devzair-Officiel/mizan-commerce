@@ -1,6 +1,6 @@
 """Authentification JWT de l'API : point unique de suspension des membres.
 
-Une boutique qui quitte Boutique+ garde ses employés et ses admins, mais ils ne
+Une boutique qui quitte Boutique garde ses employés et ses admins, mais ils ne
 peuvent plus rien faire : chaque requête authentifiée est refusée avec le code
 `staff_suspended_plan`, quelle que soit la vue. La connexion (`/auth/login/`) et le
 rafraîchissement du jeton n'authentifient pas : ils réussissent, et l'app affiche
@@ -31,7 +31,7 @@ class StaffSuspended(PermissionDenied):
 
     def __init__(self) -> None:
         super().__init__({
-            'detail': "Accès suspendu : la boutique n'a plus la formule Boutique+.",
+            'detail': "Accès suspendu : la boutique n'a plus la formule Boutique.",
             'code': STAFF_SUSPENDED_CODE,
         })
 

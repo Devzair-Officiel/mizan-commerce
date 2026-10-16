@@ -266,6 +266,7 @@ export const qk = {
   subscription: {
     all: ['subscription'] as const,
     current: ['subscription', 'current'] as const,
+    plans: ['subscription', 'plans'] as const,
   },
 
   ocr: {

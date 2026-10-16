@@ -1,7 +1,7 @@
 """Tests de la couche abonnement.
 
 Couvre :
-- URS-100 : trial 14j Boutique+ au premier shop, gratuit aux suivants.
+- URS-100 : trial 14j Boutique au premier shop, Découverte aux suivants.
 - Services : `start_trial_or_default`, `downgrade_to_free`, `expire_trial`.
 - Endpoints : GET /current/, POST /change/.
 - Property `Shop.effective_plan` (le cœur du gating frontend).
@@ -40,14 +40,14 @@ def _make_owner(user: User, shop: Shop) -> ShopMember:
 
 
 class StartTrialServiceTest(TestCase):
-    """URS-100 — première souscription d'un user → trial 14j Boutique+."""
+    """URS-100 — première souscription d'un user → trial 14j Boutique."""
 
-    def test_first_shop_starts_on_boutique_plus_trial(self):
+    def test_first_shop_starts_on_boutique_trial(self):
         user = _make_user()
         shop = _make_shop()
         sub = start_trial_or_default(shop=shop, user=user)
 
-        self.assertEqual(sub.plan.code, SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(sub.plan.code, SubscriptionPlan.CODE_BOUTIQUE)
         self.assertEqual(sub.status, Subscription.STATUS_TRIALING)
         self.assertIsNotNone(sub.current_period_end)
         delta = sub.current_period_end - sub.current_period_start
@@ -91,7 +91,7 @@ class ExpireTrialServiceTest(TestCase):
         self.assertEqual(sub.status, Subscription.STATUS_ACTIVE)
 
     def test_non_trialing_subscription_is_noop(self):
-        # User dont l'essai est déjà consommé → second shop directement sur Gratuit.
+        # User dont l'essai est déjà consommé → second shop directement sur Découverte.
         user = _make_user()
         user.trial_consumed_at = timezone.now()
         user.save(update_fields=['trial_consumed_at'])
@@ -134,11 +134,11 @@ class DowngradeToFreeServiceTest(TestCase):
 class ShopEffectivePlanTest(TestCase):
     """`Shop.effective_plan` = la source de vérité pour le gating."""
 
-    def test_active_trial_returns_boutique_plus(self):
+    def test_active_trial_returns_boutique(self):
         user = _make_user()
         shop = _make_shop()
         start_trial_or_default(shop=shop, user=user)
-        self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE_PLUS)
+        self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE)
 
     def test_expired_trial_returns_free_even_before_celery_runs(self):
         user = _make_user()
@@ -172,8 +172,8 @@ class SubscriptionCurrentEndpointTest(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], Subscription.STATUS_TRIALING)
-        self.assertEqual(response.data['plan']['code'], SubscriptionPlan.CODE_BOUTIQUE_PLUS)  # noqa: E501
-        self.assertEqual(response.data['effective_plan_code'], SubscriptionPlan.CODE_BOUTIQUE_PLUS)  # noqa: E501
+        self.assertEqual(response.data['plan']['code'], SubscriptionPlan.CODE_BOUTIQUE)  # noqa: E501
+        self.assertEqual(response.data['effective_plan_code'], SubscriptionPlan.CODE_BOUTIQUE)  # noqa: E501
         self.assertIsNotNone(response.data['days_remaining'])
 
 
@@ -195,7 +195,7 @@ class SubscriptionChangeEndpointTest(TestCase):
 
     def test_upgrade_to_pro_is_rejected(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {'plan_code': SubscriptionPlan.CODE_PRO})
+        response = self.client.post(self.url, {'plan_code': SubscriptionPlan.CODE_SOLO})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_staff_cannot_downgrade(self):
@@ -211,8 +211,9 @@ class PlanGatingTest(TestCase):
 
     Le but n'est pas de re-tester chaque vue (couverte par les tests des apps),
     mais de vérifier que `HasPlanForFeature` est bien câblé sur au moins un
-    endpoint de chaque tier (pro, boutique+). On utilise GET /api/orders/ (pro)
-    et GET /api/public-page/ (boutique+) comme sondes.
+    endpoint de chaque palier (Solo, Boutique). On utilise GET /api/invoices/ (Solo)
+    et GET /api/public-page/ (Boutique) comme sondes. La matrice complète par
+    formule est dans `test_plans.py`.
     """  # noqa: E501
 
     def _setup_member(self, plan_code: str, status: str = Subscription.STATUS_ACTIVE) -> User:  # noqa: E501
@@ -230,30 +231,30 @@ class PlanGatingTest(TestCase):
         )
         return user
 
-    def test_free_plan_blocks_orders_endpoint(self):
+    def test_free_plan_blocks_invoices_endpoint(self):
         user = self._setup_member(SubscriptionPlan.CODE_FREE)
         client = APIClient()
         client.force_authenticate(user=user)
-        response = client.get('/api/orders/')
+        response = client.get('/api/invoices/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_pro_plan_allows_orders_endpoint(self):
-        user = self._setup_member(SubscriptionPlan.CODE_PRO)
+    def test_solo_plan_allows_invoices_endpoint(self):
+        user = self._setup_member(SubscriptionPlan.CODE_SOLO)
         client = APIClient()
         client.force_authenticate(user=user)
-        response = client.get('/api/orders/')
+        response = client.get('/api/invoices/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_pro_plan_blocks_public_page_endpoint(self):
-        user = self._setup_member(SubscriptionPlan.CODE_PRO)
+    def test_solo_plan_blocks_public_page_endpoint(self):
+        user = self._setup_member(SubscriptionPlan.CODE_SOLO)
         client = APIClient()
         client.force_authenticate(user=user)
         response = client.get('/api/public-page/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_boutique_plus_trial_allows_public_page_endpoint(self):
+    def test_boutique_trial_allows_public_page_endpoint(self):
         user = self._setup_member(
-            SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            SubscriptionPlan.CODE_BOUTIQUE,
             status=Subscription.STATUS_TRIALING,
         )
         client = APIClient()
@@ -261,10 +262,10 @@ class PlanGatingTest(TestCase):
         response = client.get('/api/public-page/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_expired_trial_blocks_pro_features_even_before_celery(self):
+    def test_expired_trial_blocks_paid_features_even_before_celery(self):
         """Sécurité paresseuse : un trial expiré gate avant le run de la tâche."""
         user = self._setup_member(
-            SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            SubscriptionPlan.CODE_BOUTIQUE,
             status=Subscription.STATUS_TRIALING,
         )
         sub = Subscription.objects.get(shop__members__user=user)
@@ -273,82 +274,5 @@ class PlanGatingTest(TestCase):
 
         client = APIClient()
         client.force_authenticate(user=user)
-        response = client.get('/api/orders/')
+        response = client.get('/api/invoices/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-
-class PlanQuantitativeLimitsTest(TestCase):
-    """Limites max_products / max_orders_per_month appliquées sur Gratuit."""
-
-    def _setup_free(self):
-        user = _make_user('free-limits@example.com')
-        shop = _make_shop('Shop Free Limits')
-        _make_owner(user, shop)
-        free_plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
-        Subscription.objects.create(
-            shop=shop, plan=free_plan,
-            status=Subscription.STATUS_ACTIVE,
-            current_period_start=timezone.now(),
-        )
-        return user, shop
-
-    def test_product_limit_blocks_creation_when_reached(self):
-        from apps.products.models import Product
-        from apps.subscriptions.limits import enforce_product_limit
-
-        user, shop = self._setup_free()
-        # Gratuit = 50 produits. On bourre le compteur jusqu'à la limite.
-        for i in range(50):
-            Product.objects.create(shop=shop, name=f'Produit {i}')
-
-        with self.assertRaises(Exception) as ctx:
-            enforce_product_limit(shop)
-        self.assertIn('plan_limit_exceeded', str(ctx.exception))
-
-    def test_product_limit_ignores_inactive_products(self):
-        from apps.products.models import Product
-        from apps.subscriptions.limits import enforce_product_limit
-
-        user, shop = self._setup_free()
-        # 50 actifs + 5 inactifs : limite atteinte sur les actifs seulement.
-        for i in range(50):
-            Product.objects.create(shop=shop, name=f'Actif {i}')
-        for i in range(5):
-            Product.objects.create(shop=shop, name=f'Inactif {i}', is_active=False)
-
-        # Désactive un produit → un slot se libère.
-        Product.objects.filter(shop=shop, is_active=True).first().is_active = False
-        Product.objects.filter(shop=shop, is_active=True, name='Actif 0').update(is_active=False)  # noqa: E501
-        enforce_product_limit(shop)  # ne doit pas lever.
-
-    def test_orders_per_month_limit_blocks_when_reached(self):
-        from apps.orders.models import Order
-        from apps.subscriptions.limits import enforce_orders_per_month_limit
-
-        user, shop = self._setup_free()
-        # Gratuit = 20 commandes/mois.
-        for i in range(20):
-            Order.objects.create(
-                shop=shop, order_number=f'2026-{i:04d}', created_by=user,
-            )
-
-        with self.assertRaises(Exception) as ctx:
-            enforce_orders_per_month_limit(shop)
-        self.assertIn('plan_limit_exceeded', str(ctx.exception))
-
-    def test_pro_plan_has_no_limit(self):
-        from apps.products.models import Product
-        from apps.subscriptions.limits import enforce_product_limit
-
-        user = _make_user('pro@example.com')
-        shop = _make_shop('Shop Pro')
-        _make_owner(user, shop)
-        pro_plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_PRO)
-        Subscription.objects.create(
-            shop=shop, plan=pro_plan,
-            status=Subscription.STATUS_ACTIVE,
-            current_period_start=timezone.now(),
-        )
-        for i in range(100):
-            Product.objects.create(shop=shop, name=f'P{i}')
-        enforce_product_limit(shop)  # max_products=NULL → no-op.

@@ -209,11 +209,10 @@ class MessageComposeView(APIView):
     """POST /api/messages/compose/ — texte prêt à envoyer (commande ou client).
 
     Rien n'est enregistré ni envoyé : le commerçant relit, puis ouvre WhatsApp.
-    Sans condition d'offre, comme les boutons qui l'appellent (relance, commande) ;
-    seuls les réglages des modèles et l'historique relèvent de l'offre WhatsApp.
+    Relève de l'offre WhatsApp (Solo et au-delà), comme l'enregistrement de l'envoi.
     """
 
-    permission_classes = (IsAuthenticated, HasMessagesModule)
+    permission_classes = (IsAuthenticated, HasWhatsappPlan, HasMessagesModule)
 
     def post(self, request):
         serializer = MessageComposeSerializer(data=request.data)

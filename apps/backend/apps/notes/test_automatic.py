@@ -29,7 +29,7 @@ def utc(day: int, hour: int, minute: int = 0) -> datetime:
 NOW = utc(10, 0)
 
 
-def automatic_shop(email: str, plan: str = SubscriptionPlan.CODE_PRO):
+def automatic_shop(email: str, plan: str = SubscriptionPlan.CODE_SOLO):
     user, shop, customer = setup(email)
     attach_subscription(shop, plan_code=plan)
     Shop.objects.filter(pk=shop.pk).update(timezone='Asia/Tokyo')
@@ -126,10 +126,11 @@ class UnpaidFollowupTest(TestCase):
         run_automatic_reminders(NOW)
         self.assertEqual(self.followups().get().title, 'متابعة Client test')
 
-    def test_none_without_orders_in_the_plan(self):
+    def test_none_without_auto_reminders_in_the_plan(self):
+        """Découverte a les commandes, pas la relance d'impayé (formule Solo)."""
         attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_FREE)
         run_automatic_reminders(NOW)
-        self.assertFalse(Reminder.objects.filter(shop=self.shop).exists())
+        self.assertFalse(self.followups().exists())
 
     def test_shops_are_isolated(self):
         _, shop_b, customer_b = automatic_shop('auto-b@example.com')
@@ -190,7 +191,7 @@ class PendingOrdersTest(TestCase):
 class DailySummaryTest(TestCase):
     def setUp(self):
         self.user, self.shop, self.customer = automatic_shop(
-            'summary@example.com', plan=SubscriptionPlan.CODE_FREE,
+            'summary@example.com', plan=SubscriptionPlan.CODE_BOUTIQUE,
         )
         self.user.full_name = 'Youssef'
         self.user.save()
@@ -234,6 +235,12 @@ class DailySummaryTest(TestCase):
         config = get_reminder_settings(self.shop)
         config.daily_summary_enabled = False
         config.save()
+        run_automatic_reminders(utc(9, 23))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_not_sent_below_boutique(self):
+        # Résumé du jour : formule Boutique. Le réglage reste, l'envoi est suspendu.
+        attach_subscription(self.shop, plan_code=SubscriptionPlan.CODE_SOLO)
         run_automatic_reminders(utc(9, 23))
         self.assertEqual(len(mail.outbox), 0)
 

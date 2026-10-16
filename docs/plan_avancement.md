@@ -449,7 +449,8 @@
   - [x] Raccourci clair/sombre dans le header (à côté de la loupe sur mobile, avant la barre de recherche sur desktop)
   - [x] Menu desktop : sidebar translucide déployée (272 px) ou en rail (80 px, préférence gardée sur le compte), accordéon Articles → Catalogue / Stock, groupe Compte avec Abonnement, pied d'une ligne dont « ⋯ » ouvre le menu du compte (apparence, langue, Se déconnecter), bouton replier/déplier sur le bord et Ctrl+B, sans défilement à 1440×900, flyout du rail au survol et au clavier, audit `sidebar`
   - [ ] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
-  - [ ] Refonte des formules : 4 formules (Gratuit, Solo, Pro, Boutique+), export en Pro ; grille à fournir. Incohérence à résoudre : la formule Gratuite a une limite de 20 commandes par mois, alors que les commandes demandent la formule Pro.
+  - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
+  - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 
 ### Tests
 
@@ -534,6 +535,15 @@
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la
       surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de
       cette liste au fur et à mesure qu'il est découpé.
+
+- [ ] Limites de formule (URS-100) : plusieurs boutons de création n'ont pas de garde côté
+      client à la limite (actions rapides, états vides, « Nouvelle vente » depuis une fiche
+      client, accueil d'une nouvelle boutique, /orders/new). Le serveur refuse (400), mais
+      la carte de mise à niveau ne s'ouvre pas avant le formulaire.
+
+- [ ] Réglage du résumé quotidien modifiable sous la formule Boutique (Découverte, Solo) alors
+      que l'envoi y est suspendu : le verrouiller côté réglages, comme les autres options
+      réservées à Boutique.
 
 ---
 

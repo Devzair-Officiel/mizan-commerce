@@ -5,6 +5,7 @@ import { Bell, Download, Receipt, Undo2, XCircle } from 'lucide-react';
 import type { DetailMenuActions } from '@/components/detail/types';
 import { useCan } from '@/lib/hooks/useMe';
 import type { Order } from '@/lib/hooks/useOrders';
+import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { useShop } from '@/lib/hooks/useShop';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { getRevertStatus, STATUS_ALLOWS_CANCEL, WhatsAppIcon } from './constants';
@@ -26,6 +27,7 @@ export function useOrderMenuActions(
   const { data: shop } = useShop();
   const canReminders = useCan('reminders');
   const canMessages = useCan('messages');
+  const invoicesAllowed = usePlanGating().can('invoices');
   const items: OrderAction[] = [];
 
   const revert = order.status === 'cancelled' ? null : getRevertStatus(order.status, shop?.fulfillment_mode ?? null);
@@ -33,7 +35,10 @@ export function useOrderMenuActions(
     items.push({ key: 'revert', icon: Undo2, label: t('revert_to', { label: label(revert) }), disabled: actions.pending, onSelect: () => actions.transition(revert) });
   }
   if (order.invoice) {
-    items.push({ key: 'download_invoice', icon: Download, label: t('download_invoice'), href: `/api/proxy/invoices/${order.invoice.id}/pdf/` });
+    // Hors formule, le PDF n'est plus servi : le tap ouvre la carte de mise à niveau (via la feuille facture).
+    items.push(invoicesAllowed
+      ? { key: 'download_invoice', icon: Download, label: t('download_invoice'), href: `/api/proxy/invoices/${order.invoice.id}/pdf/` }
+      : { key: 'download_invoice', icon: Download, label: t('download_invoice'), onSelect: actions.openInvoice });
   } else if (order.status !== 'cancelled' && order.items.length > 0 && primaryKey !== 'issue_invoice') {
     items.push({ key: 'issue_invoice', icon: Receipt, label: t('issue_invoice'), onSelect: actions.openInvoice });
   }

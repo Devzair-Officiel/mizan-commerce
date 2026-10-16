@@ -28,7 +28,7 @@
       "title": "Créer un compte",
       "headline_lead": "Créez votre boutique en",
       "headline_accent": "deux minutes",
-      "subtitle": "14 jours d'essai Boutique+ offerts. Sans carte bancaire.",
+      "subtitle": "14 jours d'essai Boutique offerts. Sans carte bancaire.",
       "submit": "Commencer gratuitement",
       "submitting": "Création…",
       "full_name": "Nom complet",
@@ -219,11 +219,11 @@
       "back_home": "Retour à l'accueil"
     },
     "trial": {
-      "banner_expired": "Essai Boutique+ terminé. Passez à un plan payant pour retrouver toutes les fonctionnalités.",
+      "banner_expired": "Essai Boutique terminé. Passez à un plan payant pour retrouver toutes les fonctionnalités.",
       "banner_expired_cta": "Voir les formules",
-      "banner_today": "Votre essai Boutique+ se termine aujourd'hui.",
-      "banner_tomorrow": "Votre essai Boutique+ se termine demain.",
-      "banner_days": "Votre essai Boutique+ se termine dans {days} jours.",
+      "banner_today": "Votre essai Boutique se termine aujourd'hui.",
+      "banner_tomorrow": "Votre essai Boutique se termine demain.",
+      "banner_days": "Votre essai Boutique se termine dans {days} jours.",
       "banner_cta": "Gérer",
       "card_expired": "Essai terminé",
       "badge_trial": "Essai · {days, plural, =0 {dernier jour} one {# j} other {# j}}"
@@ -1566,7 +1566,7 @@
       "delete_error": "Impossible de retirer ce membre."
     },
     "readonly_title": "Membres actuels",
-    "readonly_note": "Sans la formule Boutique+, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés."
+    "readonly_note": "Sans la formule Boutique, ces membres ne peuvent plus se connecter. Leurs comptes et leurs accès sont conservés."
   },
   "ui": {
     "phone": {
@@ -1673,9 +1673,16 @@
       "fulfillment_both": "Les deux"
     },
     "upgrade": {
-      "title": "{feature, select, whatsapp {Disponible avec la formule Pro} exports {Disponible avec la formule Pro} other {Disponible avec la formule Boutique+}}",
-      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} other {Cette fonction fait partie de la formule Boutique+.}}",
+      "title": "{feature, select, products {{kind, select, products {Articles illimités avec la formule Solo} services {Services illimités avec la formule Solo} other {Articles et services illimités avec la formule Solo}}} orders_this_month {Ventes illimitées avec la formule Solo} customers {Clients illimités avec la formule Solo} members {Plus de membres avec la formule {plan, select, commerce_plus {Commerce+} other {Boutique}}} other {Disponible avec la formule {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}}}",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} invoices {Émettez des factures numérotées et envoyez-les en PDF à vos clients.} invoice_branding {Ajoutez votre logo et la couleur de votre boutique sur chacune de vos factures.} products {{kind, select, products {Ajoutez autant d'articles que vous le souhaitez, sans rien archiver.} services {Proposez autant de services que vous le souhaitez, sans rien archiver.} other {Développez votre catalogue sans limite, sans rien archiver.}}} orders_this_month {Enregistrez toutes vos ventes du mois, sans plafond.} customers {Suivez tous vos clients, sans limite de fiches.} members {{plan, select, commerce_plus {Invitez toute votre équipe, sans limite de membres.} other {Travaillez à plusieurs : jusqu'à 4 membres, chacun avec son rôle.}}} other {Passez à la formule supérieure pour gagner du temps au quotidien.}}",
       "cta": "Voir les formules"
+    },
+    "usage": {
+      "limit_title": "Limite de votre formule atteinte",
+      "products": "{kind, select, products {{count} / {limit} articles actifs} services {{count} / {limit} services actifs} other {{count} / {limit} articles et services actifs}}",
+      "orders_this_month": "{count} / {limit} ventes ce mois",
+      "customers": "{count} / {limit} clients actifs",
+      "members": "{count} / {limit} membres"
     },
     "page": {
       "title": "Paramètres boutique",
@@ -1784,37 +1791,48 @@
       "trial": "Essai",
       "trial_remaining": "{days, plural, =0 {Essai se terminant aujourd'hui.} one {Essai en cours — # jour restant.} other {Essai en cours — # jours restants.}}",
       "period_end": "Fin : {date}.",
-      "plan_active": "Plan {name} actif.",
-      "per_month": "{price} € / mois",
+      "plan_active": "Formule {name} active.",
+      "per_month": "{price} / mois",
       "plans": {
         "free": {
-          "name": "Gratuit",
-          "description": "L'essentiel pour bien commencer.",
-          "f1": "Jusqu'à 50 produits actifs",
-          "f2": "20 commandes par mois",
-          "f3": "Stock, notes, rappels"
+          "name": "Découverte",
+          "description": "L'essentiel pour démarrer, sans engagement.",
+          "f1": "Jusqu'à {kind, select, products {{products, plural, one {# article} other {# articles}}} services {{products, plural, one {# prestation} other {# prestations}}} other {{products, plural, one {# article} other {# articles}}}} au catalogue",
+          "f2": "{orders} ventes par mois",
+          "f3": "{customers} clients",
+          "f4": "Stock, notes et rappels",
+          "f5": "Calcul de la zakat"
         },
-        "pro": {
-          "name": "Pro",
-          "description": "Pour gérer tout votre commerce.",
-          "f1": "Produits et commandes illimités",
+        "solo": {
+          "name": "Solo",
+          "description": "Pour le commerçant qui gère seul sa boutique.",
+          "f1": "Catalogue, ventes et clients illimités",
           "f2": "Factures PDF",
-          "f3": "Calcul Zakat",
-          "f4": "Messages WhatsApp préparés"
+          "f3": "Messages WhatsApp préparés",
+          "f4": "Relance automatique des impayés"
         },
-        "boutique_plus": {
-          "name": "Boutique+",
-          "description": "Outils avancés et partenariats.",
-          "f1": "Tout Pro inclus",
-          "f2": "Page publique partageable",
-          "f3": "Multi-utilisateurs",
-          "f4": "Exports comptables"
+        "boutique": {
+          "name": "Boutique",
+          "description": "Pour une boutique avec une petite équipe.",
+          "f1": "Tout Solo inclus",
+          "f2": "{staff, plural, one {# employé} other {Jusqu'à # employés}}",
+          "f3": "Factures à vos couleurs, avec votre logo",
+          "f4": "Page publique partageable",
+          "f5": "Exports et import de factures fournisseur"
+        },
+        "commerce_plus": {
+          "name": "Commerce+",
+          "description": "Pour les commerces qui grandissent.",
+          "f1": "Tout Boutique inclus",
+          "f2": "Employés illimités",
+          "f3": "Journal d'activité",
+          "f4": "Support prioritaire"
         }
       },
       "current": "Formule actuelle",
       "coming_soon": "Bientôt disponible",
       "cancel_title": "Résilier",
-      "cancel_text": "Vous passerez immédiatement sur la formule Gratuite. Vous perdrez l'accès aux fonctionnalités payantes mais vos données restent intactes.",
+      "cancel_text": "Vous passerez immédiatement sur la formule Découverte. Vous perdrez l'accès aux fonctionnalités payantes mais vos données restent intactes.",
       "cancel_cta": "Résilier ma formule",
       "cancel_confirm": "Confirmer la résiliation",
       "cancelling": "Résiliation…",
@@ -1851,7 +1869,7 @@
   },
   "suspended": {
     "title": "Accès suspendu",
-    "text": "La boutique n'a plus la formule Boutique+. Contactez le propriétaire pour rétablir votre accès.",
+    "text": "La boutique n'a plus la formule Boutique. Contactez le propriétaire pour rétablir votre accès.",
     "logout": "Se déconnecter"
   },
   "zakat": {

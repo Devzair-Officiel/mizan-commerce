@@ -25,7 +25,7 @@ class CustomerFollowupTest(TestCase):
         ShopMember.objects.create(shop=self.shop, user=user, role='owner')
         Subscription.objects.create(
             shop=self.shop,
-            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS),
+            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE),
             status=Subscription.STATUS_ACTIVE,
             current_period_start=timezone.now(),
         )
@@ -74,7 +74,7 @@ class MessageHistoryTest(TestCase):
         ShopMember.objects.create(shop=self.shop, user=user, role='owner')
         Subscription.objects.create(
             shop=self.shop,
-            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE_PLUS),
+            plan=SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_BOUTIQUE),
             status=Subscription.STATUS_ACTIVE,
             current_period_start=timezone.now(),
         )
@@ -149,7 +149,7 @@ class MessageTemplatesTest(TestCase):
         self.client.force_authenticate(user=self.owner)
 
     @staticmethod
-    def make_shop(name, owner, plan=SubscriptionPlan.CODE_BOUTIQUE_PLUS):
+    def make_shop(name, owner, plan=SubscriptionPlan.CODE_BOUTIQUE):
         shop = Shop.objects.create(name=name, country='FR')
         ShopMember.objects.create(shop=shop, user=owner, role='owner')
         Subscription.objects.create(
@@ -356,13 +356,13 @@ class MessageTemplatesTest(TestCase):
         self.staff(['orders'])
         self.assertEqual(self.compose(order_id=str(self.order.id)).status_code, 403)
 
-    def test_settings_require_whatsapp_plan(self):
+    def test_settings_and_compose_require_whatsapp_plan(self):
         owner = User.objects.create_user(email='free@example.com', password='Pass123!Strong')  # noqa: E501
         shop = self.make_shop('Gratuite', owner, plan=SubscriptionPlan.CODE_FREE)
         self.client.force_authenticate(user=owner)
         self.assertEqual(self.client.get(reverse('message-settings')).status_code, 403)
         customer = Customer.objects.create(shop=shop, name='Nadia')
-        self.assertEqual(self.compose(customer_id=str(customer.id)).status_code, 200)
+        self.assertEqual(self.compose(customer_id=str(customer.id)).status_code, 403)
 
     def test_shops_are_isolated(self):
         owner = User.objects.create_user(email='other@example.com', password='Pass123!Strong')  # noqa: E501

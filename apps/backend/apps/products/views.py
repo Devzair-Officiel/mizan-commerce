@@ -45,9 +45,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
-        from apps.subscriptions.limits import enforce_product_limit
         shop = get_shop(self.request.user)
-        enforce_product_limit(shop)
         data = dict(serializer.validated_data)
         rows = data.pop('variants', [])
         variant = data.pop('variant', None)
@@ -124,9 +122,7 @@ class ProductReactivateView(generics.GenericAPIView):
         return Product.objects.filter(shop=shop)
 
     def post(self, request, *args, **kwargs):
-        product = self.get_object()
-        product.is_active = True
-        product.save(update_fields=['is_active', 'updated_at'])
+        services.reactivate_product(self.get_object())
         return Response({'detail': 'Produit réactivé.'})
 
 

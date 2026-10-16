@@ -30,8 +30,8 @@ from .services import (
 
 HasMultiUserPlan = HasPlanForFeature.for_feature('multi_user')
 
-# Ajouter ou modifier un employé demande Boutique+. La lecture et le retrait restent
-# ouverts : une boutique repassée en Pro doit pouvoir voir et retirer ses employés.
+# Ajouter ou modifier un employé demande Boutique. La lecture et le retrait restent
+# ouverts : une boutique repassée en Solo doit pouvoir voir et retirer ses employés.
 _MEMBER_WRITE_METHODS = ('POST', 'PATCH', 'PUT')
 
 
@@ -70,7 +70,7 @@ class ShopDetailView(generics.RetrieveUpdateAPIView):
 class ShopMemberListView(generics.ListCreateAPIView):
     """GET liste les membres de la boutique courante.
     POST crée un nouveau staff (admin only — création directe avec email/password,
-    formule Boutique+)."""
+    formule Boutique)."""
 
     def get_permissions(self) -> list:
         return _member_permissions(self.request.method)
@@ -107,7 +107,7 @@ class ShopMemberListView(generics.ListCreateAPIView):
 
 class ShopMemberDetailView(generics.GenericAPIView):
     """PATCH met à jour rôle/permissions d'un membre.
-    DELETE retire le membre de la boutique. Admin only ; PATCH demande Boutique+."""
+    DELETE retire le membre de la boutique. Admin only ; PATCH demande Boutique."""
     serializer_class = ShopMemberUpdateSerializer
 
     def get_permissions(self) -> list:

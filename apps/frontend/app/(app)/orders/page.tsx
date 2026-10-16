@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
 import { ListCreateButton } from '@/components/list/ListCreateButton';
+import { UsageBanner } from '@/components/subscription/UsageBanner';
 import { useOrders, useOrdersInfinite } from '@/lib/hooks/useOrders';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
@@ -42,10 +43,11 @@ function OrdersContent() {
       <TopBar
         title={t('topbar')}
         subtitle={hasLoaded ? t('count', { count: totalCount }) : undefined}
-        action={<ListCreateButton href="/orders/new" label={t('new_order')} />}
+        action={<ListCreateButton href="/orders/new" label={t('new_order')} usage="orders_this_month" />}
         hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
+        <UsageBanner usageKey="orders_this_month" />
         <OrdersStatCards currency={currency} active={state.activeCards} onToggle={state.toggleCard} />
         {(state.isFiltered || totalCount > 0 || isLoading) && (
           <>

@@ -28,7 +28,7 @@ function StockEntryContent() {
   const variantId = params.get('variant') ?? '';
   const initial = useStockLevels({ variant: variantId }, { enabled: mode === 'manual' && variantId !== '' });
   const subscription = useSubscription();
-  // Import de facture réservé à Boutique+ : la carte remplace l'envoi (aucune requête OCR), la saisie à la main reste.
+  // Import de facture réservé à Boutique : la carte remplace l'envoi (aucune requête OCR), la saisie à la main reste.
   const invoiceLocked = subscription.data !== undefined && !hasFeature(subscription.data.effective_plan_code, 'ocr');
   const ready = shop && (mode === 'invoice' ? !subscription.isLoading : variantId === '' || !initial.isPending);
 

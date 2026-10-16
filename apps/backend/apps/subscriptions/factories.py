@@ -37,12 +37,12 @@ class SubscriptionFactory(factory.django.DjangoModelFactory):
 
 
 class TrialingSubscriptionFactory(SubscriptionFactory):
-    """Variante : abonnement en essai 14 jours (par défaut, plan Boutique+)."""
+    """Variante : abonnement en essai 14 jours (par défaut, plan Boutique)."""
 
     status = Subscription.STATUS_TRIALING
     plan = factory.SubFactory(
         SubscriptionPlanFactory,
-        code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+        code=SubscriptionPlan.CODE_BOUTIQUE,
         price_amount=Decimal('19'),
     )
     current_period_end = factory.LazyFunction(

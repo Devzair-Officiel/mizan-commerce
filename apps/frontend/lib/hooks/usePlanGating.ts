@@ -13,46 +13,50 @@
 
 import { useSubscription, type PlanCode } from './useSubscription';
 
-const TIER_ORDER: readonly PlanCode[] = ['free', 'pro', 'boutique_plus'] as const;
+const TIER_ORDER: readonly PlanCode[] = ['free', 'solo', 'boutique', 'commerce_plus'] as const;
 
-export type Feature =
-  | 'products'
-  | 'stock'
-  | 'notes'
-  | 'reminders'
-  | 'orders'
-  | 'invoices'
-  | 'zakat'
-  | 'whatsapp'
-  | 'public_pages'
-  | 'partnerships'
-  | 'multi_user'
-  | 'exports'
-  | 'ocr';
-
-const FEATURE_MIN_PLAN: Record<Feature, PlanCode> = {
+/** Certaines clés n'ont pas encore de code : elles servent la grille (`features_json`). */
+const FEATURE_MIN_PLAN = {
   products: 'free',
   stock: 'free',
   notes: 'free',
   reminders: 'free',
-  orders: 'pro',
-  invoices: 'pro',
-  zakat: 'pro',
-  whatsapp: 'pro',
-  exports: 'pro',
-  public_pages: 'boutique_plus',
-  partnerships: 'boutique_plus',
-  multi_user: 'boutique_plus',
-  ocr: 'boutique_plus',
-};
+  orders: 'free',
+  zakat: 'free',
+  invoices: 'solo',
+  whatsapp: 'solo',
+  zakat_history: 'solo',
+  auto_reminders: 'solo',
+  multi_user: 'boutique',
+  roles_permissions: 'boutique',
+  invoice_branding: 'boutique',
+  message_templates: 'boutique',
+  daily_digest: 'boutique',
+  sales_stats: 'boutique',
+  exports: 'boutique',
+  public_pages: 'boutique',
+  loyalty: 'boutique',
+  ocr: 'boutique',
+  visual_inventory: 'boutique',
+  qr_codes: 'boutique',
+  partnerships: 'boutique',
+  audit_log: 'commerce_plus',
+  priority_support: 'commerce_plus',
+} as const satisfies Record<string, PlanCode>;
+
+export type Feature = keyof typeof FEATURE_MIN_PLAN;
 
 function tierIndex(code: PlanCode): number {
   return TIER_ORDER.indexOf(code);
 }
 
+/** Formule la moins chère qui ouvre la fonction (carte de mise à niveau). */
+export function featureMinPlan(feature: Feature): PlanCode {
+  return FEATURE_MIN_PLAN[feature];
+}
+
 export function hasFeature(planCode: PlanCode, feature: Feature): boolean {
-  const required = FEATURE_MIN_PLAN[feature];
-  return tierIndex(planCode) >= tierIndex(required);
+  return tierIndex(planCode) >= tierIndex(featureMinPlan(feature));
 }
 
 /**

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useAccessStatus } from '@/lib/hooks/useAccessStatus';
 
 /**
- * Seul écran d'un employé ou d'un admin dont la boutique n'a plus Boutique+ (code
+ * Seul écran d'un employé ou d'un admin dont la boutique n'a plus Boutique (code
  * `staff_suspended_plan`). L'accès revient seul dès que la boutique reprend la formule.
  */
 export default function SuspendedPage() {

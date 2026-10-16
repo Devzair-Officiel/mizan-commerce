@@ -4,38 +4,63 @@
  * Page Settings → Abonnement.
  *
  * Tant que Stripe n'est pas branché, deux scénarios pratiques :
- * - Trial actif (Boutique+) → CTA "Résilier" qui bascule sur Gratuit.
- * - Plan Pro / Boutique+ payant → CTA "Résilier" idem (downgrade vers Free).
+ * - Essai actif (Boutique) → CTA "Résilier" qui bascule sur Découverte.
+ * - Formule payante → CTA "Résilier" idem (retour sur Découverte).
  *
- * Les boutons "Upgrade vers Pro / Boutique+" sont volontairement désactivés
+ * Les boutons de passage à une formule payante sont volontairement désactivés
  * (label "Bientôt disponible") — l'endpoint backend rejette toute autre
  * mutation que `plan_code: 'free'`.
+ *
+ * Prix et limites viennent de l'API (`/subscriptions/plans/`) ; noms, descriptions
+ * et lignes de fonctions de l'i18n (`settings.subscription.plans.{code}`).
  */
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Sparkles, Check, Loader2 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
+import { PlanUsage } from '@/components/subscription/PlanUsage';
 import { Button } from '@/components/ui/button';
-import { useFormatDate } from '@/lib/hooks/useFormat';
-import { useSubscription, useDowngradeToFree, type PlanCode } from '@/lib/hooks/useSubscription';
+import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
+import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
+import {
+  useSubscription,
+  useDowngradeToFree,
+  usePlans,
+  type PlanCode,
+  type SubscriptionPlan,
+} from '@/lib/hooks/useSubscription';
 import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
 
-/** Formules affichées ; textes sous `settings.subscription.plans.{code}` (f1…fN). */
-const PLANS: { code: PlanCode; price: number; features: number }[] = [
-  { code: 'free', price: 0, features: 3 },
-  { code: 'pro', price: 9, features: 4 },
-  { code: 'boutique_plus', price: 19, features: 4 },
-];
+/** Nombre de lignes `f1…fN` sous `settings.subscription.plans.{code}`. */
+const FEATURE_LINES: Record<PlanCode, number> = {
+  free: 5,
+  solo: 4,
+  boutique: 5,
+  commerce_plus: 4,
+};
+
+/** Limites de la formule, injectées dans ses lignes de fonctions. */
+function planValues(plan: SubscriptionPlan) {
+  return {
+    products: plan.max_products ?? 0,
+    orders: plan.max_orders_per_month ?? 0,
+    customers: plan.max_customers ?? 0,
+    staff: Math.max(0, (plan.max_members ?? 1) - 1),
+  };
+}
 
 export default function SubscriptionPage() {
   const t = useTranslations('settings.subscription');
   const formatDate = useFormatDate();
+  const formatMoney = useFormatMoney();
+  const kind = useCatalogKind();
   const { data: subscription, isLoading } = useSubscription();
+  const { data: plans, isLoading: plansLoading } = usePlans();
   const downgrade = useDowngradeToFree();
   const [confirming, setConfirming] = useState(false);
 
-  if (isLoading || !subscription) {
+  if (isLoading || plansLoading || !subscription || !plans) {
     return (
       <>
         <TopBar title={t('title')} />
@@ -70,7 +95,7 @@ export default function SubscriptionPage() {
                 {t('current_plan')}
               </p>
               <p className="text-lg font-semibold text-foreground">
-                {subscription.plan.name}
+                {t(`plans.${subscription.plan.code}.name`)}
                 {isTrialing && <span className="ms-2 text-xs font-medium text-amber-700 dark:text-amber-400">{t('trial')}</span>}
               </p>
               {isTrialing && subscription.days_remaining !== null && (
@@ -81,15 +106,18 @@ export default function SubscriptionPage() {
               )}
               {!isTrialing && currentCode !== 'free' && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {t('plan_active', { name: subscription.plan.name })}
+                  {t('plan_active', { name: t(`plans.${subscription.plan.code}.name`) })}
                 </p>
               )}
             </div>
           </div>
+          {subscription.usage && <PlanUsage usage={subscription.usage} />}
         </section>
 
         <div className="flex flex-col gap-3">
-          {PLANS.map((plan) => {
+          {plans.map((plan) => {
+            const price = formatMoney(plan.price_amount, plan.currency, { maximumFractionDigits: 0 });
+            const values = { kind, ...planValues(plan) };
             const isCurrent = plan.code === currentCode;
             const isUpgrade = plan.code !== 'free' && !isCurrent;
             return (
@@ -105,15 +133,15 @@ export default function SubscriptionPage() {
                     <p className="text-sm text-muted-foreground">{t(`plans.${plan.code}.description`)}</p>
                   </div>
                   <p className="text-sm font-semibold text-foreground shrink-0">
-                    {plan.price === 0 ? '0 €' : t('per_month', { price: plan.price })}
+                    {plan.billing_period === 'month' ? t('per_month', { price }) : price}
                   </p>
                 </div>
 
                 <ul className="mt-3 flex flex-col gap-1.5">
-                  {Array.from({ length: plan.features }, (_, i) => (
+                  {Array.from({ length: FEATURE_LINES[plan.code] }, (_, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-foreground">
                       <Check className="h-4 w-4 shrink-0 text-primary" />
-                      <span>{t(`plans.${plan.code}.f${i + 1}`)}</span>
+                      <span>{t(`plans.${plan.code}.f${i + 1}`, values)}</span>
                     </li>
                   ))}
                 </ul>

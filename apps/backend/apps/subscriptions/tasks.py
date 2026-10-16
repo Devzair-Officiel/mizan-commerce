@@ -9,7 +9,7 @@ from .services import expire_trial
 
 @shared_task
 def expire_trials() -> dict:
-    """Bascule toutes les souscriptions en essai expiré sur le plan Gratuit.
+    """Bascule toutes les souscriptions en essai expiré sur le formule Découverte.
 
     URS-100 — Filet de sécurité quotidien. Le check lazy de `Shop.effective_plan`
     gate déjà côté lecture, mais cette tâche réconcilie la DB pour que les

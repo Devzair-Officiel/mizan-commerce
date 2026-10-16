@@ -1,7 +1,7 @@
 /** Factures au gabarit : liste serveur, filtres, pagination, détail figé et actions. */
 import { mkdir, readFile } from 'node:fs/promises';
 import { isDeepStrictEqual } from 'node:util';
-import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
+import { BASE, INVOICES_EMAIL, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api, createArticle } from './lib/products.mjs';
 import { makeImage } from './lib/photos.mjs';
@@ -182,7 +182,7 @@ async function checkCancellation(page, locale, label) {
 try {
   await mkdir('results', { recursive: true });
   for (const viewport of VIEWPORTS) {
-    const { page, ctx, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const { page, ctx, watch, setLocale, setTheme } = await openSession(browser, viewport, { email: INVOICES_EMAIL });
     try {
       fixtures ??= await setup(page);
       for (const locale of ['fr', 'ar']) for (const theme of ['light', 'dark']) {

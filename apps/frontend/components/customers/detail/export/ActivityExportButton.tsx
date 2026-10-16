@@ -6,8 +6,7 @@ import { Download } from 'lucide-react';
 import type { ActivityFilter } from '@/lib/hooks/useCustomers';
 import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { HEADER_LINK } from '@/components/form/fieldStyles';
-import { UpgradeCard } from '@/components/subscription/UpgradeCard';
-import { BottomSheet } from '@/components/ui/BottomSheet';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { ActivityExportDialog } from './ActivityExportDialog';
 
 interface ActivityExportButtonProps {
@@ -19,7 +18,7 @@ interface ActivityExportButtonProps {
 
 /**
  * « Exporter » dans la bande de la carte Activité : ouvre la fenêtre d'export, pré-réglée sur le filtre
- * affiché. En dessous de la formule Pro, le bouton reste là et ouvre la carte de mise à niveau, sans appel au serveur.
+ * affiché. En dessous de la formule Boutique, le bouton reste là et ouvre la carte de mise à niveau, sans appel au serveur.
  */
 export function ActivityExportButton({ customerId, customerName, activityFilter, pendingOnly }: ActivityExportButtonProps) {
   const t = useTranslations('customers.export');
@@ -31,11 +30,8 @@ export function ActivityExportButton({ customerId, customerName, activityFilter,
         <Download size={14} aria-hidden />
         {t('button')}
       </button>
-      {open && !allowed && (
-        <BottomSheet open onClose={() => setOpen(false)} title={t('title')} description={customerName}>
-          <UpgradeCard feature="exports" />
-        </BottomSheet>
-      )}
+      <UpgradeSheet open={open && !allowed} onClose={() => setOpen(false)} feature="exports"
+        title={t('title')} description={customerName} />
       {open && allowed && (
         <ActivityExportDialog customerId={customerId} customerName={customerName} activityFilter={activityFilter}
           pendingOnly={pendingOnly} onClose={() => setOpen(false)} />

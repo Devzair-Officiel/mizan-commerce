@@ -14,6 +14,11 @@ const PREFIX = SLOT > 1 ? `e2e${SLOT}` : 'e2e';
 const EMAIL = process.env.AUDIT_EMAIL ?? `${PREFIX}@example.com`;
 /** Employée de la boutique d'audit de l'emplacement. */
 export const STAFF_EMAIL = `${PREFIX}-staff@example.com`;
+/**
+ * Boutique réservée à audit-invoices, hors emplacements : il y compte ses factures, et celles
+ * qu'invoice-settings ou order-numbers émettent sur leur emplacement ne s'y mêlent pas.
+ */
+export const INVOICES_EMAIL = 'e2e-invoices@example.com';
 const PASSWORD = process.env.AUDIT_PASSWORD ?? 'Mizan1234!';
 
 const ALL_VIEWPORTS = [

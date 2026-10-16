@@ -4,7 +4,9 @@ import { useTranslations } from 'next-intl';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { PreparedMessageDialog } from '@/components/messages/PreparedMessageDialog';
 import { FollowupReminderDialog } from '@/components/reminders/FollowupReminderDialog';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import type { Order } from '@/lib/hooks/useOrders';
+import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { useShop } from '@/lib/hooks/useShop';
 import { useOrderStatusLabel } from '@/lib/orderStatusLabels';
 import { remainingDue, WhatsAppIcon } from './constants';
@@ -17,6 +19,8 @@ type DialogsState = Pick<OrderDetailState, 'payment' | 'invoice' | 'confirm' | '
 /** Fenêtres de la page détail : encaissement, facture, confirmations, message WhatsApp, rappel de relance déjà prévu. */
 export function OrderDetailDialogs({ order, state }: { order: Order; state: DialogsState }) {
   const t = useTranslations('orders.detail');
+  const tInvoice = useTranslations('orders.invoiceCard');
+  const invoicesAllowed = usePlanGating().can('invoices');
   const tc = useTranslations('layout.common');
   const label = useOrderStatusLabel();
   const { data: shop } = useShop();
@@ -29,7 +33,8 @@ export function OrderDetailDialogs({ order, state }: { order: Order; state: Dial
       <PaymentBottomSheet open={payment.open} onClose={payment.close} initialAmount={payment.preset}
         totalAmount={parseFloat(order.total_amount)} paidAmount={parseFloat(order.amount_paid)}
         remaining={remainingDue(order).toFixed(2)} isPending={payment.isPending} onSubmit={payment.submit} />
-      <InvoiceBottomSheet open={invoice.open} onClose={invoice.close}
+      <UpgradeSheet open={invoice.open && !invoicesAllowed} onClose={invoice.close} feature="invoices" title={tInvoice('title')} />
+      <InvoiceBottomSheet open={invoice.open && invoicesAllowed} onClose={invoice.close}
         defaultTaxRate={shop?.default_tax_rate ?? '0'} defaultTermsDays={String(shop?.default_payment_terms_days ?? 30)}
         isPending={invoice.isPending} error={invoice.error} onSubmit={invoice.submit} />
       <FollowupReminderDialog conflict={state.followupConflict} />

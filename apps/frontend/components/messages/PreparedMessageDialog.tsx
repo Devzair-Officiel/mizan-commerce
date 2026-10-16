@@ -3,6 +3,7 @@
 import { useId, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
 import { useIsAdmin } from '@/lib/hooks/useMe';
@@ -34,12 +35,13 @@ export function PreparedMessageDialog({
 }: PreparedMessageDialogProps) {
   const t = useTranslations('messages.prepared');
   const textareaId = useId();
-  const composed = useComposedMessage(compose);
+  const { can } = usePlanGating();
+  const allowed = can('whatsapp');
+  const composed = useComposedMessage(compose, allowed);
   const [edited, setEdited] = useState<string | null>(null);
   const record = useCreatePreparedMessage({ onError: () => notify.error(t('record_failed')) });
   const isAdmin = useIsAdmin();
-  const { can } = usePlanGating();
-  const canEditTemplates = isAdmin && can('whatsapp');
+  const canEditTemplates = isAdmin && allowed;
 
   const message = edited ?? composed.data?.message ?? '';
   const template = composed.data?.template_type ?? compose.template ?? 'free';
@@ -57,6 +59,9 @@ export function PreparedMessageDialog({
     });
     onClose();
   }
+
+  // Découverte : le geste WhatsApp ouvre la carte de mise à niveau.
+  if (!allowed) return <UpgradeSheet open onClose={onClose} feature="whatsapp" title={t('title')} />;
 
   return (
     <BottomSheet open onClose={onClose} title={t('title')}>

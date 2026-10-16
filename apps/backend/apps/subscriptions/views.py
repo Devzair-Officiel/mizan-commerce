@@ -1,14 +1,14 @@
 """Endpoints REST de gestion d'abonnement.
 
 URS-100 — Permet au frontend d'afficher le plan courant (essai/payant/gratuit)
-et au commerçant de résilier (downgrade vers Gratuit). Le passage à un plan
+et au commerçant de résilier (downgrade vers Découverte). Le passage à un plan
 payant via cette API est volontairement bloqué : il passera par Stripe Checkout
 quand la facturation sera branchée.
 """
 
 from __future__ import annotations
 
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -16,8 +16,12 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import IsShopAdmin, get_shop
 
-from .models import Subscription
-from .serializers import SubscriptionChangeSerializer, SubscriptionSerializer
+from .models import Subscription, SubscriptionPlan
+from .serializers import (
+    SubscriptionChangeSerializer,
+    SubscriptionPlanSerializer,
+    SubscriptionSerializer,
+)
 from .services import downgrade_to_free
 
 
@@ -47,7 +51,7 @@ class SubscriptionCurrentView(APIView):
 
 
 class SubscriptionChangeView(APIView):
-    """POST /api/subscriptions/change/ — change le plan (downgrade Gratuit seul).
+    """POST /api/subscriptions/change/ — change le plan (downgrade Découverte seul).
 
     Admin only : un staff ne peut pas résilier la boutique sous ses pieds.
     """
@@ -63,3 +67,16 @@ class SubscriptionChangeView(APIView):
             SubscriptionSerializer(subscription).data,
             status=status.HTTP_200_OK,
         )
+
+
+class SubscriptionPlanListView(generics.ListAPIView):
+    """GET /api/subscriptions/plans/ — grille des formules actives.
+
+    Catalogue de la plateforme, commun à toutes les boutiques (pas de `shop_id`) :
+    la page Abonnement y lit les prix plutôt que de les coder en dur.
+    """
+
+    permission_classes = (IsAuthenticated,)
+    serializer_class = SubscriptionPlanSerializer
+    pagination_class = None
+    queryset = SubscriptionPlan.objects.filter(is_active=True).order_by('price_amount')

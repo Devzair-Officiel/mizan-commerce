@@ -128,16 +128,16 @@ class Command(BaseCommand):
             name="La Boutique de Youssef", currency="EUR", country="FR"
         )
         ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
-        # Boutique+ : la boutique a une employée (multi_user) et une page publique.
+        # Boutique : la boutique a une employée (multi_user) et une page publique.
         seed_subscription(
             shop=shop_fr,
-            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE,
             status=Subscription.STATUS_ACTIVE,
         )
         if youssef.trial_consumed_at is None:
             youssef.trial_consumed_at = timezone.now()
             youssef.save(update_fields=["trial_consumed_at", "updated_at"])
-        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (plan Boutique+)")
+        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (formule Boutique)")
 
         sara = UserFactory(
             email="sara@example.com",
@@ -225,14 +225,14 @@ class Command(BaseCommand):
         ShopMemberFactory(shop=shop_ma, user=amira, role="owner")
         seed_subscription(
             shop=shop_ma,
-            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE,
             status=Subscription.STATUS_TRIALING,
             period_end=timezone.now() + timedelta(days=14),
         )
         if amira.trial_consumed_at is None:
             amira.trial_consumed_at = timezone.now()
             amira.save(update_fields=["trial_consumed_at", "updated_at"])
-        self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name} (essai Boutique+ 14j)")
+        self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name} (essai Boutique 14j)")
 
         def seed_product_ma(
             *, name, selling_price, purchase_price, low_stock_threshold, sku
@@ -352,7 +352,7 @@ class Command(BaseCommand):
         ShopMemberFactory(shop=shop_vide, user=vide, role="owner")
         seed_subscription(
             shop=shop_vide,
-            plan_code=SubscriptionPlan.CODE_BOUTIQUE_PLUS,
+            plan_code=SubscriptionPlan.CODE_BOUTIQUE,
             status=Subscription.STATUS_TRIALING,
             period_end=timezone.now() + timedelta(days=14),
         )
@@ -365,7 +365,7 @@ class Command(BaseCommand):
             shop_vide.save(update_fields=["onboarding_completed_at", "updated_at"])
         # Email non vérifié : email_verified_at reste None → bandeau de confirmation
         self.stdout.write(
-            f"  ✓ Boutique VIDE : {shop_vide.name} (essai Boutique+ 14j, email non vérifié)"  # noqa: E501
+            f"  ✓ Boutique VIDE : {shop_vide.name} (essai Boutique 14j, email non vérifié)"  # noqa: E501
         )
 
         # ── Boutique 4 — Samira (Services, EUR) ─────────────────────
@@ -379,7 +379,7 @@ class Command(BaseCommand):
         ShopMemberFactory(shop=shop_services, user=samira, role='owner')
         seed_subscription(
             shop=shop_services,
-            plan_code=SubscriptionPlan.CODE_PRO,
+            plan_code=SubscriptionPlan.CODE_SOLO,
             status=Subscription.STATUS_ACTIVE,
         )
         if samira.trial_consumed_at is None:
@@ -545,14 +545,14 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
         self.stdout.write("  Comptes :")
-        self.stdout.write("    youssef@example.com / Mizan1234!  (Pro actif)")
+        self.stdout.write("    youssef@example.com / Mizan1234!  (Boutique actif)")
         self.stdout.write("    sara@example.com    / Mizan1234!  (Staff FR)")
-        self.stdout.write("    amira@example.ma    / Mizan1234!  (essai Boutique+ MA)")
+        self.stdout.write("    amira@example.ma    / Mizan1234!  (essai Boutique MA)")
         self.stdout.write(
-            "    vide@example.com    / Mizan1234!  (essai Boutique+, accueil vide)"
+            "    vide@example.com    / Mizan1234!  (essai Boutique, accueil vide)"
         )
-        self.stdout.write("    services@example.com / Mizan1234!  (Pro actif, services)")  # noqa: E501
-        self.stdout.write("    e2e@example.com     / Mizan1234!  (Boutique+, audits Playwright)")  # noqa: E501
+        self.stdout.write("    services@example.com / Mizan1234!  (Solo actif, services)")  # noqa: E501
+        self.stdout.write("    e2e@example.com     / Mizan1234!  (Boutique, audits Playwright)")  # noqa: E501
         self.stdout.write("    e2e-staff@example.com / Mizan1234!  (Staff audits)")
         self.stdout.write("    admin@mizan.dev     / Admin1234!  (superadmin)")
         self.stdout.write(f"  Boutique FR — commandes : {fr_status}")

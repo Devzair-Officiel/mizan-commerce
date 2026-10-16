@@ -30,9 +30,10 @@ docker compose run --rm e2e npm run audit:invoices            # factures : liste
 docker compose run --rm e2e npm run audit:scroll-lock         # fenêtres et menus enchaînés : la page défile toujours
 docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-tête teintées : fond muted, contrastes ≥ 4,5:1
 docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »
-docker compose run --rm e2e npm run audit:stock-entry-plan    # entrée de stock en Pro : carte Boutique+ sur l'onglet facture, aucune requête OCR
-docker compose run --rm e2e npm run audit:account-menu        # menu compte : badge d'abonnement (essai, Pro, essai terminé) et raccourci clair/sombre du header
+docker compose run --rm e2e npm run audit:stock-entry-plan    # entrée de stock en Solo : carte Boutique sur l'onglet facture, aucune requête OCR
+docker compose run --rm e2e npm run audit:account-menu        # menu compte : badge d'abonnement (essai, Solo, essai terminé) et raccourci clair/sombre du header
 docker compose run --rm e2e npm run audit:sidebar             # sidebar desktop : déployée sans défilement à 1440×900, survol décalé (RTL), « ⋯ » du pied, bouton de bord et Ctrl+B, rail, flyout (survol, clavier, RTL), préférence gardée sur le compte
+docker compose run --rm e2e npm run audit:usage               # jauges d'usage en Découverte (fr clair 1440, ar sombre 360) : bandeau ambre puis rouge, « Nouvelle commande » ouvre la carte Solo, jauges de l'abonnement
 docker compose run --rm -e ONLY=clients,articles e2e npm run audit:pages   # écrans choisis
 docker compose run --rm --no-deps e2e npm run audit:stock     # sans remise à zéro : garde les données actuelles
 docker compose exec backend python manage.py reset_audit_shop # remise à zéro seule, à la main
@@ -50,7 +51,7 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 
 ## Compte et boutique d'audit
 
-- `e2e@example.com` possède sa propre boutique, « Boutique Audit » (et `e2e2@`, `e2e3@`… « Boutique Audit 2 », « 3 »…, identiques, pour les audits lancés en parallèle) (France, EUR, articles et services, vente sur place, Boutique+), avec quelques articles, services, clients et commandes (`apps/backend/apps/core/management/commands/_seed_e2e.py`). « Nadia Relance » a une commande impayée : l'audit y teste « Relancer ».
+- `e2e@example.com` possède sa propre boutique, « Boutique Audit » (et `e2e2@`, `e2e3@`… « Boutique Audit 2 », « 3 »…, identiques, pour les audits lancés en parallèle) (France, EUR, articles et services, vente sur place, Boutique), avec quelques articles, services, clients et commandes (`apps/backend/apps/core/management/commands/_seed_e2e.py`). `e2e-invoices@example.com` (« Boutique Audit Factures », identique) est réservé à `audit-invoices`, hors emplacements : il compte exactement ses factures, que celles d'`invoice-settings` et d'`order-numbers` ne doivent pas grossir. « Nadia Relance » a une commande impayée : l'audit y teste « Relancer ».
 - Les audits créent tout ce dont ils ont besoin **dans cette boutique**, jamais dans celles des autres comptes de démo ; l'audit du formulaire client vérifie à la fin qu'aucun client de test n'existe dans la boutique de Youssef.
 - Ils restent **relançables plusieurs fois de suite** : ce qu'ils créent est archivé ou supprimé à la fin, et ce qu'ils modifient est remis en place au début.
 - **Données de départ connues** : `docker compose run --rm e2e` lance d'abord le service `e2e-reset` (`python manage.py reset_audit_shop`, profil `audit`), qui supprime les boutiques dont un compte d'audit est propriétaire puis recrée une « Boutique Audit » par emplacement et ses données de départ, comme `seed_data`. Les autres boutiques ne sont pas touchées. Mêmes gardes que `seed_data` : `DEBUG` ou `ALLOW_SEED=1`. Un audit lancé seul repart aussi de ces données ; `--no-deps` les garde telles quelles (le frontend doit alors déjà tourner).

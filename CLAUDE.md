@@ -55,7 +55,7 @@ docker compose up -d
 docker compose run --rm e2e                              # tous les audits, 3 à la fois (AUDIT_JOBS), en smoke (1440 fr clair + 360 ar sombre), boutiques d'audit remises à zéro avant
 docker compose run --rm e2e npm run audit -- sales scroll-lock  # un audit ou une liste (remise à zéro aussi ; --no-deps pour garder les données)
 AUDIT_MATRIX=full docker compose run --rm e2e            # les 8 configurations (fr/ar × clair/sombre × 1440/360)
-docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@example.com)
+docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@, e2e-invoices@example.com)
 ```
 
 ## Code rules — Backend (Python / Django)

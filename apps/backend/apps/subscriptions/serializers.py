@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from .limits import UsageCounter, shop_usage
 from .models import Subscription, SubscriptionPlan
 
 
@@ -9,7 +10,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'code', 'name', 'description',
             'price_amount', 'currency', 'billing_period',
-            'max_products', 'max_orders_per_month',
+            'max_products', 'max_orders_per_month', 'max_customers', 'max_members',
             'features_json', 'is_active',
         )
         read_only_fields = fields
@@ -26,6 +27,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     plan = SubscriptionPlanSerializer(read_only=True)
     effective_plan_code = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
+    usage = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscription
@@ -36,9 +38,14 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'is_trial_expired',
             'effective_plan_code',
             'days_remaining',
+            'usage',
             'created_at', 'updated_at',
         )
         read_only_fields = fields
+
+    def get_usage(self, obj: Subscription) -> dict[str, UsageCounter]:
+        """Compteurs des jauges face aux limites de la formule effective."""
+        return shop_usage(obj.shop)
 
     def get_effective_plan_code(self, obj: Subscription) -> str:
         return obj.shop.effective_plan.code
@@ -63,17 +70,11 @@ class SubscriptionChangeSerializer(serializers.Serializer):
 
     Tant que Stripe n'est pas branché, seul un **downgrade vers `free`** est
     autorisé (résiliation manuelle de l'essai ou du plan payant). Tout autre
-    changement renvoie 400 — pas question d'offrir Pro ou Boutique+
+    changement renvoie 400 — pas question d'offrir une formule payante
     gratuitement par cet endpoint.
     """
 
-    plan_code = serializers.ChoiceField(
-        choices=[
-            SubscriptionPlan.CODE_FREE,
-            SubscriptionPlan.CODE_PRO,
-            SubscriptionPlan.CODE_BOUTIQUE_PLUS,
-        ],
-    )
+    plan_code = serializers.ChoiceField(choices=SubscriptionPlan.TIER_ORDER)
 
     def validate_plan_code(self, value: str) -> str:
         if value != SubscriptionPlan.CODE_FREE:

@@ -15,6 +15,8 @@ from apps.public_pages.factories import PublicPageFactory
 from apps.public_pages.services import upload_page_logo
 from apps.shops.models import ShopMember
 from apps.shops.services import delete_shop_logo, upload_shop_logo
+from apps.subscriptions.models import SubscriptionPlan
+from apps.subscriptions.test_utils import attach_subscription
 from .colors import accessible_color, inspect_logo, white_contrast
 from .models import Invoice, InvoiceSequence
 from .pdf import build_invoice_pdf
@@ -74,6 +76,7 @@ def client(context):
 @pytest.mark.django_db
 def test_settings_validate_and_isolate_shop(client, context) -> None:
     _, shop, _, _ = context
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
     _, other, _, _ = _make_shop('other-settings@example.com')
     url = reverse('invoice-settings')
     assert client.get(url).status_code == 200
@@ -131,6 +134,7 @@ def test_invalid_settings_are_rejected(client, payload: dict) -> None:
 )
 def test_settings_and_example_permissions(context, role: str, expected: int) -> None:
     user, shop, _, _ = context
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
     ShopMember.objects.filter(shop=shop, user=user).update(
         role=role, permissions=['invoices']
     )
@@ -146,6 +150,95 @@ def test_settings_and_example_permissions(context, role: str, expected: int) -> 
         == expected
     )
     assert client.get(reverse('invoice-example')).status_code == expected
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'plan', [SubscriptionPlan.CODE_FREE, SubscriptionPlan.CODE_SOLO]
+)
+@pytest.mark.parametrize(
+    'payload', [{'invoice_color_mode': 'custom'}, {'invoice_color': '#9c4f2c'}]
+)
+def test_color_is_refused_below_boutique(client, context, plan, payload) -> None:
+    _, shop, _, _ = context
+    attach_subscription(shop, plan_code=plan)
+    response = client.patch(reverse('invoice-settings'), payload, format='json')
+    assert response.status_code == 400
+    assert response.data['code'] == 'plan_feature_required'
+    assert response.data['feature'] == 'invoice_branding'
+    shop.refresh_from_db()
+    assert (shop.invoice_color_mode, shop.invoice_color) == ('automatic', '#367762')
+
+
+@pytest.mark.django_db
+def test_unchanged_color_keeps_other_settings_savable(client, context) -> None:
+    """Le formulaire renvoie tous ses champs : une couleur inchangée ne bloque rien."""
+    _, shop, _, _ = context
+    response = client.patch(
+        reverse('invoice-settings'),
+        {
+            'invoice_color_mode': shop.invoice_color_mode,
+            'invoice_color': shop.invoice_color.upper(),
+            'siret': '91234567800012',
+        },
+        format='json',
+    )
+    assert response.status_code == 200, response.data
+    shop.refresh_from_db()
+    assert shop.siret == '91234567800012'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'plan', [SubscriptionPlan.CODE_BOUTIQUE, SubscriptionPlan.CODE_COMMERCE_PLUS]
+)
+def test_color_is_allowed_from_boutique(client, context, plan) -> None:
+    _, shop, _, _ = context
+    attach_subscription(shop, plan_code=plan)
+    response = client.patch(
+        reverse('invoice-settings'),
+        {'invoice_color_mode': 'custom', 'invoice_color': '#9c4f2c'},
+        format='json',
+    )
+    assert response.status_code == 200, response.data
+    shop.refresh_from_db()
+    assert (shop.invoice_color_mode, shop.invoice_color) == ('custom', '#9c4f2c')
+
+
+@pytest.mark.django_db
+def test_color_gate_follows_the_member_shop(context) -> None:
+    """La formule Boutique d'une autre boutique ne débloque rien pour la sienne."""
+    _, shop, _, _ = context
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
+    other_user, other, _, _ = _make_shop('other-branding@example.com')
+    api = APIClient()
+    api.force_authenticate(other_user)
+    payload = {'invoice_color_mode': 'custom', 'invoice_color': '#9c4f2c'}
+    assert api.patch(reverse('invoice-settings'), payload, format='json').status_code == 400  # noqa: E501
+    other.refresh_from_db()
+    shop.refresh_from_db()
+    assert other.invoice_color_mode == 'automatic'
+    assert shop.invoice_color_mode == 'automatic'
+
+
+@pytest.mark.django_db
+def test_pdf_ignores_branding_saved_before_downgrade(context) -> None:
+    """Couleur et logo restent en base après un retour en Solo : facture neutre."""
+    user, shop, variant, customer = context
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
+    update_invoice_settings(shop, {'invoice_color_mode': 'custom', 'invoice_color': '#9c4f2c'})  # noqa: E501
+    shop.refresh_from_db()
+    type(shop).objects.filter(pk=shop.pk).update(logo_object_key='shops/logo.png')
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_SOLO)
+    shop.refresh_from_db()
+    invoice = issue_invoice_from_order(
+        shop=shop, order=_make_order_with_items(shop, user, variant, customer)
+    )
+    assert invoice.presentation['color'] == ''
+    assert invoice.presentation['logo_object_key'] == ''
+    example = example_invoice(shop, 'fr')
+    assert example.presentation['color'] == ''
+    assert example.presentation['logo_object_key'] == ''
 
 
 @pytest.mark.django_db
@@ -175,6 +268,7 @@ def test_example_is_read_only_and_uses_saved_settings(client, context) -> None:
 @pytest.mark.django_db
 def test_every_printed_setting_is_frozen_even_pdf(context) -> None:
     user, shop, variant, customer = context
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
     page = PublicPageFactory(shop=shop, tagline='Prêt-à-porter')
     shop = update_invoice_settings(
         shop,
@@ -301,6 +395,8 @@ def test_account_summary_is_net_isolated_and_frozen(context) -> None:
 @pytest.mark.django_db
 def test_logo_shared_and_kept_when_referenced(context, settings) -> None:
     user, shop, variant, customer = context
+    # Le logo n'apparaît sur la facture qu'à partir de la formule Boutique.
+    attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
     settings.AWS_S3_ENDPOINT_URL = 'https://storage.example.com'
     settings.AWS_ACCESS_KEY_ID = 'test'
     page = PublicPageFactory(shop=shop)

@@ -5,10 +5,12 @@ import { useTranslations } from 'next-intl';
 import { UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { FeatureGate } from '@/components/subscription/FeatureGate';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import { useMe } from '@/lib/hooks/useMe';
+import { useLimitGuard } from '@/lib/hooks/usePlanUsage';
 import {
   useShopMembers,
   useDeleteShopMember,
@@ -30,6 +32,7 @@ export default function TeamPage() {
 function TeamContent() {
   const t = useTranslations('team');
   const [formMode, setFormMode] = useState<FormMode | null>(null);
+  const memberGuard = useLimitGuard('members');
 
   return (
     <>
@@ -40,7 +43,10 @@ function TeamContent() {
 
         <Button
           type="button"
-          onClick={() => setFormMode({ kind: 'create' })}
+          onClick={(event) => {
+            memberGuard.onClick(event);
+            if (!event.defaultPrevented) setFormMode({ kind: 'create' });
+          }}
           className="self-start"
         >
           <UserPlus className="h-4 w-4" />
@@ -57,11 +63,12 @@ function TeamContent() {
           mode={formMode}
         />
       )}
+      <UpgradeSheet {...memberGuard.sheet} />
     </>
   );
 }
 
-/** Hors Boutique+ : les membres restent visibles et peuvent être retirés, pas modifiés. */
+/** Hors Boutique : les membres restent visibles et peuvent être retirés, pas modifiés. */
 function ReadOnlyMembers() {
   const t = useTranslations('team');
   return (
