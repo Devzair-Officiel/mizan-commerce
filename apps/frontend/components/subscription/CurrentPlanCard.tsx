@@ -16,22 +16,28 @@ interface CurrentPlanCardProps {
   onChoosePlan: (code: PlanCode, period: BillingPeriod) => void;
 }
 
-/** « Jour 3 sur 14 » et sa barre. */
-function TrialBar({ day, total }: { day: number; total: number }) {
+/** Barre d'essai en ambre, « Jour 3 sur 14 » dessous et la date de fin en regard. */
+function TrialBar({ day, total, end }: { day: number; total: number; end: string }) {
   const t = useTranslations('settings.subscription');
   const labelId = useId();
   return (
-    <div className="flex flex-col gap-1.5">
-      <p id={labelId} className="text-[0.8125rem] font-medium tabular-nums text-foreground">{t('trial_day', { day, total })}</p>
+    <div className="flex max-w-96 flex-col gap-1.5" data-trial-bar>
       <div role="progressbar" aria-labelledby={labelId} aria-valuenow={day} aria-valuemin={1} aria-valuemax={total}
-        className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((day / total) * 100)}%` }} />
+        className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-amber-500 dark:bg-amber-400" style={{ width: `${Math.round((day / total) * 100)}%` }} />
+      </div>
+      <div className="flex justify-between gap-3 text-xs tabular-nums text-muted-foreground">
+        <span id={labelId}>{t('trial_day', { day, total })}</span>
+        <span>{end}</span>
       </div>
     </div>
   );
 }
 
-/** « Votre formule » : nom, essai en cours ou formule active, et en essai le seul CTA « Garder Boutique ». */
+/**
+ * « Votre formule », pleine largeur : nom, essai en cours ou formule active ; en essai, la barre ambre
+ * et le seul CTA « Garder Boutique », à droite sur desktop, sous le texte sur mobile.
+ */
 export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: CurrentPlanCardProps) {
   const t = useTranslations('settings.subscription');
   const formatDate = useFormatDate();
@@ -41,11 +47,12 @@ export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: C
   const price = plan ? formatMoney(plan.price_amount, plan.currency, { maximumFractionDigits: 0 }) : '';
   const end = subscription.current_period_end;
   const progress = isTrial ? trialProgress(subscription) : null;
+  const showCta = isTrial && plan;
 
   return (
     <SectionCard title={t('current_plan')}>
-      <div className="flex flex-col gap-4 p-5" data-current-plan={code}>
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8" data-current-plan={code}>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xl font-semibold text-foreground">{name}</p>
             {isTrial && (
@@ -59,15 +66,19 @@ export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: C
               ? t('trial_left', { days: Math.max(0, subscription.days_remaining ?? 0), date: formatDate(end, { day: 'numeric', month: 'long', year: 'numeric' }) })
               : code === 'free' ? t('free_forever') : t('plan_active', { name, price })}
           </p>
+          {progress && end && (
+            <div className="mt-3"><TrialBar {...progress} end={formatDate(end, { day: 'numeric', month: 'short' })} /></div>
+          )}
+          {!showCta && code !== 'free' && <p className="mt-2 text-xs text-muted-foreground">{t('no_commitment')}</p>}
         </div>
-        {progress && <TrialBar {...progress} />}
-        {isTrial && plan && (
-          <Button type="button" onClick={() => onChoosePlan(code, 'month')}
-            className="h-11 w-full rounded-full px-5 active:scale-[0.98] sm:w-auto sm:self-start">
-            {t('keep_cta', { name, price })}
-          </Button>
+        {showCta && (
+          <div className="flex flex-col gap-2 text-center lg:w-72 lg:shrink-0">
+            <Button type="button" onClick={() => onChoosePlan(code, 'month')} className="h-11 w-full rounded-full px-5 active:scale-[0.98]">
+              {t('keep_cta', { name, price })}
+            </Button>
+            <p className="text-xs text-muted-foreground">{t('no_commitment')}</p>
+          </div>
         )}
-        {code !== 'free' && <p className="text-xs text-muted-foreground">{t('no_commitment')}</p>}
       </div>
     </SectionCard>
   );

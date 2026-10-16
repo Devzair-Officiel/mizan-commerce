@@ -62,11 +62,16 @@ export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
 
   return (
     <article id={`plan-card-${plan.code}`} aria-labelledby={`plan-name-${plan.code}`} data-plan={plan.code}
-      className={cn('flex flex-col gap-4 rounded-2xl border bg-card p-5', recommended ? 'border-primary ring-1 ring-primary' : 'border-border', hiddenOnMobile && 'max-lg:hidden')}>
+      className={cn('relative flex flex-col gap-4 rounded-2xl border bg-card p-5', recommended ? 'border-primary ring-1 ring-primary' : 'border-border', hiddenOnMobile && 'max-lg:hidden')}>
+      {/* Pastille posée à cheval sur le bord supérieur, côté début de ligne (à droite en arabe). */}
+      {recommended && (
+        <span className="absolute -top-3 inset-s-5 rounded-full bg-amber-400 px-3 py-0.5 text-xs font-bold text-amber-950 dark:bg-amber-500" data-recommended>
+          {t('recommended')}
+        </span>
+      )}
       <div className="flex flex-col gap-1">
-        <div className="flex min-h-6 items-center justify-between gap-2">
+        <div className="flex min-h-6 items-center gap-2">
           <h3 id={`plan-name-${plan.code}`} className="text-base font-semibold text-foreground">{t(`plans.${plan.code}.name`)}</h3>
-          {recommended && <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">{t('recommended')}</span>}
         </div>
         <p className="text-sm text-muted-foreground lg:min-h-10">{t(`plans.${plan.code}.description`)}</p>
       </div>

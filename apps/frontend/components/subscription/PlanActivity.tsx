@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { PlanUsage } from '@/components/subscription/PlanUsage';
-import { SectionCard } from '@/components/ui/SectionCard';
 import type { Subscription, SubscriptionPlan, UsageCounter, UsageKey } from '@/lib/hooks/useSubscription';
 
 interface PlanActivityProps {
@@ -39,17 +38,19 @@ export function PlanActivity({ subscription, freePlan }: PlanActivityProps) {
   if (!usage) return null;
 
   return (
-    <SectionCard title={t('activity_title')} rightSlot={onFree ? undefined : (
-      <span className="text-muted-foreground">{t('activity_limits')}</span>
-    )}>
-      <div className="flex flex-col gap-4 p-5" data-activity={onFree ? 'plan' : 'free_limits'}>
-        <PlanUsage usage={withoutSoloTeam(usage)} />
+    <section aria-labelledby="activity-title" className="flex flex-col gap-3" data-activity={onFree ? 'plan' : 'free_limits'}>
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h2 id="activity-title" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('activity_title')}</h2>
+          {!onFree && <span className="text-[0.8125rem] font-medium text-muted-foreground">{t('activity_limits')}</span>}
+        </div>
         {!onFree && (
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-2xl text-sm text-muted-foreground">
             {t('activity_after', { status: subscription.status === 'trialing' ? 'trialing' : 'paid' })}
           </p>
         )}
       </div>
-    </SectionCard>
+      <PlanUsage usage={withoutSoloTeam(usage)} />
+    </section>
   );
 }

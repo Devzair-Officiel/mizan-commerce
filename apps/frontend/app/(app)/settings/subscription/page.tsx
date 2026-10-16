@@ -65,11 +65,9 @@ export default function SubscriptionPage() {
       )}
       {sub && grid && (
         <div className="flex flex-col gap-6 px-4 pt-4 pb-32">
-          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-            <CurrentPlanCard subscription={sub} plan={grid.find((plan) => plan.code === sub.effective_plan_code)}
-              isTrial={isTrial} onChoosePlan={onChoosePlan} />
-            <PlanActivity subscription={sub} freePlan={grid.find((plan) => plan.code === 'free')} />
-          </div>
+          <CurrentPlanCard subscription={sub} plan={grid.find((plan) => plan.code === sub.effective_plan_code)}
+            isTrial={isTrial} onChoosePlan={onChoosePlan} />
+          <PlanActivity subscription={sub} freePlan={grid.find((plan) => plan.code === 'free')} />
           <PlanPicker plans={grid} subscription={sub} isTrial={isTrial} onChoosePlan={onChoosePlan} />
           {sub.effective_plan_code !== 'free' && <CancelPlan />}
         </div>

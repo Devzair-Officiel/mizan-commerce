@@ -1683,7 +1683,13 @@
       "orders_this_month": "{count} / {limit} ventes ce mois",
       "customers": "{count} / {limit} clients actifs",
       "members": "{count} / {limit} membres",
-      "level": "{level, select, near {Bientôt à la limite} reached {Limite atteinte} other {Au-delà de la limite}}"
+      "level": "{level, select, ok {Dans la limite} near {Bientôt à la limite} reached {Limite atteinte} other {Au-delà de la limite}}",
+      "short": {
+        "orders_this_month": "Ventes ce mois",
+        "products": "{kind, select, products {Articles actifs} services {Services actifs} other {Articles et services actifs}}",
+        "customers": "Clients actifs",
+        "members": "Membres de l'équipe"
+      }
     },
     "page": {
       "title": "Paramètres boutique",

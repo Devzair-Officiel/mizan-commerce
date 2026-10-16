@@ -2,11 +2,13 @@
  * Audit de la page Paramètres → Abonnement, en français clair à 1440px et en arabe sombre à 360px
  * (quelle que soit la matrice), dans trois situations :
  * - essai Boutique (jour 4 sur 14) : « Votre formule » avec la barre « Jour 4 sur 14 » et un seul CTA
- *   « Garder Boutique » ; « Votre activité » comparée aux plafonds Découverte (ambre, rouge, niveau écrit),
- *   sans jauge « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
+ *   « Garder Boutique », à droite sur desktop ; « Votre activité » comparée aux plafonds Découverte :
+ *   une rangée de cartes (2 colonnes sur mobile), statut écrit (« Dans la limite », ambre, rouge),
+ *   sans carte « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
  * - Découverte : jauges de la formule, pas de résiliation ;
  * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
- * Partout : 4 cartes côte à côte sur desktop, une par onglet sur mobile (onglet par défaut : formule
+ * Partout : 4 cartes côte à côte sur desktop, pastille « Recommandé » à cheval sur le haut de la carte
+ * Boutique, côté début de ligne (à droite en arabe), une par onglet sur mobile (onglet par défaut : formule
  * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre la fenêtre
  * « paiement pas encore activé » sans aucune requête au serveur ; la résiliation demande confirmation.
  * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) : rien n'est résilié.
@@ -52,7 +54,7 @@ async function routePlan(ctx, state) {
 const visibleCards = (page) => page.locator('[data-plan]').filter({ visible: true })
   .evaluateAll((els) => els.map((el) => el.dataset.plan));
 
-async function checkCurrent(page, locale, label, mode) {
+async function checkCurrent(page, locale, label, mode, mobile) {
   const card = page.locator('[data-current-plan]');
   const expected = { trial: 'boutique', free: 'free', paid: 'solo' }[mode];
   const buttons = await card.getByRole('button').allTextContents();
@@ -63,29 +65,60 @@ async function checkCurrent(page, locale, label, mode) {
     : buttons.length === 0 && text.includes(mode === 'free' ? msg(locale, 'settings.subscription.free_forever') : name);
   report.check(await card.getAttribute('data-current-plan') === expected && ok,
     `${label} : « Votre formule » ${name}${mode === 'trial' ? ', jour 4 sur 14, un seul CTA « Garder »' : ', sans CTA'} (${buttons.join(' | ')})`);
+  if (mode !== 'trial') return;
+  const bar = await card.locator('[data-trial-bar]').boundingBox();
+  const cta = await card.getByRole('button').boundingBox();
+  const beside = cta.x >= bar.x + bar.width || cta.x + cta.width <= bar.x;
+  report.check(mobile ? cta.y > bar.y + bar.height : beside,
+    `${label} : CTA « Garder » ${mobile ? 'sous la barre d\'essai' : 'en regard du texte'}`);
 }
 
-async function checkActivity(page, locale, label, mode, members) {
+/** Cartes de « Votre activité » : une rangée sur desktop, deux colonnes sur mobile. */
+async function rowsOf(activity) {
+  const boxes = await activity.locator('[data-usage]').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+  return [...new Set(boxes)].map((top) => boxes.filter((t) => t === top).length).join('+');
+}
+
+async function checkActivity(page, locale, label, mode, members, mobile) {
   const activity = page.locator('[data-activity]');
   const gauges = await activity.locator('[data-usage]').evaluateAll((els) => els.map((el) => `${el.dataset.usage}:${el.dataset.level}`));
   const level = (value) => fmt(locale, 'settings.usage.level', { level: value });
   const team = members > 1;
   const text = await activity.textContent();
+  const products = await activity.locator('[data-usage=products]').textContent();
+  const orders = await activity.locator('[data-usage=orders_this_month]').textContent();
+  const limits = mode !== 'free' ? text.includes(msg(locale, 'settings.subscription.activity_limits')) : true;
   report.check(await activity.getAttribute('data-activity') === (mode === 'free' ? 'plan' : 'free_limits')
     && gauges.join(',') === `orders_this_month:near,products:ok,customers:reached${team ? ',members:reached' : ''}`
-    && text.includes(level('near')) && text.includes(level('reached')) && text.includes(level('over')) === team,
-  `${label} : « Votre activité » ${mode === 'free' ? 'de la formule' : 'face aux plafonds Découverte'}, `
-    + `${team ? `équipe de ${members} au-delà de la limite` : 'sans jauge « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
+    && products.includes(level('ok')) && text.includes(level('near')) && text.includes(level('reached'))
+    && text.includes(level('over')) === team && orders.includes('12') && orders.includes('/ 15') && limits,
+  `${label} : « Votre activité » ${mode === 'free' ? 'de la formule' : 'face aux plafonds Découverte'}, « ${level('ok')} » écrit, `
+    + `${team ? `équipe de ${members} au-delà de la limite` : 'sans carte « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
+  const rows = await rowsOf(activity);
+  const expected = mobile ? (team ? '2+2' : '2+1') : (team ? '4' : '3');
+  report.check(rows === expected, `${label} : cartes d'activité ${mobile ? 'sur deux colonnes' : 'en une rangée'} (${rows})`);
+}
+
+/** « Recommandé » à cheval sur le bord supérieur de la carte Boutique, côté début de ligne. */
+async function checkBadge(page, locale, label) {
+  const card = page.locator('[data-plan=boutique]');
+  if (!(await card.isVisible())) return;
+  const pill = card.locator('[data-recommended]');
+  const [c, p] = [await card.boundingBox(), await pill.boundingBox()];
+  const rtl = locale === 'ar';
+  const startSide = rtl ? c.x + c.width - (p.x + p.width) < c.width / 3 : p.x - c.x < c.width / 3;
+  report.check(p.y < c.y && p.y + p.height > c.y && startSide && (await pill.textContent()) === msg(locale, 'settings.subscription.recommended'),
+    `${label} : « ${msg(locale, 'settings.subscription.recommended')} » flotte sur le bord supérieur de Boutique, ${rtl ? 'à droite' : 'à gauche'}`);
 }
 
 /** Même situation avec une équipe de plusieurs membres : la jauge « équipe » apparaît. */
-async function checkTeam(page, locale, label, mode, state) {
+async function checkTeam(page, locale, label, mode, state, mobile) {
   state.members = TEAM;
   try {
     await page.reload();
     await page.waitForLoadState('networkidle');
     await page.locator('[data-activity]').waitFor({ timeout: 10000 });
-    await checkActivity(page, locale, `${label} équipe`, mode, TEAM);
+    await checkActivity(page, locale, `${label} équipe`, mode, TEAM, mobile);
   } finally {
     state.members = USAGE.members;
   }
@@ -100,8 +133,6 @@ async function checkCards(page, locale, label, mode, mobile) {
     await page.getByRole('tab', { name: msg(locale, 'settings.subscription.plans.commerce_plus.name') }).click();
     report.check((await visibleCards(page)).join() === 'commerce_plus', `${label} : l'onglet Commerce+ montre sa carte`);
   }
-  const recommended = page.locator('[data-plan=boutique]').getByText(msg(locale, 'settings.subscription.recommended'), { exact: true });
-  if (!mobile) report.check(await recommended.isVisible(), `${label} : Boutique porte « ${msg(locale, 'settings.subscription.recommended')} »`);
   const current = page.locator(`[data-plan=${mode === 'paid' ? 'solo' : 'free'}]`).getByText(msg(locale, 'settings.subscription.current'), { exact: true });
   if (mode !== 'trial' && !mobile) report.check(await current.isVisible(), `${label} : la carte de la formule en cours porte « Formule actuelle »`);
 }
@@ -167,13 +198,14 @@ for (const [name, locale, theme] of CONFIGS) {
       await page.waitForLoadState('networkidle');
       await page.locator('[data-current-plan]').waitFor({ timeout: 10000 });
       if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/abonnement-${name}-${locale}-${theme}-${mode}.png`, fullPage: true });
-      await checkCurrent(page, locale, label, mode);
-      await checkActivity(page, locale, label, mode, USAGE.members);
+      await checkCurrent(page, locale, label, mode, viewport.mobile);
+      await checkActivity(page, locale, label, mode, USAGE.members, viewport.mobile);
+      await checkBadge(page, locale, label);
       await checkCards(page, locale, label, mode, viewport.mobile);
       await checkYearly(page, locale, label);
       await checkChoose(page, locale, label, requests);
       await checkCancel(page, locale, label, mode);
-      await checkTeam(page, locale, label, mode, state);
+      await checkTeam(page, locale, label, mode, state, viewport.mobile);
     } catch (error) {
       report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
     }

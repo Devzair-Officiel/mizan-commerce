@@ -1683,7 +1683,13 @@
       "orders_this_month": "{count} / {limit} sales this month",
       "customers": "{count} / {limit} active customers",
       "members": "{count} / {limit} members",
-      "level": "{level, select, near {Nearly at the limit} reached {Limit reached} other {Over the limit}}"
+      "level": "{level, select, ok {Within the limit} near {Nearly at the limit} reached {Limit reached} other {Over the limit}}",
+      "short": {
+        "orders_this_month": "Sales this month",
+        "products": "{kind, select, products {Active items} services {Active services} other {Active items and services}}",
+        "customers": "Active customers",
+        "members": "Team members"
+      }
     },
     "page": {
       "title": "Shop settings",

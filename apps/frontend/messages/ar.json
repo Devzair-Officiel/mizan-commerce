@@ -1683,7 +1683,13 @@
       "orders_this_month": "{count} / {limit} مبيعات هذا الشهر",
       "customers": "{count} / {limit} عملاء نشطين",
       "members": "{count} / {limit} أعضاء",
-      "level": "{level, select, near {قريب من الحدّ} reached {تم بلوغ الحدّ} other {تجاوز الحدّ}}"
+      "level": "{level, select, ok {ضمن الحدّ} near {قريب من الحدّ} reached {تم بلوغ الحدّ} other {تجاوز الحدّ}}",
+      "short": {
+        "orders_this_month": "مبيعات هذا الشهر",
+        "products": "{kind, select, products {منتجات نشطة} services {خدمات نشطة} other {منتجات وخدمات نشطة}}",
+        "customers": "عملاء نشطون",
+        "members": "أعضاء الفريق"
+      }
     },
     "page": {
       "title": "إعدادات المتجر",
