@@ -24,16 +24,6 @@ export function Halal() {
                 </p>
               </div>
             </div>
-            <div className="hp">
-              <div className="ic"><SiteIcon name="hands" size={26} color="#e3c987" /></div>
-              <div>
-                <h4>Des partenariats sans ribâ</h4>
-                <p>
-                  Un espace de mise en relation entre porteurs de projets et partenaires, pour financer vos
-                  ambitions sans intérêt.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
         <div className="halal-motif">

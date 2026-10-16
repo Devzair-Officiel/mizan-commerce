@@ -456,6 +456,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] Mon profil (7c-3) : en-tête du compte et vérification d’email, cartes Informations / Mot de passe côte à côte sur desktop et empilées sur mobile, composants et logique existants conservés ; audit `profile`, six maquettes 7c versionnées
     - [x] Pages marketing : grille 4 offres (Pricing, Faq)
     - [x] Pages marketing (7d-2) : largeur globale 1400 px, marges fluides, cartes et notes alignées, pastille Boutique flottante, CTA final et anneaux du sceau contenus sur mobile ; recette aux six largeurs ci-dessous
+    - [x] Pages marketing (7d-3) : 8 cartes cohérentes avec la grille, partenariats et mentions d'attente retirés, section Valeurs recentrée sur la zakat ; contrôle des métadonnées et recette aux quatre largeurs ci-dessous
   - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 
@@ -566,15 +567,17 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 
 - [ ] Fidélité — modèles, services et API dans `apps/backend/apps/loyalty/`, mais aucune interface commerçant ; gating de formule Boutique à raccorder sur ces vues.
 - [ ] Statistiques de ventes — graphique et API présents (`components/dashboard/sales/`, `apps/backend/apps/core/views.py`, `apps/backend/apps/core/services.py`), lot 4 encore en cours ; restriction `sales_stats` à raccorder côté serveur.
-- [ ] Inventaire photo — clé `visual_inventory` seulement ; détection visuelle de la phase V6 non livrée.
-- [ ] QR codes — clé `qr_codes` seulement ; génération, impression et scan de la phase V6 non livrés.
+- [ ] Inventaire photo (Boutique) — promis dans Pricing et Features ; clé `visual_inventory` seulement, détection visuelle de la phase V6 non livrée.
+- [ ] QR codes (Boutique) — promis dans Pricing ; clé `qr_codes` seulement, génération, impression et scan de la phase V6 non livrés.
 - [ ] Page boutique en ligne — code admin et public présent (`apps/backend/apps/public_pages/`, `app/boutique/`, `components/public-page-admin/`) ; phase V3 encore non validée dans ce suivi, recette de publication à terminer.
 - [ ] Modèles de messages — code et audit présents (`components/settings/messages/`, `e2e/audit-message-templates.mjs`), lot 4 encore en cours ; restriction `message_templates` à raccorder côté serveur.
 - [ ] Rôles et permissions — déjà implémentés et cochés en V1, écran Équipe livré en 7c ; confirmer la recette de lancement (gating `multi_user`, limites 1 / 1 / 4 / illimité), sans les présenter comme du code absent.
 - [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
 - [ ] Souscription payante — Stripe Billing et webhooks non livrés ; l'API publique autorise uniquement le retour sur Découverte (`apps/backend/apps/subscriptions/views.py`).
-- [ ] Lecture des factures fournisseurs et exports — code présent (`apps/backend/apps/ocr/`, `apps/backend/apps/customers/views.py`), lots 4/5 encore en cours ; terminer la recette et préciser le périmètre des exports (activité client CSV livrée, exports généraux V4 encore non cochés).
+- [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
+- [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
+- [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 
 ### Vérification des affirmations marketing (lot 7d)
 
@@ -625,8 +628,22 @@ proportionnelle ; « Comment ça marche » conserve sa maquette fixe de 330 × 6
 Cette dernière laisse un espace latéral marqué à 1920 / 2560 px : un réagencement
 du visuel demanderait un lot graphique dédié. Les marges de lecture de la FAQ et
 du CTA final sont intentionnelles. Écart éditorial préexistant hors de ce lot de
-largeur : Features conserve « Bientôt » et les sections Features / How / Halal
-annoncent encore les partenariats ; à réconcilier avec la checklist avant lancement.
+largeur, résolu en 7d-3 : Features conservait une pastille d'attente et les sections
+Features / How / Halal annonçaient encore les partenariats.
+
+Recette 7d-3 du 2026-10-16 : 8 cartes conservées, Factures PDF et Factures fournisseurs
+et inventaire photo conformes au brief ; troisième étape limitée à la page boutique,
+aux messages et aux factures. La section Valeurs ne comporte plus que la zakat,
+avec texte élargi, titre adapté et anneaux séparés du paragraphe sur mobile.
+La promesse « au juste montant » de Problem a aussi été remplacée par une estimation.
+Recherche complète dans les sources marketing et contrôle du titre / de la description
+rendus : aucune mention de partenariat, ribâ ou annonce d'attente. Aucun Open Graph
+ou Twitter spécifique à la landing n'est déclaré ; aucune mention héritée à retirer.
+Recette visuelle et Playwright à 360 / 1024 / 1440 / 1920 px : pas de débordement,
+alignement des tarifs conservé, aucune erreur navigateur. Les fonctions Boutique
+encore non livrées restent bloquantes dans la checklist de lancement ci-dessus.
+Contrôles Docker 7d-3 validés : lint (0 erreur, 7 avertissements préexistants),
+typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 
 ## Légende et bonnes pratiques d'usage
 

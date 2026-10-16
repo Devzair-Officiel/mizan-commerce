@@ -242,11 +242,6 @@
 }
 .mkt .feat h3 { font-size: 21px; }
 .mkt .feat p { margin: 0; font-size: 16px; color: var(--mkt-ink-soft); }
-.mkt .feat .soon {
-  position: absolute; top: 20px; right: 20px;
-  font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--mkt-gold-deep); background: rgba(203,162,74,0.16); padding: 5px 10px; border-radius: 999px;
-}
 
 /* STEPS */
 .mkt .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
@@ -257,8 +252,10 @@
 .mkt .steps-visual { display: flex; justify-content: center; margin-top: 56px; }
 
 /* HALAL */
-.mkt .halal-grid { display: grid; grid-template-columns: 1fr 0.8fr; gap: 56px; align-items: center; }
-.mkt .halal-points { display: flex; flex-direction: column; gap: 24px; margin-top: 34px; }
+.mkt .halal-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 56px; align-items: center; }
+.mkt .halal-grid > div:first-child { width: 100%; max-width: 720px; margin-inline: auto; }
+.mkt .halal-grid h2 { font-size: clamp(34px, 3.6vw, 48px); }
+.mkt .halal-points { max-width: 620px; margin-top: 34px; }
 .mkt .hp { display: flex; gap: 18px; align-items: flex-start; }
 .mkt .hp .ic { width: 52px; height: 52px; border-radius: 14px; background: rgba(227,201,135,0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .mkt .hp h4 { margin: 0 0 5px; font-size: 21px; font-weight: 800; }
@@ -363,7 +360,7 @@
   .mkt .section { padding: 80px 0; }
   .mkt .sec-head { margin-bottom: 40px; }
   .mkt .feat-grid { grid-template-columns: repeat(2, 1fr); }
-  .mkt .halal-grid { grid-template-columns: 1fr; gap: 40px; }
+  .mkt .halal-grid { grid-template-columns: 1fr; gap: 72px; }
   /* Steps/Compare conservent leur grille multi-colonnes en paysage tablette. */
   .mkt .price-grid { gap: 16px; }
   .mkt .plan { padding: 28px 22px; }

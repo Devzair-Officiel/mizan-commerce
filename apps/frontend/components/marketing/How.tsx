@@ -4,7 +4,7 @@ import { AppZakat } from './screens/AppZakat';
 const STEPS = [
   { t: 'Créez votre boutique', d: 'Ajoutez vos produits et vos prix en quelques minutes.' },
   { t: 'Gérez au quotidien', d: 'Stock, commandes, colis, clients et rappels — depuis votre téléphone.' },
-  { t: 'Développez votre activité', d: 'Mini-site public, messages prêts à envoyer et partenariats halal.' },
+  { t: 'Développez votre activité', d: 'Page boutique en ligne, messages prêts à envoyer et factures.' },
 ];
 
 export function How() {

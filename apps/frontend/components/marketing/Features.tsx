@@ -1,10 +1,9 @@
 import { SiteIcon } from './SiteIcon';
 
 type Feat = {
-  ic: 'box' | 'cart' | 'scale' | 'chat' | 'globe' | 'note' | 'hands' | 'scan';
+  ic: 'box' | 'cart' | 'scale' | 'chat' | 'globe' | 'note' | 'scan';
   t: string;
   d: string;
-  soon?: boolean;
 };
 
 const FEATURES: Feat[] = [
@@ -12,10 +11,10 @@ const FEATURES: Feat[] = [
   { ic: 'cart', t: 'Commandes & expédition', d: 'Suivez chaque commande et préparez vos colis sans rien oublier.' },
   { ic: 'scale', t: 'Zakat commerciale', d: 'Estimation automatique de votre zakat, à titre indicatif, d\u2019après vos données.' },
   { ic: 'chat', t: 'Messages WhatsApp prêts', d: 'Réponses et fiches produits prêtes à envoyer en un seul tap.' },
-  { ic: 'globe', t: 'Page web publique', d: 'Un mini-site de présentation de vos produits, prêt à partager.' },
+  { ic: 'globe', t: 'Page boutique en ligne', d: 'Un mini-site de présentation de vos produits, prêt à partager.' },
   { ic: 'note', t: 'Notes & rappels', d: 'Relances, paiements, tâches du jour — rien ne vous échappe.' },
-  { ic: 'hands', t: 'Partenariats halal', d: 'Trouvez des partenaires pour financer vos projets sans ribâ.' },
-  { ic: 'scan', t: 'OCR & scan visuel', d: 'Ajoutez produits et inventaire par simple photo.', soon: true },
+  { ic: 'note', t: 'Factures PDF', d: 'Des factures numérotées à vos couleurs, prêtes à envoyer' },
+  { ic: 'scan', t: 'Factures fournisseurs et inventaire photo', d: "Importez vos factures et comptez votre stock à partir d'une photo" },
 ];
 
 export function Features() {
@@ -30,7 +29,6 @@ export function Features() {
         <div className="feat-grid">
           {FEATURES.map((f, i) => (
             <div className="feat" key={i}>
-              {f.soon && <span className="soon">Bientôt</span>}
               <div className="ic"><SiteIcon name={f.ic} size={28} color="#1a5544" /></div>
               <h3>{f.t}</h3>
               <p>{f.d}</p>
