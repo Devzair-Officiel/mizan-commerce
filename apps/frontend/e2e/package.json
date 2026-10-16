@@ -35,7 +35,8 @@
     "audit:usage": "node audit-usage.mjs",
     "audit:subscription": "node audit-subscription.mjs",
     "audit:settings": "node audit-settings.mjs",
-    "audit:team": "node audit-team.mjs"
+    "audit:team": "node audit-team.mjs",
+    "audit:profile": "node audit-profile.mjs"
   },
   "dependencies": {
     "playwright": "1.62.1"

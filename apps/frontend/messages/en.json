@@ -2461,7 +2461,10 @@
     "confirm_password": "Confirm new password *",
     "password_saved": "Password changed ✓",
     "changing_password": "Changing…",
-    "change_password": "Change password"
+    "change_password": "Change password",
+    "subtitle": "Your personal details and password",
+    "info_description": "Your personal contact details.",
+    "password_description": "Choose a password with at least 8 characters."
   },
   "invoices": {
     "payment": "{state, select, paid {Paid} partial {Partial — {amount}} cancelled {Cancelled} other {Unpaid}}",

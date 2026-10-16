@@ -2461,7 +2461,10 @@
     "confirm_password": "تأكيد كلمة المرور الجديدة *",
     "password_saved": "تم تغيير كلمة المرور ✓",
     "changing_password": "جارٍ التغيير…",
-    "change_password": "تغيير كلمة المرور"
+    "change_password": "تغيير كلمة المرور",
+    "subtitle": "معلوماتكم الشخصية وكلمة المرور",
+    "info_description": "بيانات الاتصال الشخصية.",
+    "password_description": "اختاروا كلمة مرور من 8 أحرف على الأقل."
   },
   "invoices": {
     "payment": "{state, select, paid {مدفوعة} partial {مدفوعة جزئيًا — {amount}} cancelled {ملغاة} other {غير مدفوعة}}",

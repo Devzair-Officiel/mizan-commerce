@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { FloatingInput } from '@/components/ui/floating-fields';
 import { PhoneCountrySelect } from '@/components/form/PhoneCountrySelect';
 import { EmailVerificationBanner } from '@/components/account/EmailVerificationBanner';
+import { ProfileHeader } from '@/components/account/ProfileHeader';
+import { SectionCard } from '@/components/ui/SectionCard';
 import {
   useMe,
   useUpdateMe,
@@ -32,11 +34,11 @@ function PasswordField({ label, ...props }: PasswordFieldProps) {
   const t = useTranslations('profile');
   const [visible, setVisible] = useState(false);
   return (
-    <div className="relative">
+    <div className="relative [&_label]:inset-e-14 [&_label]:truncate">
       <FloatingInput
         type={visible ? 'text' : 'password'}
         label={label}
-        className="pe-12"
+        className="pe-14"
         {...props}
       />
       <button
@@ -44,9 +46,9 @@ function PasswordField({ label, ...props }: PasswordFieldProps) {
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? t('hide_password') : t('show_password')}
         aria-pressed={visible}
-        className="absolute inset-e-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        className="absolute inset-e-1 top-1/2 -translate-y-1/2 flex size-12 items-center justify-center whitespace-nowrap rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-95 lg:size-11"
       >
-        {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {visible ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
       </button>
     </div>
   );
@@ -116,15 +118,15 @@ function ProfileForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" data-profile-form>
       <div className="flex flex-col gap-0.5">
-        <FloatingInput id="email" label={t('email')} value={me?.email ?? ''} disabled readOnly />
-        <p className="text-[11px] text-muted-foreground px-1">{t('email_locked')}</p>
+        <FloatingInput id="email" label={t('email')} value={me?.email ?? ''} disabled readOnly dir="ltr" aria-describedby="profile-email-help" />
+        <p id="profile-email-help" className="text-xs text-muted-foreground px-1">{t('email_locked')}</p>
       </div>
 
       <div className="flex flex-col gap-0.5">
-        <FloatingInput id="full_name" label={t('full_name')} {...register('full_name')} />
-        {errors.full_name && <p className="text-[11px] text-destructive px-1">{errors.full_name.message}</p>}
+        <FloatingInput id="full_name" label={t('full_name')} dir="auto" aria-required aria-invalid={!!errors.full_name} aria-describedby={errors.full_name ? 'profile-name-error' : undefined} {...register('full_name')} />
+        {errors.full_name && <p id="profile-name-error" className="text-xs text-destructive px-1">{errors.full_name.message}</p>}
       </div>
 
       <div className="flex flex-col gap-0.5">
@@ -133,10 +135,10 @@ function ProfileForm() {
             <PhoneCountrySelect value={phoneCountry(field.value || shop?.country)} onChange={field.onChange} floating />
           )} />
           <div className="min-w-0 flex-1">
-            <FloatingInput id="phone" label={t('phone')} type="tel" inputMode="tel" dir="ltr" {...register('phone')} />
+            <FloatingInput id="phone" label={t('phone')} type="tel" inputMode="tel" dir="ltr" aria-invalid={!!errors.phone} aria-describedby={errors.phone ? 'profile-phone-error' : undefined} {...register('phone')} />
           </div>
         </div>
-        {errors.phone && <p className="text-[11px] text-destructive px-1">{errors.phone.message}</p>}
+        {errors.phone && <p id="profile-phone-error" className="text-xs text-destructive px-1">{errors.phone.message}</p>}
       </div>
       {errors.root && <p className="text-[11px] text-destructive px-1">{errors.root.message}</p>}
 
@@ -144,7 +146,7 @@ function ProfileForm() {
         <p className="text-sm text-green-700 dark:text-green-400 text-center">{t('profile_saved')}</p>
       )}
 
-      <Button type="submit" disabled={isPending || !isDirty} className="w-full mt-1">
+      <Button type="submit" disabled={isPending || !isDirty} className="mt-1 h-12 w-full rounded-full active:scale-[0.98] lg:h-11">
         {isPending ? t('saving') : t('save')}
       </Button>
     </form>
@@ -186,20 +188,20 @@ function PasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" data-password-form>
       <div className="flex flex-col gap-0.5">
-        <PasswordField id="old_password" label={t('old_password')} autoComplete="current-password" {...register('old_password')} />
-        {errors.old_password && <p className="text-[11px] text-destructive px-1">{errors.old_password.message}</p>}
+        <PasswordField id="old_password" label={t('old_password')} autoComplete="current-password" aria-required aria-invalid={!!errors.old_password} aria-describedby={errors.old_password ? 'profile-old-password-error' : undefined} {...register('old_password')} />
+        {errors.old_password && <p id="profile-old-password-error" className="text-xs text-destructive px-1">{errors.old_password.message}</p>}
       </div>
 
       <div className="flex flex-col gap-0.5">
-        <PasswordField id="new_password" label={t('new_password')} autoComplete="new-password" {...register('new_password')} />
-        {errors.new_password && <p className="text-[11px] text-destructive px-1">{errors.new_password.message}</p>}
+        <PasswordField id="new_password" label={t('new_password')} autoComplete="new-password" aria-required aria-invalid={!!errors.new_password} aria-describedby={errors.new_password ? 'profile-new-password-error' : undefined} {...register('new_password')} />
+        {errors.new_password && <p id="profile-new-password-error" className="text-xs text-destructive px-1">{errors.new_password.message}</p>}
       </div>
 
       <div className="flex flex-col gap-0.5">
-        <PasswordField id="confirm" label={t('confirm_password')} autoComplete="new-password" {...register('confirm')} />
-        {errors.confirm && <p className="text-[11px] text-destructive px-1">{errors.confirm.message}</p>}
+        <PasswordField id="confirm" label={t('confirm_password')} autoComplete="new-password" aria-required aria-invalid={!!errors.confirm} aria-describedby={errors.confirm ? 'profile-confirm-error' : undefined} {...register('confirm')} />
+        {errors.confirm && <p id="profile-confirm-error" className="text-xs text-destructive px-1">{errors.confirm.message}</p>}
       </div>
 
       {errors.root && <p className="text-[11px] text-destructive px-1">{errors.root.message}</p>}
@@ -208,7 +210,7 @@ function PasswordForm() {
         <p className="text-sm text-green-700 dark:text-green-400 text-center">{t('password_saved')}</p>
       )}
 
-      <Button type="submit" disabled={isPending} className="w-full mt-1">
+      <Button type="submit" disabled={isPending} className="mt-1 h-12 w-full rounded-full active:scale-[0.98] lg:h-11">
         {isPending ? t('changing_password') : t('change_password')}
       </Button>
     </form>
@@ -218,23 +220,28 @@ function PasswordForm() {
 export default function ProfilePage() {
   const t = useTranslations('profile');
   return (
-    <>
-      <TopBar title={t('title')} />
-      <div className="flex flex-col gap-8 px-4 pb-8 pt-4 max-w-3xl mx-auto w-full">
-        <EmailVerificationBanner />
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-foreground">{t('info_section')}</h2>
-          <ProfileForm />
+    <div className="mx-auto w-full max-w-220" data-profile-page>
+      <TopBar hideSearch title={t('title')} subtitle={t('subtitle')} />
+      <div className="flex flex-col gap-4 px-4 pt-4 pb-28 lg:gap-5 lg:pt-0">
+        <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
+          <ProfileHeader />
+          <EmailVerificationBanner />
         </section>
-
-        <div className="h-px bg-border" />
-
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-foreground">{t('password_section')}</h2>
-          <PasswordForm />
-        </section>
+        <div data-profile-cards className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-5">
+          <SectionCard title={t('info_section')}>
+            <div className="flex flex-col gap-4 p-5">
+              <p className="text-xs text-muted-foreground">{t('info_description')}</p>
+              <ProfileForm />
+            </div>
+          </SectionCard>
+          <SectionCard title={t('password_section')}>
+            <div className="flex flex-col gap-4 p-5">
+              <p className="text-xs text-muted-foreground">{t('password_description')}</p>
+              <PasswordForm />
+            </div>
+          </SectionCard>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
