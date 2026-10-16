@@ -8,7 +8,8 @@
  * - Découverte : jauges de la formule, pas de résiliation ;
  * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
  * Partout : 4 cartes côte à côte sur desktop, pastille « Recommandé » à cheval sur le haut de la carte
- * Boutique, côté début de ligne (à droite en arabe), une par onglet sur mobile (onglet par défaut : formule
+ * Boutique, côté début de ligne (à droite en arabe), CTA en bas de chaque carte, après la liste, à la même
+ * hauteur d'une carte à l'autre (Découverte : son texte à la place du bouton), une par onglet sur mobile (onglet par défaut : formule
  * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre la fenêtre
  * « paiement pas encore activé » sans aucune requête au serveur ; la résiliation demande confirmation.
  * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) : rien n'est résilié.
@@ -137,6 +138,30 @@ async function checkCards(page, locale, label, mode, mobile) {
   if (mode !== 'trial' && !mobile) report.check(await current.isVisible(), `${label} : la carte de la formule en cours porte « Formule actuelle »`);
 }
 
+/** Bas de la carte visible : liste, puis CTA (ou texte de Découverte) collé au bas de la carte. */
+async function ctaPlacement(page) {
+  return page.locator('[data-plan]').filter({ visible: true }).evaluateAll((cards) => cards.map((card) => {
+    const [c, list, cta] = [card, card.querySelector('ul'), card.querySelector('[data-plan-cta]')].map((el) => el?.getBoundingClientRect());
+    const atBottom = cta && list && cta.top >= list.bottom && c.bottom - cta.bottom <= 24;
+    return { plan: card.dataset.plan, top: Math.round(cta?.top ?? -1), height: Math.round(cta?.height ?? 0), atBottom };
+  }));
+}
+
+async function checkCtaBottom(page, locale, label, mobile) {
+  let placements = await ctaPlacement(page);
+  if (mobile) {
+    placements = [];
+    for (const code of ['free', 'solo', 'boutique', 'commerce_plus']) {
+      await page.getByRole('tab', { name: msg(locale, `settings.subscription.plans.${code}.name`) }).click();
+      placements.push(...await ctaPlacement(page));
+    }
+  }
+  const sameLine = mobile || new Set(placements.map((p) => p.top)).size === 1;
+  report.check(placements.length === 4 && placements.every((p) => p.atBottom && p.height === 44) && sameLine,
+    `${label} : CTA en bas de carte, après la liste${mobile ? ', onglet par onglet' : ', alignés sur une ligne'} `
+      + `(${placements.map((p) => `${p.plan}${p.atBottom ? '' : ' ✗'}@${p.top}`).join(', ')})`);
+}
+
 async function checkYearly(page, locale, label) {
   const yearly = page.getByRole('button', { name: new RegExp(`^${fmt(locale, 'settings.subscription.period', { period: 'year' })}`) });
   const badge = fmt(locale, 'settings.subscription.free_months', { months: 2 });
@@ -202,6 +227,7 @@ for (const [name, locale, theme] of CONFIGS) {
       await checkActivity(page, locale, label, mode, USAGE.members, viewport.mobile);
       await checkBadge(page, locale, label);
       await checkCards(page, locale, label, mode, viewport.mobile);
+      await checkCtaBottom(page, locale, label, viewport.mobile);
       await checkYearly(page, locale, label);
       await checkChoose(page, locale, label, requests);
       await checkCancel(page, locale, label, mode);

@@ -26,25 +26,25 @@ interface PlanCardProps {
   onChoose: (code: PlanCode, period: BillingPeriod) => void;
 }
 
-/** CTA de la carte ; Découverte n'en a pas : on y revient en résiliant, en bas de page. */
+/** CTA en bas de carte ; Découverte n'en a pas : on y revient en résiliant, son texte prend la place (même hauteur). */
 function PlanCta({ plan, period, state, status, recommended, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile'>) {
   const t = useTranslations('settings.subscription');
   const name = t(`plans.${plan.code}.name`);
   if (state === 'current') {
-    return <p className="flex h-11 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">{t('current')}</p>;
+    return <p className="flex h-11 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground" data-plan-cta>{t('current')}</p>;
   }
   if (plan.code === 'free') {
-    return <p className="flex h-11 items-center justify-center text-center text-sm text-muted-foreground">{t('free_fallback', { status: status === 'trialing' ? 'trialing' : 'paid' })}</p>;
+    return <p className="flex h-11 items-center justify-center text-center text-sm text-muted-foreground" data-plan-cta>{t('free_fallback', { status: status === 'trialing' ? 'trialing' : 'paid' })}</p>;
   }
   return (
-    <Button type="button" variant={state === 'trial' || recommended ? 'default' : 'outline'} onClick={() => onChoose(plan.code, period)}
+    <Button type="button" variant={state === 'trial' || recommended ? 'default' : 'outline'} onClick={() => onChoose(plan.code, period)} data-plan-cta
       className="h-11 w-full rounded-full px-5 text-sm active:scale-[0.98]">
       {t(state === 'trial' ? 'keep_short' : 'choose_cta', { name })}
     </Button>
   );
 }
 
-/** Une formule : prix sur la période choisie, l'autre période en regard, CTA, puis ce qu'elle comprend. */
+/** Une formule : prix sur la période choisie, l'autre période en regard, ce qu'elle comprend, puis le CTA en bas (alignés d'une carte à l'autre). */
 export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
   const { plan, period, recommended } = props;
   const t = useTranslations('settings.subscription');
@@ -84,8 +84,7 @@ export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
           {free ? t('free_forever') : t('price_alt', { period, price: money(planPrice(plan, period === 'year' ? 'month' : 'year')) })}
         </p>
       </div>
-      <PlanCta {...props} />
-      <ul className="flex flex-col gap-2 border-t border-border pt-4">
+      <ul className="flex flex-1 flex-col gap-2 border-t border-border pt-4">
         {Array.from({ length: FEATURE_LINES[plan.code] }, (_, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-foreground">
             <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
@@ -93,6 +92,7 @@ export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
           </li>
         ))}
       </ul>
+      <PlanCta {...props} />
     </article>
   );
 }
