@@ -88,7 +88,7 @@ async function checkSettings(page, label) {
   const gauges = page.locator('[data-usage]');
   await gauges.first().waitFor({ timeout: 10000 });
   const keys = await gauges.evaluateAll((els) => els.map((el) => el.dataset.usage));
-  report.check(keys.join(',') === 'orders_this_month,products,customers,members', `${label} : Paramètres → Abonnement, jauges ${keys.join(', ')}`);
+  report.check(keys.join(',') === 'orders_this_month,products,customers', `${label} : Paramètres → Abonnement, jauges ${keys.join(', ')}`);
 }
 
 const browser = await launch();

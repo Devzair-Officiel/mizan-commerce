@@ -21,9 +21,16 @@ function againstFreePlan(usage: Record<UsageKey, UsageCounter>, free: Subscripti
   };
 }
 
+/** Sans la jauge « équipe » tant que l'équipe tient dans le plafond de Découverte (propriétaire seul). */
+function withoutSoloTeam(usage: Record<UsageKey, UsageCounter>): Partial<Record<UsageKey, UsageCounter>> {
+  const { members, ...rest } = usage;
+  return members.limit !== null && members.count > members.limit ? usage : rest;
+}
+
 /**
  * « Votre activité ». Sur Découverte : les jauges de la formule. En essai ou en formule payante :
  * l'usage comparé aux plafonds de Découverte, qui s'appliqueront après l'essai ou une résiliation.
+ * La jauge « équipe » n'apparaît que si l'équipe dépasse le plafond de Découverte.
  */
 export function PlanActivity({ subscription, freePlan }: PlanActivityProps) {
   const t = useTranslations('settings.subscription');
@@ -36,7 +43,7 @@ export function PlanActivity({ subscription, freePlan }: PlanActivityProps) {
       <span className="text-muted-foreground">{t('activity_limits')}</span>
     )}>
       <div className="flex flex-col gap-4 p-5" data-activity={onFree ? 'plan' : 'free_limits'}>
-        <PlanUsage usage={usage} />
+        <PlanUsage usage={withoutSoloTeam(usage)} />
         {!onFree && (
           <p className="text-sm text-muted-foreground">
             {t('activity_after', { status: subscription.status === 'trialing' ? 'trialing' : 'paid' })}

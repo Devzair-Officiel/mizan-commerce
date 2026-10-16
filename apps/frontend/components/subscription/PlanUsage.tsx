@@ -5,11 +5,11 @@ import type { UsageCounter, UsageKey } from '@/lib/hooks/useSubscription';
 
 const ORDER: readonly UsageKey[] = ['orders_this_month', 'products', 'customers', 'members'];
 
-/** Jauges de « Votre activité » : seuls les compteurs limités (par la formule, ou par Découverte en comparaison). */
-export function PlanUsage({ usage }: { usage: Record<UsageKey, UsageCounter> }) {
+/** Jauges de « Votre activité » : seuls les compteurs fournis et limités (par la formule, ou par Découverte en comparaison). */
+export function PlanUsage({ usage }: { usage: Partial<Record<UsageKey, UsageCounter>> }) {
   const limited = ORDER.flatMap((key) => {
-    const { count, limit } = usage[key];
-    return limit === null ? [] : [{ key, count, limit }];
+    const counter = usage[key];
+    return !counter || counter.limit === null ? [] : [{ key, count: counter.count, limit: counter.limit }];
   });
   if (limited.length === 0) return null;
   return (

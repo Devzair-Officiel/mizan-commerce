@@ -2,7 +2,8 @@
  * Audit de la page Paramètres → Abonnement, en français clair à 1440px et en arabe sombre à 360px
  * (quelle que soit la matrice), dans trois situations :
  * - essai Boutique (jour 4 sur 14) : « Votre formule » avec la barre « Jour 4 sur 14 » et un seul CTA
- *   « Garder Boutique » ; « Votre activité » comparée aux plafonds Découverte (ambre, rouge, niveau écrit) ;
+ *   « Garder Boutique » ; « Votre activité » comparée aux plafonds Découverte (ambre, rouge, niveau écrit),
+ *   sans jauge « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
  * - Découverte : jauges de la formule, pas de résiliation ;
  * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
  * Partout : 4 cartes côte à côte sur desktop, une par onglet sur mobile (onglet par défaut : formule
@@ -18,11 +19,13 @@ const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
 const DAY = 24 * 60 * 60 * 1000;
 const USAGE = { products: 3, orders_this_month: 12, customers: 15, members: 1 };
+const TEAM = 3;
 
 /** Réponse `/subscriptions/current/` de la situation `state.mode`. */
-function situation(subscription, mode) {
+function situation(subscription, mode, members) {
   const now = Date.now();
-  const usage = (limits) => Object.fromEntries(Object.entries(USAGE).map(([key, count]) => [key, { count, limit: limits[key] ?? null }]));
+  const usage = (limits) => Object.fromEntries(Object.entries({ ...USAGE, members })
+    .map(([key, count]) => [key, { count, limit: limits[key] ?? null }]));
   const base = { ...subscription, is_trial_expired: false, cancel_at_period_end: false };
   if (mode === 'trial') {
     return { ...base, status: 'trialing', effective_plan_code: 'boutique', plan: { ...subscription.plan, code: 'boutique' },
@@ -39,7 +42,7 @@ async function routePlan(ctx, state) {
   await ctx.route(/\/api\/proxy\/subscriptions\/current\/?(\?.*)?$/, async (route) => {
     try {
       const response = await route.fetch();
-      await route.fulfill({ response, json: situation(await response.json(), state.mode) });
+      await route.fulfill({ response, json: situation(await response.json(), state.mode, state.members) });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -62,16 +65,30 @@ async function checkCurrent(page, locale, label, mode) {
     `${label} : « Votre formule » ${name}${mode === 'trial' ? ', jour 4 sur 14, un seul CTA « Garder »' : ', sans CTA'} (${buttons.join(' | ')})`);
 }
 
-async function checkActivity(page, locale, label, mode) {
+async function checkActivity(page, locale, label, mode, members) {
   const activity = page.locator('[data-activity]');
   const gauges = await activity.locator('[data-usage]').evaluateAll((els) => els.map((el) => `${el.dataset.usage}:${el.dataset.level}`));
-  const reached = fmt(locale, 'settings.usage.level', { level: 'reached' });
-  const near = fmt(locale, 'settings.usage.level', { level: 'near' });
+  const level = (value) => fmt(locale, 'settings.usage.level', { level: value });
+  const team = members > 1;
   const text = await activity.textContent();
   report.check(await activity.getAttribute('data-activity') === (mode === 'free' ? 'plan' : 'free_limits')
-    && gauges.join(',') === 'orders_this_month:near,products:ok,customers:reached,members:reached'
-    && text.includes(near) && text.includes(reached),
-  `${label} : « Votre activité » ${mode === 'free' ? 'de la formule' : 'face aux plafonds Découverte'}, niveaux écrits (${gauges.join(', ')})`);
+    && gauges.join(',') === `orders_this_month:near,products:ok,customers:reached${team ? ',members:reached' : ''}`
+    && text.includes(level('near')) && text.includes(level('reached')) && text.includes(level('over')) === team,
+  `${label} : « Votre activité » ${mode === 'free' ? 'de la formule' : 'face aux plafonds Découverte'}, `
+    + `${team ? `équipe de ${members} au-delà de la limite` : 'sans jauge « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
+}
+
+/** Même situation avec une équipe de plusieurs membres : la jauge « équipe » apparaît. */
+async function checkTeam(page, locale, label, mode, state) {
+  state.members = TEAM;
+  try {
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.locator('[data-activity]').waitFor({ timeout: 10000 });
+    await checkActivity(page, locale, `${label} équipe`, mode, TEAM);
+  } finally {
+    state.members = USAGE.members;
+  }
 }
 
 async function checkCards(page, locale, label, mode, mobile) {
@@ -134,7 +151,7 @@ for (const [name, locale, theme] of CONFIGS) {
   const viewport = VIEWPORTS.find((v) => v.name === name);
   if (!viewport) continue;
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const state = { mode: 'trial' };
+  const state = { mode: 'trial', members: USAGE.members };
   const requests = [];
   page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/proxy/subscriptions/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
   await routePlan(ctx, state);
@@ -151,11 +168,12 @@ for (const [name, locale, theme] of CONFIGS) {
       await page.locator('[data-current-plan]').waitFor({ timeout: 10000 });
       if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/abonnement-${name}-${locale}-${theme}-${mode}.png`, fullPage: true });
       await checkCurrent(page, locale, label, mode);
-      await checkActivity(page, locale, label, mode);
+      await checkActivity(page, locale, label, mode, USAGE.members);
       await checkCards(page, locale, label, mode, viewport.mobile);
       await checkYearly(page, locale, label);
       await checkChoose(page, locale, label, requests);
       await checkCancel(page, locale, label, mode);
+      await checkTeam(page, locale, label, mode, state);
     } catch (error) {
       report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
     }

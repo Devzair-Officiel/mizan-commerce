@@ -547,6 +547,9 @@
       que l'envoi y est suspendu : le verrouiller côté réglages, comme les autres options
       réservées à Boutique.
 
+- [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
+      avant le lancement.
+
 ---
 
 ## Légende et bonnes pratiques d'usage
@@ -555,6 +558,7 @@
 - Si une tâche se découpe en sous-tâches non prévues, les ajouter en sous-puces et cocher au fur et à mesure.
 - Si une tâche est annulée, la barrer avec `~~texte~~` plutôt que de la supprimer (trace de la décision).
 - Pour estimer l'avancement d'une phase, compter `[x]` / total. Une phase est validée à 100 %.
+- Toute nouvelle fonctionnalité réservée à une formule livre dans le même lot : sa clé de gating côté serveur, sa ligne `plans.*.fN` en fr/en/ar et sa vérification dans l'audit subscription.
 
 ## Discipline de mise à jour
 
