@@ -10,7 +10,7 @@
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
 **Dernière mise à jour** : 2026-10-16
-**Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram à faire)
+**Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
 
@@ -238,14 +238,16 @@
 - [x] Historique des messages préparés
 - [x] **Vérifier qu'aucun envoi automatique n'est possible**
 
-### Telegram (URS-068, URS-069)
+### ~~Telegram (URS-068, URS-069)~~
 
-- [ ] Modèle `TelegramAccount` (bot token, chat_id cible)
-- [ ] Endpoint connexion bot avec vérification des droits via API Telegram
-- [ ] Modèle `TelegramPublication` (message, image, planification, statut)
-- [ ] Worker Celery Beat qui publie aux heures programmées
-- [ ] Historique des publications
-- [ ] Désactivation d'une publication programmée
+Décision du 2026-10-16 : pas de publications automatiques.
+
+- ~~Modèle `TelegramAccount` (bot token, chat_id cible)~~
+- ~~Endpoint connexion bot avec vérification des droits via API Telegram~~
+- ~~Modèle `TelegramPublication` (message, image, planification, statut)~~
+- ~~Worker Celery Beat qui publie aux heures programmées~~
+- ~~Historique des publications~~
+- ~~Désactivation d'une publication programmée~~
 
 ---
 
@@ -452,7 +454,9 @@
     - [x] Page Abonnement (7c-1) : votre formule (essai « Jour N sur 14 », CTA « Garder »), votre activité comparée aux plafonds Découverte, choix de formule mensuel / annuel (prix annuels 0 / 90 / 190 / 390 €, migration 0005), 4 cartes sur desktop et onglets sur mobile, paiement en ligne pas encore activé (`UpgradeSheet`), résiliation discrète ; audit `subscription`
     - [x] Paramètres boutique et Équipe (7c-2) : sous-navigation desktop collante (208 px), liens verrouillés visibles et formule traduite, « Autres réglages » sur mobile ; cartes Boutique à plat et barre d'enregistrement dans la colonne ; formules sur 4 colonnes dès 880 px de conteneur, sinon 2 × 2 sur desktop ; Équipe en tableau / cartes, usage et plafond API, places disponibles et ajout limité via `UpgradeSheet` ; audits `settings`, `team` et audits existants adaptés
     - [x] Mon profil (7c-3) : en-tête du compte et vérification d’email, cartes Informations / Mot de passe côte à côte sur desktop et empilées sur mobile, composants et logique existants conservés ; audit `profile`, six maquettes 7c versionnées
-    - [ ] Pages marketing : grille 4 offres (Pricing, Faq)
+    - [x] Pages marketing : grille 4 offres (Pricing, Faq)
+    - [x] Pages marketing (7d-2) : largeur globale 1400 px, marges fluides, cartes et notes alignées, pastille Boutique flottante, CTA final et anneaux du sceau contenus sur mobile ; recette aux six largeurs ci-dessous
+    - [x] Pages marketing (7d-3) : 8 cartes cohérentes avec la grille, partenariats et mentions d'attente retirés, section Valeurs recentrée sur la zakat ; contrôle des métadonnées et recette aux quatre largeurs ci-dessous
   - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 
@@ -553,6 +557,93 @@
       avant le lancement.
 
 ---
+
+## Checklist de lancement
+
+Revue du 2026-10-16 — **ne pas publier la landing avant que tout soit livré**.
+La grille décrit la cible commerciale. Les cases ci-dessous restent ouvertes tant que
+la livraison complète et la recette de lancement ne sont pas attestées ; la présence
+d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
+
+- [ ] Fidélité — modèles, services et API dans `apps/backend/apps/loyalty/`, mais aucune interface commerçant ; gating de formule Boutique à raccorder sur ces vues.
+- [ ] Statistiques de ventes — graphique et API présents (`components/dashboard/sales/`, `apps/backend/apps/core/views.py`, `apps/backend/apps/core/services.py`), lot 4 encore en cours ; restriction `sales_stats` à raccorder côté serveur.
+- [ ] Inventaire photo (Boutique) — promis dans Pricing et Features ; clé `visual_inventory` seulement, détection visuelle de la phase V6 non livrée.
+- [ ] QR codes (Boutique) — promis dans Pricing ; clé `qr_codes` seulement, génération, impression et scan de la phase V6 non livrés.
+- [ ] Page boutique en ligne — code admin et public présent (`apps/backend/apps/public_pages/`, `app/boutique/`, `components/public-page-admin/`) ; phase V3 encore non validée dans ce suivi, recette de publication à terminer.
+- [ ] Modèles de messages — code et audit présents (`components/settings/messages/`, `e2e/audit-message-templates.mjs`), lot 4 encore en cours ; restriction `message_templates` à raccorder côté serveur.
+- [ ] Rôles et permissions — déjà implémentés et cochés en V1, écran Équipe livré en 7c ; confirmer la recette de lancement (gating `multi_user`, limites 1 / 1 / 4 / illimité), sans les présenter comme du code absent.
+- [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
+- [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
+- [ ] Souscription payante — Stripe Billing et webhooks non livrés ; l'API publique autorise uniquement le retour sur Découverte (`apps/backend/apps/subscriptions/views.py`).
+- [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
+- [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
+- [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
+
+### Vérification des affirmations marketing (lot 7d)
+
+| Affirmation conservée | Appui vérifié dans le dépôt |
+| --- | --- |
+| Découverte / Solo / Boutique / Commerce+, prix mensuels 0 / 9 / 19 / 39 € et annuels 0 / 90 / 190 / 390 € | `settings.subscription.plans.*` dans `apps/frontend/messages/fr.json`, migrations abonnements `0004_rename_plans` et `0005_plan_yearly_price` ; lot 7b/7c ci-dessus. |
+| Découverte sans limite de durée, 30 articles actifs, 15 ventes/mois, 15 clients actifs ; Solo et au-delà illimités | Migrations des plans, `apps/backend/apps/subscriptions/limits.py` ; lot 7b. La création est bloquée dès le plafond atteint, sans supprimer les données ; désactivation articles/clients et nouveau mois libèrent les places correspondantes. |
+| Stock, notes, rappels et calcul de la zakat dès Découverte | `apps/backend/apps/subscriptions/permissions.py`, modules V1 cochés ci-dessus. |
+| Essai Boutique de 14 jours pour les nouveaux comptes, sans carte, puis retour automatique sur Découverte ; résiliation immédiate, données intactes | `start_trial_or_default`, `expire_trial`, `downgrade_to_free` dans `apps/backend/apps/subscriptions/services.py`, tâche `expire_trials`, `Shop.effective_plan` ; seul l'abonnement est modifié, aucun objet métier supprimé. |
+| Factures PDF numérotées, WhatsApp préparé et relance automatique des impayés en Solo | `apps/backend/apps/invoices/services.py`, `apps/backend/apps/invoices/pdf.py`, `apps/backend/apps/comms/`, `apps/backend/apps/notes/services.py` (`auto_reminders`) ; V1/V2 et lots 4/6. La relance crée un rappel interne ; WhatsApp reste envoyé manuellement. |
+| Boutique : tout Solo, vous + 3 membres, factures avec logo/couleur ; Commerce+ : tout Boutique, équipe illimitée | Migrations des plans, `enforce_member_limit`, vues Équipe et facturation ; lots 6/7b/7c. Les autres bénéfices annoncés sont soumis aux cases de lancement ci-dessus. |
+| Utilisation dans le navigateur ; données séparées par boutique | Routes Next.js existantes, filtrage `get_shop` des vues métier et tests multi-tenant ; V1 Sécurité & droits. Aucune promesse de chiffrement, d'export intégral ou de suppression à la demande dans la FAQ. |
+| Français, anglais et arabe avec lecture droite-à-gauche | `apps/frontend/i18n/locales.ts`, catalogues fr/en/ar, direction de `apps/frontend/app/layout.tsx`. |
+| Zakat : stock, trésorerie, créances recouvrables, dettes immédiatement exigibles, taux par défaut 2,5 %, nisab à renseigner, estimation indicative | `apps/backend/apps/zakat/services.py`, `apps/backend/apps/zakat/models.py`, mentions `zakat.disclaimer` dans le catalogue français ; V1 Zakat. |
+
+Écarts éditoriaux : les bénéfices détaillés demandés pour la landing ne figurent pas
+tous mot pour mot dans `plans.*.fN` (notamment fidélité, statistiques, inventaire photo,
+QR codes et détail des factures). Les noms restent ceux de l'app ; les accroches et
+les listes suivent le brief 7d, sans modifier les traductions de l'application.
+Les anciennes promesses hors-ligne, application installable, import Excel/CSV,
+partenariats halal, chiffrement et export/suppression des données à volonté ont été
+retirées de la FAQ faute de livraison attestée. La résiliation en fin de période
+et la condition automatique « nisab atteint » ont été corrigées selon le code.
+
+Recette locale du 2026-10-16 : lint (0 erreur, 7 avertissements préexistants),
+typecheck, text, deps, i18n, tokens et build validés dans Docker. Dépendances de
+l'hôte incomplètes : son typecheck échoue, celui du conteneur passe.
+Pricing et FAQ vérifiés visuellement et avec Playwright à 1440 / 768 / 360 px :
+prix mensuels/annuels, 4 CTA vers `/register`, 10 accordéons sans coupure,
+grilles 4 / 2 / 1 et seuils 639 / 640 / 1099 / 1100 px ; aucune erreur navigateur.
+Écart préexistant hors lot : à 360 px, le bouton « Créer mon compte — gratuit »
+de `components/marketing/FinalCta.tsx` déborde de 24 px (document large de 384 px).
+Pricing et FAQ ne débordent pas. Validation staging non effectuée dans ce lot.
+
+Recette 7d-2 du 2026-10-16 : toutes les sections examinées à 360 / 768 / 1024 /
+1440 / 1920 / 2560 px. Conteneur global 1400 px et padding `clamp(20px, 4vw, 56px)` ;
+titres de section limités à 720 px, FAQ à 800 px, titre/texte final à 760 / 540 px,
+tous centrés. Même structure des quatre cartes, prix alignés par rangée, boutons
+de 56 px et notes avec 40,3 px réservés ; « Commencer gratuitement » sur une ligne
+à 1440 px. Le CTA final et le débordement de 9 px des anneaux du sceau halal révélé
+après sa correction sont corrigés : aucun défilement horizontal aux six largeurs.
+Images proportionnelles, prix mensuels/annuels vérifiés, aucune erreur navigateur.
+Contrôles Docker 7d-2 validés : lint (0 erreur, 7 avertissements préexistants),
+typecheck, text, deps, i18n, tokens et build. Pas de validation staging dans ce lot.
+
+Traitements particuliers : le hero conserve son gabarit de 1640 px et son image
+proportionnelle ; « Comment ça marche » conserve sa maquette fixe de 330 × 670 px.
+Cette dernière laisse un espace latéral marqué à 1920 / 2560 px : un réagencement
+du visuel demanderait un lot graphique dédié. Les marges de lecture de la FAQ et
+du CTA final sont intentionnelles. Écart éditorial préexistant hors de ce lot de
+largeur, résolu en 7d-3 : Features conservait une pastille d'attente et les sections
+Features / How / Halal annonçaient encore les partenariats.
+
+Recette 7d-3 du 2026-10-16 : 8 cartes conservées, Factures PDF et Factures fournisseurs
+et inventaire photo conformes au brief ; troisième étape limitée à la page boutique,
+aux messages et aux factures. La section Valeurs ne comporte plus que la zakat,
+avec texte élargi, titre adapté et anneaux séparés du paragraphe sur mobile.
+La promesse « au juste montant » de Problem a aussi été remplacée par une estimation.
+Recherche complète dans les sources marketing et contrôle du titre / de la description
+rendus : aucune mention de partenariat, ribâ ou annonce d'attente. Aucun Open Graph
+ou Twitter spécifique à la landing n'est déclaré ; aucune mention héritée à retirer.
+Recette visuelle et Playwright à 360 / 1024 / 1440 / 1920 px : pas de débordement,
+alignement des tarifs conservé, aucune erreur navigateur. Les fonctions Boutique
+encore non livrées restent bloquantes dans la checklist de lancement ci-dessus.
+Contrôles Docker 7d-3 validés : lint (0 erreur, 7 avertissements préexistants),
+typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 
 ## Légende et bonnes pratiques d'usage
 

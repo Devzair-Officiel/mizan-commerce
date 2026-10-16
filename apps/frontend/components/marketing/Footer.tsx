@@ -28,7 +28,6 @@ export function Footer() {
             <Link href="/register">Créer un compte</Link>
             <Link href="/login">Se connecter</Link>
             <a href="#halal">Zakat & halal</a>
-            <a href="#halal">Partenariats</a>
           </div>
           <div className="foot-col">
             <h5>Contact</h5>

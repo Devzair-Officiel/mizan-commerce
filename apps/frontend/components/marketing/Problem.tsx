@@ -11,7 +11,7 @@ const AFTER = [
   'Tout votre commerce centralisé au même endroit',
   'Stock à jour en temps réel, alertes de rupture',
   'Chaque commande et chaque colis suivis',
-  'Zakat calculée automatiquement, au juste montant',
+  'Zakat estimée à partir de vos données',
 ];
 
 export function Problem() {

@@ -3,16 +3,16 @@
 import { useState } from 'react';
 
 const FAQ: Array<[string, string]> = [
-  ['mizan est-il vraiment gratuit ?', 'Le plan Gratuit l\u2019est à vie, sans carte bancaire. Le plan Pro propose un essai gratuit, et Boutique+ est offert pendant 14 jours pour tous les nouveaux comptes. Vous ne payez que si vous décidez de continuer.'],
-  ['Comment fonctionne l\u2019essai 14 jours de Boutique+ ?', 'Tous les nouveaux comptes accèdent gratuitement à Boutique+ pendant 14 jours, sans carte bancaire. À la fin de l\u2019essai, votre boutique bascule automatiquement sur le plan Gratuit si vous n\u2019avez pas choisi de formule payante — aucun débit, aucune mauvaise surprise.'],
-  ['Puis-je résilier à tout moment ?', 'Oui. Aucun engagement, aucune durée minimale. Vous changez de formule ou résiliez depuis vos réglages, et vous conservez l\u2019accès à vos données jusqu\u2019à la fin de la période réglée.'],
-  ['Dois-je installer quelque chose ?', 'Non. mizan fonctionne directement depuis le navigateur de votre téléphone, et bientôt comme application installable.'],
-  ['Puis-je importer mes produits depuis Excel ou un autre outil ?', 'L\u2019import depuis un fichier Excel ou CSV est prévu. En attendant, l\u2019ajout de vos produits se fait rapidement depuis l\u2019application, et notre équipe peut vous accompagner sur la mise en route.'],
-  ['Comment la zakat est-elle calculée ?', 'mizan additionne la valeur du stock, la trésorerie et les créances, déduit vos dettes, puis applique le taux de 2,5 % une fois le nisab atteint.'],
-  ['Mes données sont-elles en sécurité ?', 'Vos données sont chiffrées et vous appartiennent. Vous pouvez les exporter ou les supprimer à tout moment.'],
-  ['Qu\u2019est-ce qu\u2019un partenariat halal ?', 'Un espace de mise en relation entre porteurs de projets et partenaires, pour financer des projets sans intérêt (ribâ).'],
-  ['L\u2019app fonctionne-t-elle sans connexion ?', 'Les fonctions essentielles restent accessibles hors-ligne et se synchronisent dès le retour du réseau.'],
-  ['L\u2019app est-elle disponible en arabe ?', 'Oui — l\u2019interface est conçue pour basculer en arabe (avec lecture droite-à-gauche), en plus du français. D\u2019autres langues arriveront progressivement.'],
+  ['mizan est-il vraiment gratuit ?', 'Oui. Découverte est gratuite sans limite de durée, sans carte bancaire : 30 articles, 15 ventes par mois et 15 clients, avec le stock, les notes, les rappels et le calcul de la zakat.'],
+  ['Comment fonctionne l\u2019essai de 14 jours de Boutique ?', 'Les nouveaux comptes bénéficient de Boutique pendant 14 jours, sans carte bancaire. À la fin de l\u2019essai, votre boutique revient automatiquement sur Découverte. Vos données sont conservées ; la création de nouveaux articles, ventes ou clients est bloquée si le plafond correspondant est atteint ou dépassé.'],
+  ['Puis-je résilier à tout moment ?', 'Oui, depuis vos réglages d\u2019abonnement. La résiliation est immédiate : votre boutique passe sur Découverte et vos données restent intactes. Les plafonds de Découverte s\u2019appliquent alors aux nouvelles créations.'],
+  ['Quelle formule choisir ?', 'Découverte pour démarrer dans les limites de 30 articles, 15 ventes par mois et 15 clients. Solo si vous gérez seul votre boutique et souhaitez un catalogue, des ventes et des clients illimités, les factures PDF et WhatsApp. Boutique si vous travaillez avec une petite équipe. Commerce+ si vous avez besoin d\u2019une équipe illimitée.'],
+  ['Puis-je ajouter mon équipe ?', 'Oui. Boutique comprend vous + 3 membres d\u2019équipe. Commerce+ permet une équipe illimitée. Découverte et Solo sont réservées à une seule personne.'],
+  ['Que se passe-t-il si je dépasse les limites de Découverte ?', 'Vos données existantes sont conservées. À partir de 30 articles actifs, 15 ventes dans le mois ou 15 clients actifs, la création correspondante est bloquée. Vous pouvez désactiver un article ou un client pour libérer une place ; le compteur de ventes repart chaque mois. Solo, Boutique et Commerce+ n\u2019ont pas ces plafonds.'],
+  ['Dois-je installer quelque chose ?', 'Non. mizan fonctionne directement depuis le navigateur de votre téléphone ou de votre ordinateur.'],
+  ['Comment la zakat est-elle calculée ?', 'mizan estime la valeur du stock, ajoute la trésorerie et les créances recouvrables saisies, puis déduit les dettes immédiatement exigibles. Le taux par défaut est de 2,5 %. Vous pouvez corriger les montants et renseigner le cours utilisé pour le nisab. Le résultat reste une estimation indicative.'],
+  ['À qui appartiennent mes données ?', 'Vos données vous appartiennent et sont séparées par boutique.'],
+  ['L\u2019app est-elle disponible en arabe ?', 'Oui. L\u2019interface est disponible en français, en anglais et en arabe, avec une lecture de droite à gauche pour l\u2019arabe.'],
 ];
 
 export function Faq() {
@@ -27,7 +27,7 @@ export function Faq() {
         <div className="faq-list">
           {FAQ.map(([q, a], i) => (
             <div className={'faq-item' + (open === i ? ' open' : '')} key={i}>
-              <button className="faq-q" onClick={() => setOpen(open === i ? -1 : i)}>
+              <button className="faq-q" aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
                 {q}
                 <span className="pm">+</span>
               </button>

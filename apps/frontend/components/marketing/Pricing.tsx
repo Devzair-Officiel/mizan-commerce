@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { SiteIcon } from './SiteIcon';
 
 type Plan = {
-  tag: string;
+  tag?: string;
   name: string;
   desc: string;
   m: number;
@@ -14,41 +14,60 @@ type Plan = {
   cta: string;
   kind: 'btn-dark' | 'btn-gold';
   feature?: boolean;
-  trialNote?: string;
+  note: string;
 };
 
 const PLANS: Plan[] = [
   {
-    tag: 'Pour démarrer',
-    name: 'Gratuit',
-    desc: 'L\u2019essentiel pour bien commencer.',
+    name: 'Découverte',
+    desc: 'Je démarre',
     m: 0,
     y: 0,
-    feats: ['Produits & stock', 'Notes & rappels', '1 boutique'],
-    cta: 'Créer un compte',
+    feats: ['30 articles', '15 ventes par mois', '15 clients', 'Stock, notes et rappels', 'Calcul de la zakat'],
+    cta: 'Commencer gratuitement',
     kind: 'btn-dark',
+    note: 'Sans carte bancaire',
   },
   {
-    tag: 'Le plus choisi',
-    name: 'Pro',
-    desc: 'Pour gérer tout votre commerce.',
+    name: 'Solo',
+    desc: 'Je tiens ma boutique seul',
     m: 9,
     y: 90,
-    feature: true,
-    feats: ['Tout le plan Gratuit', 'Commandes & expédition', 'Facture', 'Zakat commerciale', 'Messages WhatsApp prêts'],
-    cta: 'Essayer gratuitement',
-    kind: 'btn-gold',
+    feats: ['Ventes, articles et clients illimités', 'Factures PDF numérotées', 'Messages WhatsApp prêts à envoyer', 'Relance automatique des impayés'],
+    cta: 'Choisir Solo',
+    kind: 'btn-dark',
+    note: 'Sans engagement',
   },
   {
-    tag: 'Pour aller plus loin',
-    name: 'Boutique+',
-    desc: 'Outils avancés et partenariats.',
+    tag: 'Recommandé',
+    name: 'Boutique',
+    desc: 'Je veux attirer et fidéliser',
     m: 19,
     y: 190,
-    feats: ['Tout le plan Pro', 'Mini-site complet', 'Partenariats halal', 'Multi-utilisateurs', 'Exports comptables', 'OCR & scan (à venir)'],
+    feature: true,
+    feats: [
+      'Tout Solo inclus',
+      "Vous + 3 membres d'équipe",
+      'Factures à vos couleurs, avec votre logo',
+      'Page boutique en ligne',
+      'Programme de fidélité',
+      'Exports et statistiques de ventes',
+      'Lecture des factures fournisseurs',
+      'Inventaire photo et QR codes',
+    ],
     cta: 'Essayer 14 jours gratuit',
+    kind: 'btn-gold',
+    note: '14 jours offerts pour les nouveaux comptes',
+  },
+  {
+    name: 'Commerce+',
+    desc: "J'ai une équipe et du volume",
+    m: 39,
+    y: 390,
+    feats: ['Tout Boutique inclus', 'Équipe illimitée', "Journal d'activité", 'Support prioritaire'],
+    cta: 'Choisir Commerce+',
     kind: 'btn-dark',
-    trialNote: '14 jours offerts pour les nouveaux comptes.',
+    note: 'Sans engagement',
   },
 ];
 
@@ -64,8 +83,8 @@ export function Pricing() {
         </div>
         <div style={{ textAlign: 'center' }}>
           <div className="toggle">
-            <button className={!annual ? 'on' : ''} onClick={() => setAnnual(false)}>Mensuel</button>
-            <button className={annual ? 'on' : ''} onClick={() => setAnnual(true)}>
+            <button className={!annual ? 'on' : ''} aria-pressed={!annual} onClick={() => setAnnual(false)}>Mensuel</button>
+            <button className={annual ? 'on' : ''} aria-pressed={annual} onClick={() => setAnnual(true)}>
               Annuel <span className="save">−2 mois</span>
             </button>
           </div>
@@ -73,7 +92,7 @@ export function Pricing() {
         <div className="price-grid">
           {PLANS.map((p, i) => (
             <div className={'plan' + (p.feature ? ' feature' : '')} key={i}>
-              <div className="tag">{p.tag}</div>
+              {p.tag && <div className="tag">{p.tag}</div>}
               <div className="pname">{p.name}</div>
               <div className="pdesc">{p.desc}</div>
               <div className="amt">
@@ -91,7 +110,7 @@ export function Pricing() {
                 ))}
               </ul>
               <Link className={'btn ' + p.kind} href="/register">{p.cta}</Link>
-              {p.trialNote && <p className="plan-trial">{p.trialNote}</p>}
+              <p className="plan-trial">{p.note}</p>
             </div>
           ))}
         </div>
