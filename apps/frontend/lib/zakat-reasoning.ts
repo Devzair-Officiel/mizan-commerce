@@ -81,7 +81,7 @@ export const ZAKAT_REASONING: Record<ReasoningKey, RubricReasoning> = {
       "sont à ce titre déductibles avant calcul, selon l'avis majoritaire repris par la pratique " +
       'contemporaine.',
     application:
-      'Un emprunt à long terme ne réduit que les mensualités du mois en cours. Pour chaque ' +
+      "Un paiement échelonné ne réduit que l'échéance du mois en cours. Pour chaque " +
       "dette, précisez si elle est exigible immédiatement — c'est ce critère qui détermine si " +
       'elle est déduite.',
   },

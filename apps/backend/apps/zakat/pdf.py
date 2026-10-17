@@ -30,7 +30,7 @@ _DEBT_LABELS = {
     'supplier': 'Fournisseurs',
     'tax_vat': 'TVA / impôts',
     'salary': 'Salaires',
-    'loan': 'Emprunt bancaire',
+    'loan': 'Paiement échelonné',
     'rent': 'Loyer',
     'other': 'Autre',
 }

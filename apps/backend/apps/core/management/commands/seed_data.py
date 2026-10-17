@@ -58,6 +58,7 @@ class Command(BaseCommand):
         from ._seed_fr import run_seed_fr
         from ._seed_services import run_seed_services
         from ._seed_e2e import seed_audit_shop
+        from ._seed_zakat import seed_zakat
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
             """Pose un abonnement déterministe sur la boutique. Idempotent."""
@@ -528,6 +529,9 @@ class Command(BaseCommand):
         self.stdout.write(
             "  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)"
         )
+
+        # ── Zakat (fiches personnelles) ─────────────────────────────
+        seed_zakat(shop_fr, youssef, shop_ma, amira, stdout=self.stdout)
 
         # ── Récapitulatif ────────────────────────────────────────────
         from apps.orders.models import Order as Ord

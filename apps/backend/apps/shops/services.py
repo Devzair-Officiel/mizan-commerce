@@ -13,6 +13,7 @@ from apps.core.storage import delete_object, upload_fileobj
 from apps.notes.models import Reminder
 from apps.subscriptions.limits import enforce_member_limit
 from apps.subscriptions.permissions import shop_has_feature
+from apps.zakat.services import delete_member_zakat_data
 
 from .models import Shop, ShopMember
 
@@ -216,10 +217,16 @@ def update_member_permissions(
 
 
 def remove_member(member: ShopMember) -> None:
-    """Supprime un membre de la boutique. Un `owner` ne peut pas être supprimé."""
+    """Supprime un membre de la boutique. Un `owner` ne peut pas être supprimé.
+
+    Son profil et ses fiches zakat (données personnelles) partent avec lui, dans la
+    même transaction.
+    """
     if member.role == ShopMember.ROLE_OWNER:
         raise ValidationError('Impossible de retirer le propriétaire de la boutique.')
-    member.delete()
+    with transaction.atomic():
+        delete_member_zakat_data(member.shop, member.user)
+        member.delete()
 
 
 def is_member_suspended(member: ShopMember) -> bool:

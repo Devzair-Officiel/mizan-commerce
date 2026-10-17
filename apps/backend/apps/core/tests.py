@@ -648,6 +648,35 @@ class SeedDataTest(TestCase):
             if PublicPage.objects.filter(shop=shop).exists():
                 self.assertTrue(allows(shop, "public_pages"), shop.name)
 
+    def test_zakat_youssef_complete_profile_and_previous_hijri_year(self):
+        from apps.zakat import hawl, services as zakat_services
+        from apps.zakat.models import ZakatCalculation, ZakatProfile
+
+        shop = self._shop("La Boutique de Youssef")
+        profile = ZakatProfile.objects.get(shop=shop, user__email="youssef@example.com")
+        for name in zakat_services.CHOICE_FIELDS:
+            self.assertIsNotNone(getattr(profile, name), name)
+        calc = ZakatCalculation.objects.get(shop=shop, user__email="youssef@example.com")  # noqa: E501
+        current_year = hawl.to_hijri(zakat_services.shop_today(shop))[0]
+        self.assertEqual((calc.hawl_calendar, calc.hawl_year), ("hijri", current_year - 1))  # noqa: E501
+        self.assertTrue(calc.receivable_items and calc.other_assets and calc.debt_items)
+        self.assertEqual(zakat_services.compute_totals(calc).status, "above_nisab")
+
+    def test_zakat_amira_profile_without_choices(self):
+        from apps.zakat.models import ZakatCalculation, ZakatProfile
+
+        profile = ZakatProfile.objects.get(user__email="amira@example.ma")
+        self.assertIsNone(profile.calendar)
+        self.assertIsNone(profile.stock_valuation)
+        self.assertFalse(ZakatCalculation.objects.filter(user__email="amira@example.ma").exists())  # noqa: E501
+
+    def test_zakat_empty_shop_has_nothing(self):
+        from apps.zakat.models import ZakatCalculation, ZakatProfile
+
+        shop = self._shop("Boutique Neuve")
+        self.assertFalse(ZakatProfile.objects.filter(shop=shop).exists())
+        self.assertFalse(ZakatCalculation.objects.filter(shop=shop).exists())
+
 
 @override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
 class SeedDataSecurityTest(TestCase):

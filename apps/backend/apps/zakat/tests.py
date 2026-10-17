@@ -1,4 +1,6 @@
+from datetime import date
 from decimal import Decimal
+
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -19,6 +21,15 @@ def setup(email: str, currency: str = 'EUR'):
     ShopMember.objects.create(shop=shop, user=user, role='owner')
     attach_subscription(shop)  # Formule Solo par défaut.
     return user, shop
+
+
+def _calc(shop, user, reference_date: str, **fields) -> ZakatCalculation:
+    """Fiche personnelle en année grégorienne, insérée sans passer par le service."""
+    return ZakatCalculation.objects.create(
+        shop=shop, user=user, reference_date=reference_date,
+        hawl_calendar='gregorian', hawl_year=int(reference_date[:4]),
+        currency=shop.currency, **fields,
+    )
 
 
 def _make_product(shop, name, selling_price, purchase_price, qty):
@@ -42,34 +53,21 @@ class ZakatServiceTest(TestCase):
         estimated = services.compute_stock_value(self.shop)
         self.assertEqual(estimated, Decimal('110.00'))
 
-    def test_calculate_zakat_base(self):
-        _make_product(self.shop, 'Produit A', Decimal('10.00'), Decimal('100.00'), 5)
-        calc = services.calculate_zakat(
-            shop=self.shop,
-            reference_date='2025-03-01',
-            cash_amount=Decimal('200.00'),
-            receivables_amount=Decimal('50.00'),
-            short_term_debts=Decimal('100.00'),
+    def test_compute_zakat_amount_legacy(self):
+        # Ancien écran (finalize) : stock + trésorerie + créances − dettes exigibles.
+        base, amount = services.compute_zakat_amount(
+            stock_for_base=Decimal('500.00'), cash_amount=Decimal('200.00'),
+            receivables_amount=Decimal('50.00'), short_term_debts=Decimal('100.00'),
+            zakat_rate=Decimal('0.0250'),
         )
-        self.assertEqual(calc.stock_value_estimated, Decimal('500.00'))
-        self.assertEqual(calc.zakat_base, Decimal('650.00'))
-        self.assertEqual(calc.zakat_amount, Decimal('16.25'))
-
-    def test_calculate_zakat_with_adjusted_stock(self):
-        _make_product(self.shop, 'Produit A', Decimal('10.00'), Decimal('100.00'), 5)
-        calc = services.calculate_zakat(
-            shop=self.shop,
-            reference_date='2025-03-01',
-            stock_value_adjusted=Decimal('300.00'),
-        )
-        self.assertEqual(calc.stock_value_estimated, Decimal('500.00'))
-        self.assertEqual(calc.zakat_base, Decimal('300.00'))
+        self.assertEqual(base, Decimal('650.00'))
+        self.assertEqual(amount, Decimal('16.25'))
 
     def test_stock_breakdown_overrides_estimated(self):
         _make_product(self.shop, 'Produit A', Decimal('10.00'), Decimal('100.00'), 5)
         # Ventilation manuelle = 4 sous-montants → autoritaire sur estimated/adjusted
-        calc = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01',
+        calc = _calc(
+            self.shop, self.user, '2025-03-01',
             stock_value_estimated=Decimal('500.00'),
             stock_breakdown=[
                 {'category': 'finished', 'amount': '200.00'},
@@ -77,7 +75,6 @@ class ZakatServiceTest(TestCase):
                 {'category': 'work_in_progress', 'amount': '30.00'},
                 {'category': 'in_transit', 'amount': '20.00'},
             ],
-            currency='EUR',
         )
         self.assertEqual(calc.stock_value_for_base, Decimal('300.00'))
 
@@ -113,55 +110,33 @@ class ZakatServiceTest(TestCase):
         self.shop.nisab_unit_price = Decimal('1.00')  # threshold = 595
         self.shop.save()
         _make_product(self.shop, 'P', Decimal('10'), Decimal('100.00'), 10)  # stock = 1000  # noqa: E501
-        calc = services.calculate_zakat(
-            shop=self.shop, reference_date='2024-03-01',
-            cash_amount=Decimal('0'),
-        )
-        # calculate_zakat ne snapshote pas le nisab — c'est finalize_calculation qui le fait.  # noqa: E501
-        # On vérifie via une création + finalize explicite, sur une année différente
-        # pour respecter la contrainte d'unicité annuelle.
-        draft = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01', currency=self.shop.currency,
-        )
+        draft = services.create_calculation(self.shop, self.user, {'reference_date': date(2025, 3, 1)})  # noqa: E501
         services.finalize_calculation(draft)
         self.assertEqual(draft.nisab_threshold, Decimal('595.00'))
         self.assertEqual(draft.nisab_method, 'silver')
         # Base = stock 1000 > 595 → above nisab
+        self.assertEqual(draft.zakat_base, Decimal('1000.00'))
         self.assertTrue(draft.is_above_nisab)
-        # Sanity check sur calculate_zakat
-        self.assertEqual(calc.zakat_base, Decimal('1000.00'))
 
-    def test_zakat_base_never_negative(self):
-        calc = services.calculate_zakat(
-            shop=self.shop,
-            reference_date='2025-03-01',
-            short_term_debts=Decimal('9999.00'),
+    def test_legacy_zakat_base_never_negative(self):
+        base, amount = services.compute_zakat_amount(
+            stock_for_base=Decimal('0'), cash_amount=Decimal('0'),
+            receivables_amount=Decimal('0'), short_term_debts=Decimal('9999.00'),
+            zakat_rate=Decimal('0.0250'),
         )
-        self.assertEqual(calc.zakat_base, Decimal('0'))
-        self.assertEqual(calc.zakat_amount, Decimal('0.00'))
+        self.assertEqual(base, Decimal('0'))
+        self.assertEqual(amount, Decimal('0.00'))
 
-    def test_finalize_refuses_second_calculation_same_year(self):
-        # Première finalisation : OK.
-        first = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01', currency=self.shop.currency,
-        )
-        services.finalize_calculation(first)
-
-        # Deuxième brouillon pour la même année (autre mois) → refus à la finalisation.
-        second = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-09-15', currency=self.shop.currency,
-        )
-        with self.assertRaises(services.YearAlreadyFinalizedError) as ctx:
-            services.finalize_calculation(second)
-        self.assertEqual(ctx.exception.year, 2025)
+    def test_second_calculation_same_year_refused_at_creation(self):
+        first = services.create_calculation(self.shop, self.user, {'reference_date': date(2025, 3, 1)})  # noqa: E501
+        # Autre mois de la même année (pas de calendrier choisi → grégorien).
+        with self.assertRaises(services.DuplicateHawlYearError) as ctx:
+            services.create_calculation(self.shop, self.user, {'reference_date': date(2025, 9, 15)})  # noqa: E501
+        self.assertEqual(ctx.exception.hawl_year, 2025)
         self.assertEqual(ctx.exception.existing_id, first.pk)
-
-        # Une finalisation pour l'année suivante reste possible.
-        third = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2026-03-01', currency=self.shop.currency,
-        )
-        services.finalize_calculation(third)
-        self.assertEqual(third.status, ZakatCalculation.STATUS_FINALIZED)
+        self.assertEqual(ZakatCalculation.objects.filter(shop=self.shop).count(), 1)
+        # L'année suivante reste possible.
+        services.create_calculation(self.shop, self.user, {'reference_date': date(2026, 3, 1)})  # noqa: E501
 
 
 class ZakatAPITest(TestCase):
@@ -204,7 +179,7 @@ class ZakatAPITest(TestCase):
                 'cash_amount': '500.00',
                 'debts_breakdown': [
                     {'category': 'supplier', 'label': 'Fournisseur', 'amount': '200.00', 'is_immediately_due': True},  # noqa: E501
-                    {'category': 'loan', 'label': 'Emprunt 5 ans', 'amount': '5000.00', 'is_immediately_due': False},  # noqa: E501
+                    {'category': 'loan', 'label': 'Paiement échelonné', 'amount': '5000.00', 'is_immediately_due': False},  # noqa: E501
                 ],
             }, format='json',
         )
@@ -225,23 +200,16 @@ class ZakatAPITest(TestCase):
         self.assertEqual(Decimal(finalize.data['zakat_base']), Decimal('580.00'))
         self.assertEqual(Decimal(finalize.data['zakat_amount']), Decimal('14.50'))
 
-    def test_finalize_endpoint_refuses_second_calc_same_year(self):
-        # Premier calcul finalisé pour 2025.
+    def test_create_refuses_second_calc_same_year(self):
         first = self.client.post(reverse('zakat-calculation-list'), {
             'reference_date': '2025-03-01',
         }, format='json')
-        first_id = first.data['id']
-        self.client.post(reverse('zakat-calculation-finalize', kwargs={'pk': first_id}))
-
-        # Deuxième brouillon pour 2025 — la finalisation doit renvoyer 409.
         second = self.client.post(reverse('zakat-calculation-list'), {
             'reference_date': '2025-09-15',
         }, format='json')
-        second_id = second.data['id']
-        finalize = self.client.post(reverse('zakat-calculation-finalize', kwargs={'pk': second_id}))  # noqa: E501
-        self.assertEqual(finalize.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(finalize.data['year'], 2025)
-        self.assertEqual(finalize.data['existing_id'], first_id)
+        self.assertEqual(second.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(second.data['hawl_year'], 2025)
+        self.assertEqual(second.data['existing_id'], first.data['id'])
 
     def test_patch_draft_with_receivables_breakdown_sums_recoverable_only(self):
         create = self.client.post(reverse('zakat-calculation-list'), {
@@ -301,10 +269,7 @@ class ZakatAPITest(TestCase):
         self.assertEqual(Decimal(patch.data['short_term_debts']), Decimal('800.00'))
 
     def test_finalized_calculation_is_immutable(self):
-        calc = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01',
-            status='finalized', currency='EUR',
-        )
+        calc = _calc(self.shop, self.user, '2025-03-01', status='finalized')
         response = self.client.patch(
             reverse('zakat-calculation-detail', kwargs={'pk': calc.pk}),
             {'cash_amount': '999.00'}, format='json',
@@ -312,10 +277,7 @@ class ZakatAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_draft_current_endpoint_returns_latest_draft(self):
-        ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01',
-            status='draft', currency='EUR', current_step=2,
-        )
+        _calc(self.shop, self.user, '2025-03-01', status='draft', current_step=2)
         response = self.client.get(reverse('zakat-draft-current'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['current_step'], 2)
@@ -326,19 +288,13 @@ class ZakatAPITest(TestCase):
 
     def test_list_scoped_to_shop(self):
         user_b, shop_b = setup('b@example.com')
-        ZakatCalculation.objects.create(
-            shop=shop_b, reference_date='2025-01-01',
-            currency='EUR', zakat_base=Decimal('0'), zakat_amount=Decimal('0'),
-        )
+        _calc(shop_b, user_b, '2025-01-01')
         response = self.client.get(reverse('zakat-calculation-list'))
         self.assertEqual(response.data['count'], 0)
 
     def test_multitenant_isolation(self):
         user_b, shop_b = setup('c@example.com')
-        calc = ZakatCalculation.objects.create(
-            shop=shop_b, reference_date='2025-01-01',
-            currency='EUR', zakat_base=Decimal('0'), zakat_amount=Decimal('0'),
-        )
+        calc = _calc(shop_b, user_b, '2025-01-01')
         response = self.client.get(reverse('zakat-calculation-detail', kwargs={'pk': calc.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -370,22 +326,13 @@ class ZakatAPITest(TestCase):
         self.assertIsNone(response.data['finalized_at'])
 
     def test_reopen_refused_if_another_draft_exists(self):
-        finalized = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-01-01',
-            status='finalized', currency='EUR',
-        )
-        ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01',
-            status='draft', currency='EUR', current_step=2,
-        )
+        finalized = _calc(self.shop, self.user, '2024-01-01', status='finalized')
+        _calc(self.shop, self.user, '2025-03-01', status='draft', current_step=2)
         response = self.client.post(reverse('zakat-calculation-reopen', kwargs={'pk': finalized.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_delete_calculation(self):
-        calc = ZakatCalculation.objects.create(
-            shop=self.shop, reference_date='2025-03-01',
-            status='finalized', currency='EUR',
-        )
+        calc = _calc(self.shop, self.user, '2025-03-01', status='finalized')
         response = self.client.delete(
             reverse('zakat-calculation-detail', kwargs={'pk': calc.pk}),
         )
