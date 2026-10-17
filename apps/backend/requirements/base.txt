@@ -2,24 +2,24 @@
 # Pour upgrader : bumper ici, lancer la suite de tests, vérifier le changelog.
 
 # Framework principal
-Django==6.0.6
-djangorestframework==3.17.1
+Django==6.1.2
+djangorestframework==3.18.3
 djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.9.0
 
 # Base de données
-psycopg2-binary==2.9.12
+psycopg2-binary==2.9.13
 
 # Configuration & secrets
-python-dotenv==1.2.2
+python-dotenv==1.2.4
 
 # Tâches asynchrones & cache
 celery==5.6.3
-redis==8.0.0
+redis==8.1.0
 
 # Stockage S3 (médias privés OVH)
 django-storages[s3]==1.14.6
-boto3==1.43.22
+boto3==1.43.114
 
 # Numéros de téléphone : normalisation E.164 (portage de libphonenumber de Google)
 phonenumbers==9.0.41
@@ -30,7 +30,7 @@ reportlab==4.5.1
 # Factures fournisseur en PDF : mot de passe et nombre de pages contrôlés à l'envoi
 # (apps/ocr/pdf.py). Roue autonome (PDFium embarqué, aucune dépendance système),
 # même version que le service IA.
-pypdfium2==5.12.1
+pypdfium2==5.14.0
 
 # Montants et dates des messages WhatsApp dans la langue du commerçant (données CLDR,
 # comme Intl côté frontend) : format_currency, format_date, format_list.
