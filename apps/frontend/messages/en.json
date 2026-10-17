@@ -1998,6 +1998,7 @@
       "discard_description": "Everything you entered will be lost.",
       "delete": "Delete",
       "already_finalized": "A finalized calculation already exists for {year}. You will be taken to it.",
+      "year_taken": "A calculation already exists for {calendar, select, hijri {the year {year} AH} other {{year}}}. You will be taken to it.",
       "preparing_summary": "Preparing the summary…",
       "short": {
         "cash": "Cash",
@@ -2049,7 +2050,7 @@
       "supplier": "Suppliers",
       "tax_vat": "VAT / taxes",
       "salary": "Salaries",
-      "loan": "Bank loan",
+      "loan": "Installment payment",
       "rent": "Rent",
       "other": "Other"
     },
@@ -2131,7 +2132,7 @@
       },
       "debts": {
         "title": "Short-term debts",
-        "help": "Only debts <b>due immediately</b> are deducted. A 5-year loan, for example, is only due immediately for the current month's instalment.",
+        "help": "Only debts <b>due immediately</b> are deducted. A 5-year installment payment, for example, is only due immediately for the current month's installment.",
         "empty": "No debt entered — tap “Add a debt” if you have any.",
         "category": "Category",
         "label": "Label",

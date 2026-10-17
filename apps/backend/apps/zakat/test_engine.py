@@ -98,6 +98,40 @@ class ReceivablesTest(SimpleTestCase):
         self.assertEqual(totals.zakat_now, Decimal('0'))
         self.assertEqual(totals.zakat_on_collection, Decimal('0'))
 
+    def _both_modes(self, **fields) -> dict[str, services.ZakatTotals]:
+        # Seuil or à 10 le gramme → 850.
+        return {
+            mode: _totals({'receivables_mode': mode, 'nisab_unit_price': '10.00'}, **fields)  # noqa: E501
+            for mode in ('yearly', 'on_collection')
+        }
+
+    def test_on_collection_debt_excess_taken_from_receivables(self):
+        # 1 000 d'actifs, 3 000 de dettes, 5 000 de créances sûres : net 3 000 → 75.
+        totals = self._both_modes(
+            cash_amount=Decimal('1000.00'), stock_sale_value=Decimal('0'),
+            receivable_items=[{'order_id': None, 'label': 'Client', 'amount': '5000.00', 'doubtful': False}],  # noqa: E501
+            debt_items=[{'category': 'supplier', 'label': 'Fournisseur', 'amount': '3000.00', 'amount_within_12_months': '3000.00'}],  # noqa: E501
+        )
+        yearly, later = totals['yearly'], totals['on_collection']
+        self.assertEqual((yearly.zakat_now, yearly.zakat_on_collection), (Decimal('75.00'), Decimal('0')))  # noqa: E501
+        self.assertEqual(later.base, Decimal('0'))
+        self.assertEqual(later.receivables_on_collection, Decimal('3000.00'))
+        self.assertEqual((later.zakat_now, later.zakat_on_collection), (Decimal('0'), Decimal('75.00')))  # noqa: E501
+        for mode in totals.values():
+            self.assertEqual(mode.nisab_compared_amount, Decimal('3000.00'))
+            self.assertEqual(mode.zakat_total, Decimal('75.00'))
+
+    def test_on_collection_same_total_despite_rounding(self):
+        # 1 000,10 × 2,5 % = 25,0025 → 25,00 ; net 1 000,20 × 2,5 % = 25,005 → 25,01.
+        totals = self._both_modes(
+            cash_amount=Decimal('1000.10'), stock_sale_value=Decimal('0'),
+            receivable_items=[{'order_id': None, 'label': 'Client', 'amount': '0.10', 'doubtful': False}],  # noqa: E501
+        )
+        later = totals['on_collection']
+        self.assertEqual((later.zakat_now, later.zakat_on_collection), (Decimal('25.00'), Decimal('0.01')))  # noqa: E501
+        self.assertEqual(totals['yearly'].zakat_total, later.zakat_total)
+        self.assertEqual(later.zakat_total, Decimal('25.01'))
+
 
 class DebtsTest(SimpleTestCase):
     ITEMS = [

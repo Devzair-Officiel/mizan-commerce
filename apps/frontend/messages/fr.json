@@ -1998,6 +1998,7 @@
       "discard_description": "Toutes les saisies seront perdues.",
       "delete": "Supprimer",
       "already_finalized": "Un calcul finalisé existe déjà pour {year}. Vous allez être redirigé vers ce calcul.",
+      "year_taken": "Un calcul existe déjà pour {calendar, select, hijri {l'année {year} H} other {{year}}}. Vous allez être redirigé vers ce calcul.",
       "preparing_summary": "Préparation du récapitulatif…",
       "short": {
         "cash": "Liquidités",
@@ -2049,7 +2050,7 @@
       "supplier": "Fournisseurs",
       "tax_vat": "TVA / impôts",
       "salary": "Salaires",
-      "loan": "Emprunt bancaire",
+      "loan": "Paiement échelonné",
       "rent": "Loyer",
       "other": "Autre"
     },
@@ -2131,7 +2132,7 @@
       },
       "debts": {
         "title": "Dettes à court terme",
-        "help": "Seules les dettes <b>exigibles immédiatement</b> sont déduites. Un emprunt sur 5 ans, par exemple, n'est exigible immédiatement que pour les mensualités du mois.",
+        "help": "Seules les dettes <b>exigibles immédiatement</b> sont déduites. Un paiement échelonné sur 5 ans, par exemple, n'est exigible immédiatement que pour l'échéance du mois.",
         "empty": "Aucune dette renseignée — appuyez sur « Ajouter une dette » si vous en avez.",
         "category": "Catégorie",
         "label": "Libellé",

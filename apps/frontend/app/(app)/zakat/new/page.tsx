@@ -20,6 +20,7 @@ import {
   useFinalizeZakat,
   useDeleteZakatCalculation,
   type ZakatCalculation,
+  type ZakatDraftPayload,
 } from '@/lib/hooks/useZakat';
 import { ApiError } from '@/lib/api-client';
 import { notify } from '@/lib/notify';
@@ -89,30 +90,50 @@ function WizardController({ initialDraft }: { initialDraft: ZakatCalculation | n
     };
   };
 
+  /**
+   * Crée ou met à jour le brouillon. Une fiche par année : si l'année du jour J est déjà
+   * calculée (409), on ouvre la fiche existante et on renvoie `null`.
+   */
+  const save = async (payload: ZakatDraftPayload): Promise<ZakatCalculation | null> => {
+    try {
+      const saved = draftId
+        ? await updateDraft.mutateAsync(payload)
+        : await createDraft.mutateAsync(payload);
+      setDraftId(saved.id);
+      return saved;
+    } catch (err) {
+      const data = err instanceof ApiError && err.status === 409
+        ? (err.data as { existing_id?: string; hawl_year?: number; hawl_calendar?: string })
+        : null;
+      if (!data?.existing_id) throw err;
+      notify.error(t('year_taken', {
+        year: String(data.hawl_year ?? ''),
+        calendar: data.hawl_calendar ?? 'gregorian',
+      }));
+      router.push(`/zakat/${data.existing_id}`);
+      return null;
+    }
+  };
+
   const persistAndNext = async () => {
     const nextStep = step + 1;
-    const payload = buildPayload(nextStep);
-    let updated: ZakatCalculation;
-    if (!draftId) {
-      updated = await createDraft.mutateAsync(payload);
-      setDraftId(updated.id);
-    } else {
-      updated = await updateDraft.mutateAsync(payload);
-    }
+    const updated = await save(buildPayload(nextStep));
+    if (!updated) return;
     setCalc(updated);
     setStep(nextStep);
   };
 
   const persistAndReturnToHub = async () => {
     if (!draftId) return;
-    const updated = await updateDraft.mutateAsync(buildPayload(TOTAL_STEPS - 1));
+    const updated = await save(buildPayload(TOTAL_STEPS - 1));
+    if (!updated) return;
     setCalc(updated);
     setEditingFromHub(false);
   };
 
   const handleFinalize = async () => {
     if (!draftId) return;
-    await updateDraft.mutateAsync(buildPayload(TOTAL_STEPS - 1));
+    if (!(await save(buildPayload(TOTAL_STEPS - 1)))) return;
     try {
       const finalized = await finalize.mutateAsync(draftId);
       router.push(`/zakat/${finalized.id}`);

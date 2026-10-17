@@ -777,7 +777,7 @@ L'application est organisée autour des modules suivants :
 - Aucun choix n'est pré-rempli ni recommandé ; les options sont présentées dans un ordre fixe.
 - Tant qu'un choix manque, le montant n'est pas calculé et l'application indique lequel ; sans prix du gramme, elle indique que le seuil est inconnu.
 - Les choix sont rappelés au calcul suivant, modifiables à tout moment et recopiés dans la fiche à chaque enregistrement.
-- Créances versées à l'encaissement : le seuil se compare à la base augmentée des créances sûres ; la zakat est séparée en « à verser maintenant » et « à verser à l'encaissement ».
+- Créances versées à l'encaissement : même total qu'en les comptant chaque année (seuil comparé au même net) ; la zakat est séparée en « à verser maintenant », sur les actifs hors créances diminués des dettes, et « à verser à l'encaissement », pour le reste.
 - Les créances douteuses ne sont jamais comptées.
 
 ---

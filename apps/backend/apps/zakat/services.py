@@ -371,33 +371,38 @@ def _evaluate(amounts: _Amounts, choices: dict[str, Any]) -> _Outcome:
         ZakatProfile.STOCK_VALUATION_SALE: amounts.stock_at_sale_price,
         ZakatProfile.STOCK_VALUATION_PURCHASE: amounts.stock_at_purchase_price,
     }.get(choices.get('stock_valuation'))
-    # « À l'encaissement » : la créance sûre sort de la base mais compte pour le seuil.
-    in_base, deferred = {
-        ZakatProfile.RECEIVABLES_YEARLY: (amounts.receivables_sure, ZERO),
-        ZakatProfile.RECEIVABLES_ON_COLLECTION: (ZERO, amounts.receivables_sure),
-    }.get(choices.get('receivables_mode'), (None, None))
+    mode = choices.get('receivables_mode')
+    in_base = {
+        ZakatProfile.RECEIVABLES_YEARLY: amounts.receivables_sure,
+        ZakatProfile.RECEIVABLES_ON_COLLECTION: ZERO,
+    }.get(mode)
     debts = {
         ZakatProfile.DEBTS_ALL: amounts.debts_total,
         ZakatProfile.DEBTS_WITHIN_12_MONTHS: amounts.debts_within_12_months,
         ZakatProfile.DEBTS_NONE: ZERO,
     }.get(choices.get('debts_mode'))
-    base = compared = None
+    base = deferred = net = None
     if stock is not None and in_base is not None and debts is not None:
-        base = max(ZERO, amounts.cash + stock + in_base + amounts.other_assets - debts)
-        compared = base + deferred
+        others = amounts.cash + stock + amounts.other_assets
+        net = max(ZERO, others + amounts.receivables_sure - debts)
+        # « À l'encaissement » : l'excédent de dettes s'impute sur les créances sûres.
+        # Même net dans les deux modes ; seul le moment du versement change.
+        base = net if mode == ZakatProfile.RECEIVABLES_YEARLY else max(ZERO, others - debts)  # noqa: E501
+        deferred = net - base
     threshold = nisab_threshold_for(choices.get('nisab_method'), choices.get('nisab_unit_price'))  # noqa: E501
-    below = threshold is not None and compared is not None and compared < threshold
+    below = threshold is not None and net is not None and net < threshold
     rate = ZAKAT_RATES.get(choices.get('calendar'))
     zakat_now = zakat_later = total = None
-    if base is not None and rate is not None:
+    if net is not None and rate is not None:
+        # Le total est arrondi une fois, sur le net : identique dans les deux modes.
+        total = ZERO if below else _round(net * rate)
         zakat_now = ZERO if below else _round(base * rate)
-        zakat_later = ZERO if below else _round(deferred * rate)
-        total = zakat_now + zakat_later
+        zakat_later = total - zakat_now
     missing = tuple(name for name in CHOICE_FIELDS if not choices.get(name))
     return _Outcome(
         stock=stock, receivables_in_base=in_base, receivables_on_collection=deferred,
         debts_deducted=debts, base=base, nisab_threshold=threshold,
-        nisab_compared_amount=compared, rate=rate, zakat_now=zakat_now,
+        nisab_compared_amount=net, rate=rate, zakat_now=zakat_now,
         zakat_on_collection=zakat_later, zakat_total=total,
         missing_choices=missing, status=_status(missing, threshold, below),
     )
@@ -418,8 +423,9 @@ def compute_totals(calc: ZakatCalculation) -> ZakatTotals:
 
     Part de la personne appliquée à la trésorerie, au stock (catalogue + hors Mizan),
     aux créances et aux dettes de la boutique ; pas aux autres biens (personnels).
-    Seuil comparé à la base + les créances sûres versées à l'encaissement ; sous le
-    seuil, rien à verser.
+    Net = actifs + créances sûres − dettes, comparé au seuil ; sous le seuil, rien à
+    verser. « À l'encaissement » ne change que le moment : maintenant sur
+    (actifs − dettes), le reste du net à l'encaissement.
     """
     choices = calc.choices_snapshot or {}
     share = _decimal(choices.get('ownership_share'), default=FULL_SHARE)

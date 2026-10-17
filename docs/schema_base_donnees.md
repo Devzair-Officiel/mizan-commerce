@@ -737,8 +737,9 @@ biens comptés) ;
 seuil = prix du gramme × 85 g ou 595 g ; taux 2,5 % (hégirien) ou 2,5775 % (grégorien) ;
 arrondi au centime (`ROUND_HALF_UP`). Statuts : `choice_missing` (choix manquant, liste
 fournie), `nisab_unknown` (pas de prix), `below_nisab`, `above_nisab`. Avec
-`on_collection`, les créances sûres sortent de la base mais comptent pour le seuil ; la
-zakat est séparée en « maintenant » et « à l'encaissement ».
+`on_collection`, le net et le total sont les mêmes qu'avec `yearly` (seuil comparé au net) :
+« maintenant » = max(0, actifs hors créances − dettes) × taux, « à l'encaissement » = total
+− maintenant (l'excédent de dettes s'impute sur les créances sûres).
 
 **Règle d'affichage** : toujours afficher la mention « estimation indicative ».
 

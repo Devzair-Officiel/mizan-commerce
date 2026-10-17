@@ -192,11 +192,12 @@ religieux avant mise en ligne, § 8).
       (création, suppression, justificatif), suppression des données zakat au retrait d'un
       membre. Migrations zakat 0007 à 0012 (arrêt sans rien supprimer si une personne a deux
       calculs la même année), core 0004. `finalize` et `reopen` conservés (obsolètes).
+      Écran actuel : année déjà calculée (409) → redirection vers la fiche existante ;
+      catégorie `loan` libellée « Paiement échelonné » (fr / en / ar).
 - [ ] **Z2 — Écran** : nouveau parcours (profil, choix d'avis, autres biens, sources),
       gestion du 409 (année déjà calculée, conflit de version, `version` obligatoire),
       justificatif PDF refondu (choix, date de dernière modification), rappels par profil,
-      retrait de `finalize` et `reopen`, libellés « Emprunt bancaire » et aide sur l'emprunt
-      (fr / en / ar) remplacés par « Paiement échelonné ».
+      retrait de `finalize` et `reopen`.
 - [ ] **Z3 — Nettoyage** : retrait des anciens champs (`Shop.zakat_annual_date`,
       `nisab_method`, `nisab_unit_price` ; `ZakatCalculation.debts_breakdown`,
       `receivables_breakdown`, `stock_breakdown`, `stock_value_adjusted`, `status`,
@@ -580,6 +581,9 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
       avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
+
+- [ ] Audit sales dépendant de l'historique de la boutique d'audit (échoue avec moins de deux
+      points).
 
 ---
 

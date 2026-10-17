@@ -2,10 +2,12 @@
  * Audit des erreurs de la zakat : plus aucune alert() — une notification à la place.
  * Un calcul finalisé est créé par l'API dans la boutique du compte d'audit ; la réouverture
  * (« Modifier ») est forcée en échec, l'erreur doit apparaître en notification, sans boîte
- * de dialogue du navigateur. Le calcul est supprimé à la fin (audit relançable).
+ * de dialogue du navigateur. Puis l'assistant est relancé sur la même année : le 409
+ * (une fiche par année) doit afficher une notification et ouvrir la fiche existante.
+ * Le calcul est supprimé à la fin (audit relançable).
  */
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
-import { msg } from './lib/messages.mjs';
+import { fmt, msg } from './lib/messages.mjs';
 
 const report = createReport();
 const FAILURE = 'Réouverture impossible (audit)';
@@ -21,6 +23,18 @@ async function finalizedCalculation(page) {
   const draft = await (await page.request.post(API, { data: { reference_date: new Date().toISOString().slice(0, 10), cash_amount: '50000.00' } })).json();
   await page.request.post(`${API}${draft.id}/finalize/`);
   return draft.id;
+}
+
+/** Assistant actuel, jour J dans une année déjà calculée : notification et fiche existante. */
+async function checkYearTaken(page, locale, label, existingId) {
+  await page.goto(`${BASE}/zakat/new`);
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: msg(locale, 'zakat.wizard.next'), exact: true }).filter({ visible: true }).click();
+  const text = fmt(locale, 'zakat.wizard.year_taken', { calendar: 'gregorian', year: new Date().getFullYear() });
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: text }).first();
+  const shown = await toast.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
+  const opened = await page.waitForURL(`**/zakat/${existingId}`, { timeout: 5000 }).then(() => true, () => false);
+  report.check(shown && opened, `${label} : année déjà calculée → notification et fiche existante ouverte`);
 }
 
 const browser = await launch();
@@ -46,8 +60,10 @@ for (const viewport of VIEWPORTS) {
       const toast = page.locator('[data-sonner-toast]').filter({ hasText: FAILURE }).first();
       const shown = await toast.waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
       report.check(shown && dialogs.length === 0, `${label} : échec de la réouverture → notification, aucune alert()`);
-      // Le 400 de la réouverture est provoqué par l'audit lui-même.
-      const problems = watch.problems.slice(before).filter((p) => !/status of 400 .*\/reopen\//.test(p));
+      await checkYearTaken(page, locale, label, id);
+      // Le 400 de la réouverture et le 409 de la création sont provoqués par l'audit lui-même.
+      const provoked = /status of 400 .*\/reopen\/|status of 409 .*\/zakat\/calculations\b/;
+      const problems = watch.problems.slice(before).filter((p) => !provoked.test(p));
       report.check(problems.length === 0, `${label} : console propre${problems.map((p) => `\n      ${p}`).join('')}`);
     }
   }
