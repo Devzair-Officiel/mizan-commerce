@@ -58,7 +58,7 @@ Clients                     customers
 Commandes                   orders, order_items, shipments
 Facturation                 invoices, invoice_lines, invoice_sequences
 Productivité                notes, reminders
-Zakat                       zakat_calculations
+Zakat                       zakat_profiles, zakat_calculations
 OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
                             detection_results
 Communication               prepared_messages, message_settings, telegram_accounts, telegram_publications
@@ -157,7 +157,7 @@ Boutique (entité racine du multi-tenant).
 | currency | VARCHAR(3) | NOT NULL, DEFAULT 'EUR' | Code ISO 4217 (EUR, MAD, DZD, XOF…) |
 | country | VARCHAR(2) | DEFAULT `''` | Code ISO 3166-1 alpha-2 |
 | timezone | VARCHAR(50) | NOT NULL, DEFAULT 'Europe/Paris' | Recalculé à chaque `save()` à partir de `country` (méthode `timezone_for_country`). Sert au calcul « rappels du jour ». |
-| zakat_annual_date | DATE | | Date annuelle de zakat |
+| zakat_annual_date | DATE | | Date annuelle de zakat. Remplacé par `zakat_profiles.hawl_date` (lot Z1), retiré au lot Z3 avec `nisab_method` et `nisab_unit_price`. |
 | nisab_method | VARCHAR(8) | NOT NULL, DEFAULT 'silver' | Méthode de calcul du seuil Nisab : `gold` (85 g d'or) ou `silver` (595 g d'argent). Argent par défaut (plus inclusif, recommandé pour la zakat commerciale). |
 | nisab_unit_price | DECIMAL(10,2) | | Prix unitaire (par gramme) du métal de référence, saisi par l'utilisateur. Pas de valeur par défaut : le cours fluctue. |
 | logo_object_key | VARCHAR(500) | DEFAULT `''` | Logo (Object Storage privé) |
@@ -658,28 +658,87 @@ Réglages des rappels automatiques (URS-055 à 057), un par boutique, créés à
 
 ## 11. Domaine — Zakat
 
-### `zakat_calculations`
+Données **personnelles** : profil et fiches appartiennent à une personne dans une boutique.
+Querysets filtrés par boutique **et** par utilisateur courant ; un autre admin reçoit 404.
+Module réservé aux admins. Au retrait d'un membre, son profil et ses fiches sont supprimés
+dans la même transaction (`shops.services.remove_member`). Règles : `docs/zakat_referentiel.md`.
 
-Calcul de zakat sauvegardé pour un exercice.
+### `zakat_profiles`
+
+Réglages zakat d'une personne dans une boutique (lot Z1). Créé à la première lecture
+(`get_or_create`). Les choix d'avis valent `NULL` tant que la personne ne les a pas faits :
+jamais de valeur par défaut.
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| shop_id | UUID | FK → shops.id, NOT NULL | |
-| reference_date | DATE | NOT NULL | Date de référence du calcul (date de zakat de l'année) |
-| stock_value_estimated | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Valeur calculée (somme produits actifs × prix d'achat) |
-| stock_value_adjusted | DECIMAL(12,2) | | Valeur corrigée manuellement (URS-037) |
-| cash_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Liquidités (URS-038) |
-| receivables_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Créances clients (URS-039) |
-| short_term_debts | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Dettes court terme (URS-040) |
-| zakat_base | DECIMAL(12,2) | NOT NULL | `stock_adjusted + cash + receivables − debts` |
-| zakat_rate | DECIMAL(5,4) | NOT NULL, DEFAULT 0.0250 | 2,5 % par défaut |
-| zakat_amount | DECIMAL(12,2) | NOT NULL | `zakat_base * zakat_rate` |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| user_id | UUID | FK → users.id, CASCADE, NOT NULL | |
+| hawl_date | DATE | | Jour J |
+| calendar | VARCHAR(10) | | `hijri` ou `gregorian` (choix D6) |
+| nisab_method | VARCHAR(8) | | `gold` (85 g) ou `silver` (595 g) (choix D1) |
+| nisab_unit_price | DECIMAL(10,2) | CHECK > 0 si renseigné | Prix du gramme saisi |
+| nisab_price_updated_at | TIMESTAMPTZ | | Posé par le serveur quand le prix change (alerte au-delà de 7 jours) |
+| stock_valuation | VARCHAR(10) | | `sale` ou `purchase` (choix D5) |
+| receivables_mode | VARCHAR(16) | | `yearly` ou `on_collection` (choix D3) |
+| debts_mode | VARCHAR(20) | | `all`, `within_12_months` ou `none` (choix D2) |
+| ownership_share | DECIMAL(5,2) | NOT NULL, DEFAULT 100, CHECK 0 < part ≤ 100 | Part détenue dans la boutique, en % ; s'applique aux montants de la boutique, pas aux autres biens |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contrainte** : `UNIQUE (shop_id, user_id)`.
+
+### `zakat_calculations`
+
+Fiche de zakat d'une personne pour un jour J. Jamais figée : elle reste modifiable.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| user_id | UUID | FK → users.id, CASCADE, NOT NULL | Auteur (calculs antérieurs à Z1 rattachés à l'owner) |
+| version | INTEGER | NOT NULL, DEFAULT 1 | Incrémentée à chaque écriture ; un PATCH avec une version périmée → 409 |
+| reference_date | DATE | NOT NULL | Jour J |
+| hawl_calendar | VARCHAR(10) | NOT NULL | Calculé par le serveur : calendrier du profil, grégorien tant qu'il n'est pas choisi |
+| hawl_year | SMALLINT | NOT NULL | Année hégirienne ou grégorienne de `reference_date` |
+| current_step | SMALLINT | NOT NULL, DEFAULT 0 | Dernière étape atteinte par l'assistant |
+| cash_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Trésorerie de la boutique (URS-038) |
+| stock_sale_value | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Σ quantité × prix de vente, formats actifs à stock > 0 |
+| stock_purchase_value | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Σ quantité × prix d'achat |
+| stock_extra | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Stock hors Mizan |
+| receivable_items | JSONB | NOT NULL, DEFAULT `[]` | `[{order_id, label, amount, doubtful}]` ; `order_id` d'une commande de la boutique, sans doublon |
+| other_assets | JSONB | NOT NULL, DEFAULT `[]` | `[{category, label, amount, counted}]`, biens personnels (URS-107) |
+| debt_items | JSONB | NOT NULL, DEFAULT `[]` | `[{category, label, amount, amount_within_12_months}]` |
+| choices_snapshot | JSONB | NOT NULL, DEFAULT `{}` | Copie des choix du profil à chaque enregistrement |
 | currency | VARCHAR(3) | NOT NULL | Devise au moment du calcul |
-| pdf_object_key | VARCHAR(500) | | Export PDF généré (URS-060) |
+| pdf_object_key | VARCHAR(500) | | Export PDF (URS-060) |
 | notes | TEXT | | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+Montants des listes JSON : chaînes décimales ≥ 0, validées par les serializers (200 lignes
+au plus). Catégories de dettes : `supplier`, `tax_vat`, `salary`, `rent`, `loan` (libellé
+« Paiement échelonné »), `other`. Catégories d'autres biens : `personal_cash`, `business`,
+`real_estate`, `gold_silver`, `for_resale`, `other`.
+
+**Champs de l'écran actuel, retirés au lot Z3** : `status` (`draft`/`finalized`),
+`finalized_at`, `stock_value_estimated`, `stock_value_adjusted`, `stock_breakdown`,
+`has_receivables`, `receivables_nominal`, `receivables_breakdown`, `receivables_amount`,
+`debts_breakdown` (recopié dans `debt_items` par la migration 0011), `short_term_debts`,
+`excluded_items_acknowledged`, `zakat_base`, `zakat_rate`, `zakat_amount`, `nisab_method`,
+`nisab_unit_price`, `nisab_threshold`.
+
+**Contrainte** : `UNIQUE (shop_id, user_id, hawl_calendar, hawl_year)` — un doublon renvoie
+409 avec `existing_id`. **Index** : `(shop_id, status)`, `(shop_id, user_id)`.
+
+**Calcul** (`zakat.services.compute_totals`, seul moteur) : base = max(0, part ×
+(trésorerie + stock selon D5 + stock hors Mizan + créances sûres − dettes selon D2) + autres
+biens comptés) ;
+seuil = prix du gramme × 85 g ou 595 g ; taux 2,5 % (hégirien) ou 2,5775 % (grégorien) ;
+arrondi au centime (`ROUND_HALF_UP`). Statuts : `choice_missing` (choix manquant, liste
+fournie), `nisab_unknown` (pas de prix), `below_nisab`, `above_nisab`. Avec
+`on_collection`, les créances sûres sortent de la base mais comptent pour le seuil ; la
+zakat est séparée en « maintenant » et « à l'encaissement ».
 
 **Règle d'affichage** : toujours afficher la mention « estimation indicative ».
 

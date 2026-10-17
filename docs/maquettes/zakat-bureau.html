@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mizan — Zakat, bureau</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+/* Jetons alignés sur les autres maquettes (formulaire-client.html) */
+.mz{--bg:#FAF6EF;--card:#FFFDFA;--fg:#1D2A25;--muted:#F0EDE4;--mfg:#656E6B;--border:#E1DED4;--primary:#367762;--pfg:#FFFFFF;--soft:#DAEDE6;--softfg:#183A2F;--amber:#B45309;--amberbg:#FDF1DC;--red:#B91C1C;--redbg:#FBE7E4;--green:#2F7A3E;--greenbg:#E3F1E3;--bar:#C9DDD4;--scrim:rgba(29,42,37,.38);font-family:'Geist',ui-sans-serif,system-ui,sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;color:var(--fg)}
+.mz.dark{--bg:#1A211E;--card:#252E2A;--fg:#EAE7E2;--muted:#2F3834;--mfg:#A6ADA9;--border:rgba(255,255,255,.10);--primary:#83C0AA;--pfg:#1A211E;--soft:#2F3B36;--softfg:#D3E8DF;--amber:#F2B95C;--amberbg:rgba(242,185,92,.13);--red:#F28B82;--redbg:rgba(242,139,130,.13);--green:#7BCB8A;--greenbg:rgba(123,203,138,.13);--bar:#3F5048;--scrim:rgba(0,0,0,.55)}
+body{margin:0}
+.mz *{box-sizing:border-box}
+:where(.mz) button,:where(.mz) input{font:inherit;color:inherit}
+:where(.mz) button{cursor:pointer}
+:where(.mz) a{color:inherit;text-decoration:none}
+.mz :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* Barre de pilotage de la maquette (hors application) */
+.mq{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;background:#14201B;color:#EAE7E2;font:500 13px/1 'Geist',system-ui,sans-serif}
+.mq b{font-weight:600;margin-inline-end:8px}
+.mq button{height:30px;padding:0 12px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;font:inherit;cursor:pointer;white-space:nowrap}
+.mq button[aria-pressed=true]{background:#EAE7E2;color:#14201B}
+.mq .sp{flex:1}
+.mq .note{opacity:.7;font-weight:400}
+
+/* Gabarit application */
+.app{display:grid;grid-template-columns:272px minmax(0,1fr);min-height:calc(100vh - 50px);background:var(--bg)}
+.side{position:sticky;top:50px;height:calc(100vh - 50px);display:flex;flex-direction:column;gap:2px;padding:20px 14px;background:color-mix(in srgb,var(--card) 72%,transparent);border-inline-end:1px solid var(--border);overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 14px}
+.logo{width:34px;height:34px;border-radius:11px;background:var(--primary);color:var(--pfg);display:flex;align-items:center;justify-content:center;font-weight:700}
+.brand .n{font-size:15px;font-weight:600}.brand .s{font-size:12px;color:var(--mfg)}
+.newo{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;background:color-mix(in srgb,var(--primary) 12%,transparent);color:var(--primary);font-size:14px;font-weight:600;margin-bottom:6px;white-space:nowrap}
+.grp{font-size:15px;font-weight:700;padding:0 12px;margin:14px 0 2px}
+.nav{display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;margin-inline-start:10px;border-radius:12px;font-size:14px;font-weight:500;color:var(--fg);white-space:nowrap}
+.nav.flat{margin-inline-start:0}
+.nav:hover{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+.nav.on{background:var(--soft);color:var(--softfg);font-weight:600}
+.nav.on svg{color:var(--primary)}
+.main{width:100%;max-width:1600px;margin:0 auto;padding:32px 48px 72px}
+
+/* En-tête de page */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:500;color:var(--mfg);margin-bottom:10px}
+.back:hover{color:var(--fg)}
+h1{font-size:28px;font-weight:600;letter-spacing:-.015em;line-height:1.15;margin:0}
+.sub{font-size:14px;color:var(--mfg);margin-top:6px}
+.saved{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--mfg);white-space:nowrap}
+.saved svg{color:var(--green)}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;border:0;font-size:14px;font-weight:600;white-space:nowrap;transition:transform .12s}
+.btn:active{transform:scale(.97)}
+.btn.p{background:var(--primary);color:var(--pfg)}
+.btn.o{background:var(--card);border:1px solid var(--border);color:var(--fg)}
+.btn.t{background:transparent;color:var(--mfg)}
+.btn.t:hover{color:var(--fg)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* Cartes et bandes d'en-tête */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 22.5rem;gap:20px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.band{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 20px;background:var(--muted);border-bottom:1px solid var(--border)}
+.band h2{font-size:16px;font-weight:600;margin:0;letter-spacing:-.005em}
+.band .hint{font-size:12.5px;color:color-mix(in srgb,var(--fg) 72%,var(--muted));margin-top:3px}
+.band .act{font-size:13px;font-weight:600;color:var(--primary);white-space:nowrap;background:none;border:0;padding:0}
+.body{padding:20px}
+.sticky{position:sticky;top:74px}
+
+/* Tableaux */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:start;font-size:12.5px;font-weight:600;color:color-mix(in srgb,var(--fg) 72%,var(--muted));background:var(--muted);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:13px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+th:first-child,td:first-child{padding-inline-start:20px}th:last-child,td:last-child{padding-inline-end:20px}
+.nw{white-space:nowrap}
+.tw{overflow-x:auto}
+tr:last-child td{border-bottom:0}
+.num{text-align:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+td .t1{font-weight:600}
+td .t2{font-size:12.5px;color:var(--mfg);margin-top:2px}
+tfoot td{font-weight:600;background:color-mix(in srgb,var(--muted) 50%,var(--card))}
+
+/* Pastilles */
+.chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;border:1px solid var(--border);background:var(--card);font-size:11.5px;font-weight:600;color:var(--mfg);white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-ok{background:var(--greenbg);color:var(--green)}
+.b-warn{background:var(--amberbg);color:var(--amber)}
+.b-neutral{background:var(--muted);color:var(--fg)}
+.b-soft{background:var(--soft);color:var(--softfg)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+
+/* Accueil : carte du jour J */
+.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:36px;align-items:center;padding:28px 32px}
+.ring{position:relative;width:176px;height:176px}
+.ring svg{width:176px;height:176px;display:block}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ring .d{font-size:44px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.ring .l{font-size:12.5px;color:var(--mfg);margin-top:4px;line-height:1.3}
+.when .k{font-size:13px;font-weight:500;color:var(--mfg)}
+.when .g{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-top:6px}
+.when .h{font-size:16px;color:var(--mfg);margin-top:4px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:22px}
+.fact{padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.fact .k{font-size:12px;color:var(--mfg)}
+.fact .v{font-size:15px;font-weight:600;margin-top:4px}
+.fact .w{font-size:12px;margin-top:3px}
+
+/* Lignes de réglage (Vos choix) */
+.opt-row{display:flex;justify-content:space-between;gap:12px;padding:13px 20px;border-bottom:1px solid var(--border)}
+.opt-row:last-child{border-bottom:0}
+.opt-row .k{font-size:13px;color:var(--mfg)}
+.opt-row .v{font-size:14px;font-weight:600;margin-top:2px}
+.opt-row .who{margin-top:6px}
+
+/* Barre d'étapes */
+.steps{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:24px;padding:0;list-style:none}
+.st{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:12px;font-size:13px;font-weight:500;color:var(--mfg);border:1px solid transparent;white-space:nowrap}
+.st .no{width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;background:var(--muted);color:var(--mfg);flex:none}
+.st.done{color:var(--fg)}
+a.st{cursor:pointer}a.st:hover{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+.st.done .no{background:var(--soft);color:var(--softfg)}
+.st.now{background:var(--card);border-color:var(--border);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(29,42,37,.06)}
+.st.now .no{background:var(--primary);color:var(--pfg)}
+
+/* Choix d'avis */
+.choices{display:grid;gap:12px}
+.choices.two{grid-template-columns:1fr 1fr}
+.choice{position:relative;display:flex;gap:14px;padding:16px;border-radius:14px;border:1.5px solid var(--border);background:var(--card);text-align:start;width:100%}
+.choice:hover{border-color:color-mix(in srgb,var(--primary) 45%,var(--border))}
+.choice[aria-checked=true]{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 6%,var(--card))}
+.radio{width:20px;height:20px;border-radius:999px;border:2px solid var(--border);flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center}
+.choice[aria-checked=true] .radio{border-color:var(--primary)}
+.choice[aria-checked=true] .radio::after{content:"";width:10px;height:10px;border-radius:999px;background:var(--primary)}
+.choice .ct{font-size:15px;font-weight:600}
+.choice .cd{font-size:13px;color:var(--mfg);margin-top:3px;line-height:1.45}
+.choice .amt{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:10px}
+.choice .tags{margin-top:10px}
+.mz .why{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--primary);background:none;border:0;padding:0;margin-top:14px}
+.kept{font-size:12.5px;color:var(--mfg);margin-top:12px}
+
+/* Alertes et notes */
+.alert{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:12px;font-size:13.5px;line-height:1.45}
+.alert.warn{background:var(--amberbg);color:var(--amber)}
+.alert.info{background:var(--muted);color:var(--fg)}
+.alert a,.alert button.lk{font-weight:600;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;color:inherit}
+.usage{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;border-radius:14px;border:1px dashed var(--border);font-size:13.5px}
+.usage .t{font-weight:600}
+.usage .d{color:var(--mfg);margin-top:2px}
+
+/* Champs */
+.field label{display:block;font-size:13px;font-weight:500;margin-bottom:6px}
+.inp{display:flex;align-items:center;height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-size:14px;justify-content:space-between}
+.inp .u{color:var(--mfg)}
+.help{font-size:12.5px;color:var(--mfg);margin-top:6px}
+.addline{display:flex;align-items:center;justify-content:center;gap:8px;height:42px;border-radius:999px;border:1.5px dashed var(--border);background:transparent;color:var(--primary);font-size:14px;font-weight:600;width:100%;margin-top:14px}
+
+/* Pied d'actions */
+.actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px}
+.actions .r{display:flex;gap:8px}
+
+/* Récapitulatif vivant */
+.rc{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 20px;font-size:14px}
+.rc .k{display:flex;align-items:center;gap:8px;color:var(--fg)}
+.rc .k .src{font-size:11px;font-weight:600;color:var(--mfg);border:1px solid var(--border);border-radius:6px;padding:1px 5px}
+.rc.cur{background:color-mix(in srgb,var(--primary) 7%,transparent);font-weight:600}
+.rc.wait{color:var(--mfg)}
+.rc.wait .k{color:var(--mfg)}
+.rc.sum{border-top:1px solid var(--border);padding-top:14px;margin-top:4px;font-weight:600}
+.rc.th{color:var(--mfg);font-size:13px}
+.total{margin:8px 12px 12px;padding:16px;border-radius:12px;background:var(--soft);color:var(--softfg)}
+.total .k{font-size:13px;font-weight:500}
+.total .v{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:4px}
+.total .n{font-size:12px;margin-top:4px;opacity:.85}
+
+/* Résultat */
+.res{padding:28px 32px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center}
+.res .k{font-size:14px;font-weight:500;color:var(--mfg)}
+.res .v{font-size:52px;font-weight:700;letter-spacing:-.035em;line-height:1;margin-top:8px}
+.res .v.zero{font-size:30px;letter-spacing:-.02em;line-height:1.2}
+.res .l{font-size:14.5px;margin-top:12px}
+.res .m{font-size:13px;color:var(--mfg);margin-top:6px}
+.gauge{width:280px}
+.gauge .bar{position:relative;height:12px;border-radius:999px;background:var(--muted);overflow:visible}
+.gauge .fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:999px;background:var(--primary)}
+.gauge .mark{position:absolute;top:-6px;width:2px;height:24px;background:var(--fg)}
+.gauge .lg{display:flex;justify-content:space-between;font-size:12px;color:var(--mfg);margin-top:10px}
+.line{display:grid;grid-template-columns:28px minmax(0,1fr) auto 36px;gap:8px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--border);font-size:14px}
+.line:last-child{border-bottom:0}
+.line .op{font-weight:700;color:var(--mfg);text-align:center}
+.line .lb .src{margin-inline-start:8px}
+.line.eq{background:color-mix(in srgb,var(--muted) 55%,var(--card));font-weight:600}
+.line.big{font-size:16px}
+.ed{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--mfg)}
+.ed:hover{background:color-mix(in srgb,var(--primary) 8%,transparent);color:var(--primary)}
+.addgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mz .add{display:flex;align-items:center;gap:10px;white-space:nowrap;height:52px;padding:0 14px;border-radius:14px;border:1px solid var(--border);background:var(--card);font-size:14px;font-weight:600;color:var(--fg);text-align:start}
+.mz .add:hover{border-color:color-mix(in srgb,var(--primary) 45%,var(--border))}
+.add .pl{margin-inline-start:auto;color:var(--primary)}
+.add svg.i{color:var(--primary)}
+.sw{position:relative;display:inline-block;width:40px;height:24px;border-radius:999px;background:var(--bar);vertical-align:middle;flex:none}
+.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:999px;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:inset-inline-start .15s}
+.sw[aria-checked=true]{background:var(--primary)}
+.sw[aria-checked=true]::after{inset-inline-start:19px}
+.mz button.sw{border:0;padding:0}
+.lock{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--mfg);white-space:nowrap}
+.rep{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);font-size:13.5px;line-height:1.5}
+.rep:last-child{border-bottom:0}
+.rep .k{font-weight:600}
+.limit{font-size:13px;color:var(--mfg);line-height:1.5}
+
+/* Fiche Fondement (tiroir) */
+.scrim{position:fixed;inset:50px 0 0 0;background:var(--scrim);z-index:30}
+.drawer{position:fixed;top:50px;bottom:0;inset-inline-end:0;width:440px;z-index:31;background:var(--card);border-inline-start:1px solid var(--border);display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.12)}
+.drawer .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:20px 22px;border-bottom:1px solid var(--border)}
+.drawer .hd h3{font-size:18px;font-weight:600;margin:0}
+.drawer .hd .s{font-size:13px;color:var(--mfg);margin-top:4px}
+.drawer .x{width:44px;height:44px;margin:-10px -10px 0 0;border-radius:12px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--mfg)}
+.drawer .bd{padding:6px 22px 22px;overflow:auto;display:flex;flex-direction:column}
+.blk{padding:16px 0;border-bottom:1px solid var(--border)}
+.blk:last-child{border-bottom:0}
+.blk h4{font-size:13px;font-weight:600;color:var(--mfg);margin:0 0 8px}
+.blk p{margin:0;font-size:14px;line-height:1.55}
+.src-item{padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--border);margin-top:8px}
+.src-item .q{font-size:14px;line-height:1.5}
+.src-item .ref{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:12.5px;color:var(--mfg)}
+.pos{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 0}
+.pos+.pos{border-top:1px dashed var(--border)}
+.pos .t{font-size:14px;font-weight:600}
+.pos .tags{margin-top:6px}
+.pos .me{font-size:11.5px;font-weight:600;color:var(--primary);white-space:nowrap}
+
+.foot{font-size:12.5px;color:var(--mfg);margin-top:28px;max-width:72ch;line-height:1.5}
+.foot a{color:var(--primary);font-weight:600}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="mz" id="root">
+
+<!-- ─────────── Pilotage de la maquette (ne fait pas partie de l'app) ─────────── -->
+<div class="mq" role="toolbar" aria-label="Pilotage de la maquette">
+  <b>Zakat — bureau 1440</b>
+  <button data-go="home" aria-pressed="true">1. Accueil /zakat</button>
+  <button data-go="stock" aria-pressed="false">2. Étape Stock</button>
+  <button data-go="others" aria-pressed="false">3. Étape Autres biens</button>
+  <button data-go="debts" aria-pressed="false">4. Étape Dettes + Fondement</button>
+  <button data-go="result" aria-pressed="false">5. Résultat</button>
+  <span class="sp"></span>
+  <button id="below" aria-pressed="false" title="Résultat : variante sous le seuil">Sous le seuil</button>
+  <button id="theme" aria-pressed="false">Sombre</button>
+</div>
+
+<div class="app">
+<!-- ─────────── Sidebar (gabarit §7, simplifié) ─────────── -->
+<aside class="side" aria-label="Navigation">
+  <div class="brand"><div class="logo">M</div><div><div class="n">Mizan</div><div class="s">La Boutique de Youssef</div></div></div>
+  <a class="newo" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouvelle commande</a>
+  <a class="nav flat" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</a>
+  <div class="grp">Vendre</div>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M6 2h12l2 5H4z"/><path d="M4 7h16v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg>Commandes</a>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20c-.5-2.6-2-4.4-4-5.1"/></svg>Clients</a>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Catalogue</a>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h7M9 17h5"/></svg>Factures</a>
+  <div class="grp">Suivi</div>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Stock</a>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>Rappels</a>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4"/></svg>Notes</a>
+  <a class="nav on" href="#" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>Zakat</a>
+  <div class="grp">Compte</div>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Paramètres</a>
+  <a class="nav" href="#"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Abonnement</a>
+</aside>
+
+<main class="main">
+
+<!-- ═══════════════ 1. ACCUEIL /zakat ═══════════════ -->
+<section data-screen="home">
+  <div class="top">
+    <div>
+      <h1>Zakat</h1>
+      <div class="sub">Mizan additionne vos montants selon vos choix. Le résultat est une estimation.</div>
+    </div>
+    <a class="btn p" href="#" data-goto="stock"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Préparer ma zakat 1448</a>
+  </div>
+
+  <div class="stack">
+    <!-- Carte du jour J : l'élément central de la page -->
+    <div class="card hero">
+      <div class="ring" aria-label="227 jours écoulés sur 355, 128 jours avant le jour J">
+        <svg viewBox="0 0 176 176" aria-hidden="true">
+          <g transform="translate(88 88)">
+            <!-- 12 repères : les 12 mois lunaires -->
+            <g stroke="var(--border)" stroke-width="2" stroke-linecap="round">
+              <line x1="0" y1="-84" x2="0" y2="-80"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(30)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(60)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(90)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(120)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(150)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(180)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(210)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(240)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(270)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(300)"/><line x1="0" y1="-84" x2="0" y2="-80" transform="rotate(330)"/>
+            </g>
+            <circle r="70" fill="none" stroke="var(--bar)" stroke-width="10"/>
+            <circle r="70" fill="none" stroke="var(--primary)" stroke-width="10" stroke-linecap="round" stroke-dasharray="281.2 439.8" transform="rotate(-90)"/>
+            <!-- Croissant au point d'avancement (230° depuis le haut) -->
+            <g transform="rotate(230) translate(0 -70) rotate(-230)">
+              <circle r="11" fill="var(--card)" stroke="var(--primary)" stroke-width="2"/>
+              <path d="M3.6-5.2A6 6 0 1 0 3.6 5.2 4.6 4.6 0 1 1 3.6-5.2z" fill="var(--primary)"/>
+            </g>
+          </g>
+        </svg>
+        <div class="c"><div class="d">128</div><div class="l">jours avant<br>le jour J</div></div>
+      </div>
+
+      <div class="when">
+        <div class="k">Votre prochain jour J</div>
+        <div class="g">Lundi 22 février 2027</div>
+        <div class="h">15 ramadan 1448 · année hégirienne</div>
+        <div class="facts">
+          <div class="fact"><div class="k">Seuil (595 g d’argent)</div><div class="v">1 428,00 €</div><div class="w" style="color:var(--amber)">Prix du gramme saisi il y a 12 jours</div></div>
+          <div class="fact"><div class="k">Calcul en cours</div><div class="v">Aucun</div><div class="w" style="color:var(--mfg)">Rappel envoyé 7 jours avant</div></div>
+          <div class="fact"><div class="k">Zakat 1447</div><div class="v">496,75 €</div><div class="w" style="color:var(--mfg)">Modifié le 5 mars 2026</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="stack">
+        <!-- Ce que Mizan connaît déjà -->
+        <div class="card">
+          <div class="band"><div><h2>Ce que Mizan connaît déjà</h2><div class="hint">Calculé chaque jour depuis votre catalogue et vos commandes. Le jour J, il vous restera la trésorerie et les dettes.</div></div></div>
+          <table>
+            <tbody>
+              <tr><td><div class="t1">Stock destiné à la vente</div><div class="t2">42 articles en stock, au prix de vente</div></td><td class="num"><div class="t1">18 420,00 €</div></td></tr>
+              <tr><td><div class="t1">Ce que vos clients vous doivent</div><div class="t2">6 commandes non réglées</div></td><td class="num"><div class="t1">1 240,00 €</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Historique (gabarit liste §9) -->
+        <div class="card">
+          <div class="band"><div><h2>Historique</h2><div class="hint">Un calcul par année hégirienne, modifiable à tout moment.</div></div></div>
+          <table>
+            <thead><tr><th>Année</th><th>Jour J</th><th class="num">Base</th><th class="num">Zakat estimée</th><th>Statut</th><th class="num">PDF</th></tr></thead>
+            <tbody>
+              <tr><td class="t1">1447</td><td class="nw">4 mars 2026</td><td class="num">19 870,00 €</td><td class="num t1">496,75 €</td><td><span class="badge b-soft">Au-dessus du seuil</span></td><td class="num"><a style="color:var(--primary);font-weight:600" href="#">PDF</a></td></tr>
+              <tr><td class="t1">1446</td><td class="nw">15 mars 2025</td><td class="num">1 120,00 €</td><td class="num t1">0,00 €</td><td><span class="badge b-neutral">Sous le seuil</span></td><td class="num"><a style="color:var(--primary);font-weight:600" href="#">PDF</a></td></tr>
+              <tr><td class="t1">1445</td><td class="nw">25 mars 2024</td><td class="num">14 205,00 €</td><td class="num t1">355,13 €</td><td><span class="badge b-soft">Au-dessus du seuil</span></td><td class="num"><a style="color:var(--primary);font-weight:600" href="#">PDF</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vos choix de calcul -->
+      <div class="stack">
+        <div class="card">
+          <div class="band"><div><h2>Vos choix de calcul</h2><div class="hint">Là où les avis divergent, c’est vous qui choisissez.</div></div><button class="act">Modifier</button></div>
+          <div class="opt-row"><div><div class="k">Seuil de référence</div><div class="v">Argent, 595 g</div></div></div>
+          <div class="opt-row"><div><div class="k">Année</div><div class="v">Hégirienne, 2,5 %</div></div></div>
+          <div class="opt-row"><div><div class="k">Valeur du stock</div><div class="v">Prix de vente au jour J</div></div></div>
+          <div class="opt-row"><div><div class="k">Créances sûres</div><div class="v">Comptées chaque année</div></div></div>
+          <div class="opt-row"><div><div class="k">Dettes déduites</div><div class="v">Celles dues dans les 12 mois</div></div></div>
+        </div>
+        <div class="card">
+          <div class="body" style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:15px;font-weight:600">Comment Mizan calcule</div>
+            <div class="limit">Ce qui compte, c’est ce que vous possédez le jour J : trésorerie, stock, créances, moins les dettes selon votre choix. Pas votre chiffre d’affaires de l’année.</div>
+            <a class="why" style="margin-top:2px" href="#" data-goto="debts">Voir les règles et leurs sources</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Estimation fondée sur vos chiffres et vos choix d’avis. Vous pouvez ajouter vos autres biens au calcul : argent personnel, autre commerce, immobilier, or. Pour un cas particulier, demandez à une personne de science de confiance.</p>
+</section>
+
+<!-- ═══════════════ 2. ASSISTANT — ÉTAPE STOCK ═══════════════ -->
+<section data-screen="stock" hidden>
+  <a class="back" href="#" data-goto="home"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Zakat</a>
+  <div class="top">
+    <div><h1>Préparer ma zakat 1448</h1><div class="sub">Jour J : lundi 22 février 2027 (15 ramadan 1448)</div></div>
+    <span class="saved"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Enregistré automatiquement</span>
+  </div>
+  <ol class="steps" aria-label="Étapes, accessibles à tout moment">
+    <li><a class="st done" href="#"><span class="no">✓</span>Jour J</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Trésorerie</a></li>
+    <li><a class="st now" href="#" aria-current="step"><span class="no">3</span>Stock</a></li>
+    <li><a class="st" href="#"><span class="no">4</span>Créances</a></li>
+    <li><a class="st" href="#"><span class="no">5</span>Autres biens</a></li>
+    <li><a class="st" href="#"><span class="no">6</span>Dettes</a></li>
+    <li><a class="st" href="#"><span class="no">7</span>Résultat</a></li>
+  </ol>
+
+  <div class="cols">
+    <div class="stack">
+      <div class="card">
+        <div class="band"><div><h2>Quelle valeur retenir pour votre stock ?</h2><div class="hint">Choix demandé une seule fois, modifiable à tout moment.</div></div></div>
+        <div class="body">
+          <div class="choices two" role="radiogroup" aria-label="Valeur du stock">
+            <button class="choice" role="radio" aria-checked="true">
+              <span class="radio"></span>
+              <span><span class="ct">Prix de vente au jour J</span><span class="cd" style="display:block">Ce que vous vendriez aujourd’hui.</span><span class="amt" style="display:block">18 420,00 €</span><span class="tags"><span class="chip">Quatre écoles</span></span></span>
+            </button>
+            <button class="choice" role="radio" aria-checked="false">
+              <span class="radio"></span>
+              <span><span class="ct">Prix d’achat</span><span class="cd" style="display:block">Si vous ne connaissez pas la valeur actuelle.</span><span class="amt" style="display:block">11 260,00 €</span><span class="tags"><span class="chip">Norme AAOIFI n° 35</span></span></span>
+            </button>
+          </div>
+          <button class="why" data-open-drawer><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Sur quoi reposent ces avis ?</button>
+        </div>
+      </div>
+
+      <div class="alert warn" role="status">
+        <svg class="i" viewBox="0 0 24 24" style="margin-top:1px"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>
+        <div>3 formats n’ont pas de prix d’achat : ils ne sont pas comptés dans le montant au prix d’achat. <a href="#">Compléter les prix</a></div>
+      </div>
+
+      <div class="card">
+        <div class="band"><div><h2>Votre stock au jour J</h2><div class="hint">Articles actifs en stock, triés par valeur.</div></div><a class="act" href="#">Voir les 42 articles</a></div>
+        <table>
+          <thead><tr><th>Article</th><th class="num">Quantité</th><th class="num">Prix de vente</th><th class="num">Valeur</th></tr></thead>
+          <tbody>
+            <tr><td><div class="t1">Huile d’olive vierge extra</div><div class="t2">Bidon 5 L</div></td><td class="num">48</td><td class="num">54,00 €</td><td class="num t1">2 592,00 €</td></tr>
+            <tr><td><div class="t1">Miel de montagne</div><div class="t2">Pot 1 kg</div></td><td class="num">60</td><td class="num">32,00 €</td><td class="num t1">1 920,00 €</td></tr>
+            <tr><td><div class="t1">Dattes Medjool</div><div class="t2">Boîte 1 kg</div></td><td class="num">85</td><td class="num">18,50 €</td><td class="num t1">1 572,50 €</td></tr>
+            <tr><td><div class="t1">Huile de nigelle</div><div class="t2">Flacon 250 ml</div></td><td class="num">70</td><td class="num">19,90 €</td><td class="num t1">1 393,00 €</td></tr>
+            <tr><td><div class="t1">Safran</div><div class="t2">Pot 2 g</div></td><td class="num">90</td><td class="num">14,00 €</td><td class="num t1">1 260,00 €</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="3">Total des 42 articles</td><td class="num">18 420,00 €</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="band"><div><h2>Marchandises hors Mizan</h2><div class="hint">Réserve, marchandises en transit ou en dépôt. Facultatif.</div></div></div>
+        <div class="body">
+          <div class="field" style="max-width:320px"><label for="hm">Valeur au prix retenu</label><div class="inp" id="hm"><span>0,00</span><span class="u">€</span></div></div>
+        </div>
+      </div>
+
+      <div class="usage">
+        <div><div class="t">Ne comptez pas votre local, votre véhicule, votre matériel ni votre mobilier.</div><div class="d">Ce sont des biens d’usage, pas des marchandises à vendre.</div></div>
+        <span class="badge b-ok">Authentique · Bukhârî 1463, Muslim 982</span>
+      </div>
+
+      <div class="actions">
+        <span></span>
+        <div class="r"><a class="btn t" href="#">Précédent</a><a class="btn p" href="#">Continuer</a></div>
+      </div>
+    </div>
+
+    <!-- Récapitulatif vivant (colonne latérale) -->
+    <div class="card sticky" aria-label="Votre calcul">
+      <div class="band"><div><h2>Votre calcul</h2><div class="hint">Mis à jour à chaque saisie.</div></div></div>
+      <div style="padding:8px 0">
+        <div class="rc"><span class="k">Trésorerie <span class="src">Saisi</span></span><span class="num">4 300,00 €</span></div>
+        <div class="rc cur"><span class="k">Stock <span class="src">Mizan</span></span><span class="num">18 420,00 €</span></div>
+        <div class="rc wait"><span class="k">Créances</span><span>Étape 4</span></div>
+        <div class="rc wait"><span class="k">Autres biens</span><span>Étape 5</span></div>
+        <div class="rc wait"><span class="k">Dettes</span><span>Étape 6</span></div>
+        <div class="rc sum"><span class="k">Base provisoire</span><span class="num">22 720,00 €</span></div>
+        <div class="rc th"><span>Seuil (595 g d’argent)</span><span class="num">1 428,00 €</span></div>
+      </div>
+      <div class="total"><div class="k">Zakat estimée, provisoire</div><div class="v">568,00 €</div><div class="n">Créances, autres biens et dettes à venir.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 3. ASSISTANT — ÉTAPE AUTRES BIENS ═══════════════ -->
+<section data-screen="others" hidden>
+  <a class="back" href="#" data-goto="home"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Zakat</a>
+  <div class="top">
+    <div><h1>Préparer ma zakat 1448</h1><div class="sub">Jour J : lundi 22 février 2027 (15 ramadan 1448)</div></div>
+    <span class="saved"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Enregistré automatiquement</span>
+  </div>
+  <ol class="steps" aria-label="Étapes, accessibles à tout moment">
+    <li><a class="st done" href="#"><span class="no">✓</span>Jour J</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Trésorerie</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Stock</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Créances</a></li>
+    <li><a class="st now" href="#" aria-current="step"><span class="no">5</span>Autres biens</a></li>
+    <li><a class="st" href="#"><span class="no">6</span>Dettes</a></li>
+    <li><a class="st" href="#"><span class="no">7</span>Résultat</a></li>
+  </ol>
+
+  <div class="cols">
+    <div class="stack">
+      <div class="card">
+        <div class="band"><div><h2>Vos autres biens</h2><div class="hint">Facultatif. Ajoutez ce que vous possédez hors de la boutique : Mizan l’additionne, vous décidez de ce qui compte.</div></div><span class="lock"><svg class="i" viewBox="0 0 24 24" style="width:15px;height:15px"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Visible par vous seul</span></div>
+        <div class="body">
+          <div class="addgrid">
+            <button class="add"><svg class="i" viewBox="0 0 24 24"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14v4M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4M21 11h-4a2 2 0 0 0 0 4h4z"/></svg>Argent personnel<svg class="i pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button class="add"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9M3 9h18v1a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0zM5 13v8h14v-8"/></svg>Autre commerce<svg class="i pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button class="add"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-6h6v6"/></svg>Immobilier<svg class="i pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button class="add"><svg class="i" viewBox="0 0 24 24"><path d="M6 10h12l3 5H3zM4 15h16v4H4zM9 10l1.5-4h3L15 10"/></svg>Or et argent<svg class="i pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button class="add"><svg class="i" viewBox="0 0 24 24"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Biens à revendre<svg class="i pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button class="add"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Autre bien<svg class="i pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band"><div><h2>Ajoutés pour 1448</h2><div class="hint">Valeurs au jour J. Désactivez « Compté » pour garder une ligne sans l’additionner.</div></div></div>
+        <div class="tw"><table>
+          <thead><tr><th>Bien</th><th>Catégorie</th><th class="num">Montant</th><th>Compté</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="t1">Argent personnel</div><div class="t2">Espèces et compte courant</div></td><td>Argent personnel</td><td class="num">5 200,00 €</td><td><button class="sw" role="switch" aria-checked="true" aria-label="Compter dans le calcul"></button></td><td class="num" style="width:56px"><button class="ed" aria-label="Plus d’actions" style="border:0;background:transparent"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></td></tr>
+            <tr><td><div class="t1">Snack d’Ilyes, ma part de 30 %</div><div class="t2">Stock et caisse au jour J</div></td><td>Autre commerce</td><td class="num">3 400,00 €</td><td><button class="sw" role="switch" aria-checked="true" aria-label="Compter dans le calcul"></button></td><td class="num" style="width:56px"><button class="ed" aria-label="Plus d’actions" style="border:0;background:transparent"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></td></tr>
+            <tr><td><div class="t1">Loyers du studio encore sur le compte</div><div class="t2">La valeur du studio n’est pas ajoutée</div></td><td>Immobilier</td><td class="num">1 800,00 €</td><td><button class="sw" role="switch" aria-checked="true" aria-label="Compter dans le calcul"></button></td><td class="num" style="width:56px"><button class="ed" aria-label="Plus d’actions" style="border:0;background:transparent"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></td></tr>
+            <tr><td><div class="t1">Bijoux en or portés</div><div class="t2">Avis divergents : comptés ou non, à vous de choisir</div></td><td>Or et argent</td><td class="num">3 100,00 €</td><td><button class="sw" role="switch" aria-checked="false" aria-label="Compter dans le calcul"></button></td><td class="num" style="width:56px"><button class="ed" aria-label="Plus d’actions" style="border:0;background:transparent"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2">Total compté</td><td class="num">10 400,00 €</td><td colspan="2"></td></tr></tfoot>
+        </table></div>
+        <div style="padding:0 20px 20px"><button class="addline"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter un bien</button></div>
+      </div>
+
+      <div class="card">
+        <div class="band"><div><h2>Repères</h2><div class="hint">Pour vous aider à décider. Rien n’est bloqué.</div></div><a class="act" href="#">Voir les sources</a></div>
+        <div class="rep"><span class="k">Immobilier</span><span>Habité : non compté, sans divergence. Loué : la valeur du bien ne compte pas, les loyers encore disponibles oui (un avis contemporain diffère). Acheté pour être revendu : compté à sa valeur.</span></div>
+        <div class="rep"><span class="k">Bijoux portés</span><span>Comptés chez les hanafites ; non comptés chez les malikites, chaféites et hanbalites.</span></div>
+        <div class="rep"><span class="k">Biens à revendre</span><span>Un bien acheté pour être revendu (terrain, véhicule…) se compte à sa valeur du jour J, comme une marchandise.</span></div>
+      </div>
+
+      <div class="actions">
+        <span></span>
+        <div class="r"><a class="btn t" href="#">Précédent</a><a class="btn p" href="#" data-goto="debts">Continuer</a></div>
+      </div>
+    </div>
+
+    <div class="card sticky" aria-label="Votre calcul">
+      <div class="band"><div><h2>Votre calcul</h2><div class="hint">Mis à jour à chaque saisie.</div></div></div>
+      <div style="padding:8px 0">
+        <div class="rc"><span class="k">Trésorerie <span class="src">Saisi</span></span><span class="num">4 300,00 €</span></div>
+        <div class="rc"><span class="k">Stock <span class="src">Mizan</span></span><span class="num">18 420,00 €</span></div>
+        <div class="rc"><span class="k">Créances sûres <span class="src">Mizan</span></span><span class="num">1 060,00 €</span></div>
+        <div class="rc cur"><span class="k">Autres biens <span class="src">Saisi</span></span><span class="num">10 400,00 €</span></div>
+        <div class="rc wait"><span class="k">Dettes</span><span>Étape 6</span></div>
+        <div class="rc sum"><span class="k">Base provisoire</span><span class="num">34 180,00 €</span></div>
+        <div class="rc th"><span>Seuil (595 g d’argent)</span><span class="num">1 428,00 €</span></div>
+      </div>
+      <div class="total"><div class="k">Zakat estimée, provisoire</div><div class="v">854,50 €</div><div class="n">Dettes à venir.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 4. ASSISTANT — ÉTAPE DETTES (+ tiroir Fondement) ═══════════════ -->
+<section data-screen="debts" hidden>
+  <a class="back" href="#" data-goto="home"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Zakat</a>
+  <div class="top">
+    <div><h1>Préparer ma zakat 1448</h1><div class="sub">Jour J : lundi 22 février 2027 (15 ramadan 1448)</div></div>
+    <span class="saved"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Enregistré automatiquement</span>
+  </div>
+  <ol class="steps" aria-label="Étapes, accessibles à tout moment">
+    <li><a class="st done" href="#"><span class="no">✓</span>Jour J</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Trésorerie</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Stock</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Créances</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Autres biens</a></li>
+    <li><a class="st now" href="#" aria-current="step"><span class="no">6</span>Dettes</a></li>
+    <li><a class="st" href="#"><span class="no">7</span>Résultat</a></li>
+  </ol>
+
+  <div class="cols">
+    <div class="stack">
+      <div class="card">
+        <div class="band"><div><h2>Quelles dettes déduire ?</h2><div class="hint">Les écoles divergent. Mizan applique votre choix, sans en recommander un.</div></div></div>
+        <div class="body">
+          <div class="choices" role="radiogroup" aria-label="Dettes à déduire">
+            <button class="choice" role="radio" aria-checked="false">
+              <span class="radio"></span>
+              <span style="flex:1"><span class="ct">Toutes les dettes envers des personnes</span><span class="cd" style="display:block">Chaque école pose ses propres conditions.</span><span class="tags"><span class="chip">Hanafites</span><span class="chip">Malikites</span><span class="chip">Hanbalites</span></span></span>
+              <span class="num" style="font-weight:600;font-size:15px">− 12 290,00 €</span>
+            </button>
+            <button class="choice" role="radio" aria-checked="true">
+              <span class="radio"></span>
+              <span style="flex:1"><span class="ct">Seulement ce qui est dû dans les 12 mois</span><span class="cd" style="display:block">Factures, salaires, loyer, impôts et échéances de l’année.</span><span class="tags"><span class="chip">Norme AAOIFI n° 35</span><span class="chip">Avis contemporains</span></span></span>
+              <span class="num" style="font-weight:600;font-size:15px">− 7 490,00 €</span>
+            </button>
+            <button class="choice" role="radio" aria-checked="false">
+              <span class="radio"></span>
+              <span style="flex:1"><span class="ct">Aucune dette</span><span class="cd" style="display:block">La zakat porte sur ce que vous détenez, dettes ou non.</span><span class="tags"><span class="chip">Al-Shâfi’î, nouvel avis</span><span class="chip">Ibn Bâz</span></span></span>
+              <span class="num" style="font-weight:600;font-size:15px">0,00 €</span>
+            </button>
+          </div>
+          <button class="why" data-open-drawer><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>Sur quoi reposent ces avis ?</button>
+          <div class="kept">Choix retenu l’an dernier. Il sera repris l’an prochain.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band"><div><h2>Vos dettes au jour J</h2><div class="hint">Ce que vous devez encore : fournisseurs, salaires, loyer, impôts, paiements échelonnés.</div></div></div>
+        <table>
+          <thead><tr><th>Dette</th><th>Catégorie</th><th class="num">Montant</th><th>Dû dans les 12 mois</th><th class="num">Déduit</th></tr></thead>
+          <tbody>
+            <tr><td class="t1">Grossiste Atlas, facture du 2 février</td><td>Fournisseur</td><td class="num">2 340,00 €</td><td>Oui</td><td class="num t1">2 340,00 €</td></tr>
+            <tr><td class="t1">Salaire de février</td><td>Salaires dus</td><td class="num">1 850,00 €</td><td>Oui</td><td class="num t1">1 850,00 €</td></tr>
+            <tr><td class="t1">Loyer de février</td><td>Loyer</td><td class="num">900,00 €</td><td>Oui</td><td class="num t1">900,00 €</td></tr>
+            <tr><td><div class="t1">Vitrine réfrigérée, payée en plusieurs fois</div><div class="t2">Reste 7 200,00 €, dont 2 400,00 € à régler sur 12 mois</div></td><td>Paiement échelonné</td><td class="num">7 200,00 €</td><td>En partie</td><td class="num t1">2 400,00 €</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="4">Total déduit selon votre choix</td><td class="num">7 490,00 €</td></tr></tfoot>
+        </table>
+        <div style="padding:0 20px 20px"><button class="addline"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter une dette</button></div>
+      </div>
+
+      <div class="actions">
+        <span></span>
+        <div class="r"><a class="btn t" href="#">Précédent</a><a class="btn p" href="#" data-goto="result">Voir le résultat</a></div>
+      </div>
+    </div>
+
+    <div class="card sticky" aria-label="Votre calcul">
+      <div class="band"><div><h2>Votre calcul</h2><div class="hint">Mis à jour à chaque saisie.</div></div></div>
+      <div style="padding:8px 0">
+        <div class="rc"><span class="k">Trésorerie <span class="src">Saisi</span></span><span class="num">4 300,00 €</span></div>
+        <div class="rc"><span class="k">Stock <span class="src">Mizan</span></span><span class="num">18 420,00 €</span></div>
+        <div class="rc"><span class="k">Créances sûres <span class="src">Mizan</span></span><span class="num">1 060,00 €</span></div>
+        <div class="rc"><span class="k">Autres biens <span class="src">Saisi</span></span><span class="num">10 400,00 €</span></div>
+        <div class="rc cur"><span class="k">Dettes <span class="src">Saisi</span></span><span class="num">− 7 490,00 €</span></div>
+        <div class="rc sum"><span class="k">Base</span><span class="num">26 690,00 €</span></div>
+        <div class="rc th"><span>Seuil (595 g d’argent)</span><span class="num">1 428,00 €</span></div>
+      </div>
+      <div class="total"><div class="k">Zakat estimée</div><div class="v">667,25 €</div><div class="n">2,5 % de la base, année hégirienne.</div></div>
+    </div>
+  </div>
+
+  <!-- Tiroir « Fondement » : 3 blocs fixes, jamais plus -->
+  <div class="scrim" data-drawer></div>
+  <aside class="drawer" data-drawer role="dialog" aria-modal="true" aria-labelledby="dr-t">
+    <div class="hd">
+      <div><h3 id="dr-t">Les dettes et la zakat</h3><div class="s">Règle, sources, avis. Rien de plus.</div></div>
+      <button class="x" aria-label="Fermer" data-close-drawer><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="bd">
+      <div class="blk">
+        <h4>La règle</h4>
+        <p>Les écoles divergent sur la déduction des dettes. La question repose surtout sur des paroles de compagnons et sur le raisonnement des savants.</p>
+      </div>
+      <div class="blk">
+        <h4>Les sources</h4>
+        <div class="src-item">
+          <div class="q">Uthmân ibn Affân disait : c’est le mois de votre zakat ; que celui qui a une dette la règle, puis versez la zakat sur ce qui reste.</div>
+          <div class="ref"><span>Muwatta de Mâlik, Livre de la zakat</span><span class="badge b-ok">Compagnon · chaîne authentique</span></div>
+        </div>
+      </div>
+      <div class="blk">
+        <h4>Les avis</h4>
+        <div class="pos"><div><div class="t">Toutes les dettes envers des personnes</div><div class="tags"><span class="chip">Hanafites</span><span class="chip">Malikites</span><span class="chip">Hanbalites</span><span class="chip">Al-Shâfi’î, ancien avis</span></div></div></div>
+        <div class="pos"><div><div class="t">Ce qui est dû dans les 12 mois</div><div class="tags"><span class="chip">Norme AAOIFI n° 35</span><span class="chip">Avis contemporains</span></div></div><span class="me">Votre choix</span></div>
+        <div class="pos"><div><div class="t">Aucune dette</div><div class="tags"><span class="chip">Al-Shâfi’î, nouvel avis</span><span class="chip">Ibn Bâz</span></div></div></div>
+      </div>
+      <div class="blk">
+        <p class="limit">Pour un cas particulier, demandez à une personne de science de confiance.</p>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<!-- ═══════════════ 5. RÉSULTAT (étape 7) ═══════════════ -->
+<section data-screen="result" hidden>
+  <a class="back" href="#" data-goto="home"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Zakat</a>
+  <div class="top">
+    <div><h1>Préparer ma zakat 1448</h1><div class="sub">Jour J : lundi 22 février 2027 (15 ramadan 1448)</div></div>
+    <span class="saved"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Enregistré automatiquement</span>
+  </div>
+  <ol class="steps" aria-label="Étapes, accessibles à tout moment">
+    <li><a class="st done" href="#"><span class="no">✓</span>Jour J</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Trésorerie</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Stock</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Créances</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Autres biens</a></li>
+    <li><a class="st done" href="#"><span class="no">✓</span>Dettes</a></li>
+    <li><a class="st now" href="#" aria-current="step"><span class="no">7</span>Résultat</a></li>
+  </ol>
+
+  <div class="cols">
+    <div class="stack">
+      <!-- Variante au-dessus du seuil -->
+      <div class="card res" data-above>
+        <div>
+          <div class="k">Zakat estimée</div>
+          <div class="v">667,25 €</div>
+          <div class="l">Votre base de 26 690,00 € dépasse le seuil de 1 428,00 €.</div>
+          <div class="m">2,5 % de la base, année hégirienne. Montant à prévoir pour le 22 février 2027.</div>
+        </div>
+        <div class="gauge" aria-hidden="true">
+          <div class="bar"><div class="fill" style="width:100%"></div><div class="mark" style="inset-inline-start:5.4%"></div></div>
+          <div class="lg"><span>Seuil 1 428 €</span><span>Base 26 690 €</span></div>
+        </div>
+      </div>
+      <!-- Variante sous le seuil -->
+      <div class="card res" data-below hidden>
+        <div>
+          <div class="k">Résultat</div>
+          <div class="v zero">Pas de zakat sur ce que vous avez déclaré</div>
+          <div class="l">Votre base de 1 120,00 € reste sous le seuil de 1 428,00 €.</div>
+          <div class="m">D’autres biens (argent personnel, or, immobilier) ? <a href="#" data-goto="others" style="color:var(--primary);font-weight:600">Ajoutez-les</a> : ils peuvent atteindre le seuil.</div>
+        </div>
+        <div class="gauge" aria-hidden="true">
+          <div class="bar"><div class="fill" style="width:78.4%;background:var(--mfg)"></div><div class="mark" style="inset-inline-start:100%"></div></div>
+          <div class="lg"><span>Base 1 120 €</span><span>Seuil 1 428 €</span></div>
+        </div>
+      </div>
+
+      <div class="card" data-above>
+        <div class="band"><div><h2>Le calcul</h2><div class="hint">D’où vient chaque montant. Chaque ligne se modifie, à tout moment.</div></div></div>
+        <div class="line"><span class="op">+</span><span class="lb">Trésorerie : caisse et banque<span class="src chip">Saisi</span></span><span class="num">4 300,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">+</span><span class="lb">Stock au prix de vente<span class="src chip">Mizan</span></span><span class="num">18 420,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">+</span><span class="lb">Créances sûres, 5 commandes<span class="src chip">Mizan</span></span><span class="num">1 060,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">+</span><span class="lb">Autres biens, 3 éléments<span class="src chip">Saisi</span></span><span class="num">10 400,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">−</span><span class="lb">Dettes dues dans les 12 mois<span class="src chip">Saisi</span></span><span class="num">7 490,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line eq"><span class="op">=</span><span class="lb">Base</span><span class="num">26 690,00 €</span><span></span></div>
+        <div class="line"><span class="op">×</span><span class="lb">Taux, année hégirienne</span><span class="num">2,5 %</span><span></span></div>
+        <div class="line eq big"><span class="op">=</span><span class="lb">Zakat estimée</span><span class="num">667,25 €</span><span></span></div>
+      </div>
+      <div class="card" data-below hidden>
+        <div class="band"><div><h2>Le calcul</h2><div class="hint">D’où vient chaque montant. Chaque ligne se modifie, à tout moment.</div></div></div>
+        <div class="line"><span class="op">+</span><span class="lb">Trésorerie : caisse et banque<span class="src chip">Saisi</span></span><span class="num">640,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">+</span><span class="lb">Stock au prix de vente<span class="src chip">Mizan</span></span><span class="num">1 480,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">+</span><span class="lb">Autres biens<span class="src chip">Saisi</span></span><span class="num">0,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line"><span class="op">−</span><span class="lb">Dettes dues dans les 12 mois<span class="src chip">Saisi</span></span><span class="num">1 000,00 €</span><a class="ed" href="#" aria-label="Modifier"><svg class="i" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></a></div>
+        <div class="line eq"><span class="op">=</span><span class="lb">Base</span><span class="num">1 120,00 €</span><span></span></div>
+        <div class="line"><span class="op">&lt;</span><span class="lb">Seuil, 595 g d’argent</span><span class="num">1 428,00 €</span><span></span></div>
+        <div class="line eq big"><span class="op">=</span><span class="lb">Zakat estimée</span><span class="num">0,00 €</span><span></span></div>
+      </div>
+
+      <div class="card">
+        <div class="band"><div><h2>Hors base</h2><div class="hint">Gardé pour mémoire, non additionné.</div></div></div>
+        <table><tbody>
+          <tr><td><div class="t1">Créance douteuse, commande n° 1187</div><div class="t2">Rien à verser tant qu’elle n’est pas encaissée.</div></td><td class="num">180,00 €</td></tr>
+          <tr><td><div class="t1">Bijoux en or portés</div><div class="t2">Ajoutés mais non comptés : votre choix, modifiable.</div></td><td class="num">3 100,00 €</td></tr>
+          <tr><td><div class="t1">Biens d’usage</div><div class="t2">Local, véhicule, matériel, mobilier : non comptés.</div></td><td class="num" style="color:var(--mfg)">—</td></tr>
+        </tbody></table>
+      </div>
+
+      <div class="actions">
+        <a class="btn t" href="#">Précédent</a>
+        <div class="r"><button class="btn o" data-goto="others"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Ajouter un élément oublié</button><button class="btn p"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Télécharger le justificatif</button></div>
+      </div>
+      <p class="limit" style="margin:0">Enregistré automatiquement. Revenez sur n’importe quelle étape quand vous voulez, même après le jour J. Le justificatif indique la date de sa dernière modification.</p>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <div class="band"><div><h2>Vos choix</h2><div class="hint">Repris dans le justificatif.</div></div><button class="act">Modifier</button></div>
+        <div class="opt-row"><div><div class="k">Seuil</div><div class="v">Argent, 595 g à 2,40 € le gramme</div></div></div>
+        <div class="opt-row"><div><div class="k">Année</div><div class="v">Hégirienne, 2,5 %</div></div></div>
+        <div class="opt-row"><div><div class="k">Valeur du stock</div><div class="v">Prix de vente au jour J</div></div></div>
+        <div class="opt-row"><div><div class="k">Créances sûres</div><div class="v">Comptées chaque année</div></div></div>
+        <div class="opt-row"><div><div class="k">Dettes</div><div class="v">Dues dans les 12 mois</div></div></div>
+      </div>
+      <div class="card"><div class="body" style="display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:15px;font-weight:600">À qui verser la zakat ?</div>
+        <div class="limit">Le Coran cite huit catégories de bénéficiaires (sourate 9, verset 60).</div>
+        <a class="why" style="margin-top:2px" href="#">Voir les huit catégories</a>
+      </div></div>
+    </div>
+  </div>
+
+  <p class="foot">Estimation fondée sur vos chiffres et vos choix d’avis. Mizan additionne ce que vous déclarez. Associés : chacun verse sur sa part.</p>
+</section>
+
+</main>
+</div>
+</div>
+
+<script>
+(function(){
+  var root=document.getElementById('root');
+  var screens=document.querySelectorAll('[data-screen]');
+  var tabs=document.querySelectorAll('.mq [data-go]');
+  function show(id){
+    screens.forEach(function(s){s.hidden=s.dataset.screen!==id});
+    tabs.forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.go===id))});
+    window.scrollTo(0,0);
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.go)})});
+  document.querySelectorAll('[data-goto]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();show(a.dataset.goto)})});
+  // Tiroir Fondement : ouvert par défaut sur l'écran Dettes pour la revue
+  var drawer=document.querySelectorAll('[data-drawer]');
+  function drawerOpen(v){drawer.forEach(function(d){d.hidden=!v})}
+  document.querySelectorAll('[data-open-drawer]').forEach(function(b){b.addEventListener('click',function(){show('debts');drawerOpen(true)})});
+  document.querySelectorAll('[data-close-drawer]').forEach(function(b){b.addEventListener('click',function(){drawerOpen(false)})});
+  document.querySelector('.scrim').addEventListener('click',function(){drawerOpen(false)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')drawerOpen(false)});
+  // Choix exclusifs (démonstration)
+  document.querySelectorAll('[role=radiogroup]').forEach(function(g){
+    g.querySelectorAll('[role=radio]').forEach(function(r){r.addEventListener('click',function(){
+      g.querySelectorAll('[role=radio]').forEach(function(o){o.setAttribute('aria-checked','false')});
+      r.setAttribute('aria-checked','true');
+    })});
+  });
+  document.querySelectorAll('.sw').forEach(function(w){w.addEventListener('click',function(){w.setAttribute('aria-checked',String(w.getAttribute('aria-checked')!=='true'))})});
+  document.getElementById('theme').addEventListener('click',function(){
+    var on=root.classList.toggle('dark');this.setAttribute('aria-pressed',String(on));
+  });
+  document.getElementById('below').addEventListener('click',function(){
+    var on=this.getAttribute('aria-pressed')!=='true';this.setAttribute('aria-pressed',String(on));
+    document.querySelectorAll('[data-above]').forEach(function(n){n.hidden=on});document.querySelectorAll('[data-below]').forEach(function(n){n.hidden=!on});show('result');
+  });
+  var h=location.hash.replace('#','');if(h&&document.querySelector('[data-screen="'+h+'"]'))show(h);
+})();
+</script>
+</body>
+</html>

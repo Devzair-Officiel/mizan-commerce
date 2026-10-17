@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-16
+**Dernière mise à jour** : 2026-10-17
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -176,6 +176,31 @@
 - [x] Rappel automatique avant la date annuelle
 - [x] Possibilité de corriger chaque montant manuellement
 - [x] Sauvegarde du calcul dans l'historique
+
+### Zakat — refonte (URS-105 à URS-107, proposées)
+
+Règles, sources et choix d'avis : `docs/zakat_referentiel.md` (relecture par un référent
+religieux avant mise en ligne, § 8).
+
+- [x] **Z1 — Moteur et API (backend)** : calcul personnel (`ZakatCalculation.user`, 404 pour
+      un autre admin), `ZakatProfile` (jour J, calendrier, seuil, choix d'avis sans valeur par
+      défaut, part détenue), une fiche par personne et par année de hawl (409 avec
+      `existing_id`), saisies ligne à ligne (créances, autres biens, dettes avec part à
+      12 mois, stock hors Mizan), moteur unique `compute_totals` (2,5 % / 2,5775 %, statuts
+      `choice_missing` et `nisab_unknown`), `GET/PATCH /api/zakat/profile/`,
+      `GET /api/zakat/sources/`, écritures conditionnelles avec `version` (409), audit
+      (création, suppression, justificatif), suppression des données zakat au retrait d'un
+      membre. Migrations zakat 0007 à 0012 (arrêt sans rien supprimer si une personne a deux
+      calculs la même année), core 0004. `finalize` et `reopen` conservés (obsolètes).
+- [ ] **Z2 — Écran** : nouveau parcours (profil, choix d'avis, autres biens, sources),
+      gestion du 409 (année déjà calculée, conflit de version, `version` obligatoire),
+      justificatif PDF refondu (choix, date de dernière modification), rappels par profil,
+      retrait de `finalize` et `reopen`, libellés « Emprunt bancaire » et aide sur l'emprunt
+      (fr / en / ar) remplacés par « Paiement échelonné ».
+- [ ] **Z3 — Nettoyage** : retrait des anciens champs (`Shop.zakat_annual_date`,
+      `nisab_method`, `nisab_unit_price` ; `ZakatCalculation.debts_breakdown`,
+      `receivables_breakdown`, `stock_breakdown`, `stock_value_adjusted`, `status`,
+      `finalized_at`…) et de l'endpoint `stock-estimate`.
 
 ### Sécurité & droits (URS-061 à URS-063)
 
@@ -554,7 +579,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
       réservées à Boutique.
 
 - [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
-      avant le lancement.
+      avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
 
 ---
 

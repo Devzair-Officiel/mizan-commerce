@@ -36,6 +36,10 @@ pypdfium2==5.12.1
 # comme Intl côté frontend) : format_currency, format_date, format_list.
 Babel==2.18.0
 
+# Zakat : conversion grégorien ↔ hégirien (calendrier Umm al-Qura, 1343–1500 H).
+# Pur Python, sans dépendance ; sert à dater le hawl (apps/zakat/hawl.py).
+hijridate==2.6.0
+
 # Sécurité — rate-limit & blocage des tentatives de login
 django-axes==7.1.0
 

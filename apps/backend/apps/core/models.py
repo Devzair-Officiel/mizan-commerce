@@ -15,6 +15,10 @@ class AuditLog(models.Model):
         ('product_delete', 'Suppression produit'),
         ('product_deactivate', 'Désactivation produit'),
         ('customer_activity_export', 'Export activité client'),
+        # Zakat : données personnelles, jamais affichées dans le journal de la boutique.
+        ('zakat_created', 'Création calcul zakat'),
+        ('zakat_deleted', 'Suppression calcul zakat'),
+        ('zakat_pdf_download', 'Téléchargement justificatif zakat'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

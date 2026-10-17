@@ -745,6 +745,58 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-105 — Calculer ma zakat personnelle (proposée)
+
+**En tant qu'** administrateur d'une boutique,  
+**je veux** une fiche de zakat qui m'est propre et que je peux modifier à tout moment,  
+**afin de** calculer ma zakat sur ma part de la boutique, sans voir celle des autres.
+
+### Critères d'acceptation
+
+- Chaque fiche appartient à une personne : un autre administrateur de la même boutique ne la voit pas (404). Module réservé aux administrateurs.
+- Un profil personnel conserve le jour J, le calendrier (hégirien ou grégorien), le seuil (or ou argent, prix du gramme et date de saisie) et la part détenue dans la boutique (0 < part ≤ 100 %, 100 % par défaut).
+- La part s'applique à la trésorerie, au stock, aux créances et aux dettes de la boutique, pas aux autres biens.
+- Une seule fiche par personne et par année de hawl, calculée par le serveur ; une deuxième est refusée avec le lien vers la fiche existante.
+- La fiche n'est jamais figée : toutes les étapes restent modifiables, même après le jour J. Deux enregistrements concurrents ne s'écrasent pas (conflit signalé).
+- Le stock suit le catalogue jusqu'au jour J, puis reste figé sauf demande explicite de mise à jour.
+- Le taux est de 2,5 % en année hégirienne et de 2,5775 % en année solaire ; le seuil vaut 85 g d'or ou 595 g d'argent au prix saisi.
+- Création, suppression et téléchargement du justificatif sont consignés dans le journal d'audit, sans montant.
+- Quand un membre quitte la boutique, son profil et ses fiches sont supprimés.
+
+---
+
+## URS-106 — Faire mes choix d'avis (proposée)
+
+**En tant que** commerçant,  
+**je veux** choisir moi-même l'avis retenu quand les écoles divergent,  
+**afin que** le calcul suive ma position et non celle de l'application.
+
+### Critères d'acceptation
+
+- Choix proposés : calendrier, seuil (or ou argent), prix retenu pour le stock (vente ou achat), créances sûres (comptées chaque année ou versées à l'encaissement), dettes déduites (toutes, part due dans les 12 mois, aucune).
+- Aucun choix n'est pré-rempli ni recommandé ; les options sont présentées dans un ordre fixe.
+- Tant qu'un choix manque, le montant n'est pas calculé et l'application indique lequel ; sans prix du gramme, elle indique que le seuil est inconnu.
+- Les choix sont rappelés au calcul suivant, modifiables à tout moment et recopiés dans la fiche à chaque enregistrement.
+- Créances versées à l'encaissement : le seuil se compare à la base augmentée des créances sûres ; la zakat est séparée en « à verser maintenant » et « à verser à l'encaissement ».
+- Les créances douteuses ne sont jamais comptées.
+
+---
+
+## URS-107 — Déclarer mes autres biens (proposée)
+
+**En tant que** commerçant,  
+**je veux** ajouter ce que je possède en dehors de la boutique,  
+**afin d'**obtenir une estimation de ma zakat sur l'ensemble de mes biens.
+
+### Critères d'acceptation
+
+- L'utilisateur ajoute des lignes libres : argent personnel, autre commerce (sa part), immobilier, or et argent, biens à revendre, autre.
+- Chaque ligne a un libellé, un montant et un interrupteur « Compté » ; seules les lignes comptées entrent dans la base.
+- Les autres biens ne sont visibles que par leur auteur.
+- Aucun libellé ni aucune catégorie ne fait référence à l'intérêt : une dette étalée s'appelle « paiement échelonné ».
+
+---
+
 # 14. URS — OCR
 
 ## URS-042 — Importer une facture fournisseur
@@ -2167,6 +2219,7 @@ URS-001 à URS-041
 URS-061 à URS-063
 URS-089 à URS-099
 URS-101 à URS-103
+URS-105 à URS-107 (proposées)
 ```
 
 ---

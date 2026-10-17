@@ -1,6 +1,7 @@
+from typing import Any
+
 from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,12 +14,54 @@ HasZakatPlan = HasPlanForFeature.for_feature('zakat')
 from . import services  # noqa: E402
 from .models import ZakatCalculation  # noqa: E402
 from .pdf import build_zakat_pdf  # noqa: E402
-from .serializers import ZakatCalculationSerializer  # noqa: E402
+from .serializers import (  # noqa: E402
+    ZakatCalculationSerializer,
+    ZakatProfileSerializer,
+    ZakatSourcesSerializer,
+)
 
 
-class ZakatStockEstimateView(APIView):
-    """GET — valeur estimée du stock zakatable (lecture seule, pas persistée)."""
+class ZakatViewMixin:
+    """Module réservé aux admins ; erreurs métier du service → 404, 400 ou 409.
+
+    Chaque fiche est personnelle : les vues filtrent par boutique ET par personne,
+    une fiche d'un autre admin répond 404.
+    """
     permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
+
+    def handle_exception(self, exc: Exception) -> Response:
+        if isinstance(exc, ZakatCalculation.DoesNotExist):
+            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
+        if isinstance(exc, services.CalculationStateError):
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        if isinstance(exc, services.VersionConflictError):
+            return Response(
+                {'detail': str(exc), 'current_version': exc.current_version},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if isinstance(exc, services.DuplicateHawlYearError):
+            return Response(
+                {
+                    'detail': f'{exc} Ouvrez-le depuis la liste des calculs.',
+                    'existing_id': str(exc.existing_id),
+                    'hawl_calendar': exc.hawl_calendar,
+                    'hawl_year': exc.hawl_year,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().handle_exception(exc)
+
+
+def _split_controls(validated: dict[str, Any]) -> tuple[dict[str, Any], int | None, bool]:  # noqa: E501
+    """Sépare les champs enregistrés des contrôles d'écriture (`version`, `refresh_stock`)."""  # noqa: E501
+    data = dict(validated)
+    version = data.pop('version', None)
+    refresh_stock = data.pop('refresh_stock', False)
+    return data, version, refresh_stock
+
+
+class ZakatStockEstimateView(ZakatViewMixin, APIView):
+    """GET — valeur estimée du stock zakatable (écran actuel, remplacé par /sources/ en Z2)."""  # noqa: E501
 
     def get(self, request):
         shop = get_shop(request.user)
@@ -34,56 +77,87 @@ class ZakatStockEstimateView(APIView):
         })
 
 
-class ZakatCalculationListCreateView(generics.ListCreateAPIView):
-    """Liste des calculs (drafts + finalisés) et création d'un nouveau brouillon."""
-    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
+class ZakatProfileView(ZakatViewMixin, APIView):
+    """GET / PATCH — réglages zakat de la personne connectée (créés vides à la première lecture)."""  # noqa: E501
+
+    def get(self, request):
+        profile = services.get_or_create_profile(get_shop(request.user), request.user)
+        return Response(ZakatProfileSerializer(profile).data)
+
+    def patch(self, request):
+        profile = services.get_or_create_profile(get_shop(request.user), request.user)
+        serializer = ZakatProfileSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        profile = services.update_profile(profile, dict(serializer.validated_data))
+        return Response(ZakatProfileSerializer(profile).data)
+
+
+class ZakatSourcesView(ZakatViewMixin, APIView):
+    """GET — ce que Mizan pré-remplit : stock (vente / achat) et commandes non réglées."""  # noqa: E501
+
+    def get(self, request):
+        sources = services.build_sources(get_shop(request.user))
+        return Response(ZakatSourcesSerializer(sources).data)
+
+
+class ZakatCalculationListCreateView(ZakatViewMixin, generics.ListAPIView):
+    """Liste des calculs de la personne et création (un par année de hawl)."""
     serializer_class = ZakatCalculationSerializer
 
     def get_queryset(self):
-        qs = ZakatCalculation.objects.filter(shop=get_shop(self.request.user))
+        qs = ZakatCalculation.objects.filter(
+            shop=get_shop(self.request.user), user=self.request.user,
+        )
         status_filter = self.request.query_params.get('status')
         if status_filter in (ZakatCalculation.STATUS_DRAFT, ZakatCalculation.STATUS_FINALIZED):  # noqa: E501
             qs = qs.filter(status=status_filter)
         return qs
 
-    def perform_create(self, serializer):
-        shop = get_shop(self.request.user)
-        calc = serializer.save(
-            shop=shop,
-            currency=shop.currency,
-            status=ZakatCalculation.STATUS_DRAFT,
+    def post(self, request):
+        shop = get_shop(request.user)
+        serializer = ZakatCalculationSerializer(data=request.data, context={'shop': shop})  # noqa: E501
+        serializer.is_valid(raise_exception=True)
+        data, _, _ = _split_controls(serializer.validated_data)
+        calc = services.create_calculation(shop, request.user, data)
+        return Response(ZakatCalculationSerializer(calc).data, status=status.HTTP_201_CREATED)  # noqa: E501
+
+
+class ZakatCalculationDetailView(ZakatViewMixin, APIView):
+    """GET, PATCH (écriture conditionnelle, `version` facultative jusqu'à Z2), DELETE."""  # noqa: E501
+
+    def get(self, request, pk):
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
+        return Response(ZakatCalculationSerializer(calc).data)
+
+    def patch(self, request, pk):
+        shop = get_shop(request.user)
+        calc = services.get_calculation(shop, request.user, pk)
+        serializer = ZakatCalculationSerializer(
+            calc, data=request.data, partial=True, context={'shop': shop},
         )
-        services.recompute_draft_totals(calc)
-        calc.save()
+        serializer.is_valid(raise_exception=True)
+        data, version, refresh_stock = _split_controls(serializer.validated_data)
+        calc = services.update_calculation(
+            calc, data, expected_version=version, refresh_stock=refresh_stock,
+        )
+        return Response(ZakatCalculationSerializer(calc).data)
+
+    def delete(self, request, pk):
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
+        services.delete_calculation(calc, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class ZakatCalculationDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Récupération, mise à jour (uniquement brouillons) et suppression."""
-    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
-    serializer_class = ZakatCalculationSerializer
-    http_method_names = ['get', 'patch', 'delete', 'head', 'options']
-
-    def get_queryset(self):
-        return ZakatCalculation.objects.filter(shop=get_shop(self.request.user))
-
-    def perform_update(self, serializer):
-        instance = serializer.instance
-        if instance.status == ZakatCalculation.STATUS_FINALIZED:
-            raise ValidationError({'detail': 'Un calcul finalisé n\'est plus modifiable.'})  # noqa: E501
-        calc = serializer.save()
-        services.recompute_draft_totals(calc)
-        calc.save()
-
-
-class ZakatDraftCurrentView(APIView):
-    """GET — renvoie le brouillon en cours de la boutique (le plus récent), ou 204 si aucun."""  # noqa: E501
-    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
+class ZakatDraftCurrentView(ZakatViewMixin, APIView):
+    """GET — brouillon en cours de la personne (le plus récent), ou 204 si aucun."""
 
     def get(self, request):
-        shop = get_shop(request.user)
         draft = (
             ZakatCalculation.objects
-            .filter(shop=shop, status=ZakatCalculation.STATUS_DRAFT)
+            .filter(
+                shop=get_shop(request.user), user=request.user,
+                status=ZakatCalculation.STATUS_DRAFT,
+            )
             .order_by('-updated_at')
             .first()
         )
@@ -92,89 +166,46 @@ class ZakatDraftCurrentView(APIView):
         return Response(ZakatCalculationSerializer(draft).data)
 
 
-class ZakatCalculationFinalizeView(APIView):
-    """POST — fige le brouillon : recalcule la base + le montant, passe en `finalized`."""  # noqa: E501
-    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
+class ZakatCalculationFinalizeView(ZakatViewMixin, APIView):
+    """POST — obsolète (écran actuel, retiré en Z2) : fige base et montant."""
 
     def post(self, request, pk):
-        shop = get_shop(request.user)
-        try:
-            calc = ZakatCalculation.objects.get(pk=pk, shop=shop)
-        except ZakatCalculation.DoesNotExist:
-            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
-        if calc.status == ZakatCalculation.STATUS_FINALIZED:
-            return Response({'detail': 'Calcul déjà finalisé.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
-        try:
-            services.finalize_calculation(calc)
-        except services.YearAlreadyFinalizedError as exc:
-            return Response(
-                {
-                    'detail': (
-                        f'Un calcul finalisé existe déjà pour {exc.year}. '
-                        'La zakat ne se finalise qu\'une fois par cycle annuel.'
-                    ),
-                    'existing_id': str(exc.existing_id),
-                    'year': exc.year,
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
-        return Response(ZakatCalculationSerializer(calc).data)
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
+        calc = services.finalize_calculation(calc)
+        response = Response(ZakatCalculationSerializer(calc).data)
+        response['Deprecation'] = 'true'
+        return response
 
 
-class ZakatCalculationReopenView(APIView):
-    """POST — rouvre un calcul finalisé en brouillon pour correction.
+class ZakatCalculationReopenView(ZakatViewMixin, APIView):
+    """POST — obsolète (écran actuel, retiré en Z2) : rouvre un calcul finalisé.
 
-    Refuse si un autre brouillon est déjà actif (un seul brouillon vivant par boutique
-    — le commerçant doit le finaliser ou le supprimer avant de rouvrir un autre).
+    Refuse si un autre brouillon de la personne est en cours.
     """
-    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def post(self, request, pk):
-        shop = get_shop(request.user)
-        try:
-            calc = ZakatCalculation.objects.get(pk=pk, shop=shop)
-        except ZakatCalculation.DoesNotExist:
-            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
-        if calc.status != ZakatCalculation.STATUS_FINALIZED:
-            return Response(
-                {'detail': 'Seul un calcul finalisé peut être rouvert.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        other_draft = ZakatCalculation.objects.filter(
-            shop=shop, status=ZakatCalculation.STATUS_DRAFT,
-        ).exclude(pk=calc.pk).exists()
-        if other_draft:
-            return Response(
-                {'detail': 'Un autre brouillon est déjà en cours. Finalisez-le ou supprimez-le d\'abord.'},  # noqa: E501
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        calc.status = ZakatCalculation.STATUS_DRAFT
-        calc.finalized_at = None
-        calc.save(update_fields=['status', 'finalized_at', 'updated_at'])
-        return Response(ZakatCalculationSerializer(calc).data)
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
+        calc = services.reopen_calculation(calc)
+        response = Response(ZakatCalculationSerializer(calc).data)
+        response['Deprecation'] = 'true'
+        return response
 
 
-class ZakatCalculationPdfView(APIView):
-    """GET — génère et renvoie le justificatif PDF d'un calcul finalisé.
+class ZakatCalculationPdfView(ZakatViewMixin, APIView):
+    """GET — justificatif PDF d'un calcul finalisé (contenu refondu en Z2).
 
-    Pas de cache disque pour l'instant : la génération est rapide (<100ms) et le volume
-    est faible (un calcul par boutique et par an). Si besoin plus tard, on stockera
-    dans le bucket via `pdf_object_key` et on renverra une URL signée.
+    Pas de cache : génération rapide (<100 ms), volume faible.
     """
-    permission_classes = (IsAuthenticated, HasZakatPlan, IsShopAdmin)
 
     def get(self, request, pk):
-        shop = get_shop(request.user)
-        try:
-            calc = ZakatCalculation.objects.select_related('shop').get(pk=pk, shop=shop)
-        except ZakatCalculation.DoesNotExist:
-            return Response({'detail': 'Calcul introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
         if calc.status != ZakatCalculation.STATUS_FINALIZED:
             return Response(
                 {'detail': 'Le PDF n\'est disponible qu\'après finalisation.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         pdf_bytes = build_zakat_pdf(calc)
+        services.record_pdf_download(calc, request.user)
         filename = f'zakat-{calc.reference_date.isoformat()}.pdf'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'
