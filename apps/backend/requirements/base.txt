@@ -25,7 +25,7 @@ boto3==1.43.22
 phonenumbers==9.0.41
 
 # Génération PDF (factures)
-reportlab==4.5.1
+reportlab==5.0.1
 
 # Factures fournisseur en PDF : mot de passe et nombre de pages contrôlés à l'envoi
 # (apps/ocr/pdf.py). Roue autonome (PDFium embarqué, aucune dépendance système),
