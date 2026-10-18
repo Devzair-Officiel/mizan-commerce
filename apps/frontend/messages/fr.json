@@ -2490,7 +2490,7 @@
     "basis": {
       "index_title": "Les règles et leurs sources",
       "index_subtitle": "Neuf fiches : la règle, ses sources, les avis.",
-      "subtitle": "Règle, sources, avis. Rien de plus.",
+      "subtitle": "Règle, sources et avis.",
       "back": "Toutes les fiches",
       "rule": "La règle",
       "sources": "Les sources",
@@ -2554,7 +2554,7 @@
           "name": "Taux et année",
           "title": "Le taux et l'année",
           "rule": "2,5 % sur une année hégirienne.",
-          "detail": "La zakat est due après une année complète (hawl). Sur une année solaire, plus longue de 11 jours, le taux devient 2,5775 %."
+          "detail": "La zakat est due après une année complète (hawl). Sur une année solaire, plus longue de 11 jours, la norme AAOIFI retient un taux de 2,5775 %."
         },
         "recipients": {
           "name": "Bénéficiaires",

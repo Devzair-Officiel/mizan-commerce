@@ -2490,7 +2490,7 @@
     "basis": {
       "index_title": "The rules and their sources",
       "index_subtitle": "Nine sheets: the rule, its sources, the opinions.",
-      "subtitle": "Rule, sources, opinions. Nothing more.",
+      "subtitle": "Rule, sources and opinions.",
       "back": "All sheets",
       "rule": "The rule",
       "sources": "The sources",
@@ -2554,7 +2554,7 @@
           "name": "Rate and year",
           "title": "The rate and the year",
           "rule": "2.5% over a hijri year.",
-          "detail": "Zakat is due after a full year (hawl). Over a solar year, 11 days longer, the rate becomes 2.5775%."
+          "detail": "Zakat is due after a full year (hawl). Over a solar year, 11 days longer, the AAOIFI standard uses a rate of 2.5775%."
         },
         "recipients": {
           "name": "Recipients",
