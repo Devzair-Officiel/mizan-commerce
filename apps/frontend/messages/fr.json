@@ -2541,7 +2541,7 @@
         "debts": {
           "name": "Dettes",
           "title": "Les dettes et la zakat",
-          "rule": "Selon votre choix, certaines dettes se déduisent.",
+          "rule": "Selon votre choix, toutes vos dettes, une partie ou aucune se déduisent.",
           "detail": "Les écoles divergent sur la déduction des dettes. La question repose surtout sur des paroles de compagnons et sur le raisonnement des savants."
         },
         "nisab": {
@@ -2554,7 +2554,7 @@
           "name": "Taux et année",
           "title": "Le taux et l'année",
           "rule": "2,5 % sur une année hégirienne.",
-          "detail": "La zakat est due après une année complète (hawl). Sur une année solaire, plus longue de 11 jours, la norme AAOIFI retient un taux de 2,5775 %."
+          "detail": "La zakat est due après une année complète (hawl)."
         },
         "recipients": {
           "name": "Bénéficiaires",
@@ -2580,7 +2580,7 @@
           "ref": "Bukhârî 1459"
         },
         "bukhari_1463": {
-          "text": "Le Prophète ﷺ a indiqué que le cheval ou le serviteur dont le musulman a l'usage ne doit pas de zakat : ce qui sert ne compte pas.",
+          "text": "Le Prophète ﷺ a indiqué que le cheval ou le serviteur dont le musulman a l'usage ne doit pas de zakat.",
           "ref": "Bukhârî 1463, Muslim 982"
         },
         "abu_dawud_1562": {
@@ -2691,7 +2691,7 @@
           },
           "rented": {
             "title": "Bien loué",
-            "note": "Valeur du bien non comptée ; loyers encore disponibles comptés comme trésorerie. Un avis contemporain le traite comme une récolte : 10 % ou 5 % des loyers."
+            "note": "Avis classique : valeur du bien non comptée, loyers encore disponibles comptés comme trésorerie. Avis contemporain : traité comme une récolte, 10 % ou 5 % des loyers."
           },
           "resale": {
             "title": "Bien acheté pour être revendu",

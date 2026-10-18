@@ -114,7 +114,7 @@ Dans Mizan : ligne « Or et argent » avec l'interrupteur « Compté », au choi
 | Cas | Repère affiché |
 | --- | --- |
 | Bien habité ou à usage personnel | Non compté, avis unanime (islamqa 231858) |
-| Bien loué | Valeur du bien non comptée ; loyers encore disponibles comptés comme trésorerie. Un avis contemporain le traite comme une récolte (taux de 10 % ou 5 % sur les loyers) |
+| Bien loué | Avis classique : valeur du bien non comptée, loyers encore disponibles comptés comme trésorerie. Avis contemporain : traité comme une récolte, 10 % ou 5 % des loyers. |
 | Bien acheté pour être revendu | Compté à sa valeur du jour J, comme une marchandise (A1, A6) |
 
 Dans Mizan : saisie libre, aucun calcul automatique sur l'immobilier.
@@ -152,7 +152,7 @@ Gabarit : **Règle** (une phrase) · **Sources** (références + badge) · **Avi
 - **Stock** — Ce qui est destiné à la vente compte, à sa valeur du jour J. A1, A6, D5.
 - **Biens d'usage** — Local, véhicule, matériel, mobilier ne comptent pas. A5.
 - **Créances** — Ce que vos clients vous doivent compte s'il sera payé. D3, D4.
-- **Dettes** — Selon votre choix, certaines dettes se déduisent. D2.
+- **Dettes** — Selon votre choix, toutes vos dettes, une partie ou aucune se déduisent. D2.
 - **Seuil** — En dessous, pas de zakat. A3, D1.
 - **Taux et année** — 2,5 % sur une année hégirienne. A2, A4, D6.
 - **Autres biens** — Ajoutez ce que vous possédez le jour J ; vous décidez de ce qui compte. A1, A5, A7, D7, D8.

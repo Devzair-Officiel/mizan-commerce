@@ -2541,7 +2541,7 @@
         "debts": {
           "name": "Debts",
           "title": "Debts and zakat",
-          "rule": "Depending on your choice, some debts are deducted.",
+          "rule": "Depending on your choice, all, some or none of your debts are deducted.",
           "detail": "The schools differ on deducting debts. The question rests mainly on the Companions' sayings and on scholars' reasoning."
         },
         "nisab": {
@@ -2554,7 +2554,7 @@
           "name": "Rate and year",
           "title": "The rate and the year",
           "rule": "2.5% over a hijri year.",
-          "detail": "Zakat is due after a full year (hawl). Over a solar year, 11 days longer, the AAOIFI standard uses a rate of 2.5775%."
+          "detail": "Zakat is due after a full year (hawl)."
         },
         "recipients": {
           "name": "Recipients",
@@ -2580,7 +2580,7 @@
           "ref": "Bukhari 1459"
         },
         "bukhari_1463": {
-          "text": "The Prophet ﷺ indicated that the horse or servant a Muslim has for his own use owes no zakat: what is used does not count.",
+          "text": "The Prophet ﷺ indicated that the horse or servant a Muslim has for his own use owes no zakat.",
           "ref": "Bukhari 1463, Muslim 982"
         },
         "abu_dawud_1562": {
@@ -2691,7 +2691,7 @@
           },
           "rented": {
             "title": "Rented out",
-            "note": "The property value does not count; rent still on hand counts as cash. One contemporary opinion treats it like a harvest: 10% or 5% of the rent."
+            "note": "Classical opinion: the property value does not count, rent still on hand counts as cash. Contemporary opinion: treated like a harvest, 10% or 5% of the rent."
           },
           "resale": {
             "title": "Bought to resell",
