@@ -1,18 +1,14 @@
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 from rest_framework import serializers
 
 from apps.orders.models import Order
-from apps.shops.models import Shop
 from . import hawl, services
 from .models import ZakatCalculation, ZakatProfile
 
 
 VALID_DEBT_CATEGORIES = {'supplier', 'tax_vat', 'salary', 'loan', 'rent', 'other'}
-VALID_EXCLUDED_ITEMS = {'vehicle', 'computer', 'machine', 'premises', 'furniture', 'other'}  # noqa: E501
-VALID_STOCK_CATEGORIES = {'finished', 'raw_materials', 'work_in_progress', 'in_transit'}
-VALID_RECEIVABLE_CATEGORIES = {'certain', 'probable', 'doubtful'}
 # `gold_silver` : lingots et pièces ; `jewelry` : bijoux portés (référentiel D7).
 VALID_OTHER_ASSET_CATEGORIES = {
     'personal_cash', 'business', 'real_estate', 'gold_silver', 'jewelry', 'for_resale',
@@ -20,7 +16,8 @@ VALID_OTHER_ASSET_CATEGORIES = {
 }
 MAX_LINES = services.MAX_LINES
 NISAB_METHOD_CHOICES = [
-    (Shop.NISAB_METHOD_SILVER, 'Argent (595 g)'), (Shop.NISAB_METHOD_GOLD, 'Or (85 g)'),
+    (ZakatProfile.NISAB_METHOD_SILVER, 'Argent (595 g)'),
+    (ZakatProfile.NISAB_METHOD_GOLD, 'Or (85 g)'),
 ]
 CHOICE_KEYS = (
     'calendar', 'nisab_method', 'nisab_unit_price', 'nisab_price_updated_at',
@@ -74,14 +71,6 @@ def _json_safe(items: list[dict], keys: tuple[str, ...]) -> list[dict]:
 
 # ── Lignes de saisie ──────────────────────────────────────────────────────────
 
-class DebtItemSerializer(serializers.Serializer):
-    """Ancienne ventilation des dettes (écran actuel)."""
-    category = serializers.ChoiceField(choices=sorted(VALID_DEBT_CATEGORIES))
-    label = _label_field()
-    amount = _amount_field()
-    is_immediately_due = serializers.BooleanField(default=True)
-
-
 class DebtLineSerializer(serializers.Serializer):
     """Ligne de dette : montant total et part due dans les 12 mois."""
     category = serializers.ChoiceField(choices=sorted(VALID_DEBT_CATEGORIES))
@@ -111,21 +100,6 @@ class OtherAssetSerializer(serializers.Serializer):
     label = _label_field()
     amount = _amount_field()
     counted = serializers.BooleanField()
-
-
-class StockBreakdownItemSerializer(serializers.Serializer):
-    """Item de ventilation du stock par catégorie comptable."""
-    category = serializers.ChoiceField(choices=sorted(VALID_STOCK_CATEGORIES))
-    amount = _amount_field()
-
-
-class ReceivableBreakdownItemSerializer(serializers.Serializer):
-    """Item de ventilation des créances par classe de recouvrabilité.
-
-    `doubtful` est conservée pour mémoire mais exclue du `receivables_amount` zakatable.
-    """
-    category = serializers.ChoiceField(choices=sorted(VALID_RECEIVABLE_CATEGORIES))
-    amount = _amount_field()
 
 
 # ── Bloc `totals` (lecture seule) ─────────────────────────────────────────────
@@ -236,8 +210,6 @@ class ZakatCalculationListSerializer(serializers.ModelSerializer):
 
 
 class ZakatCalculationSerializer(serializers.ModelSerializer):
-    stock_value_for_base = serializers.SerializerMethodField()
-    is_above_nisab = serializers.SerializerMethodField()
     reference_hijri = serializers.SerializerMethodField()
     totals = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
@@ -246,19 +218,6 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
     reference_date = serializers.DateField(required=False)
     # Dernière étape validée de l'assistant (0 = aucune, 6 = toutes les saisies).
     current_step = serializers.IntegerField(min_value=0, max_value=6, required=False)
-    debts_breakdown = serializers.ListField(
-        child=DebtItemSerializer(), required=False, default=list,
-    )
-    stock_breakdown = serializers.ListField(
-        child=StockBreakdownItemSerializer(), required=False, default=list,
-    )
-    receivables_breakdown = serializers.ListField(
-        child=ReceivableBreakdownItemSerializer(), required=False, default=list,
-    )
-    excluded_items_acknowledged = serializers.ListField(
-        child=serializers.ChoiceField(choices=sorted(VALID_EXCLUDED_ITEMS)),
-        required=False, default=list,
-    )
     receivable_items = serializers.ListField(
         child=ReceivableItemSerializer(), required=False, max_length=MAX_LINES,
     )
@@ -278,41 +237,20 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ZakatCalculation
         fields = [
-            'id', 'status', 'current_step', 'reference_date', 'reference_hijri',
+            'id', 'current_step', 'reference_date', 'reference_hijri',
             'hawl_calendar', 'hawl_year', 'version',
             'cash_amount',
-            'has_receivables', 'receivables_nominal', 'receivables_breakdown', 'receivables_amount',  # noqa: E501
             'receivable_items', 'other_assets', 'debt_items',
-            'stock_value_estimated', 'stock_breakdown', 'stock_value_adjusted', 'stock_value_for_base',  # noqa: E501
             'stock_sale_value', 'stock_purchase_value', 'stock_extra', 'refresh_stock',
-            'excluded_items_acknowledged',
-            'debts_breakdown', 'short_term_debts',
-            'zakat_base', 'zakat_rate', 'zakat_amount',
-            'nisab_method', 'nisab_unit_price', 'nisab_threshold', 'is_above_nisab',
             'choices', 'totals', 'review',
-            'currency', 'pdf_object_key', 'notes',
-            'finalized_at', 'created_at', 'updated_at',
+            'currency', 'created_at', 'updated_at',
         ]
         read_only_fields = [
-            'id', 'status', 'hawl_calendar', 'hawl_year',
-            'stock_value_estimated', 'stock_value_for_base',
+            'id', 'hawl_calendar', 'hawl_year',
             'stock_sale_value', 'stock_purchase_value',
-            'short_term_debts',
-            'zakat_base', 'zakat_rate', 'zakat_amount',
-            'nisab_method', 'nisab_unit_price', 'nisab_threshold', 'is_above_nisab',
-            'currency', 'pdf_object_key',
-            'finalized_at', 'created_at', 'updated_at',
+            'currency', 'created_at', 'updated_at',
         ]
-        extra_kwargs = {
-            name: {'min_value': Decimal('0')}
-            for name in ('cash_amount', 'receivables_nominal', 'stock_value_adjusted')
-        }
-
-    def get_stock_value_for_base(self, obj: ZakatCalculation) -> str:
-        return str(obj.stock_value_for_base)
-
-    def get_is_above_nisab(self, obj: ZakatCalculation) -> bool | None:
-        return obj.is_above_nisab
+        extra_kwargs = {'cash_amount': {'min_value': Decimal('0')}}
 
     def get_reference_hijri(self, obj: ZakatCalculation) -> dict[str, int] | None:
         return _reference_hijri(obj)
@@ -348,9 +286,6 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
     def to_internal_value(self, data):
         validated = super().to_internal_value(data)
         json_keys = {
-            'debts_breakdown': ('amount',),
-            'stock_breakdown': ('amount',),
-            'receivables_breakdown': ('amount',),
             'receivable_items': ('amount', 'order_id'),
             'other_assets': ('amount',),
             'debt_items': ('amount', 'amount_within_12_months'),
@@ -437,20 +372,3 @@ class ZakatSourcesSerializer(serializers.Serializer):
     top_stock_lines = _TopStockLinesSerializer()
     unpaid_orders = _OrderSummarySerializer(many=True)
     unpaid_total = serializers.DecimalField(max_digits=14, decimal_places=2)
-
-
-class ZakatStockEstimateSerializer(serializers.Serializer):
-    stock_value_estimated = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)  # noqa: E501
-    currency = serializers.CharField(read_only=True)
-    disclaimer = serializers.CharField(read_only=True)
-    product_count = serializers.IntegerField(read_only=True)
-
-
-def coerce_decimal(value, default: str = '0') -> Decimal:
-    """Helper utilisé par la vue legacy de création directe."""
-    if value in (None, ''):
-        return Decimal(default)
-    try:
-        return Decimal(str(value))
-    except InvalidOperation:
-        return Decimal(default)

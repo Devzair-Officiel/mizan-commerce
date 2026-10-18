@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-17
+**Dernière mise à jour** : 2026-10-18
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -168,6 +168,8 @@
 
 ### Zakat commerciale (URS-036 à URS-041)
 
+Remplacée par la refonte ci-dessous (lots Z1 à Z3).
+
 - [x] Modèle `ZakatCalculation`
 - [x] Champ date annuelle de zakat sur boutique ou utilisateur
 - [x] Calcul automatique de la valeur du stock zakatable (somme produits actifs × prix d'achat)
@@ -214,10 +216,16 @@ religieux avant mise en ligne, § 8).
       desktop, feuille sur mobile) ouvertes depuis les choix, l'accueil, les repères des autres
       biens et le Résultat. Migration zakat 0014. Audit `audit-zakat` étendu (justificatif,
       tiroir et feuille au clavier).
-- [ ] **Z3 — Nettoyage** : retrait des anciens champs (`Shop.zakat_annual_date`,
-      `nisab_method`, `nisab_unit_price` ; `ZakatCalculation.debts_breakdown`,
-      `receivables_breakdown`, `stock_breakdown`, `stock_value_adjusted`, `status`,
-      `finalized_at`…) et de l'endpoint `stock-estimate`.
+- [x] **Z3 — Nettoyage** : retrait des anciens champs de `ZakatCalculation` (statut et date
+      de finalisation, ventilations des créances, du stock et des dettes, éléments exclus,
+      résultat figé, copie du seuil, `pdf_object_key`, `notes`) et des réglages zakat de
+      `Shop` (`zakat_annual_date`, `nisab_method`, `nisab_unit_price`, constantes du seuil
+      déplacées sur `ZakatProfile`) ; retrait de l'endpoint `stock-estimate` et du code lié.
+      Migrations zakat 0015, shops 0010 (après la copie vers le profil, zakat 0009) et
+      notes 0004 (suppression des rappels zakat automatiques encore en attente) ; retour
+      arrière : colonnes recréées avec leurs valeurs par défaut, sans données. Catégorie de
+      rappel `zakat` conservée (filtre de la liste, rappels existants). Aucun changement
+      d'écran.
 
 ### Sécurité & droits (URS-061 à URS-063)
 
@@ -598,8 +606,18 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
       avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
 
-- [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL, recherche numéro
-      instable (échoue aussi en 360 ar sombre).
+- [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL.
+
+- [ ] Audit invoices, recherche par numéro : échec intermittent en 1440 fr clair, sur main
+      comme sur Z3 (environ 1 passage sur 3), déjà vu en 360 ar sombre. Le serveur renvoie
+      bien 1 facture sur 24 ; le contrôle lit la liste juste après `networkidle`, encore vide
+      (0 lien), et la bonne ligne n'apparaît qu'ensuite, une seule fois.
+
+- [ ] Catégorie de rappel zakat : plus aucun rappel automatique depuis Z2b. Décider du filtre
+      de la liste et du reclassement des rappels restants.
+
+- [ ] Sondes de formule de test_plans.py : un 404 compte comme accès autorisé ; exiger 200
+      pour chaque module.
 
 ---
 
@@ -623,6 +641,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
+- [ ] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
 ### Vérification des affirmations marketing (lot 7d)
 

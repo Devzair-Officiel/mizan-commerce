@@ -89,7 +89,7 @@ ORDER_REMOVED = 'removed'
 # Options de chaque choix, dans l'ordre fixe du référentiel (aucune recommandée).
 CHOICE_OPTIONS: dict[str, tuple[str, ...]] = {
     'calendar': (hawl.CALENDAR_HIJRI, hawl.CALENDAR_GREGORIAN),
-    'nisab_method': (Shop.NISAB_METHOD_SILVER, Shop.NISAB_METHOD_GOLD),
+    'nisab_method': (ZakatProfile.NISAB_METHOD_SILVER, ZakatProfile.NISAB_METHOD_GOLD),
     'stock_valuation': (
         ZakatProfile.STOCK_VALUATION_SALE, ZakatProfile.STOCK_VALUATION_PURCHASE,
     ),
@@ -231,15 +231,10 @@ def next_hawl(profile: ZakatProfile) -> dict[str, Any] | None:
 def nisab_threshold_for(method: str | None, unit_price: Any) -> Decimal | None:
     """Seuil = prix du gramme × 595 g (argent) ou 85 g (or) ; `None` si non configuré."""  # noqa: E501
     price = _decimal(unit_price, default=None)
-    if price is None or method not in (Shop.NISAB_METHOD_SILVER, Shop.NISAB_METHOD_GOLD):  # noqa: E501
+    if price is None or method not in (ZakatProfile.NISAB_METHOD_SILVER, ZakatProfile.NISAB_METHOD_GOLD):  # noqa: E501
         return None
-    grams = NISAB_SILVER_GRAMS if method == Shop.NISAB_METHOD_SILVER else NISAB_GOLD_GRAMS  # noqa: E501
+    grams = NISAB_SILVER_GRAMS if method == ZakatProfile.NISAB_METHOD_SILVER else NISAB_GOLD_GRAMS  # noqa: E501
     return _round(price * grams)
-
-
-def compute_nisab_threshold(shop: Shop) -> Decimal | None:
-    """Seuil des réglages boutique — écran actuel, remplacé par le profil en Z2."""
-    return nisab_threshold_for(shop.nisab_method, shop.nisab_unit_price)
 
 
 # ── Stock et sources ──────────────────────────────────────────────────────────
@@ -274,11 +269,6 @@ def compute_stock_values(shop: Shop) -> StockValues:
         sale=_round(totals['sale'] or ZERO),
         purchase=_round(totals['purchase'] or ZERO),
     )
-
-
-def compute_stock_value(shop: Shop) -> Decimal:
-    """Valeur d'achat du stock — écran actuel (estimation), jusqu'au lot Z2."""
-    return compute_stock_values(shop).purchase
 
 
 def _unpaid_orders(shop: Shop) -> QuerySet:
@@ -553,44 +543,6 @@ def compute_totals(calc: ZakatCalculation) -> ZakatTotals:
     )
 
 
-# ── Ventilations de l'écran actuel (retirées en Z3) ───────────────────────────
-
-def _sum_breakdown(breakdown: Iterable[dict], categories: set[str] | None = None) -> Decimal:  # noqa: E501
-    """Somme les `amount` d'une ventilation JSON, en filtrant éventuellement par catégorie."""  # noqa: E501
-    return _sum_items(
-        item for item in breakdown or []
-        if categories is None or item.get('category') in categories
-    )
-
-
-def sum_stock_breakdown(stock_breakdown: Iterable[dict]) -> Decimal:
-    """Total du stock saisi ventilé par catégorie (finished / raw_materials / work_in_progress / in_transit)."""  # noqa: E501
-    return _sum_breakdown(stock_breakdown)
-
-
-def sum_recoverable_receivables(receivables_breakdown: Iterable[dict]) -> Decimal:
-    """Total des créances zakatables : certaines + probables. Les douteuses sont archivées hors base."""  # noqa: E501
-    return _sum_breakdown(receivables_breakdown, categories={'certain', 'probable'})
-
-
-def sum_immediate_debts(debts_breakdown: Iterable[dict]) -> Decimal:
-    """Somme des dettes marquées `is_immediately_due=True` dans la ventilation."""
-    return _sum_items(item for item in debts_breakdown or [] if item.get('is_immediately_due'))  # noqa: E501
-
-
-def debt_items_from_breakdown(debts_breakdown: Iterable[dict]) -> list[dict[str, Any]]:
-    """Lignes de dettes depuis l'ancienne ventilation : exigible → part 12 mois = montant."""  # noqa: E501
-    return [
-        {
-            'category': item.get('category', 'other'),
-            'label': item.get('label', ''),
-            'amount': str(item.get('amount', '0')),
-            'amount_within_12_months': str(item.get('amount', '0')) if item.get('is_immediately_due') else '0',  # noqa: E501
-        }
-        for item in debts_breakdown or []
-    ]
-
-
 # ── Écritures ─────────────────────────────────────────────────────────────────
 
 def _is_live(calc: ZakatCalculation) -> bool:
@@ -600,24 +552,18 @@ def _is_live(calc: ZakatCalculation) -> bool:
 
 def _refresh_derived(calc: ZakatCalculation, *, refresh_stock: bool) -> None:
     """Recalcule ce que le serveur dérive : année du hawl (calendrier choisi dans la
-    fiche, grégorien à défaut), stock, caches hérités."""
+    fiche, grégorien à défaut) et stock."""
     calc.hawl_calendar = (calc.choices_snapshot or {}).get('calendar') or hawl.CALENDAR_GREGORIAN  # noqa: E501
     calc.hawl_year = hawl.hawl_year(calc.reference_date, calc.hawl_calendar)
     if refresh_stock:
         values = compute_stock_values(calc.shop)
         calc.stock_sale_value = values.sale
         calc.stock_purchase_value = values.purchase
-    # Caches hérités (retirés en Z3).
-    calc.stock_value_estimated = calc.stock_purchase_value
-    if calc.receivables_breakdown:
-        calc.receivables_amount = sum_recoverable_receivables(calc.receivables_breakdown)  # noqa: E501
-    calc.short_term_debts = sum_immediate_debts(calc.debts_breakdown)
 
 
 DERIVED_FIELDS = (
     'hawl_calendar', 'hawl_year', 'choices_snapshot',
     'stock_sale_value', 'stock_purchase_value',
-    'stock_value_estimated', 'receivables_amount', 'short_term_debts',
 )
 
 
@@ -713,15 +659,10 @@ def create_calculation(shop: Shop, user: Any, data: dict[str, Any]) -> ZakatCalc
     if data.get('reference_date') is None:
         cycle = _cycle(profile, shop_today(shop))
         data['reference_date'] = cycle[1] if cycle else shop_today(shop)
-    calc = ZakatCalculation(
-        shop=shop, user=user, currency=shop.currency,
-        status=ZakatCalculation.STATUS_DRAFT, **data,
-    )
+    calc = ZakatCalculation(shop=shop, user=user, currency=shop.currency, **data)
     calc.choices_snapshot = merge_choices(profile_choices(profile), changes)
     if 'receivable_items' not in data:
         calc.receivable_items = [_order_receivable(o) for o in _unpaid_orders(shop)[:MAX_LINES]]  # noqa: E501
-    if 'debts_breakdown' in data and 'debt_items' not in data:
-        calc.debt_items = debt_items_from_breakdown(calc.debts_breakdown)
     _refresh_derived(calc, refresh_stock=True)
     try:
         with transaction.atomic():
@@ -756,9 +697,6 @@ def update_calculation(
     for name, value in data.items():
         setattr(calc, name, value)
     fields = set(data) | set(DERIVED_FIELDS)
-    if 'debts_breakdown' in data and 'debt_items' not in data:
-        calc.debt_items = debt_items_from_breakdown(calc.debts_breakdown)
-        fields.add('debt_items')
     calc.choices_snapshot = merge_choices(calc.choices_snapshot or {}, changes)
     _refresh_derived(calc, refresh_stock=refresh_stock or _is_live(calc))
     with transaction.atomic():

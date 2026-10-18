@@ -1,6 +1,5 @@
 from django.urls import path
 from .views import (
-    ZakatStockEstimateView,
     ZakatProfileView,
     ZakatSourcesView,
     ZakatCalculationListCreateView,
@@ -9,7 +8,6 @@ from .views import (
 )
 
 urlpatterns = [
-    path('zakat/stock-estimate/', ZakatStockEstimateView.as_view(), name='zakat-stock-estimate'),  # noqa: E501
     path('zakat/profile/', ZakatProfileView.as_view(), name='zakat-profile'),
     path('zakat/sources/', ZakatSourcesView.as_view(), name='zakat-sources'),
     path('zakat/calculations/', ZakatCalculationListCreateView.as_view(), name='zakat-calculation-list'),  # noqa: E501

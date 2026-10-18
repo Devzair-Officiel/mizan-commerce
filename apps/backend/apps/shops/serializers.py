@@ -14,7 +14,6 @@ class ShopSerializer(serializers.ModelSerializer):
         model = Shop
         fields = (
             'id', 'name', 'currency', 'country', 'timezone',
-            'zakat_annual_date', 'nisab_method', 'nisab_unit_price',
             'logo_object_key', 'logo_url',
             'legal_address', 'tax_id', 'legal_mentions',
             'default_tax_rate', 'default_payment_terms_days',
@@ -101,7 +100,7 @@ class AdminShopSerializer(serializers.ModelSerializer):
         model = Shop
         fields = (
             'id', 'name', 'currency', 'country', 'timezone',
-            'zakat_annual_date', 'created_at', 'updated_at',
+            'created_at', 'updated_at',
             'member_count', 'members',
         )
 

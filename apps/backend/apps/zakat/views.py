@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import IsShopAdmin, get_shop
-from apps.products.models import ProductVariant
 from apps.subscriptions.permissions import HasPlanForFeature
 
 HasZakatPlan = HasPlanForFeature.for_feature('zakat')
@@ -57,23 +56,6 @@ def _split_controls(validated: dict[str, Any]) -> tuple[dict[str, Any], int | No
     version = data.pop('version', None)
     refresh_stock = data.pop('refresh_stock', False)
     return data, version, refresh_stock
-
-
-class ZakatStockEstimateView(ZakatViewMixin, APIView):
-    """GET — valeur estimée du stock zakatable (écran actuel, remplacé par /sources/ en Z2)."""  # noqa: E501
-
-    def get(self, request):
-        shop = get_shop(request.user)
-        estimated = services.compute_stock_value(shop)
-        count = ProductVariant.objects.filter(
-            shop=shop, is_active=True, product__is_active=True, stock_quantity__gt=0,
-        ).count()
-        return Response({
-            'stock_value_estimated': estimated,
-            'currency': shop.currency,
-            'disclaimer': 'Estimation indicative — à vérifier avec un conseiller.',
-            'product_count': count,
-        })
 
 
 class ZakatProfileView(ZakatViewMixin, APIView):

@@ -15,6 +15,12 @@ class ZakatProfile(models.Model):
     personne ne les a pas faits — jamais de valeur par défaut (référentiel § 1).
     """
 
+    NISAB_METHOD_GOLD = 'gold'
+    NISAB_METHOD_SILVER = 'silver'
+    NISAB_METHOD_CHOICES = [
+        (NISAB_METHOD_GOLD, 'Or (85 g)'),
+        (NISAB_METHOD_SILVER, 'Argent (595 g)'),
+    ]
     STOCK_VALUATION_SALE = 'sale'
     STOCK_VALUATION_PURCHASE = 'purchase'
     STOCK_VALUATION_CHOICES = [
@@ -46,7 +52,7 @@ class ZakatProfile(models.Model):
     calendar = models.CharField(max_length=10, choices=CALENDAR_CHOICES, null=True, blank=True)  # noqa: E501
 
     nisab_method = models.CharField(
-        max_length=8, choices=Shop.NISAB_METHOD_CHOICES, null=True, blank=True,
+        max_length=8, choices=NISAB_METHOD_CHOICES, null=True, blank=True,
     )
     nisab_unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # noqa: E501
     # Posé par le serveur quand le prix change : l'écran alerte au-delà de 7 jours.
@@ -95,16 +101,9 @@ class ZakatCalculation(models.Model):
     """Calcul de zakat personnel d'un admin, pour une date de référence (jour J).
 
     Une fiche par personne, par boutique et par année de hawl (hégirienne ou
-    grégorienne). Jamais figée : elle reste modifiable. `status` vaut toujours
-    `draft` depuis le lot Z2a (champ retiré en Z3).
+    grégorienne). Jamais figée : elle reste modifiable. Le résultat n'est pas
+    stocké : il vient de `services.compute_totals`.
     """
-
-    STATUS_DRAFT = 'draft'
-    STATUS_FINALIZED = 'finalized'
-    STATUS_CHOICES = [
-        (STATUS_DRAFT, 'Brouillon'),
-        (STATUS_FINALIZED, 'Finalisé'),
-    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='zakat_calculations')  # noqa: E501
@@ -114,7 +113,6 @@ class ZakatCalculation(models.Model):
     # Incrémentée à chaque écriture : un PATCH qui porte une version périmée → 409.
     version = models.PositiveIntegerField(default=1)
 
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_DRAFT)  # noqa: E501
     # Dernière étape validée de l'assistant (0 = aucune … 6 = toutes les saisies ;
     # l'étape 7 est le résultat). Bornée par le serializer.
     current_step = models.PositiveSmallIntegerField(default=0)
@@ -128,29 +126,7 @@ class ZakatCalculation(models.Model):
     # ── Liquidités ─────────────────────────────────────────────────────────────
     cash_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
 
-    # ── Créances clients ───────────────────────────────────────────────────────
-    # `has_receivables` permet de distinguer "non renseigné" de "explicitement aucune".
-    # `receivables_nominal` = total dû par les clients (mémoire).
-    # `receivables_breakdown` = ventilation en 3 classes :
-    #   [{'category': 'certain'|'probable'|'doubtful', 'amount': str}]
-    # Seules les classes `certain` + `probable` entrent dans `receivables_amount` (cache).  # noqa: E501
-    # Les `doubtful` sont conservées pour mémoire / PDF mais hors base.
-    has_receivables = models.BooleanField(default=False)
-    receivables_nominal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
-    receivables_breakdown = models.JSONField(default=list, blank=True)
-    receivables_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
-
     # ── Stock commercial ───────────────────────────────────────────────────────
-    # `stock_value_estimated` = auto-calcul depuis le catalogue (référence).
-    # `stock_breakdown` = ventilation manuelle, prioritaire si renseignée :
-    #   [{'category': 'finished'|'raw_materials'|'work_in_progress'|'in_transit',
-    #     'amount': str}]
-    # `stock_value_adjusted` = legacy (ancien ajustement global), conservé pour
-    # rétro-compat mais ignoré si `stock_breakdown` est non vide.
-    stock_value_estimated = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
-    stock_breakdown = models.JSONField(default=list, blank=True)
-    stock_value_adjusted = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
-
     # Valeurs du catalogue le jour J (Σ quantité × prix), recopiées tant que le jour J
     # n'est pas passé, puis figées sauf demande explicite (`refresh_stock`).
     stock_sale_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
@@ -169,38 +145,7 @@ class ZakatCalculation(models.Model):
     # fiche la plus récente met à jour le profil (point de départ de la suivante).
     choices_snapshot = models.JSONField(default=dict, blank=True)
 
-    # ── Éléments exclus (pédagogique, non calculé) ─────────────────────────────
-    # Liste de slugs cochés par l'utilisateur pour confirmer sa compréhension :
-    # ['vehicle', 'computer', 'machine', 'premises', 'furniture', 'other'].
-    excluded_items_acknowledged = models.JSONField(default=list, blank=True)
-
-    # ── Dettes ─────────────────────────────────────────────────────────────────
-    # Ventilation par catégorie. Chaque item :
-    #   {'category': 'supplier'|'tax_vat'|'salary'|'loan'|'other',
-    #    'label': str (libellé libre du commerçant),
-    #    'amount': str (Decimal sérialisé),
-    #    'is_immediately_due': bool}
-    # Seules les dettes `is_immediately_due=True` entrent dans `short_term_debts`
-    # (cache recalculé à chaque enregistrement).
-    debts_breakdown = models.JSONField(default=list, blank=True)
-    short_term_debts = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
-
-    # ── Résultat figé (renseigné uniquement à la finalisation) ─────────────────
-    zakat_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
-    zakat_rate = models.DecimalField(max_digits=5, decimal_places=4, default=Decimal('0.0250'))  # noqa: E501
-    zakat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
     currency = models.CharField(max_length=3)
-
-    # ── Snapshot du seuil de Nisab à la finalisation ──────────────────────────
-    # Conservés sur la fiche pour figer le calcul (le cours évolue après finalisation).
-    # `None` si la boutique n'avait pas configuré le Nisab au moment du calcul.
-    nisab_method = models.CharField(max_length=8, blank=True)
-    nisab_unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # noqa: E501
-    nisab_threshold = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
-
-    pdf_object_key = models.CharField(max_length=500, blank=True)
-    notes = models.TextField(blank=True)
-    finalized_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -208,7 +153,6 @@ class ZakatCalculation(models.Model):
         db_table = 'zakat_calculations'
         ordering = ['-reference_date', '-created_at']
         indexes = [
-            models.Index(fields=['shop', 'status']),
             models.Index(fields=['shop', 'user']),
         ]
         constraints = [
@@ -221,27 +165,4 @@ class ZakatCalculation(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f'Zakat {self.shop} — {self.reference_date} ({self.status})'
-
-    @property
-    def is_above_nisab(self) -> bool | None:
-        """`True`/`False` si seuil configuré, `None` sinon (impossible à déterminer)."""
-        if self.nisab_threshold is None:
-            return None
-        return self.zakat_base >= self.nisab_threshold
-
-    @property
-    def stock_value_for_base(self) -> Decimal:
-        """Valeur du stock retenue pour la base zakatable.
-
-        Priorité :
-          1. Somme de `stock_breakdown` si non vide (ventilation manuelle, autoritaire).
-          2. Sinon `stock_value_adjusted` (rétro-compat).
-          3. Sinon `stock_value_estimated` (auto-calcul catalogue).
-        """
-        if self.stock_breakdown:
-            from .services import sum_stock_breakdown
-            return sum_stock_breakdown(self.stock_breakdown)
-        if self.stock_value_adjusted is not None:
-            return self.stock_value_adjusted
-        return self.stock_value_estimated
+        return f'Zakat {self.shop} — {self.reference_date}'

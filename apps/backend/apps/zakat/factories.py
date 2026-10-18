@@ -44,12 +44,10 @@ class ZakatCalculationFactory(DjangoModelFactory):
     reference_date = factory.LazyFunction(lambda: timezone.now().date())
     hawl_calendar = hawl.CALENDAR_GREGORIAN
     hawl_year = factory.LazyAttribute(lambda o: hawl.hawl_year(o.reference_date, o.hawl_calendar))  # noqa: E501
-    status = ZakatCalculation.STATUS_DRAFT
     current_step = 1
     cash_amount = factory.Faker('pydecimal', left_digits=5, right_digits=2, positive=True)  # noqa: E501
     stock_sale_value = factory.Faker('pydecimal', left_digits=5, right_digits=2, positive=True)  # noqa: E501
     stock_purchase_value = factory.LazyAttribute(lambda o: (o.stock_sale_value * Decimal('0.6')).quantize(Decimal('0.01')))  # noqa: E501
-    stock_value_estimated = factory.LazyAttribute(lambda o: o.stock_purchase_value)
     receivable_items = factory.LazyFunction(lambda: [
         {'order_id': None, 'label': 'Avance au fournisseur', 'amount': '400.00', 'doubtful': False},  # noqa: E501
         {'order_id': None, 'label': 'Client parti sans payer', 'amount': '150.00', 'doubtful': True},  # noqa: E501
