@@ -157,9 +157,6 @@ Boutique (entité racine du multi-tenant).
 | currency | VARCHAR(3) | NOT NULL, DEFAULT 'EUR' | Code ISO 4217 (EUR, MAD, DZD, XOF…) |
 | country | VARCHAR(2) | DEFAULT `''` | Code ISO 3166-1 alpha-2 |
 | timezone | VARCHAR(50) | NOT NULL, DEFAULT 'Europe/Paris' | Recalculé à chaque `save()` à partir de `country` (méthode `timezone_for_country`). Sert au calcul « rappels du jour ». |
-| zakat_annual_date | DATE | | Date annuelle de zakat. Remplacé par `zakat_profiles.hawl_date` (lot Z1), retiré au lot Z3 avec `nisab_method` et `nisab_unit_price`. |
-| nisab_method | VARCHAR(8) | NOT NULL, DEFAULT 'silver' | Méthode de calcul du seuil Nisab : `gold` (85 g d'or) ou `silver` (595 g d'argent). Argent par défaut (plus inclusif, recommandé pour la zakat commerciale). |
-| nisab_unit_price | DECIMAL(10,2) | | Prix unitaire (par gramme) du métal de référence, saisi par l'utilisateur. Pas de valeur par défaut : le cours fluctue. |
 | logo_object_key | VARCHAR(500) | DEFAULT `''` | Logo (Object Storage privé) |
 | legal_address | TEXT | DEFAULT `''` | Adresse légale imprimée en tête de facture. Champ libre (juridiction FR/MA/TN/US…). |
 | tax_id | VARCHAR(64) | DEFAULT `''` | Identifiant fiscal — SIRET, n° TVA intracom, NIF, EIN, etc. Format libre (pas d'imposition). |
@@ -714,8 +711,6 @@ Fiche de zakat d'une personne pour un jour J. Jamais figée : elle reste modifia
 | debt_items | JSONB | NOT NULL, DEFAULT `[]` | `[{category, label, amount, amount_within_12_months}]` |
 | choices_snapshot | JSONB | NOT NULL, DEFAULT `{}` | Copie des choix du profil à chaque enregistrement |
 | currency | VARCHAR(3) | NOT NULL | Devise au moment du calcul |
-| pdf_object_key | VARCHAR(500) | | Export PDF (URS-060) |
-| notes | TEXT | | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
@@ -724,15 +719,8 @@ au plus). Catégories de dettes : `supplier`, `tax_vat`, `salary`, `rent`, `loan
 « Paiement échelonné »), `other`. Catégories d'autres biens : `personal_cash`, `business`,
 `real_estate`, `gold_silver`, `for_resale`, `other`.
 
-**Champs de l'écran actuel, retirés au lot Z3** : `status` (`draft`/`finalized`),
-`finalized_at`, `stock_value_estimated`, `stock_value_adjusted`, `stock_breakdown`,
-`has_receivables`, `receivables_nominal`, `receivables_breakdown`, `receivables_amount`,
-`debts_breakdown` (recopié dans `debt_items` par la migration 0011), `short_term_debts`,
-`excluded_items_acknowledged`, `zakat_base`, `zakat_rate`, `zakat_amount`, `nisab_method`,
-`nisab_unit_price`, `nisab_threshold`.
-
 **Contrainte** : `UNIQUE (shop_id, user_id, hawl_calendar, hawl_year)` — un doublon renvoie
-409 avec `existing_id`. **Index** : `(shop_id, status)`, `(shop_id, user_id)`.
+409 avec `existing_id`. **Index** : `(shop_id, user_id)`.
 
 **Calcul** (`zakat.services.compute_totals`, seul moteur) : base = max(0, part ×
 (trésorerie + stock selon D5 + stock hors Mizan + créances sûres − dettes selon D2) + autres

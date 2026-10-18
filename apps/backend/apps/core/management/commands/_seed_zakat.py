@@ -2,7 +2,7 @@
 
 - youssef : profil complet (hégirien, seuil or, tous les choix faits) et la fiche de
   l'année hégirienne précédente (1er ramadan), avec une créance liée à une commande
-  non réglée, des autres biens et des dettes ; finalisée pour l'écran actuel ;
+  non réglée, des autres biens et des dettes ; toutes les saisies faites (étape 6) ;
 - amira : profil créé, aucun choix fait ;
 - vide@ : rien.
 """

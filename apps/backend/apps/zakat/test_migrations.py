@@ -21,19 +21,20 @@ def _executor() -> MigrationExecutor:
     return executor
 
 
-def _state_apps(executor: MigrationExecutor, zakat_target: list[tuple[str, str]]):
-    """Modèles historiques : zakat à la migration visée, les autres apps à jour."""
-    others = [node for node in executor.loader.graph.leaf_nodes() if node[0] != 'zakat']
-    return executor.loader.project_state(others + zakat_target).apps
+def _migrate_to(target: list[tuple[str, str]]):
+    """Migre vers la cible et renvoie les modèles historiques de l'état obtenu.
+
+    L'état est celui que l'exécuteur a réellement appliqué : revenir avant la zakat
+    0009 défait aussi la shops 0010, qui en dépend.
+    """
+    return _executor().migrate(target).apps
 
 
 class ZakatZ1MigrationTest(TransactionTestCase):
     serialized_rollback = True
 
     def setUp(self):
-        executor = _executor()
-        executor.migrate(BEFORE)
-        self.old = _state_apps(executor, BEFORE)
+        self.old = _migrate_to(BEFORE)
         self.n = 0
 
     def tearDown(self):
@@ -42,9 +43,7 @@ class ZakatZ1MigrationTest(TransactionTestCase):
         super().tearDown()
 
     def _migrate(self):
-        executor = _executor()
-        executor.migrate(AFTER)
-        return _state_apps(executor, AFTER)
+        return _migrate_to(AFTER)
 
     def _user(self):
         self.n += 1
@@ -148,9 +147,7 @@ class ZakatZ2aMigrationTest(TransactionTestCase):
     after = [('zakat', '0013_calculations_back_to_draft')]
 
     def setUp(self):
-        executor = _executor()
-        executor.migrate(self.before)
-        old = _state_apps(executor, self.before)
+        old = _migrate_to(self.before)
         user = old.get_model('accounts', 'User').objects.create(email='z2a@example.com', password='!')  # noqa: E501
         self.shop = old.get_model('shops', 'Shop').objects.create(name='Boutique', currency='EUR')  # noqa: E501
         self.user = user
@@ -172,9 +169,7 @@ class ZakatZ2aMigrationTest(TransactionTestCase):
         draft_at_six = self.calc(2025, current_step=6)
         draft_at_two = self.calc(2026, current_step=2)
 
-        executor = _executor()
-        executor.migrate(self.after)
-        Calc = _state_apps(executor, self.after).get_model('zakat', 'ZakatCalculation')
+        Calc = _migrate_to(self.after).get_model('zakat', 'ZakatCalculation')
         rows = dict(Calc.objects.values_list('pk', 'current_step'))
         self.assertEqual(set(Calc.objects.values_list('status', flat=True)), {'draft'})
         self.assertEqual(rows, {finalized: 6, draft_at_six: 0, draft_at_two: 0})

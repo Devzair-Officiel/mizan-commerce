@@ -197,7 +197,6 @@ class CalculationTest(ZakatAPITestCase):
     def test_line_validation(self):
         invalid = [
             {'cash_amount': '-1'},
-            {'receivables_nominal': '-1'},
             {'stock_extra': '-1'},
             {'other_assets': [{'category': 'car', 'label': 'x', 'amount': '1', 'counted': True}]},  # noqa: E501
             {'other_assets': [{'category': 'other', 'label': 'x', 'amount': '1'}]},
@@ -217,17 +216,6 @@ class CalculationTest(ZakatAPITestCase):
         line = {'order_id': str(own.pk), 'label': 'x', 'amount': '10'}
         response = self._create(receivable_items=[line, line])
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_legacy_debts_breakdown_mapped_to_debt_items(self):
-        response = self._create(debts_breakdown=[
-            {'category': 'supplier', 'label': 'Fournisseur', 'amount': '200.00', 'is_immediately_due': True},  # noqa: E501
-            {'category': 'loan', 'label': 'Paiement échelonné', 'amount': '900.00', 'is_immediately_due': False},  # noqa: E501
-        ])
-        self.assertEqual(
-            [(d['amount'], d['amount_within_12_months']) for d in response.data['debt_items']],  # noqa: E501
-            [('200.00', '200.00'), ('900.00', '0.00')],
-        )
-
 
 class DuplicateYearTest(ZakatAPITestCase):
     def test_same_gregorian_year_conflicts(self):
@@ -289,12 +277,13 @@ class VersionTest(ZakatAPITestCase):
         calc = ZakatCalculation.objects.get(pk=calc_id)
         self.assertEqual((calc.cash_amount, calc.version), (Decimal('0.00'), 1))
 
-    def test_finalize_reopen_and_draft_removed(self):
+    def test_removed_routes_return_404(self):
         calc_id = self._create().data['id']
         for suffix in (f'{calc_id}/finalize/', f'{calc_id}/reopen/'):
             response = self.client.post(f'{LIST_URL}{suffix}')
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND, suffix)
         self.assertEqual(self.client.get(f'{LIST_URL}draft/').status_code, status.HTTP_404_NOT_FOUND)  # noqa: E501
+        self.assertEqual(self.client.get('/api/zakat/stock-estimate/').status_code, status.HTTP_404_NOT_FOUND)  # noqa: E501
 
 
 class IsolationTest(ZakatAPITestCase):

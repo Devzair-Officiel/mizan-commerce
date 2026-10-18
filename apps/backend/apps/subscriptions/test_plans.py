@@ -128,10 +128,11 @@ class PlanCatalogTest(TestCase):
 
 
 # Sonde HTTP par fonctionnalité branchée : (méthode, URL). Une sonde autorisée
-# peut répondre 200, 400, 404 ou 405 selon la vue : seul le 403 compte.
+# peut répondre 200, 400, 404 ou 405 selon la vue : seul le 403 compte, sauf pour
+# les sondes strictes (STRICT_PROBES), qui exigent 200.
 FEATURE_PROBES: dict[str, tuple[str, str]] = {
     "orders": ("get", "/api/orders/"),
-    "zakat": ("get", "/api/zakat/stock-estimate/"),
+    "zakat": ("get", "/api/zakat/sources/"),
     "invoices": ("get", "/api/invoices/"),
     "whatsapp": ("get", "/api/messages/settings/"),
     "exports": ("get", f"/api/customers/{uuid.uuid4()}/activity/export/summary/"),
@@ -139,6 +140,9 @@ FEATURE_PROBES: dict[str, tuple[str, str]] = {
     "public_pages": ("get", "/api/public-page/"),
     "multi_user": ("post", "/api/shop/members/"),
 }
+
+# Une sonde stricte autorisée doit répondre 200 : un 404 (route disparue) échoue.
+STRICT_PROBES: frozenset[str] = frozenset({"zakat"})
 
 
 class PlanGatingMatrixTest(TestCase):
@@ -155,7 +159,9 @@ class PlanGatingMatrixTest(TestCase):
             )
             response = getattr(client, method)(url, {}, format="json")
             with self.subTest(feature=feature):
-                if allowed:
+                if allowed and feature in STRICT_PROBES:
+                    self.assertEqual(response.status_code, status.HTTP_200_OK)
+                elif allowed:
                     self.assertNotEqual(response.status_code, status.HTTP_403_FORBIDDEN)
                 else:
                     self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
