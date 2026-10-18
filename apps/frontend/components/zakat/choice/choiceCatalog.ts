@@ -1,9 +1,10 @@
 import type { ChoiceName, ChoiceOption } from '@/lib/hooks/useZakat';
 
-/** Clés de `zakat.chip.*` : qui retient chaque option (référentiel, § 4). */
+/** Clés de `zakat.chip.*` : qui retient chaque option (référentiel, § 4), aussi dans les fiches Fondement. */
 export type ChipKey =
   | 'four_schools' | 'aaoifi' | 'hanafi' | 'maliki' | 'shafii' | 'hanbali'
-  | 'contemporary' | 'shafii_new' | 'ibn_baz' | 'usual_conversion' | 'rate_hijri' | 'rate_solar';
+  | 'contemporary' | 'shafii_new' | 'ibn_baz' | 'usual_conversion' | 'rate_hijri' | 'rate_solar'
+  | 'shafii_old' | 'ali' | 'al_hasan' | 'umar_abd_al_aziz' | 'permanent_committee';
 
 export const CHOICE_CHIPS: { [C in ChoiceName]: Record<ChoiceOption<C>, readonly ChipKey[]> } = {
   calendar: { hijri: ['rate_hijri'], gregorian: ['rate_solar', 'aaoifi'] },

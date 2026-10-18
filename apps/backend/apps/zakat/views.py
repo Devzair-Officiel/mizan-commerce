@@ -144,21 +144,16 @@ class ZakatCalculationDetailView(ZakatViewMixin, APIView):
 
 
 class ZakatCalculationPdfView(ZakatViewMixin, APIView):
-    """GET — justificatif PDF d'un calcul finalisé (contenu refondu en Z2).
+    """GET — justificatif PDF d'une fiche, à tout moment, réservé à son auteur (404).
 
     Pas de cache : génération rapide (<100 ms), volume faible.
     """
 
     def get(self, request, pk):
         calc = services.get_calculation(get_shop(request.user), request.user, pk)
-        if calc.status != ZakatCalculation.STATUS_FINALIZED:
-            return Response(
-                {'detail': 'Le PDF n\'est disponible qu\'après finalisation.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         pdf_bytes = build_zakat_pdf(calc)
         services.record_pdf_download(calc, request.user)
-        filename = f'zakat-{calc.reference_date.isoformat()}.pdf'
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        filename = f'zakat-{calc.hawl_year}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response

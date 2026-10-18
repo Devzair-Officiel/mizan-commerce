@@ -64,6 +64,12 @@ class ZakatProfile(models.Model):
     # montants de la boutique, pas aux autres biens (personnels).
     ownership_share = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('100'))  # noqa: E501
 
+    # E-mail 7 jours avant le jour J. Année de hawl du dernier envoi (calendrier et
+    # année) : posée par un update conditionnel, un seul e-mail par année de hawl.
+    reminder_email_enabled = models.BooleanField(default=True)
+    reminder_sent_calendar = models.CharField(max_length=10, choices=CALENDAR_CHOICES, null=True, blank=True)  # noqa: E501
+    reminder_sent_year = models.PositiveSmallIntegerField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

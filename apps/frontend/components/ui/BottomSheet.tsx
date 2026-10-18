@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { useScrollLock } from '@base-ui/utils/useScrollLock';
 import { useFocusTrap } from '@/lib/hooks/useFocusTrap';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
+import { DesktopDrawer } from './DesktopDrawer';
 
 interface BottomSheetProps {
   open: boolean;
@@ -18,6 +19,8 @@ interface BottomSheetProps {
   fullHeight?: boolean;
   /** Pied fixe sous la zone défilante (actions de validation). */
   footer?: ReactNode;
+  /** Desktop : fenêtre centrée (par défaut) ou tiroir latéral, pour lire à côté de la page (sans pied). */
+  desktop?: 'dialog' | 'drawer';
   children: ReactNode;
 }
 
@@ -163,7 +166,7 @@ function MobileSheet({
   );
 }
 
-export function BottomSheet({ open, onClose, title, description, fullHeight, footer, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, description, fullHeight, footer, desktop = 'dialog', children }: BottomSheetProps) {
   const [visible, setVisible] = useState(false);
   const [tracked, setTracked] = useState(open);
   const titleId = useId();
@@ -206,7 +209,9 @@ export function BottomSheet({ open, onClose, title, description, fullHeight, foo
 
   // Portail : un ancêtre avec `backdrop-filter` (barre du haut) ferait du `fixed` un positionnement relatif à lui.
   return createPortal(
-    isDesktop === true
+    isDesktop === true && desktop === 'drawer'
+      ? <DesktopDrawer visible={visible} title={title} description={description} titleId={titleId} sheetRef={sheetRef} onClose={onClose} closeLabel={t('close')} panelLabel={t('panel')}>{children}</DesktopDrawer>
+      : isDesktop === true
       ? <DesktopDialog visible={visible} title={title} description={description} titleId={titleId} sheetRef={sheetRef} onClose={onClose} t={t} footer={footer}>{children}</DesktopDialog>
       : <MobileSheet visible={visible} title={title} description={description} titleId={titleId} sheetRef={sheetRef} onClose={onClose} fullHeight={fullHeight} t={t} footer={footer}>{children}</MobileSheet>,
     document.body,

@@ -10,10 +10,12 @@ export interface HeroFacts {
   /** Fiche de la prochaine année de hawl, si elle est commencée. */
   current: ZakatListRow | null;
   /** Fiche précédente la plus récente. */
-  last: { year: string; value: string; note: string } | null;
+  last: { id: string; year: string; value: string; note: string } | null;
+  /** « Rappel par e-mail, 7 jours avant », selon le réglage. */
+  reminder: string;
 }
 
-/** Repères du bandeau : seuil et âge du prix du gramme, calcul en cours, dernière zakat. */
+/** Repères du bandeau : seuil et âge du prix du gramme, calcul en cours, dernière zakat, rappel. */
 export function useHeroFacts(profile: ZakatProfile, rows: ZakatListRow[], format: ZakatFormat): HeroFacts {
   const t = useTranslations('zakat');
   const currentId = profile.next_hawl?.calculation_id ?? null;
@@ -34,9 +36,11 @@ export function useHeroFacts(profile: ZakatProfile, rows: ZakatListRow[], format
     },
     current,
     last: previous && {
+      id: previous.id,
       year: String(previous.hawl_year),
       value: previous.totals.zakat_total ? format.money(previous.totals.zakat_total) : t(`status.${previous.totals.status}`),
       note: t('home.modified_on', { date: format.instantDate(previous.updated_at) }),
     },
+    reminder: t('home.reminder', { enabled: String(profile.reminder_email_enabled) }),
   };
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { FORM_COLUMNS } from '@/components/form/fieldStyles';
+import { BasisLink } from '../basis/BasisLink';
 import type { StepProps } from '../steps/types';
 import { ChoicesCard } from './ChoicesCard';
 import { ForgotSheet } from './ForgotSheet';
@@ -30,7 +31,7 @@ export function ResultView({ calc, format, onGo, onPrevious }: ResultViewProps) 
         <ResultHero calc={calc} format={format} onGo={onGo} />
         <ResultLines calc={calc} format={format} onGo={onGo} />
         <OutsideCard calc={calc} format={format} />
-        <ResultActions onPrevious={onPrevious} onForgot={() => setForgot(true)} />
+        <ResultActions id={calc.id} onPrevious={onPrevious} onForgot={() => setForgot(true)} />
         <p className="text-[0.8125rem] leading-normal text-muted-foreground max-lg:hidden">{t('result.saved_note')}</p>
       </div>
       <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
@@ -38,6 +39,7 @@ export function ResultView({ calc, format, onGo, onPrevious }: ResultViewProps) 
         <section className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-5 max-lg:hidden">
           <h2 className="text-[0.9375rem] font-semibold text-foreground">{t('result.recipients_title')}</h2>
           <p className="text-[0.8125rem] leading-normal text-muted-foreground">{t('result.recipients_text')}</p>
+          <BasisLink view="recipients" label={t('basis.see_categories')} icon={false} className="min-h-6 text-[0.84375rem]" />
         </section>
         <MobileSummaryCard calc={calc} rows={rows} format={format} onGo={onGo} />
         <p className="text-xs leading-normal text-muted-foreground lg:hidden">

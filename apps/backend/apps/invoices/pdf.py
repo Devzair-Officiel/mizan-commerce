@@ -3,7 +3,6 @@
 from io import BytesIO
 
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import SimpleDocTemplate, Spacer
 
 from .models import Invoice
@@ -16,51 +15,14 @@ from .pdf_blocks import (
     summary,
     totals,
 )
-from .pdf_style import MUTED, WIDTH, InvoiceStyle, register_fonts, xml
-
-
-class NumberedCanvas(Canvas):
-    """Deux passes de pagination, sans reconstruire le document."""
-
-    def __init__(
-        self, *args, invoice_style: InvoiceStyle, footer_height: float, **kwargs
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.invoice_style = invoice_style
-        self.footer_height = footer_height
-        self.pages: list[dict] = []
-
-    def showPage(self) -> None:
-        self.pages.append(dict(self.__dict__))
-        self._startPage()
-
-    def save(self) -> None:
-        page_count = len(self.pages)
-        for state in self.pages:
-            self.__dict__.update(state)
-            self.draw_furniture(page_count)
-            super().showPage()
-        super().save()
-
-    def draw_furniture(self, page_count: int) -> None:
-        style = self.invoice_style
-        self.saveState()
-        self.setFillColor(style.accent)
-        self.rect(0, A4[1] - 6, A4[0], 6, stroke=0, fill=1)
-        self.setStrokeColor(style.accent)
-        self.setLineWidth(0.6)
-        self.line(36, 28 + self.footer_height, A4[0] - 36, 28 + self.footer_height)
-        footer = footer_paragraph(style)
-        footer.wrap(WIDTH, self.footer_height)
-        footer.drawOn(self, 36, 22)
-        self.setFont('Invoice', 7.5)
-        self.setFillColor(MUTED)
-        self.drawRightString(
-            A4[0] - 36,
-            11,
-            style.text('page').format(page=self._pageNumber, total=page_count),
-        )
-        self.restoreState()
+from .pdf_style import (
+    MUTED,
+    WIDTH,
+    InvoiceStyle,
+    NumberedCanvas,
+    register_fonts,
+    xml,
+)
 
 
 def footer_paragraph(style: InvoiceStyle):
@@ -122,7 +84,8 @@ def build_invoice_pdf(invoice: Invoice) -> bytes:
         story,
         canvasmaker=lambda *args, **kwargs: NumberedCanvas(
             *args,
-            invoice_style=style,
+            pdf_style=style,
+            footer=lambda: footer_paragraph(style),
             footer_height=footer_height,
             **kwargs,
         ),

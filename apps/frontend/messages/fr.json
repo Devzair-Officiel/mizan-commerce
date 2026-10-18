@@ -1981,7 +1981,12 @@
       "ibn_baz": "Ibn Bâz",
       "usual_conversion": "Conversion usuelle",
       "rate_hijri": "Taux 2,5 %",
-      "rate_solar": "Taux 2,5775 %"
+      "rate_solar": "Taux 2,5775 %",
+      "shafii_old": "Al-Shâfi'î, ancien avis",
+      "ali": "Rapporté d'Ali",
+      "al_hasan": "Al-Hasan al-Basrî",
+      "umar_abd_al_aziz": "Umar ibn Abd al-Azîz",
+      "permanent_committee": "Commission permanente"
     },
     "choice": {
       "note": "Modifiable à tout moment.",
@@ -2140,7 +2145,10 @@
       "how_text": "Ce qui compte, c'est ce que vous possédez le jour J : trésorerie, stock, créances, moins les dettes selon votre choix. Pas votre chiffre d'affaires de l'année.",
       "footer": "Estimation fondée sur vos chiffres et vos choix d'avis. Vous pouvez ajouter vos autres biens au calcul : argent personnel, autre commerce, immobilier, or. Pour un cas particulier, demandez à une personne de science de confiance.",
       "footer_short": "Estimation fondée sur vos chiffres et vos choix d'avis. Ajoutez vos autres biens au calcul : argent personnel, autre commerce, immobilier, or.",
-      "load_error": "La zakat n'a pas pu être chargée. Vérifiez votre connexion puis réessayez."
+      "load_error": "La zakat n'a pas pu être chargée. Vérifiez votre connexion puis réessayez.",
+      "col_pdf": "PDF",
+      "history_pdf": "Télécharger le justificatif {year}",
+      "reminder": "{enabled, select, true {Rappel par e-mail, 7 jours avant} other {Aucun rappel par e-mail}}"
     },
     "new": {
       "title": "Nouveau calcul",
@@ -2457,7 +2465,10 @@
       "outside_short_item": "{label} {amount}",
       "outside_short_usage": "biens d'usage",
       "recipients_text_short": "Huit catégories, sourate 9, verset 60",
-      "see": "Voir"
+      "see": "Voir",
+      "pdf": "Télécharger le justificatif",
+      "pdf_short": "Justificatif PDF",
+      "choices_note": "Repris dans le justificatif{latest, select, true { et pour votre prochaine fiche} other {}}. Modifiable à tout moment."
     },
     "settings": {
       "title": "Réglages de la zakat",
@@ -2472,7 +2483,232 @@
       "share_title": "Votre part de la boutique",
       "choices_title": "Choix d'avis",
       "choices_hint": "Là où les avis divergent, c'est vous qui choisissez.",
-      "rejected": "Cette valeur n'a pas été acceptée. Les réglages ont été rechargés."
+      "rejected": "Cette valeur n'a pas été acceptée. Les réglages ont été rechargés.",
+      "reminder": "Me prévenir par e-mail 7 jours avant",
+      "reminder_help": "Un e-mail avec la date de votre jour J, sans aucun montant."
+    },
+    "basis": {
+      "index_title": "Les règles et leurs sources",
+      "index_subtitle": "Neuf fiches : la règle, ses sources, les avis.",
+      "subtitle": "Règle, sources et avis.",
+      "back": "Toutes les fiches",
+      "rule": "La règle",
+      "sources": "Les sources",
+      "opinions": "Les avis",
+      "categories": "Les huit catégories",
+      "agreement": "Point d'accord : aucun choix à faire.",
+      "your_choice": "Votre choix",
+      "ask": "Pour un cas particulier, demandez à une personne de science de confiance.",
+      "why": "Sur quoi reposent ces avis ?",
+      "see_rules": "Voir les règles et leurs sources",
+      "see_sources": "Voir les sources",
+      "see_categories": "Voir les huit catégories",
+      "badge": {
+        "authentic": "Authentique",
+        "discussed": "Authenticité discutée",
+        "companion": "Parole de compagnon",
+        "school": "Avis d'école",
+        "contemporary": "Norme contemporaine"
+      },
+      "topic": {
+        "cash": {
+          "name": "Trésorerie",
+          "title": "La trésorerie et la zakat",
+          "rule": "Ce qui est en caisse et en banque le jour J compte."
+        },
+        "stock": {
+          "name": "Stock",
+          "title": "La valeur du stock",
+          "rule": "Ce qui est destiné à la vente compte, à sa valeur du jour J."
+        },
+        "usage": {
+          "name": "Biens d'usage",
+          "title": "Les biens d'usage",
+          "rule": "Local, véhicule, matériel, mobilier ne comptent pas."
+        },
+        "receivables": {
+          "name": "Créances",
+          "title": "Les créances et la zakat",
+          "rule": "Ce que vos clients vous doivent compte s'il sera payé.",
+          "detail": "Une créance douteuse ne doit rien tant qu'elle n'est pas encaissée ; les avis divergent sur ce qui est dû à l'encaissement."
+        },
+        "other": {
+          "name": "Autres biens",
+          "title": "Vos autres biens",
+          "rule": "Ajoutez ce que vous possédez le jour J ; vous décidez de ce qui compte.",
+          "detail": "Chaque ligne a son interrupteur « Compté ». Mizan n'applique aucun calcul automatique à l'immobilier."
+        },
+        "debts": {
+          "name": "Dettes",
+          "title": "Les dettes et la zakat",
+          "rule": "Selon votre choix, toutes vos dettes, une partie ou aucune se déduisent.",
+          "detail": "Les écoles divergent sur la déduction des dettes. La question repose surtout sur des paroles de compagnons et sur le raisonnement des savants."
+        },
+        "nisab": {
+          "name": "Seuil",
+          "title": "Le seuil",
+          "rule": "En dessous, pas de zakat.",
+          "detail": "Le seuil vaut 200 dirhams d'argent ou 20 dinars d'or. Leur conversion en grammes diverge (595, 612 ou 624 g d'argent selon le poids retenu du dirham) : Mizan affiche 595 g et 85 g, la conversion usuelle."
+        },
+        "rate": {
+          "name": "Taux et année",
+          "title": "Le taux et l'année",
+          "rule": "2,5 % sur une année hégirienne.",
+          "detail": "La zakat est due après une année complète (hawl)."
+        },
+        "recipients": {
+          "name": "Bénéficiaires",
+          "title": "À qui verser la zakat ?",
+          "rule": "Le Coran nomme huit catégories de bénéficiaires."
+        }
+      },
+      "source": {
+        "quran_2_267": {
+          "text": "Le Coran invite les croyants à donner des bonnes choses qu'ils ont acquises ; Mujâhid y voit le commerce.",
+          "ref": "Coran, sourate 2, verset 267"
+        },
+        "quran_9_60": {
+          "text": "Le Coran réserve la zakat à huit catégories de bénéficiaires, nommées une à une.",
+          "ref": "Coran, sourate 9, verset 60"
+        },
+        "bukhari_1454": {
+          "text": "Dans la lettre d'Abû Bakr sur la zakat, l'argent doit un quart du dixième, soit 2,5 %.",
+          "ref": "Bukhârî 1454"
+        },
+        "bukhari_1459": {
+          "text": "Le Prophète ﷺ a indiqué qu'en dessous de cinq awâq d'argent, la zakat n'est pas due.",
+          "ref": "Bukhârî 1459"
+        },
+        "bukhari_1463": {
+          "text": "Le Prophète ﷺ a indiqué que le cheval ou le serviteur dont le musulman a l'usage ne doit pas de zakat.",
+          "ref": "Bukhârî 1463, Muslim 982"
+        },
+        "abu_dawud_1562": {
+          "text": "Samura ibn Jundub rapporte que le Prophète ﷺ leur ordonnait de verser la zakat sur ce qu'ils destinaient à la vente.",
+          "ref": "Abû Dâwûd 1562",
+          "judgment": "Faible pour al-Albânî, bon pour Ibn Abd al-Barr."
+        },
+        "abu_dawud_1573": {
+          "text": "Selon Ali, le Prophète ﷺ a fixé cinq dirhams sur deux cents détenus une année, rien sur l'or avant vingt dinars, et aucune zakat avant une année complète.",
+          "ref": "Abû Dâwûd 1573",
+          "judgment": "Sahih selon al-Albânî."
+        },
+        "abu_dawud_1574": {
+          "text": "Selon Ali, le Prophète ﷺ a demandé un dirham sur quarante pour l'argent, soit un quart du dixième.",
+          "ref": "Abû Dâwûd 1574",
+          "judgment": "Sahih selon al-Albânî."
+        },
+        "ibn_umar": {
+          "text": "Ibn Umar tenait les marchandises destinées à la vente pour soumises à la zakat.",
+          "ref": "Rapporté par al-Bayhaqî",
+          "judgment": "Chaîne authentique selon Ibn Hazm et an-Nawawî."
+        },
+        "umar_himas": {
+          "text": "Umar demanda à Himâs d'estimer la valeur de sa marchandise, puis d'en verser la zakat.",
+          "ref": "Rapporté par Himâs",
+          "judgment": "Faible pour al-Albânî."
+        },
+        "uthman": {
+          "text": "Uthmân ibn Affân invitait, au mois de la zakat, celui qui avait une dette à la régler d'abord, puis à verser la zakat sur ce qui restait.",
+          "ref": "Muwatta de Mâlik, Livre de la zakat",
+          "judgment": "Chaîne authentique (mawqûf sahîh)."
+        },
+        "stock_schools": {
+          "text": "Les quatre écoles retiennent la zakat sur les marchandises, à leur valeur du jour J ; Ibn al-Mundhir en rapporte le consensus.",
+          "ref": "Avis contraire : zâhirites"
+        },
+        "receivables_schools": {
+          "text": "Les écoles comptent la créance sûre, celle d'un client solvable qui reconnaît sa dette, et divergent sur le moment de verser. La créance douteuse ne doit rien tant qu'elle n'est pas encaissée.",
+          "ref": "Quatre écoles"
+        },
+        "jewelry_schools": {
+          "text": "Pour les bijoux portés, la question relève de l'avis des écoles.",
+          "ref": "Quatre écoles"
+        },
+        "real_estate": {
+          "text": "Un bien habité ou à usage personnel ne compte pas, d'un avis unanime ; un bien acheté pour être revendu compte comme une marchandise.",
+          "ref": "islamqa 231858"
+        },
+        "aaoifi_stock": {
+          "text": "La norme AAOIFI évalue le stock à sa valeur de réalisation attendue ; le prix d'achat seulement si la valeur actuelle est inconnue.",
+          "ref": "Norme AAOIFI n° 35"
+        },
+        "aaoifi_debts": {
+          "text": "La norme AAOIFI déduit seulement ce qui est dû dans les 12 mois.",
+          "ref": "Norme AAOIFI n° 35"
+        },
+        "aaoifi_rate": {
+          "text": "Sur une année solaire, plus longue de 11 jours, la norme AAOIFI retient un taux de 2,5775 %.",
+          "ref": "Norme AAOIFI n° 35"
+        }
+      },
+      "choice_note": {
+        "stock_valuation": {
+          "sale": "Détail pour un détaillant, gros pour un grossiste.",
+          "purchase": "Seulement si la valeur actuelle est inconnue."
+        },
+        "receivables_mode": {
+          "yearly": "Chez les malikites, pour les ventes du commerçant régulier."
+        },
+        "debts_mode": {
+          "all": "Chaque école pose ses conditions."
+        },
+        "nisab_method": {
+          "silver": "Ceux qui retiennent le seuil le plus favorable aux pauvres ; Islamic Relief le conseille.",
+          "gold": "Ceux qui jugent que l'argent ne reflète plus la richesse."
+        }
+      },
+      "heading": {
+        "receivables_mode": "Les créances sûres"
+      },
+      "opinion": {
+        "doubtful": {
+          "title": "Les créances douteuses, à l'encaissement",
+          "all_years": {
+            "title": "Zakat de toutes les années passées"
+          },
+          "one_year": {
+            "title": "Zakat d'une seule année"
+          },
+          "new_year": {
+            "title": "Nouvelle année à partir de l'encaissement"
+          }
+        },
+        "jewelry": {
+          "title": "Les bijoux portés",
+          "counted": {
+            "title": "Comptés"
+          },
+          "not_counted": {
+            "title": "Non comptés"
+          }
+        },
+        "real_estate": {
+          "title": "L'immobilier",
+          "home": {
+            "title": "Bien habité ou à usage personnel",
+            "note": "Non compté, avis unanime."
+          },
+          "rented": {
+            "title": "Bien loué",
+            "note": "Avis classique : valeur du bien non comptée, loyers encore disponibles comptés comme trésorerie. Avis contemporain : traité comme une récolte, 10 % ou 5 % des loyers."
+          },
+          "resale": {
+            "title": "Bien acheté pour être revendu",
+            "note": "Compté à sa valeur du jour J, comme une marchandise."
+          }
+        }
+      },
+      "category": {
+        "1": "Les pauvres",
+        "2": "Les nécessiteux",
+        "3": "Ceux qui collectent la zakat",
+        "4": "Ceux dont les cœurs sont à rapprocher",
+        "5": "L'affranchissement des esclaves",
+        "6": "Les personnes accablées de dettes",
+        "7": "La cause d'Allah",
+        "8": "Le voyageur en difficulté"
+      }
     }
   },
   "public_page_admin": {
