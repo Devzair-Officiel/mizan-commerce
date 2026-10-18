@@ -89,8 +89,8 @@ class ZakatCalculation(models.Model):
     """Calcul de zakat personnel d'un admin, pour une date de référence (jour J).
 
     Une fiche par personne, par boutique et par année de hawl (hégirienne ou
-    grégorienne). Jamais figée : elle reste modifiable. `finalized` et la
-    réouverture restent pour l'écran actuel, jusqu'au lot Z2.
+    grégorienne). Jamais figée : elle reste modifiable. `status` vaut toujours
+    `draft` depuis le lot Z2a (champ retiré en Z3).
     """
 
     STATUS_DRAFT = 'draft'
@@ -109,13 +109,13 @@ class ZakatCalculation(models.Model):
     version = models.PositiveIntegerField(default=1)
 
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_DRAFT)  # noqa: E501
-    # Dernière étape atteinte par l'assistant (0 = liquidités … 5 = récapitulatif).
-    # Permet au frontend de reprendre le brouillon au bon endroit.
+    # Dernière étape validée de l'assistant (0 = aucune … 6 = toutes les saisies ;
+    # l'étape 7 est le résultat). Bornée par le serializer.
     current_step = models.PositiveSmallIntegerField(default=0)
 
     reference_date = models.DateField()
     # Année du hawl, calculée côté serveur depuis `reference_date` et le calendrier
-    # du profil (grégorien tant que la personne n'a pas choisi).
+    # choisi dans la fiche (grégorien tant que la personne n'a pas choisi).
     hawl_calendar = models.CharField(max_length=10, choices=CALENDAR_CHOICES)
     hawl_year = models.PositiveSmallIntegerField()
 
@@ -159,7 +159,8 @@ class ZakatCalculation(models.Model):
     receivable_items = models.JSONField(default=list, blank=True)
     other_assets = models.JSONField(default=list, blank=True)
     debt_items = models.JSONField(default=list, blank=True)
-    # Copie des choix du profil à chaque enregistrement (repris dans le justificatif).
+    # Choix de la fiche : copiés du profil à la création, modifiables ensuite. La
+    # fiche la plus récente met à jour le profil (point de départ de la suivante).
     choices_snapshot = models.JSONField(default=dict, blank=True)
 
     # ── Éléments exclus (pédagogique, non calculé) ─────────────────────────────

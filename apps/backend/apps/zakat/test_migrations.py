@@ -1,7 +1,8 @@
-"""Migrations de données du lot Z1 (0007 → 0012), rejouées depuis l'état 0006.
+"""Migrations de données des lots Z1 (0007 → 0012) et Z2a (0013).
 
-Chaque test repart de la 0006, insère des lignes avec les modèles historiques, puis
-migre jusqu'à la 0012 ; `tearDown` ramène la base à la dernière migration.
+Chaque test repart de la migration qui précède le lot, insère des lignes avec les
+modèles historiques, puis migre jusqu'à la fin du lot ; `tearDown` ramène la base à la
+dernière migration.
 """
 import datetime
 from decimal import Decimal
@@ -138,3 +139,42 @@ class ZakatZ1MigrationTest(TransactionTestCase):
             self._migrate()
         self.assertIn(f'calcul {calc.pk}', str(ctx.exception))
         calc.delete()
+
+
+class ZakatZ2aMigrationTest(TransactionTestCase):
+    """0013 : plus de fiche figée ; `current_step` = dernière étape validée (0 à 6)."""
+    serialized_rollback = True
+    before = [('zakat', '0012_calculation_personal_constraints')]
+    after = [('zakat', '0013_calculations_back_to_draft')]
+
+    def setUp(self):
+        executor = _executor()
+        executor.migrate(self.before)
+        old = _state_apps(executor, self.before)
+        user = old.get_model('accounts', 'User').objects.create(email='z2a@example.com', password='!')  # noqa: E501
+        self.shop = old.get_model('shops', 'Shop').objects.create(name='Boutique', currency='EUR')  # noqa: E501
+        self.user = user
+
+        def calc(year: int, **fields):
+            return old.get_model('zakat', 'ZakatCalculation').objects.create(
+                shop=self.shop, user=user, reference_date=datetime.date(year, 3, 1),
+                hawl_calendar='gregorian', hawl_year=year, currency='EUR', **fields,
+            ).pk
+        self.calc = calc
+
+    def tearDown(self):
+        executor = _executor()
+        executor.migrate(executor.loader.graph.leaf_nodes())
+        super().tearDown()
+
+    def test_every_calculation_back_to_draft(self):
+        finalized = self.calc(2024, status='finalized', current_step=3)
+        draft_at_six = self.calc(2025, current_step=6)
+        draft_at_two = self.calc(2026, current_step=2)
+
+        executor = _executor()
+        executor.migrate(self.after)
+        Calc = _state_apps(executor, self.after).get_model('zakat', 'ZakatCalculation')
+        rows = dict(Calc.objects.values_list('pk', 'current_step'))
+        self.assertEqual(set(Calc.objects.values_list('status', flat=True)), {'draft'})
+        self.assertEqual(rows, {finalized: 6, draft_at_six: 0, draft_at_two: 0})

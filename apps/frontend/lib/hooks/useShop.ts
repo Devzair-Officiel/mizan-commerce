@@ -3,17 +3,12 @@ import { apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 import type { CatalogKind, FulfillmentMode } from './useMe';
 
-export type NisabMethod = 'gold' | 'silver';
-
 export interface Shop {
   id: string;
   name: string;
   currency: string;
   country: string;
   timezone: string;
-  zakat_annual_date: string | null;
-  nisab_method: NisabMethod;
-  nisab_unit_price: string | null;
   logo_object_key: string;
   logo_url: string | null;
   legal_address: string;
@@ -32,9 +27,6 @@ export interface ShopUpdateData {
   name?: string;
   currency?: string;
   country?: string;
-  zakat_annual_date?: string | null;
-  nisab_method?: NisabMethod;
-  nisab_unit_price?: string | null;
   legal_address?: string;
   tax_id?: string;
   legal_mentions?: string;

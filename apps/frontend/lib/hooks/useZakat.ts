@@ -1,131 +1,256 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/api-client';
+import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 
-// ── Types canoniques ─────────────────────────────────────────────────────────
+// ── Choix d'avis ─────────────────────────────────────────────────────────────
 
-export type ZakatStatus = 'draft' | 'finalized';
+export type HawlCalendar = 'hijri' | 'gregorian';
+export type NisabMethod = 'silver' | 'gold';
+export type StockValuation = 'sale' | 'purchase';
+export type ReceivablesMode = 'yearly' | 'on_collection';
+export type DebtsMode = 'all' | 'within_12_months' | 'none';
+
+/** Options de chaque choix, dans l'ordre fixe du référentiel (§ 1) : aucune n'est recommandée. */
+export const CHOICE_OPTIONS = {
+  calendar: ['hijri', 'gregorian'],
+  nisab_method: ['silver', 'gold'],
+  stock_valuation: ['sale', 'purchase'],
+  receivables_mode: ['yearly', 'on_collection'],
+  debts_mode: ['all', 'within_12_months', 'none'],
+} as const satisfies Record<string, readonly string[]>;
+
+export type ChoiceName = keyof typeof CHOICE_OPTIONS;
+export type ChoiceOption<C extends ChoiceName> = (typeof CHOICE_OPTIONS)[C][number];
+
+/** Choix copiés dans la fiche ; `null` (ou `''`) tant que la personne n'a pas choisi. */
+export interface ZakatChoices {
+  calendar: HawlCalendar | null;
+  nisab_method: NisabMethod | null;
+  nisab_unit_price: string | null;
+  nisab_price_updated_at: string | null;
+  stock_valuation: StockValuation | null;
+  receivables_mode: ReceivablesMode | null;
+  debts_mode: DebtsMode | null;
+  ownership_share: string | null;
+}
+
+// ── Saisies ──────────────────────────────────────────────────────────────────
 
 export type DebtCategory = 'supplier' | 'tax_vat' | 'salary' | 'loan' | 'rent' | 'other';
+export type OtherAssetCategory =
+  | 'personal_cash' | 'business' | 'real_estate' | 'gold_silver' | 'jewelry' | 'for_resale' | 'other';
 
-export type ExcludedItem = 'vehicle' | 'computer' | 'machine' | 'premises' | 'furniture' | 'other';
+export interface ReceivableItem {
+  order_id: string | null;
+  label: string;
+  amount: string;
+  doubtful: boolean;
+}
 
-export type StockCategory = 'finished' | 'raw_materials' | 'work_in_progress' | 'in_transit';
+export interface OtherAsset {
+  category: OtherAssetCategory;
+  label: string;
+  amount: string;
+  counted: boolean;
+}
 
-export type ReceivableCategory = 'certain' | 'probable' | 'doubtful';
-
-export interface DebtItem {
+export interface DebtLine {
   category: DebtCategory;
   label: string;
   amount: string;
-  is_immediately_due: boolean;
+  amount_within_12_months: string;
 }
 
-export interface StockBreakdownItem {
-  category: StockCategory;
-  amount: string;
+export interface HijriDate {
+  year: number;
+  month: number;
+  day: number;
 }
 
-export interface ReceivableBreakdownItem {
-  category: ReceivableCategory;
-  amount: string;
+// ── Calcul du serveur ────────────────────────────────────────────────────────
+
+export type TotalsStatus = 'choice_missing' | 'nisab_unknown' | 'below_nisab' | 'above_nisab';
+
+/** Montants calculés par le serveur (seul à calculer) : chaînes décimales, `null` si incalculables. */
+export interface ZakatTotals {
+  status: TotalsStatus;
+  missing_choices: ChoiceName[];
+  ownership_share: string;
+  cash: string;
+  stock: string | null;
+  stock_at_sale_price: string;
+  stock_at_purchase_price: string;
+  receivables_sure: string;
+  receivables_doubtful: string;
+  receivables_in_base: string | null;
+  receivables_on_collection: string | null;
+  other_assets: string;
+  debts_total: string;
+  debts_within_12_months: string;
+  debts_deducted: string | null;
+  base: string | null;
+  nisab_threshold: string | null;
+  nisab_compared_amount: string | null;
+  /** Plus petit / plus grand de (net, seuil), entre 0 et 1 : largeur de la jauge. */
+  nisab_ratio: string | null;
+  rate: string | null;
+  zakat_now: string | null;
+  zakat_on_collection: string | null;
+  zakat_total: string | null;
+  /** Zakat totale avec chaque option d'un choix, les autres choix restant ceux de la fiche. */
+  option_effects: { [C in ChoiceName]: Record<ChoiceOption<C>, string | null> };
+}
+
+export type OrderState = 'unchanged' | 'settled' | 'cancelled' | 'changed' | 'removed';
+
+export interface OrderSummary {
+  order_id: string;
+  order_number: string | null;
+  customer_name: string | null;
+  created_at: string | null;
+  remaining: string | null;
+}
+
+export interface ZakatReview {
+  is_latest: boolean;
+  /** Jour J pas encore passé : la fiche suit la boutique (stock, commandes). */
+  is_live: boolean;
+  hawl_date_differs: boolean;
+  receivable_orders: {
+    linked: (OrderSummary & { state: OrderState })[];
+    new: OrderSummary[];
+  };
 }
 
 export interface ZakatCalculation {
   id: string;
-  status: ZakatStatus;
   current_step: number;
   reference_date: string;
+  reference_hijri: HijriDate | null;
+  hawl_calendar: HawlCalendar;
+  hawl_year: number;
+  version: number;
   cash_amount: string;
-  has_receivables: boolean;
-  receivables_nominal: string;
-  receivables_breakdown: ReceivableBreakdownItem[];
-  receivables_amount: string;
-  stock_value_estimated: string;
-  stock_breakdown: StockBreakdownItem[];
-  stock_value_adjusted: string | null;
-  stock_value_for_base: string;
-  excluded_items_acknowledged: ExcludedItem[];
-  debts_breakdown: DebtItem[];
-  short_term_debts: string;
-  zakat_base: string;
-  zakat_rate: string;
-  zakat_amount: string;
-  nisab_method: '' | 'gold' | 'silver';
-  nisab_unit_price: string | null;
-  nisab_threshold: string | null;
-  is_above_nisab: boolean | null;
+  stock_extra: string;
+  stock_sale_value: string;
+  stock_purchase_value: string;
+  receivable_items: ReceivableItem[];
+  other_assets: OtherAsset[];
+  debt_items: DebtLine[];
+  choices: ZakatChoices;
+  totals: ZakatTotals;
+  review: ZakatReview;
   currency: string;
-  pdf_object_key: string;
-  notes: string;
-  finalized_at: string | null;
-  created_at: string;
   updated_at: string;
 }
 
-export interface StockEstimate {
-  stock_value_estimated: string;
+export interface ZakatListRow {
+  id: string;
+  reference_date: string;
+  reference_hijri: HijriDate | null;
+  hawl_calendar: HawlCalendar;
+  hawl_year: number;
+  current_step: number;
   currency: string;
-  disclaimer: string;
-  product_count: number;
+  updated_at: string;
+  totals: ZakatTotals;
 }
 
-/** Payload accepté par POST /zakat/calculations/ ou PATCH /zakat/calculations/<id>/. */
-export type ZakatDraftPayload = Partial<
-  Pick<
-    ZakatCalculation,
-    | 'current_step'
-    | 'reference_date'
-    | 'cash_amount'
-    | 'has_receivables'
-    | 'receivables_nominal'
-    | 'receivables_breakdown'
-    | 'receivables_amount'
-    | 'stock_breakdown'
-    | 'stock_value_adjusted'
-    | 'excluded_items_acknowledged'
-    | 'debts_breakdown'
-    | 'notes'
-  >
->;
+/** Champs modifiables d'une fiche ; `choices` ne porte que les choix modifiés. */
+export interface ZakatCalculationChanges {
+  current_step?: number;
+  reference_date?: string;
+  cash_amount?: string;
+  stock_extra?: string;
+  refresh_stock?: boolean;
+  receivable_items?: ReceivableItem[];
+  other_assets?: OtherAsset[];
+  debt_items?: DebtLine[];
+  choices?: Partial<Omit<ZakatChoices, 'nisab_price_updated_at'>>;
+}
 
-interface PaginatedResponse<T> {
+// ── Profil et sources ────────────────────────────────────────────────────────
+
+export interface NextHawl {
+  date: string;
+  hijri: HijriDate;
+  days_remaining: number;
+  cycle_length: number;
+  hawl_calendar: HawlCalendar;
+  hawl_year: number;
+  calculation_id: string | null;
+}
+
+export interface ZakatProfile extends Omit<ZakatChoices, 'ownership_share'> {
+  hawl_date: string | null;
+  ownership_share: string;
+  nisab_threshold: string | null;
+  next_hawl: NextHawl | null;
+  updated_at: string;
+}
+
+export type ZakatProfileChanges = Partial<Omit<ZakatProfile, 'next_hawl' | 'nisab_threshold' | 'nisab_price_updated_at' | 'updated_at'>>;
+
+export interface StockLine {
+  variant_id: string;
+  product_id: string;
+  product_name: string;
+  packaging_name: string;
+  quantity: string;
+  sale_price: string;
+  purchase_price: string | null;
+  sale_value: string;
+  purchase_value: string | null;
+}
+
+export interface ZakatSources {
+  currency: string;
+  stock_sale_value: string;
+  stock_purchase_value: string;
+  active_formats_count: number;
+  formats_without_purchase_price: Pick<StockLine, 'variant_id' | 'product_id' | 'product_name' | 'packaging_name'>[];
+  top_stock_lines: Record<StockValuation, StockLine[]>;
+  unpaid_orders: OrderSummary[];
+  unpaid_total: string;
+}
+
+interface Paginated<T> {
   count: number;
   next: string | null;
   previous: string | null;
   results: T[];
 }
 
-// ── Catalogues UI ────────────────────────────────────────────────────────────
+// ── Erreurs 409 ──────────────────────────────────────────────────────────────
 
-// Libellés sous `zakat.debt_category.*`, `zakat.stock_category.*`, `zakat.receivable_category.*`
-// et `zakat.excluded_item.*` ; ces listes fixent l'ordre d'affichage.
-export const DEBT_CATEGORIES: DebtCategory[] = ['supplier', 'tax_vat', 'salary', 'loan', 'rent', 'other'];
+/** L'année de hawl est déjà prise par une autre fiche de la personne. */
+export interface YearTaken {
+  existing_id: string;
+  hawl_calendar: HawlCalendar;
+  hawl_year: number;
+}
 
-export const STOCK_CATEGORIES: StockCategory[] = ['finished', 'raw_materials', 'work_in_progress', 'in_transit'];
+export function yearTakenOf(error: unknown): YearTaken | null {
+  if (!(error instanceof ApiError) || error.status !== 409) return null;
+  const data = error.data as Partial<YearTaken> | null;
+  return data && typeof data.existing_id === 'string' ? (data as YearTaken) : null;
+}
 
-export const RECEIVABLE_CATEGORIES: ReceivableCategory[] = ['certain', 'probable', 'doubtful'];
-
-export const EXCLUDED_ITEMS: ExcludedItem[] = ['vehicle', 'computer', 'machine', 'premises', 'furniture', 'other'];
+/** La fiche a changé ailleurs (autre onglet, autre appareil) depuis la dernière lecture. */
+export function isVersionConflict(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 409 && yearTakenOf(error) === null;
+}
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
-export function useZakatStockEstimate() {
+export function useZakatCalculations() {
   return useQuery({
-    queryKey: qk.zakat.estimate,
-    queryFn: () => apiFetch<StockEstimate>('/zakat/stock-estimate/'),
+    queryKey: qk.zakat.lists,
+    queryFn: () => apiFetch<Paginated<ZakatListRow>>('/zakat/calculations/'),
   });
 }
 
-export function useZakatCalculations(statusFilter?: ZakatStatus) {
-  const qs = statusFilter ? `?status=${statusFilter}` : '';
-  return useQuery({
-    queryKey: qk.zakat.list(statusFilter ?? 'all'),
-    queryFn: () => apiFetch<PaginatedResponse<ZakatCalculation>>(`/zakat/calculations/${qs}`),
-  });
-}
-
-export function useZakatCalculation(id: string | null | undefined) {
+export function useZakatCalculation(id: string) {
   return useQuery({
     queryKey: qk.zakat.detail(id),
     queryFn: () => apiFetch<ZakatCalculation>(`/zakat/calculations/${id}/`),
@@ -133,69 +258,51 @@ export function useZakatCalculation(id: string | null | undefined) {
   });
 }
 
-/** Récupère le brouillon en cours (le plus récent). Renvoie `null` si aucun. */
-export function useZakatCurrentDraft() {
+export function useZakatProfile(enabled = true) {
   return useQuery({
-    queryKey: qk.zakat.draft,
-    queryFn: async () => {
-      const data = await apiFetch<ZakatCalculation | undefined>('/zakat/calculations/draft/');
-      return data ?? null;
+    queryKey: qk.zakat.profile,
+    queryFn: () => apiFetch<ZakatProfile>('/zakat/profile/'),
+    enabled,
+  });
+}
+
+export function useZakatSources() {
+  return useQuery({
+    queryKey: qk.zakat.sources,
+    queryFn: () => apiFetch<ZakatSources>('/zakat/sources/'),
+  });
+}
+
+/** Création au clic : jour J et choix repris du profil par le serveur. */
+export function useCreateZakatCalculation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: ZakatCalculationChanges = {}) =>
+      apiFetch<ZakatCalculation>('/zakat/calculations/', { method: 'POST', body: JSON.stringify(changes) }),
+    onSuccess: (calc) => {
+      qc.setQueryData(qk.zakat.detail(calc.id), calc);
+      qc.invalidateQueries({ queryKey: qk.zakat.lists });
+      qc.invalidateQueries({ queryKey: qk.zakat.profile });
     },
   });
 }
 
-export function useCreateZakatDraft() {
+/**
+ * Écriture conditionnelle (`version` obligatoire). La fiche renvoyée remplace le cache ; la liste et
+ * le profil (qui suit les choix de la fiche la plus récente) sont relus.
+ */
+export function useUpdateZakatCalculation(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: ZakatDraftPayload) =>
-      apiFetch<ZakatCalculation>('/zakat/calculations/', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.zakat.all });
-    },
-  });
-}
-
-export function useUpdateZakatDraft(id: string) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: ZakatDraftPayload) =>
+    mutationFn: ({ changes, version }: { changes: ZakatCalculationChanges; version: number }) =>
       apiFetch<ZakatCalculation>(`/zakat/calculations/${id}/`, {
         method: 'PATCH',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...changes, version }),
       }),
-    onSuccess: (data) => {
-      qc.setQueryData(qk.zakat.detail(id), data);
+    onSuccess: (calc) => {
+      qc.setQueryData(qk.zakat.detail(id), calc);
       qc.invalidateQueries({ queryKey: qk.zakat.lists });
-      qc.invalidateQueries({ queryKey: qk.zakat.draft });
-    },
-  });
-}
-
-export function useFinalizeZakat() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<ZakatCalculation>(`/zakat/calculations/${id}/finalize/`, {
-        method: 'POST',
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.zakat.all });
-    },
-  });
-}
-
-export function useReopenZakat() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<ZakatCalculation>(`/zakat/calculations/${id}/reopen/`, {
-        method: 'POST',
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.zakat.all });
+      qc.invalidateQueries({ queryKey: qk.zakat.profile });
     },
   });
 }
@@ -203,26 +310,24 @@ export function useReopenZakat() {
 export function useDeleteZakatCalculation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<void>(`/zakat/calculations/${id}/`, { method: 'DELETE' }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.zakat.all });
+    mutationFn: (id: string) => apiFetch<void>(`/zakat/calculations/${id}/`, { method: 'DELETE' }),
+    onSuccess: (_, id) => {
+      qc.removeQueries({ queryKey: qk.zakat.detail(id) });
+      qc.invalidateQueries({ queryKey: qk.zakat.lists });
+      qc.invalidateQueries({ queryKey: qk.zakat.profile });
     },
   });
 }
 
-// ── Helpers d'affichage ──────────────────────────────────────────────────────
-
-/** Format monétaire FR : "1 234,56 EUR". */
-export function formatMoney(value: string | number, currency: string): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (!Number.isFinite(num)) return `0 ${currency}`;
-  return `${num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-}
-
-/** Compte les dettes exigibles immédiatement dans une ventilation. */
-export function sumImmediateDebts(debts: DebtItem[]): number {
-  return debts
-    .filter((d) => d.is_immediately_due)
-    .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+export function useUpdateZakatProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: ZakatProfileChanges) =>
+      apiFetch<ZakatProfile>('/zakat/profile/', { method: 'PATCH', body: JSON.stringify(changes) }),
+    onSuccess: (profile) => {
+      qc.setQueryData(qk.zakat.profile, profile);
+      // `review.hawl_date_differs` des fiches dépend du jour J du profil.
+      qc.invalidateQueries({ queryKey: qk.zakat.details });
+    },
+  });
 }

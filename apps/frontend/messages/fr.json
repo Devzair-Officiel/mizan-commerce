@@ -330,8 +330,8 @@
       "email_verified": "Email vérifié — actualisez la page.",
       "email_resend": "Renvoyer",
       "zakat_title": "{days, plural, =0 {Zakat aujourd'hui} one {Zakat dans # jour} other {Zakat dans # jours}}",
-      "zakat_sub": "Préparer le calcul de la zakat annuelle.",
-      "zakat_cta": "Voir"
+      "zakat_sub": "Préparez votre calcul : Mizan connaît déjà votre stock et vos commandes.",
+      "zakat_cta": "Préparer"
     },
     "welcome": {
       "title": "Bienvenue dans votre boutique",
@@ -1797,17 +1797,6 @@
       "legal_mentions": "Mentions légales (pied de facture)",
       "legal_mentions_help": "Ex. : « TVA non applicable, art. 293 B du CGI », RCS, conditions de pénalités, indemnité forfaitaire…"
     },
-    "zakat": {
-      "title": "Zakat",
-      "description": "Paramètres pour calculer le seuil de Nisab et générer le rappel annuel.",
-      "annual_date": "Date annuelle (optionnel)",
-      "annual_date_help": "Un rappel sera généré avant cette date chaque année.",
-      "method": "Méthode du Nisab",
-      "method_silver": "Argent (595 g)",
-      "method_gold": "Or (85 g)",
-      "unit_price": "Prix au gramme ({currency})",
-      "unit_price_help": "Le cours évolue chaque jour. Vérifiez et mettez à jour le prix au gramme avant chaque calcul. La méthode de l'argent est plus inclusive (seuil plus bas)."
-    },
     "public_page": {
       "title": "Page publique",
       "error": "Impossible de charger les informations de la page."
@@ -1932,307 +1921,558 @@
     "logout": "Se déconnecter"
   },
   "zakat": {
-    "detail": {
-      "title": "Détail du calcul",
-      "not_found": "Calcul introuvable.",
-      "back_to_zakat": "Retour à la zakat",
-      "back": "Retour",
-      "wealth_title": "Patrimoine zakatable",
-      "wealth_total": "Sous-total positif",
-      "debts_title": "Dettes déclarées",
-      "debts_total": "Total déductible",
-      "download_pdf": "Télécharger le justificatif PDF",
-      "delete_title": "Supprimer ce calcul ?",
-      "delete_description": "Cette action est irréversible. Le calcul sera définitivement supprimé de l'historique.",
-      "disclaimer": "Ce calcul est fourni à titre indicatif. Pour valider votre obligation, consultez un érudit ou un spécialiste de la zakat commerciale.",
-      "reopen_failed": "Impossible de rouvrir ce calcul.",
-      "edit": "Modifier",
-      "reopening": "Réouverture…",
+    "common": {
+      "modify": "Modifier",
+      "add": "Ajouter",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
       "delete": "Supprimer",
-      "deleting": "Suppression…",
-      "breakdown_title": "Calcul détaillé",
-      "breakdown_wealth": "(patrimoine)",
-      "breakdown_debts": "(dettes exigibles)",
-      "breakdown_base": "(base)",
-      "excluded_title": "Exclus de la base",
-      "excluded_help": "Les éléments cochés ont été explicitement reconnus comme outils de travail (hors base).",
-      "religious_title": "Fondements religieux",
-      "reference": "Référence : <b>{date}</b>",
-      "finalized_on": "Finalisé le {date}",
-      "amount_due": "Zakat due",
-      "base": "Base zakatable : <b>{amount}</b>",
-      "rate": "Taux appliqué : <b>{rate} %</b>"
+      "retry": "Réessayer",
+      "saved": "Enregistré automatiquement",
+      "saving": "Enregistrement…",
+      "save_error": "Non enregistré",
+      "save_failed": "Enregistrement impossible. Vérifiez votre connexion puis réessayez.",
+      "conflict": "Ce calcul a été modifié ailleurs. La dernière version vient d'être chargée.",
+      "rejected": "Cette saisie n'a pas été acceptée. Le calcul a été rechargé.",
+      "year_taken": "Un calcul existe déjà pour l'année {year}.",
+      "year_taken_open": "Ouvrir ce calcul",
+      "hijri_date": "{day} {month} {year}",
+      "source_entered": "Saisi",
+      "source_mizan": "Mizan",
+      "amount_invalid": "Montant invalide : chiffres uniquement, deux décimales au plus.",
+      "label_required": "Indiquez une description.",
+      "estimate_footer": "Estimation fondée sur vos chiffres et vos choix d'avis. Mizan additionne ce que vous déclarez. Associés : chacun verse sur sa part.",
+      "not_found": "Ce calcul est introuvable.",
+      "back_home": "Retour à la zakat",
+      "nisab_name": "{method, select, silver {595 g d'argent} other {85 g d'or}}",
+      "price_age": "{days, plural, =0 {Prix du gramme saisi aujourd'hui} one {Prix du gramme saisi il y a # jour} other {Prix du gramme saisi il y a # jours}}",
+      "price_missing": "Prix du gramme à saisir"
     },
-    "wizard": {
-      "steps": {
-        "cash": {
-          "title": "Argent disponible",
-          "subtitle": "Caisse, compte pro, espèces du commerce."
+    "hijri_month": {
+      "1": "mouharram",
+      "2": "safar",
+      "3": "rabia al-awal",
+      "4": "rabia ath-thani",
+      "5": "joumada al-oula",
+      "6": "joumada ath-thania",
+      "7": "rajab",
+      "8": "chaabane",
+      "9": "ramadan",
+      "10": "chawwal",
+      "11": "dhou al-qi'da",
+      "12": "dhou al-hijja"
+    },
+    "status": {
+      "above_nisab": "Au-dessus du seuil",
+      "below_nisab": "Sous le seuil",
+      "choice_missing": "Choix à faire",
+      "nisab_unknown": "Seuil à compléter",
+      "in_progress": "En cours"
+    },
+    "chip": {
+      "four_schools": "Quatre écoles",
+      "aaoifi": "Norme AAOIFI n° 35",
+      "hanafi": "Hanafites",
+      "maliki": "Malikites",
+      "shafii": "Chaféites",
+      "hanbali": "Hanbalites",
+      "contemporary": "Avis contemporains",
+      "shafii_new": "Al-Shâfi'î, nouvel avis",
+      "ibn_baz": "Ibn Bâz",
+      "usual_conversion": "Conversion usuelle",
+      "rate_hijri": "Taux 2,5 %",
+      "rate_solar": "Taux 2,5775 %"
+    },
+    "choice": {
+      "note": "Modifiable à tout moment.",
+      "note_latest": "Modifiable à tout moment. Repris pour votre prochaine fiche.",
+      "effect": "Zakat estimée : {amount}",
+      "calendar": {
+        "question": "Sur quelle année faites-vous vos comptes ?",
+        "hint": "L'année solaire compte 11 jours de plus : son taux en tient compte.",
+        "kept": "Votre choix pour l'année de calcul",
+        "hijri": {
+          "title": "Année hégirienne",
+          "text": "Le jour J suit le calendrier hégirien."
         },
-        "receivables": {
-          "title": "Créances clients",
-          "subtitle": "Ce qu'on vous doit — et que vous pensez récupérer."
-        },
-        "stock": {
-          "title": "Stock commercial",
-          "subtitle": "Marchandises destinées à la revente."
-        },
-        "excluded": {
-          "title": "Ce qui n'entre pas",
-          "subtitle": "Vos outils de travail restent hors zakat."
-        },
-        "debts": {
-          "title": "Dettes",
-          "subtitle": "Seules les dettes exigibles immédiatement comptent."
-        },
-        "summary": {
-          "title": "Récapitulatif",
-          "subtitle": "Dernière vérification avant validation."
+        "gregorian": {
+          "title": "Année solaire",
+          "text": "Le jour J suit le calendrier grégorien."
         }
       },
-      "save": "Enregistrer",
-      "finalize": "Finaliser la zakat",
-      "next": "Suivant",
-      "discard": "Abandonner ce brouillon",
-      "discard_title": "Supprimer ce brouillon ?",
-      "discard_description": "Toutes les saisies seront perdues.",
-      "delete": "Supprimer",
-      "already_finalized": "Un calcul finalisé existe déjà pour {year}. Vous allez être redirigé vers ce calcul.",
-      "year_taken": "Un calcul existe déjà pour {calendar, select, hijri {l'année {year} H} other {{year}}}. Vous allez être redirigé vers ce calcul.",
-      "preparing_summary": "Préparation du récapitulatif…",
-      "short": {
-        "cash": "Liquidités",
-        "receivables": "Créances",
-        "stock": "Stock",
-        "excluded": "Exclus",
-        "debts": "Dettes",
-        "summary": "Récap"
+      "nisab_method": {
+        "question": "Quel seuil de référence retenir ?",
+        "hint": "En dessous du seuil, pas de zakat. Les deux métaux donnent des seuils très différents.",
+        "kept": "Votre choix pour le seuil",
+        "silver": {
+          "title": "Argent, 595 g",
+          "text": "Le seuil le plus bas : il est atteint plus souvent."
+        },
+        "gold": {
+          "title": "Or, 85 g",
+          "text": "Pour ceux qui jugent que l'argent ne reflète plus la richesse."
+        }
       },
-      "back": "Retour",
-      "progress": "Étape {step} sur {total} · {label}",
-      "saving": "Enregistrement…",
-      "finalizing": "Finalisation…",
-      "hub_title": "Modifier votre zakat",
-      "hub_subtitle": "Cliquez sur une étape pour ajuster ses valeurs.",
-      "hub_step": "Étape {step}",
-      "hub_final_check": "Vérification finale",
-      "hub_excluded_label": "Outils de travail (exclus)",
-      "hub_cash": "{amount} — {date}",
-      "hub_stock_breakdown": "{amount} — {count, plural, one {# catégorie} other {# catégories}}",
-      "hub_stock_adjusted": "{amount} — ajusté",
-      "hub_stock_estimated": "{amount} — estimation catalogue",
-      "hub_receivables_none": "Aucune créance déclarée",
-      "hub_receivables_breakdown": "{amount} récupérables — {count, plural, one {# ligne} other {# lignes}}",
-      "hub_receivables_nominal": "{amount} — non ventilées",
-      "hub_debts_none": "Aucune dette déclarée",
-      "hub_debts": "{count, plural, one {# dette} other {# dettes}} — {amount} à déduire",
-      "hub_excluded_none": "Aucun outil reconnu",
-      "hub_excluded_count": "{count}/{total} reconnus"
+      "stock_valuation": {
+        "question": "Quelle valeur retenir pour votre stock ?",
+        "hint": "Mizan calcule les deux montants depuis votre catalogue.",
+        "kept": "Votre choix pour la valeur du stock",
+        "sale": {
+          "title": "Prix de vente au jour J",
+          "text": "Ce que vous vendriez aujourd'hui."
+        },
+        "purchase": {
+          "title": "Prix d'achat",
+          "text": "Si vous ne connaissez pas la valeur actuelle."
+        }
+      },
+      "receivables_mode": {
+        "question": "Comment compter vos créances sûres ?",
+        "hint": "Une créance sûre : un client solvable qui reconnaît sa dette.",
+        "kept": "Votre choix pour les créances sûres",
+        "yearly": {
+          "title": "Comptées chaque année",
+          "text": "Ajoutées à la base, comme la trésorerie."
+        },
+        "on_collection": {
+          "title": "Versées à l'encaissement",
+          "text": "Dues chaque année, versées quand le client paie."
+        }
+      },
+      "debts_mode": {
+        "question": "Quelles dettes déduire ?",
+        "hint": "Les écoles divergent. Mizan applique votre choix, sans en recommander un.",
+        "kept": "Votre choix pour les dettes",
+        "all": {
+          "title": "Toutes les dettes envers des personnes",
+          "text": "Chaque école pose ses propres conditions."
+        },
+        "within_12_months": {
+          "title": "Seulement ce qui est dû dans les 12 mois",
+          "text": "Factures, salaires, loyer, impôts et échéances de l'année."
+        },
+        "none": {
+          "title": "Aucune dette",
+          "text": "La zakat porte sur ce que vous détenez, dettes ou non."
+        }
+      }
+    },
+    "summary": {
+      "label": {
+        "nisab_method": "Seuil de référence",
+        "calendar": "Année",
+        "stock_valuation": "Valeur du stock",
+        "receivables_mode": "Créances sûres",
+        "debts_mode": "Dettes déduites",
+        "ownership_share": "Votre part"
+      },
+      "label_short": {
+        "nisab_method": "Seuil",
+        "calendar": "Année",
+        "stock_valuation": "Stock",
+        "receivables_mode": "Créances sûres",
+        "debts_mode": "Dettes",
+        "ownership_share": "Votre part"
+      },
+      "value": {
+        "nisab_method": "{value, select, silver {Argent, 595 g} other {Or, 85 g}}",
+        "nisab_price": "{value, select, silver {Argent, 595 g à {price} le gramme} other {Or, 85 g à {price} le gramme}}",
+        "calendar": "{value, select, hijri {Hégirienne, 2,5 %} other {Solaire, 2,5775 %}}",
+        "stock_valuation": "{value, select, sale {Prix de vente au jour J} other {Prix d'achat}}",
+        "receivables_mode": "{value, select, yearly {Comptées chaque année} other {Versées à l'encaissement}}",
+        "debts_mode": "{value, select, all {Toutes les dettes envers des personnes} within_12_months {Celles dues dans les 12 mois} other {Aucune}}",
+        "ownership_share": "{value} %"
+      },
+      "value_short": {
+        "stock_valuation": "{value, select, sale {Prix de vente} other {Prix d'achat}}",
+        "receivables_mode": "{value, select, yearly {Chaque année} other {À l'encaissement}}",
+        "debts_mode": "{value, select, all {Toutes} within_12_months {Dues dans 12 mois} other {Aucune}}"
+      },
+      "missing": "À choisir"
     },
     "home": {
-      "title": "Zakat commerciale",
-      "notice_title": "Estimation indicative",
-      "notice": "Ce calcul est un outil d'aide à la décision. Consultez un érudit ou un spécialiste pour validation finale.",
-      "resume": "Reprendre votre calcul en cours",
-      "draft_step": "Étape {step} sur {total}",
-      "stock_estimate": "Valeur estimée de votre stock commercial",
-      "stock_count": "Calculée sur {count, plural, one {# article} other {# articles}} de votre catalogue.",
-      "year_done": "Zakat {year} déjà bouclée",
-      "year_done_amount": "{amount} — voir le justificatif",
-      "start": "Calculer ma zakat",
-      "history": "Historique",
-      "base": "Base : {amount}",
-      "pdf_available": "PDF disponible",
-      "empty": "Aucun calcul finalisé pour l'instant.",
-      "currency": "Devise utilisée : {currency}"
+      "title": "Zakat",
+      "subtitle": "Mizan additionne vos montants selon vos choix. Le résultat est une estimation.",
+      "start": "Préparer ma zakat",
+      "start_year": "Préparer ma zakat {year}",
+      "resume_year": "Reprendre ma zakat {year}",
+      "starting": "Création…",
+      "start_failed": "Le calcul n'a pas pu être créé. Réessayez.",
+      "ring_label": "{elapsed} jours écoulés sur {total}, {days, plural, =0 {jour J aujourd'hui} one {# jour avant le jour J} other {# jours avant le jour J}}",
+      "ring_caption": "{days, plural, =0 {jour J aujourd'hui} one {jour avant le jour J} other {jours avant le jour J}}",
+      "next_label": "Votre prochain jour J",
+      "hijri_line": "{calendar, select, hijri {{date}, année hégirienne} other {{date}, calcul sur l'année solaire}}",
+      "fact_threshold": "Seuil ({nisab})",
+      "fact_threshold_short": "Seuil : {amount}",
+      "price_update": "Mettre à jour",
+      "fact_current": "Calcul en cours",
+      "fact_current_none": "Aucun",
+      "fact_current_resume": "Reprendre",
+      "fact_last": "Zakat {year}",
+      "fact_last_short": "Zakat {year} : {amount}",
+      "modified_on": "Modifié le {date}",
+      "empty_title": "Choisissez votre jour J",
+      "empty_sub": "La date à laquelle vous faites vos comptes chaque année. Mizan compte les jours et prépare le calcul.",
+      "empty_cta": "Choisir mon jour J",
+      "known_title": "Ce que Mizan connaît déjà",
+      "known_hint": "Calculé chaque jour depuis votre catalogue et vos commandes. Le jour J, il vous restera la trésorerie et les dettes.",
+      "known_hint_short": "Le jour J, il vous restera la trésorerie et les dettes.",
+      "known_stock": "Stock destiné à la vente",
+      "known_stock_short": "Stock à vendre",
+      "known_stock_sub": "{count, plural, one {# article en stock, au prix de vente} other {# articles en stock, au prix de vente}}",
+      "known_stock_sub_short": "{count, plural, one {# article, au prix de vente} other {# articles, au prix de vente}}",
+      "known_receivables": "Ce que vos clients vous doivent",
+      "known_receivables_short": "Vos clients vous doivent",
+      "known_receivables_sub": "{count, plural, =0 {Aucune commande non réglée} one {# commande non réglée} other {# commandes non réglées}}",
+      "history_title": "Historique",
+      "history_hint": "{calendar, select, gregorian {Un calcul par année solaire, modifiable à tout moment.} other {Un calcul par année hégirienne, modifiable à tout moment.}}",
+      "history_empty": "Aucun calcul pour l'instant.",
+      "col_year": "Année",
+      "col_date": "Jour J",
+      "col_base": "Base",
+      "col_zakat": "Zakat estimée",
+      "col_status": "Statut",
+      "history_open": "Ouvrir le calcul {year}",
+      "choices_title": "Vos choix de calcul",
+      "choices_hint": "Là où les avis divergent, c'est vous qui choisissez.",
+      "choices_hint_short": "Là où les avis divergent, vous choisissez.",
+      "how_title": "Comment Mizan calcule",
+      "how_text": "Ce qui compte, c'est ce que vous possédez le jour J : trésorerie, stock, créances, moins les dettes selon votre choix. Pas votre chiffre d'affaires de l'année.",
+      "footer": "Estimation fondée sur vos chiffres et vos choix d'avis. Vous pouvez ajouter vos autres biens au calcul : argent personnel, autre commerce, immobilier, or. Pour un cas particulier, demandez à une personne de science de confiance.",
+      "footer_short": "Estimation fondée sur vos chiffres et vos choix d'avis. Ajoutez vos autres biens au calcul : argent personnel, autre commerce, immobilier, or.",
+      "load_error": "La zakat n'a pas pu être chargée. Vérifiez votre connexion puis réessayez."
+    },
+    "new": {
+      "title": "Nouveau calcul",
+      "subtitle": "Mizan reprend vos choix, votre stock et vos commandes non réglées.",
+      "hawl_label": "Jour J",
+      "no_hawl": "Aucun jour J n'est réglé : le calcul portera sur aujourd'hui. Vous pourrez changer la date à la première étape.",
+      "start": "Commencer le calcul",
+      "exists": "Un calcul existe déjà pour {year}."
+    },
+    "wizard": {
+      "title": "Préparer ma zakat {year}",
+      "title_past": "Ma zakat {year}",
+      "short_title": "Zakat {year}",
+      "subtitle": "Jour J : {date} ({hijri})",
+      "back": "Zakat",
+      "steps_label": "Étapes, accessibles à tout moment",
+      "step": {
+        "0": "Jour J",
+        "1": "Trésorerie",
+        "2": "Stock",
+        "3": "Créances",
+        "4": "Autres biens",
+        "5": "Dettes",
+        "6": "Résultat"
+      },
+      "step_done": "{label}, fait",
+      "previous": "Précédent",
+      "next": "Continuer",
+      "to_result": "Voir le résultat",
+      "choose": "Choisissez une option",
+      "progress": "Étape {n} sur 7, {label}",
+      "progress_label": "Aller à une autre étape",
+      "menu_title": "Aller à une étape",
+      "mini_label": "Voir votre calcul",
+      "frozen": "Le jour J est passé : Mizan garde le stock et les commandes de ce jour-là."
+    },
+    "aside": {
+      "title": "Votre calcul",
+      "hint": "Mis à jour à chaque saisie.",
+      "row": {
+        "cash": "Trésorerie",
+        "stock": "Stock",
+        "receivables": "Créances sûres",
+        "other": "Autres biens",
+        "debts": "Dettes"
+      },
+      "pending": "Étape {n}",
+      "base": "Base",
+      "base_provisional": "Base provisoire",
+      "threshold": "Seuil ({nisab})",
+      "zakat": "Zakat estimée",
+      "zakat_provisional": "Zakat estimée, provisoire",
+      "note_rate": "{calendar, select, hijri {2,5 % de la base, année hégirienne.} other {2,5775 % de la base, année solaire.}}",
+      "note_pending": "{items} à venir.",
+      "pending_name": {
+        "cash": "trésorerie",
+        "stock": "stock",
+        "receivables": "créances",
+        "other": "autres biens",
+        "debts": "dettes"
+      },
+      "note_missing": "Choix à faire : {items}.",
+      "missing_name": {
+        "calendar": "année de calcul",
+        "nisab_method": "seuil",
+        "stock_valuation": "valeur du stock",
+        "receivables_mode": "créances sûres",
+        "debts_mode": "dettes à déduire"
+      },
+      "note_nisab": "Saisissez le prix du gramme pour connaître le seuil.",
+      "note_on_collection": "Dont {amount} à verser à l'encaissement de vos créances.",
+      "note_share": "Votre part : {share} % de la boutique."
+    },
+    "steps": {
+      "hawl": {
+        "title": "Votre jour J",
+        "hint": "Ce que vous possédez ce jour-là compte. Pas votre chiffre d'affaires de l'année.",
+        "date_label": "Date du jour J",
+        "hijri": "Date hégirienne : {date}",
+        "date_invalid": "Date invalide.",
+        "usual": "Votre jour J habituel : {date}.",
+        "usual_none": "Aucun jour J n'est encore réglé pour les années suivantes.",
+        "keep": "Garder cette date comme jour J les années suivantes",
+        "keep_done": "Jour J enregistré pour les années suivantes.",
+        "price_label": "{metal, select, silver {Prix du gramme d'argent} other {Prix du gramme d'or}}",
+        "price_help": "Le cours change chaque jour : vérifiez-le le jour J.",
+        "price_invalid": "Prix invalide : au moins 0,01, deux décimales au plus.",
+        "threshold_value": "Seuil : {amount}",
+        "share_title": "Votre part de la boutique",
+        "share_hint": "Associés : chacun verse sur sa part. Laissez 100 % si la boutique est entièrement à vous.",
+        "share_label": "Part détenue",
+        "share_invalid": "Entre 0,01 et 100 %."
+      },
+      "cash": {
+        "title": "Votre trésorerie au jour J",
+        "hint": "Ce qui est en caisse et sur les comptes de la boutique ce jour-là.",
+        "label": "Caisse et banque",
+        "help": "Espèces, compte bancaire, paiements reçus en attente de virement."
+      },
+      "stock": {
+        "missing_prices": "{count, plural, one {# format n'a pas de prix d'achat : il n'est pas compté dans le montant au prix d'achat.} other {# formats n'ont pas de prix d'achat : ils ne sont pas comptés dans le montant au prix d'achat.}}",
+        "complete_prices": "Compléter les prix",
+        "table_title": "Votre stock au jour J",
+        "table_hint": "Articles actifs en stock, triés par valeur.",
+        "see_all": "{count, plural, one {Voir l'article} other {Voir les # articles}}",
+        "col_item": "Article",
+        "col_qty": "Quantité",
+        "col_price": "{valuation, select, purchase {Prix d'achat} other {Prix de vente}}",
+        "col_value": "Valeur",
+        "total": "{count, plural, one {Total de # article} other {Total des # articles}}",
+        "empty": "Aucun article en stock.",
+        "frozen": "Le jour J est passé : Mizan garde le stock de ce jour-là. Le détail par article n'est plus disponible.",
+        "extra_title": "Marchandises hors Mizan",
+        "extra_hint": "Réserve, marchandises en transit ou en dépôt. Facultatif.",
+        "extra_label": "Valeur au prix retenu",
+        "usage_title": "Ne comptez pas votre local, votre véhicule, votre matériel ni votre mobilier.",
+        "usage_text": "Ce sont des biens d'usage, pas des marchandises à vendre.",
+        "usage_badge": "Authentique, Bukhârî 1463, Muslim 982"
+      },
+      "receivables": {
+        "title": "Vos clients vous doivent",
+        "hint": "Commandes non réglées dans Mizan. Marquez celles dont vous doutez d'être payé.",
+        "order_line": "Commande n° {number}, {date}",
+        "order_line_short": "Commande n° {number}",
+        "manual_line": "Saisie à la main",
+        "remaining": "Reste dû",
+        "sure": "Sûre",
+        "doubtful": "Douteuse",
+        "segment_label": "Cette créance est-elle sûre ?",
+        "settled": "Réglée depuis",
+        "cancelled": "Annulée depuis",
+        "removed": "Commande supprimée",
+        "changed": "Montant changé : {before} → {after}",
+        "remove": "Retirer",
+        "update": "Mettre à jour",
+        "total_sure": "{count, plural, =0 {Sûres} one {Sûres, # créance} other {Sûres, # créances}}",
+        "total_doubtful": "Douteuses, hors base",
+        "add_manual": "Ajouter une autre créance",
+        "empty_title": "Aucune créance",
+        "empty_sub": "Les commandes non réglées apparaissent ici.",
+        "new_title": "Commandes non réglées depuis",
+        "new_hint": "Apparues après la création de ce calcul.",
+        "new_add": "Ajouter",
+        "new_add_all": "Tout ajouter",
+        "sheet_add": "Ajouter une créance",
+        "sheet_edit": "Modifier la créance",
+        "field_label": "Description",
+        "field_label_placeholder": "Client, objet",
+        "field_amount": "Montant dû",
+        "field_doubtful": "Créance douteuse",
+        "field_doubtful_help": "Rien à verser tant qu'elle n'est pas encaissée.",
+        "edit_line": "Modifier {label}",
+        "delete_line": "Supprimer cette créance"
+      },
+      "other": {
+        "title": "Vos autres biens",
+        "hint": "Facultatif. Ajoutez ce que vous possédez hors de la boutique : Mizan l'additionne, vous décidez de ce qui compte.",
+        "hint_short": "Facultatif. Mizan additionne ce que vous ajoutez ; vous décidez de ce qui compte.",
+        "private": "Visible par vous uniquement",
+        "shortcuts_label": "Ajouter un bien",
+        "list_title": "Ajoutés pour {year}",
+        "list_hint": "Valeurs au jour J. Désactivez « Compté » pour garder une ligne sans l'additionner.",
+        "list_hint_short": "Désactivez pour garder une ligne sans l'additionner.",
+        "col_asset": "Bien",
+        "col_category": "Catégorie",
+        "col_amount": "Montant",
+        "col_counted": "Compté",
+        "counted_aria": "Compter dans le calcul",
+        "total": "Total compté",
+        "add": "Ajouter un bien",
+        "empty": "Aucun bien ajouté.",
+        "edit_line": "Modifier {label}",
+        "markers_title": "Repères",
+        "markers_hint": "Pour vous aider à décider. Rien n'est bloqué.",
+        "markers_link": "Repères : immobilier, bijoux, biens à revendre",
+        "marker": {
+          "real_estate": {
+            "title": "Immobilier",
+            "text": "Habité : non compté, sans divergence. Loué : la valeur du bien ne compte pas, les loyers encore disponibles oui (un avis contemporain diffère). Acheté pour être revendu : compté à sa valeur."
+          },
+          "jewelry": {
+            "title": "Bijoux portés",
+            "text": "Comptés chez les hanafites ; non comptés chez les malikites, chaféites et hanbalites."
+          },
+          "for_resale": {
+            "title": "Biens à revendre",
+            "text": "Un bien acheté pour être revendu (terrain, véhicule…) se compte à sa valeur du jour J, comme une marchandise."
+          }
+        },
+        "sheet_add": "Ajouter un bien",
+        "sheet_edit": "Modifier le bien",
+        "field_category": "Catégorie",
+        "field_label": "Description",
+        "field_amount": "Valeur au jour J",
+        "field_counted": "Compter dans le calcul",
+        "metal_question": "De quoi s'agit-il ?",
+        "metal_bullion": "Lingots, pièces",
+        "metal_bullion_text": "Compté par défaut.",
+        "metal_jewelry": "Bijoux portés",
+        "metal_jewelry_text": "Les avis divergent : vous choisissez.",
+        "metal_required": "Précisez s'il s'agit de lingots ou de bijoux.",
+        "jewelry_question": "Compter ces bijoux ?",
+        "jewelry_count": "Compter",
+        "jewelry_skip": "Ne pas compter",
+        "jewelry_required": "Choisissez de compter ou non ces bijoux.",
+        "not_counted": "Non compté",
+        "delete_line": "Supprimer ce bien"
+      },
+      "debts": {
+        "list_title": "Vos dettes au jour J",
+        "list_hint": "Ce que vous devez encore : fournisseurs, salaires, loyer, impôts, paiements échelonnés.",
+        "col_debt": "Dette",
+        "col_category": "Catégorie",
+        "col_amount": "Montant",
+        "col_within": "Dû dans les 12 mois",
+        "col_deducted": "Déduit",
+        "within": {
+          "yes": "Oui",
+          "partial": "En partie",
+          "no": "Non"
+        },
+        "row_partial": "Reste {amount}, dont {within} à régler sur 12 mois",
+        "row_within_short": "{category}, dû dans 12 mois",
+        "row_partial_short": "{category}, {within} sur 12 mois",
+        "total": "Total déduit selon votre choix",
+        "add": "Ajouter une dette",
+        "add_short": "Ajouter",
+        "empty": "Aucune dette ajoutée.",
+        "sheet_add": "Ajouter une dette",
+        "sheet_edit": "Modifier la dette",
+        "field_category": "Catégorie",
+        "field_label": "Description",
+        "field_amount": "Montant restant dû",
+        "field_within": "Dû dans les 12 mois",
+        "field_within_amount": "Part due dans les 12 mois",
+        "within_too_high": "La part due dans les 12 mois dépasse le montant.",
+        "edit_line": "Modifier {label}",
+        "delete_line": "Supprimer cette dette"
+      }
+    },
+    "asset_category": {
+      "personal_cash": "Argent personnel",
+      "business": "Autre commerce",
+      "real_estate": "Immobilier",
+      "gold_silver": "Or et argent",
+      "jewelry": "Bijoux portés",
+      "for_resale": "Biens à revendre",
+      "other": "Autre bien"
     },
     "debt_category": {
-      "supplier": "Fournisseurs",
-      "tax_vat": "TVA / impôts",
-      "salary": "Salaires",
+      "supplier": "Fournisseur",
+      "tax_vat": "Impôts et TVA",
+      "salary": "Salaires dus",
       "loan": "Paiement échelonné",
       "rent": "Loyer",
       "other": "Autre"
     },
-    "stock_category": {
-      "finished": "Marchandises finies (prêtes à vendre)",
-      "raw_materials": "Matières premières",
-      "work_in_progress": "Produits en cours de fabrication",
-      "in_transit": "Marchandises en transit (commandées, non livrées)"
+    "result": {
+      "above_eyebrow": "Zakat estimée",
+      "above_text": "Votre base de {base} dépasse le seuil de {threshold}.",
+      "above_text_short": "Base de {base}, au-dessus du seuil de {threshold}.",
+      "above_rate": "{calendar, select, hijri {2,5 % de la base, année hégirienne.} other {2,5775 % de la base, année solaire.}} Montant à prévoir pour le {date}.",
+      "above_rate_short": "{calendar, select, hijri {2,5 % de la base, année hégirienne.} other {2,5775 % de la base, année solaire.}} À prévoir pour le {date}.",
+      "on_collection": "Dont {later} à verser à l'encaissement de vos créances, {now} maintenant.",
+      "below_eyebrow": "Résultat",
+      "below_title": "Pas de zakat sur ce que vous avez déclaré",
+      "below_text": "Votre base de {base} reste sous le seuil de {threshold}.",
+      "below_text_short": "Base de {base}, sous le seuil de {threshold}.",
+      "below_hint": "D'autres biens (argent personnel, or, immobilier) ? <link>Ajoutez-les</link> : ils peuvent atteindre le seuil.",
+      "missing_title": "{count, plural, one {Un choix reste à faire} other {# choix restent à faire}}",
+      "missing_text": "Mizan ne choisit pas à votre place. Faites ce choix pour obtenir le résultat.",
+      "missing_link": "{label}, étape {n}",
+      "nisab_title": "Seuil inconnu",
+      "nisab_text": "Saisissez le prix du gramme pour comparer votre base au seuil.",
+      "nisab_cta": "Saisir le prix",
+      "gauge_threshold": "Seuil {amount}",
+      "gauge_base": "Base {amount}",
+      "lines_title": "Le calcul",
+      "lines_hint": "D'où vient chaque montant. Chaque ligne se modifie, à tout moment.",
+      "lines_hint_short": "Touchez une ligne pour la modifier.",
+      "line": {
+        "cash": "Trésorerie : caisse et banque",
+        "cash_short": "Trésorerie",
+        "stock": "{valuation, select, purchase {Stock au prix d'achat} other {Stock au prix de vente}}",
+        "stock_missing": "Stock, choix à faire",
+        "receivables": "{count, plural, =0 {Créances sûres} one {Créances sûres, # élément} other {Créances sûres, # éléments}}",
+        "other": "{count, plural, =0 {Autres biens} one {Autres biens, # élément} other {Autres biens, # éléments}}",
+        "other_none": "Aucun ajouté",
+        "debts": "{mode, select, all {Toutes les dettes} within_12_months {Dettes dues dans les 12 mois} other {Dettes, aucune déduite}}",
+        "debts_missing": "Dettes, choix à faire",
+        "base": "Base",
+        "rate": "{calendar, select, hijri {Taux, année hégirienne} other {Taux, année solaire}}",
+        "rate_value": "{calendar, select, hijri {2,5 %} other {2,5775 %}}",
+        "threshold": "Seuil, {nisab}",
+        "zakat": "Zakat estimée",
+        "edit": "Modifier"
+      },
+      "outside_title": "Hors base",
+      "outside_hint": "Gardé pour mémoire, non additionné.",
+      "outside_doubtful_order": "Créance douteuse, commande n° {number}",
+      "outside_doubtful": "Créance douteuse, {label}",
+      "outside_doubtful_text": "Rien à verser tant qu'elle n'est pas encaissée.",
+      "outside_not_counted_text": "Ajoutés mais non comptés : votre choix, modifiable.",
+      "outside_usage": "Biens d'usage",
+      "outside_usage_text": "Local, véhicule, matériel, mobilier : non comptés.",
+      "choices_title": "Vos choix",
+      "recipients_title": "À qui verser la zakat ?",
+      "recipients_text": "Le Coran cite huit catégories de bénéficiaires (sourate 9, verset 60).",
+      "forgot": "Ajouter un élément oublié",
+      "forgot_short": "Un oubli ?",
+      "forgot_title": "Que voulez-vous ajouter ?",
+      "saved_note": "Enregistré automatiquement. Revenez sur n'importe quelle étape quand vous voulez, même après le jour J.",
+      "outside_short_doubtful": "{count, plural, one {Créance douteuse} other {# créances douteuses}} {amount}",
+      "outside_short_item": "{label} {amount}",
+      "outside_short_usage": "biens d'usage",
+      "recipients_text_short": "Huit catégories, sourate 9, verset 60",
+      "see": "Voir"
     },
-    "receivable_category": {
-      "certain": "Certaines (recouvrement quasi sûr)",
-      "probable": "Probables (recouvrement attendu)",
-      "doubtful": "Douteuses (recouvrement incertain — exclues)"
-    },
-    "excluded_item": {
-      "vehicle": "Véhicules (camionnette, voiture pro)",
-      "computer": "Ordinateurs, tablettes",
-      "machine": "Machines, équipements",
-      "premises": "Local commercial",
-      "furniture": "Mobilier (étagères, comptoir)",
-      "other": "Autre outil de travail"
-    },
-    "common": {
-      "yes": "Oui",
-      "no": "Non",
-      "cash": "Argent disponible",
-      "receivables": "Créances récupérables",
-      "empty_table": "Rien à déclarer dans cette catégorie."
-    },
-    "rows": {
-      "doubtful_hint": "Archivée pour mémoire — non incluse dans la base",
-      "nominal_hint": "Sur un nominal de {amount}",
-      "stock_adjusted": "Stock commercial (ajusté)",
-      "stock_estimated": "Stock commercial (estimé)",
-      "stock_initial": "Estimation initiale : {amount}",
-      "debt_due": "{category} · exigible immédiatement",
-      "debt_not_due": "{category} · non exigible — non déduit"
-    },
-    "nisab": {
-      "title": "Seuil de Nisab",
-      "method": "Méthode {method, select, silver {argent (595 g)} gold {or (85 g)} other {{method}}}",
-      "not_configured": "Seuil de Nisab non configuré",
-      "not_configured_help": "Le Nisab est le seuil de richesse en dessous duquel la zakat n'est pas due. Configurez la méthode (or ou argent) et le prix au gramme pour obtenir un verdict d'obligation.",
-      "not_configured_short": "Sans Nisab, impossible de savoir si la zakat est obligatoire pour vous cette année.",
-      "configure": "Configurer dans les paramètres",
-      "above_title": "Vous êtes au-dessus du Nisab",
-      "above": "Votre base ({amount}) dépasse le seuil. La zakat est due.",
-      "below_title": "Vous êtes en dessous du Nisab",
-      "below": "Votre base ({amount}) reste sous le seuil — la zakat n'est pas obligatoire cette année.",
-      "preview_above": "Votre base dépasse le seuil — la zakat est due.",
-      "preview_below": "Votre base reste sous le seuil — la zakat n'est pas obligatoire cette année."
-    },
-    "step": {
-      "cash": {
-        "title": "Argent disponible aujourd'hui",
-        "help": "Comptez tout l'argent immédiatement disponible pour votre activité : caisse, compte professionnel, espèces conservées au commerce.",
-        "reference_date": "Date de référence"
-      },
-      "receivables": {
-        "title": "Argent que vos clients vous doivent",
-        "help": "Ventes à crédit, factures impayées, ardoises… On distingue trois niveaux selon la probabilité de recouvrement. Seules les <b>certaines</b> et <b>probables</b> entrent dans la zakat.",
-        "question": "Vos clients vous doivent-ils de l'argent ?",
-        "nominal": "Montant total dû (nominal)",
-        "total": "Total zakatable (certaines + probables)"
-      },
-      "stock": {
-        "title": "Valeur de votre stock commercial",
-        "help": "On a calculé une estimation à partir des prix d'achat saisis dans votre catalogue. Vous pouvez la ventiler par catégorie si la réalité diffère.",
-        "estimate": "Estimation automatique",
-        "estimate_basis": "Calculée sur {count, plural, one {# produit} other {# produits}} en stock.",
-        "breakdown": "Ventiler manuellement par catégorie",
-        "total": "Total stock zakatable (ventilation)",
-        "back_to_estimate": "Revenir à l'estimation automatique"
-      },
-      "excluded": {
-        "title": "Ce qui n'entre PAS dans la zakat",
-        "help": "Vos outils de travail ne sont pas concernés. Cochez ce que vous possédez pour confirmer que vous en avez pris connaissance — rien ne sera ajouté à votre base.",
-        "note": "Cette étape est informative. Cocher ou ne rien cocher ne change pas votre calcul."
-      },
-      "debts": {
-        "title": "Dettes à court terme",
-        "help": "Seules les dettes <b>exigibles immédiatement</b> sont déduites. Un paiement échelonné sur 5 ans, par exemple, n'est exigible immédiatement que pour l'échéance du mois.",
-        "empty": "Aucune dette renseignée — appuyez sur « Ajouter une dette » si vous en avez.",
-        "category": "Catégorie",
-        "label": "Libellé",
-        "amount": "Montant",
-        "remove": "Supprimer cette dette",
-        "due_question": "Exigible immédiatement ?",
-        "add": "Ajouter une dette",
-        "total": "Total déductible (exigible immédiatement)"
-      },
-      "summary": {
-        "title": "Récapitulatif avant validation",
-        "help": "Vérifiez les chiffres. Une fois la zakat finalisée, le calcul est archivé et ne peut plus être modifié.",
-        "wealth": "Votre patrimoine entrant",
-        "stock": "{state, select, ventilated {Stock (ventilé)} adjusted {Stock (ajusté)} other {Stock (estimé)}}",
-        "deductions": "Déductions",
-        "debts": "Dettes exigibles immédiatement",
-        "base": "Base de la zakat (projection)",
-        "due": "Zakat due ({rate} %)",
-        "footer": "Le bouton ci-dessous archive ce calcul et le rend immuable. Vous pourrez revenir y consulter le détail à tout moment."
-      }
-    },
-    "audit": {
-      "reliability": "Fiabilité <b>{tier, select, high {Élevée} medium {Moyenne} other {À renforcer}}</b> — {ok} OK{warn, plural, =0 {} other {, # à affiner}}",
-      "explanation": "Ce score reflète la complétude de votre déclaration, pas la validité religieuse du calcul. Les points marqués « à affiner » sont optionnels mais améliorent la traçabilité.",
-      "stock_ventilated": {
-        "label": "Stock ventilé par catégorie"
-      },
-      "stock_adjusted": {
-        "label": "Stock ajusté manuellement",
-        "message": "Ventiler par catégorie (finis, matières, en cours) améliore la traçabilité."
-      },
-      "stock_estimated": {
-        "label": "Stock laissé sur estimation automatique",
-        "message": "Vous pouvez affiner avec un montant ajusté ou une ventilation par catégorie."
-      },
-      "receivables_ventilated": {
-        "label": "Créances ventilées (certaines / probables / douteuses)"
-      },
-      "receivables_bulk": {
-        "label": "Créances renseignées en bloc",
-        "message": "Ventiler par niveau de certitude permet d'exclure les douteuses du calcul."
-      },
-      "receivables_none": {
-        "label": "Aucune créance déclarée"
-      },
-      "excluded_ok": {
-        "label": "Outils de travail reconnus ({count}/{total})"
-      },
-      "excluded_none": {
-        "label": "Aucun outil de travail reconnu",
-        "message": "Cocher les éléments que vous possédez rend la déclaration plus traçable."
-      },
-      "debts_due": {
-        "label": "Dettes ventilées ({count}), exigibilité précisée"
-      },
-      "debts_not_due": {
-        "label": "Dettes déclarées ({count}), aucune exigible"
-      },
-      "debts_none": {
-        "label": "Aucune dette déclarée"
-      },
-      "nisab_ok": {
-        "label": "Seuil de Nisab configuré"
-      },
-      "nisab_missing": {
-        "label": "Seuil de Nisab non configuré",
-        "message": "Sans Nisab, impossible de savoir automatiquement si la zakat est due."
-      },
-      "stock_coherence": {
-        "label": "Écart inhabituel entre stock estimé et ajusté",
-        "message": "Stock ajusté à {ratio} % de l'estimation catalogue — confirmer la valeur saisie."
-      }
-    },
-    "history": {
-      "title": "Évolution annuelle",
-      "base": "Base : {amount}",
-      "caption": "Montant de zakat dû par exercice — {count, plural, one {# année enregistrée} other {# années enregistrées}}."
-    },
-    "donut": {
-      "title": "Répartition du patrimoine",
-      "total": "Total",
-      "receivables": "Créances",
-      "stock": "Stock"
-    },
-    "simulation": {
-      "title": "Simulation",
-      "subtitle": "Et si votre stock évoluait l'année prochaine ?",
-      "variation": "Variation du stock",
-      "variation_aria": "Variation du stock en pourcentage",
-      "new_stock": "Nouveau stock",
-      "new_base": "Nouvelle base",
-      "zakat": "Zakat simulée",
-      "vs_actual": "{amount} vs réel",
-      "note": "Cette projection ne modifie pas votre calcul archivé — elle vous aide à anticiper l'an prochain."
-    },
-    "note": {
-      "why": "Pourquoi cette question ?",
-      "basis": "Fondement :",
-      "in_app": "Dans Mizan :",
-      "source": "Source : {source}"
+    "settings": {
+      "title": "Réglages de la zakat",
+      "short_title": "Réglages",
+      "subtitle": "Point de départ de chaque nouveau calcul. Un calcul commencé garde ses propres choix.",
+      "back": "Zakat",
+      "hawl_title": "Jour J",
+      "hawl_hint": "Chaque année à cette date, vous faites vos comptes.",
+      "hawl_date": "Date du jour J",
+      "hawl_help": "Mizan en déduit les années suivantes selon le calendrier choisi.",
+      "next": "Prochain jour J : {date} ({hijri})",
+      "share_title": "Votre part de la boutique",
+      "choices_title": "Choix d'avis",
+      "choices_hint": "Là où les avis divergent, c'est vous qui choisissez.",
+      "rejected": "Cette valeur n'a pas été acceptée. Les réglages ont été rechargés."
     }
   },
   "public_page_admin": {

@@ -191,6 +191,14 @@ class ThresholdTest(SimpleTestCase):
         self.assertEqual(totals.status, services.TOTALS_BELOW_NISAB)
         self.assertEqual(totals.zakat_total, Decimal('0'))
 
+    def test_nisab_ratio_for_gauge(self):
+        # Au-dessus : seuil / net ; en dessous : net / seuil ; inconnu sans seuil.
+        above = _totals().nisab_ratio  # 8 500 / 13 000
+        below = _totals(cash_amount=Decimal('5000.00')).nisab_ratio  # 8 000 / 8 500
+        unknown = _totals({'nisab_unit_price': None}).nisab_ratio
+        expected = (Decimal('0.654'), Decimal('0.941'), None)
+        self.assertEqual((above, below, unknown), expected)
+
     def test_silver_threshold(self):
         totals = _totals({'nisab_method': 'silver', 'nisab_unit_price': '1.20'})
         self.assertEqual(totals.nisab_threshold, Decimal('714.00'))

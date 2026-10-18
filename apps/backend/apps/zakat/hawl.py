@@ -53,16 +53,25 @@ def _gregorian_anniversary(year: int, month: int, day: int) -> date:
         return date(year, month, day - 1)
 
 
-def next_hawl_date(hawl_date: date, calendar: str, today: date) -> date:
-    """Prochaine date (≥ `today`) anniversaire du jour J, dans le calendrier choisi."""
+def _anniversary(hawl_date: date, calendar: str, year: int) -> date:
+    """Anniversaire du jour J pour l'année `year` (hégirienne ou grégorienne)."""
     if calendar == CALENDAR_HIJRI:
         _, month, day = to_hijri(hawl_date)
-        year = to_hijri(today)[0]
-        candidate = _hijri_anniversary(year, month, day)
-        if candidate < today:
-            candidate = _hijri_anniversary(year + 1, month, day)
-        return candidate
-    candidate = _gregorian_anniversary(today.year, hawl_date.month, hawl_date.day)
+        return _hijri_anniversary(year, month, day)
+    return _gregorian_anniversary(year, hawl_date.month, hawl_date.day)
+
+
+def next_hawl_date(hawl_date: date, calendar: str, today: date) -> date:
+    """Prochaine date (≥ `today`) anniversaire du jour J, dans le calendrier choisi."""
+    year = hawl_year(today, calendar)
+    candidate = _anniversary(hawl_date, calendar, year)
     if candidate < today:
-        candidate = _gregorian_anniversary(today.year + 1, hawl_date.month, hawl_date.day)  # noqa: E501
+        candidate = _anniversary(hawl_date, calendar, year + 1)
     return candidate
+
+
+def hawl_cycle(hawl_date: date, calendar: str, today: date) -> tuple[date, date]:
+    """(jour J précédent, prochain jour J ≥ `today`) : bornes du cycle en cours."""
+    upcoming = next_hawl_date(hawl_date, calendar, today)
+    previous = _anniversary(hawl_date, calendar, hawl_year(upcoming, calendar) - 1)
+    return previous, upcoming

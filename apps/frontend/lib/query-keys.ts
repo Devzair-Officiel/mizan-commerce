@@ -237,11 +237,11 @@ export const qk = {
 
   zakat: {
     all: ['zakat'] as const,
-    estimate: ['zakat', 'estimate'] as const,
     lists: ['zakat', 'list'] as const,
-    list: (status: string) => ['zakat', 'list', status] as const,
-    detail: (id: string | null | undefined) => ['zakat', 'detail', id] as const,
-    draft: ['zakat', 'draft'] as const,
+    details: ['zakat', 'detail'] as const,
+    detail: (id: string) => ['zakat', 'detail', id] as const,
+    profile: ['zakat', 'profile'] as const,
+    sources: ['zakat', 'sources'] as const,
   },
 
   geocode: {

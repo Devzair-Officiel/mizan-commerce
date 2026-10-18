@@ -44,8 +44,12 @@ def _seed_youssef_profile(shop, user, hawl_date: datetime.date) -> None:
 def _receivable_items(shop) -> list[dict]:
     unpaid = zakat_services.build_sources(shop)['unpaid_orders']
     items = [
-        {'order_id': str(order['id']), 'label': f"Commande {order['order_number']}",
-         'amount': str(order['remaining']), 'doubtful': False}
+        {
+            'order_id': str(order['order_id']),
+            'label': f"Commande {order['order_number']}",
+            'amount': str(order['remaining']),
+            'doubtful': False,
+        }
         for order in unpaid[:1]
     ]
     items.append(
@@ -57,14 +61,14 @@ def _receivable_items(shop) -> list[dict]:
 def _seed_youssef_calculation(shop, user, reference_date: datetime.date) -> None:
     if ZakatCalculation.objects.filter(shop=shop, user=user).exists():
         return
-    calc = zakat_services.create_calculation(shop, user, {
+    zakat_services.create_calculation(shop, user, {
         'reference_date': reference_date,
-        'current_step': 5,
+        'current_step': 6,
         'cash_amount': Decimal('12500.00'),
         'stock_extra': Decimal('800.00'),
         'receivable_items': _receivable_items(shop),
         'other_assets': [
-            {'category': 'personal_cash', 'label': 'Livret personnel', 'amount': '3000.00', 'counted': True},  # noqa: E501
+            {'category': 'personal_cash', 'label': 'Espèces à la maison', 'amount': '3000.00', 'counted': True},  # noqa: E501
             {'category': 'real_estate', 'label': 'Résidence principale', 'amount': '180000.00', 'counted': False},  # noqa: E501
         ],
         'debt_items': [
@@ -72,7 +76,6 @@ def _seed_youssef_calculation(shop, user, reference_date: datetime.date) -> None
             {'category': 'loan', 'label': 'Paiement échelonné', 'amount': '6000.00', 'amount_within_12_months': '2400.00'},  # noqa: E501
         ],
     })
-    zakat_services.finalize_calculation(calc)
 
 
 def seed_zakat(shop_fr, youssef, shop_ma, amira, stdout) -> None:

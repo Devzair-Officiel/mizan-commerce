@@ -13,10 +13,19 @@ VALID_DEBT_CATEGORIES = {'supplier', 'tax_vat', 'salary', 'loan', 'rent', 'other
 VALID_EXCLUDED_ITEMS = {'vehicle', 'computer', 'machine', 'premises', 'furniture', 'other'}  # noqa: E501
 VALID_STOCK_CATEGORIES = {'finished', 'raw_materials', 'work_in_progress', 'in_transit'}
 VALID_RECEIVABLE_CATEGORIES = {'certain', 'probable', 'doubtful'}
+# `gold_silver` : lingots et pièces ; `jewelry` : bijoux portés (référentiel D7).
 VALID_OTHER_ASSET_CATEGORIES = {
-    'personal_cash', 'business', 'real_estate', 'gold_silver', 'for_resale', 'other',
+    'personal_cash', 'business', 'real_estate', 'gold_silver', 'jewelry', 'for_resale',
+    'other',
 }
-MAX_LINES = 200
+MAX_LINES = services.MAX_LINES
+NISAB_METHOD_CHOICES = [
+    (Shop.NISAB_METHOD_SILVER, 'Argent (595 g)'), (Shop.NISAB_METHOD_GOLD, 'Or (85 g)'),
+]
+CHOICE_KEYS = (
+    'calendar', 'nisab_method', 'nisab_unit_price', 'nisab_price_updated_at',
+    'stock_valuation', 'receivables_mode', 'debts_mode', 'ownership_share',
+)
 
 
 def _amount_field() -> serializers.DecimalField:
@@ -25,6 +34,25 @@ def _amount_field() -> serializers.DecimalField:
 
 def _label_field() -> serializers.CharField:
     return serializers.CharField(max_length=200, allow_blank=True, default='')
+
+
+def _choice_field(choices: list[tuple[str, str]]) -> serializers.ChoiceField:
+    """Choix d'avis : une valeur de la liste, jamais `null` une fois choisi."""
+    return serializers.ChoiceField(choices=choices, required=False)
+
+
+def _unit_price_field() -> serializers.DecimalField:
+    return serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=Decimal('0.01'),
+        allow_null=True, required=False,
+    )
+
+
+def _share_field() -> serializers.DecimalField:
+    return serializers.DecimalField(
+        max_digits=5, decimal_places=2, min_value=Decimal('0.01'), max_value=Decimal('100'),  # noqa: E501
+        required=False,
+    )
 
 
 def _validate_hijri_range(value):
@@ -125,6 +153,7 @@ class ZakatTotalsSerializer(serializers.Serializer):
     base = _money(allow_null=True)
     nisab_threshold = _money(allow_null=True)
     nisab_compared_amount = _money(allow_null=True)
+    nisab_ratio = serializers.DecimalField(max_digits=4, decimal_places=3, read_only=True, allow_null=True)  # noqa: E501
     rate = serializers.DecimalField(max_digits=8, decimal_places=6, read_only=True, allow_null=True)  # noqa: E501
     zakat_now = _money(allow_null=True)
     zakat_on_collection = _money(allow_null=True)
@@ -136,11 +165,87 @@ class ZakatTotalsSerializer(serializers.Serializer):
 
 # ── Calcul ────────────────────────────────────────────────────────────────────
 
+class ZakatChoicesSerializer(serializers.Serializer):
+    """Choix de la fiche (copiés du profil à la création, modifiables ensuite).
+
+    En écriture, seules les clés envoyées changent ; en lecture, toutes les clés.
+    """
+    calendar = _choice_field(hawl.CALENDAR_CHOICES)
+    nisab_method = _choice_field(NISAB_METHOD_CHOICES)
+    nisab_unit_price = _unit_price_field()
+    stock_valuation = _choice_field(ZakatProfile.STOCK_VALUATION_CHOICES)
+    receivables_mode = _choice_field(ZakatProfile.RECEIVABLES_MODE_CHOICES)
+    debts_mode = _choice_field(ZakatProfile.DEBTS_MODE_CHOICES)
+    ownership_share = _share_field()
+
+    def to_representation(self, instance: dict[str, Any]) -> dict[str, Any]:
+        return {name: (instance or {}).get(name) for name in CHOICE_KEYS}
+
+
+class _OrderSummarySerializer(serializers.Serializer):
+    order_id = serializers.UUIDField()
+    order_number = serializers.CharField(allow_null=True)
+    customer_name = serializers.CharField(allow_null=True)
+    created_at = serializers.DateTimeField(allow_null=True)
+    remaining = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True)  # noqa: E501
+
+
+class _LinkedOrderSerializer(_OrderSummarySerializer):
+    state = serializers.CharField()
+
+
+class _ReceivableOrdersSerializer(serializers.Serializer):
+    linked = _LinkedOrderSerializer(many=True)
+    new = _OrderSummarySerializer(many=True)
+
+
+class ZakatReviewSerializer(serializers.Serializer):
+    """Repères de l'écran de la fiche (lecture seule, calculés à chaque réponse)."""
+    is_latest = serializers.BooleanField()
+    is_live = serializers.BooleanField()
+    hawl_date_differs = serializers.BooleanField()
+    receivable_orders = _ReceivableOrdersSerializer()
+
+
+def _reference_hijri(obj: ZakatCalculation) -> dict[str, int] | None:
+    try:
+        year, month, day = hawl.to_hijri(obj.reference_date)
+    except hawl.HijriRangeError:
+        return None
+    return {'year': year, 'month': month, 'day': day}
+
+
+class ZakatCalculationListSerializer(serializers.ModelSerializer):
+    """Ligne de l'historique : repères de la fiche et bloc `totals`."""
+    reference_hijri = serializers.SerializerMethodField()
+    totals = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ZakatCalculation
+        fields = [
+            'id', 'reference_date', 'reference_hijri', 'hawl_calendar', 'hawl_year',
+            'current_step', 'currency', 'updated_at', 'totals',
+        ]
+        read_only_fields = fields
+
+    def get_reference_hijri(self, obj: ZakatCalculation) -> dict[str, int] | None:
+        return _reference_hijri(obj)
+
+    def get_totals(self, obj: ZakatCalculation) -> dict[str, Any]:
+        return ZakatTotalsSerializer(services.compute_totals(obj)).data
+
+
 class ZakatCalculationSerializer(serializers.ModelSerializer):
     stock_value_for_base = serializers.SerializerMethodField()
     is_above_nisab = serializers.SerializerMethodField()
     reference_hijri = serializers.SerializerMethodField()
     totals = serializers.SerializerMethodField()
+    review = serializers.SerializerMethodField()
+    choices = ZakatChoicesSerializer(source='choices_snapshot', required=False)
+    # Facultative : sans date, le prochain jour J du profil (ou aujourd'hui).
+    reference_date = serializers.DateField(required=False)
+    # Dernière étape validée de l'assistant (0 = aucune, 6 = toutes les saisies).
+    current_step = serializers.IntegerField(min_value=0, max_value=6, required=False)
     debts_breakdown = serializers.ListField(
         child=DebtItemSerializer(), required=False, default=list,
     )
@@ -166,7 +271,7 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
     stock_extra = serializers.DecimalField(
         max_digits=12, decimal_places=2, min_value=Decimal('0'), required=False,
     )
-    # Facultatif jusqu'au lot Z2 : absent, l'enregistrement n'est pas contrôlé.
+    # Obligatoire sur PATCH (voir `validate`) : version périmée → 409.
     version = serializers.IntegerField(min_value=1, required=False)
     refresh_stock = serializers.BooleanField(write_only=True, required=False, default=False)  # noqa: E501
 
@@ -184,7 +289,7 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
             'debts_breakdown', 'short_term_debts',
             'zakat_base', 'zakat_rate', 'zakat_amount',
             'nisab_method', 'nisab_unit_price', 'nisab_threshold', 'is_above_nisab',
-            'choices_snapshot', 'totals',
+            'choices', 'totals', 'review',
             'currency', 'pdf_object_key', 'notes',
             'finalized_at', 'created_at', 'updated_at',
         ]
@@ -195,7 +300,6 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
             'short_term_debts',
             'zakat_base', 'zakat_rate', 'zakat_amount',
             'nisab_method', 'nisab_unit_price', 'nisab_threshold', 'is_above_nisab',
-            'choices_snapshot',
             'currency', 'pdf_object_key',
             'finalized_at', 'created_at', 'updated_at',
         ]
@@ -211,14 +315,13 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
         return obj.is_above_nisab
 
     def get_reference_hijri(self, obj: ZakatCalculation) -> dict[str, int] | None:
-        try:
-            year, month, day = hawl.to_hijri(obj.reference_date)
-        except hawl.HijriRangeError:
-            return None
-        return {'year': year, 'month': month, 'day': day}
+        return _reference_hijri(obj)
 
     def get_totals(self, obj: ZakatCalculation) -> dict[str, Any]:
         return ZakatTotalsSerializer(services.compute_totals(obj)).data
+
+    def get_review(self, obj: ZakatCalculation) -> dict[str, Any]:
+        return ZakatReviewSerializer(services.calculation_review(obj)).data
 
     def validate_reference_date(self, value):
         return _validate_hijri_range(value)
@@ -233,6 +336,14 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
         if known != set(order_ids):
             raise serializers.ValidationError('Commande introuvable.')
         return items
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if self.instance is not None and 'version' not in attrs:
+            raise serializers.ValidationError(
+                {'version': self.fields['version'].error_messages['required']},
+                code='required',
+            )
+        return attrs
 
     def to_internal_value(self, data):
         validated = super().to_internal_value(data)
@@ -253,31 +364,23 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
 # ── Profil ────────────────────────────────────────────────────────────────────
 
 class ZakatProfileSerializer(serializers.ModelSerializer):
-    """Choix d'avis : une valeur de la liste, jamais `null` une fois choisis."""
+    """Point de départ des choix d'une nouvelle fiche, jour J et prochain hawl."""
     next_hawl = serializers.SerializerMethodField()
+    nisab_threshold = serializers.SerializerMethodField()
     hawl_date = serializers.DateField(allow_null=True, required=False, validators=[_validate_hijri_range])  # noqa: E501
-    calendar = serializers.ChoiceField(choices=hawl.CALENDAR_CHOICES, required=False)
-    nisab_method = serializers.ChoiceField(
-        choices=[(Shop.NISAB_METHOD_SILVER, 'Argent (595 g)'), (Shop.NISAB_METHOD_GOLD, 'Or (85 g)')],  # noqa: E501
-        required=False,
-    )
-    nisab_unit_price = serializers.DecimalField(
-        max_digits=10, decimal_places=2, min_value=Decimal('0.01'),
-        allow_null=True, required=False,
-    )
-    stock_valuation = serializers.ChoiceField(choices=ZakatProfile.STOCK_VALUATION_CHOICES, required=False)  # noqa: E501
-    receivables_mode = serializers.ChoiceField(choices=ZakatProfile.RECEIVABLES_MODE_CHOICES, required=False)  # noqa: E501
-    debts_mode = serializers.ChoiceField(choices=ZakatProfile.DEBTS_MODE_CHOICES, required=False)  # noqa: E501
-    ownership_share = serializers.DecimalField(
-        max_digits=5, decimal_places=2, min_value=Decimal('0.01'), max_value=Decimal('100'),  # noqa: E501
-        required=False,
-    )
+    calendar = _choice_field(hawl.CALENDAR_CHOICES)
+    nisab_method = _choice_field(NISAB_METHOD_CHOICES)
+    nisab_unit_price = _unit_price_field()
+    stock_valuation = _choice_field(ZakatProfile.STOCK_VALUATION_CHOICES)
+    receivables_mode = _choice_field(ZakatProfile.RECEIVABLES_MODE_CHOICES)
+    debts_mode = _choice_field(ZakatProfile.DEBTS_MODE_CHOICES)
+    ownership_share = _share_field()
 
     class Meta:
         model = ZakatProfile
         fields = [
             'hawl_date', 'calendar', 'next_hawl',
-            'nisab_method', 'nisab_unit_price', 'nisab_price_updated_at',
+            'nisab_method', 'nisab_unit_price', 'nisab_price_updated_at', 'nisab_threshold',  # noqa: E501
             'stock_valuation', 'receivables_mode', 'debts_mode',
             'ownership_share', 'updated_at',
         ]
@@ -287,22 +390,42 @@ class ZakatProfileSerializer(serializers.ModelSerializer):
         info = services.next_hawl(obj)
         if info is None:
             return None
-        return {**info, 'date': info['date'].isoformat()}
+        calculation_id = info['calculation_id']
+        return {
+            **info,
+            'date': info['date'].isoformat(),
+            'calculation_id': str(calculation_id) if calculation_id else None,
+        }
+
+    def get_nisab_threshold(self, obj: ZakatProfile) -> str | None:
+        threshold = services.nisab_threshold_for(obj.nisab_method, obj.nisab_unit_price)
+        return str(threshold) if threshold is not None else None
 
 
 # ── Sources ───────────────────────────────────────────────────────────────────
 
 class _FormatWithoutPriceSerializer(serializers.Serializer):
     variant_id = serializers.UUIDField()
+    product_id = serializers.UUIDField()
     product_name = serializers.CharField()
     packaging_name = serializers.CharField()
 
 
-class _UnpaidOrderSerializer(serializers.Serializer):
-    id = serializers.UUIDField()
-    order_number = serializers.CharField()
-    customer_name = serializers.CharField(allow_null=True)
-    remaining = serializers.DecimalField(max_digits=12, decimal_places=2)
+class _StockLineSerializer(serializers.Serializer):
+    variant_id = serializers.UUIDField()
+    product_id = serializers.UUIDField()
+    product_name = serializers.CharField()
+    packaging_name = serializers.CharField()
+    quantity = serializers.DecimalField(max_digits=14, decimal_places=3)
+    sale_price = serializers.DecimalField(max_digits=12, decimal_places=2)
+    purchase_price = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True)  # noqa: E501
+    sale_value = serializers.DecimalField(max_digits=16, decimal_places=2)
+    purchase_value = serializers.DecimalField(max_digits=16, decimal_places=2, allow_null=True)  # noqa: E501
+
+
+class _TopStockLinesSerializer(serializers.Serializer):
+    sale = _StockLineSerializer(many=True)
+    purchase = _StockLineSerializer(many=True)
 
 
 class ZakatSourcesSerializer(serializers.Serializer):
@@ -311,7 +434,8 @@ class ZakatSourcesSerializer(serializers.Serializer):
     stock_purchase_value = serializers.DecimalField(max_digits=14, decimal_places=2)
     active_formats_count = serializers.IntegerField()
     formats_without_purchase_price = _FormatWithoutPriceSerializer(many=True)
-    unpaid_orders = _UnpaidOrderSerializer(many=True)
+    top_stock_lines = _TopStockLinesSerializer()
+    unpaid_orders = _OrderSummarySerializer(many=True)
     unpaid_total = serializers.DecimalField(max_digits=14, decimal_places=2)
 
 

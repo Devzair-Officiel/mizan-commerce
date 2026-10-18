@@ -9,9 +9,6 @@ export const settingsSchema = z.object({
   name: z.string().min(1), // message : settings.identity.name_required
   currency: z.string().min(1),
   country: z.string().optional(),
-  zakat_annual_date: z.string().optional(),
-  nisab_method: z.enum(['gold', 'silver']),
-  nisab_unit_price: z.string().optional(),
   legal_address: z.string().optional(),
   tax_id: z.string().optional(),
   legal_mentions: z.string().optional(),
