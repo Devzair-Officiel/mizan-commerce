@@ -683,6 +683,9 @@ jamais de valeur par défaut.
 | receivables_mode | VARCHAR(16) | | `yearly` ou `on_collection` (choix D3) |
 | debts_mode | VARCHAR(20) | | `all`, `within_12_months` ou `none` (choix D2) |
 | ownership_share | DECIMAL(5,2) | NOT NULL, DEFAULT 100, CHECK 0 < part ≤ 100 | Part détenue dans la boutique, en % ; s'applique aux montants de la boutique, pas aux autres biens |
+| reminder_email_enabled | BOOLEAN | NOT NULL, DEFAULT TRUE | Rappel par e-mail 7 jours avant le jour J (lot Z2b) |
+| reminder_sent_calendar | VARCHAR(10) | | Calendrier de l'année du dernier rappel envoyé (`hijri` ou `gregorian`) |
+| reminder_sent_year | SMALLINT | CHECK ≥ 0 | Année du dernier rappel envoyé ; avec `reminder_sent_calendar`, réservée par un update conditionnel dans la transaction de l'envoi (un seul e-mail par année, renvoi le lendemain si l'envoi échoue) |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 

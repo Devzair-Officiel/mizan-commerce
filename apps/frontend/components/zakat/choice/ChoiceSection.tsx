@@ -4,6 +4,8 @@ import { useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import type { ChoiceName, ChoiceOption } from '@/lib/hooks/useZakat';
 import { cn } from '@/lib/utils';
+import { CHOICE_TOPIC } from '../basis/basisCatalog';
+import { BasisLink } from '../basis/BasisLink';
 import { ChoiceGroup, type OptionExtras } from './ChoiceGroup';
 
 interface ChoiceSectionProps<C extends ChoiceName> {
@@ -56,7 +58,11 @@ export function ChoiceSection<C extends ChoiceName>({ name, value, onChange, ext
   return (
     <>
       {value !== null && collapsed && (
-        <KeptChoice label={t(`${base}.kept`)} value={t(summaryKey, { value })} onModify={modify} />
+        // Choix replié (mobile) : les options se cachent, pas leur fondement (M5).
+        <div className="flex flex-col lg:hidden">
+          <KeptChoice label={t(`${base}.kept`)} value={t(summaryKey, { value })} onModify={modify} />
+          <BasisLink view={CHOICE_TOPIC[name]} label={t('basis.why')} className="mt-1.5" />
+        </div>
       )}
       <section className={cn('lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border lg:bg-card', collapsed && 'max-lg:hidden')}>
         <div className={cn('lg:header-band lg:border-b lg:border-border lg:px-5 lg:py-4', questionIsHeading && 'max-lg:hidden')}>
@@ -65,7 +71,8 @@ export function ChoiceSection<C extends ChoiceName>({ name, value, onChange, ext
         </div>
         <div ref={groupRef} className={cn('lg:p-5', !questionIsHeading && 'max-lg:mt-3')}>
           <ChoiceGroup name={name} value={value} onChange={onChange} extras={extras} columns={columns} label={question} />
-          <p className="mt-3 text-[0.78125rem] text-muted-foreground">{t(isLatest ? 'choice.note_latest' : 'choice.note')}</p>
+          <BasisLink view={CHOICE_TOPIC[name]} label={t('basis.why')} className="mt-1.5" />
+          <p className="mt-1 text-[0.78125rem] text-muted-foreground">{t(isLatest ? 'choice.note_latest' : 'choice.note')}</p>
         </div>
       </section>
     </>

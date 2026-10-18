@@ -671,6 +671,7 @@ L'application est organisée autour des modules suivants :
 - L'utilisateur peut saisir une date annuelle.
 - L'application affiche la prochaine échéance.
 - Un rappel est généré avant cette date.
+- Rappel par e-mail entre 7 jours et la veille du jour J, une seule fois par année, aux admins des boutiques qui ont la zakat : la date et un lien vers la zakat, aucun montant, dans la langue du compte. Activé par défaut, désactivable dans les réglages de la zakat ; l'accueil indique s'il est actif.
 
 ---
 
@@ -779,6 +780,8 @@ L'application est organisée autour des modules suivants :
 - Les choix du profil sont copiés dans la fiche à sa création, puis modifiables à tout moment dans la fiche ; ceux de la fiche la plus récente sont repris pour le calcul suivant. Une fiche plus ancienne ne change ni le profil ni les autres fiches.
 - Créances versées à l'encaissement : même total qu'en les comptant chaque année (seuil comparé au même net) ; la zakat est séparée en « à verser maintenant », sur les actifs hors créances diminués des dettes, et « à verser à l'encaissement », pour le reste.
 - Les créances douteuses ne sont jamais comptées.
+- Chaque choix mène à sa fiche « Fondement » (tiroir sur ordinateur, feuille sur mobile) : la règle, les sources avec leur degré d'authenticité, les avis et qui les retient, « Votre choix » sur l'option retenue. Neuf fiches, aussi accessibles depuis l'accueil, les repères des autres biens et le résultat (les huit catégories de bénéficiaires).
+- Les fiches résument les sources en style indirect : aucune citation ni texte original ; un hadith à l'authenticité discutée porte toujours son badge.
 
 ---
 
@@ -1089,6 +1092,9 @@ L'application est organisée autour des modules suivants :
 - Le PDF affiche les valeurs utilisées.
 - Le PDF affiche le montant estimé.
 - Le PDF mentionne que le calcul est indicatif.
+- Le PDF reprend les choix d'avis et la date de dernière modification ; il se télécharge à tout moment (`zakat-{année}.pdf`), depuis le résultat et l'historique.
+- Seul l'auteur du calcul peut télécharger le PDF (introuvable pour toute autre personne, même admin de la boutique) ; chaque téléchargement est consigné.
+- PDF en français ou en anglais selon la langue du compte (un compte en arabe le reçoit en français en attendant).
 
 ---
 

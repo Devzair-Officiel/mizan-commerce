@@ -239,18 +239,17 @@ class ZakatAPITest(TestCase):
         response = self.client.get(reverse('zakat-calculation-detail', kwargs={'pk': calc.pk}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_pdf_endpoint_returns_pdf_for_finalized_calc(self):
+    def test_pdf_endpoint_returns_pdf_for_draft(self):
         _make_product(self.shop, 'P', Decimal('10'), Decimal('8'), 10)
         create = self.client.post(reverse('zakat-calculation-list'), {
             'reference_date': '2025-03-01',
             'cash_amount': '500.00',
         }, format='json')
         calc_id = create.data['id']
-        # Plus de finalisation depuis Z2a : le justificatif refondu arrive en Z2b.
-        ZakatCalculation.objects.filter(pk=calc_id).update(status='finalized')
         response = self.client.get(reverse('zakat-calculation-pdf', kwargs={'pk': calc_id}))  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertEqual(response['Content-Disposition'], 'attachment; filename="zakat-2025.pdf"')  # noqa: E501
         # Le PDF doit commencer par la signature standard %PDF-
         self.assertTrue(response.content.startswith(b'%PDF-'))
 
@@ -262,11 +261,3 @@ class ZakatAPITest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ZakatCalculation.objects.filter(pk=calc.pk).exists())
 
-    def test_pdf_endpoint_refuses_draft(self):
-        _make_product(self.shop, 'P', Decimal('10'), Decimal('8'), 10)
-        create = self.client.post(reverse('zakat-calculation-list'), {
-            'reference_date': '2025-03-01',
-            'cash_amount': '500.00',
-        }, format='json')
-        response = self.client.get(reverse('zakat-calculation-pdf', kwargs={'pk': create.data['id']}))  # noqa: E501
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -25,6 +25,7 @@ export function HawlHero({ next, facts, format }: { next: NextHawl; facts: Facts
             <span className="lg:hidden">{hijri}</span>
             <span className="max-lg:hidden">{t('hijri_line', { calendar: next.hawl_calendar, date: hijri })}</span>
           </p>
+          <p className="mt-1 text-xs text-muted-foreground lg:hidden">{facts.reminder}</p>
           <HeroFacts facts={facts} format={format} />
         </div>
       </div>

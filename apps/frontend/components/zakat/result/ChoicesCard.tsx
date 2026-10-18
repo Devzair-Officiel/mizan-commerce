@@ -17,7 +17,7 @@ export function ChoicesCard({ calc, rows, onGo }: ChoicesCardProps) {
   const t = useTranslations('zakat');
   return (
     <div className="max-lg:hidden">
-      <SectionCard title={t('result.choices_title')} description={t(calc.review.is_latest ? 'choice.note_latest' : 'choice.note')}>
+      <SectionCard title={t('result.choices_title')} description={t('result.choices_note', { latest: String(calc.review.is_latest) })}>
         <ChoiceRows id={calc.id} rows={rows} onGo={onGo} />
       </SectionCard>
     </div>

@@ -206,9 +206,14 @@ religieux avant mise en ligne, § 8).
       profil), créances liées aux commandes avec changements signalés, 5 articles les plus
       élevés dans les sources, retrait de `finalize`, `reopen` et `draft/` ; migration
       zakat 0013 (toutes les fiches repassent en brouillon). Audit `audit-zakat` réécrit.
-- [ ] **Z2b — Justificatif et rappels** : justificatif PDF refondu (choix, date de dernière
-      modification), rappel envoyé 7 jours avant le jour J (par profil), liens « Fondement »
-      et liens vers les sources du référentiel.
+- [x] **Z2b — Justificatif et rappels** : justificatif PDF refondu (choix, date de dernière
+      modification ; fr ou en, réservé à son auteur, téléchargement consigné) depuis le Résultat
+      et l'historique ; style PDF commun avec les factures (aucune facture changée) ; rappel
+      par e-mail de J-7 à J-1, une seule fois (réservation et envoi dans la même transaction),
+      réglage et repère de l'accueil ; fiches « Fondement » (9 fiches, tiroir de 440 px sur
+      desktop, feuille sur mobile) ouvertes depuis les choix, l'accueil, les repères des autres
+      biens et le Résultat. Migration zakat 0014. Audit `audit-zakat` étendu (justificatif,
+      tiroir et feuille au clavier).
 - [ ] **Z3 — Nettoyage** : retrait des anciens champs (`Shop.zakat_annual_date`,
       `nisab_method`, `nisab_unit_price` ; `ZakatCalculation.debts_breakdown`,
       `receivables_breakdown`, `stock_breakdown`, `stock_value_adjusted`, `status`,
@@ -482,7 +487,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [x] Mentions légales configurables
   - [x] Réglages dédiés, instantanés d’émission, PDF A4 paginés et exemples
   - [x] Pages liste et détail au gabarit (§9/§10), indicateurs, facettes et tri serveur, audit smoke
-  - [ ] Dette : factures PDF en arabe (français utilisé en attendant)
+  - [ ] Dette : factures et justificatif de zakat en PDF arabe (français utilisé en attendant)
 - [~] Lot 7 — Compte et réglages
   - [x] Badge d'abonnement (sidebar, menu mobile) — formule courante, « Essai · N j », « Essai terminé » ; remplace les cartes d'essai, audit `account-menu`
   - [x] Raccourci clair/sombre dans le header (à côté de la loupe sur mobile, avant la barre de recherche sur desktop)
@@ -594,7 +599,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
       avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
 
 - [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL, recherche numéro
-      instable.
+      instable (échoue aussi en 360 ar sombre).
 
 ---
 

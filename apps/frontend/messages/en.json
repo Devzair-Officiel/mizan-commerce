@@ -1981,7 +1981,12 @@
       "ibn_baz": "Ibn Baz",
       "usual_conversion": "Usual conversion",
       "rate_hijri": "Rate 2.5%",
-      "rate_solar": "Rate 2.5775%"
+      "rate_solar": "Rate 2.5775%",
+      "shafii_old": "Al-Shafii, earlier opinion",
+      "ali": "Reported from Ali",
+      "al_hasan": "Al-Hasan al-Basri",
+      "umar_abd_al_aziz": "Umar ibn Abd al-Aziz",
+      "permanent_committee": "Permanent Committee"
     },
     "choice": {
       "note": "Can be changed at any time.",
@@ -2140,7 +2145,10 @@
       "how_text": "What counts is what you own on your day: cash, stock, receivables, minus debts as you choose. Not your turnover for the year.",
       "footer": "Estimate based on your figures and the opinions you chose. You can add your other assets to the calculation: personal money, another business, property, gold. For a particular case, ask a trusted scholar.",
       "footer_short": "Estimate based on your figures and the opinions you chose. Add your other assets: personal money, another business, property, gold.",
-      "load_error": "Zakat could not be loaded. Check your connection and try again."
+      "load_error": "Zakat could not be loaded. Check your connection and try again.",
+      "col_pdf": "PDF",
+      "history_pdf": "Download the {year} statement",
+      "reminder": "{enabled, select, true {Email reminder, 7 days before} other {No email reminder}}"
     },
     "new": {
       "title": "New calculation",
@@ -2457,7 +2465,10 @@
       "outside_short_item": "{label} {amount}",
       "outside_short_usage": "things you use",
       "recipients_text_short": "Eight categories, surah 9, verse 60",
-      "see": "View"
+      "see": "View",
+      "pdf": "Download the statement",
+      "pdf_short": "PDF statement",
+      "choices_note": "Included in the statement{latest, select, true { and carried over to your next calculation} other {}}. Can be changed at any time."
     },
     "settings": {
       "title": "Zakat settings",
@@ -2472,7 +2483,232 @@
       "share_title": "Your share of the shop",
       "choices_title": "Opinion choices",
       "choices_hint": "Where opinions differ, you are the one who chooses.",
-      "rejected": "This value was not accepted. The settings have been reloaded."
+      "rejected": "This value was not accepted. The settings have been reloaded.",
+      "reminder": "Email me 7 days before",
+      "reminder_help": "An email with the date of your zakat day, with no amounts."
+    },
+    "basis": {
+      "index_title": "The rules and their sources",
+      "index_subtitle": "Nine sheets: the rule, its sources, the opinions.",
+      "subtitle": "Rule, sources, opinions. Nothing more.",
+      "back": "All sheets",
+      "rule": "The rule",
+      "sources": "The sources",
+      "opinions": "The opinions",
+      "categories": "The eight categories",
+      "agreement": "Agreed point: no choice to make.",
+      "your_choice": "Your choice",
+      "ask": "For a particular case, ask a knowledgeable person you trust.",
+      "why": "What are these opinions based on?",
+      "see_rules": "See the rules and their sources",
+      "see_sources": "See the sources",
+      "see_categories": "See the eight categories",
+      "badge": {
+        "authentic": "Authentic",
+        "discussed": "Authenticity discussed",
+        "companion": "Companion's saying",
+        "school": "School opinion",
+        "contemporary": "Contemporary standard"
+      },
+      "topic": {
+        "cash": {
+          "name": "Cash",
+          "title": "Cash and zakat",
+          "rule": "What is in the till and in the bank on your day counts."
+        },
+        "stock": {
+          "name": "Stock",
+          "title": "The value of your stock",
+          "rule": "What is meant for sale counts, at its value on your day."
+        },
+        "usage": {
+          "name": "Things you use",
+          "title": "Things you use",
+          "rule": "Premises, vehicle, equipment and furniture do not count."
+        },
+        "receivables": {
+          "name": "Receivables",
+          "title": "Receivables and zakat",
+          "rule": "What your customers owe you counts if it will be paid.",
+          "detail": "A doubtful receivable owes nothing until it is collected; opinions differ on what is due on collection."
+        },
+        "other": {
+          "name": "Other assets",
+          "title": "Your other assets",
+          "rule": "Add what you own on your day; you decide what counts.",
+          "detail": "Each line has its own “Counted” switch. Mizan applies no automatic calculation to property."
+        },
+        "debts": {
+          "name": "Debts",
+          "title": "Debts and zakat",
+          "rule": "Depending on your choice, some debts are deducted.",
+          "detail": "The schools differ on deducting debts. The question rests mainly on the Companions' sayings and on scholars' reasoning."
+        },
+        "nisab": {
+          "name": "Threshold",
+          "title": "The threshold",
+          "rule": "Below it, no zakat is due.",
+          "detail": "The threshold is 200 silver dirhams or 20 gold dinars. Their conversion into grams differs (595, 612 or 624 g of silver depending on the dirham weight used): Mizan shows 595 g and 85 g, the usual conversion."
+        },
+        "rate": {
+          "name": "Rate and year",
+          "title": "The rate and the year",
+          "rule": "2.5% over a hijri year.",
+          "detail": "Zakat is due after a full year (hawl). Over a solar year, 11 days longer, the rate becomes 2.5775%."
+        },
+        "recipients": {
+          "name": "Recipients",
+          "title": "Who receives zakat?",
+          "rule": "The Quran names eight categories of recipients."
+        }
+      },
+      "source": {
+        "quran_2_267": {
+          "text": "The Quran calls on believers to give from the good things they have earned; Mujahid understands this as trade.",
+          "ref": "Quran, surah 2, verse 267"
+        },
+        "quran_9_60": {
+          "text": "The Quran reserves zakat for eight categories of recipients, named one by one.",
+          "ref": "Quran, surah 9, verse 60"
+        },
+        "bukhari_1454": {
+          "text": "In Abu Bakr's letter on zakat, silver owes a quarter of a tenth, that is 2.5%.",
+          "ref": "Bukhari 1454"
+        },
+        "bukhari_1459": {
+          "text": "The Prophet ﷺ indicated that below five awaq of silver, no zakat is due.",
+          "ref": "Bukhari 1459"
+        },
+        "bukhari_1463": {
+          "text": "The Prophet ﷺ indicated that the horse or servant a Muslim has for his own use owes no zakat: what is used does not count.",
+          "ref": "Bukhari 1463, Muslim 982"
+        },
+        "abu_dawud_1562": {
+          "text": "Samura ibn Jundub reports that the Prophet ﷺ ordered them to pay zakat on what they intended for sale.",
+          "ref": "Abu Dawud 1562",
+          "judgment": "Weak according to al-Albani, good according to Ibn Abd al-Barr."
+        },
+        "abu_dawud_1573": {
+          "text": "According to Ali, the Prophet ﷺ set five dirhams on two hundred held for a year, nothing on gold below twenty dinars, and no zakat before a full year.",
+          "ref": "Abu Dawud 1573",
+          "judgment": "Sahih according to al-Albani."
+        },
+        "abu_dawud_1574": {
+          "text": "According to Ali, the Prophet ﷺ asked for one dirham in forty on silver, a quarter of a tenth.",
+          "ref": "Abu Dawud 1574",
+          "judgment": "Sahih according to al-Albani."
+        },
+        "ibn_umar": {
+          "text": "Ibn Umar held that goods meant for sale are subject to zakat.",
+          "ref": "Reported by al-Bayhaqi",
+          "judgment": "Authentic chain according to Ibn Hazm and al-Nawawi."
+        },
+        "umar_himas": {
+          "text": "Umar asked Himas to value his goods, then to pay zakat on them.",
+          "ref": "Reported by Himas",
+          "judgment": "Weak according to al-Albani."
+        },
+        "uthman": {
+          "text": "Uthman ibn Affan would urge, in the month of zakat, anyone with a debt to settle it first, then to pay zakat on what remained.",
+          "ref": "Malik's Muwatta, Book of Zakat",
+          "judgment": "Authentic chain (mawquf sahih)."
+        },
+        "stock_schools": {
+          "text": "The four schools hold that goods are subject to zakat, at their value on the day; Ibn al-Mundhir reports a consensus on it.",
+          "ref": "Dissenting view: the Zahiris"
+        },
+        "receivables_schools": {
+          "text": "The schools count a sure receivable, owed by a solvent customer who acknowledges it, and differ on when to pay. A doubtful receivable owes nothing until it is collected.",
+          "ref": "Four schools"
+        },
+        "jewelry_schools": {
+          "text": "For jewellery that is worn, the question is a matter of school opinion.",
+          "ref": "Four schools"
+        },
+        "real_estate": {
+          "text": "A property lived in or for personal use does not count, by unanimous opinion; a property bought to resell counts like goods.",
+          "ref": "islamqa 231858"
+        },
+        "aaoifi_stock": {
+          "text": "The AAOIFI standard values stock at its expected realisable value; the purchase price only when the current value is unknown.",
+          "ref": "AAOIFI standard no. 35"
+        },
+        "aaoifi_debts": {
+          "text": "The AAOIFI standard deducts only what is due within 12 months.",
+          "ref": "AAOIFI standard no. 35"
+        },
+        "aaoifi_rate": {
+          "text": "Over a solar year, 11 days longer, the AAOIFI standard uses a rate of 2.5775%.",
+          "ref": "AAOIFI standard no. 35"
+        }
+      },
+      "choice_note": {
+        "stock_valuation": {
+          "sale": "Retail price for a retailer, wholesale price for a wholesaler.",
+          "purchase": "Only when the current value is unknown."
+        },
+        "receivables_mode": {
+          "yearly": "For the Malikis, on a regular trader's sales."
+        },
+        "debts_mode": {
+          "all": "Each school sets its own conditions."
+        },
+        "nisab_method": {
+          "silver": "Those who keep the threshold most favourable to the poor; Islamic Relief recommends it.",
+          "gold": "Those who consider silver no longer reflects wealth."
+        }
+      },
+      "heading": {
+        "receivables_mode": "Sure receivables"
+      },
+      "opinion": {
+        "doubtful": {
+          "title": "Doubtful receivables, on collection",
+          "all_years": {
+            "title": "Zakat for all past years"
+          },
+          "one_year": {
+            "title": "Zakat for a single year"
+          },
+          "new_year": {
+            "title": "A new year from collection"
+          }
+        },
+        "jewelry": {
+          "title": "Jewellery worn",
+          "counted": {
+            "title": "Counted"
+          },
+          "not_counted": {
+            "title": "Not counted"
+          }
+        },
+        "real_estate": {
+          "title": "Property",
+          "home": {
+            "title": "Lived in or for personal use",
+            "note": "Not counted, by unanimous opinion."
+          },
+          "rented": {
+            "title": "Rented out",
+            "note": "The property value does not count; rent still on hand counts as cash. One contemporary opinion treats it like a harvest: 10% or 5% of the rent."
+          },
+          "resale": {
+            "title": "Bought to resell",
+            "note": "Counted at its value on your day, like goods."
+          }
+        }
+      },
+      "category": {
+        "1": "The poor",
+        "2": "The needy",
+        "3": "Those who collect zakat",
+        "4": "Those whose hearts are to be reconciled",
+        "5": "Freeing slaves",
+        "6": "Those burdened by debt",
+        "7": "The cause of Allah",
+        "8": "The stranded traveller"
+      }
     }
   },
   "public_page_admin": {

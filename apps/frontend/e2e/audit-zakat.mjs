@@ -1,18 +1,25 @@
 /**
- * Audit de la zakat (Z2a) : accueil, réglages et assistant, dans la boutique du compte d'audit.
+ * Audit de la zakat (Z2a, Z2b) : accueil, réglages et assistant, dans la boutique du compte d'audit.
  * Profil et fiches passent par l'API ; chaque configuration repart sans fiche.
  *  - accueil : jour J et anneau, une seule action « Préparer », la fiche n'existe qu'après le clic ;
  *  - réglages : le prix du gramme part au serveur sans bouton « Enregistrer » ;
  *  - choix manquant : « Continuer » désactivé tant que le choix de l'étape n'est pas fait ;
  *  - sous le seuil : l'écran Résultat dit « Pas de zakat » ;
  *  - conflit de version : la fiche modifiée ailleurs est rechargée, la personne prévenue ;
- *  - année déjà prise : un jour J dans une année déjà calculée est signalé, avec le lien vers l'autre fiche.
+ *  - année déjà prise : un jour J dans une année déjà calculée est signalé, avec le lien vers l'autre fiche ;
+ *  - justificatif : téléchargé depuis le Résultat et depuis l'accueil (`zakat-{année}.pdf`) ;
+ *  - fiches Fondement : ouvertes depuis le Résultat (huit catégories), un choix (« Votre choix »), les repères
+ *    des autres biens (sur mobile, la feuille des repères se ferme d'abord), et l'accueil au clavier :
+ *    tiroir de 440 px côté fin (à gauche en arabe) ou feuille du bas, focus piégé, liste → fiche → liste,
+ *    Échap ferme et rend le focus.
  * Partout : console propre, aucun défilement horizontal. Les fiches sont supprimées à la fin.
  */
+import { readFile } from 'node:fs/promises';
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { visibleButton } from './lib/form.mjs';
 import { api } from './lib/products.mjs';
+import { focusReached } from './lib/wait.mjs';
 
 const report = createReport();
 const CALCS = 'zakat/calculations/';
@@ -141,6 +148,146 @@ async function checkYearTaken(page, locale, label) {
   report.check(href === `/zakat/${other.id}`, `${label} : année déjà prise — alerte et lien vers la fiche de ${other.hawl_year}`);
 }
 
+/** Lien du justificatif cliqué : nom du fichier reçu, et s'il s'agit bien d'un PDF. */
+async function downloadPdf(page, link) {
+  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), link.click()]);
+  const head = (await readFile(await download.path())).subarray(0, 5).toString();
+  return { name: download.suggestedFilename(), pdf: head === '%PDF-' };
+}
+
+const visibleLink = (page, name) => page.getByRole('link', { name, exact: true }).filter({ visible: true });
+const basisDialog = (page, locale, key) => page.getByRole('dialog', { name: msg(locale, `zakat.basis.${key}`), exact: true });
+const closed = (dialog) => dialog.waitFor({ state: 'hidden', timeout }).then(() => true, () => false);
+const focusInside = (dialog) => dialog.evaluate((el) => el.contains(document.activeElement));
+/** Rien ne déborde en largeur dans le panneau (badges, références, avis). */
+const fitsWidth = (dialog) => dialog.evaluate((el) => [...el.querySelectorAll('div')].every((d) => d.scrollWidth <= d.clientWidth + 1));
+/** Lignes du panneau qui contiennent tous ces textes. */
+const rowsWith = (dialog, ...texts) => texts.reduce((rows, text) => rows.filter({ hasText: text }), dialog.getByRole('listitem')).count();
+
+/** Panneau arrivé contre son bord (2 s au plus) : bord de fin sur desktop (droite, gauche en arabe), bas sur mobile. */
+function docked(dialog, mobile) {
+  return dialog.evaluate((el, onMobile) => new Promise((resolve) => {
+    const start = Date.now();
+    const poll = () => {
+      const r = el.getBoundingClientRect();
+      const width = document.documentElement.clientWidth;
+      const rtl = getComputedStyle(el).direction === 'rtl';
+      const ok = onMobile
+        ? Math.abs(r.bottom - window.innerHeight) < 2 && r.left < 2 && Math.abs(r.right - width) < 2
+        : Math.abs(r.width - 440) < 2 && (rtl ? Math.abs(r.left) < 2 : Math.abs(r.right - width) < 2);
+      if (ok || Date.now() - start > 2000) resolve(ok);
+      else requestAnimationFrame(poll);
+    };
+    poll();
+  }), mobile);
+}
+
+/** Tab fait le tour du panneau et revient au premier élément sans en sortir ; Maj+Tab y reste aussi. */
+async function tabTrapped(page, dialog) {
+  const count = await dialog.evaluate((el) => {
+    document.activeElement?.setAttribute('data-audit-start', '');
+    return [...el.querySelectorAll('a[href], button:not([disabled])')].filter((n) => n.offsetParent !== null).length;
+  });
+  let inside = true;
+  for (let i = 0; i < count; i++) {
+    await page.keyboard.press('Tab');
+    inside &&= await focusInside(dialog);
+  }
+  const looped = await dialog.evaluate(() => document.activeElement?.hasAttribute('data-audit-start') ?? false);
+  await page.keyboard.press('Shift+Tab');
+  inside &&= await focusInside(dialog);
+  return count > 1 && inside && looped;
+}
+
+/** Résultat d'une zakat due : justificatif téléchargé, « Voir les huit catégories » ouvre la fiche des bénéficiaires. */
+async function checkResult(page, viewport, locale, label) {
+  const calc = await createCalc(page, { reference_date: isoDay(-2400), cash_amount: '700000.00', current_step: 6 });
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=7`);
+  const link = visibleLink(page, msg(locale, viewport.mobile ? 'zakat.result.pdf_short' : 'zakat.result.pdf'));
+  const file = await appears(link) ? await downloadPdf(page, link) : null;
+  report.check(calc.totals.status === 'above_nisab' && file?.pdf && file.name === `zakat-${calc.hawl_year}.pdf`,
+    `${label} : Résultat — justificatif téléchargé (${file?.name ?? 'aucun fichier'})`);
+  const see = msg(locale, 'zakat.basis.see_categories');
+  const trigger = visibleButton(page, see);
+  await trigger.click();
+  const sheet = basisDialog(page, locale, 'topic.recipients.title');
+  const categories = await appears(sheet) ? await sheet.locator('ol > li').count() : 0;
+  await page.keyboard.press('Escape');
+  report.check(categories === 8 && await closed(sheet) && await focusReached(trigger),
+    `${label} : « ${see} » — fiche des bénéficiaires, ${categories} catégories sur 8, Échap rend le focus`);
+  return calc;
+}
+
+/** Jour J : « Sur quoi reposent ces avis ? » ouvre la fiche du seuil, « Votre choix » sur l'argent seul. */
+async function checkWhy(page, locale, label, calc) {
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=1`);
+  const why = msg(locale, 'zakat.basis.why');
+  await visibleButton(page, why).first().click();
+  const sheet = basisDialog(page, locale, 'topic.nisab.title');
+  const yours = msg(locale, 'zakat.basis.your_choice');
+  const marked = await appears(sheet) && await rowsWith(sheet, yours) === 1
+    && await rowsWith(sheet, yours, msg(locale, 'zakat.choice.nisab_method.silver.title')) === 1;
+  await page.keyboard.press('Escape');
+  report.check(marked && await closed(sheet), `${label} : « ${why} » — fiche du seuil, « ${yours} » sur l'argent seulement`);
+}
+
+/** Autres biens : « Voir les sources » ouvre la fiche ; sur mobile depuis la feuille des repères, qui se ferme d'abord. */
+async function checkOtherSources(page, viewport, locale, label, calc) {
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=5`);
+  const see = msg(locale, 'zakat.basis.see_sources');
+  const trigger = visibleButton(page, viewport.mobile ? msg(locale, 'zakat.steps.other.markers_link') : see);
+  await trigger.click();
+  if (viewport.mobile) {
+    const markers = page.getByRole('dialog', { name: msg(locale, 'zakat.steps.other.markers_title'), exact: true });
+    await markers.getByRole('button', { name: see, exact: true }).click();
+  }
+  const sheet = basisDialog(page, locale, 'topic.other.title');
+  const alone = await appears(sheet) && await page.getByRole('dialog').count() === 1;
+  await page.keyboard.press('Escape');
+  report.check(alone && await closed(sheet) && await focusReached(trigger),
+    `${label} : « ${see} » — fiche des autres biens, seule ouverte, Échap rend le focus${viewport.mobile ? ' au lien des repères' : ''}`);
+}
+
+/** Accueil : le justificatif de la dernière zakat se télécharge (historique sur desktop, sous l'anneau sur mobile). */
+async function checkHistoryPdf(page, locale, label) {
+  const [profile, list] = await Promise.all([api(page, 'zakat/profile/'), api(page, CALCS)]);
+  const last = list.results.find((row) => row.id !== profile.next_hawl?.calculation_id);
+  await page.goto(`${BASE}/zakat`);
+  const link = visibleLink(page, fmt(locale, 'zakat.home.history_pdf', { year: String(last.hawl_year) }));
+  const file = await appears(link) ? await downloadPdf(page, link) : null;
+  report.check(file?.pdf && file.name === `zakat-${last.hawl_year}.pdf`, `${label} : accueil — justificatif ${last.hawl_year} téléchargé`);
+}
+
+/**
+ * Fiches Fondement au clavier depuis l'accueil : tiroir ou feuille contre son bord, focus piégé ; fiche Stock
+ * (focus sur le retour, hadith discuté avec son badge, « Votre choix ») ; retour sur la fiche quittée ; Échap.
+ */
+async function checkBasisKeyboard(page, viewport, locale, label) {
+  await page.goto(`${BASE}/zakat`);
+  const see = msg(locale, 'zakat.basis.see_rules');
+  const trigger = visibleButton(page, see);
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  const index = basisDialog(page, locale, 'index_title');
+  const opened = await appears(index) && await docked(index, viewport.mobile) && await focusInside(index);
+  report.check(opened && await tabTrapped(page, index),
+    `${label} : « ${see} » au clavier — ${viewport.mobile ? 'feuille du bas' : 'tiroir de 440 px côté fin'}, focus piégé (Tab, Maj+Tab)`);
+  await index.locator('[data-topic="stock"]').focus();
+  await page.keyboard.press('Enter');
+  const topic = basisDialog(page, locale, 'topic.stock.title');
+  const shown = await appears(topic) && await focusReached(topic.locator('[data-basis-back]'));
+  const yours = msg(locale, 'zakat.basis.your_choice');
+  const badge = shown && await rowsWith(topic, msg(locale, 'zakat.basis.source.abu_dawud_1562.ref'), msg(locale, 'zakat.basis.badge.discussed')) === 1;
+  const marked = shown && await rowsWith(topic, yours) === 1 && await rowsWith(topic, yours, msg(locale, 'zakat.choice.stock_valuation.purchase.title')) === 1;
+  report.check(shown && badge && marked && await fitsWidth(topic),
+    `${label} : fiche Stock — focus sur le retour, hadith discuté avec son badge, « ${yours} » sur le prix d'achat, sans débordement`);
+  await page.keyboard.press('Enter');
+  const back = await appears(index) && await focusReached(index.locator('[data-topic="stock"]'));
+  await page.keyboard.press('Escape');
+  report.check(back && await closed(index) && await focusReached(trigger),
+    `${label} : retour à la liste (focus sur la fiche quittée), Échap ferme et rend le focus au lien`);
+}
+
 const browser = await launch();
 for (const viewport of VIEWPORTS) {
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
@@ -160,6 +307,11 @@ for (const viewport of VIEWPORTS) {
       await checkBelow(page, locale, label);
       await checkConflict(page, locale, label);
       await checkYearTaken(page, locale, label);
+      const due = await checkResult(page, viewport, locale, label);
+      await checkWhy(page, locale, label, due);
+      await checkOtherSources(page, viewport, locale, label, due);
+      await checkHistoryPdf(page, locale, label);
+      await checkBasisKeyboard(page, viewport, locale, label);
       // Les 409 (version, année) sont provoqués par l'audit lui-même.
       const problems = watch.problems.slice(before).filter((p) => !/status of 409 .*\/zakat\/calculations\//.test(p));
       report.check(problems.length === 0, `${label} : console propre${problems.map((p) => `\n      ${p}`).join('')}`);

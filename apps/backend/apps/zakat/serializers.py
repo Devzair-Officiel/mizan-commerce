@@ -382,7 +382,7 @@ class ZakatProfileSerializer(serializers.ModelSerializer):
             'hawl_date', 'calendar', 'next_hawl',
             'nisab_method', 'nisab_unit_price', 'nisab_price_updated_at', 'nisab_threshold',  # noqa: E501
             'stock_valuation', 'receivables_mode', 'debts_mode',
-            'ownership_share', 'updated_at',
+            'ownership_share', 'reminder_email_enabled', 'updated_at',
         ]
         read_only_fields = ['nisab_price_updated_at', 'updated_at']
 

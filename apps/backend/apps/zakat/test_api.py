@@ -93,6 +93,14 @@ class ProfileTest(ZakatAPITestCase):
         response = self.client.patch(PROFILE_URL, {'nisab_unit_price': None}, format='json')  # noqa: E501
         self.assertIsNone(response.data['nisab_price_updated_at'])
 
+    def test_reminder_email_on_by_default_and_can_be_turned_off(self):
+        self.assertIs(self.client.get(PROFILE_URL).data['reminder_email_enabled'], True)
+        response = self.client.patch(PROFILE_URL, {'reminder_email_enabled': False}, format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIs(response.data['reminder_email_enabled'], False)
+        response = self.client.patch(PROFILE_URL, {'reminder_email_enabled': None}, format='json')  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_choice_cannot_go_back_to_null(self):
         response = self.client.patch(PROFILE_URL, {'stock_valuation': None}, format='json')  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -361,8 +369,6 @@ class AuditTest(ZakatAPITestCase):
 
     def test_create_pdf_and_delete_are_logged_without_amounts(self):
         calc_id = self._create(cash_amount='12345.67').data['id']
-        # Plus de finalisation depuis Z2a : le justificatif refondu arrive en Z2b.
-        ZakatCalculation.objects.filter(pk=calc_id).update(status='finalized')
         pdf = self.client.get(reverse('zakat-calculation-pdf', kwargs={'pk': calc_id}))
         self.assertEqual(pdf.status_code, status.HTTP_200_OK)
         self.client.delete(_detail(calc_id))
@@ -371,9 +377,11 @@ class AuditTest(ZakatAPITestCase):
             self.assertNotIn('12345', f'{log.object_repr} {log.changes}')
             self.assertEqual(log.user, self.owner)
 
-    def test_refused_pdf_not_logged(self):
+    def test_pdf_refused_to_other_admin_not_logged(self):
         calc_id = self._create().data['id']
-        self.client.get(reverse('zakat-calculation-pdf', kwargs={'pk': calc_id}))
+        admin = _client(_member(self.shop, 'admin@example.com'))
+        pdf = admin.get(reverse('zakat-calculation-pdf', kwargs={'pk': calc_id}))
+        self.assertEqual(pdf.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(self._actions(), ['zakat_created'])
 
 

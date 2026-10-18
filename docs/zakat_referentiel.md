@@ -164,6 +164,7 @@ Gabarit : **Règle** (une phrase) · **Sources** (références + badge) · **Avi
 - [ ] Confirmer l'attribution des avis par école (D2, D3, D4)
 - [ ] Faire relire la terminologie arabe
 - [ ] Faire valider les repères « Autres biens » (D7, D8)
+- [ ] Relire les textes des fiches Fondement et du justificatif (fr / en / ar)
 
 ## 9. Sources consultées (octobre 2026)
 

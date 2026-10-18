@@ -5,18 +5,20 @@ import { useTranslations } from 'next-intl';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
 import { FormField } from '@/components/form/FormField';
 import { SectionCard } from '@/components/ui/SectionCard';
-import type { ZakatProfile, ZakatProfileChanges } from '@/lib/hooks/useZakat';
+import { Switch } from '@/components/ui/Switch';
+import type { ZakatProfile } from '@/lib/hooks/useZakat';
 import type { ZakatFormat } from '../useZakatFormat';
+import type { ProfileAutosave } from './useProfileAutosave';
 
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 interface SettingsHawlCardProps {
   profile: ZakatProfile;
-  save: (changes: ZakatProfileChanges) => void;
+  save: ProfileAutosave['save'];
   format: ZakatFormat;
 }
 
-/** Jour J habituel : les années suivantes en découlent selon le calendrier choisi (le serveur les calcule). */
+/** Jour J habituel (les années suivantes en découlent, calculées par le serveur) et rappel par e-mail 7 jours avant. */
 export function SettingsHawlCard({ profile, save, format }: SettingsHawlCardProps) {
   const t = useTranslations('zakat');
   const [date, setDate] = useState(profile.hawl_date ?? '');
@@ -42,6 +44,14 @@ export function SettingsHawlCard({ profile, save, format }: SettingsHawlCardProp
             {t('settings.next', { date: format.date(next.date), hijri: format.hijri(next.hijri) })}
           </p>
         )}
+        <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">{t('settings.reminder')}</p>
+            <p className="text-xs text-muted-foreground">{t('settings.reminder_help')}</p>
+          </div>
+          <Switch checked={profile.reminder_email_enabled} label={t('settings.reminder')}
+            onChange={(checked) => save({ reminder_email_enabled: checked }, true)} />
+        </div>
       </div>
     </SectionCard>
   );

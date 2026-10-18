@@ -186,6 +186,7 @@ export interface ZakatProfile extends Omit<ZakatChoices, 'ownership_share'> {
   ownership_share: string;
   nisab_threshold: string | null;
   next_hawl: NextHawl | null;
+  reminder_email_enabled: boolean;
   updated_at: string;
 }
 
@@ -239,6 +240,11 @@ export function yearTakenOf(error: unknown): YearTaken | null {
 /** La fiche a changé ailleurs (autre onglet, autre appareil) depuis la dernière lecture. */
 export function isVersionConflict(error: unknown): boolean {
   return error instanceof ApiError && error.status === 409 && yearTakenOf(error) === null;
+}
+
+/** Justificatif PDF d'une fiche, téléchargé via le proxy (réservé à son auteur). */
+export function zakatPdfHref(id: string): string {
+  return `/api/proxy/zakat/calculations/${id}/pdf/`;
 }
 
 // ── Hooks ────────────────────────────────────────────────────────────────────

@@ -1,15 +1,19 @@
+import logging
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
 from django.db.models import (
     DecimalField,
     Exists,
     ExpressionWrapper,
     F,
+    OuterRef,
     Q,
     QuerySet,
     Sum,
@@ -19,9 +23,12 @@ from django.utils import timezone
 from apps.core.audit import log_action
 from apps.orders.models import Order
 from apps.products.models import ProductVariant
-from apps.shops.models import Shop
-from . import hawl
+from apps.shops.models import Shop, ShopMember
+from apps.subscriptions.permissions import shop_has_feature
+from . import hawl, reminder_texts
 from .models import ZakatCalculation, ZakatProfile
+
+logger = logging.getLogger(__name__)
 
 
 # ── Erreurs (traduites en réponses HTTP par les vues) ─────────────────────────
@@ -864,3 +871,79 @@ def delete_member_zakat_data(shop: Shop, user: Any) -> None:
     """
     ZakatCalculation.objects.filter(shop=shop, user=user).delete()
     ZakatProfile.objects.filter(shop=shop, user=user).delete()
+
+
+# ── Rappel du jour J ──────────────────────────────────────────────────────────
+
+REMINDER_DAYS_BEFORE = 7
+
+
+def hawl_reminder_profiles() -> QuerySet:
+    """Profils à prévenir : réglage activé, jour J et calendrier choisis, personne
+    active et encore admin (propriétaire ou admin) de la boutique."""
+    admin = ShopMember.objects.filter(
+        shop_id=OuterRef('shop_id'), user_id=OuterRef('user_id'),
+        role__in=(ShopMember.ROLE_OWNER, ShopMember.ROLE_ADMIN),
+    )
+    return (
+        ZakatProfile.objects.filter(
+            Exists(admin), reminder_email_enabled=True, hawl_date__isnull=False,
+            calendar__isnull=False, user__is_active=True,
+        )
+        .select_related('shop', 'user')
+        .order_by('pk')
+    )
+
+
+def _reminder_day(profile: ZakatProfile, today: date) -> date | None:
+    """Prochain jour J s'il tombe dans 1 à 7 jours (J-7 à J-1), sinon `None`."""
+    cycle = _cycle(profile, today)
+    if cycle is None:
+        return None
+    day = cycle[1]
+    return day if 1 <= (day - today).days <= REMINDER_DAYS_BEFORE else None
+
+
+def send_hawl_reminder(profile: ZakatProfile, today: date) -> bool:
+    """E-mail à la personne, de J-7 à J-1, une seule fois par année de hawl.
+
+    La réservation (update conditionnel, jamais une lecture préalable) et l'envoi
+    partagent la transaction : un envoi en échec annule la réservation et le rappel
+    repart à l'exécution suivante. Une tâche simultanée attend le verrou de la ligne,
+    puis ne trouve plus rien à réserver.
+    """
+    day = _reminder_day(profile, today)
+    if day is None:
+        return False
+    calendar = profile.calendar
+    year = hawl.hawl_year(day, calendar)
+    with transaction.atomic():
+        claimed = (
+            ZakatProfile.objects.filter(pk=profile.pk, reminder_email_enabled=True)
+            .exclude(reminder_sent_calendar=calendar, reminder_sent_year=year)
+            .update(reminder_sent_calendar=calendar, reminder_sent_year=year)
+        )
+        if not claimed:
+            return False
+        subject, body = reminder_texts.build_email(profile.user, day)
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [profile.user.email])
+    return True
+
+
+def send_hawl_reminders(now: datetime | None = None) -> int:
+    """Tâche quotidienne : rappel de chaque profil, au jour du fuseau de sa boutique.
+
+    Seulement les boutiques dont la formule comprend la zakat. Un profil en erreur
+    n'empêche pas les autres.
+    """
+    now = now or timezone.now()
+    sent = 0
+    for profile in hawl_reminder_profiles().iterator():
+        if not shop_has_feature(profile.shop, 'zakat'):
+            continue
+        today = now.astimezone(ZoneInfo(profile.shop.timezone)).date()
+        try:
+            sent += send_hawl_reminder(profile, today)
+        except Exception:
+            logger.exception('Rappel zakat en échec pour le profil %s', profile.pk)
+    return sent

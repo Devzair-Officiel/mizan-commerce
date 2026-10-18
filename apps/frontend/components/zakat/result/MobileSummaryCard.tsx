@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import type { ZakatCalculation } from '@/lib/hooks/useZakat';
+import { BasisLink } from '../basis/BasisLink';
 import type { ZakatFormat } from '../useZakatFormat';
 import { ChoiceRows } from './ChoiceRows';
 import type { ChoiceSummaryRow } from './useChoiceSummary';
@@ -38,7 +39,7 @@ export function MobileSummaryCard({ calc, rows, format, onGo }: MobileSummaryCar
       .map((asset) => t('result.outside_short_item', { label: asset.label, amount: format.money(asset.amount) })),
     t('result.outside_short_usage'),
   ];
-  const note = t(calc.review.is_latest ? 'choice.note_latest' : 'choice.note');
+  const note = t('result.choices_note', { latest: String(calc.review.is_latest) });
 
   return (
     <>
@@ -50,7 +51,10 @@ export function MobileSummaryCard({ calc, rows, format, onGo }: MobileSummaryCar
           </button>
         )} />
         <SummaryRow title={t('result.outside_title')} text={format.list(outside)} />
-        <SummaryRow title={t('result.recipients_title')} text={t('result.recipients_text_short')} />
+        <SummaryRow title={t('result.recipients_title')} text={t('result.recipients_text_short')} action={(
+          <BasisLink view="recipients" label={t('result.see')} ariaLabel={t('basis.see_categories')} icon={false}
+            className="shrink-0 self-center px-1 text-[0.8125rem] whitespace-nowrap" />
+        )} />
       </ul>
       <BottomSheet open={open} onClose={() => setOpen(false)} title={t('result.choices_title')} description={note}>
         <div className="-mx-5 -my-4">

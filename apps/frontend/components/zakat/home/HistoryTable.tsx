@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ZakatListRow } from '@/lib/hooks/useZakat';
+import { zakatPdfHref, type ZakatListRow } from '@/lib/hooks/useZakat';
 import { NUM, TD, TH } from '../steps/tableStyles';
 import type { ZakatFormat } from '../useZakatFormat';
 import { resumeHref } from '../wizard/stepNav';
 import { HistoryBadge } from './HistoryBadge';
 
-/** Desktop : une ligne par fiche, entièrement cliquable (le lien de l'année couvre la ligne). */
+/** Desktop : une ligne par fiche, entièrement cliquable (le lien de l'année couvre la ligne, le lien PDF passe au-dessus). */
 export function HistoryTable({ rows, format }: { rows: ZakatListRow[]; format: ZakatFormat }) {
   const t = useTranslations('zakat.home');
   return (
@@ -20,6 +20,7 @@ export function HistoryTable({ rows, format }: { rows: ZakatListRow[]; format: Z
           <th scope="col" className={`${TH} text-end`}>{t('col_base')}</th>
           <th scope="col" className={`${TH} text-end`}>{t('col_zakat')}</th>
           <th scope="col" className={TH}>{t('col_status')}</th>
+          <th scope="col" className={`${TH} text-end`}>{t('col_pdf')}</th>
         </tr>
       </thead>
       <tbody>
@@ -39,6 +40,12 @@ export function HistoryTable({ rows, format }: { rows: ZakatListRow[]; format: Z
               {row.totals.zakat_total ? format.money(row.totals.zakat_total) : '—'}
             </td>
             <td className={TD}><HistoryBadge row={row} /></td>
+            <td className={`${TD} text-end`}>
+              <a href={zakatPdfHref(row.id)} download aria-label={t('history_pdf', { year: String(row.hawl_year) })}
+                className="relative z-10 rounded-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-primary/30">
+                {t('col_pdf')}
+              </a>
+            </td>
           </tr>
         ))}
       </tbody>

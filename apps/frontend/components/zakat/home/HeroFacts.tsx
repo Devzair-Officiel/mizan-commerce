@@ -20,7 +20,7 @@ function Fact({ label, value, note, warn }: { label: string; value: ReactNode; n
   );
 }
 
-/** Desktop : seuil (prix du gramme ancien signalé), calcul en cours, dernière zakat. */
+/** Desktop : seuil (prix du gramme ancien signalé), calcul en cours (ou le rappel, s'il n'y en a pas), dernière zakat. */
 export function HeroFacts({ facts, format }: { facts: Facts; format: ZakatFormat }) {
   const t = useTranslations('zakat.home');
   const { threshold, current, last } = facts;
@@ -35,7 +35,7 @@ export function HeroFacts({ facts, format }: { facts: Facts; format: ZakatFormat
     <div className="mt-5.5 grid grid-cols-3 gap-3 max-lg:hidden">
       <Fact label={threshold.label} value={threshold.value} note={threshold.note} warn={threshold.stale} />
       <Fact label={t('fact_current')} value={resume ?? t('fact_current_none')}
-        note={current ? t('modified_on', { date: format.instantDate(current.updated_at) }) : ''} />
+        note={current ? t('modified_on', { date: format.instantDate(current.updated_at) }) : facts.reminder} />
       {last && <Fact label={t('fact_last', { year: last.year })} value={last.value} note={last.note} />}
     </div>
   );
