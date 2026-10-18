@@ -10,7 +10,6 @@ import { notify } from '@/lib/notify';
 import { settingsSchema, type SettingsFormValues } from '@/components/settings/schema';
 import { IdentitySection } from '@/components/settings/IdentitySection';
 import { ManagementSection } from '@/components/settings/ManagementSection';
-import { ZakatSection } from '@/components/settings/ZakatSection';
 import { PreferencesSection } from '@/components/settings/PreferencesSection';
 import { StickyActionBar } from '@/components/settings/StickyActionBar';
 import { Button } from '@/components/ui/button';
@@ -22,9 +21,6 @@ function defaultsFromShop(shop: Shop): SettingsFormValues {
     name: shop.name,
     currency: shop.currency,
     country: shop.country ?? '',
-    zakat_annual_date: shop.zakat_annual_date ?? '',
-    nisab_method: shop.nisab_method ?? 'silver',
-    nisab_unit_price: shop.nisab_unit_price ?? '',
     legal_address: shop.legal_address ?? '',
     tax_id: shop.tax_id ?? '',
     legal_mentions: shop.legal_mentions ?? '',
@@ -52,10 +48,6 @@ export default function SettingsPage() {
     try {
       const saved = await mutateAsync({
         ...values,
-        zakat_annual_date: values.zakat_annual_date || null,
-        nisab_unit_price: values.nisab_unit_price && parseFloat(values.nisab_unit_price) > 0
-          ? values.nisab_unit_price
-          : null,
         default_tax_rate: values.default_tax_rate || '0',
         default_payment_terms_days: Number(values.default_payment_terms_days || 30),
       });
@@ -92,7 +84,6 @@ export default function SettingsPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 px-4 pt-4 pb-32 max-w-3xl mx-auto w-full">
         <IdentitySection shop={shop} register={register} errors={errors} />
         <ManagementSection />
-        <ZakatSection register={register} shop={shop} />
         <PreferencesSection register={register} />
 
         <StickyActionBar

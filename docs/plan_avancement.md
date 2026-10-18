@@ -194,10 +194,21 @@ religieux avant mise en ligne, § 8).
       calculs la même année), core 0004. `finalize` et `reopen` conservés (obsolètes).
       Écran actuel : année déjà calculée (409) → redirection vers la fiche existante ;
       catégorie `loan` libellée « Paiement échelonné » (fr / en / ar).
-- [ ] **Z2 — Écran** : nouveau parcours (profil, choix d'avis, autres biens, sources),
-      gestion du 409 (année déjà calculée, conflit de version, `version` obligatoire),
-      justificatif PDF refondu (choix, date de dernière modification), rappels par profil,
-      retrait de `finalize` et `reopen`.
+- [ ] **Z2a — Écrans** : accueil `/zakat` (jour J et anneau, une seule action, historique,
+      choix repris), `/zakat/new` (fiche créée au clic), assistant `/zakat/[id]?etape=1..7`
+      (barre d'étapes et colonne « Votre calcul » sur desktop, « Étape n sur 7 » et barre
+      d'action sur mobile ; cartes de choix sans option cochée d'avance, « Continuer »
+      désactivé tant que le choix manque ; saisies enregistrées automatiquement), écran
+      Résultat (variante « sous le seuil »), `/zakat/reglages` (enregistrement automatique,
+      section Zakat retirée des Paramètres), bandeau du tableau de bord (admins, jour J
+      réglé). 409 gérés : année déjà prise (lien vers la fiche), conflit de version (fiche
+      rechargée). Backend : choix propres à chaque fiche (la plus récente met à jour le
+      profil), créances liées aux commandes avec changements signalés, 5 articles les plus
+      élevés dans les sources, retrait de `finalize`, `reopen` et `draft/` ; migration
+      zakat 0013 (toutes les fiches repassent en brouillon). Audit `audit-zakat` réécrit.
+- [ ] **Z2b — Justificatif et rappels** : justificatif PDF refondu (choix, date de dernière
+      modification), rappel envoyé 7 jours avant le jour J (par profil), liens « Fondement »
+      et liens vers les sources du référentiel.
 - [ ] **Z3 — Nettoyage** : retrait des anciens champs (`Shop.zakat_annual_date`,
       `nisab_method`, `nisab_unit_price` ; `ZakatCalculation.debts_breakdown`,
       `receivables_breakdown`, `stock_breakdown`, `stock_value_adjusted`, `status`,

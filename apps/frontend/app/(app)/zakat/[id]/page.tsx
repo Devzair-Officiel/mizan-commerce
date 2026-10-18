@@ -1,174 +1,45 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { Suspense } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, FileText } from 'lucide-react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { TopBar } from '@/components/layout/TopBar';
-import { PatrimoineTable } from '@/components/zakat/PatrimoineTable';
-import { SimulationSlider } from '@/components/zakat/SimulationSlider';
-import { NisabCard } from '@/components/zakat/NisabCard';
-import { WealthDonut } from '@/components/zakat/WealthDonut';
-import { AuditCard } from '@/components/zakat/AuditCard';
-import { ResultHero } from '@/components/zakat/detail/ResultHero';
-import { CalcDetailCard } from '@/components/zakat/detail/CalcDetailCard';
-import { ExcludedItemsList } from '@/components/zakat/detail/ExcludedItemsList';
-import { ReligiousNotesGroup } from '@/components/zakat/detail/ReligiousNotesGroup';
-import { DetailActions } from '@/components/zakat/detail/DetailActions';
-import { buildDebtsRows, buildPatrimoineRows, computePatrimoineTotal } from '@/components/zakat/detail/rows';
-import { ApiError } from '@/lib/api-client';
-import {
-  useZakatCalculation,
-  useReopenZakat,
-  useDeleteZakatCalculation,
-} from '@/lib/hooks/useZakat';
-import { ConfirmDialog } from '@/components/ui/dialog';
-import { notify } from '@/lib/notify';
+import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
+import { parseStep } from '@/components/zakat/wizard/stepNav';
+import { ZakatWizard } from '@/components/zakat/wizard/ZakatWizard';
+import { useZakatCalculation } from '@/lib/hooks/useZakat';
 
-export default function ZakatDetailPage() {
-  const t = useTranslations('zakat.detail');
-  const tz = useTranslations('zakat');
-  const { id } = useParams<{ id: string }>();
+function ZakatCalculationScreen() {
+  const t = useTranslations('zakat');
   const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  const step = parseStep(useSearchParams().get('etape'));
   const { data: calc, isLoading } = useZakatCalculation(id);
-  const reopen = useReopenZakat();
-  const remove = useDeleteZakatCalculation();
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const handleEdit = async () => {
-    if (!calc) return;
-    try {
-      await reopen.mutateAsync(calc.id);
-      router.push('/zakat/new');
-    } catch (err) {
-      const message = err instanceof ApiError && err.data && typeof err.data === 'object'
-        ? ((err.data as { detail?: string }).detail ?? t('reopen_failed'))
-        : t('reopen_failed');
-      notify.error(message);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!calc) return;
-    await remove.mutateAsync(calc.id);
-    router.push('/zakat');
-  };
-
-  if (isLoading) {
-    return (
-      <>
-        <TopBar title={t('title')} back />
-        <div className="flex flex-col gap-3 p-4">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-xl border border-border bg-card p-4">
-              <div className="h-4 bg-muted animate-pulse rounded-md mb-2" />
-              <div className="h-3 bg-muted animate-pulse rounded-md w-1/3" />
-            </div>
-          ))}
-        </div>
-      </>
-    );
+  if (calc) {
+    // Une étape pas encore atteinte (adresse saisie à la main) : on reste sur la première étape à faire.
+    return <ZakatWizard key={calc.id} calc={calc} step={Math.min(step, calc.current_step)} />;
   }
-
-  if (!calc) {
-    return (
-      <>
-        <TopBar title={t('title')} back />
-        <div className="flex flex-col gap-3 px-4 py-8 items-center">
-          <p className="text-sm text-muted-foreground">{t('not_found')}</p>
-          <Link href="/zakat" className="text-sm text-primary underline">
-            {t('back_to_zakat')}
-          </Link>
-        </div>
-      </>
-    );
-  }
-
-  const ratePercent = (parseFloat(calc.zakat_rate) * 100).toFixed(2);
-  const patrimoineRows = buildPatrimoineRows(calc, tz);
-  const patrimoineTotal = computePatrimoineTotal(calc);
-  const debtsRows = buildDebtsRows(calc, tz);
-
   return (
-    <>
-      <TopBar title={t('title')} back />
-      <div className="flex flex-col gap-4 p-4 pb-24">
-        <Link
-          href="/zakat"
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1"
-        >
-          <ChevronLeft size={16} className="rtl:rotate-180" />
-          {t('back')}
-        </Link>
-
-        <ResultHero calc={calc} ratePercent={ratePercent} />
-
-        <PatrimoineTable
-          title={t('wealth_title')}
-          rows={patrimoineRows}
-          total={patrimoineTotal}
-          totalLabel={t('wealth_total')}
-          currency={calc.currency}
-        />
-
-        <WealthDonut calc={calc} />
-
-        {calc.debts_breakdown.length > 0 && (
-          <PatrimoineTable
-            title={t('debts_title')}
-            rows={debtsRows}
-            total={calc.short_term_debts}
-            totalLabel={t('debts_total')}
-            currency={calc.currency}
-            tone="negative"
-          />
+    <div className="mx-auto w-full max-w-280">
+      <TopBar title={t('home.title')} back backLabel={t('wizard.back')} onBack={() => router.push('/zakat')} hideSearch />
+      <div className="px-4 pt-2 lg:pt-0">
+        {isLoading ? <SectionsSkeleton sections={[2, 3]} /> : (
+          <div role="alert" className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-5 text-sm">
+            <p>{t('common.not_found')}</p>
+            <Link href="/zakat" className="font-semibold text-primary underline-offset-4 hover:underline">{t('common.back_home')}</Link>
+          </div>
         )}
-
-        <CalcDetailCard calc={calc} patrimoineTotal={patrimoineTotal} ratePercent={ratePercent} />
-
-        <NisabCard calc={calc} />
-        <AuditCard calc={calc} />
-        <ReligiousNotesGroup />
-        <SimulationSlider calc={calc} />
-        <ExcludedItemsList acknowledged={calc.excluded_items_acknowledged} />
-
-        {calc.status === 'finalized' && (
-          <a
-            href={`/api/proxy/zakat/calculations/${calc.id}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-          >
-            <FileText size={16} />
-            {t('download_pdf')}
-          </a>
-        )}
-
-        <DetailActions
-          isFinalized={calc.status === 'finalized'}
-          onEdit={handleEdit}
-          onDelete={() => setConfirmDelete(true)}
-          isEditing={reopen.isPending}
-          isDeleting={remove.isPending}
-        />
-
-        <ConfirmDialog
-          open={confirmDelete}
-          onOpenChange={setConfirmDelete}
-          title={t('delete_title')}
-          description={t('delete_description')}
-          onConfirm={handleDelete}
-          variant="destructive"
-          confirmLabel={t('delete')}
-        />
-
-        <div className="rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
-          <p className="text-xs text-amber-700 dark:text-amber-400">
-            {t('disclaimer')}
-          </p>
-        </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+export default function ZakatCalculationPage() {
+  return (
+    <Suspense>
+      <ZakatCalculationScreen />
+    </Suspense>
   );
 }

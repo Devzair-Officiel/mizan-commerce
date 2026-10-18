@@ -43,9 +43,10 @@ async function boutique(page, locale, label, original) {
   await field.waitFor();
   const form = page.locator('[data-settings-content] form');
   const headings = await form.getByRole('heading').filter({ visible: true }).allTextContents();
-  report.check(headings.includes(msg(locale, 'settings.identity.title')) && headings.includes(msg(locale, 'settings.zakat.title'))
-    && headings.includes(msg(locale, 'settings.preferences.title')) && await page.locator('#catalog_kind').isVisible(),
-  `${label} : cartes Identité, Zakat et Préférences à plat, logo en tête`);
+  // La zakat a ses propres réglages (/zakat/reglages) : plus de carte ici.
+  report.check(headings.includes(msg(locale, 'settings.identity.title')) && headings.includes(msg(locale, 'settings.preferences.title'))
+    && !headings.includes(msg(locale, 'zakat.home.title')) && await page.locator('#catalog_kind').isVisible(),
+  `${label} : cartes Identité et Préférences à plat, plus de carte Zakat, logo en tête`);
   const bar = page.locator('[data-settings-actions]');
   report.check(await bar.count() === 0, `${label} : aucune barre ni action masquée au clavier sans modification`);
   await field.fill(`${original.name} audit`);

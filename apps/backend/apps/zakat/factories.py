@@ -55,7 +55,7 @@ class ZakatCalculationFactory(DjangoModelFactory):
         {'order_id': None, 'label': 'Client parti sans payer', 'amount': '150.00', 'doubtful': True},  # noqa: E501
     ])
     other_assets = factory.LazyFunction(lambda: [
-        {'category': 'personal_cash', 'label': 'Épargne personnelle', 'amount': '2000.00', 'counted': True},  # noqa: E501
+        {'category': 'personal_cash', 'label': 'Espèces à la maison', 'amount': '2000.00', 'counted': True},  # noqa: E501
     ])
     debt_items = factory.LazyFunction(lambda: [
         {'category': 'supplier', 'label': 'Fournisseur principal', 'amount': '500.00', 'amount_within_12_months': '500.00'},  # noqa: E501

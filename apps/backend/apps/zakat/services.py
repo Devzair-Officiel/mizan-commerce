@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
@@ -44,10 +44,6 @@ class VersionConflictError(Exception):
         super().__init__('Le calcul a été modifié entre-temps.')
 
 
-class CalculationStateError(Exception):
-    """Opération impossible dans l'état actuel de la fiche (→ 400)."""
-
-
 # ── Constantes ────────────────────────────────────────────────────────────────
 
 ZERO = Decimal('0')
@@ -71,6 +67,17 @@ TOTALS_ABOVE_NISAB = 'above_nisab'
 
 # Choix sans lesquels le montant ne peut pas être calculé.
 CHOICE_FIELDS = ('calendar', 'stock_valuation', 'receivables_mode', 'debts_mode')
+
+# Plafond de lignes par saisie (créances, autres biens, dettes).
+MAX_LINES = 200
+TOP_STOCK_LINES = 5
+
+# État d'une commande liée à une créance, comparée à la copie de la fiche.
+ORDER_UNCHANGED = 'unchanged'
+ORDER_SETTLED = 'settled'
+ORDER_CANCELLED = 'cancelled'
+ORDER_CHANGED = 'changed'
+ORDER_REMOVED = 'removed'
 
 # Options de chaque choix, dans l'ordre fixe du référentiel (aucune recommandée).
 CHOICE_OPTIONS: dict[str, tuple[str, ...]] = {
@@ -141,7 +148,7 @@ def update_profile(profile: ZakatProfile, data: dict[str, Any]) -> ZakatProfile:
 
 
 def profile_choices(profile: ZakatProfile) -> dict[str, Any]:
-    """Copie JSON des choix du profil, enregistrée avec chaque calcul."""
+    """Copie JSON des choix du profil : point de départ d'une nouvelle fiche."""
     price = profile.nisab_unit_price
     updated_at = profile.nisab_price_updated_at
     return {
@@ -156,16 +163,60 @@ def profile_choices(profile: ZakatProfile) -> dict[str, Any]:
     }
 
 
-def next_hawl(profile: ZakatProfile) -> dict[str, Any] | None:
-    """Prochain jour J (date grégorienne + date hégirienne), si date et calendrier sont choisis."""  # noqa: E501
+def merge_choices(snapshot: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
+    """Choix de la fiche (JSON) avec les choix modifiés ; date le prix du gramme s'il change."""  # noqa: E501
+    merged = {**snapshot}
+    for name, value in changes.items():
+        merged[name] = str(value) if isinstance(value, Decimal) else value
+    if 'nisab_unit_price' in changes and merged['nisab_unit_price'] != snapshot.get('nisab_unit_price'):  # noqa: E501
+        stamp = timezone.now() if changes['nisab_unit_price'] is not None else None
+        merged['nisab_price_updated_at'] = stamp.isoformat() if stamp else None
+    return merged
+
+
+def _cycle(profile: ZakatProfile, today: date) -> tuple[date, date] | None:
+    """(jour J précédent, prochain jour J) ; `None` sans date ni calendrier."""
     if profile.hawl_date is None or profile.calendar is None:
         return None
     try:
-        day = hawl.next_hawl_date(profile.hawl_date, profile.calendar, shop_today(profile.shop))  # noqa: E501
+        return hawl.hawl_cycle(profile.hawl_date, profile.calendar, today)
+    except hawl.HijriRangeError:
+        return None
+
+
+def next_hawl(profile: ZakatProfile) -> dict[str, Any] | None:
+    """Prochain jour J : dates grégorienne et hégirienne, jours restants, longueur du
+    cycle, année de hawl et fiche déjà ouverte pour cette année (ou `None`).
+
+    `None` tant que la date ou le calendrier n'est pas choisi.
+    """
+    today = shop_today(profile.shop)
+    cycle = _cycle(profile, today)
+    if cycle is None:
+        return None
+    previous, day = cycle
+    try:
         year, month, hijri_day = hawl.to_hijri(day)
     except hawl.HijriRangeError:
         return None
-    return {'date': day, 'hijri': {'year': year, 'month': month, 'day': hijri_day}}
+    hawl_year = hawl.hawl_year(day, profile.calendar)
+    calculation_id = (
+        ZakatCalculation.objects.filter(
+            shop_id=profile.shop_id, user_id=profile.user_id,
+            hawl_calendar=profile.calendar, hawl_year=hawl_year,
+        )
+        .values_list('pk', flat=True)
+        .first()
+    )
+    return {
+        'date': day,
+        'hijri': {'year': year, 'month': month, 'day': hijri_day},
+        'days_remaining': (day - today).days,
+        'cycle_length': (day - previous).days,
+        'hawl_calendar': profile.calendar,
+        'hawl_year': hawl_year,
+        'calculation_id': calculation_id,
+    }
 
 
 # ── Seuil ─────────────────────────────────────────────────────────────────────
@@ -235,6 +286,54 @@ def _unpaid_orders(shop: Shop) -> QuerySet:
     )
 
 
+def _order_summary(order: Order) -> dict[str, Any]:
+    """Repères d'une commande pour l'écran : numéro, client, date, reste dû."""
+    return {
+        'order_id': order.pk,
+        'order_number': order.order_number,
+        'customer_name': order.customer.display_name if order.customer else None,
+        'created_at': order.created_at,
+        'remaining': max(ZERO, order.remaining),
+    }
+
+
+def _order_receivable(order: Order) -> dict[str, Any]:
+    """Créance copiée d'une commande non réglée (reste dû du jour)."""
+    return {
+        'order_id': str(order.pk),
+        'label': order.customer.display_name if order.customer else order.order_number,
+        'amount': str(order.remaining),
+        'doubtful': False,
+    }
+
+
+def _top_stock_lines(variants: QuerySet, value_field: str) -> list[dict[str, Any]]:
+    """Les formats qui pèsent le plus dans le stock, selon la valeur de vente ou d'achat."""  # noqa: E501
+    rows = (
+        variants.select_related('product')
+        .annotate(
+            sale_value=_line_value('selling_price'),
+            purchase_value=_line_value('purchase_price'),
+        )
+        .filter(**{f'{value_field}__isnull': False})
+        .order_by(F(value_field).desc(), 'product__name', 'packaging_name')[:TOP_STOCK_LINES]  # noqa: E501
+    )
+    return [
+        {
+            'variant_id': v.pk,
+            'product_id': v.product_id,
+            'product_name': v.product.name,
+            'packaging_name': v.packaging_name,
+            'quantity': v.stock_quantity,
+            'sale_price': v.selling_price,
+            'purchase_price': v.purchase_price,
+            'sale_value': _round(v.sale_value),
+            'purchase_value': _round(v.purchase_value) if v.purchase_value is not None else None,  # noqa: E501
+        }
+        for v in rows
+    ]
+
+
 def build_sources(shop: Shop) -> dict[str, Any]:
     """Ce que Mizan pré-remplit : valeurs du stock et créances clients de la boutique.
 
@@ -254,18 +353,17 @@ def build_sources(shop: Shop) -> dict[str, Any]:
         'stock_purchase_value': values.purchase,
         'active_formats_count': variants.count(),
         'formats_without_purchase_price': [
-            {'variant_id': v.pk, 'product_name': v.product.name, 'packaging_name': v.packaging_name}  # noqa: E501
+            {
+                'variant_id': v.pk, 'product_id': v.product_id,
+                'product_name': v.product.name, 'packaging_name': v.packaging_name,
+            }
             for v in without_price
         ],
-        'unpaid_orders': [
-            {
-                'id': o.pk,
-                'order_number': o.order_number,
-                'customer_name': o.customer.display_name if o.customer else None,
-                'remaining': o.remaining,
-            }
-            for o in orders
-        ],
+        'top_stock_lines': {
+            'sale': _top_stock_lines(variants, 'sale_value'),
+            'purchase': _top_stock_lines(variants, 'purchase_value'),
+        },
+        'unpaid_orders': [_order_summary(o) for o in orders],
         'unpaid_total': sum((o.remaining for o in orders), ZERO),
     }
 
@@ -295,6 +393,7 @@ class _Outcome:
     base: Decimal | None
     nisab_threshold: Decimal | None
     nisab_compared_amount: Decimal | None
+    nisab_ratio: Decimal | None
     rate: Decimal | None
     zakat_now: Decimal | None
     zakat_on_collection: Decimal | None
@@ -324,6 +423,8 @@ class ZakatTotals:
     base: Decimal | None
     nisab_threshold: Decimal | None
     nisab_compared_amount: Decimal | None
+    # Plus petit / plus grand de (net, seuil) pour la jauge : rien à calculer à l'écran.
+    nisab_ratio: Decimal | None
     rate: Decimal | None
     zakat_now: Decimal | None
     zakat_on_collection: Decimal | None
@@ -365,6 +466,12 @@ def _status(missing: tuple[str, ...], threshold: Decimal | None, below: bool) ->
     return TOTALS_BELOW_NISAB if below else TOTALS_ABOVE_NISAB
 
 
+def _nisab_ratio(net: Decimal | None, threshold: Decimal | None) -> Decimal | None:
+    if net is None or threshold is None or max(net, threshold) == ZERO:
+        return None
+    return (min(net, threshold) / max(net, threshold)).quantize(Decimal('0.001'))
+
+
 def _evaluate(amounts: _Amounts, choices: dict[str, Any]) -> _Outcome:
     """Applique les choix d'avis aux montants : base, seuil, zakat maintenant / à l'encaissement."""  # noqa: E501
     stock = {
@@ -402,7 +509,8 @@ def _evaluate(amounts: _Amounts, choices: dict[str, Any]) -> _Outcome:
     return _Outcome(
         stock=stock, receivables_in_base=in_base, receivables_on_collection=deferred,
         debts_deducted=debts, base=base, nisab_threshold=threshold,
-        nisab_compared_amount=net, rate=rate, zakat_now=zakat_now,
+        nisab_compared_amount=net, nisab_ratio=_nisab_ratio(net, threshold),
+        rate=rate, zakat_now=zakat_now,
         zakat_on_collection=zakat_later, zakat_total=total,
         missing_choices=missing, status=_status(missing, threshold, below),
     )
@@ -476,35 +584,23 @@ def debt_items_from_breakdown(debts_breakdown: Iterable[dict]) -> list[dict[str,
     ]
 
 
-def compute_zakat_amount(
-    stock_for_base: Decimal,
-    cash_amount: Decimal,
-    receivables_amount: Decimal,
-    short_term_debts: Decimal,
-    zakat_rate: Decimal,
-) -> tuple[Decimal, Decimal]:
-    """Calcul de l'écran actuel (finalisation) : (base, montant). Base bornée à 0."""
-    base = max(ZERO, stock_for_base + cash_amount + receivables_amount - short_term_debts)  # noqa: E501
-    return base, _round(base * zakat_rate)
-
-
 # ── Écritures ─────────────────────────────────────────────────────────────────
 
-def _stock_is_live(calc: ZakatCalculation) -> bool:
-    """Le stock suit le catalogue jusqu'au jour J inclus, puis reste figé."""
+def _is_live(calc: ZakatCalculation) -> bool:
+    """Jusqu'au jour J inclus, la fiche suit la boutique (stock, commandes) ; ensuite figée."""  # noqa: E501
     return shop_today(calc.shop) <= calc.reference_date
 
 
-def _refresh_derived(calc: ZakatCalculation, profile: ZakatProfile, *, refresh_stock: bool) -> None:  # noqa: E501
-    """Recalcule ce que le serveur dérive : année du hawl, copie des choix, stock, caches."""  # noqa: E501
-    calc.hawl_calendar = profile.calendar or hawl.CALENDAR_GREGORIAN
+def _refresh_derived(calc: ZakatCalculation, *, refresh_stock: bool) -> None:
+    """Recalcule ce que le serveur dérive : année du hawl (calendrier choisi dans la
+    fiche, grégorien à défaut), stock, caches hérités."""
+    calc.hawl_calendar = (calc.choices_snapshot or {}).get('calendar') or hawl.CALENDAR_GREGORIAN  # noqa: E501
     calc.hawl_year = hawl.hawl_year(calc.reference_date, calc.hawl_calendar)
-    calc.choices_snapshot = profile_choices(profile)
     if refresh_stock:
         values = compute_stock_values(calc.shop)
         calc.stock_sale_value = values.sale
         calc.stock_purchase_value = values.purchase
-    # Caches lus par l'écran actuel.
+    # Caches hérités (retirés en Z3).
     calc.stock_value_estimated = calc.stock_purchase_value
     if calc.receivables_breakdown:
         calc.receivables_amount = sum_recoverable_receivables(calc.receivables_breakdown)  # noqa: E501
@@ -534,44 +630,27 @@ def _duplicate_error(calc: ZakatCalculation, exc: IntegrityError) -> DuplicateHa
     return DuplicateHawlYearError(existing, calc.hawl_calendar, calc.hawl_year)
 
 
-_STATE_MESSAGES = {
-    ZakatCalculation.STATUS_DRAFT: 'Un calcul finalisé n\'est plus modifiable.',
-    ZakatCalculation.STATUS_FINALIZED: 'Seul un calcul finalisé peut être rouvert.',
-}
-
-
-def _write_refused(calc: ZakatCalculation, expected_status: str) -> Exception:
-    """Pourquoi l'écriture conditionnelle n'a touché aucune ligne."""
-    current = (
+def _write_refused(calc: ZakatCalculation) -> Exception:
+    """Pourquoi l'écriture conditionnelle n'a touché aucune ligne : fiche supprimée ou
+    version périmée."""
+    version = (
         ZakatCalculation.objects.filter(pk=calc.pk, shop_id=calc.shop_id, user_id=calc.user_id)  # noqa: E501
-        .values_list('status', 'version')
+        .values_list('version', flat=True)
         .first()
     )
-    if current is None:
+    if version is None:
         return ZakatCalculation.DoesNotExist()
-    status, version = current
-    if status != expected_status:
-        return CalculationStateError(_STATE_MESSAGES[expected_status])
     return VersionConflictError(version)
 
 
 def _conditional_write(
-    calc: ZakatCalculation,
-    fields: dict[str, Any],
-    *,
-    expected_status: str,
-    expected_version: int | None = None,
-    extra_condition: Q | None = None,
+    calc: ZakatCalculation, fields: dict[str, Any], *, expected_version: int,
 ) -> ZakatCalculation:
-    """UPDATE … WHERE pk, boutique, personne, statut [, version] ; sans verrou.
+    """UPDATE … WHERE pk, boutique, personne, version ; sans verrou.
 
-    0 ligne → 404, 400 ou 409 selon l'état relu ; unicité violée → 409.
+    0 ligne → 404 ou 409 selon l'état relu ; unicité violée → 409.
     """
-    condition = Q(pk=calc.pk, shop_id=calc.shop_id, user_id=calc.user_id, status=expected_status)  # noqa: E501
-    if expected_version is not None:
-        condition &= Q(version=expected_version)
-    if extra_condition is not None:
-        condition &= extra_condition
+    condition = Q(pk=calc.pk, shop_id=calc.shop_id, user_id=calc.user_id, version=expected_version)  # noqa: E501
     try:
         with transaction.atomic():
             updated = ZakatCalculation.objects.filter(condition).update(
@@ -580,9 +659,34 @@ def _conditional_write(
     except IntegrityError as exc:
         raise _duplicate_error(calc, exc) from exc
     if not updated:
-        raise _write_refused(calc, expected_status)
+        raise _write_refused(calc)
     calc.refresh_from_db()
     return calc
+
+
+def _newer_calculations(calc: ZakatCalculation) -> QuerySet:
+    """Fiches de la même personne dont le jour J est postérieur."""
+    return ZakatCalculation.objects.filter(
+        shop_id=calc.shop_id, user_id=calc.user_id, reference_date__gt=calc.reference_date,  # noqa: E501
+    )
+
+
+def _sync_latest_profile(calc: ZakatCalculation, changes: dict[str, Any]) -> None:
+    """Le profil (point de départ des prochaines fiches) reprend les choix modifiés de
+    la fiche la plus récente ; jamais le jour J.
+
+    Condition portée par l'UPDATE (aucune fiche plus récente), pas par une lecture
+    préalable : à appeler dans la transaction qui écrit la fiche.
+    """
+    fields = dict(changes)
+    if 'nisab_unit_price' in changes:
+        stamp = calc.choices_snapshot.get('nisab_price_updated_at')
+        fields['nisab_price_updated_at'] = datetime.fromisoformat(stamp) if stamp else None  # noqa: E501
+    (
+        ZakatProfile.objects.filter(shop_id=calc.shop_id, user_id=calc.user_id)
+        .filter(~Exists(_newer_calculations(calc)))
+        .update(**fields, updated_at=timezone.now())
+    )
 
 
 def get_calculation(shop: Shop, user: Any, pk: Any) -> ZakatCalculation:
@@ -591,15 +695,27 @@ def get_calculation(shop: Shop, user: Any, pk: Any) -> ZakatCalculation:
 
 
 def create_calculation(shop: Shop, user: Any, data: dict[str, Any]) -> ZakatCalculation:
-    """Crée la fiche de la personne pour l'année du jour J ; doublon d'année → 409."""
+    """Crée la fiche de la personne ; doublon d'année → 409.
+
+    Jour J : celui reçu, sinon le prochain du profil, sinon aujourd'hui. Choix copiés
+    du profil. Sans créances reçues, les commandes non réglées sont recopiées.
+    """
     profile = get_or_create_profile(shop, user)
+    data = dict(data)
+    changes = data.pop('choices_snapshot', None) or {}
+    if data.get('reference_date') is None:
+        cycle = _cycle(profile, shop_today(shop))
+        data['reference_date'] = cycle[1] if cycle else shop_today(shop)
     calc = ZakatCalculation(
         shop=shop, user=user, currency=shop.currency,
         status=ZakatCalculation.STATUS_DRAFT, **data,
     )
+    calc.choices_snapshot = merge_choices(profile_choices(profile), changes)
+    if 'receivable_items' not in data:
+        calc.receivable_items = [_order_receivable(o) for o in _unpaid_orders(shop)[:MAX_LINES]]  # noqa: E501
     if 'debts_breakdown' in data and 'debt_items' not in data:
         calc.debt_items = debt_items_from_breakdown(calc.debts_breakdown)
-    _refresh_derived(calc, profile, refresh_stock=True)
+    _refresh_derived(calc, refresh_stock=True)
     try:
         with transaction.atomic():
             calc.save(force_insert=True)
@@ -617,26 +733,35 @@ def update_calculation(
     calc: ZakatCalculation,
     data: dict[str, Any],
     *,
-    expected_version: int | None = None,
+    expected_version: int,
     refresh_stock: bool = False,
 ) -> ZakatCalculation:
-    """Enregistre une modification. Version absente (écran actuel) : pas de contrôle."""
-    if calc.status != ZakatCalculation.STATUS_DRAFT:
-        raise CalculationStateError(_STATE_MESSAGES[ZakatCalculation.STATUS_DRAFT])
-    if expected_version is not None and expected_version != calc.version:
+    """Enregistre une modification ; version périmée → 409.
+
+    Les choix appartiennent à la fiche : un changement de calendrier recalcule l'année
+    (409 si elle est prise, rien n'est écrit). Si la fiche est la plus récente de la
+    personne, son profil reprend les choix modifiés dans la même transaction.
+    """
+    if expected_version != calc.version:
         raise VersionConflictError(calc.version)
+    data = dict(data)
+    changes = data.pop('choices_snapshot', None) or {}
     for name, value in data.items():
         setattr(calc, name, value)
     fields = set(data) | set(DERIVED_FIELDS)
     if 'debts_breakdown' in data and 'debt_items' not in data:
         calc.debt_items = debt_items_from_breakdown(calc.debts_breakdown)
         fields.add('debt_items')
-    profile = get_or_create_profile(calc.shop, calc.user)
-    _refresh_derived(calc, profile, refresh_stock=refresh_stock or _stock_is_live(calc))
-    return _conditional_write(
-        calc, {name: getattr(calc, name) for name in fields},
-        expected_status=ZakatCalculation.STATUS_DRAFT, expected_version=expected_version,  # noqa: E501
-    )
+    calc.choices_snapshot = merge_choices(calc.choices_snapshot or {}, changes)
+    _refresh_derived(calc, refresh_stock=refresh_stock or _is_live(calc))
+    with transaction.atomic():
+        calc = _conditional_write(
+            calc, {name: getattr(calc, name) for name in fields},
+            expected_version=expected_version,
+        )
+        if changes:
+            _sync_latest_profile(calc, changes)
+    return calc
 
 
 def delete_calculation(calc: ZakatCalculation, user: Any) -> None:
@@ -657,46 +782,79 @@ def record_pdf_download(calc: ZakatCalculation, user: Any) -> None:
     )
 
 
-def finalize_calculation(calc: ZakatCalculation) -> ZakatCalculation:
-    """Obsolète (écran actuel, retiré en Z2) : fige base et montant, seuil des réglages boutique."""  # noqa: E501
-    if calc.status == ZakatCalculation.STATUS_FINALIZED:
-        raise CalculationStateError('Calcul déjà finalisé.')
-    profile = get_or_create_profile(calc.shop, calc.user)
-    _refresh_derived(calc, profile, refresh_stock=_stock_is_live(calc))
-    base, amount = compute_zakat_amount(
-        stock_for_base=calc.stock_value_for_base,
-        cash_amount=calc.cash_amount,
-        receivables_amount=calc.receivables_amount,
-        short_term_debts=calc.short_term_debts,
-        zakat_rate=calc.zakat_rate,
-    )
-    fields = {name: getattr(calc, name) for name in DERIVED_FIELDS}
-    fields.update(
-        zakat_base=base, zakat_amount=amount, currency=calc.shop.currency,
-        nisab_method=calc.shop.nisab_method,
-        nisab_unit_price=calc.shop.nisab_unit_price,
-        nisab_threshold=compute_nisab_threshold(calc.shop),
-        status=ZakatCalculation.STATUS_FINALIZED, finalized_at=timezone.now(),
-    )
-    return _conditional_write(calc, fields, expected_status=ZakatCalculation.STATUS_DRAFT)  # noqa: E501
+# ── Repères de l'écran ────────────────────────────────────────────────────────
+
+def _order_state(order: Order | None, amount: Decimal) -> str:
+    if order is None:
+        return ORDER_REMOVED
+    if order.status == 'cancelled':
+        return ORDER_CANCELLED
+    if order.remaining <= ZERO:
+        return ORDER_SETTLED
+    return ORDER_CHANGED if order.remaining != amount else ORDER_UNCHANGED
 
 
-def reopen_calculation(calc: ZakatCalculation) -> ZakatCalculation:
-    """Obsolète (écran actuel, retiré en Z2) : repasse en brouillon s'il n'y en a pas d'autre."""  # noqa: E501
-    if calc.status != ZakatCalculation.STATUS_FINALIZED:
-        raise CalculationStateError(_STATE_MESSAGES[ZakatCalculation.STATUS_FINALIZED])
-    other_drafts = ZakatCalculation.objects.filter(
-        shop_id=calc.shop_id, user_id=calc.user_id, status=ZakatCalculation.STATUS_DRAFT,  # noqa: E501
-    ).exclude(pk=calc.pk)
-    if other_drafts.exists():
-        raise CalculationStateError(
-            'Un autre brouillon est déjà en cours. Finalisez-le ou supprimez-le d\'abord.',  # noqa: E501
-        )
-    return _conditional_write(
-        calc, {'status': ZakatCalculation.STATUS_DRAFT, 'finalized_at': None},
-        expected_status=ZakatCalculation.STATUS_FINALIZED,
-        extra_condition=~Exists(other_drafts),
+def _linked_order(item: dict[str, Any], order: Order | None, live: bool) -> dict[str, Any]:  # noqa: E501
+    state = _order_state(order, _decimal(item.get('amount'))) if live else ORDER_UNCHANGED  # noqa: E501
+    if order is None:
+        summary = {
+            'order_id': item['order_id'], 'order_number': None, 'customer_name': None,
+            'created_at': None, 'remaining': None,
+        }
+    else:
+        summary = _order_summary(order)
+    return {**summary, 'state': state}
+
+
+def receivable_review(calc: ZakatCalculation) -> dict[str, list[dict[str, Any]]]:
+    """Créances liées à une commande, comparées à la commande aujourd'hui (réglée,
+    annulée, supprimée, reste dû changé), et commandes non réglées absentes de la fiche.
+
+    Jour J passé : la fiche est figée, rien n'est signalé ni proposé.
+    """
+    lines = [item for item in calc.receivable_items or [] if item.get('order_id')]
+    ids = [item['order_id'] for item in lines]
+    orders = {
+        str(o.pk): o
+        for o in Order.objects.filter(shop_id=calc.shop_id, pk__in=ids)
+        .annotate(remaining=F('total_amount') - F('amount_paid'))
+        .select_related('customer')
+    }
+    live = _is_live(calc)
+    new = _unpaid_orders(calc.shop).exclude(pk__in=ids)[:MAX_LINES] if live else []
+    return {
+        'linked': [_linked_order(item, orders.get(item['order_id']), live) for item in lines],  # noqa: E501
+        'new': [_order_summary(o) for o in new],
+    }
+
+
+def _differs_from_profile_hawl(calc: ZakatCalculation) -> bool:
+    """Le jour J de la fiche ne tombe pas sur le jour J du profil (ou il n'y en a pas)."""  # noqa: E501
+    hawl_date = (
+        ZakatProfile.objects.filter(shop_id=calc.shop_id, user_id=calc.user_id)
+        .values_list('hawl_date', flat=True)
+        .first()
     )
+    if hawl_date is None:
+        return True
+    try:
+        anniversary = hawl.next_hawl_date(hawl_date, calc.hawl_calendar, calc.reference_date)  # noqa: E501
+    except hawl.HijriRangeError:
+        return False
+    return anniversary != calc.reference_date
+
+
+def calculation_review(calc: ZakatCalculation) -> dict[str, Any]:
+    """Repères de l'écran de la fiche : la plus récente de la personne ? encore vivante
+    (jour J pas passé) ? jour J du profil différent (proposé seulement sur la plus
+    récente) ? état des commandes liées."""
+    is_latest = not _newer_calculations(calc).exists()
+    return {
+        'is_latest': is_latest,
+        'is_live': _is_live(calc),
+        'hawl_date_differs': is_latest and _differs_from_profile_hawl(calc),
+        'receivable_orders': receivable_review(calc),
+    }
 
 
 def delete_member_zakat_data(shop: Shop, user: Any) -> None:

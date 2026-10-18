@@ -6,19 +6,25 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { NoticeCard } from '@/components/dashboard/NoticeCard';
 import { useMe, useResendEmailVerification } from '@/lib/hooks/useMe';
-import { useShop } from '@/lib/hooks/useShop';
-import { computeZakatDays } from '@/components/dashboard/utils';
+import { usePlanGating } from '@/lib/hooks/usePlanGating';
+import { useZakatProfile } from '@/lib/hooks/useZakat';
 
+/** Le bandeau de la zakat apparaît dans le dernier mois avant le jour J. */
+const ZAKAT_NOTICE_DAYS = 30;
+
+/** Un seul bandeau à la fois (§ 7) : l'adresse email à vérifier passe avant la zakat. */
 export function DashboardNotice() {
   const { data: me } = useMe();
-  const { data: shop } = useShop();
+  const gating = usePlanGating();
+  // Zakat : administrateurs dont la formule la couvre, et seulement si le jour J est réglé.
+  const zakatAllowed = me?.membership?.is_admin === true && !gating.isLoading && gating.can('zakat');
+  const { data: zakat } = useZakatProfile(zakatAllowed);
 
   const needsEmailVerif = me !== undefined && !me.email_verified_at;
-  const zakatDays = computeZakatDays(shop?.zakat_annual_date ?? null);
-  const showZakat = !needsEmailVerif && zakatDays !== null && zakatDays <= 30;
+  const next = zakatAllowed ? zakat?.next_hawl ?? null : null;
 
   if (needsEmailVerif) return <EmailNotice />;
-  if (showZakat) return <ZakatNotice days={zakatDays!} />;
+  if (next && next.days_remaining <= ZAKAT_NOTICE_DAYS) return <ZakatNotice days={next.days_remaining} />;
   return null;
 }
 
@@ -53,7 +59,7 @@ function ZakatNotice({ days }: { days: number }) {
       title={t('zakat_title', { days })}
       sub={t('zakat_sub')}
       action={
-        <Button render={<Link href="/settings?tab=zakat" />} size="sm" variant="outline"
+        <Button render={<Link href="/zakat" />} size="sm" variant="outline"
           className="h-7 shrink-0 px-3 text-xs font-semibold border-amber-300 dark:border-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/20">
           {t('zakat_cta')}
         </Button>

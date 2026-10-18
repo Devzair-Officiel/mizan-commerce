@@ -16,21 +16,3 @@ export function computeRelativeAge(timestamp: number): RelativeAge {
   if (hours < 24) return { unit: 'hours', count: hours };
   return { unit: 'days', count: Math.floor(hours / 24) };
 }
-
-export function computeZakatDays(annualDate: string | null): number | null {
-  if (!annualDate) return null;
-  const parts = annualDate.split('-');
-  if (parts.length !== 3) return null;
-  const month = Number(parts[1]) - 1;
-  const day = Number(parts[2]);
-  if (Number.isNaN(month) || Number.isNaN(day)) return null;
-
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  let target = new Date(now.getFullYear(), month, day);
-  if (target < todayMidnight) {
-    target = new Date(now.getFullYear() + 1, month, day);
-  }
-  const diff = Math.round((target.getTime() - todayMidnight.getTime()) / 86_400_000);
-  return diff;
-}

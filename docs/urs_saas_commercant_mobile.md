@@ -776,7 +776,7 @@ L'application est organisée autour des modules suivants :
 - Choix proposés : calendrier, seuil (or ou argent), prix retenu pour le stock (vente ou achat), créances sûres (comptées chaque année ou versées à l'encaissement), dettes déduites (toutes, part due dans les 12 mois, aucune).
 - Aucun choix n'est pré-rempli ni recommandé ; les options sont présentées dans un ordre fixe.
 - Tant qu'un choix manque, le montant n'est pas calculé et l'application indique lequel ; sans prix du gramme, elle indique que le seuil est inconnu.
-- Les choix sont rappelés au calcul suivant, modifiables à tout moment et recopiés dans la fiche à chaque enregistrement.
+- Les choix du profil sont copiés dans la fiche à sa création, puis modifiables à tout moment dans la fiche ; ceux de la fiche la plus récente sont repris pour le calcul suivant. Une fiche plus ancienne ne change ni le profil ni les autres fiches.
 - Créances versées à l'encaissement : même total qu'en les comptant chaque année (seuil comparé au même net) ; la zakat est séparée en « à verser maintenant », sur les actifs hors créances diminués des dettes, et « à verser à l'encaissement », pour le reste.
 - Les créances douteuses ne sont jamais comptées.
 
