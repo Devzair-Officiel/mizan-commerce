@@ -593,9 +593,6 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
       avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
 
-- [ ] Audit sales dépendant de l'historique de la boutique d'audit (échoue avec moins de deux
-      points).
-
 - [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL, recherche numéro
       instable.
 
