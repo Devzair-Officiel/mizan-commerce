@@ -641,7 +641,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
-- [ ] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
+- [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
 ### Vérification des affirmations marketing (lot 7d)
 
@@ -655,7 +655,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 | Boutique : tout Solo, vous + 3 membres, factures avec logo/couleur ; Commerce+ : tout Boutique, équipe illimitée | Migrations des plans, `enforce_member_limit`, vues Équipe et facturation ; lots 6/7b/7c. Les autres bénéfices annoncés sont soumis aux cases de lancement ci-dessus. |
 | Utilisation dans le navigateur ; données séparées par boutique | Routes Next.js existantes, filtrage `get_shop` des vues métier et tests multi-tenant ; V1 Sécurité & droits. Aucune promesse de chiffrement, d'export intégral ou de suppression à la demande dans la FAQ. |
 | Français, anglais et arabe avec lecture droite-à-gauche | `apps/frontend/i18n/locales.ts`, catalogues fr/en/ar, direction de `apps/frontend/app/layout.tsx`. |
-| Zakat : stock, trésorerie, créances recouvrables, dettes immédiatement exigibles, taux par défaut 2,5 %, nisab à renseigner, estimation indicative | `apps/backend/apps/zakat/services.py`, `apps/backend/apps/zakat/models.py`, mentions `zakat.disclaimer` dans le catalogue français ; V1 Zakat. |
+| Zakat : trésorerie, stock à sa valeur du jour, créances et autres biens ajoutés au jour J ; dettes déduites selon l'avis choisi ; choix laissé au commerçant là où les écoles divergent, chaque règle avec ses sources ; calcul personnel, visible par son seul auteur ; estimation | `docs/zakat_referentiel.md` (§ 1) ; `compute_totals` dans `apps/backend/apps/zakat/services.py` (dettes selon `debts_mode`, sans valeur par défaut ; aucun montant tant qu'un choix manque) ; fiches « Fondement » `apps/frontend/components/zakat/basis/basisCatalog.ts` et textes `zakat.basis.*` (règle, sources, avis) ; `get_calculation` filtre par boutique et par personne (404 pour un autre membre) ; lots Z1 à Z3. |
 
 Écarts éditoriaux : les bénéfices détaillés demandés pour la landing ne figurent pas
 tous mot pour mot dans `plans.*.fN` (notamment fidélité, statistiques, inventaire photo,

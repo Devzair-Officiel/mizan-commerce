@@ -9,7 +9,7 @@ type Feat = {
 const FEATURES: Feat[] = [
   { ic: 'box', t: 'Produits & stock', d: 'Catalogue clair, prix, et stock à jour en temps réel avec alertes de rupture.' },
   { ic: 'cart', t: 'Commandes & expédition', d: 'Suivez chaque commande et préparez vos colis sans rien oublier.' },
-  { ic: 'scale', t: 'Zakat commerciale', d: 'Estimation automatique de votre zakat, à titre indicatif, d\u2019après vos données.' },
+  { ic: 'scale', t: 'Zakat commerciale', d: 'Estimation de votre zakat d\u2019après vos données et les avis que vous choisissez, sources à l\u2019appui.' },
   { ic: 'chat', t: 'Messages WhatsApp prêts', d: 'Réponses et fiches produits prêtes à envoyer en un seul tap.' },
   { ic: 'globe', t: 'Page boutique en ligne', d: 'Un mini-site de présentation de vos produits, prêt à partager.' },
   { ic: 'note', t: 'Notes & rappels', d: 'Relances, paiements, tâches du jour — rien ne vous échappe.' },
