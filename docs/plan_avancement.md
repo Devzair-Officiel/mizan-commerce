@@ -194,7 +194,7 @@ religieux avant mise en ligne, § 8).
       calculs la même année), core 0004. `finalize` et `reopen` conservés (obsolètes).
       Écran actuel : année déjà calculée (409) → redirection vers la fiche existante ;
       catégorie `loan` libellée « Paiement échelonné » (fr / en / ar).
-- [ ] **Z2a — Écrans** : accueil `/zakat` (jour J et anneau, une seule action, historique,
+- [x] **Z2a — Écrans** : accueil `/zakat` (jour J et anneau, une seule action, historique,
       choix repris), `/zakat/new` (fiche créée au clic), assistant `/zakat/[id]?etape=1..7`
       (barre d'étapes et colonne « Votre calcul » sur desktop, « Étape n sur 7 » et barre
       d'action sur mobile ; cartes de choix sans option cochée d'avance, « Continuer »
@@ -595,6 +595,9 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [ ] Audit sales dépendant de l'historique de la boutique d'audit (échoue avec moins de deux
       points).
+
+- [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL, recherche numéro
+      instable.
 
 ---
 
