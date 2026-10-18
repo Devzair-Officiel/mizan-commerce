@@ -21,6 +21,7 @@ export function Halal() {
                 <p>
                   Une estimation transparente — stock, trésorerie, créances et dettes — fournie à titre
                   indicatif d&apos;après vos données, pour préparer votre zakat l&apos;esprit tranquille.
+                  Là où les écoles divergent, c&apos;est vous qui choisissez, et chaque règle indique ses sources.
                 </p>
               </div>
             </div>
