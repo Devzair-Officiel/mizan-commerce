@@ -104,8 +104,10 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
             shop=shop, name='Marc Dupuis', phone='+33611000102',
             city='Grenoble', notes='',
         )
-        # Impayée depuis 5 jours : la tâche des rappels automatiques la relance.
-        _order(shop, owner, nadia, tote, 'to_prepare', paid=False, days_ago=5)
+        # Impayée depuis 9 jours : la tâche des rappels automatiques la relance, et
+        # elle tombe toujours dans une autre semaine que celle du jour (audit sales :
+        # au moins deux points « Depuis le début »).
+        _order(shop, owner, nadia, tote, 'to_prepare', paid=False, days_ago=9)
         _order(shop, owner, marc, retouche, 'shipped', paid=True)
 
     if stdout:
