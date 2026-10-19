@@ -30,17 +30,16 @@ export function Footer() {
             <Link href="/#halal">Zakat & halal</Link>
           </div>
           <div className="foot-col">
-            <h5>Légal</h5>
-            <Link href="/mentions-legales">Mentions légales</Link>
-            <Link href="/confidentialite">Confidentialité</Link>
-          </div>
-          <div className="foot-col">
             <h5>Contact</h5>
             <a href="mailto:contact@mizan-commerce.com">contact@mizan-commerce.com</a>
           </div>
         </div>
         <div className="foot-bottom">
           <span>© 2026 mizan commerce. Tous droits réservés.</span>
+          <div className="foot-legal">
+            <Link href="/mentions-legales">Mentions légales</Link>
+            <Link href="/confidentialite">Confidentialité</Link>
+          </div>
           <span style={{ color: 'rgba(227,201,135,0.6)' }}>mizan — l&apos;équilibre de votre commerce</span>
         </div>
       </div>

@@ -356,14 +356,17 @@
 
 /* FOOTER */
 .mkt .footer { background: var(--mkt-green-900); color: rgba(246,241,230,0.7); padding: 64px 0 40px; }
-.mkt .foot-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: 36px; margin-bottom: 44px; }
+.mkt .foot-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)) max-content; gap: 36px; margin-bottom: 44px; }
 .mkt .foot-brand .wm { font-family: var(--mkt-serif); font-size: 32px; color: var(--mkt-gold-soft); }
 .mkt .foot-brand p { font-size: 15px; max-width: 280px; margin: 14px 0 0; }
-.mkt .foot-col { min-width: 0; overflow-wrap: anywhere; }
 .mkt .foot-col h5 { margin: 0 0 16px; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mkt-gold-soft); font-weight: 800; }
 .mkt .foot-col a { display: block; font-size: 15px; margin-bottom: 11px; color: rgba(246,241,230,0.68); transition: color .15s; }
 .mkt .foot-col a:hover { color: var(--mkt-gold-soft); }
+.mkt .foot-col a[href^="mailto:"] { white-space: nowrap; }
 .mkt .foot-bottom { border-top: 1px solid rgba(246,241,230,0.12); padding-top: 26px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; flex-wrap: wrap; gap: 12px; }
+.mkt .foot-legal { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.mkt .foot-legal a { text-decoration: underline; text-underline-offset: 3px; }
+.mkt .foot-legal a:hover { color: var(--mkt-gold-soft); }
 
 /* RESPONSIVE */
 @media (max-width: 1099px) {
