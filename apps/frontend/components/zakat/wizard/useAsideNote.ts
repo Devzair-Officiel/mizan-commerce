@@ -17,7 +17,9 @@ export function useAsideNote(calc: ZakatCalculation, step: number, format: Zakat
   const { totals } = calc;
 
   if (totals.status === 'choice_missing') {
-    return [t('note_missing', { items: format.list(totals.missing_choices.map((name) => t(`missing_name.${name}`))) })];
+    const scopes = (['receivables', 'debts'] as const).filter((list) => totals.missing_scopes[list]?.length);
+    const items = [...totals.missing_choices.map((name) => t(`missing_name.${name}`)), ...scopes.map((list) => t(`missing_scope.${list}`))];
+    return [t('note_missing', { items: format.list(items) })];
   }
   if (totals.status === 'nisab_unknown') return [t('note_nisab')];
 

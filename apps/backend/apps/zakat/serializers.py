@@ -1,11 +1,12 @@
+import uuid
 from decimal import Decimal
 from typing import Any
 
 from rest_framework import serializers
 
 from apps.orders.models import Order
-from . import hawl, services
-from .models import ZakatCalculation, ZakatProfile
+from . import followups, hawl, services
+from .models import ZakatCalculation, ZakatProfile, ZakatReceivableFollowUp
 
 
 VALID_DEBT_CATEGORIES = {'supplier', 'tax_vat', 'salary', 'loan', 'rent', 'other'}
@@ -18,6 +19,11 @@ MAX_LINES = services.MAX_LINES
 NISAB_METHOD_CHOICES = [
     (ZakatProfile.NISAB_METHOD_SILVER, 'Argent (595 g)'),
     (ZakatProfile.NISAB_METHOD_GOLD, 'Or (85 g)'),
+]
+# Portée d'une ligne de créance ou de dette (part appliquée ou non, voir `validate`).
+SCOPE_CHOICES = [
+    (services.SCOPE_SHOP, 'Boutique'),
+    (services.SCOPE_PERSONAL, 'Personnelle'),
 ]
 CHOICE_KEYS = (
     'calendar', 'nisab_method', 'nisab_unit_price', 'nisab_price_updated_at',
@@ -36,6 +42,16 @@ def _label_field() -> serializers.CharField:
 def _choice_field(choices: list[tuple[str, str]]) -> serializers.ChoiceField:
     """Choix d'avis : une valeur de la liste, jamais `null` une fois choisi."""
     return serializers.ChoiceField(choices=choices, required=False)
+
+
+def _line_id_field() -> serializers.UUIDField:
+    """Identifiant stable de la ligne ; attribué par le serveur s'il manque."""
+    return serializers.UUIDField(required=False)
+
+
+def _scope_field() -> serializers.ChoiceField:
+    """Boutique ou personnelle ; `null` tant que la personne n'a pas choisi."""
+    return serializers.ChoiceField(choices=SCOPE_CHOICES, required=False, allow_null=True)  # noqa: E501
 
 
 def _unit_price_field() -> serializers.DecimalField:
@@ -69,10 +85,32 @@ def _json_safe(items: list[dict], keys: tuple[str, ...]) -> list[dict]:
     ]
 
 
+def _complete_lines(items: list[dict]) -> list[dict]:
+    """`id` attribué aux lignes qui n'en ont pas (unique dans la liste) ; portée
+    « boutique » pour une commande. Ailleurs, la portée reste `null` tant que la
+    personne n'a pas choisi : sous 100 %, la fiche attend ce choix (moteur)."""
+    ids = [item['id'] for item in items if item.get('id')]
+    if len(ids) != len(set(ids)):
+        raise serializers.ValidationError('Chaque ligne a son propre identifiant.')
+    lines = []
+    for item in items:
+        line = {**item, 'id': item.get('id') or str(uuid.uuid4())}
+        if item.get('order_id'):
+            if item.get('scope') == services.SCOPE_PERSONAL:
+                raise serializers.ValidationError('Une commande est à la boutique.')
+            line['scope'] = services.SCOPE_SHOP
+        else:
+            line['scope'] = item.get('scope') or None
+        lines.append(line)
+    return lines
+
+
 # ── Lignes de saisie ──────────────────────────────────────────────────────────
 
 class DebtLineSerializer(serializers.Serializer):
     """Ligne de dette : montant total et part due dans les 12 mois."""
+    id = _line_id_field()
+    scope = _scope_field()
     category = serializers.ChoiceField(choices=sorted(VALID_DEBT_CATEGORIES))
     label = _label_field()
     amount = _amount_field()
@@ -88,6 +126,8 @@ class DebtLineSerializer(serializers.Serializer):
 
 class ReceivableItemSerializer(serializers.Serializer):
     """Créance : une commande de la boutique (reste dû) ou une ligne libre."""
+    id = _line_id_field()
+    scope = _scope_field()
     order_id = serializers.UUIDField(allow_null=True, required=False, default=None)
     label = _label_field()
     amount = _amount_field()
@@ -111,19 +151,26 @@ def _money(**kwargs: Any) -> serializers.DecimalField:
 class ZakatTotalsSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     missing_choices = serializers.ListField(child=serializers.CharField(), read_only=True)  # noqa: E501
+    missing_scopes = serializers.DictField(
+        child=serializers.ListField(child=serializers.CharField()), read_only=True,
+    )
     ownership_share = _money()
     cash = _money()
     stock = _money(allow_null=True)
     stock_at_sale_price = _money()
     stock_at_purchase_price = _money()
-    receivables_sure = _money()
-    receivables_doubtful = _money()
+    receivables_sure = _money(allow_null=True)
+    receivables_sure_personal = _money()
+    receivables_doubtful = _money(allow_null=True)
     receivables_in_base = _money(allow_null=True)
     receivables_on_collection = _money(allow_null=True)
     other_assets = _money()
-    debts_total = _money()
-    debts_within_12_months = _money()
+    debts_total = _money(allow_null=True)
+    debts_total_personal = _money()
+    debts_within_12_months = _money(allow_null=True)
+    debts_within_12_months_personal = _money()
     debts_deducted = _money(allow_null=True)
+    debt_deducted = serializers.DictField(child=_money(allow_null=True), read_only=True)
     base = _money(allow_null=True)
     nisab_threshold = _money(allow_null=True)
     nisab_compared_amount = _money(allow_null=True)
@@ -198,7 +245,8 @@ class ZakatCalculationListSerializer(serializers.ModelSerializer):
         model = ZakatCalculation
         fields = [
             'id', 'reference_date', 'reference_hijri', 'hawl_calendar', 'hawl_year',
-            'current_step', 'currency', 'updated_at', 'totals',
+            'current_step', 'currency', 'paid_on', 'paid_amount', 'updated_at',
+            'totals',
         ]
         read_only_fields = fields
 
@@ -243,11 +291,14 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
             'receivable_items', 'other_assets', 'debt_items',
             'stock_sale_value', 'stock_purchase_value', 'stock_extra', 'refresh_stock',
             'choices', 'totals', 'review',
+            'paid_on', 'paid_amount',
             'currency', 'created_at', 'updated_at',
         ]
+        # Versement : uniquement par `…/payment/` (écriture conditionnelle, journal).
         read_only_fields = [
             'id', 'hawl_calendar', 'hawl_year',
             'stock_sale_value', 'stock_purchase_value',
+            'paid_on', 'paid_amount',
             'currency', 'created_at', 'updated_at',
         ]
         extra_kwargs = {'cash_amount': {'min_value': Decimal('0')}}
@@ -281,19 +332,110 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
                 {'version': self.fields['version'].error_messages['required']},
                 code='required',
             )
+        for key in ('receivable_items', 'debt_items'):
+            if key in attrs:
+                try:
+                    attrs[key] = _complete_lines(attrs[key])
+                except serializers.ValidationError as exc:
+                    raise serializers.ValidationError({key: exc.detail}) from exc
         return attrs
 
     def to_internal_value(self, data):
         validated = super().to_internal_value(data)
         json_keys = {
-            'receivable_items': ('amount', 'order_id'),
+            'receivable_items': ('id', 'amount', 'order_id'),
             'other_assets': ('amount',),
-            'debt_items': ('amount', 'amount_within_12_months'),
+            'debt_items': ('id', 'amount', 'amount_within_12_months'),
         }
         for key, keys in json_keys.items():
             if key in validated:
                 validated[key] = _json_safe(validated[key], keys)
         return validated
+
+
+class ZakatVersionSerializer(serializers.Serializer):
+    """Version de la fiche lue par l'écran : périmée → 409."""
+    version = serializers.IntegerField(min_value=1)
+
+
+class ZakatPaymentSerializer(ZakatVersionSerializer):
+    """« Marquer comme versée » : date (au plus aujourd'hui) et montant versés."""
+    paid_on = serializers.DateField()
+    paid_amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))  # noqa: E501
+
+    def validate_paid_on(self, value):
+        if value > services.shop_today(self.context['shop']):
+            raise serializers.ValidationError('La date du versement est à venir.')
+        return value
+
+
+# ── Suivi à l'encaissement ────────────────────────────────────────────────────
+
+class _FollowUpYearSerializer(serializers.Serializer):
+    calculation_id = serializers.UUIDField()
+    hawl_calendar = serializers.CharField()
+    hawl_year = serializers.IntegerField()
+    amount = _money(allow_null=True)
+    excluded = serializers.CharField(allow_null=True)
+
+
+class ZakatFollowUpSerializer(serializers.Serializer):
+    """Créance suivie (lecture seule) : encaissé, dû, versé et état, calculés à la
+    lecture. `calculation_id` / `line_id` désignent la ligne où écrire les actions."""
+    calculation_id = serializers.UUIDField()
+    line_id = serializers.UUIDField()
+    hawl_calendar = serializers.CharField()
+    hawl_year = serializers.IntegerField()
+    kind = serializers.CharField()
+    order_id = serializers.UUIDField(allow_null=True)
+    order_number = serializers.CharField(allow_null=True)
+    customer_name = serializers.CharField(allow_null=True)
+    label = serializers.CharField()
+    scope = serializers.CharField()
+    currency = serializers.CharField()
+    amount = _money()
+    collected = _money()
+    collected_on = serializers.DateField(allow_null=True)
+    order_state = serializers.CharField(allow_null=True)
+    below_nisab = serializers.BooleanField()
+    part = _money(allow_null=True)
+    years = _FollowUpYearSerializer(many=True)
+    options = serializers.DictField(child=_money(), allow_null=True)
+    option = serializers.CharField(allow_null=True)
+    due = _money()
+    paid = _money()
+    remaining = _money()
+    state = serializers.CharField()
+    can_revert_paid = serializers.BooleanField()
+
+
+class ZakatFollowUpActionSerializer(serializers.Serializer):
+    """Action de la personne sur une créance suivie ; champs requis selon l'action."""
+    REQUIRED = {
+        followups.ACTION_OPTION: ('option',),
+        followups.ACTION_COLLECTED: ('collected_on', 'amount'),
+        followups.ACTION_PAID: ('amount',),
+        followups.ACTION_IGNORE: (),
+        followups.ACTION_REVERT: ('revert',),
+    }
+
+    action = serializers.ChoiceField(choices=list(REQUIRED))
+    option = serializers.ChoiceField(
+        choices=ZakatReceivableFollowUp.DOUBTFUL_OPTION_CHOICES, required=False,
+    )
+    collected_on = serializers.DateField(required=False)
+    amount = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal('0.01'), required=False,
+    )
+    revert = serializers.ChoiceField(choices=followups.REVERTIBLE, required=False)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        missing = [name for name in self.REQUIRED[attrs['action']] if name not in attrs]
+        if missing:
+            raise serializers.ValidationError(
+                {name: serializers.Field.default_error_messages['required'] for name in missing},  # noqa: E501
+            )
+        return attrs
 
 
 # ── Profil ────────────────────────────────────────────────────────────────────

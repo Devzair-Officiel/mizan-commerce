@@ -40,11 +40,21 @@ export type DebtCategory = 'supplier' | 'tax_vat' | 'salary' | 'loan' | 'rent' |
 export type OtherAssetCategory =
   | 'personal_cash' | 'business' | 'real_estate' | 'gold_silver' | 'jewelry' | 'for_resale' | 'other';
 
+/** Ligne de la boutique (part appliquée) ou de la personne (comptée en entier). */
+export type LineScope = 'shop' | 'personal';
+
+/** Listes dont chaque ligne a une portée (boutique ou personnelle). */
+export type ScopeList = 'receivables' | 'debts';
+
 export interface ReceivableItem {
+  /** Identifiant stable de la ligne : le suivi à l'encaissement s'y rattache. */
+  id: string;
   order_id: string | null;
   label: string;
   amount: string;
   doubtful: boolean;
+  /** Toujours « shop » pour une commande ; `null` tant que la personne n'a pas choisi. */
+  scope: LineScope | null;
 }
 
 export interface OtherAsset {
@@ -55,6 +65,9 @@ export interface OtherAsset {
 }
 
 export interface DebtLine {
+  id: string;
+  /** `null` tant que la personne n'a pas choisi : « boutique » à 100 %, à préciser en dessous. */
+  scope: LineScope | null;
   category: DebtCategory;
   label: string;
   amount: string;
@@ -75,19 +88,28 @@ export type TotalsStatus = 'choice_missing' | 'nisab_unknown' | 'below_nisab' | 
 export interface ZakatTotals {
   status: TotalsStatus;
   missing_choices: ChoiceName[];
+  /** Lignes dont la portée reste à choisir (part inférieure à 100 %), par liste : `id` des lignes. */
+  missing_scopes: Partial<Record<ScopeList, string[]>>;
   ownership_share: string;
   cash: string;
   stock: string | null;
   stock_at_sale_price: string;
   stock_at_purchase_price: string;
-  receivables_sure: string;
-  receivables_doubtful: string;
+  /** `null` (comme les autres sommes de lignes) tant qu'une portée reste à choisir. */
+  receivables_sure: string | null;
+  /** Ce qui, dans le montant voisin, vient de lignes personnelles (comptées en entier). */
+  receivables_sure_personal: string;
+  receivables_doubtful: string | null;
   receivables_in_base: string | null;
   receivables_on_collection: string | null;
   other_assets: string;
-  debts_total: string;
-  debts_within_12_months: string;
+  debts_total: string | null;
+  debts_total_personal: string;
+  debts_within_12_months: string | null;
+  debts_within_12_months_personal: string;
   debts_deducted: string | null;
+  /** Montant déduit pour chaque dette (`id` → montant) ; leur somme vaut `debts_deducted`. */
+  debt_deducted: Record<string, string | null>;
   base: string | null;
   nisab_threshold: string | null;
   nisab_compared_amount: string | null;
@@ -141,6 +163,9 @@ export interface ZakatCalculation {
   totals: ZakatTotals;
   review: ZakatReview;
   currency: string;
+  /** « Marquer comme versée » : date et montant notés par la personne. */
+  paid_on: string | null;
+  paid_amount: string | null;
   updated_at: string;
 }
 
@@ -152,6 +177,8 @@ export interface ZakatListRow {
   hawl_year: number;
   current_step: number;
   currency: string;
+  paid_on: string | null;
+  paid_amount: string | null;
   updated_at: string;
   totals: ZakatTotals;
 }
@@ -309,6 +336,35 @@ export function useUpdateZakatCalculation(id: string) {
       qc.setQueryData(qk.zakat.detail(id), calc);
       qc.invalidateQueries({ queryKey: qk.zakat.lists });
       qc.invalidateQueries({ queryKey: qk.zakat.profile });
+      // Le suivi à l'encaissement se calcule sur les lignes des fiches passées.
+      qc.invalidateQueries({ queryKey: qk.zakat.followups });
+    },
+  });
+}
+
+export interface ZakatPayment {
+  paid_on: string;
+  paid_amount: string;
+}
+
+/**
+ * « Marquer comme versée » (PUT, date et montant) et « Versée par erreur ? Revenir » (DELETE),
+ * écriture conditionnelle par `version`. La fiche renvoyée remplace le cache ; l'historique est relu.
+ */
+export function useZakatPayment(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ payment, version }: { payment: ZakatPayment | null; version: number }) =>
+      apiFetch<ZakatCalculation>(`/zakat/calculations/${id}/payment/`, {
+        method: payment ? 'PUT' : 'DELETE',
+        body: JSON.stringify({ ...payment, version }),
+      }),
+    onSuccess: (calc) => {
+      qc.setQueryData(qk.zakat.detail(id), calc);
+      qc.invalidateQueries({ queryKey: qk.zakat.lists });
+    },
+    onError: (error) => {
+      if (isVersionConflict(error)) qc.invalidateQueries({ queryKey: qk.zakat.detail(id) });
     },
   });
 }
@@ -321,6 +377,7 @@ export function useDeleteZakatCalculation() {
       qc.removeQueries({ queryKey: qk.zakat.detail(id) });
       qc.invalidateQueries({ queryKey: qk.zakat.lists });
       qc.invalidateQueries({ queryKey: qk.zakat.profile });
+      qc.invalidateQueries({ queryKey: qk.zakat.followups });
     },
   });
 }

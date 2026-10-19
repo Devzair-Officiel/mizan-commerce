@@ -124,9 +124,37 @@ LABELS: dict[str, dict[str, str]] = {
         'threshold_price_missing': 'Prix du gramme non saisi',
         'share': 'Votre part de la boutique',
         'share_text': (
-            'Appliquée à la trésorerie, au stock, aux créances et aux dettes, '
-            'pas aux autres biens.'
+            'Appliquée à la trésorerie, au stock, aux créances et aux dettes de la '
+            'boutique, pas aux lignes personnelles ni aux autres biens.'
         ),
+        'personal_note': 'Dont personnelles : {amount}, comptées en entier.',
+        'personal_suffix': ' (personnelle)',
+        'followups': "Suivi à l'encaissement",
+        'followups_hint': (
+            'État au {date}, tiré des commandes et de ce que vous avez marqué.'
+        ),
+        'followup.line': 'Créance',
+        'followup.remaining': 'Reste à verser',
+        'followup.sure': 'Créance sûre, {label}',
+        'followup.doubtful': 'Créance douteuse, {label}',
+        'followup.collected': 'Encaissé {collected} sur {amount}',
+        'followup.part': 'part de la zakat à l\'encaissement {part}',
+        'followup.paid': 'versé {paid}',
+        'followup_state.cancelled': 'Commande annulée : rien d\'encaissé.',
+        'followup_state.ignored': 'Ignorée.',
+        'followup_state.pending': 'Pas encore encaissée.',
+        'followup_state.choice_needed': (
+            'Option à choisir : toutes les années passées {all}, une seule année '
+            '{one}, nouvelle année à partir de l\'encaissement 0.'
+        ),
+        'followup_state.to_pay': 'À verser.',
+        'followup_state.paid': 'Versée.',
+        'followup_state.overpaid': 'Versé : {paid}, dû recalculé : {due}.',
+        'followup_state.nothing_due': 'Rien à verser.',
+        'followup_state.below_nisab': 'Fiche sous le seuil : rien à verser.',
+        'followup_option.all_years': 'Toutes les années passées',
+        'followup_option.one_year': 'Une seule année',
+        'followup_option.new_year': "Nouvelle année à partir de l'encaissement",
         'rate.hijri': 'Taux, année hégirienne',
         'rate.gregorian': 'Taux, année solaire',
         'rate.missing': 'Taux, année à choisir',
@@ -146,6 +174,8 @@ LABELS: dict[str, dict[str, str]] = {
         'choice.stock_valuation': 'Valeur du stock',
         'choice.receivables_mode': 'Créances sûres',
         'choice.debts_mode': 'Dettes déduites',
+        'scope_missing.receivables': 'Portée de créances (boutique ou personnelle)',
+        'scope_missing.debts': 'Portée de dettes (boutique ou personnelle)',
         **_OPTIONS_FR,
         'limits': 'Limites',
         'limit.personal': (
@@ -209,8 +239,35 @@ LABELS: dict[str, dict[str, str]] = {
         'threshold_price_missing': 'Price per gram not entered',
         'share': 'Your share of the shop',
         'share_text': (
-            'Applied to cash, stock, receivables and debts, not to other assets.'
+            "Applied to the shop's cash, stock, receivables and debts, not to "
+            'personal lines or other assets.'
         ),
+        'personal_note': 'Of which personal: {amount}, counted in full.',
+        'personal_suffix': ' (personal)',
+        'followups': 'Follow-up on collection',
+        'followups_hint': 'As of {date}, from your orders and what you marked.',
+        'followup.line': 'Receivable',
+        'followup.remaining': 'Left to pay',
+        'followup.sure': 'Sure receivable, {label}',
+        'followup.doubtful': 'Doubtful receivable, {label}',
+        'followup.collected': 'Collected {collected} of {amount}',
+        'followup.part': 'share of the zakat on collection {part}',
+        'followup.paid': 'paid {paid}',
+        'followup_state.cancelled': 'Order cancelled: nothing collected.',
+        'followup_state.ignored': 'Ignored.',
+        'followup_state.pending': 'Not collected yet.',
+        'followup_state.choice_needed': (
+            'Option to choose: all past years {all}, one single year {one}, new '
+            'year from collection 0.'
+        ),
+        'followup_state.to_pay': 'To pay.',
+        'followup_state.paid': 'Paid.',
+        'followup_state.overpaid': 'Paid: {paid}, recalculated due: {due}.',
+        'followup_state.nothing_due': 'Nothing to pay.',
+        'followup_state.below_nisab': 'Below the threshold that year: nothing to pay.',
+        'followup_option.all_years': 'All past years',
+        'followup_option.one_year': 'One single year',
+        'followup_option.new_year': 'New year from collection',
         'rate.hijri': 'Rate, hijri year',
         'rate.gregorian': 'Rate, solar year',
         'rate.missing': 'Rate, year to choose',
@@ -230,6 +287,8 @@ LABELS: dict[str, dict[str, str]] = {
         'choice.stock_valuation': 'Stock value',
         'choice.receivables_mode': 'Sure receivables',
         'choice.debts_mode': 'Debts deducted',
+        'scope_missing.receivables': 'Scope of receivables (shop or personal)',
+        'scope_missing.debts': 'Scope of debts (shop or personal)',
         **_OPTIONS_EN,
         'limits': 'Limits',
         'limit.personal': (

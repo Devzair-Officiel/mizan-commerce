@@ -19,6 +19,14 @@ class AuditLog(models.Model):
         ('zakat_created', 'Création calcul zakat'),
         ('zakat_deleted', 'Suppression calcul zakat'),
         ('zakat_pdf_download', 'Téléchargement justificatif zakat'),
+        ('zakat_paid', 'Zakat marquée comme versée'),
+        ('zakat_paid_changed', 'Versement zakat modifié'),
+        ('zakat_paid_reverted', 'Versement zakat retiré'),
+        ('zakat_followup_option', 'Choix créance douteuse encaissée'),
+        ('zakat_followup_collected', 'Créance zakat encaissée'),
+        ('zakat_followup_paid', 'Zakat de créance marquée comme versée'),
+        ('zakat_followup_ignored', 'Créance zakat ignorée'),
+        ('zakat_followup_reverted', 'Action sur créance zakat défaite'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

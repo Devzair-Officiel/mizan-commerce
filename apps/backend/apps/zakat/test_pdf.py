@@ -45,15 +45,15 @@ class ZakatPdfTest(TestCase):
             cash_amount=Decimal('6000.00'), stock_sale_value=Decimal('5000.00'),
             stock_purchase_value=Decimal('3000.00'),
             receivable_items=[
-                {'order_id': None, 'label': 'Atelier Nour', 'amount': '400.00', 'doubtful': False},  # noqa: E501
-                {'order_id': None, 'label': 'Client parti', 'amount': '250.00', 'doubtful': True},  # noqa: E501
+                {'id': 'r1', 'order_id': None, 'label': 'Atelier Nour', 'amount': '400.00', 'doubtful': False, 'scope': 'shop'},  # noqa: E501
+                {'id': 'r2', 'order_id': None, 'label': 'Client parti', 'amount': '250.00', 'doubtful': True, 'scope': 'shop'},  # noqa: E501
             ],
             other_assets=[
                 {'category': 'gold_silver', 'label': 'Pièces', 'amount': '1000.00', 'counted': True},  # noqa: E501
                 {'category': 'jewelry', 'label': 'Bijoux portés', 'amount': '700.00', 'counted': False},  # noqa: E501
             ],
             debt_items=[
-                {'category': 'supplier', 'label': 'Grossiste', 'amount': '1400.00', 'amount_within_12_months': '900.00'},  # noqa: E501
+                {'id': 'd1', 'category': 'supplier', 'label': 'Grossiste', 'amount': '1400.00', 'amount_within_12_months': '900.00', 'scope': 'shop'},  # noqa: E501
             ],
             choices_snapshot={**CHOICES, **choices},
         )
@@ -137,6 +137,13 @@ class ZakatPdfTest(TestCase):
         self.assertIn('50 %', text)
         self.assertIn('3 000,00 €', text)
         self.assertIn('6 000,00 €', text)
+
+    def test_unchosen_scope_below_full_share_listed(self):
+        calc = self._calc(ownership_share='50.00')
+        calc.debt_items = [{**calc.debt_items[0], 'scope': None}]
+        calc.save(update_fields=['debt_items'])
+        text = self._text(calc)
+        self.assertIn('Reste à choisir : portée de dettes (boutique ou personnelle).', text)  # noqa: E501
 
     def test_deterministic(self):
         calc = self._calc()

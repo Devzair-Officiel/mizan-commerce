@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { compareDecimal } from '@/lib/decimal';
 import type { ReceivableItem, ZakatCalculation } from '@/lib/hooks/useZakat';
 import { CalcChoice } from '../choice/CalcChoice';
 import type { ZakatFormat } from '../useZakatFormat';
@@ -14,22 +15,25 @@ import { StepHeading } from './StepHeading';
 import type { StepProps } from './types';
 
 /** Sûres (dans la base selon le choix) et douteuses (hors base) : montants du serveur. */
-function ReceivableTotals({ calc, format }: { calc: ZakatCalculation; format: ZakatFormat }) {
-  const t = useTranslations('zakat.steps.receivables');
+function ReceivableTotals({ calc, format, share }: { calc: ZakatCalculation; format: ZakatFormat; share?: string }) {
+  const t = useTranslations('zakat.steps');
   const items = calc.receivable_items;
   const row = 'flex justify-between gap-3 bg-muted/50 px-4 py-2.5 text-[0.84375rem] lg:px-5';
+  // Inconnu tant qu'une portée reste à choisir.
+  const money = (value: string | null) => (value === null ? '—' : format.money(value));
   return (
     <div className="border-t border-border">
       <p className={row}>
-        <span>{t('total_sure', { count: items.filter((i) => !i.doubtful).length })}</span>
-        <span className="font-semibold whitespace-nowrap tabular-nums">{format.money(calc.totals.receivables_sure)}</span>
+        <span>{t('receivables.total_sure', { count: items.filter((i) => !i.doubtful).length })}</span>
+        <span className="font-semibold whitespace-nowrap tabular-nums">{money(calc.totals.receivables_sure)}</span>
       </p>
       {items.some((i) => i.doubtful) && (
         <p className={`${row} border-t border-border text-muted-foreground`}>
-          <span>{t('total_doubtful')}</span>
-          <span className="whitespace-nowrap tabular-nums">{format.money(calc.totals.receivables_doubtful)}</span>
+          <span>{t('receivables.total_doubtful')}</span>
+          <span className="whitespace-nowrap tabular-nums">{money(calc.totals.receivables_doubtful)}</span>
         </p>
       )}
+      {share !== undefined && <p className="px-4 pt-2 pb-3 text-xs text-muted-foreground lg:px-5">{t('scope.share_note', { share })}</p>}
     </div>
   );
 }
@@ -39,6 +43,9 @@ export function ReceivablesStep({ calc, save, format }: StepProps) {
   const t = useTranslations('zakat.steps.receivables');
   const [sheet, setSheet] = useState<number | 'new' | null>(null);
   const items = calc.receivable_items;
+  const scopeMissing = new Set(calc.totals.missing_scopes.receivables);
+  // Sous 100 %, chaque créance saisie à la main se classe : boutique ou personnelle.
+  const share = compareDecimal(calc.totals.ownership_share, '100') < 0 ? format.percent(calc.totals.ownership_share) : undefined;
   const orders = new Map(calc.review.receivable_orders.linked.map((o) => [o.order_id, o]));
   // Une commande ajoutée quitte la liste tout de suite, sans attendre la réponse du serveur.
   const fresh = calc.review.receivable_orders.new.filter((o) => !items.some((i) => i.order_id === o.order_id));
@@ -64,13 +71,12 @@ export function ReceivablesStep({ calc, save, format }: StepProps) {
           <>
             <ul>
               {items.map((item, index) => (
-                // Lignes sans identifiant : l'ordre de la fiche sert de clé.
-                <ReceivableRow key={`${item.order_id ?? 'manual'}-${index}`} item={item} format={format}
+                <ReceivableRow key={item.id} item={item} format={format} scopeMissing={scopeMissing.has(item.id)}
                   order={item.order_id ? orders.get(item.order_id) : undefined}
                   onChange={(next) => replace(index, next)} onRemove={() => remove(index)} onEdit={() => setSheet(index)} />
               ))}
             </ul>
-            <ReceivableTotals calc={calc} format={format} />
+            <ReceivableTotals calc={calc} format={format} share={share} />
           </>
         )}
       </section>
@@ -80,7 +86,7 @@ export function ReceivablesStep({ calc, save, format }: StepProps) {
       )}
       <AddLineButton label={t('add_manual')} onClick={() => setSheet('new')} />
       {sheet !== null && (
-        <ReceivableSheet item={sheet === 'new' ? undefined : items[sheet]} format={format} onClose={() => setSheet(null)}
+        <ReceivableSheet item={sheet === 'new' ? undefined : items[sheet]} format={format} share={share} onClose={() => setSheet(null)}
           onSubmit={(item) => (sheet === 'new' ? write([...items, item]) : replace(sheet, item))}
           onDelete={sheet === 'new' ? undefined : () => { remove(sheet); setSheet(null); }} />
       )}

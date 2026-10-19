@@ -6,6 +6,7 @@ import type { ZakatListRow, ZakatProfile, ZakatSources } from '@/lib/hooks/useZa
 import { BasisLink } from '../basis/BasisLink';
 import { BasisProvider } from '../basis/BasisProvider';
 import { useZakatFormat } from '../useZakatFormat';
+import { FollowUpCard } from './FollowUpCard';
 import { HawlEmpty } from './HawlEmpty';
 import { HawlHero } from './HawlHero';
 import { HistoryCard } from './HistoryCard';
@@ -19,7 +20,7 @@ interface HomeContentProps {
   sources: ZakatSources;
 }
 
-/** Desktop : le jour J en tête, puis deux colonnes (connu et historique ; choix et méthode). Mobile : connu, choix, historique. */
+/** Desktop : le jour J en tête, puis deux colonnes (à verser, connu et historique ; choix et méthode). Mobile : à verser, connu, choix, historique. */
 export function HomeContent({ profile, rows, sources }: HomeContentProps) {
   const t = useTranslations('zakat.home');
   const tb = useTranslations('zakat.basis');
@@ -33,6 +34,7 @@ export function HomeContent({ profile, rows, sources }: HomeContentProps) {
         {next ? <HawlHero next={next} facts={facts} format={format} /> : <HawlEmpty />}
         <div className={FORM_COLUMNS}>
           <div className={FORM_COLUMN}>
+            <FollowUpCard />
             <KnownCard sources={sources} format={format} />
             <div className="max-lg:order-1">
               <HistoryCard rows={rows} calendar={next?.hawl_calendar ?? profile.calendar ?? 'hijri'} format={format} />

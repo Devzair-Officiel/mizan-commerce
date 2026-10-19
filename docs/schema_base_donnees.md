@@ -706,11 +706,13 @@ Fiche de zakat d'une personne pour un jour J. Jamais figée : elle reste modifia
 | stock_sale_value | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Σ quantité × prix de vente, formats actifs à stock > 0 |
 | stock_purchase_value | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Σ quantité × prix d'achat |
 | stock_extra | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Stock hors Mizan |
-| receivable_items | JSONB | NOT NULL, DEFAULT `[]` | `[{order_id, label, amount, doubtful}]` ; `order_id` d'une commande de la boutique, sans doublon |
+| receivable_items | JSONB | NOT NULL, DEFAULT `[]` | `[{id, scope, order_id, label, amount, doubtful}]` ; `id` UUID stable de la ligne (Z4) ; `scope` `shop`, `personal` ou `null` (jamais choisi : `shop` à 100 %, à préciser en dessous), toujours `shop` pour une ligne liée à une commande ; `order_id` d'une commande de la boutique, sans doublon |
 | other_assets | JSONB | NOT NULL, DEFAULT `[]` | `[{category, label, amount, counted}]`, biens personnels (URS-107) |
-| debt_items | JSONB | NOT NULL, DEFAULT `[]` | `[{category, label, amount, amount_within_12_months}]` |
+| debt_items | JSONB | NOT NULL, DEFAULT `[]` | `[{id, scope, category, label, amount, amount_within_12_months}]` ; `id` et `scope` comme pour les créances |
 | choices_snapshot | JSONB | NOT NULL, DEFAULT `{}` | Copie des choix du profil à chaque enregistrement |
 | currency | VARCHAR(3) | NOT NULL | Devise au moment du calcul |
+| paid_on | DATE | | « Marquer comme versée » (Z4) : date du versement, ≤ aujourd'hui |
+| paid_amount | DECIMAL(12,2) | | Montant versé ; l'historique affiche aussi le montant de la fiche s'il a changé depuis |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
@@ -720,7 +722,16 @@ au plus). Catégories de dettes : `supplier`, `tax_vat`, `salary`, `rent`, `loan
 `real_estate`, `gold_silver`, `for_resale`, `other`.
 
 **Contrainte** : `UNIQUE (shop_id, user_id, hawl_calendar, hawl_year)` — un doublon renvoie
-409 avec `existing_id`. **Index** : `(shop_id, user_id)`.
+409 avec `existing_id`. `CHECK ((paid_on IS NULL AND paid_amount IS NULL) OR (paid_on IS NOT
+NULL AND paid_amount > 0))`. **Index** : `(shop_id, user_id)`.
+
+Migration `zakat 0017_line_ids_and_scope` : un `id` UUID pour chaque ligne existante ; `scope`
+= `null` (jamais choisi), `shop` pour une ligne liée à une commande. Part de propriété :
+appliquée aux lignes `shop` (et `null` à 100 %), arrondie ligne par ligne ; les lignes
+`personal` comptent en entier. Sous 100 %, une ligne `null` met la fiche en `choice_missing`
+(`totals.missing_scopes` : `id` des lignes par liste) et bloque les montants qui en dépendent.
+`totals.debt_deducted` donne le montant déduit de chaque dette ; leur somme vaut
+`debts_deducted`.
 
 **Calcul** (`zakat.services.compute_totals`, seul moteur) : base = max(0, part ×
 (trésorerie + stock selon D5 + stock hors Mizan + créances sûres − dettes selon D2) + autres
@@ -733,6 +744,40 @@ fournie), `nisab_unknown` (pas de prix), `below_nisab`, `above_nisab`. Avec
 − maintenant (l'excédent de dettes s'impute sur les créances sûres).
 
 **Règle d'affichage** : toujours afficher la mention « estimation indicative ».
+
+### `zakat_receivable_followups`
+
+Gestes de la personne sur une créance différée d'une fiche (lot Z4, suivi à l'encaissement,
+référentiel D3 et D4). Une ligne par (fiche, ligne de créance), créée à la première action.
+Encaissé, dû et reste à verser se calculent à la lecture (`zakat.followups`) : aucune tâche,
+aucune écriture sans action. Querysets filtrés par boutique **et** par personne ; écritures par
+UPDATE conditionnel en transaction (0 ligne → 409 avec l'état relu) ; journal d'audit sans
+montant.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| user_id | UUID | FK → users.id, CASCADE, NOT NULL | |
+| calculation_id | UUID | FK → zakat_calculations.id, CASCADE, NOT NULL | Fiche d'origine de la ligne |
+| line_id | UUID | NOT NULL | `id` de la ligne dans `receivable_items` ; ligne retirée de la fiche : suivi conservé, plus lu |
+| doubtful_option | VARCHAR(10) | | `all_years`, `one_year` ou `new_year` (D4) ; aucune valeur par défaut |
+| collected_amount | DECIMAL(12,2) | | « Encaissée » (ligne saisie à la main) : montant, ≤ montant de la ligne |
+| collected_on | DATE | | Date d'encaissement, entre le jour J de la fiche et aujourd'hui |
+| paid_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Cumul marqué comme versé |
+| last_paid_amount | DECIMAL(12,2) | NOT NULL, DEFAULT 0 | Dernier versement, que « Revenir » retire |
+| last_paid_at | TIMESTAMPTZ | | |
+| ignored_at | TIMESTAMPTZ | | « Ignorer » |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contraintes** :
+- `UNIQUE (calculation_id, line_id)` ;
+- `CHECK (0 ≤ last_paid_amount ≤ paid_amount)` ;
+- `CHECK ((collected_amount IS NULL AND collected_on IS NULL) OR (collected_amount > 0 AND
+  collected_on IS NOT NULL))`.
+
+**Index** : `(shop_id, user_id)`. Migration `zakat 0016_followups_and_payment`.
 
 ---
 

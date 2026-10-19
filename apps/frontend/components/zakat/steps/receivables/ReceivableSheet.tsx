@@ -13,19 +13,22 @@ import { Switch } from '@/components/ui/Switch';
 import { AMOUNT_PATTERN, isZeroDecimal, normalizeDecimal } from '@/lib/decimal';
 import type { ReceivableItem } from '@/lib/hooks/useZakat';
 import type { ZakatFormat } from '../../useZakatFormat';
+import { ScopeChoice } from '../ScopeChoice';
 import { SheetActions } from '../SheetActions';
 
 interface ReceivableSheetProps {
   /** Créance saisie à la main à modifier ; absente pour un ajout. */
   item?: ReceivableItem;
   format: ZakatFormat;
+  /** Part de la personne sous 100 %, mise en forme : la ligne est alors à classer (boutique ou personnelle). */
+  share?: string;
   onClose: () => void;
   onSubmit: (item: ReceivableItem) => void;
   onDelete?: () => void;
 }
 
 /** Créance hors commande Mizan : description, montant dû, sûre ou douteuse. */
-export function ReceivableSheet({ item, format, onClose, onSubmit, onDelete }: ReceivableSheetProps) {
+export function ReceivableSheet({ item, format, share, onClose, onSubmit, onDelete }: ReceivableSheetProps) {
   const t = useTranslations('zakat.steps.receivables');
   const tc = useTranslations('zakat.common');
   const formId = useId();
@@ -33,13 +36,17 @@ export function ReceivableSheet({ item, format, onClose, onSubmit, onDelete }: R
     label: z.string().trim().min(1, tc('label_required')).max(200),
     amount: z.string().trim().refine((v) => AMOUNT_PATTERN.test(v) && !isZeroDecimal(normalizeDecimal(v)), tc('amount_invalid')),
     doubtful: z.boolean(),
+    scope: z.enum(['shop', 'personal']).nullable().refine((v) => share === undefined || v !== null, tc('scope_required')),
   });
   const { register, control, handleSubmit, formState: { errors } } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { label: item?.label ?? '', amount: item ? format.amountInput(item.amount) : '', doubtful: item?.doubtful ?? false },
+    defaultValues: { label: item?.label ?? '', amount: item ? format.amountInput(item.amount) : '', doubtful: item?.doubtful ?? false, scope: item?.scope ?? null },
   });
   const submit = handleSubmit((values) => {
-    onSubmit({ order_id: null, label: values.label, amount: normalizeDecimal(values.amount), doubtful: values.doubtful });
+    onSubmit({
+      id: item?.id ?? crypto.randomUUID(), order_id: null, label: values.label,
+      amount: normalizeDecimal(values.amount), doubtful: values.doubtful, scope: values.scope,
+    });
     onClose();
   });
 
@@ -57,6 +64,11 @@ export function ReceivableSheet({ item, format, onClose, onSubmit, onDelete }: R
             </FieldSuffix>
           )}
         </FormField>
+        {share !== undefined && (
+          <Controller control={control} name="scope" render={({ field }) => (
+            <ScopeChoice kind="receivable" value={field.value} onChange={field.onChange} share={share} error={errors.scope?.message} />
+          )} />
+        )}
         <Controller control={control} name="doubtful" render={({ field }) => (
           <div className="flex items-center justify-between gap-3">
             <div>

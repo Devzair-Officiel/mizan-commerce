@@ -261,9 +261,9 @@ class OwnershipShareTest(SimpleTestCase):
         totals = _totals(
             {'ownership_share': '50'},
             stock_extra=Decimal('1000.00'),
-            receivable_items=[{'order_id': None, 'label': 'Sûre', 'amount': '600.00', 'doubtful': False}],  # noqa: E501
+            receivable_items=[{'order_id': None, 'label': 'Sûre', 'amount': '600.00', 'doubtful': False, 'scope': 'shop'}],  # noqa: E501
             other_assets=[{'category': 'gold_silver', 'label': 'Bijoux', 'amount': '2000.00', 'counted': True}],  # noqa: E501
-            debt_items=[{'category': 'supplier', 'label': 'Fournisseur', 'amount': '800.00', 'amount_within_12_months': '800.00'}],  # noqa: E501
+            debt_items=[{'category': 'supplier', 'label': 'Fournisseur', 'amount': '800.00', 'amount_within_12_months': '800.00', 'scope': 'shop'}],  # noqa: E501
         )
         self.assertEqual(totals.ownership_share, Decimal('50'))
         self.assertEqual(totals.cash, Decimal('5000.00'))
@@ -272,6 +272,109 @@ class OwnershipShareTest(SimpleTestCase):
         self.assertEqual(totals.debts_total, Decimal('400.00'))
         self.assertEqual(totals.other_assets, Decimal('2000.00'))
         self.assertEqual(totals.base, Decimal('8900.00'))
+
+    def test_personal_debt_deducted_in_full_at_half_share(self):
+        """Lot Z4 : part de 50 %, dette personnelle de 1 000 € → 1 000 € déduits."""
+        totals = _totals(
+            {'ownership_share': '50'},
+            debt_items=[{'category': 'other', 'label': 'Prêt familial', 'amount': '1000.00', 'amount_within_12_months': '1000.00', 'scope': 'personal'}],  # noqa: E501
+        )
+        self.assertEqual(totals.debts_total, Decimal('1000.00'))
+        self.assertEqual(totals.debts_total_personal, Decimal('1000.00'))
+        self.assertEqual(totals.debts_deducted, Decimal('1000.00'))
+        # (10 000 + 3 000) × 50 % − 1 000 = 5 500.
+        self.assertEqual(totals.base, Decimal('5500.00'))
+
+    def test_share_only_on_shop_lines(self):
+        totals = _totals(
+            {'ownership_share': '50', 'debts_mode': 'within_12_months'},
+            receivable_items=[
+                {'order_id': None, 'label': 'Boutique', 'amount': '600.00', 'doubtful': False, 'scope': 'shop'},  # noqa: E501
+                {'order_id': None, 'label': 'Prêt à un ami', 'amount': '400.00', 'doubtful': False, 'scope': 'personal'},  # noqa: E501
+            ],
+            debt_items=[
+                {'category': 'supplier', 'label': 'Fournisseur', 'amount': '800.00', 'amount_within_12_months': '200.00', 'scope': 'shop'},  # noqa: E501
+                {'category': 'other', 'label': 'Famille', 'amount': '500.00', 'amount_within_12_months': '300.00', 'scope': 'personal'},  # noqa: E501
+            ],
+        )
+        self.assertEqual((totals.receivables_sure, totals.receivables_sure_personal), (Decimal('700.00'), Decimal('400.00')))  # noqa: E501
+        self.assertEqual((totals.debts_total, totals.debts_total_personal), (Decimal('900.00'), Decimal('500.00')))  # noqa: E501
+        self.assertEqual(
+            (totals.debts_within_12_months, totals.debts_within_12_months_personal),
+            (Decimal('400.00'), Decimal('300.00')),
+        )
+        # 6 500 + 700 − 400 = 6 800.
+        self.assertEqual(totals.base, Decimal('6800.00'))
+
+
+UNCHOSEN = {
+    'receivable_items': [
+        {'id': 'r1', 'order_id': None, 'label': 'Client', 'amount': '600.00', 'doubtful': False, 'scope': None},  # noqa: E501
+        {'id': 'r2', 'order_id': 'o1', 'label': 'Commande', 'amount': '200.00', 'doubtful': False, 'scope': None},  # noqa: E501
+    ],
+    'debt_items': [
+        {'id': 'd1', 'category': 'supplier', 'label': 'Fournisseur', 'amount': '1000.00', 'amount_within_12_months': '1000.00', 'scope': None},  # noqa: E501
+    ],
+}
+
+
+class UnchosenScopeTest(SimpleTestCase):
+    """Portée jamais choisie (`null`) : « boutique » à 100 %, à préciser en dessous."""
+
+    def test_full_share_counts_unchosen_lines_as_shop(self):
+        totals = _totals(**UNCHOSEN)
+        self.assertEqual(totals.status, services.TOTALS_ABOVE_NISAB)
+        self.assertEqual(totals.missing_scopes, {})
+        self.assertEqual((totals.receivables_sure, totals.debts_deducted), (Decimal('800.00'), Decimal('1000.00')))  # noqa: E501
+        self.assertEqual(totals.debt_deducted, {'d1': Decimal('1000.00')})
+        # 13 000 + 800 − 1 000 = 12 800.
+        self.assertEqual(totals.base, Decimal('12800.00'))
+
+    def test_lower_share_waits_for_scope(self):
+        totals = _totals({'ownership_share': '50'}, **UNCHOSEN)
+        self.assertEqual(totals.status, services.TOTALS_CHOICE_MISSING)
+        self.assertEqual(totals.missing_choices, ())
+        # La commande est de la boutique : rien à préciser pour elle.
+        self.assertEqual(totals.missing_scopes, {'receivables': ['r1'], 'debts': ['d1']})  # noqa: E501
+        for name in ('receivables_sure', 'debts_total', 'debts_deducted', 'base', 'nisab_compared_amount', 'zakat_now', 'zakat_total'):  # noqa: E501
+            self.assertIsNone(getattr(totals, name), name)
+        self.assertEqual(totals.debt_deducted, {'d1': None})
+        self.assertTrue(all(v is None for v in totals.option_effects['debts_mode'].values()))  # noqa: E501
+
+    def test_scope_chosen_unblocks(self):
+        items = {
+            'receivable_items': [{**UNCHOSEN['receivable_items'][0], 'scope': 'shop'}, UNCHOSEN['receivable_items'][1]],  # noqa: E501
+            'debt_items': [{**UNCHOSEN['debt_items'][0], 'scope': 'personal'}],
+        }
+        totals = _totals({'ownership_share': '50'}, **items)
+        self.assertEqual(totals.status, services.TOTALS_BELOW_NISAB)
+        self.assertEqual(totals.missing_scopes, {})
+        self.assertEqual(totals.debt_deducted, {'d1': Decimal('1000.00')})
+        # 6 500 + (600 + 200) × 50 % − 1 000 = 5 900, sous le seuil de 8 500.
+        self.assertEqual(totals.base, Decimal('5900.00'))
+
+
+class DebtDeductedTest(SimpleTestCase):
+    """Montant déduit par dette, fourni par le serveur : leur somme vaut le total."""
+    DEBTS = [
+        {'id': 'a', 'category': 'supplier', 'label': 'A', 'amount': '333.33', 'amount_within_12_months': '111.11', 'scope': 'shop'},  # noqa: E501
+        {'id': 'b', 'category': 'supplier', 'label': 'B', 'amount': '0.05', 'amount_within_12_months': '0.03', 'scope': 'shop'},  # noqa: E501
+        {'id': 'c', 'category': 'other', 'label': 'C', 'amount': '500.00', 'amount_within_12_months': '250.00', 'scope': 'personal'},  # noqa: E501
+    ]
+
+    def test_sum_of_lines_equals_total(self):
+        for mode in ('all', 'within_12_months', 'none'):
+            with self.subTest(mode=mode):
+                totals = _totals({'ownership_share': '33.33', 'debts_mode': mode}, debt_items=self.DEBTS)  # noqa: E501
+                self.assertEqual(sum(totals.debt_deducted.values()), totals.debts_deducted)  # noqa: E501
+
+    def test_share_on_shop_lines_full_amount_on_personal(self):
+        totals = _totals({'ownership_share': '50', 'debts_mode': 'within_12_months'}, debt_items=self.DEBTS)  # noqa: E501
+        self.assertEqual(totals.debt_deducted, {'a': Decimal('55.56'), 'b': Decimal('0.02'), 'c': Decimal('250.00')})  # noqa: E501
+
+    def test_unknown_without_debts_choice(self):
+        totals = _totals({'debts_mode': None}, debt_items=self.DEBTS)
+        self.assertEqual(totals.debt_deducted, {'a': None, 'b': None, 'c': None})
 
 
 class HawlTest(SimpleTestCase):

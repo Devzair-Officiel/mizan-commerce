@@ -1,4 +1,4 @@
-"""Migrations de données des lots Z1 (0007 → 0012) et Z2a (0013).
+"""Migrations de données des lots Z1 (0007 → 0012), Z2a (0013) et Z4 (0017).
 
 Chaque test repart de la migration qui précède le lot, insère des lignes avec les
 modèles historiques, puis migre jusqu'à la fin du lot ; `tearDown` ramène la base à la
@@ -173,3 +173,51 @@ class ZakatZ2aMigrationTest(TransactionTestCase):
         rows = dict(Calc.objects.values_list('pk', 'current_step'))
         self.assertEqual(set(Calc.objects.values_list('status', flat=True)), {'draft'})
         self.assertEqual(rows, {finalized: 6, draft_at_six: 0, draft_at_two: 0})
+
+
+class ZakatZ4MigrationTest(TransactionTestCase):
+    """0017 : chaque ligne de créance et de dette reçoit un `id` ; portée `null`
+    (jamais choisie) sauf pour une commande (« boutique »), sans toucher `updated_at` ;
+    une ligne qui a déjà un `id` ou une portée la garde."""
+    serialized_rollback = True
+    before = [('zakat', '0016_followups_and_payment')]
+    after = [('zakat', '0017_line_ids_and_scope')]
+
+    def tearDown(self):
+        executor = _executor()
+        executor.migrate(executor.loader.graph.leaf_nodes())
+        super().tearDown()
+
+    def test_lines_get_id_and_unchosen_scope(self):
+        old = _migrate_to(self.before)
+        user = old.get_model('accounts', 'User').objects.create(email='z4@example.com', password='!')  # noqa: E501
+        shop = old.get_model('shops', 'Shop').objects.create(name='Boutique', currency='EUR')  # noqa: E501
+        kept = '7d7a4b9e-2f43-4c0e-9d55-1a2b3c4d5e6f'
+        order = '1b2c3d4e-5f60-4718-8a9b-0c1d2e3f4a5b'
+        calc = old.get_model('zakat', 'ZakatCalculation').objects.create(
+            shop=shop, user=user, reference_date=datetime.date(2025, 3, 1),
+            hawl_calendar='gregorian', hawl_year=2025, currency='EUR',
+            receivable_items=[
+                {'order_id': None, 'label': 'Client', 'amount': '100.00', 'doubtful': False},  # noqa: E501
+                {'order_id': order, 'label': 'Commande', 'amount': '20.00', 'doubtful': False},  # noqa: E501
+                {'id': kept, 'scope': 'personal', 'order_id': None, 'label': 'Ami', 'amount': '50.00', 'doubtful': True},  # noqa: E501
+            ],
+            debt_items=[{'category': 'supplier', 'label': 'Grossiste', 'amount': '300.00', 'amount_within_12_months': '300.00'}],  # noqa: E501
+        )
+        empty = old.get_model('zakat', 'ZakatCalculation').objects.create(
+            shop=shop, user=user, reference_date=datetime.date(2026, 3, 1),
+            hawl_calendar='gregorian', hawl_year=2026, currency='EUR',
+        )
+        stamps = dict(old.get_model('zakat', 'ZakatCalculation').objects.values_list('pk', 'updated_at'))  # noqa: E501
+
+        Calc = _migrate_to(self.after).get_model('zakat', 'ZakatCalculation')
+        migrated = Calc.objects.get(pk=calc.pk)
+        first, linked, second = migrated.receivable_items
+        self.assertIsNone(first['scope'])
+        self.assertTrue(first['id'])
+        self.assertEqual(linked['scope'], 'shop')
+        self.assertEqual((second['id'], second['scope']), (kept, 'personal'))
+        self.assertIsNone(migrated.debt_items[0]['scope'])
+        self.assertNotEqual(migrated.debt_items[0]['id'], first['id'])
+        self.assertEqual(Calc.objects.get(pk=empty.pk).receivable_items, [])
+        self.assertEqual(dict(Calc.objects.values_list('pk', 'updated_at')), stamps)

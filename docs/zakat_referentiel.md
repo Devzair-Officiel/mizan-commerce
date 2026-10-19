@@ -80,13 +80,37 @@ la règle… » (Muwatta, Livre de la zakat), chaîne authentique (*mawqûf sah�
 | Dues chaque année, versées à l'encaissement pour les années passées | Hanafites, Hanbalites |
 
 Dans Mizan, l'option 2 sort la créance de la base et affiche « Zakat à verser à l'encaissement ».
+Après le jour J, chaque créance sûre reçoit sa part : zakat à l'encaissement de la fiche × montant
+de la ligne ÷ total des créances sûres de la fiche. Cette part devient due au prorata de ce qui est
+encaissé (rien si la fiche est sous le seuil) ; une créance présente sur plusieurs fiches cumule
+ses parts.
 
 ### D4. Créances douteuses
 
 Accord : rien à verser tant qu'elles ne sont pas encaissées. À l'encaissement, divergence :
 toutes les années passées (Chaféites, rapporté d'Ali) / une seule année (Malikites ; al-Hasan,
 Umar ibn Abd al-Azîz) / nouvelle année à partir de l'encaissement (Commission permanente,
-Ibn Bâz). Mizan : exclues de la base, mémoire conservée. Suivi à l'encaissement : lot ultérieur.
+Ibn Bâz). Mizan : exclues de la base, mémoire conservée.
+
+**Suivi à l'encaissement : livré en Z4.** À l'encaissement, Mizan affiche les trois options avec
+qui les soutient et leur montant, sans aucune cochée d'avance :
+- toutes les années passées : somme des fiches où figure la créance, sans celles sous le seuil ;
+- une seule année : la fiche la plus récente où figure la créance (0 si elle est sous le seuil, avec
+  la mention) ;
+- nouvelle année à partir de l'encaissement : 0 maintenant.
+
+Règles communes du suivi (D3 et D4) :
+- calcul à la lecture, rien n'est écrit par une tâche : encaissé = montant de la ligne − reste dû
+  actuel de la commande, borné entre 0 et le montant ; commande annulée → rien d'encaissé,
+  « Annulée » ;
+- une commande n'a pas de date de paiement : aucune n'est affichée ; une créance saisie à la main se
+  déclare « Encaissée » avec sa date et son montant ;
+- seuls les gestes de la personne s'écrivent (choix D4, « Encaissée », « Marquer comme versée »,
+  « Ignorer », et leurs retours), par personne et par boutique, sans montant au journal ;
+- montant modifié après un versement : reste = max(0, dû − versé) ; si le versé dépasse le dû,
+  « Versé : X, dû recalculé : Y », sans écriture ; ligne supprimée de la fiche : suivi ignoré ;
+- limite : les créances saisies à la main ne sont pas reliées d'une fiche à l'autre (seules les
+  commandes le sont) ; une même créance ressaisie sur deux fiches est suivie deux fois.
 
 ### D5. Prix retenu pour le stock
 
@@ -136,6 +160,20 @@ Dans Mizan : saisie libre, aucun calcul automatique sur l'immobilier.
 | Dettes | — | Lignes : fournisseurs, salaires dus, loyer, impôts/TVA, paiements échelonnés, avec la part due dans les 12 mois |
 | Trésorerie | — | Caisse, banque, autres |
 | Autres biens | — | Lignes libres : argent personnel, autre commerce (sa part), immobilier, or et argent, biens à revendre, autre ; interrupteur « Compté » par ligne ; **visibles par leur seul auteur** |
+
+**Part de propriété et lignes personnelles (Z4).** La part de la personne dans la boutique ne
+s'applique qu'à ce qui appartient à la boutique. Sous 100 %, chaque créance saisie à la main et
+chaque dette se classe « Boutique » ou « Personnelle », choix obligatoire sans valeur par défaut :
+« Boutique » par défaut réduirait une dette personnelle sans le dire. Une ligne personnelle compte
+en entier (part de 50 % et dette personnelle de 1 000 € → 1 000 € déduits) et porte la mention
+« personnelle » dans le justificatif. Une créance liée à une commande est toujours « Boutique ».
+Tant que la personne n'a pas choisi (ligne saisie à 100 %, quand le choix est masqué, ou ligne
+antérieure à Z4), la portée reste vide : elle vaut « Boutique » à 100 % seulement. Si la part
+passe sous 100 %, la fiche passe en « choix à faire » avec la liste des lignes à préciser ;
+rien n'est calculé ni déduit tant qu'elles ne sont pas classées. Le montant déduit de chaque
+dette (part appliquée aux lignes « Boutique », montant entier pour les personnelles, selon le
+choix des dettes) est calculé par le serveur, arrondi ligne par ligne ; leur somme est le total
+déduit. Les lignes manuelles ne sont pas reliées d'une fiche à l'autre.
 
 ## 6. Limites affichées au résultat
 

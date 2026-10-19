@@ -33,8 +33,10 @@ export function MobileSummaryCard({ calc, rows, format, onGo }: MobileSummaryCar
   const t = useTranslations('zakat');
   const [open, setOpen] = useState(false);
   const doubtful = calc.receivable_items.filter((item) => item.doubtful);
+  // Inconnu tant qu'une portée reste à choisir.
+  const doubtfulAmount = calc.totals.receivables_doubtful === null ? '—' : format.money(calc.totals.receivables_doubtful);
   const outside = [
-    ...(doubtful.length > 0 ? [t('result.outside_short_doubtful', { count: doubtful.length, amount: format.money(calc.totals.receivables_doubtful) })] : []),
+    ...(doubtful.length > 0 ? [t('result.outside_short_doubtful', { count: doubtful.length, amount: doubtfulAmount })] : []),
     ...calc.other_assets.filter((asset) => !asset.counted)
       .map((asset) => t('result.outside_short_item', { label: asset.label, amount: format.money(asset.amount) })),
     t('result.outside_short_usage'),

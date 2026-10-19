@@ -135,15 +135,24 @@ class ZakatCalculation(models.Model):
     stock_extra = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
 
     # ── Saisies ligne à ligne (validées par les serializers, montants en str) ──
-    # receivable_items : [{'order_id': uuid|None, 'label', 'amount', 'doubtful': bool}]
+    # receivable_items : [{'id': uuid, 'order_id': uuid|None, 'label', 'amount',
+    #                      'doubtful': bool, 'scope': 'shop'|'personal'}]
     # other_assets     : [{'category', 'label', 'amount', 'counted': bool}] — personnels
-    # debt_items       : [{'category', 'label', 'amount', 'amount_within_12_months'}]
+    # debt_items       : [{'id': uuid, 'category', 'label', 'amount',
+    #                      'amount_within_12_months', 'scope': 'shop'|'personal'}]
+    # `id` : stable, posé à l'ajout de la ligne (suivi à l'encaissement). `scope` :
+    # « personal » = ligne de la personne, comptée en entier (part non appliquée).
     receivable_items = models.JSONField(default=list, blank=True)
     other_assets = models.JSONField(default=list, blank=True)
     debt_items = models.JSONField(default=list, blank=True)
     # Choix de la fiche : copiés du profil à la création, modifiables ensuite. La
     # fiche la plus récente met à jour le profil (point de départ de la suivante).
     choices_snapshot = models.JSONField(default=dict, blank=True)
+
+    # Zakat à verser maintenant, marquée comme versée par la personne (date et montant
+    # saisis). Jamais recalculé : si la fiche change ensuite, l'écran montre les deux.
+    paid_on = models.DateField(null=True, blank=True)
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
 
     currency = models.CharField(max_length=3)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -162,7 +171,88 @@ class ZakatCalculation(models.Model):
                 fields=['shop', 'user', 'hawl_calendar', 'hawl_year'],
                 name='unique_zakat_per_person_hawl_year',
             ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(paid_on__isnull=True, paid_amount__isnull=True)
+                    | models.Q(paid_on__isnull=False, paid_amount__gt=0)
+                ),
+                name='zakat_calculation_payment_complete',
+            ),
         ]
 
     def __str__(self) -> str:
         return f'Zakat {self.shop} — {self.reference_date}'
+
+
+class ZakatReceivableFollowUp(models.Model):
+    """Actions de la personne sur une créance différée d'une fiche (lot Z4).
+
+    Une ligne par (fiche, ligne de créance), créée à la première action : choix D4,
+    « Encaissée » (créance saisie à la main), « Marquer comme versée », « Ignorer ».
+    Ce qui est encaissé, dû et reste à verser se calcule à la lecture
+    (`followups.py`) : rien n'est écrit sans action de la personne.
+    """
+
+    OPTION_ALL_YEARS = 'all_years'
+    OPTION_ONE_YEAR = 'one_year'
+    OPTION_NEW_YEAR = 'new_year'
+    # Ordre du référentiel (D4), aucune option par défaut.
+    DOUBTFUL_OPTION_CHOICES = [
+        (OPTION_ALL_YEARS, 'Toutes les années passées'),
+        (OPTION_ONE_YEAR, 'Une seule année'),
+        (OPTION_NEW_YEAR, 'Nouvelle année à partir de l\'encaissement'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='zakat_followups')  # noqa: E501
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='zakat_followups',  # noqa: E501
+    )
+    calculation = models.ForeignKey(
+        ZakatCalculation, on_delete=models.CASCADE, related_name='followups',
+    )
+    # `id` de la ligne dans `calculation.receivable_items`. Ligne retirée de la fiche :
+    # le suivi reste en base et n'est plus lu.
+    line_id = models.UUIDField()
+
+    doubtful_option = models.CharField(
+        max_length=10, choices=DOUBTFUL_OPTION_CHOICES, null=True, blank=True,
+    )
+    collected_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # noqa: E501
+    collected_on = models.DateField(null=True, blank=True)
+    # Cumul marqué comme versé ; le dernier versement peut être défait (« Revenir »).
+    paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
+    last_paid_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))  # noqa: E501
+    last_paid_at = models.DateTimeField(null=True, blank=True)
+    ignored_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'zakat_receivable_followups'
+        indexes = [
+            models.Index(fields=['shop', 'user']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['calculation', 'line_id'],
+                name='unique_zakat_followup_per_line',
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    last_paid_amount__gte=0, last_paid_amount__lte=models.F('paid_amount'),  # noqa: E501
+                ),
+                name='zakat_followup_paid_range',
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(collected_amount__isnull=True, collected_on__isnull=True)
+                    | models.Q(collected_amount__gt=0, collected_on__isnull=False)
+                ),
+                name='zakat_followup_collected_complete',
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f'Suivi zakat {self.calculation_id} — {self.line_id}'

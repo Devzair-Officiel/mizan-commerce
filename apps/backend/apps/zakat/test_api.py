@@ -318,7 +318,7 @@ class IsolationTest(ZakatAPITestCase):
             response = self._create(
                 client, cash_amount='4000.00',
                 other_assets=[{'category': 'personal_cash', 'label': 'Livret', 'amount': '1000.00', 'counted': True}],  # noqa: E501
-                debt_items=[{'category': 'supplier', 'label': 'Fournisseur', 'amount': '2000.00', 'amount_within_12_months': '2000.00'}],  # noqa: E501
+                debt_items=[{'category': 'supplier', 'label': 'Fournisseur', 'amount': '2000.00', 'amount_within_12_months': '2000.00', 'scope': 'shop'}],  # noqa: E501
             )
             totals.append(response.data['totals'])
         for t in totals:
