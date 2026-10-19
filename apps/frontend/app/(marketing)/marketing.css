@@ -334,11 +334,32 @@
 .mkt .final .btn { max-width: 100%; white-space: normal; font-size: clamp(16px, 2vw, 19px); padding: 18px clamp(20px, 4vw, 34px); }
 .mkt .final .btn svg { flex-shrink: 0; }
 
+/* PAGES LÉGALES */
+.mkt .legal {
+  max-width: 760px; margin-inline: auto;
+  padding-block: clamp(40px, 6vw, 80px);
+  line-height: 1.75; overflow-wrap: anywhere;
+}
+.mkt .legal h1 { font-size: clamp(32px, 4vw, 48px); line-height: 1.15; margin-bottom: 24px; }
+.mkt .legal h2 { font-size: clamp(22px, 2.5vw, 28px); line-height: 1.3; margin: 40px 0 16px; }
+.mkt .legal p, .mkt .legal ul { margin: 16px 0; }
+.mkt .legal ul { list-style: disc; padding-inline-start: 24px; }
+.mkt .legal li { margin-block: 8px; }
+.mkt .legal a { color: var(--mkt-green-700); text-decoration: underline; text-underline-offset: 3px; }
+.mkt .legal a:hover { color: var(--mkt-green-600); }
+.mkt .legal code { background: var(--mkt-cream-2); padding: 2px 4px; border-radius: 4px; }
+.mkt .legal-table { max-width: 100%; overflow-x: auto; margin-block: 24px; }
+.mkt .legal-table:focus-visible { outline: 2px solid var(--mkt-green-700); outline-offset: 3px; }
+.mkt .legal table { width: 100%; min-width: 640px; border-collapse: collapse; }
+.mkt .legal th, .mkt .legal td { padding: 16px; border: 1px solid var(--mkt-line); text-align: start; vertical-align: top; }
+.mkt .legal th { background: var(--mkt-cream-2); }
+
 /* FOOTER */
 .mkt .footer { background: var(--mkt-green-900); color: rgba(246,241,230,0.7); padding: 64px 0 40px; }
-.mkt .foot-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 36px; margin-bottom: 44px; }
+.mkt .foot-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: 36px; margin-bottom: 44px; }
 .mkt .foot-brand .wm { font-family: var(--mkt-serif); font-size: 32px; color: var(--mkt-gold-soft); }
 .mkt .foot-brand p { font-size: 15px; max-width: 280px; margin: 14px 0 0; }
+.mkt .foot-col { min-width: 0; overflow-wrap: anywhere; }
 .mkt .foot-col h5 { margin: 0 0 16px; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mkt-gold-soft); font-weight: 800; }
 .mkt .foot-col a { display: block; font-size: 15px; margin-bottom: 11px; color: rgba(246,241,230,0.68); transition: color .15s; }
 .mkt .foot-col a:hover { color: var(--mkt-gold-soft); }

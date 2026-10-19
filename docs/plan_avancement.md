@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-18
+**Dernière mise à jour** : 2026-10-19
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -538,8 +538,8 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Sécurité & RGPD
 
-- [ ] Page mentions légales
-- [ ] Page politique de confidentialité
+- [~] Page mentions légales — staging non validé
+- [~] Page politique de confidentialité — staging non validé
 - [ ] Endpoint export des données utilisateur
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
