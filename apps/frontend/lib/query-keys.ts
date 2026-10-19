@@ -242,6 +242,9 @@ export const qk = {
     detail: (id: string) => ['zakat', 'detail', id] as const,
     profile: ['zakat', 'profile'] as const,
     sources: ['zakat', 'sources'] as const,
+    /** Suivi à l'encaissement : carte de l'accueil, puis une entrée par fiche (Résultat). */
+    followups: ['zakat', 'followups'] as const,
+    calculationFollowups: (id: string) => ['zakat', 'followups', id] as const,
   },
 
   geocode: {

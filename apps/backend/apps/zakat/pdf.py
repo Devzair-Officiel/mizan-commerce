@@ -20,11 +20,12 @@ from apps.invoices.pdf_style import (
     register_fonts,
     xml,
 )
-from . import date_texts, hawl
+from . import date_texts, followups, hawl
 from .models import ZakatCalculation
 from .pdf_blocks import calculation, choices, limits, outside, verdict
+from .pdf_followups import followup_section
 from .pdf_labels import LABELS
-from .services import compute_totals
+from .services import compute_totals, shop_today
 
 
 def pdf_language(user: Any) -> str:
@@ -69,7 +70,8 @@ def _header(style: PdfStyle, calc: ZakatCalculation, title: str) -> list:
 
 
 def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
-    """PDF déterministe : même fiche, même état → mêmes octets."""
+    """PDF déterministe : même fiche, même état → mêmes octets. Jour J passé, le
+    suivi à l'encaissement est daté du jour du document."""
     register_fonts()
     language = pdf_language(calc.user)
     style = PdfStyle(language=language, labels=LABELS[language], currency=calc.currency)
@@ -95,6 +97,7 @@ def build_zakat_pdf(calc: ZakatCalculation) -> bytes:
         Spacer(1, 14),
         *calculation(style, calc, totals),
         Spacer(1, 14),
+        *followup_section(style, followups.calculation_items(calc), shop_today(calc.shop)),  # noqa: E501
         *outside(style, calc),
         Spacer(1, 14),
         *choices(style, calc),

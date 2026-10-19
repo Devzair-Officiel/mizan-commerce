@@ -13,6 +13,7 @@ from reportlab.platypus import KeepTogether, Spacer, Table
 from apps.invoices.pdf_style import BORDER, INK, MUTED, WIDTH, PdfStyle, table, xml
 from .models import ZakatCalculation, ZakatProfile
 from .services import (
+    SCOPE_PERSONAL,
     TOTALS_ABOVE_NISAB,
     TOTALS_BELOW_NISAB,
     TOTALS_CHOICE_MISSING,
@@ -49,6 +50,8 @@ def _verdict_text(style: PdfStyle, totals: ZakatTotals) -> str:
     if totals.status == TOTALS_CHOICE_MISSING:
         names = [
             _lower_first(style.text(f'choice.{name}')) for name in totals.missing_choices  # noqa: E501
+        ] + [
+            _lower_first(style.text(f'scope_missing.{name}')) for name in totals.missing_scopes  # noqa: E501
         ]
         return text.format(choices=', '.join(names))
     return text.format(
@@ -97,14 +100,34 @@ def verdict(style: PdfStyle, calc: ZakatCalculation, totals: ZakatTotals) -> Tab
     )
 
 
+def _personal_note(style: PdfStyle, amount: Decimal | None) -> str | None:
+    """« Dont personnelles : X » quand des lignes personnelles (sans part) comptent."""
+    if not amount:
+        return None
+    return style.text('personal_note').format(amount=style.money(amount))
+
+
+def _notes(*notes: str | None) -> str | None:
+    return ' '.join(note for note in notes if note) or None
+
+
+def _debts_personal(totals: ZakatTotals, mode: str) -> Decimal | None:
+    if mode == ZakatProfile.DEBTS_ALL:
+        return totals.debts_total_personal
+    if mode == ZakatProfile.DEBTS_WITHIN_12_MONTHS:
+        return totals.debts_within_12_months_personal
+    return None
+
+
 def _asset_rows(style: PdfStyle, calc: ZakatCalculation, totals: ZakatTotals) -> list[Row]:  # noqa: E501
     choices = calc.choices_snapshot or {}
     valuation = choices.get('stock_valuation') or 'missing'
     mode = choices.get('receivables_mode')
-    receivables_note = (
+    receivables_note = _notes(
+        _personal_note(style, totals.receivables_sure_personal),
         style.text('receivables.on_collection')
         if mode == ZakatProfile.RECEIVABLES_ON_COLLECTION
-        else None
+        else None,
     )
     rows: list[Row] = [
         ('+', style.text('cash'), None, _amount(style, totals.cash), None),
@@ -125,9 +148,11 @@ def _asset_rows(style: PdfStyle, calc: ZakatCalculation, totals: ZakatTotals) ->
     if not counted:
         rows.append(('+', style.text('other_none'), None, _amount(style, '0'), None))
     debts = choices.get('debts_mode') or 'missing'
-    rows.append(
-        ('−', style.text(f'debts.{debts}'), None, _amount(style, totals.debts_deducted), None),  # noqa: E501
-    )
+    rows.append((
+        '−', style.text(f'debts.{debts}'),
+        _personal_note(style, _debts_personal(totals, debts)),
+        _amount(style, totals.debts_deducted), None,
+    ))
     return rows
 
 
@@ -220,7 +245,8 @@ def outside(style: PdfStyle, calc: ZakatCalculation) -> list:
     rows = [
         _outside_row(
             style,
-            style.text('outside_doubtful').format(label=item.get('label', '')),
+            style.text('outside_doubtful').format(label=item.get('label', ''))
+            + (style.text('personal_suffix') if item.get('scope') == SCOPE_PERSONAL else ''),  # noqa: E501
             style.text('outside_doubtful_text'),
             _amount(style, item.get('amount', '0')),
         )

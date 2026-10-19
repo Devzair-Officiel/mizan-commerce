@@ -6,9 +6,11 @@ import { FORM_COLUMNS } from '@/components/form/fieldStyles';
 import { BasisLink } from '../basis/BasisLink';
 import type { StepProps } from '../steps/types';
 import { ChoicesCard } from './ChoicesCard';
+import { FollowUpsCard } from './FollowUpsCard';
 import { ForgotSheet } from './ForgotSheet';
 import { MobileSummaryCard } from './MobileSummaryCard';
 import { OutsideCard } from './OutsideCard';
+import { PaymentCard } from './PaymentCard';
 import { ResultActions } from './ResultActions';
 import { ResultHero } from './ResultHero';
 import { ResultLines } from './ResultLines';
@@ -19,7 +21,7 @@ interface ResultViewProps extends StepProps {
   onPrevious: () => void;
 }
 
-/** Étape 7, jamais figée : le verdict, le calcul ligne par ligne (chaque ligne ouvre son étape), hors base et vos choix. */
+/** Étape 7, jamais figée : le verdict, le versement, le calcul ligne par ligne (chaque ligne ouvre son étape), le suivi des créances, hors base et vos choix. */
 export function ResultView({ calc, format, onGo, onPrevious }: ResultViewProps) {
   const t = useTranslations('zakat');
   const [forgot, setForgot] = useState(false);
@@ -29,7 +31,9 @@ export function ResultView({ calc, format, onGo, onPrevious }: ResultViewProps) 
     <div className={FORM_COLUMNS}>
       <div className="flex min-w-0 flex-col gap-4 lg:gap-5">
         <ResultHero calc={calc} format={format} onGo={onGo} />
+        <PaymentCard calc={calc} format={format} />
         <ResultLines calc={calc} format={format} onGo={onGo} />
+        <FollowUpsCard calc={calc} format={format} />
         <OutsideCard calc={calc} format={format} />
         <ResultActions id={calc.id} onPrevious={onPrevious} onForgot={() => setForgot(true)} />
         <p className="text-[0.8125rem] leading-normal text-muted-foreground max-lg:hidden">{t('result.saved_note')}</p>

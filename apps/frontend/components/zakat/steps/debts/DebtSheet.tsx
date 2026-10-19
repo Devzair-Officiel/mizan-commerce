@@ -1,7 +1,7 @@
 'use client';
 
 import { useId } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { FieldSuffix } from '@/components/form/FieldSuffix';
@@ -11,12 +11,15 @@ import { FormSelect } from '@/components/form/FormSelect';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import type { DebtLine } from '@/lib/hooks/useZakat';
 import type { ZakatFormat } from '../../useZakatFormat';
+import { ScopeChoice } from '../ScopeChoice';
 import { SheetActions } from '../SheetActions';
 import { DEBT_CATEGORIES, WITHIN, debtFormValues, debtOf, debtSchema, type DebtFormValues } from './debtForm';
 
 interface DebtSheetProps {
   debt?: DebtLine;
   format: ZakatFormat;
+  /** Part de la personne sous 100 %, mise en forme : la dette est alors à classer (boutique ou personnelle). */
+  share?: string;
   onClose: () => void;
   onSubmit: (debt: DebtLine) => void;
   onDelete?: () => void;
@@ -25,16 +28,19 @@ interface DebtSheetProps {
 const AMOUNT_INPUT = `${FIELD_CONTROL} pe-14 tabular-nums`;
 
 /** Dette au jour J : catégorie, description, reste dû et part à régler dans les 12 mois. */
-export function DebtSheet({ debt, format, onClose, onSubmit, onDelete }: DebtSheetProps) {
+export function DebtSheet({ debt, format, share, onClose, onSubmit, onDelete }: DebtSheetProps) {
   const t = useTranslations('zakat');
   const formId = useId();
-  const schema = debtSchema({ label: t('common.label_required'), amount: t('common.amount_invalid'), tooHigh: t('steps.debts.within_too_high') });
+  const schema = debtSchema({
+    label: t('common.label_required'), amount: t('common.amount_invalid'),
+    tooHigh: t('steps.debts.within_too_high'), scope: t('common.scope_required'),
+  }, share !== undefined);
   const { register, control, setValue, handleSubmit, formState: { errors } } = useForm<DebtFormValues>({
     resolver: zodResolver(schema),
     defaultValues: debtFormValues(debt, format.amountInput),
   });
   const [category, within] = useWatch({ control, name: ['category', 'within'] });
-  const submit = handleSubmit((values) => { onSubmit(debtOf(values)); onClose(); });
+  const submit = handleSubmit((values) => { onSubmit(debtOf(values, debt?.id)); onClose(); });
 
   return (
     <BottomSheet open onClose={onClose} title={t(debt ? 'steps.debts.sheet_edit' : 'steps.debts.sheet_add')}
@@ -55,6 +61,11 @@ export function DebtSheet({ debt, format, onClose, onSubmit, onDelete }: DebtShe
             </FieldSuffix>
           )}
         </FormField>
+        {share !== undefined && (
+          <Controller control={control} name="scope" render={({ field }) => (
+            <ScopeChoice kind="debt" value={field.value} onChange={field.onChange} share={share} error={errors.scope?.message} />
+          )} />
+        )}
         <FormField label={t('steps.debts.field_within')} required>
           {(c) => <FormSelect control={c} value={within} onChange={(next) => setValue('within', next)}
             options={WITHIN.map((k) => ({ value: k, label: t(`steps.debts.within.${k}`) }))} />}

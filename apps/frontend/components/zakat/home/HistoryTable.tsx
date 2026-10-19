@@ -7,6 +7,7 @@ import { NUM, TD, TH } from '../steps/tableStyles';
 import type { ZakatFormat } from '../useZakatFormat';
 import { resumeHref } from '../wizard/stepNav';
 import { HistoryBadge } from './HistoryBadge';
+import { PaidNote } from './PaidNote';
 
 /** Desktop : une ligne par fiche, entièrement cliquable (le lien de l'année couvre la ligne, le lien PDF passe au-dessus). */
 export function HistoryTable({ rows, format }: { rows: ZakatListRow[]; format: ZakatFormat }) {
@@ -38,8 +39,9 @@ export function HistoryTable({ rows, format }: { rows: ZakatListRow[]; format: Z
             </td>
             <td className={`${TD} ${NUM} font-semibold text-foreground`}>
               {row.totals.zakat_total ? format.money(row.totals.zakat_total) : '—'}
+              <PaidNote row={row} format={format} />
             </td>
-            <td className={TD}><HistoryBadge row={row} /></td>
+            <td className={TD}><HistoryBadge row={row} format={format} /></td>
             <td className={`${TD} text-end`}>
               <a href={zakatPdfHref(row.id)} download aria-label={t('history_pdf', { year: String(row.hawl_year) })}
                 className="relative z-10 rounded-sm font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-primary/30">

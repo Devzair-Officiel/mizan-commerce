@@ -757,6 +757,8 @@ L'application est organisée autour des modules suivants :
 - Chaque fiche appartient à une personne : un autre administrateur de la même boutique ne la voit pas (404). Module réservé aux administrateurs.
 - Un profil personnel conserve le jour J, le calendrier (hégirien ou grégorien), le seuil (or ou argent, prix du gramme et date de saisie) et la part détenue dans la boutique (0 < part ≤ 100 %, 100 % par défaut).
 - La part s'applique à la trésorerie, au stock, aux créances et aux dettes de la boutique, pas aux autres biens.
+- Sous 100 %, chaque créance saisie à la main et chaque dette se classe « Boutique » ou « Personnelle », choix obligatoire sans valeur par défaut ; une ligne personnelle compte en entier (part de 50 % et dette personnelle de 1 000 € → 1 000 € déduits) et porte la mention « personnelle » dans le justificatif. Une créance liée à une commande est toujours « Boutique ». Une ligne jamais classée vaut « Boutique » à 100 % seulement : si la part baisse, la fiche attend le choix pour chacune (lignes listées, rien de déduit d'ici là).
+- « Marquer comme versée » depuis le résultat : date et montant modifiables, retour possible (« Revenir ») ; l'historique affiche « Versée le … », et les deux montants si la fiche a changé depuis. Consigné au journal, sans montant.
 - Une seule fiche par personne et par année de hawl, calculée par le serveur ; une deuxième est refusée avec le lien vers la fiche existante.
 - La fiche n'est jamais figée : toutes les étapes restent modifiables, même après le jour J. Deux enregistrements concurrents ne s'écrasent pas (conflit signalé).
 - Le stock suit le catalogue jusqu'au jour J, puis reste figé sauf demande explicite de mise à jour.
@@ -797,6 +799,25 @@ L'application est organisée autour des modules suivants :
 - Chaque ligne a un libellé, un montant et un interrupteur « Compté » ; seules les lignes comptées entrent dans la base.
 - Les autres biens ne sont visibles que par leur auteur.
 - Aucun libellé ni aucune catégorie ne fait référence à l'intérêt : une dette étalée s'appelle « paiement échelonné ».
+
+---
+
+## URS-108 — Suivre la zakat de mes créances à l'encaissement (proposée)
+
+**En tant que** commerçant qui verse la zakat de ses créances à l'encaissement,  
+**je veux** savoir, créance par créance, ce qui est encaissé et ce qu'il me reste à verser,  
+**afin de** ne rien oublier ni verser deux fois.
+
+### Critères d'acceptation
+
+- Après le jour J, le résultat montre l'état de chaque créance différée : pas encore encaissée, choix à faire, reste à verser, versée, rien à verser (fiche sous le seuil), annulée, ignorée.
+- Encaissé = montant de la créance − reste dû actuel de la commande, borné entre 0 et le montant ; une commande annulée n'est pas encaissée. Aucune date de paiement n'est affichée pour une commande ; une créance saisie à la main se déclare « Encaissée » avec sa date et son montant.
+- Créance sûre : sa part de la zakat à l'encaissement de la fiche, au prorata du montant, devient due au prorata de l'encaissé ; rien sous le seuil ; les parts de plusieurs fiches s'additionnent.
+- Créance douteuse encaissée : trois options (toutes les années passées, une seule année, nouvelle année), chacune avec qui la soutient et son montant, aucune cochée d'avance.
+- « Marquer comme versée » et « Ignorer » s'écrivent une seule fois, même en cas de clics concurrents ; chaque geste peut être défait. Rien d'autre n'est écrit : tout se calcule à la lecture.
+- L'accueil affiche « À verser à l'encaissement » seulement s'il y a quelque chose à faire ; le justificatif montre l'état à la date du document.
+- Données propres à la personne et à la boutique ; journal d'audit sans montant.
+- Limite : une créance saisie à la main n'est pas reliée d'une fiche à l'autre.
 
 ---
 
@@ -2225,7 +2246,7 @@ URS-001 à URS-041
 URS-061 à URS-063
 URS-089 à URS-099
 URS-101 à URS-103
-URS-105 à URS-107 (proposées)
+URS-105 à URS-108 (proposées)
 ```
 
 ---

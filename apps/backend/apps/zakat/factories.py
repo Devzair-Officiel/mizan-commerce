@@ -1,3 +1,5 @@
+import uuid
+
 import factory
 from factory.django import DjangoModelFactory
 from django.utils import timezone
@@ -6,7 +8,12 @@ from decimal import Decimal
 from apps.accounts.factories import UserFactory
 from apps.shops.factories import ShopFactory
 from . import hawl
-from .models import ZakatCalculation, ZakatProfile
+from .models import ZakatCalculation, ZakatProfile, ZakatReceivableFollowUp
+
+
+def _line(**fields: object) -> dict[str, object]:
+    """Ligne de créance ou de dette avec son identifiant stable, de la boutique."""
+    return {'id': str(uuid.uuid4()), 'scope': 'shop', **fields}
 
 
 class ZakatProfileFactory(DjangoModelFactory):
@@ -49,14 +56,27 @@ class ZakatCalculationFactory(DjangoModelFactory):
     stock_sale_value = factory.Faker('pydecimal', left_digits=5, right_digits=2, positive=True)  # noqa: E501
     stock_purchase_value = factory.LazyAttribute(lambda o: (o.stock_sale_value * Decimal('0.6')).quantize(Decimal('0.01')))  # noqa: E501
     receivable_items = factory.LazyFunction(lambda: [
-        {'order_id': None, 'label': 'Avance au fournisseur', 'amount': '400.00', 'doubtful': False},  # noqa: E501
-        {'order_id': None, 'label': 'Client parti sans payer', 'amount': '150.00', 'doubtful': True},  # noqa: E501
+        _line(order_id=None, label='Avance au fournisseur', amount='400.00', doubtful=False),  # noqa: E501
+        _line(order_id=None, label='Client parti sans payer', amount='150.00', doubtful=True),  # noqa: E501
     ])
     other_assets = factory.LazyFunction(lambda: [
         {'category': 'personal_cash', 'label': 'Espèces à la maison', 'amount': '2000.00', 'counted': True},  # noqa: E501
     ])
     debt_items = factory.LazyFunction(lambda: [
-        {'category': 'supplier', 'label': 'Fournisseur principal', 'amount': '500.00', 'amount_within_12_months': '500.00'},  # noqa: E501
-        {'category': 'loan', 'label': 'Paiement échelonné', 'amount': '5000.00', 'amount_within_12_months': '1200.00'},  # noqa: E501
+        _line(category='supplier', label='Fournisseur principal', amount='500.00', amount_within_12_months='500.00'),  # noqa: E501
+        _line(category='loan', label='Paiement échelonné', amount='5000.00', amount_within_12_months='1200.00'),  # noqa: E501
     ])
     currency = 'EUR'
+
+
+class ZakatReceivableFollowUpFactory(DjangoModelFactory):
+    """Suivi de la première créance de la fiche, sans action ; passer les champs
+    voulus (`doubtful_option`, `paid_amount`…) ou `line_id` pour une autre ligne."""
+
+    class Meta:
+        model = ZakatReceivableFollowUp
+
+    calculation = factory.SubFactory(ZakatCalculationFactory)
+    shop = factory.LazyAttribute(lambda o: o.calculation.shop)
+    user = factory.LazyAttribute(lambda o: o.calculation.user)
+    line_id = factory.LazyAttribute(lambda o: o.calculation.receivable_items[0]['id'])

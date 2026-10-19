@@ -6,8 +6,9 @@ import type { ZakatListRow } from '@/lib/hooks/useZakat';
 import type { ZakatFormat } from '../useZakatFormat';
 import { resumeHref } from '../wizard/stepNav';
 import { HistoryBadge } from './HistoryBadge';
+import { PaidNote } from './PaidNote';
 
-/** Mobile : année et jour J, zakat estimée et statut ; chaque ligne ouvre sa fiche. */
+/** Mobile : année et jour J, zakat estimée (et versée si elle diffère) et statut ; chaque ligne ouvre sa fiche. */
 export function HistoryList({ rows, format }: { rows: ZakatListRow[]; format: ZakatFormat }) {
   const t = useTranslations('zakat.home');
   return (
@@ -21,10 +22,11 @@ export function HistoryList({ rows, format }: { rows: ZakatListRow[]; format: Za
               <p className="mt-0.5 text-xs text-muted-foreground">{format.date(row.reference_date)}</p>
             </div>
             <div className="flex flex-col items-end gap-1">
-              <span className="text-sm font-semibold text-foreground tabular-nums">
+              <span className="text-end text-sm font-semibold text-foreground tabular-nums">
                 {row.totals.zakat_total ? format.money(row.totals.zakat_total) : '—'}
+                <PaidNote row={row} format={format} />
               </span>
-              <HistoryBadge row={row} />
+              <HistoryBadge row={row} format={format} />
             </div>
           </Link>
         </li>

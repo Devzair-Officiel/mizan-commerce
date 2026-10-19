@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { OrderState, OrderSummary, ReceivableItem } from '@/lib/hooks/useZakat';
 import type { ZakatFormat } from '../../useZakatFormat';
+import { PersonalTag } from '../PersonalTag';
+import { ScopeMissingTag } from '../ScopeMissingTag';
 import { OrderNotice } from './OrderNotice';
 import { SureSegment } from './SureSegment';
 
@@ -12,6 +14,8 @@ interface ReceivableRowProps {
   /** Commande d'origine telle qu'elle est aujourd'hui (créance copiée d'une commande). */
   order?: OrderSummary & { state: OrderState };
   format: ZakatFormat;
+  /** Portée à préciser (part inférieure à 100 %) : la ligne s'ouvre pour choisir. */
+  scopeMissing: boolean;
   onChange: (item: ReceivableItem) => void;
   onRemove: () => void;
   onEdit: () => void;
@@ -24,7 +28,7 @@ const ICON_BUTTON = 'inline-flex size-11 shrink-0 items-center justify-center ro
  * Une créance saisie à la main s'édite dans la feuille ; celle d'une commande se retire (elle revient
  * alors dans les commandes proposées).
  */
-export function ReceivableRow({ item, order, format, onChange, onRemove, onEdit }: ReceivableRowProps) {
+export function ReceivableRow({ item, order, format, scopeMissing, onChange, onRemove, onEdit }: ReceivableRowProps) {
   const t = useTranslations('zakat.steps.receivables');
   const linked = item.order_id !== null;
   let sub: string | null = linked ? null : t('manual_line');
@@ -37,7 +41,11 @@ export function ReceivableRow({ item, order, format, onChange, onRemove, onEdit 
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-3 last:border-b-0 lg:gap-x-4 lg:px-5">
       <div className="min-w-0 flex-1">
-        <p dir="auto" className="text-sm font-semibold text-foreground">{item.label}</p>
+        <p className="text-sm font-semibold text-foreground">
+          <span dir="auto">{item.label}</span>
+          {item.scope === 'personal' && <PersonalTag />}
+          {scopeMissing && <ScopeMissingTag />}
+        </p>
         {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
       </div>
       <span className="text-sm font-semibold whitespace-nowrap text-foreground tabular-nums lg:order-2">{format.money(item.amount)}</span>

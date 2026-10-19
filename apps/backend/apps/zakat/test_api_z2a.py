@@ -154,10 +154,12 @@ class CreationTest(ZakatAPITestCase):
         )
         OrderFactory(shop=self.shop, customer=None, status='cancelled', total_amount=Decimal('50.00'))  # noqa: E501
         items = self._create().data['receivable_items']
-        self.assertEqual(items, [
-            {'order_id': str(named.pk), 'label': customer.display_name, 'amount': '310.00', 'doubtful': False},  # noqa: E501
-            {'order_id': str(anonymous.pk), 'label': anonymous.order_number, 'amount': '50.00', 'doubtful': False},  # noqa: E501
+        without_ids = [{k: v for k, v in item.items() if k != 'id'} for item in items]
+        self.assertEqual(without_ids, [
+            {'order_id': str(named.pk), 'label': customer.display_name, 'amount': '310.00', 'doubtful': False, 'scope': 'shop'},  # noqa: E501
+            {'order_id': str(anonymous.pk), 'label': anonymous.order_number, 'amount': '50.00', 'doubtful': False, 'scope': 'shop'},  # noqa: E501
         ])
+        self.assertEqual(len({item['id'] for item in items}), 2)
         self.assertEqual(self._create(reference_date='2024-03-01', receivable_items=[]).data['receivable_items'], [])  # noqa: E501
 
     def test_current_step_bounds(self):
@@ -169,7 +171,8 @@ class CreationTest(ZakatAPITestCase):
         row = self.client.get(LIST_URL).data['results'][0]
         self.assertEqual(set(row), {
             'id', 'reference_date', 'reference_hijri', 'hawl_calendar', 'hawl_year',
-            'current_step', 'currency', 'updated_at', 'totals',
+            'current_step', 'currency', 'paid_on', 'paid_amount', 'updated_at',
+            'totals',
         })
         self.assertEqual(Decimal(row['totals']['cash']), Decimal('100.00'))
 

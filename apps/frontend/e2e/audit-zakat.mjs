@@ -11,7 +11,13 @@
  *  - fiches Fondement : ouvertes depuis le Résultat (huit catégories), un choix (« Votre choix »), les repères
  *    des autres biens (sur mobile, la feuille des repères se ferme d'abord), et l'accueil au clavier :
  *    tiroir de 440 px côté fin (à gauche en arabe) ou feuille du bas, focus piégé, liste → fiche → liste,
- *    Échap ferme et rend le focus.
+ *    Échap ferme et rend le focus ;
+ *  - versement (Z4) : « Marquer comme versée » avec la date et le montant proposés, « Versée le … » au Résultat
+ *    et dans l'historique, « Revenir » ;
+ *  - lignes personnelles (Z4) : part sous 100 %, pastille « Personnelle » et note de part ; dans la feuille d'une
+ *    dette, « Boutique / Personnelle » sans rien de coché, obligatoire ;
+ *  - suivi à l'encaissement (Z4) : rien sur l'accueil tant que rien n'est encaissé ; « Encaissée », « Marquer
+ *    comme versée » (une seule fois), choix D4 sans option cochée, puis la carte « À verser » de l'accueil.
  * Partout : console propre, aucun défilement horizontal. Les fiches sont supprimées à la fin.
  */
 import { readFile } from 'node:fs/promises';
@@ -288,6 +294,126 @@ async function checkBasisKeyboard(page, viewport, locale, label) {
     `${label} : retour à la liste (focus sur la fiche quittée), Échap ferme et rend le focus au lien`);
 }
 
+const toastWith = (page, text) => page.locator('[data-sonner-toast]').filter({ hasText: text });
+const rowWith = (page, text) => page.getByRole('listitem').filter({ hasText: text }).filter({ visible: true });
+/** Début d'un message à date (« Versée le ») : la date elle-même est mise en forme par le navigateur. */
+const prefixOf = (locale, key, name) => msg(locale, key).split(`{${name}}`)[0].trim();
+
+/** Versement : feuille préremplie (aujourd'hui, zakat due), « Versée le … » au Résultat et dans l'historique, « Revenir ». */
+async function checkPayment(page, locale, label, calc) {
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=7`);
+  await visibleButton(page, msg(locale, 'zakat.payment.mark')).click();
+  const sheet = page.getByRole('dialog', { name: msg(locale, 'zakat.payment.sheet_title'), exact: true });
+  await sheet.getByRole('button', { name: msg(locale, 'zakat.payment.submit'), exact: true }).click();
+  const done = await appears(toastWith(page, msg(locale, 'zakat.payment.done_paid')));
+  const saved = await api(page, `${CALCS}${calc.id}/`);
+  const edit = await appears(visibleButton(page, msg(locale, 'zakat.payment.edit')));
+  report.check(done && edit && saved.paid_amount === saved.totals.zakat_now && saved.paid_on !== null && await noOverflow(page),
+    `${label} : versement — enregistré avec la date et le montant proposés (${saved.paid_amount}), « ${msg(locale, 'zakat.payment.edit')} » affiché`);
+  await page.goto(`${BASE}/zakat`);
+  const badge = await appears(page.getByText(prefixOf(locale, 'zakat.status.paid', 'date')).filter({ visible: true }));
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=7`);
+  await visibleButton(page, msg(locale, 'zakat.payment.revert')).click();
+  const reverted = await appears(visibleButton(page, msg(locale, 'zakat.payment.mark')));
+  report.check(badge && reverted && (await api(page, `${CALCS}${calc.id}/`)).paid_on === null,
+    `${label} : historique « ${prefixOf(locale, 'zakat.status.paid', 'date')} … », puis « ${msg(locale, 'zakat.payment.revert')} » retire le versement`);
+}
+
+/**
+ * Part de 50 % : dette personnelle comptée en entier ; dette jamais classée → « choix à faire », lien du
+ * Résultat vers elle, pastille, puis « Boutique » choisi → montant déduit par ligne fourni par le serveur.
+ */
+async function checkScope(page, viewport, locale, label) {
+  const debt = (fields) => ({ id: crypto.randomUUID(), category: 'loan', amount_within_12_months: fields.amount, ...fields });
+  const personal = debt({ scope: 'personal', label: 'Audit perso', amount: '1000.00' });
+  const unchosen = debt({ scope: null, label: 'Audit à classer', amount: '400.00' });
+  const calc = await createCalc(page, {
+    reference_date: isoDay(-3200), cash_amount: '700000.00', current_step: 6,
+    choices: { ...CHOICES, ownership_share: '50.00' }, debt_items: [personal, unchosen],
+  });
+  const blocked = calc.totals.status === 'choice_missing' && calc.totals.missing_scopes.debts?.[0] === unchosen.id
+    && calc.totals.debts_deducted === null && calc.totals.debt_deducted[personal.id] === null;
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=7`);
+  const scopeLabel = fmt(locale, 'zakat.result.scope_label', { list: 'debts', count: 1 });
+  await page.getByRole('link', { name: fmt(locale, 'zakat.result.missing_link', { label: scopeLabel, n: 6 }), exact: true }).filter({ visible: true }).click();
+  // Tableau sur desktop, liste sur mobile.
+  const row = (text) => page.locator('li, tr').filter({ hasText: text }).filter({ visible: true });
+  const tagged = await appears(row(personal.label).filter({ hasText: msg(locale, 'zakat.steps.scope.personal') }));
+  const flagged = await appears(row(unchosen.label).filter({ hasText: msg(locale, 'zakat.steps.scope.missing_tag') }));
+  const noNote = await page.getByText(fmt(locale, 'zakat.steps.scope.share_note', { share: '50' })).count() === 0;
+  report.check(blocked && tagged && flagged && noNote && page.url().includes('etape=6'),
+    `${label} : part de 50 %, dette jamais classée — « choix à faire », rien de déduit, lien du Résultat vers elle et pastille « ${msg(locale, 'zakat.steps.scope.missing_tag')} »`);
+
+  await row(unchosen.label).getByRole('button').click();
+  const edit = page.getByRole('dialog', { name: msg(locale, 'zakat.steps.debts.sheet_edit'), exact: true });
+  const editGroup = edit.getByRole('radiogroup', { name: fmt(locale, 'zakat.steps.scope.label', { kind: 'debt' }), exact: true });
+  const editUnchecked = await appears(editGroup) && await editGroup.locator('[role="radio"][aria-checked="true"]').count() === 0;
+  await editGroup.getByRole('radio').first().click();
+  const saved = page.waitForResponse((r) => r.url().includes(calc.id) && r.request().method() === 'PATCH' && r.status() === 200, { timeout });
+  await edit.getByRole('button', { name: msg(locale, 'zakat.common.save'), exact: true }).click();
+  const { totals } = await (await saved).json();
+  const perLine = totals.debt_deducted[personal.id] === '1000.00' && totals.debt_deducted[unchosen.id] === '200.00' && totals.debts_deducted === '1200.00';
+  // Colonne « Déduit » (desktop) : la part appliquée à la ligne de la boutique, 200 sur 400.
+  const column = viewport.mobile || await appears(row(unchosen.label).filter({ hasText: '200' }));
+  report.check(editUnchecked && await closed(edit) && totals.status !== 'choice_missing' && perLine && column,
+    `${label} : « Boutique » choisi sans pré-sélection — déduit par ligne du serveur (1 000 personnelle, 200 boutique), total 1 200`);
+
+  await visibleButton(page, msg(locale, viewport.mobile ? 'zakat.steps.debts.add_short' : 'zakat.steps.debts.add')).click();
+  const sheet = page.getByRole('dialog', { name: msg(locale, 'zakat.steps.debts.sheet_add'), exact: true });
+  const group = sheet.getByRole('radiogroup', { name: fmt(locale, 'zakat.steps.scope.label', { kind: 'debt' }), exact: true });
+  const unchecked = await appears(group) && await group.locator('[role="radio"][aria-checked="true"]').count() === 0;
+  await sheet.getByRole('button', { name: msg(locale, 'zakat.common.add'), exact: true }).click();
+  const required = await appears(sheet.getByText(msg(locale, 'zakat.common.scope_required'), { exact: true }));
+  await page.keyboard.press('Escape');
+  report.check(unchecked && required && await closed(sheet) && await noOverflow(page),
+    `${label} : nouvelle dette — « Boutique / Personnelle » sans rien de coché, choix obligatoire`);
+}
+
+/** Créance manuelle « Encaissée » au montant proposé (toute la créance, aujourd'hui). */
+async function collect(page, locale, row) {
+  await row.getByRole('button', { name: msg(locale, 'zakat.followup.collected'), exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: msg(locale, 'zakat.followup.collected_sheet.title'), exact: true });
+  await sheet.getByRole('button', { name: msg(locale, 'zakat.followup.collected_sheet.submit'), exact: true }).click();
+  return closed(sheet);
+}
+
+/**
+ * Suivi à l'encaissement d'une fiche « à l'encaissement » : créance sûre encaissée puis versée (plus de bouton
+ * ensuite), créance douteuse encaissée avec trois options D4 sans rien de coché, puis la carte de l'accueil.
+ */
+async function checkFollowUps(page, locale, label) {
+  const line = (label, amount, doubtful) => ({ id: crypto.randomUUID(), order_id: null, label, amount, doubtful, scope: 'shop' });
+  const calc = await createCalc(page, {
+    reference_date: isoDay(-2800), cash_amount: '700000.00', current_step: 6,
+    choices: { ...CHOICES, receivables_mode: 'on_collection' },
+    receivable_items: [line('Audit sûre', '1000.00', false), line('Audit douteuse', '500.00', true)],
+  });
+  const homeTitle = page.getByRole('heading', { name: msg(locale, 'zakat.followup.home_title'), exact: true });
+  await page.goto(`${BASE}/zakat`);
+  await page.getByRole('heading', { name: msg(locale, 'zakat.home.history_title'), exact: true }).waitFor();
+  const quiet = await homeTitle.count() === 0;
+  await page.goto(`${BASE}/zakat/${calc.id}?etape=7`);
+  const sure = rowWith(page, 'Audit sûre');
+  const pending = await appears(sure.filter({ hasText: msg(locale, 'zakat.followup.state.pending') }));
+  const collected = pending && await collect(page, locale, sure);
+  const pay = sure.getByRole('button', { name: msg(locale, 'zakat.followup.mark_paid'), exact: true });
+  if (await appears(pay)) await pay.click();
+  const paid = await appears(sure.filter({ hasText: msg(locale, 'zakat.followup.revert.paid') })) && await pay.count() === 0;
+  report.check(quiet && collected && paid && await noOverflow(page),
+    `${label} : suivi — accueil sans carte avant encaissement, créance sûre « Encaissée » puis versée une seule fois`);
+  const doubtful = rowWith(page, 'Audit douteuse');
+  await collect(page, locale, doubtful);
+  const group = doubtful.getByRole('radiogroup', { name: msg(locale, 'zakat.followup.choice_label'), exact: true });
+  const three = await appears(group) && await group.getByRole('radio').count() === 3
+    && await group.locator('[aria-checked="true"]').count() === 0;
+  await group.getByRole('radio').filter({ hasText: msg(locale, 'zakat.basis.opinion.doubtful.one_year.title') }).click();
+  const chosen = await appears(group.locator('[aria-checked="true"]').filter({ hasText: msg(locale, 'zakat.basis.opinion.doubtful.one_year.title') }));
+  await page.goto(`${BASE}/zakat`);
+  const card = await appears(homeTitle) && await appears(rowWith(page, 'Audit douteuse'));
+  report.check(three && chosen && card && await noOverflow(page),
+    `${label} : créance douteuse encaissée — trois options D4, aucune cochée, choix enregistré, carte « ${msg(locale, 'zakat.followup.home_title')} » à l'accueil`);
+}
+
 const browser = await launch();
 for (const viewport of VIEWPORTS) {
   const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
@@ -312,6 +438,9 @@ for (const viewport of VIEWPORTS) {
       await checkOtherSources(page, viewport, locale, label, due);
       await checkHistoryPdf(page, locale, label);
       await checkBasisKeyboard(page, viewport, locale, label);
+      await checkPayment(page, locale, label, due);
+      await checkScope(page, viewport, locale, label);
+      await checkFollowUps(page, locale, label);
       // Les 409 (version, année) sont provoqués par l'audit lui-même.
       const problems = watch.problems.slice(before).filter((p) => !/status of 409 .*\/zakat\/calculations\//.test(p));
       report.check(problems.length === 0, `${label} : console propre${problems.map((p) => `\n      ${p}`).join('')}`);

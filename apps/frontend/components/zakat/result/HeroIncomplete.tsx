@@ -1,39 +1,56 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { ZakatCalculation } from '@/lib/hooks/useZakat';
+import type { ScopeList, ZakatCalculation } from '@/lib/hooks/useZakat';
 import { cn } from '@/lib/utils';
 import { CHOICE_ORDER, CHOICE_STEP } from '../choice/choiceCatalog';
 import { StepLink } from '../wizard/StepLink';
 import { HERO_BOX, HERO_EYEBROW, HERO_LEAD, HERO_TITLE } from './heroStyles';
 
 const HAWL_STEP = 0;
+/** Les créances et les dettes se saisissent à l'étape de leur choix d'avis. */
+const SCOPE_STEP: Record<ScopeList, number> = { receivables: CHOICE_STEP.receivables_mode, debts: CHOICE_STEP.debts_mode };
+const SCOPE_ORDER: readonly ScopeList[] = ['receivables', 'debts'];
+const LINK = 'inline-flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-sm font-semibold text-primary outline-none hover:bg-primary/5 focus-visible:ring-3 focus-visible:ring-primary/30';
 
 interface HeroIncompleteProps {
   calc: ZakatCalculation;
   onGo: (step: number) => void;
 }
 
-/** Pas de résultat sans les choix d'avis (Mizan ne choisit pas) ni sans le prix du gramme : un lien par manque. */
+/**
+ * Pas de résultat sans les choix d'avis (Mizan ne choisit pas), sans la portée des lignes sous 100 %
+ * ni sans le prix du gramme : un lien par manque.
+ */
 export function HeroIncomplete({ calc, onGo }: HeroIncompleteProps) {
   const t = useTranslations('zakat');
   const missing = CHOICE_ORDER.filter((name) => calc.totals.missing_choices.includes(name));
+  const scopes = SCOPE_ORDER.flatMap((list) => {
+    const count = calc.totals.missing_scopes[list]?.length ?? 0;
+    return count > 0 ? [{ list, count }] : [];
+  });
   const choiceMissing = calc.totals.status === 'choice_missing';
 
   return (
     <section aria-labelledby="zakat-result-verdict" className={cn(HERO_BOX, 'bg-muted text-foreground lg:block')}>
       <h2 id="zakat-result-verdict" className={cn(HERO_EYEBROW, 'text-muted-foreground')}>{t('result.below_eyebrow')}</h2>
       <p className={HERO_TITLE}>
-        {choiceMissing ? t('result.missing_title', { count: missing.length }) : t('result.nisab_title')}
+        {choiceMissing ? t('result.missing_title', { count: missing.length + scopes.length }) : t('result.nisab_title')}
       </p>
       <p className={HERO_LEAD}>{t(choiceMissing ? 'result.missing_text' : 'result.nisab_text')}</p>
       {choiceMissing ? (
         <ul className="mt-4 flex flex-wrap gap-2">
           {missing.map((name) => (
             <li key={name}>
-              <StepLink id={calc.id} step={CHOICE_STEP[name]} onGo={onGo}
-                className="inline-flex min-h-11 items-center rounded-full border border-border bg-card px-4 text-sm font-semibold text-primary outline-none hover:bg-primary/5 focus-visible:ring-3 focus-visible:ring-primary/30">
+              <StepLink id={calc.id} step={CHOICE_STEP[name]} onGo={onGo} className={LINK}>
                 {t('result.missing_link', { label: t(`summary.label.${name}`), n: CHOICE_STEP[name] + 1 })}
+              </StepLink>
+            </li>
+          ))}
+          {scopes.map(({ list, count }) => (
+            <li key={list}>
+              <StepLink id={calc.id} step={SCOPE_STEP[list]} onGo={onGo} className={LINK}>
+                {t('result.missing_link', { label: t('result.scope_label', { list, count }), n: SCOPE_STEP[list] + 1 })}
               </StepLink>
             </li>
           ))}

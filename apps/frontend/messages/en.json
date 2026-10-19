@@ -1946,7 +1946,11 @@
       "back_home": "Back to zakat",
       "nisab_name": "{method, select, silver {595 g of silver} other {85 g of gold}}",
       "price_age": "{days, plural, =0 {Gram price entered today} one {Gram price entered # day ago} other {Gram price entered # days ago}}",
-      "price_missing": "Gram price to enter"
+      "price_missing": "Gram price to enter",
+      "scope_required": "Say whether this line belongs to the shop or is personal.",
+      "date_between": "Date between {min} and {max}.",
+      "date_until": "Date no later than {max}.",
+      "amount_max": "At most {max}."
     },
     "hijri_month": {
       "1": "Muharram",
@@ -1967,7 +1971,8 @@
       "below_nisab": "Below the threshold",
       "choice_missing": "Choice to make",
       "nisab_unknown": "Threshold to complete",
-      "in_progress": "In progress"
+      "in_progress": "In progress",
+      "paid": "Paid on {date}"
     },
     "chip": {
       "four_schools": "Four schools",
@@ -2148,7 +2153,8 @@
       "load_error": "Zakat could not be loaded. Check your connection and try again.",
       "col_pdf": "PDF",
       "history_pdf": "Download the {year} statement",
-      "reminder": "{enabled, select, true {Email reminder, 7 days before} other {No email reminder}}"
+      "reminder": "{enabled, select, true {Email reminder, 7 days before} other {No email reminder}}",
+      "history_paid": "Paid: {amount}"
     },
     "new": {
       "title": "New calculation",
@@ -2220,7 +2226,11 @@
       },
       "note_nisab": "Enter the gram price to know the threshold.",
       "note_on_collection": "Of which {amount} is paid when your receivables are collected.",
-      "note_share": "Your share: {share}% of the shop."
+      "note_share": "Your share: {share}% of the shop.",
+      "missing_scope": {
+        "receivables": "shop or personal for some receivables",
+        "debts": "shop or personal for some debts"
+      }
     },
     "steps": {
       "hawl": {
@@ -2387,6 +2397,15 @@
         "within_too_high": "The part due within 12 months exceeds the amount.",
         "edit_line": "Edit {label}",
         "delete_line": "Delete this debt"
+      },
+      "scope": {
+        "label": "{kind, select, receivable {This receivable is…} other {This debt is…}}",
+        "shop": "The shop's",
+        "shop_text": "Counted at your share ({share}%).",
+        "personal": "Personal",
+        "personal_text": "Counted in full.",
+        "share_note": "Your {share}% share applies to the shop's receivables; personal receivables count in full.",
+        "missing_tag": "Shop or personal?"
       }
     },
     "asset_category": {
@@ -2468,7 +2487,8 @@
       "see": "View",
       "pdf": "Download the statement",
       "pdf_short": "PDF statement",
-      "choices_note": "Included in the statement{latest, select, true { and carried over to your next calculation} other {}}. Can be changed at any time."
+      "choices_note": "Included in the statement{latest, select, true { and carried over to your next calculation} other {}}. Can be changed at any time.",
+      "scope_label": "{list, select, receivables {{count, plural, one {One receivable to specify} other {# receivables to specify}}} other {{count, plural, one {One debt to specify} other {# debts to specify}}}}"
     },
     "settings": {
       "title": "Zakat settings",
@@ -2709,6 +2729,94 @@
         "7": "The cause of Allah",
         "8": "The stranded traveller"
       }
+    },
+    "followup": {
+      "home_title": "To pay on collection",
+      "home_hint": "Receivables collected after your day: a choice to make or zakat to pay.",
+      "result_title": "Collection follow-up",
+      "result_hint": "Where each receivable stands today, recalculated every time you open it.",
+      "choice_label": "Doubtful receivable collected: which zakat to pay?",
+      "order": "Order no. {number}",
+      "sub_order": "Order no. {number}, {kind, select, sure {sure receivable} other {doubtful receivable}} from zakat {year}",
+      "sub_manual": "Entered by hand, {kind, select, sure {sure receivable} other {doubtful receivable}} from zakat {year}",
+      "state": {
+        "cancelled": "Cancelled",
+        "removed": "Order deleted",
+        "ignored": "Ignored",
+        "pending": "Not collected yet",
+        "choice_needed": "Choice to make",
+        "to_pay": "To pay",
+        "paid": "Paid",
+        "nothing_due": "Nothing to pay",
+        "below_nisab": "Below the threshold"
+      },
+      "fact": {
+        "amount": "Amount: {amount}",
+        "collected": "Collected: {collected} of {amount}",
+        "collected_on": "Collected on {date}: {collected} of {amount}",
+        "part": "Share of zakat on collection: {part}",
+        "due": "Zakat on what was collected: {due}",
+        "paid": "Paid: {paid}",
+        "overpaid": "Paid: {paid}, recalculated due: {due}"
+      },
+      "option_text": {
+        "all_years": "{count, plural, one {Zakat for {years}.} other {Zakat for each year: {years}.}}",
+        "all_years_none": "No year counts.",
+        "below": "{count, plural, one {Without {years}: below the threshold.} other {Without {years}: below the threshold.}}",
+        "incomplete": "{count, plural, one {Without {years}: incomplete calculation.} other {Without {years}: incomplete calculations.}}",
+        "one_year": "Zakat for {year}, the latest year it appears in.",
+        "one_year_below": "{year}, the latest year it appears in: below the threshold, nothing to pay.",
+        "one_year_incomplete": "{year}, the latest year it appears in: incomplete calculation, nothing to count.",
+        "new_year": "Nothing now: what you collected goes into your next calculation."
+      },
+      "remaining": "Left to pay: {amount}",
+      "ignore": "Ignore",
+      "mark_paid": "Mark as paid",
+      "collected": "Collected",
+      "revert": {
+        "paid": "Marked paid by mistake?",
+        "ignore": "Ignored by mistake?",
+        "collected": "Marked collected by mistake?",
+        "action": "Undo"
+      },
+      "done": {
+        "option": "Choice saved.",
+        "collected": "Collection saved.",
+        "paid": "Zakat marked as paid.",
+        "ignore": "Receivable ignored.",
+        "revert": "Restored."
+      },
+      "undo": "Undo",
+      "conflict": "This receivable changed in the meantime. Its current state has been loaded.",
+      "failed": "Could not save. Check your connection and try again.",
+      "collected_sheet": {
+        "title": "Receivable collected",
+        "hint": "{label}: date and amount received.",
+        "date": "Collection date",
+        "amount": "Amount collected",
+        "submit": "Save"
+      }
+    },
+    "payment": {
+      "title": "Payment",
+      "hint": "Once the zakat is paid, note it here: your history will show it.",
+      "paid": "Paid on {date}: {amount}",
+      "due_now": "Estimated zakat today: {amount}",
+      "mark": "Mark as paid",
+      "edit": "Edit",
+      "mistake": "Marked paid by mistake?",
+      "revert": "Undo",
+      "sheet_title": "Zakat paid",
+      "sheet_edit": "Edit the payment",
+      "sheet_hint": "Date and amount actually paid.",
+      "date": "Payment date",
+      "amount": "Amount paid",
+      "submit": "Save",
+      "done_paid": "Zakat marked as paid.",
+      "done_changed": "Payment updated.",
+      "done_reverted": "Payment removed.",
+      "conflict": "This calculation was changed elsewhere. The latest version has been loaded.",
+      "failed": "Could not save. Check your connection and try again."
     }
   },
   "public_page_admin": {

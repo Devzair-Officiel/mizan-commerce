@@ -1946,7 +1946,11 @@
       "back_home": "Retour à la zakat",
       "nisab_name": "{method, select, silver {595 g d'argent} other {85 g d'or}}",
       "price_age": "{days, plural, =0 {Prix du gramme saisi aujourd'hui} one {Prix du gramme saisi il y a # jour} other {Prix du gramme saisi il y a # jours}}",
-      "price_missing": "Prix du gramme à saisir"
+      "price_missing": "Prix du gramme à saisir",
+      "scope_required": "Indiquez si cette ligne est de la boutique ou personnelle.",
+      "date_between": "Date entre le {min} et le {max}.",
+      "date_until": "Date au plus tard le {max}.",
+      "amount_max": "Au plus {max}."
     },
     "hijri_month": {
       "1": "mouharram",
@@ -1967,7 +1971,8 @@
       "below_nisab": "Sous le seuil",
       "choice_missing": "Choix à faire",
       "nisab_unknown": "Seuil à compléter",
-      "in_progress": "En cours"
+      "in_progress": "En cours",
+      "paid": "Versée le {date}"
     },
     "chip": {
       "four_schools": "Quatre écoles",
@@ -2148,7 +2153,8 @@
       "load_error": "La zakat n'a pas pu être chargée. Vérifiez votre connexion puis réessayez.",
       "col_pdf": "PDF",
       "history_pdf": "Télécharger le justificatif {year}",
-      "reminder": "{enabled, select, true {Rappel par e-mail, 7 jours avant} other {Aucun rappel par e-mail}}"
+      "reminder": "{enabled, select, true {Rappel par e-mail, 7 jours avant} other {Aucun rappel par e-mail}}",
+      "history_paid": "Versé : {amount}"
     },
     "new": {
       "title": "Nouveau calcul",
@@ -2220,7 +2226,11 @@
       },
       "note_nisab": "Saisissez le prix du gramme pour connaître le seuil.",
       "note_on_collection": "Dont {amount} à verser à l'encaissement de vos créances.",
-      "note_share": "Votre part : {share} % de la boutique."
+      "note_share": "Votre part : {share} % de la boutique.",
+      "missing_scope": {
+        "receivables": "boutique ou personnelle pour des créances",
+        "debts": "boutique ou personnelle pour des dettes"
+      }
     },
     "steps": {
       "hawl": {
@@ -2387,6 +2397,15 @@
         "within_too_high": "La part due dans les 12 mois dépasse le montant.",
         "edit_line": "Modifier {label}",
         "delete_line": "Supprimer cette dette"
+      },
+      "scope": {
+        "label": "{kind, select, receivable {Cette créance est…} other {Cette dette est…}}",
+        "shop": "De la boutique",
+        "shop_text": "Comptée selon votre part ({share} %).",
+        "personal": "Personnelle",
+        "personal_text": "Comptée en entier.",
+        "share_note": "Votre part de {share} % s'applique aux créances de la boutique ; les créances personnelles comptent en entier.",
+        "missing_tag": "Boutique ou personnelle ?"
       }
     },
     "asset_category": {
@@ -2468,7 +2487,8 @@
       "see": "Voir",
       "pdf": "Télécharger le justificatif",
       "pdf_short": "Justificatif PDF",
-      "choices_note": "Repris dans le justificatif{latest, select, true { et pour votre prochaine fiche} other {}}. Modifiable à tout moment."
+      "choices_note": "Repris dans le justificatif{latest, select, true { et pour votre prochaine fiche} other {}}. Modifiable à tout moment.",
+      "scope_label": "{list, select, receivables {{count, plural, one {Une créance à préciser} other {# créances à préciser}}} other {{count, plural, one {Une dette à préciser} other {# dettes à préciser}}}}"
     },
     "settings": {
       "title": "Réglages de la zakat",
@@ -2709,6 +2729,94 @@
         "7": "La cause d'Allah",
         "8": "Le voyageur en difficulté"
       }
+    },
+    "followup": {
+      "home_title": "À verser à l'encaissement",
+      "home_hint": "Créances encaissées après leur jour J : un choix à faire ou une zakat à verser.",
+      "result_title": "Suivi à l'encaissement",
+      "result_hint": "État de chaque créance à ce jour, recalculé à chaque ouverture.",
+      "choice_label": "Créance douteuse encaissée : quelle zakat verser ?",
+      "order": "Commande n° {number}",
+      "sub_order": "Commande n° {number}, {kind, select, sure {créance sûre} other {créance douteuse}} de la zakat {year}",
+      "sub_manual": "Saisie à la main, {kind, select, sure {créance sûre} other {créance douteuse}} de la zakat {year}",
+      "state": {
+        "cancelled": "Annulée",
+        "removed": "Commande supprimée",
+        "ignored": "Ignorée",
+        "pending": "Pas encore encaissée",
+        "choice_needed": "Choix à faire",
+        "to_pay": "À verser",
+        "paid": "Versée",
+        "nothing_due": "Rien à verser",
+        "below_nisab": "Sous le seuil"
+      },
+      "fact": {
+        "amount": "Montant : {amount}",
+        "collected": "Encaissé : {collected} sur {amount}",
+        "collected_on": "Encaissé le {date} : {collected} sur {amount}",
+        "part": "Part de la zakat à l'encaissement : {part}",
+        "due": "Zakat sur l'encaissé : {due}",
+        "paid": "Versé : {paid}",
+        "overpaid": "Versé : {paid}, dû recalculé : {due}"
+      },
+      "option_text": {
+        "all_years": "{count, plural, one {Zakat de l'année {years}.} other {Zakat de chaque année : {years}.}}",
+        "all_years_none": "Aucune année ne compte.",
+        "below": "{count, plural, one {Sans {years} : sous le seuil.} other {Sans {years} : sous le seuil.}}",
+        "incomplete": "{count, plural, one {Sans {years} : calcul incomplet.} other {Sans {years} : calculs incomplets.}}",
+        "one_year": "Zakat de l'année {year}, la plus récente où elle figure.",
+        "one_year_below": "Année {year}, la plus récente où elle figure : sous le seuil, rien à verser.",
+        "one_year_incomplete": "Année {year}, la plus récente où elle figure : calcul incomplet, rien à compter.",
+        "new_year": "Rien maintenant : l'encaissé entre dans votre prochain calcul."
+      },
+      "remaining": "Reste à verser : {amount}",
+      "ignore": "Ignorer",
+      "mark_paid": "Marquer comme versée",
+      "collected": "Encaissée",
+      "revert": {
+        "paid": "Versée par erreur ?",
+        "ignore": "Ignorée par erreur ?",
+        "collected": "Encaissée par erreur ?",
+        "action": "Revenir"
+      },
+      "done": {
+        "option": "Choix enregistré.",
+        "collected": "Encaissement enregistré.",
+        "paid": "Zakat marquée comme versée.",
+        "ignore": "Créance ignorée.",
+        "revert": "C'est rétabli."
+      },
+      "undo": "Annuler",
+      "conflict": "Cette créance a changé entre-temps. Son état actuel vient d'être chargé.",
+      "failed": "Enregistrement impossible. Vérifiez votre connexion puis réessayez.",
+      "collected_sheet": {
+        "title": "Créance encaissée",
+        "hint": "{label} : date et montant reçus.",
+        "date": "Date de l'encaissement",
+        "amount": "Montant encaissé",
+        "submit": "Enregistrer"
+      }
+    },
+    "payment": {
+      "title": "Versement",
+      "hint": "Une fois la zakat versée, notez-le ici : l'historique l'indiquera.",
+      "paid": "Versée le {date} : {amount}",
+      "due_now": "Zakat estimée aujourd'hui : {amount}",
+      "mark": "Marquer comme versée",
+      "edit": "Modifier",
+      "mistake": "Versée par erreur ?",
+      "revert": "Revenir",
+      "sheet_title": "Zakat versée",
+      "sheet_edit": "Modifier le versement",
+      "sheet_hint": "Date et montant réellement versés.",
+      "date": "Date du versement",
+      "amount": "Montant versé",
+      "submit": "Enregistrer",
+      "done_paid": "Zakat marquée comme versée.",
+      "done_changed": "Versement modifié.",
+      "done_reverted": "Versement retiré.",
+      "conflict": "Ce calcul a été modifié ailleurs. La dernière version vient d'être chargée.",
+      "failed": "Enregistrement impossible. Vérifiez votre connexion puis réessayez."
     }
   },
   "public_page_admin": {

@@ -10,14 +10,18 @@ from apps.core.permissions import IsShopAdmin, get_shop
 from apps.subscriptions.permissions import HasPlanForFeature
 
 HasZakatPlan = HasPlanForFeature.for_feature('zakat')
-from . import services  # noqa: E402
+from . import followups, services  # noqa: E402
 from .models import ZakatCalculation  # noqa: E402
 from .pdf import build_zakat_pdf  # noqa: E402
 from .serializers import (  # noqa: E402
     ZakatCalculationListSerializer,
     ZakatCalculationSerializer,
+    ZakatFollowUpActionSerializer,
+    ZakatFollowUpSerializer,
+    ZakatPaymentSerializer,
     ZakatProfileSerializer,
     ZakatSourcesSerializer,
+    ZakatVersionSerializer,
 )
 
 
@@ -35,6 +39,15 @@ class ZakatViewMixin:
         if isinstance(exc, services.VersionConflictError):
             return Response(
                 {'detail': str(exc), 'current_version': exc.current_version},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if isinstance(exc, followups.FollowUpNotFound):
+            return Response({'detail': 'Créance introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
+        if isinstance(exc, followups.FollowUpActionError):
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        if isinstance(exc, followups.FollowUpConflictError):
+            return Response(
+                {'detail': str(exc), 'item': ZakatFollowUpSerializer(exc.item).data},
                 status=status.HTTP_409_CONFLICT,
             )
         if isinstance(exc, services.DuplicateHawlYearError):
@@ -92,7 +105,9 @@ class ZakatCalculationListCreateView(ZakatViewMixin, generics.ListAPIView):
 
     def post(self, request):
         shop = get_shop(request.user)
-        serializer = ZakatCalculationSerializer(data=request.data, context={'shop': shop})  # noqa: E501
+        serializer = ZakatCalculationSerializer(
+            data=request.data, context={'shop': shop, 'user': request.user},
+        )
         serializer.is_valid(raise_exception=True)
         data, _, _ = _split_controls(serializer.validated_data)
         calc = services.create_calculation(shop, request.user, data)
@@ -139,3 +154,62 @@ class ZakatCalculationPdfView(ZakatViewMixin, APIView):
         filename = f'zakat-{calc.hawl_year}.pdf'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+
+class ZakatPaymentView(ZakatViewMixin, APIView):
+    """PUT — « Marquer comme versée » ou modifier date et montant ; DELETE — retrait.
+
+    Écriture conditionnelle sur `version` (409 si périmée) ; renvoie la fiche."""
+
+    def put(self, request, pk):
+        shop = get_shop(request.user)
+        calc = services.get_calculation(shop, request.user, pk)
+        serializer = ZakatPaymentSerializer(data=request.data, context={'shop': shop})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        calc = services.set_payment(
+            calc, request.user, paid_on=data['paid_on'], paid_amount=data['paid_amount'],  # noqa: E501
+            expected_version=data['version'],
+        )
+        return Response(ZakatCalculationSerializer(calc).data)
+
+    def delete(self, request, pk):
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
+        serializer = ZakatVersionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        calc = services.clear_payment(
+            calc, request.user, expected_version=serializer.validated_data['version'],
+        )
+        return Response(ZakatCalculationSerializer(calc).data)
+
+
+class ZakatFollowUpListView(ZakatViewMixin, APIView):
+    """GET — créances qui appellent une action (carte « À verser à l'encaissement »)."""
+
+    def get(self, request):
+        items = followups.actionable_items(get_shop(request.user), request.user)
+        return Response(ZakatFollowUpSerializer(items, many=True).data)
+
+
+class ZakatCalculationFollowUpsView(ZakatViewMixin, APIView):
+    """GET — créances suivies d'une fiche (écran Résultat), 404 si elle n'est pas à soi."""  # noqa: E501
+
+    def get(self, request, pk):
+        calc = services.get_calculation(get_shop(request.user), request.user, pk)
+        items = followups.calculation_items(calc)
+        return Response(ZakatFollowUpSerializer(items, many=True).data)
+
+
+class ZakatFollowUpActionView(ZakatViewMixin, APIView):
+    """POST — action sur une créance : choix D4, « Encaissée », « Marquer comme
+    versée », « Ignorer », « Revenir ». Renvoie la créance relue ; 409 si elle a
+    changé entre-temps (avec son état actuel)."""
+
+    def post(self, request, pk, line_id):
+        serializer = ZakatFollowUpActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        item = followups.apply_action(
+            get_shop(request.user), request.user, pk, line_id,
+            serializer.validated_data,
+        )
+        return Response(ZakatFollowUpSerializer(item).data)

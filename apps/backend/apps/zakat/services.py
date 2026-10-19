@@ -1,4 +1,5 @@
 import logging
+import uuid
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -26,7 +27,7 @@ from apps.products.models import ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.subscriptions.permissions import shop_has_feature
 from . import hawl, reminder_texts
-from .models import ZakatCalculation, ZakatProfile
+from .models import ZakatCalculation, ZakatProfile, ZakatReceivableFollowUp
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +78,11 @@ CHOICE_FIELDS = ('calendar', 'stock_valuation', 'receivables_mode', 'debts_mode'
 
 # Plafond de lignes par saisie (créances, autres biens, dettes).
 MAX_LINES = 200
+
+# Portée d'une créance ou d'une dette : de la boutique (part appliquée) ou de la
+# personne (comptée en entier). Une créance liée à une commande est de la boutique.
+SCOPE_SHOP = 'shop'
+SCOPE_PERSONAL = 'personal'
 TOP_STOCK_LINES = 5
 
 # État d'une commande liée à une créance, comparée à la copie de la fiche.
@@ -297,10 +303,12 @@ def _order_summary(order: Order) -> dict[str, Any]:
 def _order_receivable(order: Order) -> dict[str, Any]:
     """Créance copiée d'une commande non réglée (reste dû du jour)."""
     return {
+        'id': str(uuid.uuid4()),
         'order_id': str(order.pk),
         'label': order.customer.display_name if order.customer else order.order_number,
         'amount': str(order.remaining),
         'doubtful': False,
+        'scope': SCOPE_SHOP,
     }
 
 
@@ -369,15 +377,24 @@ def build_sources(shop: Shop) -> dict[str, Any]:
 
 @dataclass(frozen=True)
 class _Amounts:
-    """Montants de la fiche, part de la personne appliquée (sauf autres biens)."""
+    """Montants de la fiche, part de la personne appliquée aux montants de la
+    boutique ; autres biens et lignes personnelles comptés en entier.
+
+    `*_personal` : ce qui, dans le montant voisin, vient de lignes personnelles.
+    `None` : une ligne de la liste attend sa portée (`missing_scopes`)."""
     cash: Decimal
     stock_at_sale_price: Decimal
     stock_at_purchase_price: Decimal
-    receivables_sure: Decimal
-    receivables_doubtful: Decimal
+    receivables_sure: Decimal | None
+    receivables_sure_personal: Decimal
+    receivables_doubtful: Decimal | None
     other_assets: Decimal
-    debts_total: Decimal
-    debts_within_12_months: Decimal
+    debts_total: Decimal | None
+    debts_total_personal: Decimal
+    debts_within_12_months: Decimal | None
+    debts_within_12_months_personal: Decimal
+    # Lignes dont la portée reste à choisir (part < 100 %), par liste.
+    missing_scopes: dict[str, list[str]]
 
 
 @dataclass(frozen=True)
@@ -404,19 +421,26 @@ class ZakatTotals:
     """Bloc `totals` (lecture seule) : tout ce que l'écran et le justificatif affichent."""  # noqa: E501
     status: str
     missing_choices: tuple[str, ...]
+    missing_scopes: dict[str, list[str]]
     ownership_share: Decimal
     cash: Decimal
     stock: Decimal | None
     stock_at_sale_price: Decimal
     stock_at_purchase_price: Decimal
-    receivables_sure: Decimal
-    receivables_doubtful: Decimal
+    receivables_sure: Decimal | None
+    receivables_sure_personal: Decimal
+    receivables_doubtful: Decimal | None
     receivables_in_base: Decimal | None
     receivables_on_collection: Decimal | None
     other_assets: Decimal
-    debts_total: Decimal
-    debts_within_12_months: Decimal
+    debts_total: Decimal | None
+    debts_total_personal: Decimal
+    debts_within_12_months: Decimal | None
+    debts_within_12_months_personal: Decimal
     debts_deducted: Decimal | None
+    # Montant déduit pour chaque dette (`id` → montant) ; leur somme vaut
+    # `debts_deducted`. `None` tant que le choix des dettes ou la portée manque.
+    debt_deducted: dict[str, Decimal | None]
     base: Decimal | None
     nisab_threshold: Decimal | None
     nisab_compared_amount: Decimal | None
@@ -439,23 +463,71 @@ def _apply_share(amount: Decimal, share: Decimal) -> Decimal:
     return _round(amount * share / FULL_SHARE)
 
 
+def choices_share(choices: dict[str, Any]) -> Decimal:
+    """Part de la personne dans la boutique (copie JSON des choix), 100 % à défaut."""
+    return _decimal(choices.get('ownership_share'), default=FULL_SHARE)
+
+
+def is_personal(item: dict[str, Any]) -> bool:
+    """Ligne de la personne : comptée en entier."""
+    return item.get('scope') == SCOPE_PERSONAL
+
+
+def _scope_missing(item: dict[str, Any], share: Decimal) -> bool:
+    """Portée jamais choisie : vaut « boutique » à 100 %, à préciser en dessous.
+    Une commande est toujours de la boutique."""
+    return share < FULL_SHARE and not item.get('scope') and not item.get('order_id')
+
+
+def line_counted(item: dict[str, Any], share: Decimal, key: str = 'amount') -> Decimal | None:  # noqa: E501
+    """Montant compté pour une ligne : entier si personnelle, part appliquée (arrondie
+    ligne par ligne) si de la boutique, `None` si sa portée reste à choisir."""
+    if _scope_missing(item, share):
+        return None
+    amount = _decimal(item.get(key))
+    return _round(amount) if is_personal(item) else _apply_share(amount, share)
+
+
+def _scoped(items: list[dict], share: Decimal, key: str = 'amount') -> tuple[Decimal | None, Decimal]:  # noqa: E501
+    """(somme des montants comptés ligne par ligne, lignes personnelles).
+
+    Somme `None` si une ligne attend sa portée."""
+    personal = _round(_sum_items((i for i in items if is_personal(i)), key))
+    counted = [line_counted(i, share, key) for i in items]
+    if any(value is None for value in counted):
+        return None, personal
+    return sum(counted, ZERO), personal
+
+
 def _amounts(calc: ZakatCalculation, share: Decimal) -> _Amounts:
     receivables = calc.receivable_items or []
-    debts = calc.debt_items or []
+    debt_items = calc.debt_items or []
+    sure, sure_personal = _scoped([r for r in receivables if not r.get('doubtful')], share)  # noqa: E501
+    doubtful, _ = _scoped([r for r in receivables if r.get('doubtful')], share)
+    debts, debts_personal = _scoped(debt_items, share)
+    within, within_personal = _scoped(debt_items, share, 'amount_within_12_months')
     counted_assets = [a for a in calc.other_assets or [] if a.get('counted')]
+    missing = {
+        name: [str(i.get('id')) for i in items if _scope_missing(i, share)]
+        for name, items in (('receivables', receivables), ('debts', debt_items))
+    }
     return _Amounts(
         cash=_apply_share(calc.cash_amount, share),
         stock_at_sale_price=_apply_share(calc.stock_sale_value + calc.stock_extra, share),  # noqa: E501
         stock_at_purchase_price=_apply_share(calc.stock_purchase_value + calc.stock_extra, share),  # noqa: E501
-        receivables_sure=_apply_share(_sum_items(r for r in receivables if not r.get('doubtful')), share),  # noqa: E501
-        receivables_doubtful=_apply_share(_sum_items(r for r in receivables if r.get('doubtful')), share),  # noqa: E501
+        receivables_sure=sure,
+        receivables_sure_personal=sure_personal,
+        receivables_doubtful=doubtful,
         other_assets=_round(_sum_items(counted_assets)),
-        debts_total=_apply_share(_sum_items(debts), share),
-        debts_within_12_months=_apply_share(_sum_items(debts, 'amount_within_12_months'), share),  # noqa: E501
+        debts_total=debts,
+        debts_total_personal=debts_personal,
+        debts_within_12_months=within,
+        debts_within_12_months_personal=within_personal,
+        missing_scopes={name: ids for name, ids in missing.items() if ids},
     )
 
 
-def _status(missing: tuple[str, ...], threshold: Decimal | None, below: bool) -> str:
+def _status(missing: bool, threshold: Decimal | None, below: bool) -> str:
     if missing:
         return TOTALS_CHOICE_MISSING
     if threshold is None:
@@ -486,7 +558,8 @@ def _evaluate(amounts: _Amounts, choices: dict[str, Any]) -> _Outcome:
         ZakatProfile.DEBTS_NONE: ZERO,
     }.get(choices.get('debts_mode'))
     base = deferred = net = None
-    if stock is not None and in_base is not None and debts is not None:
+    known = not amounts.missing_scopes
+    if known and stock is not None and in_base is not None and debts is not None:
         others = amounts.cash + stock + amounts.other_assets
         net = max(ZERO, others + amounts.receivables_sure - debts)
         # « À l'encaissement » : l'excédent de dettes s'impute sur les créances sûres.
@@ -505,11 +578,12 @@ def _evaluate(amounts: _Amounts, choices: dict[str, Any]) -> _Outcome:
     missing = tuple(name for name in CHOICE_FIELDS if not choices.get(name))
     return _Outcome(
         stock=stock, receivables_in_base=in_base, receivables_on_collection=deferred,
-        debts_deducted=debts, base=base, nisab_threshold=threshold,
+        debts_deducted=debts if known else None, base=base, nisab_threshold=threshold,
         nisab_compared_amount=net, nisab_ratio=_nisab_ratio(net, threshold),
         rate=rate, zakat_now=zakat_now,
         zakat_on_collection=zakat_later, zakat_total=total,
-        missing_choices=missing, status=_status(missing, threshold, below),
+        missing_choices=missing,
+        status=_status(bool(missing or amounts.missing_scopes), threshold, below),
     )
 
 
@@ -523,22 +597,42 @@ def _option_effects(amounts: _Amounts, choices: dict[str, Any]) -> dict[str, dic
     }
 
 
+def _debt_deducted(items: list[dict], share: Decimal, mode: str | None, known: bool) -> dict[str, Decimal | None]:  # noqa: E501
+    """Montant déduit pour chaque dette selon le choix des dettes : le détail de
+    `debts_deducted` (même arrondi, ligne par ligne). `None` partout tant que ce
+    total est inconnu (choix des dettes ou portée à préciser)."""
+    key = {
+        ZakatProfile.DEBTS_ALL: 'amount',
+        ZakatProfile.DEBTS_WITHIN_12_MONTHS: 'amount_within_12_months',
+    }.get(mode)
+
+    def deducted(item: dict[str, Any]) -> Decimal | None:
+        if not known:
+            return None
+        return line_counted(item, share, key) if key else ZERO
+    return {str(item.get('id')): deducted(item) for item in items}
+
+
 def compute_totals(calc: ZakatCalculation) -> ZakatTotals:
     """Moteur unique du calcul. Pur : lit la fiche et sa copie des choix, sans requête.
 
     Part de la personne appliquée à la trésorerie, au stock (catalogue + hors Mizan),
-    aux créances et aux dettes de la boutique ; pas aux autres biens (personnels).
+    aux créances et aux dettes de la boutique ; pas aux autres biens ni aux créances
+    et dettes personnelles (comptées en entier).
     Net = actifs + créances sûres − dettes, comparé au seuil ; sous le seuil, rien à
     verser. « À l'encaissement » ne change que le moment : maintenant sur
     (actifs − dettes), le reste du net à l'encaissement.
     """
     choices = calc.choices_snapshot or {}
-    share = _decimal(choices.get('ownership_share'), default=FULL_SHARE)
+    share = choices_share(choices)
     amounts = _amounts(calc, share)
+    outcome = _evaluate(amounts, choices)
+    known = outcome.debts_deducted is not None
     return ZakatTotals(
         ownership_share=share,
         **asdict(amounts),
-        **asdict(_evaluate(amounts, choices)),
+        **asdict(outcome),
+        debt_deducted=_debt_deducted(calc.debt_items or [], share, choices.get('debts_mode'), known),  # noqa: E501
         option_effects=_option_effects(amounts, choices),
     )
 
@@ -727,6 +821,45 @@ def record_pdf_download(calc: ZakatCalculation, user: Any) -> None:
     )
 
 
+def _write_payment(
+    calc: ZakatCalculation, user: Any, action: str, fields: dict[str, Any], *,
+    expected_version: int,
+) -> ZakatCalculation:
+    """Écriture conditionnelle du versement et journal (sans montant) ensemble."""
+    with transaction.atomic():
+        calc = _conditional_write(calc, fields, expected_version=expected_version)
+        log_action(
+            shop_id=calc.shop_id, user=user, action=action,
+            model_name='ZakatCalculation', obj_id=calc.pk,
+            obj_repr=f'Zakat {hawl_label(calc.hawl_calendar, calc.hawl_year)}',
+        )
+    return calc
+
+
+def set_payment(
+    calc: ZakatCalculation, user: Any, *, paid_on: date, paid_amount: Decimal,
+    expected_version: int,
+) -> ZakatCalculation:
+    """« Marquer comme versée », ou modification de la date et du montant versés.
+
+    Le montant versé reste tel quel si la fiche change ensuite : l'historique montre
+    alors les deux montants. Version périmée → 409 (une seule de deux demandes passe).
+    """
+    action = 'zakat_paid_changed' if calc.paid_on else 'zakat_paid'
+    return _write_payment(
+        calc, user, action, {'paid_on': paid_on, 'paid_amount': paid_amount},
+        expected_version=expected_version,
+    )
+
+
+def clear_payment(calc: ZakatCalculation, user: Any, *, expected_version: int) -> ZakatCalculation:  # noqa: E501
+    """« Versée par erreur ? Revenir » : retire le versement de la fiche."""
+    return _write_payment(
+        calc, user, 'zakat_paid_reverted', {'paid_on': None, 'paid_amount': None},
+        expected_version=expected_version,
+    )
+
+
 # ── Repères de l'écran ────────────────────────────────────────────────────────
 
 def _order_state(order: Order | None, amount: Decimal) -> str:
@@ -803,10 +936,11 @@ def calculation_review(calc: ZakatCalculation) -> dict[str, Any]:
 
 
 def delete_member_zakat_data(shop: Shop, user: Any) -> None:
-    """Supprime le profil et les fiches zakat d'une personne dans une boutique.
+    """Supprime profil, fiches et suivi zakat d'une personne dans une boutique.
 
     Appelé dans la transaction du retrait du membre (`shops.services.remove_member`).
     """
+    ZakatReceivableFollowUp.objects.filter(shop=shop, user=user).delete()
     ZakatCalculation.objects.filter(shop=shop, user=user).delete()
     ZakatProfile.objects.filter(shop=shop, user=user).delete()
 

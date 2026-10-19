@@ -179,7 +179,7 @@ Remplacée par la refonte ci-dessous (lots Z1 à Z3).
 - [x] Possibilité de corriger chaque montant manuellement
 - [x] Sauvegarde du calcul dans l'historique
 
-### Zakat — refonte (URS-105 à URS-107, proposées)
+### Zakat — refonte (URS-105 à URS-108, proposées)
 
 Règles, sources et choix d'avis : `docs/zakat_referentiel.md` (relecture par un référent
 religieux avant mise en ligne, § 8).
@@ -226,6 +226,18 @@ religieux avant mise en ligne, § 8).
       arrière : colonnes recréées avec leurs valeurs par défaut, sans données. Catégorie de
       rappel `zakat` conservée (filtre de la liste, rappels existants). Aucun changement
       d'écran.
+- [x] **Z4 — Suivi à l'encaissement et lignes personnelles** (URS-108, URS-105) : `id` stable
+      et `scope` (`shop` / `personal`) sur chaque créance et dette ; suivi calculé à la lecture
+      (`zakat/followups.py` : encaissé d'après le reste dû, commande annulée, part des créances
+      sûres, options D4 sans valeur par défaut) ; seuls les gestes de la personne s'écrivent
+      (`ZakatReceivableFollowUp`, UPDATE conditionnel, journal sans montant) ; « Marquer comme
+      versée » sur la fiche (`paid_on`, `paid_amount`) ; carte d'accueil « À verser à
+      l'encaissement », état des créances au Résultat et dans le justificatif ; choix
+      « Boutique / Personnelle » obligatoire sous 100 % de part, portée `null` tant qu'elle n'est
+      pas choisie (« choix à faire » sous 100 %, lignes à préciser listées) ; montant déduit par
+      dette fourni par le serveur (`debt_deducted`). Migrations core 0005, zakat 0016 et 0017
+      (`id` pour chaque ligne existante, `scope` `null`, `shop` pour une commande). Audit
+      `audit-zakat` étendu (versement, portée, suivi).
 
 ### Sécurité & droits (URS-061 à URS-063)
 
@@ -346,7 +358,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [ ] Export CSV commandes (avec filtre période)
 - [ ] Export CSV stock (quantités, prix, valeur estimée)
-- [ ] Export PDF zakat (mention "indicatif" obligatoire)
+- [x] Export PDF zakat (mention "indicatif" obligatoire) — livré avec le justificatif de Z2b (Zakat — refonte)
 - [ ] Export asynchrone via Celery + email de notification quand prêt
 
 ---
