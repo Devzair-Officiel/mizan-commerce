@@ -245,40 +245,43 @@ async function checkFollowup(page, ctx, { customer, order }) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const data = await setup(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const run = { label, locale, viewport };
-      try {
-        await cleanup(page, data.customer);
-        await checkCounts(page, run);
-        await checkFollowUpFromList(page, run, data);
-        await checkAutomatic(page, run);
-        await checkFollowup(page, run, data);
-        if (locale === 'fr' && theme === 'light') {
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const data = await setup(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const run = { label, locale, viewport };
+        try {
           await cleanup(page, data.customer);
-          await checkAssignment(browser, page, viewport);
+          await checkCounts(page, run);
+          await checkFollowUpFromList(page, run, data);
+          await checkAutomatic(page, run);
+          await checkFollowup(page, run, data);
+          if (locale === 'fr' && theme === 'light') {
+            await cleanup(page, data.customer);
+            await checkAssignment(browser, page, viewport);
+          }
+        } catch (error) {
+          report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
         }
-      } catch (error) {
-        report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+        const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await cleanup(page, data.customer);
+    await api(page, 'reminders/settings/', { method: 'PATCH', data: { unpaid_followup_enabled: true } });
+    await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
+    await ctx.close();
   }
-  await cleanup(page, data.customer);
-  await api(page, 'reminders/settings/', { method: 'PATCH', data: { unpaid_followup_enabled: true } });
-  await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

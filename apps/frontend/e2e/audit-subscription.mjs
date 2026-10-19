@@ -212,41 +212,44 @@ async function checkCancel(page, locale, label, mode) {
 }
 
 const browser = await launch();
-for (const [name, locale, theme] of CONFIGS) {
-  const viewport = VIEWPORTS.find((v) => v.name === name);
-  if (!viewport) continue;
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const state = { mode: 'trial', members: USAGE.members };
-  const requests = [];
-  page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/proxy/subscriptions/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
-  await routePlan(ctx, state);
-  await setLocale(locale);
-  setTheme(theme);
-  for (const mode of ['trial', 'free', 'paid']) {
-    const label = `${name}px ${locale} ${theme} ${mode}`;
-    console.log(`\n=== ${label}`);
-    watch.setLabel(label);
-    state.mode = mode;
-    try {
-      await page.goto(`${BASE}/settings/subscription`);
-      await page.waitForLoadState('networkidle');
-      await page.locator('[data-current-plan]').waitFor({ timeout: 10000 });
-      if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/abonnement-${name}-${locale}-${theme}-${mode}.png`, fullPage: true });
-      await checkCurrent(page, locale, label, mode, viewport.mobile);
-      await checkActivity(page, locale, label, mode, USAGE.members, viewport.mobile);
-      await checkBadge(page, locale, label);
-      await checkCards(page, locale, label, mode, viewport.mobile);
-      await checkCtaBottom(page, locale, label, viewport.mobile);
-      await checkYearly(page, locale, label);
-      await checkChoose(page, locale, label, requests);
-      await checkCancel(page, locale, label, mode);
-      await checkTeam(page, locale, label, mode, state, viewport.mobile);
-    } catch (error) {
-      report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+try {
+  for (const [name, locale, theme] of CONFIGS) {
+    const viewport = VIEWPORTS.find((v) => v.name === name);
+    if (!viewport) continue;
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const state = { mode: 'trial', members: USAGE.members };
+    const requests = [];
+    page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/proxy/subscriptions/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
+    await routePlan(ctx, state);
+    await setLocale(locale);
+    setTheme(theme);
+    for (const mode of ['trial', 'free', 'paid']) {
+      const label = `${name}px ${locale} ${theme} ${mode}`;
+      console.log(`\n=== ${label}`);
+      watch.setLabel(label);
+      state.mode = mode;
+      try {
+        await page.goto(`${BASE}/settings/subscription`);
+        await page.waitForLoadState('networkidle');
+        await page.locator('[data-current-plan]').waitFor({ timeout: 10000 });
+        if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/abonnement-${name}-${locale}-${theme}-${mode}.png`, fullPage: true });
+        await checkCurrent(page, locale, label, mode, viewport.mobile);
+        await checkActivity(page, locale, label, mode, USAGE.members, viewport.mobile);
+        await checkBadge(page, locale, label);
+        await checkCards(page, locale, label, mode, viewport.mobile);
+        await checkCtaBottom(page, locale, label, viewport.mobile);
+        await checkYearly(page, locale, label);
+        await checkChoose(page, locale, label, requests);
+        await checkCancel(page, locale, label, mode);
+        await checkTeam(page, locale, label, mode, state, viewport.mobile);
+      } catch (error) {
+        report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+      }
     }
+    report.check(watch.problems.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await ctx.close();
   }
-  report.check(watch.problems.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

@@ -28,7 +28,7 @@ Documents de référence (à consulter selon le besoin, pas à charger systémat
 
 ```bash
 # Backend (depuis apps/backend)
-docker compose exec backend pytest -n auto    # Tests, en parallèle (pytest-xdist : une base de test par worker)
+docker compose exec backend pytest -n auto    # Suite complète, en parallèle (pytest-xdist : une base de test par worker) : 4 workers en local (PYTEST_XDIST_AUTO_NUM_WORKERS) ; davantage sur demande : -n 8
 docker compose exec backend pytest apps/<app>  # Tests d'une app
 docker compose exec backend pytest path/file::test_name  # Test ciblé
 docker compose exec backend ruff check .      # Lint
@@ -53,9 +53,13 @@ docker compose restart frontend && docker compose exec -T frontend npm run build
 docker compose up -d
 
 # Audits navigateur Playwright (sans Node sur la machine, service `e2e` du profil « audit ») — voir apps/frontend/e2e/README.md
-docker compose run --rm e2e                              # tous les audits, 3 à la fois (AUDIT_JOBS), en smoke (1440 fr clair + 360 ar sombre), boutiques d'audit remises à zéro avant
+docker compose run --rm e2e                              # tous les audits, un à la fois (AUDIT_JOBS=1 ; 2 en préfixe après validation des mesures), en smoke (1440 fr clair + 360 ar sombre), boutiques d'audit remises à zéro avant
 docker compose run --rm e2e npm run audit -- sales scroll-lock  # un audit ou une liste (remise à zéro aussi ; --no-deps pour garder les données)
-AUDIT_MATRIX=full docker compose run --rm e2e            # les 8 configurations (fr/ar × clair/sombre × 1440/360)
+AUDIT_MATRIX=full docker compose run --rm e2e            # les 8 configurations (fr/ar × clair/sombre × 1440/360) : préparation de PR ou demande explicite seulement
+
+# Garde-fou mémoire des phases lourdes (voir « Vérifications ») — journal : ~/.local/state/mizan-commerce/mem.log
+infra/scripts/mem-check.sh                               # état : 0 rien à signaler, 1 pression mémoire, 2 phase lourde déjà en cours
+MEM_LABEL="audit sales" infra/scripts/mem-check.sh run docker compose run --rm e2e npm run audit -- sales  # lance si l'état est 0, relève la mémoire, pics en fin
 docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@, e2e-invoices@example.com)
 ```
 
@@ -118,15 +122,22 @@ Avant de proposer du code, vérifier ces points. Si un point est violé, **arrê
 - Après modification du modèle Django : générer la migration et la mentionner explicitement.
 - À la fin d'une tâche, indiquer la ligne du `docs/plan_avancement.md` à cocher.
 - **À chaque nouvelle app Django** : créer `apps/backend/apps/<app>/factories.py` avec des factories `factory_boy` + `faker` pour tous les modèles de l'app. Ajouter le seeding correspondant dans `apps/core/management/commands/seed_data.py`. Tester avec : `docker compose exec backend python manage.py seed_data`.
-- **Vérifications navigateur : console surveillée, aucune erreur ni avertissement React toléré.** Seule exception : les messages de développement de Next.js qui ne viennent pas de notre code (Fast Refresh, HMR, invitation React DevTools). L'aperçu de la page publique (iframe sandbox, origine opaque) produit en dev des erreurs de ressources de développement : attendues, ne pas assouplir le sandbox. Vérification automatisée : `docker compose run --rm e2e`.
-- **Vérifications** : suivre la section « Vérifications » ci-dessous. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type : le `pytest -n auto` complet de fin de prompt le rattrape.
+- **Vérifications navigateur : console surveillée, aucune erreur ni avertissement React toléré.** Seule exception : les messages de développement de Next.js qui ne viennent pas de notre code (Fast Refresh, HMR, invitation React DevTools). L'aperçu de la page publique (iframe sandbox, origine opaque) produit en dev des erreurs de ressources de développement : attendues, ne pas assouplir le sandbox. Vérification automatisée : l'audit de la page concernée (`docker compose run --rm e2e npm run audit -- <audit>`).
+- **Vérifications** : suivre la section « Vérifications » ci-dessous. Un test dans une autre app peut échouer à cause du changement — le `SeedDataTest` dans `apps/core/tests.py` en est l'exemple type : si modèles, factories ou seed changent, lancer aussi `pytest apps/core` ; la suite complète d'avant PR rattrape le reste.
 
 ## Vérifications
 
-- **Après chaque commit** : tests de l'app modifiée (`pytest apps/<app>`) et `ruff check .` ; côté frontend, lint, typecheck et contrôles npm (i18n, tokens, text, deps) ; audit de la page modifiée en smoke (`docker compose run --rm e2e npm run audit -- <audit>`).
-- **À la fin d'un prompt** : `pytest -n auto` complet, `makemigrations --check`, build (après `docker compose restart frontend`), suite d'audits en smoke (`docker compose run --rm e2e`).
-- **Avant une pull request** : suite d'audits en full (`AUDIT_MATRIX=full docker compose run --rm e2e`).
-- **Mémoire** : build et pytest **jamais en parallèle** (ni build et suite d'audits) ; toujours `docker compose restart frontend` avant un build.
+Du plus ciblé au plus large : les suites complètes ne sont **pas** lancées à chaque fin de prompt.
+
+- **Pendant le développement** : contrôles ciblés sur ce qui change — `pytest apps/<app>` (ou le fichier, le test), `ruff check .` ; côté frontend, lint, typecheck et contrôles npm (i18n, tokens, text, deps).
+- **Après une modification significative** (fin de tâche, commit) : tests des apps concernées, `makemigrations --check` si un modèle change ; si l'interface change, audit ciblé en smoke (`docker compose run --rm e2e npm run audit -- <audit>`). Suite smoke complète seulement pour un changement transversal (layout, composant partagé), en le signalant.
+- **Avant une pull request**, avec mon accord, l'une après l'autre : `pytest -n auto` complet, `makemigrations --check`, build (après `docker compose restart frontend`), suite smoke, puis matrice full (`AUDIT_MATRIX=full docker compose run --rm e2e`). La matrice full ne sert qu'à cela, ou sur demande explicite.
+
+**Mémoire** (une saturation fait fermer la session Ubuntu par systemd-oomd) :
+- Phases lourdes : pytest complet, build, tout audit. **Une seule à la fois, jamais en arrière-plan pendant une autre.** Commandes légères (ruff, lint, typecheck, contrôles npm, pytest d'une app) : libres.
+- Chaque phase lourde passe par `infra/scripts/mem-check.sh run <commande>`. Code 1 (pression) ou 2 (phase en cours) : ne pas lancer, suspendre les phases lourdes et me prévenir avec la ligne affichée. `MEM_FORCE=1` uniquement après mon accord explicite.
+- Toujours `docker compose restart frontend` avant un build.
+- Audits : `AUDIT_JOBS=1` par défaut ; 2 seulement après validation des mesures, en préfixe (`AUDIT_JOBS=2 docker compose run …`, jamais `-e`) pour qu'e2e-reset crée autant de boutiques. Un audit terminé ne laisse ni navigateur (sinon ✗ « processus Chromium encore ouverts ») ni conteneur e2e (signalé par mem-check).
 
 ## Self-check before responding
 

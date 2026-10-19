@@ -116,27 +116,30 @@ async function checkWith(owner, staff, viewport, m) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  console.log(`\n=== ${viewport.name}px`);
-  const owner = await openSession(browser, viewport);
-  const m = await member(owner.page);
-  await cleanup(owner.page);
-  await setPermissions(owner.page, m, ['orders', 'customers']);
-  const staff = await openSession(browser, viewport, { email: STAFF_EMAIL });
-  try {
-    await checkWithout(owner.page, staff.page, viewport, m);
-    await grantFromTeamPage(owner.page, viewport);
-    await checkWith(owner.page, staff.page, viewport, m);
-  } finally {
+try {
+  for (const viewport of VIEWPORTS) {
+    console.log(`\n=== ${viewport.name}px`);
+    const owner = await openSession(browser, viewport);
+    const m = await member(owner.page);
     await cleanup(owner.page);
-    await setPermissions(owner.page, m, SEED_PERMISSIONS);
+    await setPermissions(owner.page, m, ['orders', 'customers']);
+    const staff = await openSession(browser, viewport, { email: STAFF_EMAIL });
+    try {
+      await checkWithout(owner.page, staff.page, viewport, m);
+      await grantFromTeamPage(owner.page, viewport);
+      await checkWith(owner.page, staff.page, viewport, m);
+    } finally {
+      await cleanup(owner.page);
+      await setPermissions(owner.page, m, SEED_PERMISSIONS);
+    }
+    for (const [who, session] of [['propriétaire', owner], ['employé', staff]]) {
+      const problems = session.watch.problems;
+      report.check(problems.length === 0, `${viewport.name}px ${who} : console et défilement propres${problems.map((p) => `\n      ${p}`).join('')}`);
+      await session.ctx.close();
+    }
   }
-  for (const [who, session] of [['propriétaire', owner], ['employé', staff]]) {
-    const problems = session.watch.problems;
-    report.check(problems.length === 0, `${viewport.name}px ${who} : console et défilement propres${problems.map((p) => `\n      ${p}`).join('')}`);
-    await session.ctx.close();
-  }
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.check(nested.length === 0, `aucun élément interactif imbriqué${[...new Set(nested)].map((n) => `\n      ${n}`).join('')}`);
 report.finish();

@@ -103,38 +103,41 @@ async function checkGlobalSearch(page, t, label) {
 
 const browser = await launch();
 let customer = null;
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  // Quitter une nouvelle commande commencée demande confirmation.
-  page.on('dialog', (dialog) => dialog.accept());
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const t = (key) => msg(locale, key);
-      try {
-        if (!customer) {
-          await retire(page);
-          customer = await create(page, t);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    // Quitter une nouvelle commande commencée demande confirmation.
+    page.on('dialog', (dialog) => dialog.accept());
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const t = (key) => msg(locale, key);
+        try {
+          if (!customer) {
+            await retire(page);
+            customer = await create(page, t);
+          }
+          await checkCustomers(page, label, customer.customerId);
+          await checkNewOrder(page, t, label);
+          await checkOrders(page, label, customer.orderId);
+          await checkGlobalSearch(page, t, label);
+        } catch (error) {
+          report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
         }
-        await checkCustomers(page, label, customer.customerId);
-        await checkNewOrder(page, t, label);
-        await checkOrders(page, label, customer.orderId);
-        await checkGlobalSearch(page, t, label);
-      } catch (error) {
-        report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+        const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    if (viewport === VIEWPORTS.at(-1)) await retire(page);
+    await ctx.close();
   }
-  if (viewport === VIEWPORTS.at(-1)) await retire(page);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

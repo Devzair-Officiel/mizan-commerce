@@ -358,33 +358,36 @@ async function checkServicesShop(browser) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const journeyLabel = `${viewport.name}px fr clair, parcours`;
-  console.log(`\n=== ${journeyLabel}`);
-  watch.setLabel(journeyLabel);
-  page.on('dialog', (d) => d.accept());
-  await journey(browser, page, { label: journeyLabel, viewport });
-  page.removeAllListeners('dialog');
-  report.check(watch.problems.length === 0, `${journeyLabel} : console propre${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-  watch.problems.length = 0;
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const nested = [];
-      await screens(page, locale, nested);
-      const problems = [...watch.problems, ...nested.map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : écrans du stock, console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
-      watch.problems.length = 0;
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const journeyLabel = `${viewport.name}px fr clair, parcours`;
+    console.log(`\n=== ${journeyLabel}`);
+    watch.setLabel(journeyLabel);
+    page.on('dialog', (d) => d.accept());
+    await journey(browser, page, { label: journeyLabel, viewport });
+    page.removeAllListeners('dialog');
+    report.check(watch.problems.length === 0, `${journeyLabel} : console propre${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    watch.problems.length = 0;
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const nested = [];
+        await screens(page, locale, nested);
+        const problems = [...watch.problems, ...nested.map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : écrans du stock, console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+        watch.problems.length = 0;
+      }
     }
+    await ctx.close();
   }
-  await ctx.close();
+  await checkServicesShop(browser);
+} finally {
+  await browser.close();
 }
-await checkServicesShop(browser);
-await browser.close();
 report.finish();

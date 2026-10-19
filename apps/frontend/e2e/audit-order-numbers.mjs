@@ -157,24 +157,27 @@ async function checkWhatsApp(page, label, { order }) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  console.log(`\n=== ${viewport.name}px`);
-  const { ctx, page, watch, setLocale } = await openSession(browser, viewport);
-  await setLocale(LOCALE);
-  const label = `${viewport.name}px ${LOCALE}`;
-  watch.setLabel(label);
-  await cleanup(page);
-  try {
-    const data = await setup(page);
-    await checkPages(page, label, data);
-    await checkSearch(page, label, data);
-    await checkWhatsApp(page, label, data);
-  } finally {
+try {
+  for (const viewport of VIEWPORTS) {
+    console.log(`\n=== ${viewport.name}px`);
+    const { ctx, page, watch, setLocale } = await openSession(browser, viewport);
+    await setLocale(LOCALE);
+    const label = `${viewport.name}px ${LOCALE}`;
+    watch.setLabel(label);
     await cleanup(page);
+    try {
+      const data = await setup(page);
+      await checkPages(page, label, data);
+      await checkSearch(page, label, data);
+      await checkWhatsApp(page, label, data);
+    } finally {
+      await cleanup(page);
+    }
+    report.check(watch.problems.length === 0, `${label} : console et défilement propres${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await ctx.close();
   }
-  report.check(watch.problems.length === 0, `${label} : console et défilement propres${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.check(nested.length === 0, `aucun élément interactif imbriqué${[...new Set(nested)].map((n) => `\n      ${n}`).join('')}`);
 report.finish();

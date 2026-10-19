@@ -92,26 +92,29 @@ async function checkSettings(page, label) {
 }
 
 const browser = await launch();
-for (const [name, locale, theme] of CONFIGS) {
-  const viewport = VIEWPORTS.find((v) => v.name === name);
-  if (!viewport) continue;
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const state = { orders: 12 };
-  await routePlan(ctx, state);
-  const label = `${name}px ${locale} ${theme}`;
-  console.log(`\n=== ${label}`);
-  await setLocale(locale);
-  setTheme(theme);
-  watch.setLabel(label);
-  try {
-    await checkNear(page, locale, label, state);
-    await checkReached(page, locale, label, state);
-    await checkSettings(page, label);
-  } catch (error) {
-    report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+try {
+  for (const [name, locale, theme] of CONFIGS) {
+    const viewport = VIEWPORTS.find((v) => v.name === name);
+    if (!viewport) continue;
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const state = { orders: 12 };
+    await routePlan(ctx, state);
+    const label = `${name}px ${locale} ${theme}`;
+    console.log(`\n=== ${label}`);
+    await setLocale(locale);
+    setTheme(theme);
+    watch.setLabel(label);
+    try {
+      await checkNear(page, locale, label, state);
+      await checkReached(page, locale, label, state);
+      await checkSettings(page, label);
+    } catch (error) {
+      report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+    }
+    report.check(watch.problems.length === 0, `${label} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await ctx.close();
   }
-  report.check(watch.problems.length === 0, `${label} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

@@ -55,44 +55,47 @@ async function checkCard(section, more, label) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const customer = await setup(page);
-  const windows = [];
-  page.on('request', (req) => {
-    const url = new URL(req.url());
-    if (url.pathname.endsWith(`/customers/${customer.id}/activity/`)) windows.push(url.searchParams.get('limit'));
-  });
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const t = (key) => msg(locale, key);
-      try {
-        windows.length = 0;
-        await page.goto(`${BASE}/customers/${customer.id}`);
-        await page.waitForLoadState('networkidle');
-        const activity = card(page, t('customers.timeline.title'));
-        const more = (kind) => fmt(locale, 'ui.show_more.more', { kind, remaining: NOTES - 5 });
-        await checkCard(activity, more('activities'), `${label} : « ${t('customers.timeline.title')} »`);
-        report.check(windows[0] === '5', `${label} : première requête de l'activité en limit=5 (${windows.join(', ')})`);
-        await activity.getByRole('button', { name: t('customers.timeline.chip_notes'), exact: true }).click();
-        await page.waitForLoadState('networkidle');
-        await checkCard(activity, more('activities'), `${label} : puce « ${t('customers.timeline.chip_notes')} »`);
-        await checkCard(card(page, t('ui.notes.title')), more('notes'), `${label} : « ${t('ui.notes.title')} »`);
-      } catch (error) {
-        report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const customer = await setup(page);
+    const windows = [];
+    page.on('request', (req) => {
+      const url = new URL(req.url());
+      if (url.pathname.endsWith(`/customers/${customer.id}/activity/`)) windows.push(url.searchParams.get('limit'));
+    });
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const t = (key) => msg(locale, key);
+        try {
+          windows.length = 0;
+          await page.goto(`${BASE}/customers/${customer.id}`);
+          await page.waitForLoadState('networkidle');
+          const activity = card(page, t('customers.timeline.title'));
+          const more = (kind) => fmt(locale, 'ui.show_more.more', { kind, remaining: NOTES - 5 });
+          await checkCard(activity, more('activities'), `${label} : « ${t('customers.timeline.title')} »`);
+          report.check(windows[0] === '5', `${label} : première requête de l'activité en limit=5 (${windows.join(', ')})`);
+          await activity.getByRole('button', { name: t('customers.timeline.chip_notes'), exact: true }).click();
+          await page.waitForLoadState('networkidle');
+          await checkCard(activity, more('activities'), `${label} : puce « ${t('customers.timeline.chip_notes')} »`);
+          await checkCard(card(page, t('ui.notes.title')), more('notes'), `${label} : « ${t('ui.notes.title')} »`);
+        } catch (error) {
+          report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+        }
+        const problems = watch.problems.slice(before);
+        report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = watch.problems.slice(before);
-      report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await ctx.close();
   }
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

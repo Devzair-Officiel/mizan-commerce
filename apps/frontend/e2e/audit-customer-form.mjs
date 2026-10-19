@@ -284,33 +284,36 @@ async function checkYoussefShop(browser) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  // WhatsApp n'est pas joint : la fenêtre ouverte par « Relancer » reçoit une page vide.
-  await ctx.route('https://wa.me/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>wa</title>' }));
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const t = (key) => msg(locale, key);
-      const run = { label, viewport, locale, theme };
-      const id = await auditCreate(page, t, run);
-      await auditEdit(page, t, run, id);
-      await auditPhoneFollowup(page, t, run);
-      // Le 400 du numéro invalide est provoqué par l'audit (erreur de champ attendue).
-      const provoked = (p) => /status of 400 .*\/api\/proxy\/customers\/[0-9a-f-]{36}\)/.test(p);
-      const problems = [...watch.problems.slice(before).filter((p) => !provoked(p)), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    // WhatsApp n'est pas joint : la fenêtre ouverte par « Relancer » reçoit une page vide.
+    await ctx.route('https://wa.me/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>wa</title>' }));
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const t = (key) => msg(locale, key);
+        const run = { label, viewport, locale, theme };
+        const id = await auditCreate(page, t, run);
+        await auditEdit(page, t, run, id);
+        await auditPhoneFollowup(page, t, run);
+        // Le 400 du numéro invalide est provoqué par l'audit (erreur de champ attendue).
+        const provoked = (p) => /status of 400 .*\/api\/proxy\/customers\/[0-9a-f-]{36}\)/.test(p);
+        const problems = [...watch.problems.slice(before).filter((p) => !provoked(p)), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+      }
     }
+    for (const id of created.splice(0)) await page.request.delete(`${BASE}/api/proxy/customers/${id}/`);
+    await ctx.close();
   }
-  for (const id of created.splice(0)) await page.request.delete(`${BASE}/api/proxy/customers/${id}/`);
-  await ctx.close();
+  await checkYoussefShop(browser);
+} finally {
+  await browser.close();
 }
-await checkYoussefShop(browser);
-await browser.close();
 report.finish();

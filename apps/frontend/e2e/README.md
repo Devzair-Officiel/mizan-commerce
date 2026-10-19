@@ -4,10 +4,10 @@ Scripts lancés **sans Node sur la machine** : service Docker Compose `e2e` (ima
 
 ```bash
 # Depuis la racine du dépôt, stack démarrée (docker compose up -d)
-docker compose run --rm e2e                                   # tous les audits, 3 à la fois, en smoke, boutiques d'audit remises à zéro avant
-docker compose run --rm e2e npm run audit -- sales scroll-lock   # une liste d'audits, en parallèle aussi
-AUDIT_MATRIX=full docker compose run --rm e2e                 # les 8 configurations (avant une pull request)
-AUDIT_JOBS=4 docker compose run --rm e2e                      # 4 audits à la fois (4 boutiques d'audit recréées)
+docker compose run --rm e2e                                   # tous les audits, un à la fois, en smoke, boutiques d'audit remises à zéro avant
+docker compose run --rm e2e npm run audit -- sales scroll-lock   # une liste d'audits
+AUDIT_MATRIX=full docker compose run --rm e2e                 # les 8 configurations (préparation d'une pull request ou demande explicite)
+AUDIT_JOBS=2 docker compose run --rm e2e                      # 2 audits à la fois (2 boutiques d'audit recréées), après validation des mesures mémoire
 docker compose run --rm e2e npm run audit:pages               # écrans principaux
 docker compose run --rm e2e npm run audit:customer-form       # formulaire client
 docker compose run --rm e2e npm run audit:customer-name       # nom complet des clients partout
@@ -45,7 +45,8 @@ Code de sortie 0 = tout est conforme, 1 = au moins une vérification en échec (
 ## Configurations et parallélisme
 
 - `AUDIT_MATRIX` : `smoke` (par défaut) parcourt 1440px fr clair et 360px ar sombre ; `full` les 8 configurations (1440px et 360px × fr et ar × clair et sombre). Les audits qui ne changent ni de langue ni de thème (pages, numéros de commande, fuseau des rappels, rappels d'un employé) passent toujours aux deux tailles.
-- `run-audits.mjs` (`npm run audit`) lance les audits demandés, `AUDIT_JOBS` à la fois (3 par défaut). Chaque audit en cours occupe un **emplacement** : son propre compte et sa propre boutique d'audit (`e2e@example.com`, `e2e2@example.com`, `e2e3@example.com`, avec leurs employées `e2eN-staff@example.com`), recréés par `reset_audit_shop --slots`. Deux audits ne touchent donc jamais aux mêmes données ; les comptes de démo partagés (Youssef, services) ne sont que lus.
+- `run-audits.mjs` (`npm run audit`) lance les audits demandés, `AUDIT_JOBS` à la fois (1 par défaut, pour la mémoire de la machine ; à passer en préfixe de `docker compose run`, que `e2e-reset` lit aussi). Chaque audit en cours occupe un **emplacement** : son propre compte et sa propre boutique d'audit (`e2e@example.com`, `e2e2@example.com`, `e2e3@example.com`, avec leurs employées `e2eN-staff@example.com`), recréés par `reset_audit_shop --slots`. Deux audits ne touchent donc jamais aux mêmes données ; les comptes de démo partagés (Youssef, services) ne sont que lus.
+- Mémoire : conteneur limité à 3 Go sans swap (`AUDIT_MEM_LIMIT`, `AUDIT_MEMSWAP_LIMIT`) : au-delà, Chromium s'arrête dans le conteneur au lieu de saturer la machine. Chaque audit ferme son navigateur dans un `finally` ; après chaque audit, le lanceur vérifie qu'aucun processus Chromium ne reste (sinon échec, processus arrêtés). `infra/scripts/mem-check.sh run <commande>` relève la mémoire pendant un lancement.
 - Sessions partagées entre les audits d'un lancement : la limite `auth` du backend (10 connexions par minute, toutes vues depuis le frontend) n'est pas atteinte.
 - Sortie complète de chaque audit dans `results/<audit>.log` (ignoré par git) ; le lanceur n'affiche que les vérifications en échec et les durées.
 - `npm run audit:<audit>` lance un audit seul, sans le lanceur, sur la boutique `e2e@example.com`.
