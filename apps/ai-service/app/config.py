@@ -54,12 +54,31 @@ OPENAI_INVOICE_TIMEOUT_SECONDS: float = float(
 )
 
 
-# ─── Fournisseur de vision (secours du scan d'emballage) ──────────────────
+# ─── Fournisseur IA du scan d'emballage ───────────────────────────────────
 #
-# `none` (défaut) : secours désactivé, le scan s'en tient au code-barres et à
-# l'OCR local. Valeurs reconnues : voir `vision/registry.py`. Une valeur
-# inconnue ou une clé absente désactive aussi le secours, sans erreur.
+# Deux niveaux, chacun désactivable :
+# 1. structuration du texte : les lignes OCR (texte seul, aucune image) partent
+#    vers le fournisseur dès que `VISION_PROVIDER` en désigne un ;
+# 2. secours image : la photo de face ne part que si, en plus,
+#    `PRODUCT_SCAN_IMAGE_FALLBACK` est vrai.
+# `none` (défaut) : rien ne sort, le scan s'en tient au code-barres et aux
+# règles locales. Valeurs reconnues : voir `vision/registry.py`. Une valeur
+# inconnue ou une clé absente désactive aussi les deux niveaux, sans erreur.
 VISION_PROVIDER: str = os.environ.get('VISION_PROVIDER', 'none').strip().lower()
+
+# Faux par défaut : la structuration du texte peut être active sans qu'aucune
+# image ne quitte le service.
+PRODUCT_SCAN_IMAGE_FALLBACK: bool = (
+    os.environ.get('PRODUCT_SCAN_IMAGE_FALLBACK', 'false').strip().lower() in ('1', 'true', 'yes', 'on')
+)
+
+# Modèle texte de la structuration ; même défaut que la facture.
+PRODUCT_TEXT_MODEL: str = os.environ.get('PRODUCT_TEXT_MODEL', '') or OPENAI_INVOICE_MODEL
+
+# Une requête texte courte : bien plus rapide qu'une image. Le total (texte puis
+# éventuel secours image) reste sous `AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS`
+# côté Django pour la lecture locale.
+PRODUCT_TEXT_TIMEOUT_SECONDS: float = float(os.environ.get('PRODUCT_TEXT_TIMEOUT_SECONDS', '15'))
 
 # Modèle du fournisseur ; par défaut le même que l'extraction de facture, pour
 # n'avoir qu'un modèle à surveiller tant que les tests de coût sont en cours.

@@ -907,10 +907,12 @@ L'application est organisée autour des modules suivants :
 
 - Dans le formulaire de création d'un article (pas d'un service, pas en modification), un bouton « Scanner l'emballage » ouvre l'appareil photo ou la galerie en un seul geste.
 - Le système lit le code-barres (EAN-8, EAN-12/UPC-A, EAN-13, EAN-14), le recherche dans une base publique (Open Food Facts), puis lit le texte de l'emballage ; une source moins fiable ne remplace jamais une valeur plus fiable.
+- Le texte lu est structuré en marque, désignation, variante, allégations, contenance et code-barres ; rien n'est proposé qui ne soit imprimé sur l'emballage. Le nom proposé réunit marque, désignation, variante et contenance (sans la marque si c'est celle de la boutique) ; la description reprend les allégations, jamais la désignation.
+- Après un premier scan, l'utilisateur peut ajouter une photo du dos (code-barres, contenance) : les deux sont relues ensemble, et un champ qui contient encore la valeur détectée est mis à jour.
 - Si le nom reste incertain, une lecture par un fournisseur de vision externe peut être tentée, seulement s'il est configuré et dans la limite du quota mensuel de la formule ; quota atteint ou fournisseur indisponible : le résultat local est proposé avec un avertissement, jamais une erreur bloquante.
-- Seuls les champs encore vides sont pré-remplis ; chacun porte un badge « Détecté, à vérifier » retiré dès que l'utilisateur le modifie. Le prix n'est jamais proposé. Une unité de vente n'est proposée que sans ambiguïté.
+- Seuls les champs encore vides (ou encore égaux à une valeur détectée) sont pré-remplis ; chacun porte un badge « Détecté, à vérifier » retiré dès que l'utilisateur le modifie. Le prix n'est jamais proposé. Une unité de vente n'est proposée que sans ambiguïté.
 - Rien n'est enregistré tant que l'utilisateur n'a pas relu et validé le formulaire.
-- L'image n'est ni stockée ni journalisée ; seul le code-barres part vers la base publique ; l'image n'est envoyée au fournisseur de vision qu'en secours, réduite et sans métadonnées (position GPS).
+- Ni l'image ni le texte lu ne sont stockés ou journalisés ; seul le code-barres part vers la base publique. Si le scan IA est activé, le texte lu part au fournisseur (sans image, sans conservation demandée) ; l'image de face ne lui est envoyée qu'en secours, si ce second niveau est activé, réduite et sans métadonnées (position GPS). Aucune donnée de la boutique n'est envoyée.
 - Chaque scan est consigné dans le journal d'audit (boutique, membre, source utilisée), sans contenu.
 
 ---

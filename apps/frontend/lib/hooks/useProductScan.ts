@@ -1,7 +1,8 @@
 /**
- * Scan d'emballage (URS-109) : une photo, des propositions par champ, rien n'est enregistré.
+ * Scan d'emballage (URS-109) : une photo de face, et celle du dos si besoin ; des propositions par
+ * champ, rien n'est enregistré.
  *
- * Endpoint : POST /api/ocr/product-scan (route handler dédié, multipart `image`) → Django
+ * Endpoint : POST /api/ocr/product-scan (route handler dédié, multipart `image` et `image_back`) → Django
  * `POST /ocr/product-scan/`. Le cookie HttpOnly d'auth est lu côté serveur ; le token n'est
  * jamais exposé au client.
  */
@@ -19,17 +20,27 @@ const scanField = z.object({
 
 const productScanSchema = z.object({
   fields: z.object({
+    /** Nom composé par le serveur : [marque] désignation [variante] [contenance]. */
     name: scanField,
     brand: scanField,
+    product_name: scanField,
+    variant: scanField,
     net_quantity: scanField,
     unit_suggestion: scanField,
     barcode: scanField,
+    /** Allégations lues sur l'emballage, jamais la désignation. */
     description: scanField,
   }),
   warnings: z.array(z.string()),
 });
 
 export type ProductScan = z.infer<typeof productScanSchema>;
+
+/** Photos d'un scan : la face, et le dos pour compléter (code-barres, contenance). */
+export interface ScanPhotos {
+  face: File;
+  back?: File;
+}
 
 /** Ce qu'a donné un scan : champs lus sur la photo, et ceux qui ont été remplis (encore vides). */
 export interface ScanOutcome {
@@ -70,9 +81,10 @@ function failureOf(status: number, data: unknown): ProductScanFailure {
   return status === 429 ? 'throttled' : 'unavailable';
 }
 
-async function scanProduct(file: File): Promise<ProductScan> {
+async function scanProduct({ face, back }: ScanPhotos): Promise<ProductScan> {
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append('image', face);
+  if (back) formData.append('image_back', back);
   let res: Response;
   try {
     res = await fetch('/api/ocr/product-scan', { method: 'POST', body: formData });
@@ -88,14 +100,14 @@ async function scanProduct(file: File): Promise<ProductScan> {
   return parsed.data;
 }
 
-/** Envoi d'une photo d'emballage ; l'appelant applique les propositions au formulaire. */
+/** Envoi des photos d'emballage ; l'appelant applique les propositions au formulaire. */
 export function useProductScan() {
   const router = useRouter();
-  return useMutation<ProductScan, ProductScanError, File>({
-    mutationFn: async (file) => {
-      const problem = scanFileProblem(file);
+  return useMutation<ProductScan, ProductScanError, ScanPhotos>({
+    mutationFn: async (photos) => {
+      const problem = scanFileProblem(photos.face) ?? (photos.back ? scanFileProblem(photos.back) : null);
       if (problem) throw new ProductScanError(problem);
-      return scanProduct(file);
+      return scanProduct(photos);
     },
     retry: false,
     onError: (error) => { if (error.reason === 'session') router.push('/login'); },

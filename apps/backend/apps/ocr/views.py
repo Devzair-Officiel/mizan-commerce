@@ -19,7 +19,7 @@ from apps.core.permissions import HasModulePermission, get_shop
 from apps.core.storage import is_storage_configured
 from apps.subscriptions.permissions import HasPlanForFeature
 
-from .ai_client import AiServiceUnavailableError
+from .ai_client import AiServiceUnavailableError, ScanPhoto
 from .models import OcrResult
 from .serializers import (
     OcrResultDetailSerializer,
@@ -203,10 +203,11 @@ class OcrResultValidateView(APIView):
 
 
 class ProductScanView(APIView):
-    """Scan d'une photo d'emballage pour pré-remplir une fiche article (URS-109).
+    """Scan d'une ou deux photos d'emballage (face, dos facultatif) pour
+    pré-remplir une fiche article (URS-109).
 
-    Réponse synchrone : propositions par champ, rien n'est enregistré. La photo
-    ne vit qu'en mémoire (`InMemoryOnlyUploadHandler`), jamais sur disque ni
+    Réponse synchrone : propositions par champ, rien n'est enregistré. Les photos
+    ne vivent qu'en mémoire (`InMemoryOnlyUploadHandler`), jamais sur disque ni
     dans un journal.
     """
 
@@ -226,15 +227,17 @@ class ProductScanView(APIView):
     def post(self, request: Request) -> Response:
         serializer = ProductScanRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            return _invalid_upload(serializer.errors, field='image')
+            field = 'image' if 'image' in serializer.errors else 'image_back'
+            return _invalid_upload(serializer.errors, field=field)
 
         image = serializer.validated_data['image']
+        back = serializer.validated_data.get('image_back')
         try:
             result = scan_product_image(
                 shop=get_shop(request.user),
                 user=request.user,
-                content=image.read(),
-                mime_type=image.content_type,
+                face=ScanPhoto(image.read(), image.content_type),
+                back=ScanPhoto(back.read(), back.content_type) if back else None,
             )
         except AiServiceUnavailableError:
             logger.warning('Product scan unavailable: AI service error')

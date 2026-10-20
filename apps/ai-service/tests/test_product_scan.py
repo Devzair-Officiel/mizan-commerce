@@ -3,9 +3,10 @@
 - lecture locale : contenance (regex fr/en), code-barres sur images générées,
   heuristiques OCR, endpoint `/internal/product-scan` (OCR mocké) ;
 - préparation de l'image : réduction, ré-encodage, EXIF retiré ;
-- secours vision : registre (openai / none / inconnu / sans clé), faux
-  fournisseur conforme au `Protocol`, indisponibilité, absence de contenu
-  dans les logs.
+- secours image : registre (openai / none / inconnu / sans clé), faux
+  fournisseur conforme au `Protocol`, interrupteur `PRODUCT_SCAN_IMAGE_FALLBACK`,
+  indisponibilité, absence de contenu dans les logs.
+La structuration du texte (cas Ziyada, garde-fou) est dans `test_product_reading.py`.
 """
 from __future__ import annotations
 
@@ -28,8 +29,9 @@ from app.schemas import OcrExtractionResult, OcrLine
 from app.security import INTERNAL_API_KEY_HEADER
 from app.vision.base import (
     PRODUCT_VISION_SYSTEM_PROMPT,
+    ProductReading,
     ProductVisionProvider,
-    ProductVisionResult,
+    ScanTextLine,
     VisionProviderError,
 )
 from app.vision.openai_provider import OpenAIVisionProvider
@@ -73,16 +75,27 @@ def _post(url: str, content: bytes, mime: str = 'image/jpeg') -> httpx.Response:
 class FakeProvider:
     """Faux fournisseur conforme au `Protocol` : enregistre ce qu'il reçoit."""
 
-    def __init__(self, result: ProductVisionResult | None = None, error: Exception | None = None) -> None:
-        self.result = result or ProductVisionResult(name='Lait demi-écrémé', brand='Lactel', confidence=0.9)
+    def __init__(self, result: ProductReading | None = None, error: Exception | None = None) -> None:
+        self.result = result or ProductReading(product_name='Lait demi-écrémé', brand='Lactel', confidence=0.9)
         self.error = error
         self.calls: list[tuple[bytes, str]] = []
+        self.structured: list[list[ScanTextLine]] = []
 
-    def extract(self, image: bytes, mime_type: str) -> ProductVisionResult:
+    def structure(self, lines: list[ScanTextLine]) -> ProductReading:
+        self.structured.append(lines)
+        if self.error:
+            raise self.error
+        return self.result
+
+    def extract(self, image: bytes, mime_type: str) -> ProductReading:
         self.calls.append((image, mime_type))
         if self.error:
             raise self.error
         return self.result
+
+
+def _lines(*lines: OcrLine) -> list[ScanTextLine]:
+    return [ScanTextLine(**line.model_dump()) for line in lines]
 
 
 # ─── Contenance nette ──────────────────────────────────────────────────────
@@ -151,41 +164,50 @@ def test_decode_barcode_returns_none_without_barcode() -> None:
 
 
 def test_propose_from_ocr_picks_dominant_line_as_name() -> None:
-    proposals = propose_from_ocr([
+    proposals = propose_from_ocr(_lines(
         OcrLine(text='Lactel®', confidence=0.95, bbox=[0, 0, 200, 30]),
         OcrLine(text='Lait demi-écrémé', confidence=0.97, bbox=[0, 40, 400, 120]),
         OcrLine(text='Riche en calcium et vitamine D', confidence=0.9, bbox=[0, 130, 400, 160]),
         OcrLine(text='1 L', confidence=0.92, bbox=[0, 170, 80, 200]),
         OcrLine(text='Ingrédients : lait', confidence=0.9, bbox=[0, 210, 300, 225]),
-    ])
-    assert proposals.name is not None and proposals.name.value == 'Lait demi-écrémé'
-    assert proposals.name.confidence > 0.8
+    ))
+    assert proposals.product_name is not None and proposals.product_name.value == 'Lait demi-écrémé'
+    assert proposals.product_name.confidence > 0.8
     assert proposals.brand is not None and proposals.brand.value == 'Lactel'
     assert proposals.net_quantity is not None and proposals.net_quantity.value == '1 L'
-    assert proposals.description is not None and proposals.description.value == 'Riche en calcium et vitamine D'
+
+
+def test_propose_from_ocr_takes_name_from_face_and_quantity_from_back() -> None:
+    proposals = propose_from_ocr([
+        ScanTextLine(text='Thé vert', confidence=0.95, bbox=[0, 0, 300, 50], side='face'),
+        ScanTextLine(text='Conseils de préparation', confidence=0.95, bbox=[0, 0, 300, 90], side='back'),
+        ScanTextLine(text='Poids net 100 g', confidence=0.9, bbox=[0, 100, 300, 120], side='back'),
+    ])
+    assert proposals.product_name is not None and proposals.product_name.value == 'Thé vert'
+    assert proposals.net_quantity is not None and proposals.net_quantity.value == '100 g'
 
 
 def test_propose_from_ocr_lowers_confidence_without_dominant_line() -> None:
-    proposals = propose_from_ocr([
+    proposals = propose_from_ocr(_lines(
         OcrLine(text='Biscuits', confidence=0.95, bbox=[0, 0, 200, 40]),
         OcrLine(text='Chocolat noir', confidence=0.95, bbox=[0, 50, 200, 88]),
-    ])
-    assert proposals.name is not None
-    assert proposals.name.confidence < 0.7
+    ))
+    assert proposals.product_name is not None
+    assert proposals.product_name.confidence < 0.7
 
 
 def test_propose_from_ocr_prefers_quantity_on_net_line() -> None:
-    proposals = propose_from_ocr([
+    proposals = propose_from_ocr(_lines(
         OcrLine(text='Pour 100 g : 450 kcal', confidence=0.9, bbox=[0, 0, 300, 80]),
         OcrLine(text='Poids net 250 g', confidence=0.9, bbox=[0, 100, 300, 120]),
-    ])
+    ))
     assert proposals.net_quantity is not None and proposals.net_quantity.value == '250 g'
 
 
 def test_propose_from_ocr_empty() -> None:
     proposals = propose_from_ocr([])
-    assert proposals.name is None and proposals.brand is None
-    assert proposals.net_quantity is None and proposals.description is None
+    assert proposals.product_name is None and proposals.brand is None
+    assert proposals.net_quantity is None
 
 
 # ─── Préparation de l'image ────────────────────────────────────────────────
@@ -242,7 +264,9 @@ def test_product_scan_reads_barcode_and_text() -> None:
     body = response.json()
     assert body['barcode'] == {'value': '4006381333931', 'confidence': 1.0}
     assert body['barcode_format'] == 'EAN-13'
-    assert body['name']['value'] == 'Crayons de couleur'
+    assert body['product_name']['value'] == 'Crayons de couleur'
+    assert body['claims'] == [] and body['variant'] is None
+    assert body['structuring'] == 'disabled'
     assert body['vision_available'] is False
     # Le fichier temporaire exigé par PaddleOCR est supprimé après lecture.
     assert seen_paths and not os.path.exists(seen_paths[0])
@@ -307,22 +331,34 @@ def test_registry_openai_without_key_disables_vision() -> None:
 
 def test_registry_openai_with_key_returns_configured_provider() -> None:
     with patch('app.config.VISION_PROVIDER', 'openai'), patch('app.config.OPENAI_API_KEY', _TEST_OPENAI_KEY), \
-         patch('app.config.VISION_MODEL', 'model-x'), patch('app.config.VISION_TIMEOUT_SECONDS', 12.0):
+         patch('app.config.VISION_MODEL', 'model-x'), patch('app.config.VISION_TIMEOUT_SECONDS', 12.0), \
+         patch('app.config.PRODUCT_TEXT_MODEL', 'text-y'), patch('app.config.PRODUCT_TEXT_TIMEOUT_SECONDS', 8.0):
         provider = get_provider()
     assert isinstance(provider, OpenAIVisionProvider)
     assert provider._model == 'model-x' and provider._timeout == 12.0
+    assert provider._text_model == 'text-y' and provider._text_timeout == 8.0
+
+
+def test_registry_explicit_name_overrides_config() -> None:
+    with patch('app.config.VISION_PROVIDER', 'none'), patch('app.config.OPENAI_API_KEY', _TEST_OPENAI_KEY):
+        assert isinstance(get_provider('openai'), OpenAIVisionProvider)
+        assert get_provider('none') is None
 
 
 def test_fake_provider_satisfies_protocol() -> None:
     provider: ProductVisionProvider = FakeProvider()
-    assert provider.extract(b'x', 'image/jpeg').name == 'Lait demi-écrémé'
+    assert provider.extract(b'x', 'image/jpeg').product_name == 'Lait demi-écrémé'
+    assert provider.structure([]).brand == 'Lactel'
 
 
 # ─── Endpoint /internal/product-scan/vision ────────────────────────────────
 
 
-def _post_vision(provider: FakeProvider | None, content: bytes | None = None) -> httpx.Response:
-    with patch('app.product_scan.get_provider', return_value=provider):
+def _post_vision(
+    provider: FakeProvider | None, content: bytes | None = None, *, image_fallback: bool = True,
+) -> httpx.Response:
+    with patch('app.product_scan.get_provider', return_value=provider), \
+         patch('app.config.PRODUCT_SCAN_IMAGE_FALLBACK', image_fallback):
         return _post('/internal/product-scan/vision', content or _jpeg(Image.new('RGB', (3000, 2000))))
 
 
@@ -332,7 +368,7 @@ def test_vision_routes_cleaned_image_to_provider() -> None:
     provider = FakeProvider()
     response = _post_vision(provider, _jpeg(Image.new('RGB', (3000, 2000)), exif=exif))
     assert response.status_code == 200
-    assert response.json()['name'] == 'Lait demi-écrémé'
+    assert response.json()['product_name'] == 'Lait demi-écrémé'
     [(sent, mime)] = provider.calls
     assert mime == 'image/jpeg'
     sent_image = Image.open(io.BytesIO(sent))
@@ -346,6 +382,13 @@ def test_vision_disabled_returns_503() -> None:
     assert response.json() == {'detail': 'Secours vision non configuré.'}
 
 
+def test_vision_refused_without_image_fallback_even_with_provider() -> None:
+    provider = FakeProvider()
+    response = _post_vision(provider, image_fallback=False)
+    assert response.status_code == 503
+    assert provider.calls == []
+
+
 def test_vision_provider_failure_returns_generic_502() -> None:
     response = _post_vision(FakeProvider(error=VisionProviderError('timeout')))
     assert response.status_code == 502
@@ -353,21 +396,22 @@ def test_vision_provider_failure_returns_generic_502() -> None:
 
 
 def test_vision_result_is_sanitized() -> None:
-    provider = FakeProvider(ProductVisionResult(
-        name='  Jus   d’orange  ', net_quantity='1,5', unit='L', barcode='4006381333932',
-        description='', confidence=7.0,
+    provider = FakeProvider(ProductReading(
+        product_name='  Jus   d’orange  ', variant='', net_quantity='1,5 L', barcode='4006381333932',
+        claims=['  Sans sucres   ajoutés ', ''], confidence=7.0,
     ))
     body = _post_vision(provider).json()
-    assert body['name'] == 'Jus d’orange'
-    assert body['net_quantity'] == '1,5 L' and body['unit'] == 'L'
+    assert body['product_name'] == 'Jus d’orange'
+    assert body['variant'] is None
+    assert body['net_quantity'] == '1,5 L'
     assert body['barcode'] is None  # clé de contrôle fausse
-    assert body['description'] is None
+    assert body['claims'] == ['Sans sucres ajoutés']
     assert body['confidence'] == 1.0
 
 
 def test_vision_unreadable_quantity_becomes_null() -> None:
-    body = _post_vision(FakeProvider(ProductVisionResult(name='Thé', net_quantity='beaucoup'))).json()
-    assert body['net_quantity'] is None and body['unit'] is None
+    body = _post_vision(FakeProvider(ProductReading(product_name='Thé', net_quantity='beaucoup'))).json()
+    assert body['net_quantity'] is None
     assert body['confidence'] == 0.6
 
 
@@ -376,7 +420,7 @@ def test_vision_unreadable_quantity_becomes_null() -> None:
 
 def _openai_provider(mock_client: MagicMock, model: str = 'gpt-5-mini') -> OpenAIVisionProvider:
     provider = OpenAIVisionProvider(api_key=_TEST_OPENAI_KEY, model=model, timeout=30)
-    provider._client = lambda: mock_client  # type: ignore[method-assign]
+    provider._client = lambda timeout: mock_client  # type: ignore[method-assign]
     return provider
 
 
@@ -387,13 +431,13 @@ def _fake_httpx_request() -> httpx.Request:
 def test_openai_provider_sends_image_input_without_storage() -> None:
     mock_client = MagicMock()
     mock_client.responses.parse.return_value = MagicMock(
-        output_parsed=ProductVisionResult(name='Thé vert'), usage=None,
+        output_parsed=ProductReading(product_name='Thé vert'), usage=None,
     )
     result = _openai_provider(mock_client).extract(b'jpeg-bytes', 'image/jpeg')
-    assert result.name == 'Thé vert'
+    assert result.product_name == 'Thé vert'
     kwargs = mock_client.responses.parse.call_args.kwargs
     assert kwargs['store'] is False
-    assert kwargs['text_format'] is ProductVisionResult
+    assert kwargs['text_format'] is ProductReading
     assert kwargs['reasoning'] == {'effort': 'minimal'}
     system, user = kwargs['input']
     assert system == {'role': 'system', 'content': PRODUCT_VISION_SYSTEM_PROMPT}
@@ -404,7 +448,7 @@ def test_openai_provider_sends_image_input_without_storage() -> None:
 
 def test_openai_provider_omits_reasoning_for_other_models() -> None:
     mock_client = MagicMock()
-    mock_client.responses.parse.return_value = MagicMock(output_parsed=ProductVisionResult(), usage=None)
+    mock_client.responses.parse.return_value = MagicMock(output_parsed=ProductReading(), usage=None)
     _openai_provider(mock_client, model='gpt-4.1-mini').extract(b'x', 'image/jpeg')
     assert 'reasoning' not in mock_client.responses.parse.call_args.kwargs
 
@@ -412,7 +456,7 @@ def test_openai_provider_omits_reasoning_for_other_models() -> None:
 def test_openai_client_disables_sdk_retries() -> None:
     provider = OpenAIVisionProvider(api_key=_TEST_OPENAI_KEY, model='m', timeout=30)
     with patch('openai.OpenAI') as openai_cls:
-        provider._client()
+        provider._client(30)
     openai_cls.assert_called_once_with(api_key=_TEST_OPENAI_KEY, timeout=30, max_retries=0)
 
 
@@ -450,7 +494,7 @@ def test_openai_provider_logs_usage_but_no_content(caplog: pytest.LogCaptureFixt
     usage.model_dump.return_value = {'input_tokens': 1105, 'output_tokens': 42}
     mock_client = MagicMock()
     mock_client.responses.parse.return_value = MagicMock(
-        output_parsed=ProductVisionResult(name=_SECRET_TEXT, description=_SECRET_TEXT), usage=usage,
+        output_parsed=ProductReading(product_name=_SECRET_TEXT, claims=[_SECRET_TEXT]), usage=usage,
     )
     image = _SECRET_TEXT.encode()
     with caplog.at_level(logging.DEBUG):

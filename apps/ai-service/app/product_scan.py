@@ -1,10 +1,13 @@
-"""Scan d'emballage : lecture locale, puis secours vision sur demande de Django.
+"""Scan d'emballage : lecture locale (une ou deux photos), puis secours image sur demande de Django.
 
-- `scan_locally` : code-barres (zxing-cpp) puis OCR (PaddleOCR) sur une copie
-  réduite et sans métadonnées. Le fichier temporaire exigé par PaddleOCR est
-  supprimé dès la lecture finie, même en cas d'erreur.
-- `scan_with_vision` : envoie la même copie nettoyée au fournisseur configuré
-  et assainit sa réponse (code-barres revérifié, contenance normalisée).
+- `scan_locally` : pour chaque photo (face, puis dos facultatif), code-barres
+  (zxing-cpp) puis OCR (PaddleOCR) sur une copie réduite et sans métadonnées.
+  Toutes les lignes lues partent ensuite à la structuration (texte seul, aucune
+  image) si un fournisseur est configuré ; sinon, ou s'il échoue, les règles de
+  `product_text.py` prennent le relais. Le fichier temporaire exigé par
+  PaddleOCR est supprimé dès la lecture finie, même en cas d'erreur.
+- `scan_with_vision` : envoie la copie nettoyée de la face au fournisseur, si
+  `PRODUCT_SCAN_IMAGE_FALLBACK` l'autorise, et assainit sa réponse.
 
 Rien n'est journalisé du contenu : ni image, ni texte lu, ni réponse.
 """
@@ -13,24 +16,24 @@ from __future__ import annotations
 import os
 import tempfile
 
-from .barcode import decode_barcode, is_valid_gtin
+from . import config
+from .barcode import DetectedBarcode, decode_barcode
 from .image_prep import open_image, prepare_for_provider
 from .ocr import extract_text_from_image
-from .product_text import parse_net_quantity, propose_from_ocr
+from .product_reading import needs_vision, sanitize_reading
+from .product_text import propose_from_ocr
 from .schemas import OcrLine, ProductScanLocalResult, ScanFieldProposal
-from .vision.base import ProductVisionResult, VisionProviderError
+from .vision.base import ProductReading, ProductVisionProvider, ScanSide, ScanTextLine, VisionProviderError
 from .vision.registry import get_provider
 
 # zxing vérifie déjà la clé de contrôle : un code lu est sûr.
 _BARCODE_CONFIDENCE = 1.0
-_MAX_NAME_LENGTH = 200
-_MAX_TEXT_LENGTH = 300
-# Confiance retenue quand le fournisseur n'en donne pas.
-_DEFAULT_VISION_CONFIDENCE = 0.6
+# Une lecture de modèle reste sous le code-barres et Open Food Facts (0,9).
+_MODEL_CONFIDENCE_CAP = 0.85
 
 
 class VisionDisabledError(RuntimeError):
-    """Aucun fournisseur configuré (`none`, inconnu ou clé absente)."""
+    """Secours image indisponible : aucun fournisseur, ou `PRODUCT_SCAN_IMAGE_FALLBACK` faux."""
 
 
 def _ocr(jpeg: bytes) -> list[OcrLine]:
@@ -46,55 +49,85 @@ def _ocr(jpeg: bytes) -> list[OcrLine]:
             pass
 
 
-def scan_locally(content: bytes) -> ProductScanLocalResult:
-    """Code-barres puis OCR. Lève `ImageDecodeError` ou `OcrEngineError`."""
+def _read_photo(content: bytes, side: ScanSide) -> tuple[DetectedBarcode | None, list[ScanTextLine]]:
     image = open_image(content)
-    barcode = decode_barcode(image)
-    proposals = propose_from_ocr(_ocr(prepare_for_provider(image)))
-    return ProductScanLocalResult(
-        barcode=ScanFieldProposal(value=barcode.value, confidence=_BARCODE_CONFIDENCE) if barcode else None,
-        barcode_format=barcode.format if barcode else None,
-        name=proposals.name,
-        brand=proposals.brand,
-        net_quantity=proposals.net_quantity,
-        description=proposals.description,
-        vision_available=get_provider() is not None,
-    )
+    lines = _ocr(prepare_for_provider(image))
+    return decode_barcode(image), [
+        ScanTextLine(text=line.text, confidence=line.confidence, bbox=line.bbox, side=side) for line in lines
+    ]
 
 
-def _clean(value: str | None, max_length: int) -> str | None:
-    text = ' '.join((value or '').split())
-    return text[:max_length] if text else None
+def _proposal(value: str | None, confidence: float) -> ScanFieldProposal | None:
+    return ScanFieldProposal(value=value, confidence=confidence) if value else None
 
 
-def _sanitize(result: ProductVisionResult) -> ProductVisionResult:
-    """Réponse du fournisseur ramenée à des valeurs sûres ; le doute donne `null`."""
-    barcode = _clean(result.barcode, 14)
-    quantity = _clean(result.net_quantity, 40)
-    unit = _clean(result.unit, 10)
-    if quantity and unit and parse_net_quantity(quantity) is None:
-        quantity = f'{quantity} {unit}'
-    net_quantity = parse_net_quantity(quantity) if quantity else None
-    confidence = result.confidence if result.confidence is not None else _DEFAULT_VISION_CONFIDENCE
-    return ProductVisionResult(
-        name=_clean(result.name, _MAX_NAME_LENGTH),
-        brand=_clean(result.brand, _MAX_NAME_LENGTH),
-        net_quantity=net_quantity,
-        unit=net_quantity.rsplit(' ', 1)[1] if net_quantity else None,
-        barcode=barcode if barcode and is_valid_gtin(barcode) else None,
-        description=_clean(result.description, _MAX_TEXT_LENGTH),
-        confidence=round(min(max(confidence, 0.0), 1.0), 3),
-    )
+def _structure(provider: ProductVisionProvider | None, lines: list[ScanTextLine]) -> tuple[ProductReading | None, str]:
+    """Structuration du texte : (lecture assainie, 'done') ou (None, 'disabled' | 'failed')."""
+    if provider is None:
+        return None, 'disabled'
+    try:
+        reading = provider.structure(lines)
+    except VisionProviderError:
+        return None, 'failed'
+    if not isinstance(reading, ProductReading):
+        return None, 'failed'
+    return sanitize_reading(reading, lines), 'done'
 
 
-def scan_with_vision(content: bytes) -> ProductVisionResult:
-    """Secours vision. Lève `VisionDisabledError`, `VisionProviderError` ou `ImageDecodeError`."""
+def _model_fields(reading: ProductReading) -> dict[str, object]:
+    confidence = min(reading.confidence or 0.0, _MODEL_CONFIDENCE_CAP)
+    return {
+        'brand': _proposal(reading.brand, confidence),
+        'product_name': _proposal(reading.product_name, confidence),
+        'variant': _proposal(reading.variant, confidence),
+        'claims': [ScanFieldProposal(value=claim, confidence=confidence) for claim in reading.claims or []],
+        'net_quantity': _proposal(reading.net_quantity, confidence),
+        'barcode': _proposal(reading.barcode, confidence),
+    }
+
+
+def _rule_fields(lines: list[ScanTextLine]) -> dict[str, object]:
+    proposals = propose_from_ocr(lines)
+    return {'brand': proposals.brand, 'product_name': proposals.product_name, 'net_quantity': proposals.net_quantity}
+
+
+def scan_locally(face: bytes, back: bytes | None = None) -> ProductScanLocalResult:
+    """Code-barres, OCR et structuration. Lève `ImageDecodeError` ou `OcrEngineError`."""
+    barcode: DetectedBarcode | None = None
+    lines: list[ScanTextLine] = []
+    for side, content in (('face', face), ('back', back)):
+        if content is None:
+            continue
+        found, side_lines = _read_photo(content, side)
+        barcode = barcode or found
+        lines.extend(side_lines)
+
     provider = get_provider()
+    reading, structuring = _structure(provider, lines)
+    fields = _model_fields(reading) if reading is not None else _rule_fields(lines)
+    if barcode is not None:
+        fields['barcode'] = ScanFieldProposal(value=barcode.value, confidence=_BARCODE_CONFIDENCE)
+    name, brand = fields.get('product_name'), fields.get('brand')
+    return ProductScanLocalResult(
+        **fields,
+        barcode_format=barcode.format if barcode else None,
+        structuring=structuring,
+        vision_recommended=needs_vision(
+            lines,
+            name.value if isinstance(name, ScanFieldProposal) else None,
+            brand.value if isinstance(brand, ScanFieldProposal) else None,
+        ),
+        vision_available=provider is not None and config.PRODUCT_SCAN_IMAGE_FALLBACK,
+    )
+
+
+def scan_with_vision(content: bytes) -> ProductReading:
+    """Secours image. Lève `VisionDisabledError`, `VisionProviderError` ou `ImageDecodeError`."""
+    provider = get_provider() if config.PRODUCT_SCAN_IMAGE_FALLBACK else None
     if provider is None:
         raise VisionDisabledError('Secours vision non configuré.')
     jpeg = prepare_for_provider(open_image(content))
     result = provider.extract(jpeg, 'image/jpeg')
-    if not isinstance(result, ProductVisionResult):
+    if not isinstance(result, ProductReading):
         raise VisionProviderError('Réponse invalide du fournisseur de vision.')
-    return _sanitize(result)
-
+    return sanitize_reading(result)

@@ -87,29 +87,38 @@ class SupplierInvoiceUploadResponseSerializer(serializers.Serializer):
         }).data
 
 
+def _validate_scan_photo(file: UploadedFile) -> UploadedFile:
+    max_bytes = settings.PRODUCT_SCAN_MAX_SIZE_MB * 1024 * 1024
+    if file.size == 0:
+        raise serializers.ValidationError('Le fichier est vide.', code='empty')
+    if file.size > max_bytes:
+        raise serializers.ValidationError(
+            f"L'image ne doit pas dépasser {settings.PRODUCT_SCAN_MAX_SIZE_MB} Mo.",
+            code='too_large',
+        )
+    if file.content_type not in settings.PRODUCT_SCAN_ALLOWED_TYPES:
+        raise serializers.ValidationError(
+            'Formats acceptés : JPEG, PNG, WebP.', code='type',
+        )
+    try:
+        validate_file_signature(file, file.content_type)
+    except InvalidFileSignatureError as exc:
+        raise serializers.ValidationError(str(exc), code='signature') from exc
+    return file
+
+
 class ProductScanRequestSerializer(serializers.Serializer):
-    """Photo d'emballage (URS-109) : présence, taille, MIME, signature réelle."""
+    """Photos d'emballage (URS-109) : face obligatoire, dos facultatif. Pour
+    chacune : présence, taille, MIME, signature réelle."""
 
     image = serializers.FileField()
+    image_back = serializers.FileField(required=False)
 
     def validate_image(self, file: UploadedFile) -> UploadedFile:
-        max_bytes = settings.PRODUCT_SCAN_MAX_SIZE_MB * 1024 * 1024
-        if file.size == 0:
-            raise serializers.ValidationError('Le fichier est vide.', code='empty')
-        if file.size > max_bytes:
-            raise serializers.ValidationError(
-                f"L'image ne doit pas dépasser {settings.PRODUCT_SCAN_MAX_SIZE_MB} Mo.",
-                code='too_large',
-            )
-        if file.content_type not in settings.PRODUCT_SCAN_ALLOWED_TYPES:
-            raise serializers.ValidationError(
-                'Formats acceptés : JPEG, PNG, WebP.', code='type',
-            )
-        try:
-            validate_file_signature(file, file.content_type)
-        except InvalidFileSignatureError as exc:
-            raise serializers.ValidationError(str(exc), code='signature') from exc
-        return file
+        return _validate_scan_photo(file)
+
+    def validate_image_back(self, file: UploadedFile) -> UploadedFile:
+        return _validate_scan_photo(file)
 
 
 class _ScanFieldSerializer(serializers.Serializer):
@@ -124,11 +133,15 @@ class _ScanFieldSerializer(serializers.Serializer):
 
 
 class _ScanFieldsSerializer(serializers.Serializer):
+    # Nom composé côté serveur : [marque] désignation [variante] [contenance].
     name = _ScanFieldSerializer(allow_null=True)
     brand = _ScanFieldSerializer(allow_null=True)
+    product_name = _ScanFieldSerializer(allow_null=True)
+    variant = _ScanFieldSerializer(allow_null=True)
     net_quantity = _ScanFieldSerializer(allow_null=True)
     unit_suggestion = _ScanFieldSerializer(allow_null=True)
     barcode = _ScanFieldSerializer(allow_null=True)
+    # Allégations lues (« 98 % d'ingrédients naturels, 24 h »), jamais la désignation.
     description = _ScanFieldSerializer(allow_null=True)
 
 

@@ -12,6 +12,8 @@ Deux surfaces distinctes :
 """
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -168,9 +170,10 @@ class InvoiceExtraction(BaseModel):
 
 # ─── Scan d'emballage (URS-109) ───────────────────────────────────────────
 #
-# Lecture locale : code-barres puis OCR. Aucune notion de boutique ici : c'est
-# Django qui interroge Open Food Facts, décide du secours vision et compte le
-# quota. Les champs absents ou illisibles valent `null`.
+# Lecture locale : code-barres, OCR, puis structuration du texte (fournisseur
+# IA, texte seul) ou règles en repli. Aucune notion de boutique ici : c'est
+# Django qui interroge Open Food Facts, compose le nom, décide du secours image
+# et compte le quota. Les champs absents ou illisibles valent `null`.
 
 
 class ScanFieldProposal(BaseModel):
@@ -181,13 +184,21 @@ class ScanFieldProposal(BaseModel):
 
 
 class ProductScanLocalResult(BaseModel):
-    """Sortie de `POST /internal/product-scan` (code-barres + OCR local)."""
+    """Sortie de `POST /internal/product-scan` (une ou deux photos : face, dos)."""
 
     barcode: ScanFieldProposal | None = None
     barcode_format: str | None = None
-    name: ScanFieldProposal | None = None
     brand: ScanFieldProposal | None = None
+    # Désignation, sans marque, variante ni contenance.
+    product_name: ScanFieldProposal | None = None
+    variant: ScanFieldProposal | None = None
+    # Allégations mises en avant (« 98 % d'ingrédients naturels », « 24 h »).
+    claims: list[ScanFieldProposal] = Field(default_factory=list)
     net_quantity: ScanFieldProposal | None = None
-    description: ScanFieldProposal | None = None
-    # Un fournisseur de vision est configuré : Django peut demander le secours.
+    # Structuration du texte : faite, désactivée (aucun fournisseur) ou en échec
+    # (règles en repli dans les deux derniers cas).
+    structuring: Literal['done', 'disabled', 'failed'] = 'disabled'
+    # Critère sémantique : la lecture ne suffit pas à nommer le produit.
+    vision_recommended: bool = False
+    # Secours image possible : fournisseur configuré ET `PRODUCT_SCAN_IMAGE_FALLBACK`.
     vision_available: bool = False

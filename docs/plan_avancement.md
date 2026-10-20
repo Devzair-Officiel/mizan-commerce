@@ -425,6 +425,11 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [x] Backend : `POST /api/ocr/product-scan/` (image en mémoire seulement, mime et taille vérifiés, limite de débit), Open Food Facts par EAN validé (cache 30 jours), gating `product_scan`, journal d'audit sans contenu
 - [x] Quota mensuel du secours vision (`max_vision_scans_per_month`, `ProductScanUsage`), incrément atomique, quota atteint = résultat local avec avertissement
 - [x] Frontend : « Scanner l'emballage » à la création d'un article, champs vides seulement, badge « Détecté, à vérifier », prix jamais pré-rempli ; audit `e2e/audit-product-scan.mjs`
+- [x] Qualité du scan — structuration du texte : toutes les lignes OCR (texte, position, hauteur, face/dos) envoyées, sans image, au modèle texte (`PRODUCT_TEXT_MODEL`, sortie structurée, `store=False`, aucun réessai) ; champs marque, désignation, variante, allégations, contenance, code-barres ; garde-fou qui écarte toute valeur absente du texte lu ; repli sur les règles locales
+- [x] Qualité du scan — composition côté Django : nom = [marque] désignation [variante] [contenance], marque omise si c'est le nom de la boutique, description = allégations ; aucune donnée de la boutique envoyée à ai-service
+- [x] Qualité du scan — secours image sur critère sémantique (nom absent, égal à la marque, un seul mot sans type de produit, texte pauvre, confiance basse), derrière `PRODUCT_SCAN_IMAGE_FALLBACK` (`false` par défaut) ; seule la face part
+- [x] Qualité du scan — deux photos (face, puis « Ajouter le dos ») fusionnées ; indice « Cadrez l'étiquette de face » ; un champ encore égal à la détection est rafraîchi, une saisie jamais écrasée
+- [x] Jeu d'étalon : `apps/ai-service/scripts/eval_product_scan.py` (score par champ et par fournisseur) sur `tests/fixtures/product_scan/*.json`, cas Ziyada ; aucune photo tierce commitée (README)
 - [ ] Tests de coût réel par image avec plusieurs fournisseurs, puis choix du fournisseur et ajustement des quotas par formule
 - [ ] Point d'entrée dans l'onboarding (composant `ProductScanCard` réutilisable)
 
@@ -644,6 +649,10 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Sondes de formule de test_plans.py : un 404 compte comme accès autorisé ; exiger 200
       pour chaque module.
 
+- [ ] Scan d'emballage (URS-109) : plafond mensuel par boutique sur les appels de
+      structuration du texte (aujourd'hui seulement la limite de débit), avec incrément
+      atomique SQL — à traiter avant l'ouverture publique et avant tout import en lot.
+
 ---
 
 ## Checklist de lancement
@@ -666,7 +675,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
-- [ ] **Bloquant** — Réviser la politique de confidentialité (traitement d'images, envoi au fournisseur de vision) AVANT de passer `VISION_PROVIDER` hors de `none` en production.
+- [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
 ### Vérification des affirmations marketing (lot 7d)

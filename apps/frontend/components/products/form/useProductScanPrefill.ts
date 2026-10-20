@@ -10,10 +10,11 @@ type TextTarget = 'name' | 'description' | 'formats.0.barcode';
 const TEXT_TARGETS: readonly TextTarget[] = ['name', 'description', 'formats.0.barcode'];
 
 /**
- * Pré-remplissage du formulaire par un scan d'emballage (URS-109) : seuls les champs encore vides
- * sont remplis — jamais une saisie écrasée, jamais le prix — et l'unité seulement si elle n'a pas
- * été choisie. `detected` garde la valeur posée par champ : le badge « Détecté, à vérifier »
- * s'affiche tant que le champ la contient. Un code-barres rempli ouvre la carte Référence.
+ * Pré-remplissage du formulaire par un scan d'emballage (URS-109) : seuls les champs vides, ou qui
+ * contiennent encore la valeur d'un scan précédent (photo du dos ajoutée), sont remplis — jamais
+ * une saisie écrasée, jamais le prix — et l'unité seulement si elle n'a pas été choisie.
+ * `detected` garde la valeur posée par champ : le badge « Détecté, à vérifier » s'affiche tant que
+ * le champ la contient. Un code-barres rempli ouvre la carte Référence.
  */
 export function useProductScanPrefill(form: UseFormReturn<ProductFormValues>, openReference: () => void) {
   const [detected, setDetected] = useState<ScanProposals>({});
@@ -23,12 +24,16 @@ export function useProductScanPrefill(form: UseFormReturn<ProductFormValues>, op
     const filled: ScanProposals = {};
     for (const target of TEXT_TARGETS) {
       const value = proposals[target];
-      if (value === undefined || form.getValues(target).trim() !== '') continue;
+      const current = form.getValues(target);
+      const untouched = current.trim() === '' || current === detected[target];
+      if (value === undefined || !untouched || value === current) continue;
       form.setValue(target, value, { shouldDirty: true });
       filled[target] = value;
     }
     // Une unité déjà en place (« pièce » par défaut) n'est ni remplie ni signalée.
-    if (proposals.unit && proposals.unit !== form.getValues('unit') && !form.getFieldState('unit').isDirty) {
+    const unit = form.getValues('unit');
+    const unitUntouched = !form.getFieldState('unit').isDirty || unit === detected.unit;
+    if (proposals.unit && proposals.unit !== unit && unitUntouched) {
       form.setValue('unit', proposals.unit, { shouldDirty: true });
       filled.unit = proposals.unit;
     }
