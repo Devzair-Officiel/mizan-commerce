@@ -47,56 +47,59 @@ async function openInvoiceTab(page) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale } = await openSession(browser, viewport);
-  const state = { solo: false };
-  await routePlan(ctx, state);
-  const ocr = [];
-  page.on('request', (req) => {
-    if (new URL(req.url()).pathname.startsWith('/api/proxy/ocr/')) ocr.push(`${req.method()} ${new URL(req.url()).pathname}`);
-  });
-  for (const locale of ['fr', 'ar']) {
-    if (!inMatrix(viewport, locale)) continue;
-    const label = `${viewport.name}px ${locale}`;
-    console.log(`\n=== ${label}`);
-    await setLocale(locale);
-    watch.setLabel(label);
-    const before = watch.problems.length;
-    const t = (key) => msg(locale, key);
-    try {
-      state.solo = true;
-      ocr.length = 0;
-      await openInvoiceTab(page);
-      const invoiceTab = page.locator('#stock-entry-tab-invoice');
-      const locked = await panel(page, t, locale);
-      report.check(
-        (await invoiceTab.isVisible()) && (await invoiceTab.getAttribute('aria-selected')) === 'true'
-          && locked.card && locked.text && locked.files === 0,
-        `${label} : en Solo, onglet facture visible, carte « ${fmt(locale, 'settings.upgrade.title', { feature: 'ocr', plan: 'boutique' })} » à la place de l'envoi (${locked.files} champ fichier)`,
-      );
-      report.check(ocr.length === 0, `${label} : en Solo, aucune requête OCR${ocr.length ? ` (${ocr.join(', ')})` : ''}`);
-      await page.locator('#stock-entry-tab-manual').click();
-      await page.waitForURL(/\/stock\/entree$/);
-      await page.waitForLoadState('networkidle');
-      const manual = await panel(page, t, locale);
-      report.check(
-        (await page.locator('#stock-entry-tab-manual').getAttribute('aria-selected')) === 'true' && !manual.card,
-        `${label} : en Solo, « ${t('stock.entry.mode.manual')} » reste disponible`,
-      );
-      state.solo = false;
-      await openInvoiceTab(page);
-      await page.getByRole('tabpanel').locator('input[type=file]').first().waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
-      const unlocked = await panel(page, t, locale);
-      report.check(!unlocked.card && unlocked.files > 0, `${label} : de retour en Boutique, l'envoi de la facture revient, plus de carte`);
-    } catch (error) {
-      report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
-    } finally {
-      state.solo = false;
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale } = await openSession(browser, viewport);
+    const state = { solo: false };
+    await routePlan(ctx, state);
+    const ocr = [];
+    page.on('request', (req) => {
+      if (new URL(req.url()).pathname.startsWith('/api/proxy/ocr/')) ocr.push(`${req.method()} ${new URL(req.url()).pathname}`);
+    });
+    for (const locale of ['fr', 'ar']) {
+      if (!inMatrix(viewport, locale)) continue;
+      const label = `${viewport.name}px ${locale}`;
+      console.log(`\n=== ${label}`);
+      await setLocale(locale);
+      watch.setLabel(label);
+      const before = watch.problems.length;
+      const t = (key) => msg(locale, key);
+      try {
+        state.solo = true;
+        ocr.length = 0;
+        await openInvoiceTab(page);
+        const invoiceTab = page.locator('#stock-entry-tab-invoice');
+        const locked = await panel(page, t, locale);
+        report.check(
+          (await invoiceTab.isVisible()) && (await invoiceTab.getAttribute('aria-selected')) === 'true'
+            && locked.card && locked.text && locked.files === 0,
+          `${label} : en Solo, onglet facture visible, carte « ${fmt(locale, 'settings.upgrade.title', { feature: 'ocr', plan: 'boutique' })} » à la place de l'envoi (${locked.files} champ fichier)`,
+        );
+        report.check(ocr.length === 0, `${label} : en Solo, aucune requête OCR${ocr.length ? ` (${ocr.join(', ')})` : ''}`);
+        await page.locator('#stock-entry-tab-manual').click();
+        await page.waitForURL(/\/stock\/entree$/);
+        await page.waitForLoadState('networkidle');
+        const manual = await panel(page, t, locale);
+        report.check(
+          (await page.locator('#stock-entry-tab-manual').getAttribute('aria-selected')) === 'true' && !manual.card,
+          `${label} : en Solo, « ${t('stock.entry.mode.manual')} » reste disponible`,
+        );
+        state.solo = false;
+        await openInvoiceTab(page);
+        await page.getByRole('tabpanel').locator('input[type=file]').first().waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
+        const unlocked = await panel(page, t, locale);
+        report.check(!unlocked.card && unlocked.files > 0, `${label} : de retour en Boutique, l'envoi de la facture revient, plus de carte`);
+      } catch (error) {
+        report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+      } finally {
+        state.solo = false;
+      }
+      const problems = watch.problems.slice(before);
+      report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
-    const problems = watch.problems.slice(before);
-    report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
+    await ctx.close();
   }
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

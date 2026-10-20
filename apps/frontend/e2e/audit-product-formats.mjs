@@ -259,28 +259,31 @@ async function run(page, t, ctx, nested, cleanup) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const cleanup = { served: [], unused: [], orders: [] };
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const nested = [];
-      await run(page, (key) => msg(locale, key), { label, viewport, locale, theme }, nested, cleanup);
-      const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const cleanup = { served: [], unused: [], orders: [] };
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const nested = [];
+        await run(page, (key) => msg(locale, key), { label, viewport, locale, theme }, nested, cleanup);
+        const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+      }
     }
+    for (const order of cleanup.orders) await api(page, `orders/${order}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
+    await deactivate(page, cleanup.served);
+    await remove(page, cleanup.unused);
+    await ctx.close();
   }
-  for (const order of cleanup.orders) await api(page, `orders/${order}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
-  await deactivate(page, cleanup.served);
-  await remove(page, cleanup.unused);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

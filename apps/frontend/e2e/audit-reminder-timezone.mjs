@@ -126,27 +126,30 @@ async function checkDashboard(page, ctx) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  console.log(`\n=== ${viewport.name}px`);
-  // Fuseau de l'appareil fixé à l'ouverture du contexte, donc avant de lire celui de la boutique.
-  const deviceTz = deviceZone(SHOP_ZONE);
-  const session = await openSession(browser, viewport, { timezoneId: deviceTz });
-  const { page, watch } = session;
-  const shopZone = (await api(page, 'shop/')).timezone;
-  const ctx = { viewport, shopZone, label: `${viewport.name}px appareil ${deviceTz}, boutique ${shopZone}` };
-  await cleanup(page);
-  try {
-    report.check(shopZone === SHOP_ZONE
-      && await page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone) === deviceTz,
-    `${ctx.label} : l'appareil n'est pas le même jour que la boutique`);
-    await checkShortcut(page, ctx);
-    await checkPostpone(page, ctx);
-    await checkDashboard(page, ctx);
-  } finally {
+try {
+  for (const viewport of VIEWPORTS) {
+    console.log(`\n=== ${viewport.name}px`);
+    // Fuseau de l'appareil fixé à l'ouverture du contexte, donc avant de lire celui de la boutique.
+    const deviceTz = deviceZone(SHOP_ZONE);
+    const session = await openSession(browser, viewport, { timezoneId: deviceTz });
+    const { page, watch } = session;
+    const shopZone = (await api(page, 'shop/')).timezone;
+    const ctx = { viewport, shopZone, label: `${viewport.name}px appareil ${deviceTz}, boutique ${shopZone}` };
     await cleanup(page);
+    try {
+      report.check(shopZone === SHOP_ZONE
+        && await page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone) === deviceTz,
+      `${ctx.label} : l'appareil n'est pas le même jour que la boutique`);
+      await checkShortcut(page, ctx);
+      await checkPostpone(page, ctx);
+      await checkDashboard(page, ctx);
+    } finally {
+      await cleanup(page);
+    }
+    report.check(watch.problems.length === 0, `${viewport.name}px : console et défilement propres${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await session.ctx.close();
   }
-  report.check(watch.problems.length === 0, `${viewport.name}px : console et défilement propres${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-  await session.ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

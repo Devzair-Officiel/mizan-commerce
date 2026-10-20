@@ -165,6 +165,11 @@ function RegisterFormView() {
         {t('have_account')}{' '}
         <Link href="/login">{t('signin_link')}</Link>
       </p>
+      <p className="au-foot au-foot-secondary">
+        {t.rich('privacy_notice', {
+          privacy: (chunks) => <Link href="/confidentialite">{chunks}</Link>,
+        })}
+      </p>
     </div>
 
     <p className="au-trust">

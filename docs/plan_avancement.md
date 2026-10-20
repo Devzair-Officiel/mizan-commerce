@@ -520,6 +520,8 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] Pages marketing : grille 4 offres (Pricing, Faq)
     - [x] Pages marketing (7d-2) : largeur globale 1400 px, marges fluides, cartes et notes alignées, pastille Boutique flottante, CTA final et anneaux du sceau contenus sur mobile ; recette aux six largeurs ci-dessous
     - [x] Pages marketing (7d-3) : 8 cartes cohérentes avec la grille, partenariats et mentions d'attente retirés, section Valeurs recentrée sur la zakat ; contrôle des métadonnées et recette aux quatre largeurs ci-dessous
+    - [~] Pages marketing (7d-4) : « Prêt en trois étapes » en cartes crème avec mini-interfaces HTML/CSS, lien d'inscription, grille responsive et réduction des animations ; recette à 375 / 390 / 768 / 1024 / 1440 px, staging non validé
+    - [~] Pages marketing (7d-5) : section Zakat crème, transition SVG dorée et exemple statique explicite, liens vers `/zakat` et la FAQ, calculateur inchangé ; recette en production à 320 / 375 / 390 / 768 / 1024 / 1440 px, trois étapes identiques au pixel près, staging non validé
   - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 
@@ -539,8 +541,8 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Sécurité & RGPD
 
-- [ ] Page mentions légales
-- [ ] Page politique de confidentialité
+- [~] Page mentions légales — staging non validé
+- [~] Page politique de confidentialité — staging non validé
 - [ ] Endpoint export des données utilisateur
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable

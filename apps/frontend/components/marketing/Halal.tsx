@@ -1,35 +1,63 @@
-import { SiteIcon } from './SiteIcon';
+import Link from 'next/link';
+import { ArrowDownRight, ArrowRight, BookOpen, Scale, Store } from 'lucide-react';
+import { HalalTransition } from './HalalTransition';
+import { ZakatEstimateExample } from './ZakatEstimateExample';
+
+const POINTS = [
+  {
+    title: 'Une estimation claire',
+    description: 'Stock, trésorerie, créances et dettes réunis au même endroit.',
+    Icon: Scale,
+  },
+  {
+    title: 'Des règles transparentes',
+    description: 'Comprenez les méthodes appliquées et consultez leurs sources.',
+    Icon: BookOpen,
+  },
+  {
+    title: 'Un outil adapté à votre activité',
+    description: "Retrouvez les informations utiles à l'estimation de votre zakat.",
+    Icon: Store,
+  },
+];
 
 export function Halal() {
   return (
-    <section className="section deep" id="halal">
-      <div className="wrap halal-grid">
-        <div>
-          <span className="eyebrow on-dark">
-            <span className="ar">حلال</span>
+    <section className="section zakat-section" id="halal" aria-labelledby="zakat-title" lang="fr" dir="ltr">
+      <HalalTransition />
+      <div className="wrap zakat-grid">
+        <div className="zakat-copy">
+          <span className="eyebrow">
+            <span className="ar" lang="ar">حلال</span>
             <span className="dot" />
             Vos valeurs, respectées
           </span>
-          <h2 style={{ marginTop: 18 }}>
-            Un commerce <em className="serif-i">juste et serein.</em>
+          <h2 id="zakat-title">
+            Une zakat simple, claire
+            <em className="serif-i">et en toute confiance.</em>
           </h2>
-          <div className="halal-points">
-            <div className="hp">
-              <div className="ic"><SiteIcon name="scale" size={26} color="#e3c987" /></div>
-              <div>
-                <h4>Une zakat estimée pour vous</h4>
-                <p>
-                  Une estimation transparente — stock, trésorerie, créances et dettes — fournie à titre
-                  indicatif d&apos;après vos données, pour préparer votre zakat l&apos;esprit tranquille.
-                  Là où les écoles divergent, c&apos;est vous qui choisissez, et chaque règle indique ses sources.
-                </p>
-              </div>
-            </div>
+          <p className="zakat-intro">
+            Préparez votre zakat à partir des données de votre activité. Une estimation indicative et
+            transparente, avec des règles explicitées et des sources consultables.
+          </p>
+          <ul className="zakat-points" role="list">
+            {POINTS.map(({ title, description, Icon }) => (
+              <li key={title}>
+                <span className="zakat-point-icon"><Icon size={23} strokeWidth={1.6} aria-hidden="true" /></span>
+                <div><h3>{title}</h3><p>{description}</p></div>
+              </li>
+            ))}
+          </ul>
+          <div className="zakat-actions">
+            <Link className="btn btn-gold" href="/zakat" prefetch={false}>
+              Estimer ma zakat <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+            </Link>
+            <a className="zakat-more" href="#faq">
+              En savoir plus <ArrowDownRight size={17} strokeWidth={1.8} aria-hidden="true" />
+            </a>
           </div>
         </div>
-        <div className="halal-motif">
-          <div className="halal-seal"><span className="ar">ميزان</span></div>
-        </div>
+        <ZakatEstimateExample />
       </div>
     </section>
   );

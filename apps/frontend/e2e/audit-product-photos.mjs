@@ -79,34 +79,37 @@ async function checkCatalog(page, ctx, nested) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const fixtures = await ensureFixtures(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const nested = [];
-      const run = { label, viewport, locale };
-      try {
-        await checkList(page, run, nested);
-        await checkSheet(page, run, fixtures[0], nested);
-        await checkCatalog(page, run, nested);
-      } catch (error) {
-        report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
-        if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/photos-${viewport.name}-${locale}-${theme}.png`, fullPage: true });
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const fixtures = await ensureFixtures(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const nested = [];
+        const run = { label, viewport, locale };
+        try {
+          await checkList(page, run, nested);
+          await checkSheet(page, run, fixtures[0], nested);
+          await checkCatalog(page, run, nested);
+        } catch (error) {
+          report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+          if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/photos-${viewport.name}-${locale}-${theme}.png`, fullPage: true });
+        }
+        const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await deactivate(page, fixtures.map((p) => p.id));
+    await ctx.close();
   }
-  await deactivate(page, fixtures.map((p) => p.id));
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

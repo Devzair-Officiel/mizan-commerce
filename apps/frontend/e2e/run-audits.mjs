@@ -1,5 +1,5 @@
 /**
- * Lance les audits, plusieurs à la fois (`AUDIT_JOBS`, 3 par défaut).
+ * Lance les audits, un à la fois par défaut (`AUDIT_JOBS`, 1 ; 2 ou plus selon la mémoire disponible).
  *
  *   node run-audits.mjs                    tous les audits
  *   node run-audits.mjs sales scroll-lock  ceux-là seulement (nom sans « audit- » ni « .mjs »)
@@ -9,11 +9,13 @@
  * jamais aux mêmes données ; les comptes de démo partagés (Youssef, services) ne sont que lus.
  * Les sessions sont partagées (`AUDIT_STATE_DIR`) : peu de connexions malgré la limite 'auth'.
  * Sortie complète de chaque audit dans `results/<audit>.log` ; ici, ses échecs et sa durée.
+ * Après chaque audit, aucun navigateur ne doit rester ouvert : un reste compte comme un échec et il est arrêté.
  */
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 const AUDITS = [
   'pages', 'customer-form', 'customer-name', 'zakat', 'products-list', 'product-form', 'product-formats',
@@ -30,7 +32,7 @@ if (unknown.length) {
   process.exit(2);
 }
 const queue = requested.length ? requested : [...AUDITS];
-const jobs = Math.max(1, Math.min(Number(process.env.AUDIT_JOBS ?? 3) || 1, queue.length));
+const jobs = Math.max(1, Math.min(Number(process.env.AUDIT_JOBS ?? 1) || 1, queue.length));
 const stateDir = await mkdtemp(join(tmpdir(), 'audit-sessions-'));
 await mkdir('results', { recursive: true });
 
@@ -47,6 +49,36 @@ function failures(out) {
   return kept;
 }
 
+/**
+ * Processus Chromium d'audits terminés : leur audit sorti, ils sont rattachés au processus 1, alors que
+ * ceux des audits en cours ont encore leur audit pour parent. `chrome_crashpad_handler` (rapports de
+ * plantage, minuscule) est ignoré : Chromium le détache lui-même. Les zombies n'ont plus de ligne de commande.
+ */
+async function orphanBrowsers() {
+  const pids = [];
+  for (const pid of await readdir('/proc')) {
+    if (!/^\d+$/.test(pid)) continue;
+    const [stat, cmd] = await Promise.all(['stat', 'cmdline'].map((f) => readFile(`/proc/${pid}/${f}`, 'utf8').catch(() => '')));
+    // « pid (nom) état ppid … » : le nom peut contenir des espaces, d'où la dernière parenthèse.
+    const ppid = stat.slice(stat.lastIndexOf(')') + 2).split(' ')[1];
+    if (ppid === '1' && /chrom/i.test(cmd) && !cmd.includes('crashpad')) pids.push(Number(pid));
+  }
+  return pids;
+}
+
+/** Navigateurs restés ouverts : 3 s laissées aux processus enfants pour finir, puis arrêt forcé. */
+async function leftoverBrowsers() {
+  let pids = await orphanBrowsers();
+  for (let i = 0; pids.length && i < 30; i++) {
+    await sleep(100);
+    pids = await orphanBrowsers();
+  }
+  for (const pid of pids) {
+    try { process.kill(pid, 'SIGKILL'); } catch { /* déjà terminé */ }
+  }
+  return pids.length;
+}
+
 function run(name, slot) {
   return new Promise((resolve) => {
     const start = Date.now();
@@ -58,10 +90,12 @@ function run(name, slot) {
     child.stderr.on('data', (d) => { out += d; });
     child.on('close', async (code) => {
       await writeFile(`results/${name}.log`, out);
-      const ok = code === 0;
-      const lines = ok ? [] : failures(out);
+      const leftover = await leftoverBrowsers();
+      const ok = code === 0 && leftover === 0;
+      const lines = code === 0 ? [] : failures(out);
       // Arrêt sans vérification en échec (exception, plantage) : la fin de la sortie.
-      if (!ok && lines.length === 0) lines.push(...out.trimEnd().split('\n').slice(-15));
+      if (code !== 0 && lines.length === 0) lines.push(...out.trimEnd().split('\n').slice(-15));
+      if (leftover) lines.push(`  ✗ ${leftover} processus Chromium encore ouverts après l'audit (arrêtés)`);
       console.log(`${ok ? '✓' : '✗'} ${name} — ${seconds(Date.now() - start)} (emplacement ${slot})${lines.map((l) => `\n${l}`).join('')}`);
       resolve({ name, ok });
     });

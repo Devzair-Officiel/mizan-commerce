@@ -393,32 +393,35 @@ async function run(page, t, ctx, formats, created, nested) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const formats = await ensureFormatsProduct(page);
-  images.tall = await makeImage(page, 300, 1200);
-  images.wide = await makeImage(page, 1200, 300);
-  const created = [];
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const nested = [];
-      await run(page, (key) => msg(locale, key), { label, viewport, locale, theme }, formats, created, nested);
-      const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const formats = await ensureFormatsProduct(page);
+    images.tall = await makeImage(page, 300, 1200);
+    images.wide = await makeImage(page, 1200, 300);
+    const created = [];
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const nested = [];
+        await run(page, (key) => msg(locale, key), { label, viewport, locale, theme }, formats, created, nested);
+        const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+      }
     }
+    await remove(page, created);
+    await deactivate(page, [formats.id]);
+    await ctx.close();
   }
-  await remove(page, created);
-  await deactivate(page, [formats.id]);
-  await ctx.close();
+  await checkServicesShop(browser);
+  await checkYoussefShop(browser);
+} finally {
+  await browser.close();
 }
-await checkServicesShop(browser);
-await checkYoussefShop(browser);
-await browser.close();
 report.finish();

@@ -223,29 +223,32 @@ async function run(page, ctx, article) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const article = await createArticle(page, { name: `Audit défilement ${Date.now()}`, price: '5.00', stock: 2 });
-  // « Lot » sans stock, jamais utilisé : son menu « ⋯ » propose « Supprimer ».
-  await api(page, `products/${article.id}/variants/`, {
-    method: 'POST', data: { packaging_name: 'Lot', base_quantity: '1', unit: 'piece', selling_price: '5.00' },
-  });
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      await run(page, { label, locale, viewport }, article);
-      const problems = watch.problems.slice(before);
-      report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const article = await createArticle(page, { name: `Audit défilement ${Date.now()}`, price: '5.00', stock: 2 });
+    // « Lot » sans stock, jamais utilisé : son menu « ⋯ » propose « Supprimer ».
+    await api(page, `products/${article.id}/variants/`, {
+      method: 'POST', data: { packaging_name: 'Lot', base_quantity: '1', unit: 'piece', selling_price: '5.00' },
+    });
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        await run(page, { label, locale, viewport }, article);
+        const problems = watch.problems.slice(before);
+        report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
+      }
     }
+    await deactivate(page, [article.id]);
+    await ctx.close();
   }
-  await deactivate(page, [article.id]);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

@@ -125,42 +125,45 @@ function screens({ customer, order, product }, mobile) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme, setPalette } = await openSession(browser, viewport);
-  const data = await setup(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      for (const [primary, background] of PALETTES[theme]) {
-        setPalette({ primary_color: primary, background_theme: background });
-        for (const [name, path, minBands, minHeads] of screens(data, viewport.mobile)) {
-          try {
-            await page.goto(`${BASE}${path}`);
-            await page.waitForLoadState('networkidle');
-            await page.locator('main h2').first().waitFor({ state: 'visible', timeout: 8000 });
-            const { bands, heads, issues } = await page.evaluate(bandIssues);
-            const count = bands >= minBands && heads >= minHeads ? [] : [`${bands} bandes, ${heads} en-têtes de tableau`];
-            const all = [...count, ...issues];
-            report.check(all.length === 0, `${label} ${primary}/${background} : ${name}, bandes muted et contrastes ≥ 4,5:1${all.map((p) => `\n      ${p}`).join('')}`);
-          } catch (error) {
-            report.check(false, `${label} ${primary}/${background} : ${name} interrompu — ${error.message.split('\n')[0]}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme, setPalette } = await openSession(browser, viewport);
+    const data = await setup(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        for (const [primary, background] of PALETTES[theme]) {
+          setPalette({ primary_color: primary, background_theme: background });
+          for (const [name, path, minBands, minHeads] of screens(data, viewport.mobile)) {
+            try {
+              await page.goto(`${BASE}${path}`);
+              await page.waitForLoadState('networkidle');
+              await page.locator('main h2').first().waitFor({ state: 'visible', timeout: 8000 });
+              const { bands, heads, issues } = await page.evaluate(bandIssues);
+              const count = bands >= minBands && heads >= minHeads ? [] : [`${bands} bandes, ${heads} en-têtes de tableau`];
+              const all = [...count, ...issues];
+              report.check(all.length === 0, `${label} ${primary}/${background} : ${name}, bandes muted et contrastes ≥ 4,5:1${all.map((p) => `\n      ${p}`).join('')}`);
+            } catch (error) {
+              report.check(false, `${label} ${primary}/${background} : ${name} interrompu — ${error.message.split('\n')[0]}`);
+            }
           }
         }
+        setPalette({});
+        const problems = watch.problems.slice(before);
+        report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      setPalette({});
-      const problems = watch.problems.slice(before);
-      report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
+    await deactivate(page, [data.product.id]);
+    await ctx.close();
   }
-  await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
-  await deactivate(page, [data.product.id]);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

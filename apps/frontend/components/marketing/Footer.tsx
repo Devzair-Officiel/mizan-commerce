@@ -18,16 +18,16 @@ export function Footer() {
           </div>
           <div className="foot-col">
             <h5>Produit</h5>
-            <a href="#features">Fonctionnalités</a>
-            <a href="#how">Comment ça marche</a>
-            <a href="#pricing">Tarifs</a>
-            <a href="#faq">FAQ</a>
+            <Link href="/#features">Fonctionnalités</Link>
+            <Link href="/#how">Comment ça marche</Link>
+            <Link href="/#pricing">Tarifs</Link>
+            <Link href="/#faq">FAQ</Link>
           </div>
           <div className="foot-col">
             <h5>Compte</h5>
             <Link href="/register">Créer un compte</Link>
             <Link href="/login">Se connecter</Link>
-            <a href="#halal">Zakat & halal</a>
+            <Link href="/#halal">Zakat & halal</Link>
           </div>
           <div className="foot-col">
             <h5>Contact</h5>
@@ -36,6 +36,10 @@ export function Footer() {
         </div>
         <div className="foot-bottom">
           <span>© 2026 mizan commerce. Tous droits réservés.</span>
+          <div className="foot-legal">
+            <Link href="/mentions-legales">Mentions légales</Link>
+            <Link href="/confidentialite">Confidentialité</Link>
+          </div>
           <span style={{ color: 'rgba(227,201,135,0.6)' }}>mizan — l&apos;équilibre de votre commerce</span>
         </div>
       </div>

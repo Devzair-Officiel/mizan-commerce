@@ -194,35 +194,38 @@ async function auditDetailCards(page, ctx, { customer, order }) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const data = await setup(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const run = { label, viewport, locale, theme };
-      try {
-        await cleanup(page, data.customer);
-        const created = await auditCreate(page, run, data);
-        if (created) await auditEdit(page, run, created);
-        await auditDetailCards(page, run, data);
-      } catch (error) {
-        report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const data = await setup(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const run = { label, viewport, locale, theme };
+        try {
+          await cleanup(page, data.customer);
+          const created = await auditCreate(page, run, data);
+          if (created) await auditEdit(page, run, created);
+          await auditDetailCards(page, run, data);
+        } catch (error) {
+          report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+        }
+        // Le 400 du titre vide n'atteint pas le serveur : aucune erreur attendue dans la console.
+        const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      // Le 400 du titre vide n'atteint pas le serveur : aucune erreur attendue dans la console.
-      const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await cleanup(page, data.customer);
+    await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
+    await ctx.close();
   }
-  await cleanup(page, data.customer);
-  await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

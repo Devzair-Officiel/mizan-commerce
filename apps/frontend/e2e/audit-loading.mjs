@@ -68,29 +68,32 @@ async function checkSlow(page, cdp, label, { title, path, name }) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale } = await openSession(browser, viewport);
-  const cdp = await ctx.newCDPSession(page);
-  await cdp.send('Network.enable');
-  const product = await first(page, 'products/?type=product');
-  const customer = await first(page, 'customers/');
-  const order = await first(page, 'orders/');
-  const targets = [
-    { title: 'fiche article', path: `/products/${product.id}`, name: product.name },
-    { title: 'fiche client', path: `/customers/${customer.id}`, name: customer.name },
-    { title: 'détail commande', path: `/orders/${order.id}`, name: order.order_number },
-  ];
-  for (const locale of ['fr', 'ar']) {
-    if (!inMatrix(viewport, locale)) continue;
-    const label = `${viewport.name}px ${locale}`;
-    console.log(`\n=== ${label}`);
-    await setLocale(locale);
-    watch.setLabel(label);
-    for (const target of targets) await checkSlow(page, cdp, label, target);
-    report.check(watch.problems.length === 0, `${label} : console propre${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-    watch.problems.length = 0;
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale } = await openSession(browser, viewport);
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Network.enable');
+    const product = await first(page, 'products/?type=product');
+    const customer = await first(page, 'customers/');
+    const order = await first(page, 'orders/');
+    const targets = [
+      { title: 'fiche article', path: `/products/${product.id}`, name: product.name },
+      { title: 'fiche client', path: `/customers/${customer.id}`, name: customer.name },
+      { title: 'détail commande', path: `/orders/${order.id}`, name: order.order_number },
+    ];
+    for (const locale of ['fr', 'ar']) {
+      if (!inMatrix(viewport, locale)) continue;
+      const label = `${viewport.name}px ${locale}`;
+      console.log(`\n=== ${label}`);
+      await setLocale(locale);
+      watch.setLabel(label);
+      for (const target of targets) await checkSlow(page, cdp, label, target);
+      report.check(watch.problems.length === 0, `${label} : console propre${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+      watch.problems.length = 0;
+    }
+    await ctx.close();
   }
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();
