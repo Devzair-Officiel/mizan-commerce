@@ -12,7 +12,6 @@ import { ProductInfoSection } from './ProductInfoSection';
 import { ProductPhotoSection } from './ProductPhotoSection';
 import { ProductPriceSection } from './ProductPriceSection';
 import { ProductReferenceSection } from './ProductReferenceSection';
-import { ProductSaleSection } from './ProductSaleSection';
 import { ProductStockSection } from './ProductStockSection';
 import { serviceFormatsCount, type ProductFormValues } from './productFormSchema';
 import { useProductForm, type ProductSection } from './useProductForm';
@@ -34,9 +33,11 @@ interface ProductFormProps {
 }
 
 /**
- * Formulaire article au gabarit v3. Colonne principale : Informations, puis Prix et Stock (format
- * unique) ou Formats et prix (plusieurs formats) ; colonne latérale : Photo, Vente, Référence. Un
- * service n'a ni stock ni unité ; s'il a plusieurs formats, ses prix se règlent sur la fiche.
+ * Formulaire article au gabarit v3. Colonne principale : Informations (dont l'unité de vente, avant
+ * les prix et le stock qui en dépendent), puis Prix et Stock (format unique) ou Formats et prix
+ * (plusieurs formats) ; colonne latérale : Photo, Référence. Sur mobile, la photo facultative vient
+ * après les champs obligatoires. Un service n'a ni stock ni unité ; s'il a plusieurs formats, ses
+ * prix se règlent sur la fiche.
  */
 export function ProductForm({ mode, type, mixed, currencyCode, product, onSubmit, isSubmitting, onLeave, focusPhotos }: ProductFormProps) {
   const t = useTranslations('articles.form');
@@ -61,21 +62,20 @@ export function ProductForm({ mode, type, mixed, currencyCode, product, onSubmit
     <form noValidate onSubmit={submit} className="flex flex-col gap-5 px-4 pt-4 pb-28 lg:pt-0 lg:pb-8">
       <div className={FORM_COLUMNS}>
         <div className={FORM_COLUMN}>
-          <ProductInfoSection register={register} errors={errors} mode={mode} mixed={mixed} type={currentType} formats={serviceNote} order="max-lg:order-1" />
+          <ProductInfoSection {...fields} mode={mode} mixed={mixed} type={currentType} multi={multi} formats={serviceNote} order="max-lg:order-1" />
           {multi ? (
-            <ProductFormatsSection form={form} formats={formats} product={product} unit={unit} currency={currency} currencyCode={currencyCode} order="max-lg:order-3" />
+            <ProductFormatsSection form={form} formats={formats} product={product} unit={unit} currency={currency} currencyCode={currencyCode} order="max-lg:order-2" />
           ) : !serviceNote && (
-            <ProductPriceSection {...fields} currency={currency} currencyCode={currencyCode} onMultiple={formats.toMulti} order="max-lg:order-3" />
+            <ProductPriceSection {...fields} currency={currency} currencyCode={currencyCode} onMultiple={formats.toMulti} order="max-lg:order-2" />
           )}
           {article && !multi && (
-            <ProductStockSection {...fields} {...section('stock')} order="max-lg:order-4" current={single
+            <ProductStockSection {...fields} {...section('stock')} order="max-lg:order-3" current={single
               ? { quantity: single.stock_quantity, stockInHref: `/stock/entree?variant=${single.id}` } : undefined} />
           )}
         </div>
         <div className={FORM_COLUMN}>
-          <ProductPhotoSection photos={photos} productId={product?.id} {...section('photo')} order="max-lg:order-2" />
-          {article && <ProductSaleSection control={control} mode={mode} multi={multi} order="max-lg:order-5" />}
-          {article && <ProductReferenceSection {...fields} setFocus={setFocus} multi={multi} {...section('reference')} order="max-lg:order-6" />}
+          <ProductPhotoSection photos={photos} productId={product?.id} {...section('photo')} order="max-lg:order-4" />
+          {article && <ProductReferenceSection {...fields} setFocus={setFocus} multi={multi} {...section('reference')} order="max-lg:order-5" />}
         </div>
       </div>
       <FormActions dirty={dirty} submitting={isSubmitting}

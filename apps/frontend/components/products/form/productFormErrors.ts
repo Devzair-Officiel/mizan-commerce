@@ -3,21 +3,22 @@ import { ApiError } from '@/lib/api-client';
 import { ROW_FIELDS, type FormatRow, type ProductFormValues, type RowField } from './productFormSchema';
 
 /** Champ du formulaire qui peut porter une erreur, dans l'ordre d'affichage. */
-export type ProductFieldPath = 'name' | 'description' | 'unit' | `formats.${number}.${RowField}`;
+export type ProductFieldPath = 'name' | 'unit' | 'description' | `formats.${number}.${RowField}`;
 
 /** Clé du message affiché pour une erreur renvoyée par le serveur (`articles.form`). */
 type ServerMessage = 'name_taken' | 'format_name_taken' | 'sku_taken' | 'field_invalid';
 
-/** Premier champ en erreur après la validation du schéma : informations, formats ligne par ligne, unité. */
+/** Premier champ en erreur après la validation du schéma : informations (nom, unité, description), formats ligne par ligne. */
 export function firstError(errors: FieldErrors<ProductFormValues>): ProductFieldPath | undefined {
   if (errors.name) return 'name';
+  if (errors.unit) return 'unit';
   if (errors.description) return 'description';
   const rows: (FieldErrors<FormatRow> | undefined)[] = Array.isArray(errors.formats) ? errors.formats : [];
   for (const [i, row] of rows.entries()) {
     const field = row && ROW_FIELDS.find((f) => row[f]);
     if (field) return `formats.${i}.${field}`;
   }
-  return errors.unit ? 'unit' : undefined;
+  return undefined;
 }
 
 /**

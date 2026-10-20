@@ -1,9 +1,10 @@
 /**
  * Audit du formulaire article (gabarit de formulaire v3), à 1440px et 360px, en clair et en
  * sombre, en français et en arabe :
- * - création d'un article : disposition (deux colonnes sur desktop, tout visible ; cartes empilées
- *   sur mobile dans l'ordre Informations, Photo, Prix, Stock, Vente, Référence, facultatives
- *   repliées), « Nom » obligatoire, marge en direct, deux photos (très haute puis très large)
+ * - création d'un article : disposition (deux colonnes sur desktop, Photo et Référence à côté, tout
+ *   visible ; cartes empilées sur mobile dans l'ordre Informations, Prix, Stock, Photo, Référence,
+ *   facultatives repliées), unité de vente entre le nom et la description, suffixes du prix et du
+ *   stock qui suivent l'unité choisie, « Nom » obligatoire, marge en direct, deux photos (très haute puis très large)
  *   recadrées en carré, la seconde choisie comme principale, stock initial, scan du code-barres
  *   (Entrée ne soumet pas), « Article créé », valeurs relues dans l'API ;
  * - modification par « Gérer les photos » de la fiche (formulaire ouvert sur la carte Photo) :
@@ -24,8 +25,8 @@ import { dismissedDialog, focusReached } from './lib/wait.mjs';
 
 const report = createReport();
 const FORMATS_NAME = 'Audit formats';
-const ORDER = ['section_info', 'section_photo', 'section_price', 'section_stock', 'section_sale', 'section_reference'];
-const SIDE = ['section_photo', 'section_sale', 'section_reference'];
+const ORDER = ['section_info', 'section_price', 'section_stock', 'section_photo', 'section_reference'];
+const SIDE = ['section_photo', 'section_reference'];
 const images = {};
 
 /** Le texte ICU `key` apparaît dans `text`, la valeur `'\u0000'` d'un paramètre pouvant être n'importe quoi (montant formaté). */
@@ -124,6 +125,34 @@ async function checkMargin(page, t, ctx) {
     `${ctx.label} : marge affichée seulement avec les deux prix, « ${text.replace(/\s+/g, ' ')} »`);
 }
 
+/** Suffixe affiché dans le champ `label` (« € / kg », « kg »). */
+const suffixOf = (page, label) => textbox(page, label).locator('xpath=following-sibling::span').innerText();
+
+async function chooseUnit(page, t, unit) {
+  await page.getByRole('combobox', { name: t('articles.form.unit') }).click();
+  await page.getByRole('option', { name: t(`articles.units.${unit}`), exact: true }).click();
+}
+
+/** Unité entre le nom et la description ; prix et stock suivent l'unité choisie (kg), puis retour à la pièce. */
+async function checkUnit(page, t, ctx) {
+  const { locale } = ctx;
+  const short = (unit) => fmt(locale, 'articles.form.unit_short', { unit });
+  const price = (text, unit) => includesMessage(text, locale, 'articles.form.price_suffix', { currency: '\u0000', unit: short(unit) });
+  const tops = await Promise.all([textbox(page, t('articles.form.name')), page.getByRole('combobox', { name: t('articles.form.unit') }),
+    page.getByRole('textbox', { name: t('articles.form.description') })].map(async (l) => (await l.boundingBox()).y));
+  const piece = await suffixOf(page, t('articles.form.selling_price'));
+  await chooseUnit(page, t, 'kilogram');
+  const kg = await suffixOf(page, t('articles.form.selling_price'));
+  await openCard(page, ctx, t('articles.form.section_stock'));
+  const stock = await suffixOf(page, t('articles.form.initial_stock'));
+  await closeCard(page, ctx, t('articles.form.section_stock'));
+  await chooseUnit(page, t, 'piece');
+  const back = await suffixOf(page, t('articles.form.selling_price'));
+  const state = { order: tops[0] < tops[1] && tops[1] < tops[2], piece: price(piece, 'piece'), kg: price(kg, 'kg'), stock: stock === short('kg'), back: price(back, 'piece') };
+  report.check(Object.values(state).every(Boolean),
+    `${ctx.label} : unité entre nom et description ; « ${t('articles.units.kilogram')} » → prix « ${kg} », stock « ${stock} », retour à la pièce ${JSON.stringify(state)}`);
+}
+
 async function createArticleWithForm(page, t, ctx, nested) {
   const { label, locale } = ctx;
   const f = (key, values) => fmt(locale, `articles.form.${key}`, values);
@@ -133,6 +162,7 @@ async function createArticleWithForm(page, t, ctx, nested) {
     && (await page.getByRole('radio', { name: new RegExp(`^${t('articles.form.type_product')}`) }).isChecked())
     && (await unit.count()) === 1 && await layoutOk(page, ctx, layout(t)),
   `${label} : « ${f('title_new', { kind: 'both' })} », Article choisi, unité en menu, ${ctx.viewport.mobile ? 'cartes empilées dans l\'ordre, facultatives repliées' : 'deux colonnes, rien à déplier'}`);
+  await checkUnit(page, t, ctx);
 
   await visibleButton(page, f('submit_create', { type: 'product' })).click();
   const name = textbox(page, t('articles.form.name'));
@@ -264,7 +294,7 @@ async function noArticleFields(page, t) {
     page.locator('form output').filter({ hasText: t('articles.form.unit') }).count(),
     textbox(page, t('articles.form.purchase_price')).count(),
   ]);
-  return counts.every((c) => c === 0) && ['section_stock', 'section_sale', 'section_reference'].every((k) => !titles.includes(t(`articles.form.${k}`)));
+  return counts.every((c) => c === 0) && ['section_stock', 'section_reference'].every((k) => !titles.includes(t(`articles.form.${k}`)));
 }
 
 async function createService(page, t, ctx, nested) {

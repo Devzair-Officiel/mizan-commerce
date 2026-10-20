@@ -68,7 +68,7 @@ async function setReference(page, t, ctx, name, sku) {
   return focused;
 }
 
-/** « Plusieurs formats » : Prix et Stock remplacés, Vente et Références l'expliquent, deux lignes. */
+/** « Plusieurs formats » : Prix et Stock remplacés, unité (Informations) et Références l'expliquent, deux lignes. */
 async function switchToFormats(page, t, ctx) {
   const f = (key, values) => fmt(ctx.locale, `articles.form.${key}`, values);
   await visibleButton(page, f('formats_multiple')).click();
@@ -81,7 +81,7 @@ async function switchToFormats(page, t, ctx) {
     references: await page.getByText(f('reference_formats_note'), { exact: true }).count() === 1,
   };
   report.check(Object.values(state).every(Boolean),
-    `${ctx.label} : « ${f('formats_multiple')} » → carte « ${f('section_formats')} » à 2 lignes (focus sur le nom), Vente et Références expliquées ${JSON.stringify(state)}`);
+    `${ctx.label} : « ${f('formats_multiple')} » → carte « ${f('section_formats')} » à 2 lignes (focus sur le nom), unité et Références expliquées ${JSON.stringify(state)}`);
 }
 
 /** Trois formats : prix et seuil recopiés, marge sur la plage, total du stock initial. */

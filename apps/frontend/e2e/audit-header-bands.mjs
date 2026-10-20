@@ -118,7 +118,7 @@ function screens({ customer, order, product }, mobile) {
     ['fiche client', `/customers/${customer.id}`, 3, mobile ? 0 : 1],
     ['fiche commande', `/orders/${order.id}`, 4, 0],
     ['fiche article', `/products/${product.id}`, 4, mobile ? 0 : 1],
-    ['nouvel article', '/products/new', 6, 0],
+    ['nouvel article', '/products/new', 5, 0],
     ['nouveau client', '/customers/new', 4, 0],
     ['modification client', `/customers/${customer.id}/edit`, 4, 0],
   ];

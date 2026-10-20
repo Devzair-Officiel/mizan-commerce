@@ -1,31 +1,40 @@
 'use client';
 
 import Link from 'next/link';
-import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+import { Controller, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { Layers, Tag } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
-import { FIELD_CONTROL, FIELD_TEXTAREA } from '@/components/form/fieldStyles';
+import { FormSelect } from '@/components/form/FormSelect';
+import { FIELD_CONTROL, FIELD_READONLY, FIELD_TEXTAREA } from '@/components/form/fieldStyles';
 import type { ProductType } from '@/lib/hooks/useProducts';
 import { ProductTypeChoice } from './ProductTypeChoice';
-import type { ProductFormValues } from './productFormSchema';
+import { UNIT_NAMES, UNITS, type ProductFormValues } from './productFormSchema';
 
 interface ProductInfoSectionProps {
   register: UseFormRegister<ProductFormValues>;
+  control: Control<ProductFormValues>;
   errors: FieldErrors<ProductFormValues>;
   mode: 'create' | 'edit';
   /** Boutique mixte : choix du type à la création, rappel non modifiable en modification. */
   mixed: boolean;
   type: ProductType;
-  /** Article à plusieurs formats : prix, stock et références se règlent sur la fiche. */
+  /** Article à plusieurs formats : l'unité est commune à tous. */
+  multi: boolean;
+  /** Service à plusieurs formats : prix, stock et références se règlent sur la fiche. */
   formats?: { count: number; href: string };
   order: string;
 }
 
-/** Informations (obligatoire) : type, nom et description. */
-export function ProductInfoSection({ register, errors, mode, mixed, type, formats, order }: ProductInfoSectionProps) {
+/**
+ * Informations (obligatoire) : type, nom, unité de vente (article : choisie à la création puis
+ * définitive, avant les prix et le stock qui s'expriment dans cette unité) et description.
+ */
+export function ProductInfoSection({ register, control, errors, mode, mixed, type, multi, formats, order }: ProductInfoSectionProps) {
   const t = useTranslations('articles.form');
+  const tUnits = useTranslations('articles.units');
+  const options = UNITS.map((u) => ({ value: u, label: tUnits(UNIT_NAMES[u]) }));
   return (
     <FormSection icon={Tag} order={order} title={t('section_info')} status="required">
       {mixed && mode === 'create' && <ProductTypeChoice register={register} />}
@@ -40,6 +49,13 @@ export function ProductInfoSection({ register, errors, mode, mixed, type, format
       <FormField label={t('name')} required error={errors.name?.message}>
         {(c) => <input {...c} {...register('name')} dir="auto" autoComplete="off" className={FIELD_CONTROL} />}
       </FormField>
+      {type === 'product' && (
+        <FormField label={t('unit')} required={mode === 'create'} help={t(multi ? 'unit_help_formats' : 'unit_help')}>
+          {(c) => <Controller control={control} name="unit" render={({ field }) => mode === 'create'
+            ? <FormSelect control={c} value={field.value} onChange={field.onChange} options={options} triggerRef={field.ref} />
+            : <output {...c} className={`${FIELD_READONLY} text-muted-foreground`}>{tUnits(UNIT_NAMES[field.value])}</output>} />}
+        </FormField>
+      )}
       <FormField label={t('description')} error={errors.description?.message}>
         {(c) => <textarea {...c} {...register('description')} dir="auto" rows={3} className={FIELD_TEXTAREA} />}
       </FormField>
