@@ -75,7 +75,8 @@ class Command(BaseCommand):
             )
 
         from apps.orders.models import Order
-        from apps.ocr.models import OcrResult, UploadedDocument
+        from apps.ocr.models import OcrResult, ProductScanUsage, UploadedDocument
+        from apps.ocr.services import vision_quota_month
         from apps.comms.models import MessageSettings, PreparedMessage
         from apps.public_pages.models import (
             ContactButton,
@@ -497,6 +498,12 @@ class Command(BaseCommand):
                 status=OcrResult.STATUS_PENDING,
             )
             self.stdout.write("    → 1 document OCR (pending)")
+        # Scan d'emballage : 2 secours vision déjà consommés ce mois-ci.
+        ProductScanUsage.objects.update_or_create(
+            shop=shop_fr, month=vision_quota_month(shop_fr),
+            defaults={"vision_count": 2},
+        )
+        self.stdout.write("    → Scan d'emballage : 2 secours vision ce mois-ci")
 
         # ── Loyalty ─────────────────────────────────────────────────
         from apps.loyalty.factories import LoyaltyProgramFactory

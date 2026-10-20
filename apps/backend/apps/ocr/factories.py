@@ -1,13 +1,14 @@
 import uuid
 
 import factory
+from django.utils import timezone
 from factory.django import DjangoModelFactory
 
 from apps.accounts.factories import UserFactory
 from apps.products.factories import ProductVariantFactory
 from apps.shops.factories import ShopFactory
 
-from .models import OcrResult, SupplierLineMatch, UploadedDocument
+from .models import OcrResult, ProductScanUsage, SupplierLineMatch, UploadedDocument
 
 
 class UploadedDocumentFactory(DjangoModelFactory):
@@ -57,3 +58,14 @@ class SupplierLineMatchFactory(DjangoModelFactory):
     supplier_key = 'lin co'
     label_key = factory.Sequence(lambda n: f'article fournisseur {n}')
     created_by = factory.SubFactory(UserFactory)
+
+
+class ProductScanUsageFactory(DjangoModelFactory):
+    """Compteur mensuel du secours vision (scan d'emballage, URS-109)."""
+
+    class Meta:
+        model = ProductScanUsage
+
+    shop = factory.SubFactory(ShopFactory)
+    month = factory.LazyFunction(lambda: timezone.localdate().replace(day=1))
+    vision_count = 0

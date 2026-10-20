@@ -19,7 +19,7 @@ from django.core.management.base import BaseCommand
 
 from apps.subscriptions.models import SubscriptionPlan
 
-_FREE = ['products', 'stock', 'notes', 'reminders', 'orders', 'zakat']
+_FREE = ['products', 'stock', 'notes', 'reminders', 'orders', 'zakat', 'product_scan']
 _SOLO = _FREE + ['invoices', 'whatsapp', 'zakat_history', 'auto_reminders']
 _BOUTIQUE = _SOLO + [
     'multi_user', 'roles_permissions', 'invoice_branding', 'message_templates',
@@ -41,6 +41,7 @@ PLANS = [
         'max_orders_per_month': 15,
         'max_customers': 15,
         'max_members': 1,
+        'max_vision_scans_per_month': 5,
         'features_json': _FREE,
         'is_active': True,
     },
@@ -56,6 +57,7 @@ PLANS = [
         'max_orders_per_month': None,
         'max_customers': None,
         'max_members': 1,
+        'max_vision_scans_per_month': 30,
         'features_json': _SOLO,
         'is_active': True,
     },
@@ -71,6 +73,7 @@ PLANS = [
         'max_orders_per_month': None,
         'max_customers': None,
         'max_members': 4,
+        'max_vision_scans_per_month': 100,
         'features_json': _BOUTIQUE,
         'is_active': True,
     },
@@ -86,6 +89,7 @@ PLANS = [
         'max_orders_per_month': None,
         'max_customers': None,
         'max_members': None,
+        'max_vision_scans_per_month': 300,
         'features_json': _COMMERCE_PLUS,
         'is_active': True,
     },

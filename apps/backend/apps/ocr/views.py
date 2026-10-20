@@ -12,13 +12,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.conf import settings
+from django.http import HttpRequest
+
 from apps.core.permissions import HasModulePermission, get_shop
 from apps.core.storage import is_storage_configured
 from apps.subscriptions.permissions import HasPlanForFeature
 
+from .ai_client import AiServiceUnavailableError
 from .models import OcrResult
 from .serializers import (
     OcrResultDetailSerializer,
+    ProductScanRequestSerializer,
+    ProductScanResponseSerializer,
     SupplierInvoiceUploadRequestSerializer,
     SupplierInvoiceUploadResponseSerializer,
     ValidateInvoiceReviewRequestSerializer,
@@ -28,9 +34,12 @@ from .services import (
     ReviewConflictError,
     ReviewPayloadValidationError,
     create_supplier_invoice_upload,
+    scan_product_image,
     validate_invoice_review,
 )
 from .tasks import process_invoice_ocr
+from .throttles import ProductScanRateThrottle
+from .uploads import InMemoryOnlyUploadHandler
 
 if TYPE_CHECKING:
     from rest_framework.utils.serializer_helpers import ReturnDict
@@ -39,12 +48,14 @@ logger = logging.getLogger(__name__)
 
 HasStockModule = HasModulePermission.for_module('stock')
 HasOcrPlan = HasPlanForFeature.for_feature('ocr')
+HasProductsModule = HasModulePermission.for_module('products')
+HasProductScanPlan = HasPlanForFeature.for_feature('product_scan')
 
 
-def _invalid_upload(errors: ReturnDict) -> Response:
+def _invalid_upload(errors: ReturnDict, *, field: str = 'document') -> Response:
     """400 au format habituel (`detail`, `errors`), plus le `code` du refus du
-    document (`pdf_protected`, `pdf_too_many_pages`…) : le frontend le traduit."""
-    document_errors = errors.get('document') or []
+    fichier (`pdf_protected`, `too_large`…) : le frontend le traduit."""
+    document_errors = errors.get(field) or []
     payload: dict[str, object] = {'detail': 'Requête invalide.', 'errors': errors}
     if document_errors:
         payload['code'] = document_errors[0].code
@@ -189,3 +200,46 @@ class OcrResultValidateView(APIView):
             OcrResultDetailSerializer.from_model(result),
             status=status.HTTP_200_OK,
         )
+
+
+class ProductScanView(APIView):
+    """Scan d'une photo d'emballage pour pré-remplir une fiche article (URS-109).
+
+    Réponse synchrone : propositions par champ, rien n'est enregistré. La photo
+    ne vit qu'en mémoire (`InMemoryOnlyUploadHandler`), jamais sur disque ni
+    dans un journal.
+    """
+
+    permission_classes = (IsAuthenticated, HasProductScanPlan, HasProductsModule)
+    parser_classes = (MultiPartParser,)
+    throttle_classes = (ProductScanRateThrottle,)
+
+    def initialize_request(
+        self, request: HttpRequest, *args: object, **kwargs: object,
+    ) -> Request:
+        # Avant toute lecture du corps : aucun handler ne doit écrire sur disque.
+        request.upload_handlers = [InMemoryOnlyUploadHandler(
+            request, max_bytes=settings.PRODUCT_SCAN_MAX_SIZE_MB * 1024 * 1024,
+        )]
+        return super().initialize_request(request, *args, **kwargs)
+
+    def post(self, request: Request) -> Response:
+        serializer = ProductScanRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return _invalid_upload(serializer.errors, field='image')
+
+        image = serializer.validated_data['image']
+        try:
+            result = scan_product_image(
+                shop=get_shop(request.user),
+                user=request.user,
+                content=image.read(),
+                mime_type=image.content_type,
+            )
+        except AiServiceUnavailableError:
+            logger.warning('Product scan unavailable: AI service error')
+            return Response(
+                {'detail': "La lecture de l'image est indisponible pour le moment."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response(ProductScanResponseSerializer.from_result(result))

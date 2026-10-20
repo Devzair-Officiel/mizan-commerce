@@ -24,10 +24,15 @@ API_KEY: str = os.environ.get('AI_SERVICE_API_KEY', '')
 
 # ─── Provider LLM (extraction structurée de facture, POC 6A) ──────────────
 #
-# Le service transmet au provider :
+# Pour une facture, le service transmet au provider :
 # - le texte OCR de la facture ;
 # - les scores de confiance et bboxes par ligne.
-# Aucune image, aucune donnée PostgreSQL, aucune clé Mizan.
+# Aucune image de facture, aucune donnée PostgreSQL, aucune clé Mizan.
+#
+# Seul le scan d'emballage (`/internal/product-scan/vision`, voir `vision/`)
+# envoie une image au fournisseur, et seulement en secours : Django ne
+# l'appelle que si la lecture locale (code-barres, OCR) reste incertaine.
+# L'image est alors réduite et ré-encodée sans métadonnées (GPS compris).
 #
 # L'endpoint /internal/invoice/structure refuse toute requête si la clé
 # OpenAI n'est pas configurée (503 générique) : mieux vaut échouer visible
@@ -47,3 +52,19 @@ OPENAI_INVOICE_MODEL: str = os.environ.get('OPENAI_INVOICE_MODEL', 'gpt-5-mini')
 OPENAI_INVOICE_TIMEOUT_SECONDS: float = float(
     os.environ.get('OPENAI_INVOICE_TIMEOUT_SECONDS', '45'),
 )
+
+
+# ─── Fournisseur de vision (secours du scan d'emballage) ──────────────────
+#
+# `none` (défaut) : secours désactivé, le scan s'en tient au code-barres et à
+# l'OCR local. Valeurs reconnues : voir `vision/registry.py`. Une valeur
+# inconnue ou une clé absente désactive aussi le secours, sans erreur.
+VISION_PROVIDER: str = os.environ.get('VISION_PROVIDER', 'none').strip().lower()
+
+# Modèle du fournisseur ; par défaut le même que l'extraction de facture, pour
+# n'avoir qu'un modèle à surveiller tant que les tests de coût sont en cours.
+VISION_MODEL: str = os.environ.get('VISION_MODEL', '') or OPENAI_INVOICE_MODEL
+
+# Plus court que la facture : un emballage est une seule image, et
+# l'utilisateur attend la réponse devant son formulaire.
+VISION_TIMEOUT_SECONDS: float = float(os.environ.get('VISION_TIMEOUT_SECONDS', '30'))

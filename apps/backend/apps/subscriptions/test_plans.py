@@ -105,6 +105,14 @@ class PlanCatalogTest(TestCase):
             },
         )
 
+    def test_vision_scan_quotas(self) -> None:
+        """Quota mensuel du secours vision du scan d'emballage (URS-109)."""
+        plans = SubscriptionPlan.objects.all()
+        self.assertEqual(
+            {p.code: p.max_vision_scans_per_month for p in plans},
+            {FREE: 5, SOLO: 30, BOUTIQUE: 100, COMMERCE_PLUS: 300},
+        )
+
     def test_plans_endpoint_lists_the_grid(self) -> None:
         user, _ = make_shop("plans@example.com", FREE)
         client = APIClient()
@@ -139,6 +147,7 @@ FEATURE_PROBES: dict[str, tuple[str, str]] = {
     "ocr": ("post", "/api/ocr/invoices/"),
     "public_pages": ("get", "/api/public-page/"),
     "multi_user": ("post", "/api/shop/members/"),
+    "product_scan": ("post", "/api/ocr/product-scan/"),
 }
 
 # Une sonde stricte autorisée doit répondre 200 : un 404 (route disparue) échoue.
@@ -191,6 +200,7 @@ class PlanGatingMatrixTest(TestCase):
                 "ocr": BOUTIQUE,
                 "public_pages": BOUTIQUE,
                 "multi_user": BOUTIQUE,
+                "product_scan": FREE,
             },
         )
 

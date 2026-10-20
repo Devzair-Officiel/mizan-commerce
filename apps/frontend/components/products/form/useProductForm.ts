@@ -11,6 +11,7 @@ import { firstError, serverErrors, type ProductFieldPath } from './productFormEr
 import { defaultValues, productSchema, type ProductFormValues } from './productFormSchema';
 import { useProductFormats } from './useProductFormats';
 import { useProductPhotos, type PhotoChanges } from './useProductPhotos';
+import { useProductScanPrefill } from './useProductScanPrefill';
 
 export type ProductSection = 'photo' | 'stock' | 'reference';
 
@@ -34,7 +35,7 @@ interface ProductFormOptions {
 /**
  * Valeurs, formats, photos, sections et soumission du formulaire article. Une erreur (schéma ou
  * serveur) ouvre la section de son champ, ou la fenêtre des références de sa ligne, et y place le
- * focus ; succès et échec global sont notifiés.
+ * focus ; succès et échec global sont notifiés. `scan` pré-remplit ce qui est vide (scan d'emballage).
  */
 export function useProductForm({ mode, type, product, onSubmit, initialSection }: ProductFormOptions) {
   const t = useTranslations('articles.form');
@@ -46,6 +47,7 @@ export function useProductForm({ mode, type, product, onSubmit, initialSection }
   const sections = useFormSections(SECTION_OF, form.setFocus, initialSection ? [initialSection] : []);
   const formats = useProductFormats(form);
   const photos = useProductPhotos(product?.images);
+  const scan = useProductScanPrefill(form, () => { if (!sections.isOpen('reference')) sections.toggle('reference'); });
 
   // Avec plusieurs formats, référence et code-barres se saisissent dans la fenêtre de leur ligne.
   const reveal = (path: ProductFieldPath) => {
@@ -74,5 +76,5 @@ export function useProductForm({ mode, type, product, onSubmit, initialSection }
     }
   }, onInvalid);
 
-  return { form, submit, sections, formats, photos };
+  return { form, submit, sections, formats, photos, scan };
 }

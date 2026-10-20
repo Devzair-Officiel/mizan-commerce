@@ -38,6 +38,9 @@ FEATURE_MIN_PLAN: dict[str, str] = {
     'reminders': SubscriptionPlan.CODE_FREE,
     'orders': SubscriptionPlan.CODE_FREE,
     'zakat': SubscriptionPlan.CODE_FREE,
+    # Scan d'emballage ouvert à tous ; seul son secours vision est plafonné
+    # par formule (`max_vision_scans_per_month`).
+    'product_scan': SubscriptionPlan.CODE_FREE,
     # Solo
     'invoices': SubscriptionPlan.CODE_SOLO,
     'whatsapp': SubscriptionPlan.CODE_SOLO,

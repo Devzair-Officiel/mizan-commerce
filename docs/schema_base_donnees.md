@@ -60,7 +60,7 @@ Facturation                 invoices, invoice_lines, invoice_sequences
 Productivité                notes, reminders
 Zakat                       zakat_profiles, zakat_calculations
 OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
-                            detection_results
+                            product_scan_usages, detection_results
 Communication               prepared_messages, message_settings, telegram_accounts, telegram_publications
 Page publique               public_pages, public_page_sections,
                             public_product_visibilities, public_services, contact_buttons
@@ -844,6 +844,23 @@ Association mémorisée d'une ligne de facture fournisseur à un format, faite �
 
 ---
 
+### `product_scan_usages`
+
+Compteur mensuel des appels au secours vision du scan d'emballage (URS-109, proposée), plafonnés par `subscription_plans.max_vision_scans_per_month`. Seul le secours vision est compté : le code-barres, Open Food Facts et l'OCR local restent libres. L'image scannée n'est jamais enregistrée.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| month | DATE | NOT NULL | Premier jour du mois (fuseau de la boutique) |
+| vision_count | INTEGER | NOT NULL, DEFAULT 0, ≥ 0 | Appels au fournisseur de vision ce mois-ci |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contraintes** : `UNIQUE (shop_id, month)`. L'incrément est atomique en SQL (`UPDATE … SET vision_count = vision_count + 1 WHERE vision_count < limite`), jamais une lecture suivie d'une écriture ; un appel en échec rend son unité.
+
+---
+
 ### `detection_results`
 
 Résultat de détection visuelle sur une photo d'étagère.
@@ -1194,6 +1211,7 @@ L'essai de 14 jours à l'inscription porte sur `boutique`. Les limites sont vér
 | max_orders_per_month | INTEGER | | NULL = illimité |
 | max_customers | INTEGER | | Clients actifs. NULL = illimité |
 | max_members | INTEGER | | Membres, propriétaire compris. NULL = illimité |
+| max_vision_scans_per_month | INTEGER | | Secours vision du scan d'emballage par mois. NULL = illimité |
 | features_json | JSONB | | Liste fonctionnalités incluses (projection de `FEATURE_MIN_PLAN`) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -1242,6 +1260,8 @@ Journalisation des actions sensibles (URS-062 + fiche technique §14.4).
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `(shop_id, created_at DESC)`, `(user_id, created_at DESC)`, `(action, created_at DESC)`.
+
+Scan d'emballage (URS-109, proposée) : une ligne `product_scan` par scan, cible le membre, détails = sources utilisées (`barcode`, `open_food_facts`, `ocr`, `vision`) ; jamais l'image ni le texte lu.
 
 Export de l'activité d'un client (URS-104, proposée) : une ligne `customer_activity_export` par fichier (famille `data.export`), cible le client, détails = types exportés, filtre « À encaisser », période (`from`/`to`, jours de la boutique) et nombre de lignes.
 

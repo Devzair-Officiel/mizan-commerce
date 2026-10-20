@@ -154,6 +154,7 @@ REST_FRAMEWORK = {
         'user': '1000/hour',
         'auth': '10/minute',       # login, register, password reset, refresh
         'resend_email': '3/hour',  # renvoi du lien de vérification email
+        'product_scan': '10/minute',  # scan d'emballage (OCR, secours vision payant)
     },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }
@@ -194,6 +195,36 @@ OCR_DOCUMENT_ALLOWED_TYPES = {
 }
 # Pages d'une facture PDF (même borne côté ai-service : app/pdf.py).
 OCR_PDF_MAX_PAGES = 5
+
+# Scan d'emballage (URS-109) : photo lue en mémoire, jamais stockée. Même borne
+# côté ai-service (app/file_validation.py).
+PRODUCT_SCAN_MAX_SIZE_MB = 8
+PRODUCT_SCAN_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
+# Secours vision demandé seulement si la confiance du nom reste sous ce seuil
+# après code-barres, Open Food Facts et OCR local.
+PRODUCT_SCAN_VISION_THRESHOLD = float(
+    os.environ.get('PRODUCT_SCAN_VISION_THRESHOLD', '0.7'),
+)
+# Sous cette confiance, un champ n'est pas proposé (il vaut null).
+PRODUCT_SCAN_MIN_CONFIDENCE = 0.5
+
+# Open Food Facts : seul l'EAN, validé, sort vers ce domaine fixe. Réponses
+# gardées 30 jours dans Redis (une fiche produit change rarement).
+OPEN_FOOD_FACTS_TIMEOUT_SECONDS = 3.0
+OPEN_FOOD_FACTS_CACHE_SECONDS = 30 * 24 * 3600
+
+# Cache Redis dédié aux recherches externes. Le cache par défaut (throttling)
+# reste en mémoire locale : le basculer sur Redis changerait le comportement
+# de toute l'API. Délais courts : un Redis lent ne doit pas retarder un scan.
+CACHES = {
+    'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
+    'product_lookups': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/0'),
+        'KEY_PREFIX': 'product-lookup',
+        'OPTIONS': {'socket_connect_timeout': 1, 'socket_timeout': 1},
+    },
+}
 
 # Celery
 CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
@@ -241,6 +272,12 @@ AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SE
 # propre plutôt que voir httpx couper la connexion prématurément.
 AI_SERVICE_INVOICE_TIMEOUT_SECONDS = float(
     os.environ.get('AI_SERVICE_INVOICE_TIMEOUT_SECONDS', '50'),
+)
+# Timeout dédié au scan d'emballage, appliqué à chaque appel (lecture locale,
+# puis secours vision). Doit rester supérieur à `VISION_TIMEOUT_SECONDS` côté
+# ai-service (30 s par défaut) pour que FastAPI renvoie son propre 502.
+AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS = float(
+    os.environ.get('AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS', '40'),
 )
 
 # Suivi des erreurs : actif seulement si SENTRY_DSN est défini (apps/core/sentry.py).

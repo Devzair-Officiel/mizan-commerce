@@ -7,7 +7,9 @@ import { Barcode, ScanBarcode } from 'lucide-react';
 import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
+import { DetectedBadge } from './DetectedBadge';
 import type { ProductFormValues } from './productFormSchema';
+import type { ScanProposals } from './productScanPrefill';
 
 interface ProductReferenceSectionProps {
   control: Control<ProductFormValues>;
@@ -19,6 +21,8 @@ interface ProductReferenceSectionProps {
   open: boolean;
   onToggle: () => void;
   order: string;
+  /** Valeurs posées par le scan d'emballage : badge « Détecté, à vérifier ». */
+  detected?: ScanProposals;
 }
 
 /**
@@ -26,7 +30,7 @@ interface ProductReferenceSectionProps {
  * code-barres pour le lecteur physique ; l'Entrée qu'il envoie en fin de code n'enregistre pas le formulaire.
  * Avec plusieurs formats, la carte ne fait qu'expliquer le réglage par ligne.
  */
-export function ProductReferenceSection({ control, register, errors, setFocus, multi, open, onToggle, order }: ProductReferenceSectionProps) {
+export function ProductReferenceSection({ control, register, errors, setFocus, multi, open, onToggle, order, detected = {} }: ProductReferenceSectionProps) {
   const t = useTranslations('articles.form');
   const [scanHelp, setScanHelp] = useState(false);
   const [sku, barcode] = useWatch({ control, name: ['formats.0.sku', 'formats.0.barcode'] });
@@ -46,7 +50,8 @@ export function ProductReferenceSection({ control, register, errors, setFocus, m
       <FormField label={t('sku')} error={errors.formats?.[0]?.sku?.message}>
         {(c) => <input {...c} {...register('formats.0.sku')} dir="auto" autoComplete="off" className={FIELD_CONTROL} />}
       </FormField>
-      <FormField label={t('barcode')} error={errors.formats?.[0]?.barcode?.message}>
+      <FormField label={t('barcode')} error={errors.formats?.[0]?.barcode?.message}
+        badge={<DetectedBadge control={control} name="formats.0.barcode" value={detected['formats.0.barcode']} />}>
         {(c) => (
           <div className="flex gap-2">
             <input {...c} {...register('formats.0.barcode')} inputMode="numeric" autoComplete="off" className={`${FIELD_CONTROL} tabular-nums`}

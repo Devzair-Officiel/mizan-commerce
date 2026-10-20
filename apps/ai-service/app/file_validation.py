@@ -100,3 +100,23 @@ def validate_uploaded_document(
         raise FileValidationError('Type de fichier non autorisé.')
     if not _signature_matches_mime(content[:16], content_type):
         raise FileValidationError('Signature de fichier incohérente avec le type déclaré.')
+
+
+# Scan d'emballage : une photo seulement, bornée comme côté Django
+# (`PRODUCT_SCAN_MAX_SIZE_MB`).
+PRODUCT_IMAGE_MAX_SIZE_BYTES: int = 8 * 1024 * 1024
+PRODUCT_IMAGE_MIME_TYPES: frozenset[str] = frozenset({'image/jpeg', 'image/png', 'image/webp'})
+
+
+def validate_product_image(*, content: bytes, content_type: str | None) -> None:
+    """Valide la photo d'un emballage : non vide, ≤ 8 Mo, image dont la signature concorde."""
+    if not content:
+        raise FileValidationError('Fichier vide.')
+    if len(content) > PRODUCT_IMAGE_MAX_SIZE_BYTES:
+        raise FileValidationError(
+            f'Fichier trop volumineux (max {PRODUCT_IMAGE_MAX_SIZE_BYTES // (1024 * 1024)} Mo).'
+        )
+    if content_type not in PRODUCT_IMAGE_MIME_TYPES:
+        raise FileValidationError('Type de fichier non autorisé.')
+    if not _signature_matches_mime(content[:16], content_type):
+        raise FileValidationError('Signature de fichier incohérente avec le type déclaré.')

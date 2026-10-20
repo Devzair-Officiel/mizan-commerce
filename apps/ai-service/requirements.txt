@@ -20,6 +20,16 @@ paddleocr==3.7.0
 # par paddlex, épinglée ici parce que le code l'utilise directement.
 pypdfium2==5.12.1
 
+# Scan d'emballage (URS-109, app/barcode.py) : lecture EAN-8/13, UPC-A/E, ITF-14.
+# zxing-cpp : Apache-2.0, roues autonomes manylinux x86_64/aarch64 (aucune
+# dépendance système), version de juillet 2026 sans vulnérabilité connue.
+zxing-cpp==3.1.1
+
+# Décodage, orientation EXIF, réduction et ré-encodage JPEG sans métadonnées
+# (app/image_prep.py). Déjà tiré par paddlex ; épinglé ici parce que le code
+# l'utilise directement.
+Pillow==12.3.0
+
 # Extraction structurée de facture (POC 6A) — Responses API + Structured Outputs.
 # `openai==2.54.0` supporte `client.responses.parse(text_format=<PydanticModel>)`
 # et retourne `response.output_parsed` typé. Version stable en date d'août 2026,

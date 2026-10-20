@@ -74,7 +74,8 @@ const typeBadge = (page, text) => page.locator('form p > span').filter({ hasText
 const thumb = (page, locale, index) => page.getByRole('button', { name: fmt(locale, 'articles.form.photo_thumb', { index }), exact: true });
 
 async function addPhoto(page, t, file) {
-  await page.locator('form input[type=file]').setInputFiles(file);
+  // La carte Photo : le scan d'emballage a aussi son champ fichier, en tête du formulaire.
+  await page.locator('#photos input[type=file]').setInputFiles(file);
   await confirmCrop(page, t);
 }
 

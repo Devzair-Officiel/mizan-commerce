@@ -1044,6 +1044,30 @@
       "format_name_taken": "Another format of this item already has this name.",
       "sku_taken": "This reference is already in use."
     },
+    "scan": {
+      "title": "Save time with a photo",
+      "help": "Take a photo of the packaging: we suggest the name, description and barcode. Check them before saving; the price is up to you.",
+      "scan": "Scan packaging",
+      "scan_again": "Scan another photo",
+      "retry": "Try again",
+      "detected": "Detected, please check",
+      "filled": "{count, plural, one {# field prefilled: check it before saving.} other {# fields prefilled: check them before saving.}}",
+      "nothing_filled": "The information read was already entered: nothing was changed.",
+      "nothing_found": "Nothing readable on this photo. Try a sharp, front-facing, well-lit photo.",
+      "error": {
+        "type": "Choose a JPEG, PNG or WebP photo.",
+        "too_large": "The photo exceeds {max} MB. Choose a smaller photo.",
+        "signature": "This file is not a readable image. Choose another photo.",
+        "empty": "The file is empty. Choose another photo.",
+        "throttled": "Too many scans in a short time. Wait a minute, then try again.",
+        "unavailable": "Photo reading is unavailable right now. Try again, or fill in the form by hand.",
+        "session": "Your session has expired. Sign in again to scan."
+      },
+      "warning": {
+        "vision_quota_reached": "Advanced reading used up this month for your plan: only quick reading was used.",
+        "vision_unavailable": "Advanced reading unavailable right now: only quick reading was used."
+      }
+    },
     "units": {
       "piece": "Piece",
       "gram": "Gram (g)",
