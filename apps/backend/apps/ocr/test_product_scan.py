@@ -26,6 +26,7 @@ from .ai_client import (
     AiProductVision,
     AiScanField,
     AiServiceUnavailableError,
+    ScanPhoto,
     scan_product_locally_with_ai_service,
     scan_product_vision_with_ai_service,
 )
@@ -52,6 +53,7 @@ _CACHES = {
 }
 # Texte « lu » sur l'emballage : ne doit jamais apparaître dans un journal.
 SECRET_TEXT = 'Biscuits Secrets Maison'
+FACE = ScanPhoto(JPEG_BYTES, 'image/jpeg')
 
 
 def make_user_shop(
@@ -70,8 +72,9 @@ def field(value: str, confidence: float) -> AiScanField:
 
 def local_result(**overrides: object) -> AiProductScanLocal:
     values: dict[str, object] = {
-        'barcode': None, 'name': None, 'brand': None, 'net_quantity': None,
-        'description': None, 'vision_available': False,
+        'barcode': None, 'brand': None, 'product_name': None, 'variant': None,
+        'claims': (), 'net_quantity': None, 'structuring': 'disabled',
+        'vision_recommended': False, 'vision_available': False,
     }
     values.update(overrides)
     return AiProductScanLocal(**values)  # type: ignore[arg-type]
@@ -79,11 +82,24 @@ def local_result(**overrides: object) -> AiProductScanLocal:
 
 def vision_result(**overrides: object) -> AiProductVision:
     values: dict[str, object] = {
-        'name': None, 'brand': None, 'net_quantity': None, 'barcode': None,
-        'description': None, 'confidence': None,
+        'brand': None, 'product_name': None, 'variant': None, 'claims': (),
+        'net_quantity': None, 'barcode': None, 'confidence': None,
     }
     values.update(overrides)
     return AiProductVision(**values)  # type: ignore[arg-type]
+
+
+def ziyada_result(**overrides: object) -> AiProductScanLocal:
+    """Lecture structurée du pot Ziyada (voir le jeu d'étalon d'ai-service)."""
+    values: dict[str, object] = {
+        'brand': field('Ziyada', 0.85),
+        'product_name': field("Déo crème à l'huile de nigelle", 0.85),
+        'variant': field('Tahara Caramel', 0.85),
+        'claims': (field("98 % d'ingrédients naturels", 0.85), field('24 h', 0.85)),
+        'structuring': 'done',
+    }
+    values.update(overrides)
+    return local_result(**values)
 
 
 def jpeg(content: bytes = JPEG_BYTES, content_type: str = 'image/jpeg') -> SimpleUploadedFile:  # noqa: E501
@@ -101,13 +117,19 @@ class ProductScanViewTest(TestCase):
         self.lookup = patch('apps.ocr.services.lookup_barcode', return_value=None).start()  # noqa: E501
         self.addCleanup(patch.stopall)
 
-    def _post(self, upload: SimpleUploadedFile | None = None) -> object:
-        return self.client.post(URL, {'image': upload or jpeg()}, format='multipart')
+    def _post(
+        self, upload: SimpleUploadedFile | None = None,
+        back: SimpleUploadedFile | None = None,
+    ) -> object:
+        data = {'image': upload or jpeg()}
+        if back is not None:
+            data['image_back'] = back
+        return self.client.post(URL, data, format='multipart')
 
     def test_barcode_and_open_food_facts_prefill(self) -> None:
         self.local.return_value = local_result(
-            barcode=field(NUTELLA_EAN, 1.0), name=field('NUTELLA', 0.4),
-            description=field('Pâte à tartiner aux noisettes', 0.6),
+            barcode=field(NUTELLA_EAN, 1.0), product_name=field('NUTELLA', 0.4),
+            claims=(field('Pâte à tartiner aux noisettes', 0.6),),
         )
         self.lookup.return_value = OpenFoodFactsProduct('Nutella', 'Ferrero', '400 g')
 
@@ -118,7 +140,8 @@ class ProductScanViewTest(TestCase):
         self.assertEqual(fields['barcode'], {
             'value': NUTELLA_EAN, 'confidence': 1.0, 'source': 'barcode',
         })
-        self.assertEqual(fields['name']['value'], 'Nutella')
+        self.assertEqual(fields['product_name']['value'], 'Nutella')
+        self.assertEqual(fields['name']['value'], 'Ferrero Nutella 400 g')
         self.assertEqual(fields['name']['source'], 'open_food_facts')
         self.assertEqual(fields['brand']['value'], 'Ferrero')
         self.assertEqual(fields['net_quantity']['value'], '400 g')
@@ -130,17 +153,21 @@ class ProductScanViewTest(TestCase):
         self.assertFalse(ProductScanUsage.objects.exists())
 
     def test_audit_entry_lists_sources_without_content(self) -> None:
-        self.local.return_value = local_result(name=field(SECRET_TEXT, 0.9))
+        self.local.return_value = local_result(
+            product_name=field(SECRET_TEXT, 0.9), structuring='done',
+        )
         self._post()
 
         log = AuditLog.objects.get(shop_id=self.shop.pk, action='product_scan')
         self.assertEqual(log.user, self.user)
-        self.assertEqual(log.changes, {'sources': ['ocr'], 'vision': 'not_needed'})
+        self.assertEqual(log.changes, {
+            'sources': ['ocr'], 'photos': 1, 'text': 'done', 'vision': 'not_needed',
+        })
         self.assertNotIn(SECRET_TEXT, str(log.changes) + log.object_repr)
 
     def test_uncertain_field_is_null_and_no_unit_without_clue(self) -> None:
         self.local.return_value = local_result(
-            name=field('Savon', 0.9), description=field('???', 0.3),
+            product_name=field('Savon', 0.9), claims=(field('???', 0.3),),
         )
         fields = self._post().data['fields']
         self.assertEqual(fields['name']['value'], 'Savon')
@@ -150,7 +177,7 @@ class ProductScanViewTest(TestCase):
 
     def test_invalid_ean_from_ai_service_is_dropped(self) -> None:
         self.local.return_value = local_result(
-            barcode=field('3017620422004', 1.0), name=field('Savon', 0.9),
+            barcode=field('3017620422004', 1.0), product_name=field('Savon', 0.9),
         )
         fields = self._post().data['fields']
         self.assertIsNone(fields['barcode'])
@@ -158,44 +185,171 @@ class ProductScanViewTest(TestCase):
 
     def test_weighed_item_barcode_suggests_no_unit(self) -> None:
         self.local.return_value = local_result(
-            barcode=field('2123456000009', 1.0), name=field('Comté', 0.9),
+            barcode=field('2123456000009', 1.0), product_name=field('Comté', 0.9),
             net_quantity=field('250 g', 0.9),
         )
         self.assertIsNone(self._post().data['fields']['unit_suggestion'])
 
+    # ─── Composition du nom et de la description ──────────────────────────
+
+    def test_ziyada_name_is_brand_designation_variant(self) -> None:
+        self.local.return_value = ziyada_result()
+        fields = self._post().data['fields']
+        self.assertEqual(
+            fields['name']['value'],
+            "Ziyada Déo crème à l'huile de nigelle Tahara Caramel",
+        )
+        self.assertEqual(fields['name']['source'], 'ocr')
+        self.assertEqual(fields['product_name']['value'], "Déo crème à l'huile de nigelle")  # noqa: E501
+        self.assertEqual(fields['variant']['value'], 'Tahara Caramel')
+        self.assertEqual(fields['brand']['value'], 'Ziyada')
+
+    def test_description_is_claims_never_the_designation(self) -> None:
+        self.local.return_value = ziyada_result()
+        description = self._post().data['fields']['description']['value']
+        self.assertEqual(description, "98 % d'ingrédients naturels, 24 h")
+        self.assertNotIn('nigelle', description)
+
+    def test_no_claims_means_no_description(self) -> None:
+        self.local.return_value = ziyada_result(claims=())
+        self.assertIsNone(self._post().data['fields']['description'])
+
+    def test_brand_of_the_shop_itself_is_not_prefixed(self) -> None:
+        self.shop.name = 'ZIYÂDA'  # même marque, sans casse ni accent
+        self.shop.save(update_fields=['name'])
+        self.local.return_value = ziyada_result(net_quantity=field('50 ml', 0.85))
+        name = self._post().data['fields']['name']['value']
+        self.assertEqual(name, "Déo crème à l'huile de nigelle Tahara Caramel 50 ml")
+
+    def test_part_already_in_the_designation_is_not_repeated(self) -> None:
+        self.local.return_value = local_result(
+            brand=field('Lactel', 0.85),
+            product_name=field('Lactel lait demi-écrémé', 0.85),
+            variant=field('Or', 0.85), net_quantity=field('1 L', 0.85),
+        )
+        name = self._post().data['fields']['name']['value']
+        # Marque déjà en tête de la désignation : pas répétée. « Or » n'est pas
+        # « contenu » dans un mot plus long : seuls les mots entiers comptent.
+        self.assertEqual(name, 'Lactel lait demi-écrémé Or 1 L')
+
+    def test_shop_data_never_leaves_for_ai_service(self) -> None:
+        self.shop.name = 'Boutique Secrète Yasmine'
+        self.shop.save(update_fields=['name'])
+        self.local.return_value = ziyada_result(vision_recommended=True, vision_available=True)  # noqa: E501
+        self.vision.return_value = vision_result()
+        self._post()
+        for mock in (self.local, self.vision):
+            self.assertEqual(set(mock.call_args.kwargs) - {'face', 'back'}, set())
+            self.assertNotIn('Yasmine', repr(mock.call_args))
+
+    # ─── Deux photos : face et dos ───────────────────────────────────────
+
+    def test_back_photo_is_forwarded(self) -> None:
+        self.local.return_value = ziyada_result()
+        back = jpeg(JPEG_BYTES + b'back')
+        response = self._post(back=back)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        kwargs = self.local.call_args.kwargs
+        self.assertEqual(kwargs['face'], ScanPhoto(JPEG_BYTES, 'image/jpeg'))
+        self.assertEqual(kwargs['back'], ScanPhoto(JPEG_BYTES + b'back', 'image/jpeg'))
+        log = AuditLog.objects.get(shop_id=self.shop.pk, action='product_scan')
+        self.assertEqual(log.changes['photos'], 2)
+
+    def test_single_photo_sends_no_back(self) -> None:
+        self.local.return_value = ziyada_result()
+        self._post()
+        self.assertIsNone(self.local.call_args.kwargs['back'])
+
+    def test_invalid_back_photo_returns_its_code(self) -> None:
+        response = self._post(back=jpeg(PNG_BYTES))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['code'], 'signature')
+        self.local.assert_not_called()
+
+    def test_vision_receives_only_the_face(self) -> None:
+        self.local.return_value = local_result(
+            product_name=field('NUT', 0.4), vision_available=True,
+        )
+        self.vision.return_value = vision_result(product_name='Nutella', confidence=0.9)
+        self._post(back=jpeg(JPEG_BYTES + b'back'))
+        self.assertEqual(self.vision.call_args.kwargs, {
+            'face': ScanPhoto(JPEG_BYTES, 'image/jpeg'),
+        })
+
+    # ─── Secours image ───────────────────────────────────────────────────
+
     def test_vision_fallback_fills_uncertain_name_and_counts(self) -> None:
         self.local.return_value = local_result(
-            name=field('NUT', 0.4), vision_available=True,
+            product_name=field('NUT', 0.4), vision_available=True,
         )
         self.vision.return_value = vision_result(
-            name='Nutella', brand='Ferrero', net_quantity='400 g', confidence=0.95,
+            product_name='Nutella', brand='Ferrero', net_quantity='400 g',
+            claims=('Aux noisettes',), confidence=0.95,
         )
         response = self._post()
 
-        name = response.data['fields']['name']
-        self.assertEqual((name['value'], name['source']), ('Nutella', 'vision'))
+        fields = response.data['fields']
+        name = fields['name']
+        self.assertEqual((name['value'], name['source']), ('Ferrero Nutella 400 g', 'vision'))  # noqa: E501
         # Une réponse de modèle reste sous une base publique ou un code lu.
         self.assertEqual(name['confidence'], 0.85)
-        self.assertEqual(response.data['fields']['unit_suggestion']['source'], 'vision')
+        self.assertEqual(fields['description']['value'], 'Aux noisettes')
+        self.assertEqual(fields['unit_suggestion']['source'], 'vision')
         usage = ProductScanUsage.objects.get(shop=self.shop)
         self.assertEqual(usage.vision_count, 1)
         self.assertEqual(usage.month, vision_quota_month(self.shop))
         log = AuditLog.objects.get(shop_id=self.shop.pk, action='product_scan')
         self.assertEqual(log.changes['vision'], 'used')
 
-    def test_vision_skipped_when_no_provider(self) -> None:
-        self.local.return_value = local_result(name=field('NUT', 0.4))
+    def test_semantic_trigger_calls_vision_on_a_confident_ocr_name(self) -> None:
+        # « ZIYADA » à 0,8 : au-dessus du seuil, mais c'est la marque, pas la désignation.  # noqa: E501
+        self.local.return_value = local_result(
+            product_name=field('ZIYADA', 0.8), vision_recommended=True,
+            vision_available=True,
+        )
+        self.vision.return_value = vision_result(
+            brand='Ziyada', product_name="Déo crème à l'huile de nigelle", confidence=0.9,  # noqa: E501
+        )
+        fields = self._post().data['fields']
+        self.vision.assert_called_once()
+        self.assertEqual(fields['product_name']['value'], "Déo crème à l'huile de nigelle")  # noqa: E501
+        self.assertEqual(fields['product_name']['source'], 'vision')
+
+    def test_semantic_trigger_ignored_for_open_food_facts_name(self) -> None:
+        self.local.return_value = local_result(
+            barcode=field(NUTELLA_EAN, 1.0), vision_recommended=True,
+            vision_available=True,
+        )
+        self.lookup.return_value = OpenFoodFactsProduct('Nutella', 'Ferrero', '400 g')
+        self._post()
+        self.vision.assert_not_called()
+
+    def test_confident_specific_name_needs_no_vision(self) -> None:
+        self.local.return_value = ziyada_result(vision_available=True)
+        response = self._post()
+        self.vision.assert_not_called()
+        log = AuditLog.objects.get(shop_id=self.shop.pk, action='product_scan')
+        self.assertEqual(log.changes['vision'], 'not_needed')
+        self.assertEqual(response.data['warnings'], [])
+
+    def test_vision_skipped_when_image_fallback_disabled(self) -> None:
+        self.local.return_value = local_result(
+            product_name=field('NUT', 0.4), vision_recommended=True,
+        )
         response = self._post()
         self.assertEqual(response.data['warnings'], [])
         self.vision.assert_not_called()
         self.assertFalse(ProductScanUsage.objects.exists())
+        log = AuditLog.objects.get(shop_id=self.shop.pk, action='product_scan')
+        self.assertEqual(log.changes['vision'], 'disabled')
 
     def test_quota_reached_returns_local_result_with_warning(self) -> None:
         ProductScanUsageFactory(
             shop=self.shop, month=vision_quota_month(self.shop), vision_count=5,
         )
         self.local.return_value = local_result(
-            name=field('NUT', 0.55), vision_available=True,
+            product_name=field('NUT', 0.55), vision_available=True,
         )
         response = self._post()
 
@@ -207,7 +361,7 @@ class ProductScanViewTest(TestCase):
 
     def test_vision_failure_refunds_quota_with_warning(self) -> None:
         self.local.return_value = local_result(
-            name=field('NUT', 0.4), vision_available=True,
+            product_name=field('NUT', 0.4), vision_available=True,
         )
         self.vision.side_effect = AiServiceUnavailableError('down')
         response = self._post()
@@ -220,9 +374,9 @@ class ProductScanViewTest(TestCase):
         _, other = make_user_shop('other-scan@example.com')
         ProductScanUsageFactory(shop=other, month=vision_quota_month(other), vision_count=5)  # noqa: E501
         self.local.return_value = local_result(
-            name=field('NUT', 0.4), vision_available=True,
+            product_name=field('NUT', 0.4), vision_available=True,
         )
-        self.vision.return_value = vision_result(name='Nutella', confidence=0.9)
+        self.vision.return_value = vision_result(product_name='Nutella', confidence=0.9)
 
         response = self._post()
 
@@ -268,14 +422,14 @@ class ProductScanViewTest(TestCase):
     def test_large_image_stays_in_memory(self) -> None:
         """3 Mo dépasse le seuil de Django (2,5 Mo) au-delà duquel il écrit sur disque."""  # noqa: E501
         content = JPEG_BYTES + b'\0' * (3 * 1024 * 1024)
-        self.local.return_value = local_result(name=field('Savon', 0.9))
+        self.local.return_value = local_result(product_name=field('Savon', 0.9))
         with patch(
             'django.core.files.uploadedfile.TemporaryUploadedFile.__init__',
             side_effect=AssertionError('image écrite sur disque'),
         ), patch('tempfile.NamedTemporaryFile', side_effect=AssertionError('disque')):
             response = self._post(jpeg(content))
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
-        self.assertEqual(self.local.call_args.kwargs['content'], content)
+        self.assertEqual(self.local.call_args.kwargs['face'].content, content)
 
     def test_staff_without_products_module_denied(self) -> None:
         staff = User.objects.create_user(email='scan-staff@example.com', password='Pass123!Strong')  # noqa: E501
@@ -294,7 +448,7 @@ class ProductScanViewTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_rate_limited(self) -> None:
-        self.local.return_value = local_result(name=field('Savon', 0.9))
+        self.local.return_value = local_result(product_name=field('Savon', 0.9))
         with patch.object(ProductScanRateThrottle, 'THROTTLE_RATES', {'product_scan': '2/minute'}):  # noqa: E501
             codes = [self._post().status_code for _ in range(3)]
         self.assertEqual(codes, [200, 200, status.HTTP_429_TOO_MANY_REQUESTS])
@@ -321,20 +475,26 @@ class ProductScanLogsTest(TestCase):
     """Bout en bout jusqu'à httpx : ni image, ni texte lu, ni clé dans les journaux."""
 
     def test_no_content_in_logs(self) -> None:
-        user, _ = make_user_shop('scan-logs@example.com')
+        user, shop = make_user_shop('scan-logs@example.com')
         client = APIClient()
         client.force_authenticate(user=user)
         responses = [
             _FakeResponse(200, {
-                'barcode': None, 'name': {'value': SECRET_TEXT, 'confidence': 0.4},
-                'brand': None, 'net_quantity': None, 'description': None,
+                'barcode': None,
+                'product_name': {'value': SECRET_TEXT, 'confidence': 0.4},
+                'brand': None, 'variant': None, 'net_quantity': None,
+                'claims': [{'value': SECRET_TEXT, 'confidence': 0.9}],
+                'structuring': 'done', 'vision_recommended': True,
                 'vision_available': True,
             }),
             _FakeResponse(502, {'detail': f'provider said {SECRET_TEXT}'}),
         ]
         with patch('apps.ocr.ai_client.httpx.post', side_effect=responses) as post, \
                 self.assertLogs(level=logging.DEBUG) as logs:
-            response = client.post(URL, {'image': jpeg()}, format='multipart')
+            response = client.post(
+                URL, {'image': jpeg(), 'image_back': jpeg(JPEG_BYTES + b'back')},
+                format='multipart',
+            )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['warnings'], ['vision_unavailable'])
@@ -347,7 +507,17 @@ class ProductScanLogsTest(TestCase):
             'http://ai-service:8000/internal/product-scan/vision',
         ])
         self.assertEqual(post.call_args.kwargs['timeout'], 41.0)
-        self.assertEqual(post.call_args.kwargs['files']['image'][1], JPEG_BYTES)
+        local_call, vision_call = post.call_args_list
+        self.assertEqual(local_call.kwargs['files'], {
+            'image': ('scan', JPEG_BYTES, 'image/jpeg'),
+            'image_back': ('scan-back', JPEG_BYTES + b'back', 'image/jpeg'),
+        })
+        # Le secours image ne reçoit que la face.
+        self.assertEqual(set(vision_call.kwargs['files']), {'image'})
+        # Aucune donnée de la boutique ne part : seulement les photos.
+        for call in post.call_args_list:
+            self.assertEqual(set(call.kwargs), {'headers', 'files', 'timeout'})
+            self.assertNotIn(shop.name, repr(call))
 
 
 @override_settings(
@@ -358,7 +528,7 @@ class ProductScanLogsTest(TestCase):
 class ProductScanAiClientTest(SimpleTestCase):
     def _local(self, response: object) -> AiProductScanLocal:
         with patch('apps.ocr.ai_client.httpx.post', return_value=response) as post:
-            result = scan_product_locally_with_ai_service(content=JPEG_BYTES, mime_type='image/jpeg')  # noqa: E501
+            result = scan_product_locally_with_ai_service(face=FACE)
         headers = post.call_args.kwargs['headers']
         self.assertEqual(headers, {'X-Internal-API-Key': _TEST_AI_KEY})
         return result
@@ -367,20 +537,42 @@ class ProductScanAiClientTest(SimpleTestCase):
         result = self._local(_FakeResponse(200, {
             'barcode': {'value': NUTELLA_EAN, 'confidence': 1.0},
             'barcode_format': 'EAN13',
-            'name': {'value': '  Nutella \n 400 g ', 'confidence': 0.8},
-            'brand': None, 'net_quantity': {'value': '', 'confidence': 0.5},
-            'description': None, 'vision_available': 'yes',
+            'product_name': {'value': '  Nutella \n 400 g ', 'confidence': 0.8},
+            'brand': None, 'variant': {'value': 'Noisettes', 'confidence': 0.7},
+            'claims': [
+                {'value': 'Sans huile de palme', 'confidence': 0.7}, None,
+                {'value': '  ', 'confidence': 0.7},
+            ] + [{'value': f'claim {i}', 'confidence': 0.5} for i in range(6)],
+            'net_quantity': {'value': '', 'confidence': 0.5},
+            'structuring': 'surprise', 'vision_recommended': 1,
+            'vision_available': 'yes',
         }))
         self.assertEqual(result.barcode, AiScanField(NUTELLA_EAN, 1.0))
-        self.assertEqual(result.name, AiScanField('Nutella 400 g', 0.8))
+        self.assertEqual(result.product_name, AiScanField('Nutella 400 g', 0.8))
+        self.assertEqual(result.variant, AiScanField('Noisettes', 0.7))
+        # Au plus cinq allégations reçues ; les vides sont écartées.
+        self.assertEqual(result.claims, (
+            AiScanField('Sans huile de palme', 0.7), AiScanField('claim 0', 0.5),
+            AiScanField('claim 1', 0.5),
+        ))
         self.assertIsNone(result.net_quantity)
+        self.assertEqual(result.structuring, 'disabled')
         # Seul un vrai booléen active le secours.
+        self.assertFalse(result.vision_recommended)
         self.assertFalse(result.vision_available)
+
+    def test_back_photo_is_sent_as_image_back(self) -> None:
+        back = ScanPhoto(b'back', 'image/png')
+        with patch('apps.ocr.ai_client.httpx.post', return_value=_FakeResponse(200, {})) as post:  # noqa: E501
+            scan_product_locally_with_ai_service(face=FACE, back=back)
+        self.assertEqual(post.call_args.kwargs['files']['image_back'], ('scan-back', b'back', 'image/png'))  # noqa: E501
 
     def test_invalid_contract_raises(self) -> None:
         for payload in (
-            [], {'name': 'Nutella'}, {'name': {'value': 'x', 'confidence': 1.5}},
-            {'name': {'value': 42, 'confidence': 0.5}},
+            [], {'product_name': 'Nutella'},
+            {'product_name': {'value': 'x', 'confidence': 1.5}},
+            {'brand': {'value': 42, 'confidence': 0.5}}, {'claims': 'x'},
+            {'claims': ['x']},
         ):
             with self.subTest(payload=payload), self.assertRaises(AiServiceUnavailableError):  # noqa: E501
                 self._local(_FakeResponse(200, payload))
@@ -392,16 +584,19 @@ class ProductScanAiClientTest(SimpleTestCase):
         for exc in (httpx.ReadTimeout('t'), httpx.ConnectError('c')):
             with patch('apps.ocr.ai_client.httpx.post', side_effect=exc), \
                     self.assertRaises(AiServiceUnavailableError):
-                scan_product_locally_with_ai_service(content=JPEG_BYTES, mime_type='image/jpeg')  # noqa: E501
+                scan_product_locally_with_ai_service(face=FACE)
 
     def test_parses_vision_result(self) -> None:
         payload = {
-            'name': 'Nutella', 'brand': None, 'net_quantity': '400 g', 'unit': 'g',
-            'barcode': None, 'description': None, 'confidence': 0.9,
+            'brand': None, 'product_name': 'Nutella', 'variant': ' Noisettes ',
+            'claims': ['Sans huile de palme', ''], 'net_quantity': '400 g',
+            'unit': 'g', 'barcode': None, 'confidence': 0.9,
         }
         with patch('apps.ocr.ai_client.httpx.post', return_value=_FakeResponse(200, payload)):  # noqa: E501
-            result = scan_product_vision_with_ai_service(content=JPEG_BYTES, mime_type='image/jpeg')  # noqa: E501
-        self.assertEqual(result.name, 'Nutella')
+            result = scan_product_vision_with_ai_service(face=FACE)
+        self.assertEqual(result.product_name, 'Nutella')
+        self.assertEqual(result.variant, 'Noisettes')
+        self.assertEqual(result.claims, ('Sans huile de palme',))
         self.assertEqual(result.confidence, 0.9)
 
 

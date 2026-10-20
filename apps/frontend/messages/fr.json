@@ -1046,9 +1046,11 @@
     },
     "scan": {
       "title": "Gagnez du temps avec une photo",
-      "help": "Photographiez l'emballage : nous proposons le nom, la description et le code-barres. Vérifiez-les avant d'enregistrer ; le prix reste à saisir.",
+      "help": "Cadrez l'étiquette de face : nous proposons le nom, la description et le code-barres. Vérifiez-les avant d'enregistrer ; le prix reste à saisir.",
       "scan": "Scanner l'emballage",
       "scan_again": "Scanner une autre photo",
+      "add_back": "Ajouter le dos",
+      "back_hint": "Code-barres ou contenance manquants ? Ajoutez une photo du dos : elle complète la lecture de la face.",
       "retry": "Réessayer",
       "detected": "Détecté, à vérifier",
       "filled": "{count, plural, one {# champ pré-rempli : vérifiez-le avant d'enregistrer.} other {# champs pré-remplis : vérifiez-les avant d'enregistrer.}}",

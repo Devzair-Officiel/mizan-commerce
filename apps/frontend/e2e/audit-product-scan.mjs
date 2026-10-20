@@ -10,7 +10,9 @@
  * - le badge disparaît dès que la description est corrigée ; l'article créé porte la description
  *   corrigée et le code-barres lu (relus dans l'API) ;
  * - erreur réseau : alerte et « Réessayer », qui relance la même photo et pré-remplit le nom
- *   (nom, marque et contenance) quand il est vide.
+ *   composé par le serveur quand il est vide ;
+ * - « Ajouter le dos » : face et dos renvoyés ensemble, le nom encore égal à la détection est
+ *   rafraîchi (contenance lue au dos), la description corrigée entre-temps reste intacte.
  * Les articles créés sont supprimés à la fin (ils n'ont jamais servi).
  */
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
@@ -24,15 +26,20 @@ const report = createReport();
 const SCAN_URL = '**/api/ocr/product-scan';
 const field = (value, source, confidence = 0.9) => ({ value, confidence, source });
 
-/** Réponse simulée du scan : `barcode` change à chaque passage (code-barres unique dans la boutique). */
-const scanResponse = (barcode) => ({
+/**
+ * Réponse simulée du scan : `barcode` change à chaque passage (code-barres unique dans la boutique).
+ * Le nom est composé par le serveur ; sans `quantity`, la contenance n'a pas été lue (face seule).
+ */
+const scanResponse = (barcode, { quantity = true } = {}) => ({
   fields: {
-    name: field('Lait demi-écrémé', 'open_food_facts'),
+    name: field(quantity ? 'Lactel Lait demi-écrémé 1 L' : 'Lactel Lait demi-écrémé', 'open_food_facts'),
     brand: field('Lactel', 'open_food_facts'),
-    net_quantity: field('1 L', 'ocr', 0.8),
+    product_name: field('Lait demi-écrémé', 'open_food_facts'),
+    variant: null,
+    net_quantity: quantity ? field('1 L', 'ocr', 0.8) : null,
     unit_suggestion: field('piece', 'ocr', 0.6),
     barcode: field(barcode, 'barcode', 1),
-    description: field('Lait UHT demi-écrémé, brique de 1 litre.', 'ocr', 0.7),
+    description: field('Lait UHT, sans conservateur', 'ocr', 0.7),
   },
   warnings: ['vision_quota_reached'],
 });
@@ -43,20 +50,28 @@ async function goto(page, path, nested) {
   nested.push(...await nestedInteractive(page));
 }
 
-const scanInput = (page) => page.locator('form input[type=file][capture]');
+const scanInput = (page) => page.locator('form input[type=file][capture]').first();
+const scanInputs = (page) => page.locator('form input[type=file][capture]');
 const badges = (page, t) => page.getByText(t('articles.scan.detected'), { exact: true }).filter({ visible: true });
 /** Encadré de scan : premier enfant du formulaire. */
 const scanCard = (page) => page.locator('form > :first-child');
 const scanStatus = (page) => scanCard(page).locator('[role=status]:not([aria-busy])');
 
-/** Simule l'endpoint : réponse après `delay` ms (squelette visible), ou panne réseau. */
-async function mockScan(page, { barcode, fail = false, delay = 600 }) {
+/**
+ * Simule l'endpoint : réponse après `delay` ms (squelette visible), ou panne réseau. Renvoie la
+ * liste des envois reçus (`back` : la photo du dos était jointe).
+ */
+async function mockScan(page, { barcode, fail = false, delay = 600, quantity = true }) {
+  const sent = [];
   await page.unroute(SCAN_URL);
   await page.route(SCAN_URL, async (route) => {
+    const body = route.request().postDataBuffer()?.toString('latin1') ?? '';
+    sent.push({ face: body.includes('name="image"'), back: body.includes('name="image_back"') });
     if (fail) return route.abort('connectionfailed');
     await new Promise((resolve) => { setTimeout(resolve, delay); });
-    return route.fulfill({ status: 200, json: scanResponse(barcode) });
+    return route.fulfill({ status: 200, json: scanResponse(barcode, { quantity }) });
   });
+  return sent;
 }
 
 /** Choix du type : le bouton radio est masqué (`sr-only`), on clique sur son libellé. */
@@ -68,10 +83,10 @@ async function checkEntry(page, t, ctx) {
   const box = await button.boundingBox();
   const first = (await scanCard(page).locator('input[capture]').count()) === 1;
   await chooseType(page, t('articles.form.type_service'));
-  const hiddenForService = (await scanInput(page).count()) === 0;
+  const hiddenForService = (await scanInputs(page).count()) === 0;
   await chooseType(page, t('articles.form.type_product'));
   const state = { first, tap: Boolean(box) && box.height >= 44, text: (await button.innerText()).includes(t('articles.scan.scan')),
-    hiddenForService, back: (await scanInput(page).count()) === 1 };
+    hiddenForService, back: (await scanInputs(page).count()) === 1 };
   report.check(Object.values(state).every(Boolean),
     `${ctx.label} : « ${t('articles.scan.scan')} » en tête du formulaire, bouton ≥ 44px, absent pour un service ${JSON.stringify(state)}`);
 }
@@ -127,7 +142,7 @@ async function prefillAndCreate(page, t, ctx, photo, nested) {
 /** Panne réseau : alerte et « Réessayer », qui relance la même photo. Pas d'encadré en modification. */
 async function networkError(page, t, ctx, photo, id, nested) {
   await goto(page, `/products/${id}/edit`, nested);
-  const absentInEdit = (await scanInput(page).count()) === 0;
+  const absentInEdit = (await scanInputs(page).count()) === 0;
   await goto(page, '/products/new', nested);
   await mockScan(page, { fail: true });
   await scan(page, photo);
@@ -137,16 +152,37 @@ async function networkError(page, t, ctx, photo, id, nested) {
     tap: ((await retry.boundingBox())?.height ?? 0) >= 44 };
 
   const code = String(Date.now()).slice(-13);
-  await mockScan(page, { barcode: code });
+  await mockScan(page, { barcode: code, quantity: false });
   await retry.click();
   await page.locator('form [data-skeleton]').waitFor({ state: 'detached', timeout: 8000 });
   const status = await scanStatus(page).innerText();
   const state = { absentInEdit, ...failed, cleared: (await alert.count()) === 0,
-    name: (await textbox(page, t('articles.form.name')).inputValue()) === 'Lait demi-écrémé Lactel 1 L',
+    name: (await textbox(page, t('articles.form.name')).inputValue()) === 'Lactel Lait demi-écrémé',
     message: status.includes(fmt(ctx.locale, 'articles.scan.filled', { count: 3 })), badges: (await badges(page, t).count()) === 3 };
   report.check(Object.values(state).every(Boolean),
     `${ctx.label} : absent en modification ; panne réseau → « ${t('articles.scan.error.unavailable')} » et « ${t('articles.scan.retry')} » (≥ 44px), puis nom, description et code-barres pré-remplis ${JSON.stringify(state)}`);
+  await addBack(page, t, ctx, photo, code);
   await page.unroute(SCAN_URL);
+}
+
+/** « Ajouter le dos » : face et dos envoyés ensemble ; le nom détecté est rafraîchi, la saisie gardée. */
+async function addBack(page, t, ctx, photo, code) {
+  const corrected = 'Lait UHT (audit, corrigé)';
+  await textbox(page, t('articles.form.description')).fill(corrected);
+  const button = scanCard(page).locator('label').filter({ hasText: t('articles.scan.add_back') });
+  const hint = scanCard(page).getByText(t('articles.scan.back_hint'), { exact: true });
+  const offered = { hint: await hint.isVisible(), tap: ((await button.boundingBox())?.height ?? 0) >= 44 };
+  const sent = await mockScan(page, { barcode: code });
+  await scanInputs(page).nth(1).setInputFiles(photo);
+  await page.locator('form [data-skeleton]').waitFor({ state: 'detached', timeout: 8000 });
+  const status = await scanStatus(page).innerText();
+  const state = { ...offered, sent: sent.length === 1 && sent[0].face && sent[0].back,
+    name: (await textbox(page, t('articles.form.name')).inputValue()) === 'Lactel Lait demi-écrémé 1 L',
+    description: (await textbox(page, t('articles.form.description')).inputValue()) === corrected,
+    message: status.includes(fmt(ctx.locale, 'articles.scan.filled', { count: 1 })),
+    once: (await hint.count()) === 0 && (await scanInputs(page).count()) === 1 };
+  report.check(Object.values(state).every(Boolean),
+    `${ctx.label} : « ${t('articles.scan.add_back')} » (≥ 44px) renvoie face et dos ; nom détecté rafraîchi, description corrigée intacte ${JSON.stringify(state)}`);
 }
 
 async function run(page, t, ctx, photo, created, nested) {

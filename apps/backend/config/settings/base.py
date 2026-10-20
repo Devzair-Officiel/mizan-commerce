@@ -273,9 +273,10 @@ AI_SERVICE_OCR_TIMEOUT_SECONDS = float(os.environ.get('AI_SERVICE_OCR_TIMEOUT_SE
 AI_SERVICE_INVOICE_TIMEOUT_SECONDS = float(
     os.environ.get('AI_SERVICE_INVOICE_TIMEOUT_SECONDS', '50'),
 )
-# Timeout dédié au scan d'emballage, appliqué à chaque appel (lecture locale,
-# puis secours vision). Doit rester supérieur à `VISION_TIMEOUT_SECONDS` côté
-# ai-service (30 s par défaut) pour que FastAPI renvoie son propre 502.
+# Timeout dédié au scan d'emballage, appliqué à chaque appel. Lecture locale :
+# OCR d'une ou deux photos puis structuration du texte (`PRODUCT_TEXT_TIMEOUT_SECONDS`,
+# 15 s par défaut). Secours image : doit rester supérieur à `VISION_TIMEOUT_SECONDS`
+# (30 s par défaut) pour que FastAPI renvoie son propre 502.
 AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS = float(
     os.environ.get('AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS', '40'),
 )

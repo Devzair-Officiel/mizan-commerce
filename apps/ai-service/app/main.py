@@ -8,10 +8,11 @@ Endpoints exposés :
   (texte lu directement s'il y en a, sinon pages rendues puis OCR — protégé).
 - `POST /internal/invoice/structure`    : proposition structurée d'une
   facture à partir d'une sortie OCR, via un LLM externe (protégé, POC 6A).
-- `POST /internal/product-scan`         : lecture locale d'un emballage
-  (code-barres puis OCR, protégé, URS-109).
-- `POST /internal/product-scan/vision`  : secours vision de ce scan, appelé
-  par Django seulement s'il le décide (quota, confiance — protégé).
+- `POST /internal/product-scan`         : lecture d'un emballage, face et dos
+  facultatif (code-barres, OCR, structuration du texte seul par le
+  fournisseur IA s'il est configuré — protégé, URS-109).
+- `POST /internal/product-scan/vision`  : secours image de ce scan, appelé
+  par Django seulement s'il le décide (quota, critère sémantique — protégé).
 
 Interprétation métier :
 - `extract-text` reste OCR pur — texte brut + confiances + bboxes.
@@ -42,7 +43,7 @@ from .pdf import extract_text_from_pdf
 from .product_scan import VisionDisabledError, scan_locally, scan_with_vision
 from .schemas import InvoiceExtraction, InvoiceStructureRequest, OcrExtractionResult, ProductScanLocalResult
 from .security import require_internal_api_key
-from .vision.base import ProductVisionResult, VisionProviderError
+from .vision.base import ProductReading, VisionProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -223,15 +224,19 @@ def _unreadable_image(exc: ImageDecodeError) -> HTTPException:
     dependencies=[Depends(require_internal_api_key)],
     response_model=ProductScanLocalResult,
 )
-async def product_scan(image: UploadFile = File(...)) -> ProductScanLocalResult:
-    """Lecture locale d'un emballage : code-barres puis OCR (aucun appel externe).
+async def product_scan(
+    image: UploadFile = File(...), image_back: UploadFile | None = File(None),
+) -> ProductScanLocalResult:
+    """Lecture d'un emballage (face, dos facultatif) : code-barres, OCR, structuration.
 
-    L'image n'est ni conservée ni journalisée ; le seul fichier temporaire
-    (exigé par PaddleOCR) est supprimé dès la lecture finie.
+    Seul le texte lu peut sortir (structuration, si un fournisseur est
+    configuré) : jamais l'image. Elle n'est ni conservée ni journalisée ; le
+    seul fichier temporaire (exigé par PaddleOCR) est supprimé dès la lecture finie.
     """
-    content = await _read_product_image(image)
+    face = await _read_product_image(image)
+    back = await _read_product_image(image_back) if image_back is not None else None
     try:
-        return scan_locally(content)
+        return scan_locally(face, back)
     except ImageDecodeError as exc:
         raise _unreadable_image(exc) from exc
     except OcrEngineError as exc:
@@ -245,12 +250,13 @@ async def product_scan(image: UploadFile = File(...)) -> ProductScanLocalResult:
 @app.post(
     '/internal/product-scan/vision',
     dependencies=[Depends(require_internal_api_key)],
-    response_model=ProductVisionResult,
+    response_model=ProductReading,
 )
-async def product_scan_vision(image: UploadFile = File(...)) -> ProductVisionResult:
-    """Secours vision : image réduite et sans métadonnées envoyée au fournisseur.
+async def product_scan_vision(image: UploadFile = File(...)) -> ProductReading:
+    """Secours image : photo de face réduite et sans métadonnées envoyée au fournisseur.
 
-    - aucun fournisseur configuré → 503 (Django renvoie la lecture locale) ;
+    - aucun fournisseur configuré, ou `PRODUCT_SCAN_IMAGE_FALLBACK` faux → 503
+      (Django renvoie la lecture locale) ;
     - fournisseur en échec → 502 générique, détail dans les logs seulement.
     """
     content = await _read_product_image(image)

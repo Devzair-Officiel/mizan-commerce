@@ -1,0 +1,22 @@
+{
+  "description": "Pot de déo crème Ziyada, face seule, sans code-barres. Lignes OCR relevées sur la photo (PaddleOCR, 1254 x 1254) : aucune image commitée.",
+  "image": "ziyada.jpg",
+  "expected": {
+    "brand": "Ziyada",
+    "product_name": "Déo crème à l'huile de nigelle",
+    "variant": "Tahara Caramel",
+    "net_quantity": null
+  },
+  "ocr_lines": [
+    {"text": "", "confidence": 0.0, "bbox": [565, 652, 676, 684], "side": "face"},
+    {"text": "X", "confidence": 0.1, "bbox": [561, 674, 572, 684], "side": "face"},
+    {"text": "24hr", "confidence": 0.98, "bbox": [798, 672, 863, 712], "side": "face"},
+    {"text": "ZIYADA", "confidence": 1.0, "bbox": [527, 689, 710, 750], "side": "face"},
+    {"text": "DÉO CRÈME", "confidence": 1.0, "bbox": [509, 754, 732, 811], "side": "face"},
+    {"text": "98%", "confidence": 1.0, "bbox": [799, 758, 864, 793], "side": "face"},
+    {"text": "ONGREDIENTS", "confidence": 0.99, "bbox": [790, 789, 870, 808], "side": "face"},
+    {"text": "À L'HUILE DE NIGELLE", "confidence": 1.0, "bbox": [494, 804, 763, 841], "side": "face"},
+    {"text": "NATURELS", "confidence": 1.0, "bbox": [802, 802, 859, 818], "side": "face"},
+    {"text": "Tahara Caramel", "confidence": 1.0, "bbox": [497, 840, 798, 889], "side": "face"}
+  ]
+}

@@ -32,6 +32,7 @@ from .ai_client import (
     AiProductScanLocal,
     AiProductVision,
     AiServiceUnavailableError,
+    ScanPhoto,
     scan_product_locally_with_ai_service,
     scan_product_vision_with_ai_service,
 )
@@ -844,18 +845,22 @@ def record_invoice_entry(
 
 # ─── Scan d'emballage (URS-109) ────────────────────────────────────────────
 #
-# Ordre des sources : code-barres, Open Food Facts, OCR local, puis secours
-# vision. Une source suivante ne remplace une valeur que si elle est plus sûre
-# (confiance strictement supérieure). L'IA ne fait que proposer : rien n'est
-# enregistré ici, hormis le compteur du secours vision et le journal d'audit
-# (sources utilisées, jamais le contenu lu).
+# Ordre des sources : code-barres, Open Food Facts, lecture du texte (structurée
+# par le fournisseur IA, ou règles en repli), puis secours image. Une source
+# suivante ne remplace une valeur que si elle est plus sûre (confiance
+# strictement supérieure). Le nom et la description sont composés ici, avec la
+# boutique en tête (sa marque n'est pas répétée) : aucune donnée de la boutique
+# ne part vers ai-service ni le fournisseur. L'IA ne fait que proposer : rien
+# n'est enregistré ici, hormis le compteur du secours image et le journal
+# d'audit (sources et issues, jamais le contenu lu).
 
 SCAN_SOURCE_BARCODE = 'barcode'
 SCAN_SOURCE_OPEN_FOOD_FACTS = 'open_food_facts'
 SCAN_SOURCE_OCR = 'ocr'
 SCAN_SOURCE_VISION = 'vision'
 SCAN_FIELD_NAMES = (
-    'name', 'brand', 'net_quantity', 'unit_suggestion', 'barcode', 'description',
+    'name', 'brand', 'product_name', 'variant', 'net_quantity', 'unit_suggestion',
+    'barcode', 'description',
 )
 SCAN_WARNING_VISION_QUOTA = 'vision_quota_reached'
 SCAN_WARNING_VISION_UNAVAILABLE = 'vision_unavailable'
@@ -864,10 +869,14 @@ SCAN_WARNING_VISION_UNAVAILABLE = 'vision_unavailable'
 _OPEN_FOOD_FACTS_CONFIDENCE = 0.9
 # Une réponse de modèle ne passe jamais devant une base publique ni un code lu.
 _VISION_MAX_CONFIDENCE = 0.85
+# Sources sûres du nom : le critère sémantique de l'OCR ne les concerne pas.
+_TRUSTED_NAME_SOURCES = frozenset({SCAN_SOURCE_BARCODE, SCAN_SOURCE_OPEN_FOOD_FACTS})
 # L'unité de vente d'un article emballé est la pièce ; jamais g/kg d'après la
 # contenance (un paquet de 500 g se vend à la pièce).
 _UNIT_PIECE = 'piece'
 _UNIT_CONFIDENCE = 0.8
+_NAME_MAX_LENGTH = 200
+_DESCRIPTION_MAX_LENGTH = 300
 
 
 class ScanField(NamedTuple):
@@ -892,6 +901,11 @@ def _offer(
         found[key] = ScanField(value, round(confidence, 3), source)
 
 
+def _claims_description(claims: list[str]) -> str | None:
+    """Allégations réunies en une description ; jamais la désignation."""
+    return ', '.join(claims)[:_DESCRIPTION_MAX_LENGTH] or None
+
+
 def _apply_local(found: dict[str, ScanField], local: AiProductScanLocal) -> None:
     if local.barcode is not None and is_valid_gtin(local.barcode.value):
         barcode = local.barcode
@@ -899,7 +913,7 @@ def _apply_local(found: dict[str, ScanField], local: AiProductScanLocal) -> None
         product = lookup_barcode(barcode.value)
         if product is not None:
             for key, value in (
-                ('name', product.name),
+                ('product_name', product.name),
                 ('brand', product.brand),
                 ('net_quantity', product.quantity),
             ):
@@ -907,18 +921,58 @@ def _apply_local(found: dict[str, ScanField], local: AiProductScanLocal) -> None
                     found, key, value, _OPEN_FOOD_FACTS_CONFIDENCE,
                     SCAN_SOURCE_OPEN_FOOD_FACTS,
                 )
-    for key in ('name', 'brand', 'net_quantity', 'description'):
+    for key in ('brand', 'product_name', 'variant', 'net_quantity'):
         proposal = getattr(local, key)
         if proposal is not None:
             _offer(found, key, proposal.value, proposal.confidence, SCAN_SOURCE_OCR)
+    if local.claims:
+        _offer(
+            found, 'description', _claims_description([c.value for c in local.claims]),
+            min(c.confidence for c in local.claims), SCAN_SOURCE_OCR,
+        )
 
 
 def _apply_vision(found: dict[str, ScanField], vision: AiProductVision) -> None:
     confidence = min(vision.confidence or 0.0, _VISION_MAX_CONFIDENCE)
-    for key in ('name', 'brand', 'net_quantity', 'description'):
+    for key in ('brand', 'product_name', 'variant', 'net_quantity'):
         _offer(found, key, getattr(vision, key), confidence, SCAN_SOURCE_VISION)
+    _offer(
+        found, 'description', _claims_description(list(vision.claims)), confidence,
+        SCAN_SOURCE_VISION,
+    )
     if vision.barcode and is_valid_gtin(vision.barcode):
         _offer(found, 'barcode', vision.barcode, confidence, SCAN_SOURCE_VISION)
+
+
+def _compose_name(fields: dict[str, ScanField | None], shop: Shop) -> ScanField | None:
+    """Nom proposé : [marque] désignation [variante] [contenance].
+
+    La marque n'est ajoutée en tête que si elle diffère du nom de la boutique
+    (sans casse ni accent) : une boutique qui vend sa propre marque ne la
+    répète pas. Une partie déjà contenue dans le nom n'est pas répétée.
+    """
+    product_name = fields.get('product_name')
+    if product_name is None:
+        return None
+    name = [product_name.value]
+
+    def is_new(part: ScanField | None) -> bool:
+        # Mots entiers : la variante « Or » n'est pas « contenue » dans « Original ».
+        if part is None:
+            return False
+        current = f' {normalize_text(" ".join(name))} '
+        return f' {normalize_text(part.value)} ' not in current
+
+    for key in ('variant', 'net_quantity'):
+        part = fields.get(key)
+        if is_new(part):
+            name.append(part.value)
+    brand = fields.get('brand')
+    if is_new(brand) and normalize_text(brand.value) != normalize_text(shop.name):
+        name.insert(0, brand.value)
+    return ScanField(
+        ' '.join(name)[:_NAME_MAX_LENGTH], product_name.confidence, product_name.source,
+    )
 
 
 def _suggest_unit(found: dict[str, ScanField]) -> None:
@@ -972,13 +1026,21 @@ def release_vision_scan(shop: Shop, month: date) -> None:
     )
 
 
+def _vision_needed(found: dict[str, ScanField], local: AiProductScanLocal) -> bool:
+    """Désignation absente, peu sûre, ou jugée insuffisante par le critère
+    sémantique d'ai-service (texte pauvre, égale à la marque, un seul mot sans
+    type de produit) — sauf si elle vient d'un code lu ou d'Open Food Facts."""
+    name = found.get('product_name')
+    if name is None or name.confidence < settings.PRODUCT_SCAN_VISION_THRESHOLD:
+        return True
+    return local.vision_recommended and name.source not in _TRUSTED_NAME_SOURCES
+
+
 def _vision_fallback(
-    shop: Shop, found: dict[str, ScanField], local: AiProductScanLocal,
-    content: bytes, mime_type: str,
+    shop: Shop, found: dict[str, ScanField], local: AiProductScanLocal, face: ScanPhoto,
 ) -> tuple[list[str], str]:
     """(avertissements, issue du secours) — jamais d'erreur bloquante."""
-    name = found.get('name')
-    if name is not None and name.confidence >= settings.PRODUCT_SCAN_VISION_THRESHOLD:
+    if not _vision_needed(found, local):
         return [], 'not_needed'
     if not local.vision_available:
         return [], 'disabled'
@@ -986,9 +1048,7 @@ def _vision_fallback(
     if not reserve_vision_scan(shop, month):
         return [SCAN_WARNING_VISION_QUOTA], 'quota_reached'
     try:
-        vision = scan_product_vision_with_ai_service(
-            content=content, mime_type=mime_type,
-        )
+        vision = scan_product_vision_with_ai_service(face=face)
     except AiServiceUnavailableError:
         release_vision_scan(shop, month)
         return [SCAN_WARNING_VISION_UNAVAILABLE], 'unavailable'
@@ -997,30 +1057,34 @@ def _vision_fallback(
 
 
 def scan_product_image(
-    *, shop: Shop, user: User, content: bytes, mime_type: str,
+    *, shop: Shop, user: User, face: ScanPhoto, back: ScanPhoto | None = None,
 ) -> ProductScanResult:
-    """Propose les champs d'une fiche article à partir d'une photo d'emballage.
+    """Propose les champs d'une fiche article à partir d'une ou deux photos
+    d'emballage (face, dos facultatif).
 
-    `content` est déjà validé (type réel, taille) et ne vit qu'en mémoire :
-    rien n'est stocké ni journalisé de l'image ou du texte lu. Lève
+    Les photos sont déjà validées (type réel, taille) et ne vivent qu'en
+    mémoire : rien n'est stocké ni journalisé des images ou du texte lu. Lève
     `AiServiceUnavailableError` si la lecture locale échoue (la vue répond 503).
     """
-    local = scan_product_locally_with_ai_service(content=content, mime_type=mime_type)
+    local = scan_product_locally_with_ai_service(face=face, back=back)
     found: dict[str, ScanField] = {}
     _apply_local(found, local)
-    warnings, vision_outcome = _vision_fallback(shop, found, local, content, mime_type)
+    warnings, vision_outcome = _vision_fallback(shop, found, local, face)
     _suggest_unit(found)
     minimum = settings.PRODUCT_SCAN_MIN_CONFIDENCE
-    fields: dict[str, ScanField | None] = {}
-    for key in SCAN_FIELD_NAMES:
-        field = found.get(key)
-        shown = field is not None and field.confidence >= minimum
-        fields[key] = field if shown else None
+    fields: dict[str, ScanField | None] = {
+        key: field if (field := found.get(key)) and field.confidence >= minimum
+        else None
+        for key in SCAN_FIELD_NAMES
+    }
+    fields['name'] = _compose_name(fields, shop)
     log_action(
         shop_id=shop.pk, user=user, action='product_scan', model_name='ProductScan',
         obj_id=shop.pk, obj_repr="Scan d'emballage",
         changes={
             'sources': sorted({f.source for f in fields.values() if f is not None}),
+            'photos': 1 if back is None else 2,
+            'text': local.structuring,
             'vision': vision_outcome,
         },
     )

@@ -1046,9 +1046,11 @@
     },
     "scan": {
       "title": "Save time with a photo",
-      "help": "Take a photo of the packaging: we suggest the name, description and barcode. Check them before saving; the price is up to you.",
+      "help": "Frame the front label: we suggest the name, description and barcode. Check them before saving; the price is up to you.",
       "scan": "Scan packaging",
       "scan_again": "Scan another photo",
+      "add_back": "Add the back",
+      "back_hint": "Barcode or quantity missing? Add a photo of the back: it completes the front reading.",
       "retry": "Try again",
       "detected": "Detected, please check",
       "filled": "{count, plural, one {# field prefilled: check it before saving.} other {# fields prefilled: check them before saving.}}",

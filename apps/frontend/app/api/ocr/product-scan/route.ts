@@ -4,14 +4,14 @@ const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
 const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
 
 /**
- * Photo de 8 Mo au plus (le serveur reste seul juge), plus l'enveloppe multipart : un envoi plus
- * gros est refusé ici, sans être lu ni transmis.
+ * Deux photos (face, dos) de 8 Mo au plus chacune (le serveur reste seul juge), plus l'enveloppe
+ * multipart : un envoi plus gros est refusé ici, sans être lu ni transmis.
  */
-const MAX_BODY_BYTES = 8 * 1024 * 1024 + 64 * 1024;
+const MAX_BODY_BYTES = 2 * 8 * 1024 * 1024 + 64 * 1024;
 
 /**
  * Scan d'emballage (URS-109) : proxy server-side vers `POST /ocr/product-scan/`. Le cookie
- * HttpOnly est lu ici et devient l'en-tête `Authorization` ; le corps multipart (photo) est
+ * HttpOnly est lu ici et devient l'en-tête `Authorization` ; le corps multipart (photos) est
  * transmis tel quel, avec son boundary, et n'est ni stocké ni journalisé. Le token n'atteint
  * jamais le navigateur.
  */

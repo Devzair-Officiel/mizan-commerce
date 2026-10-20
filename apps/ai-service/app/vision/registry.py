@@ -1,7 +1,8 @@
-"""Choix du fournisseur de vision selon `VISION_PROVIDER`.
+"""Choix du fournisseur IA du scan selon `VISION_PROVIDER`.
 
-`none`, une valeur inconnue ou une clé absente désactivent le secours : le scan
-renvoie alors la lecture locale, sans jamais bloquer l'utilisateur.
+`none`, une valeur inconnue ou une clé absente désactivent la structuration du
+texte et le secours image : le scan renvoie alors la lecture locale (règles),
+sans jamais bloquer l'utilisateur.
 """
 from __future__ import annotations
 
@@ -20,15 +21,16 @@ _FACTORIES: dict[str, Callable[[], ProductVisionProvider | None]] = {
 }
 
 
-def get_provider() -> ProductVisionProvider | None:
-    name = config.VISION_PROVIDER
+def get_provider(name: str | None = None) -> ProductVisionProvider | None:
+    """Fournisseur configuré ; `name` force un nom (script d'étalonnage)."""
+    name = config.VISION_PROVIDER if name is None else name.strip().lower()
     if name in ('', 'none'):
         return None
     factory = _FACTORIES.get(name)
     if factory is None:
-        logger.warning('Unknown VISION_PROVIDER, vision fallback disabled')
+        logger.warning('Unknown VISION_PROVIDER, product scan AI disabled')
         return None
     provider = factory()
     if provider is None:
-        logger.warning('Vision provider not configured (provider=%s), fallback disabled', name)
+        logger.warning('Vision provider not configured (provider=%s), product scan AI disabled', name)
     return provider

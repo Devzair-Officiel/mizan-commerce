@@ -519,11 +519,14 @@ def structure_invoice_with_ai_service(
 # ─── Scan d'emballage (URS-109) ────────────────────────────────────────────
 #
 # Contrats serveur — voir `apps/ai-service/app/schemas.py::ProductScanLocalResult`
-# et `apps/ai-service/app/vision/base.py::ProductVisionResult`. Le texte lu sur
-# un emballage est une donnée non fiable : types vérifiés, longueurs bornées,
-# rien n'est journalisé du contenu.
+# et `apps/ai-service/app/vision/base.py::ProductReading`. Le texte lu sur un
+# emballage est une donnée non fiable : types vérifiés, longueurs bornées, rien
+# n'est journalisé du contenu. Aucune donnée de la boutique n'est envoyée :
+# seulement la ou les photos.
 
 _SCAN_TEXT_MAX_LENGTH = 300
+_SCAN_MAX_CLAIMS = 5
+_SCAN_STRUCTURING = frozenset({'done', 'disabled', 'failed'})
 
 
 class AiScanField(NamedTuple):
@@ -533,20 +536,30 @@ class AiScanField(NamedTuple):
 
 class AiProductScanLocal(NamedTuple):
     barcode: AiScanField | None
-    name: AiScanField | None
     brand: AiScanField | None
+    product_name: AiScanField | None
+    variant: AiScanField | None
+    claims: tuple[AiScanField, ...]
     net_quantity: AiScanField | None
-    description: AiScanField | None
+    # Structuration du texte par le fournisseur IA : 'done', 'disabled', 'failed'.
+    structuring: str
+    vision_recommended: bool
     vision_available: bool
 
 
 class AiProductVision(NamedTuple):
-    name: str | None
     brand: str | None
+    product_name: str | None
+    variant: str | None
+    claims: tuple[str, ...]
     net_quantity: str | None
     barcode: str | None
-    description: str | None
     confidence: float | None
+
+
+class ScanPhoto(NamedTuple):
+    content: bytes
+    mime_type: str
 
 
 def _parse_scan_text(value: Any) -> str | None:
@@ -569,15 +582,28 @@ def _parse_scan_field(raw: Any) -> AiScanField | None:
     return AiScanField(value=value, confidence=confidence)
 
 
+def _parse_list(raw: Any) -> list[Any]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    return raw[:_SCAN_MAX_CLAIMS]
+
+
 def _parse_product_scan_local(payload: Any) -> AiProductScanLocal:
     if not isinstance(payload, dict):
         raise AiServiceUnavailableError('Réponse invalide du service IA.')
+    claims = (_parse_scan_field(raw) for raw in _parse_list(payload.get('claims')))
+    structuring = payload.get('structuring')
     return AiProductScanLocal(
         barcode=_parse_scan_field(payload.get('barcode')),
-        name=_parse_scan_field(payload.get('name')),
         brand=_parse_scan_field(payload.get('brand')),
+        product_name=_parse_scan_field(payload.get('product_name')),
+        variant=_parse_scan_field(payload.get('variant')),
+        claims=tuple(claim for claim in claims if claim is not None),
         net_quantity=_parse_scan_field(payload.get('net_quantity')),
-        description=_parse_scan_field(payload.get('description')),
+        structuring=structuring if structuring in _SCAN_STRUCTURING else 'disabled',
+        vision_recommended=payload.get('vision_recommended') is True,
         vision_available=payload.get('vision_available') is True,
     )
 
@@ -587,24 +613,31 @@ def _parse_product_vision(payload: Any) -> AiProductVision:
         raise AiServiceUnavailableError('Réponse invalide du service IA.')
     raw_confidence = payload.get('confidence')
     confidence = None if raw_confidence is None else _coerce_confidence(raw_confidence)
+    claims = (_parse_scan_text(raw) for raw in _parse_list(payload.get('claims')))
     return AiProductVision(
-        name=_parse_scan_text(payload.get('name')),
         brand=_parse_scan_text(payload.get('brand')),
+        product_name=_parse_scan_text(payload.get('product_name')),
+        variant=_parse_scan_text(payload.get('variant')),
+        claims=tuple(claim for claim in claims if claim is not None),
         net_quantity=_parse_scan_text(payload.get('net_quantity')),
         barcode=_parse_scan_text(payload.get('barcode')),
-        description=_parse_scan_text(payload.get('description')),
         confidence=confidence,
     )
 
 
-def _post_product_image(path: str, *, content: bytes, mime_type: str) -> Any:
-    """POST multipart d'une photo d'emballage ; erreurs ramenées au type domaine.
+def _post_product_images(
+    path: str, *, face: ScanPhoto, back: ScanPhoto | None = None,
+) -> Any:
+    """POST multipart d'une ou deux photos d'emballage, erreurs ramenées au
+    type domaine.
 
-    Ni la clé interne, ni l'image, ni la réponse ne sont journalisées.
+    Ni la clé interne, ni les images, ni la réponse ne sont journalisées.
     """
     url = _build_url(path)
     headers = {INTERNAL_API_KEY_HEADER: settings.AI_SERVICE_API_KEY}
-    files = {'image': ('scan', content, mime_type)}
+    files = {'image': ('scan', face.content, face.mime_type)}
+    if back is not None:
+        files['image_back'] = ('scan-back', back.content, back.mime_type)
     timeout = settings.AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS
 
     try:
@@ -635,22 +668,22 @@ def _post_product_image(path: str, *, content: bytes, mime_type: str) -> Any:
 
 
 def scan_product_locally_with_ai_service(
-    *, content: bytes, mime_type: str,
+    *, face: ScanPhoto, back: ScanPhoto | None = None,
 ) -> AiProductScanLocal:
-    """Code-barres + OCR local (`/internal/product-scan`), réponse typée."""
-    payload = _post_product_image(
-        '/internal/product-scan', content=content, mime_type=mime_type,
-    )
+    """Code-barres, OCR et structuration du texte (`/internal/product-scan`).
+
+    Réponse typée.
+
+    Le texte lu peut partir vers le fournisseur IA (texte seul), jamais l'image.
+    """
+    payload = _post_product_images('/internal/product-scan', face=face, back=back)
     return _parse_product_scan_local(payload)
 
 
-def scan_product_vision_with_ai_service(
-    *, content: bytes, mime_type: str,
-) -> AiProductVision:
-    """Secours vision (`/internal/product-scan/vision`) : seul appel qui envoie
-    l'image à un fournisseur externe. 503 (non configuré) ou 502 (fournisseur
-    en échec) côté ai-service deviennent `AiServiceUnavailableError`."""
-    payload = _post_product_image(
-        '/internal/product-scan/vision', content=content, mime_type=mime_type,
-    )
+def scan_product_vision_with_ai_service(*, face: ScanPhoto) -> AiProductVision:
+    """Secours image (`/internal/product-scan/vision`) : seul appel qui envoie
+    une image (la face) à un fournisseur externe. 503 (non configuré, ou
+    `PRODUCT_SCAN_IMAGE_FALLBACK` faux) ou 502 (fournisseur en échec) côté
+    ai-service deviennent `AiServiceUnavailableError`."""
+    payload = _post_product_images('/internal/product-scan/vision', face=face)
     return _parse_product_vision(payload)
