@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { useScrollLock } from '@base-ui/utils/useScrollLock';
 
 const LINKS = [
-  { href: '#features', label: 'Fonctionnalités' },
-  { href: '#how', label: 'Comment ça marche' },
-  { href: '#pricing', label: 'Tarifs' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '/#features', label: 'Fonctionnalités' },
+  { href: '/#how', label: 'Comment ça marche' },
+  { href: '/#pricing', label: 'Tarifs' },
+  { href: '/#faq', label: 'FAQ' },
 ];
 
 function BurgerIcon() {
@@ -49,14 +49,14 @@ export function Nav() {
   return (
     <nav className="nav">
       <div className="wrap nav-inner">
-        <a className="brand" href="#top" onClick={() => setOpen(false)}>
+        <Link className="brand" href="/#top" onClick={() => setOpen(false)}>
           <Image src="/landing/logo.png" alt="mizan" width={42} height={42} priority />
           <span className="wm">mizan</span>
-        </a>
+        </Link>
 
         <div className="nav-links">
           {LINKS.map((l) => (
-            <a key={l.href} href={l.href}>{l.label}</a>
+            <Link key={l.href} href={l.href}>{l.label}</Link>
           ))}
         </div>
 
@@ -100,9 +100,9 @@ export function Nav() {
         <div className="nav-drawer-inner">
           <div className="nav-drawer-links">
             {LINKS.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
+              <Link key={l.href} href={l.href} onClick={() => setOpen(false)}>
                 {l.label}
-              </a>
+              </Link>
             ))}
           </div>
           <div className="nav-drawer-actions">

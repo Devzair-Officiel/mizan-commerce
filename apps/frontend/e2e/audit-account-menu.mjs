@@ -110,35 +110,38 @@ async function checkThemeShortcut(page, locale, label) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const state = { name: 'boutique' };
-  await routePlan(ctx, state);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      try {
-        for (const name of ['boutique', 'solo', 'expired', 'trial']) {
-          state.name = name;
-          await checkBadge(page, viewport, locale, label, state);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const state = { name: 'boutique' };
+    await routePlan(ctx, state);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        try {
+          for (const name of ['boutique', 'solo', 'expired', 'trial']) {
+            state.name = name;
+            await checkBadge(page, viewport, locale, label, state);
+          }
+          await checkThemeShortcut(page, locale, label);
+        } catch (error) {
+          report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+        } finally {
+          state.name = 'boutique';
         }
-        await checkThemeShortcut(page, locale, label);
-      } catch (error) {
-        report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
-      } finally {
-        state.name = 'boutique';
+        const problems = watch.problems.slice(before);
+        report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = watch.problems.slice(before);
-      report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await ctx.close();
   }
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

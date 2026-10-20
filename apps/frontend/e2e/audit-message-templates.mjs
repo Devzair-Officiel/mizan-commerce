@@ -196,38 +196,41 @@ async function checkTypingDuringSave(page, ctx) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const data = await setup(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const run = { label, locale, viewport };
-      try {
-        await api(page, 'messages/settings/', { method: 'PATCH', data: RESET });
-        const { defaults, variables } = await settingsOf(page, locale);
-        await goto(page, '/settings/messages');
-        await checkLayout(page, run, defaults);
-        await checkTone(page, run, data, defaults);
-        await checkCustomize(page, run, defaults);
-        await checkUnknownVariable(page, run, variables);
-        await checkTypingDuringSave(page, run);
-      } catch (error) {
-        report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const data = await setup(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const run = { label, locale, viewport };
+        try {
+          await api(page, 'messages/settings/', { method: 'PATCH', data: RESET });
+          const { defaults, variables } = await settingsOf(page, locale);
+          await goto(page, '/settings/messages');
+          await checkLayout(page, run, defaults);
+          await checkTone(page, run, data, defaults);
+          await checkCustomize(page, run, defaults);
+          await checkUnknownVariable(page, run, variables);
+          await checkTypingDuringSave(page, run);
+        } catch (error) {
+          report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+        }
+        const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await api(page, 'messages/settings/', { method: 'PATCH', data: RESET });
+    await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
+    await ctx.close();
   }
-  await api(page, 'messages/settings/', { method: 'PATCH', data: RESET });
-  await api(page, `orders/${data.order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

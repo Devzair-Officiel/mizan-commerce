@@ -231,34 +231,37 @@ async function run(page, ctx, fixtures, nested) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const stamp = `${String(Date.now()).slice(-6)} ${viewport.name}`;
-  const sold = await createArticle(page, { name: `Audit fiche vendu ${stamp}`, price: '9.00', stock: 3 });
-  const order = await api(page, 'orders/', { method: 'POST', data: { items: [{ variant: sold.variants[0].id, quantity: 1 }] } });
-  const service = await createService(page, `Audit fiche service ${stamp}`);
-  const fixtures = { sold, service, used: [sold.id], orders: [order.id] };
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const nested = [];
-      await run(page, { label, viewport, locale }, fixtures, nested);
-      // Le 409 du format vendu pendant la confirmation est provoqué par l'audit (refus attendu).
-      const provoked = (p) => /status of 409 .*\/api\/proxy\/products\/[0-9a-f-]{36}\/variants\/[0-9a-f-]{36}\/?\)/.test(p);
-      const problems = [...watch.problems.filter((p) => !provoked(p)), ...nested.map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
-      watch.problems.length = 0;
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const stamp = `${String(Date.now()).slice(-6)} ${viewport.name}`;
+    const sold = await createArticle(page, { name: `Audit fiche vendu ${stamp}`, price: '9.00', stock: 3 });
+    const order = await api(page, 'orders/', { method: 'POST', data: { items: [{ variant: sold.variants[0].id, quantity: 1 }] } });
+    const service = await createService(page, `Audit fiche service ${stamp}`);
+    const fixtures = { sold, service, used: [sold.id], orders: [order.id] };
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const nested = [];
+        await run(page, { label, viewport, locale }, fixtures, nested);
+        // Le 409 du format vendu pendant la confirmation est provoqué par l'audit (refus attendu).
+        const provoked = (p) => /status of 409 .*\/api\/proxy\/products\/[0-9a-f-]{36}\/variants\/[0-9a-f-]{36}\/?\)/.test(p);
+        const problems = [...watch.problems.filter((p) => !provoked(p)), ...nested.map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+        watch.problems.length = 0;
+      }
     }
+    for (const id of fixtures.orders) await api(page, `orders/${id}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
+    await deactivate(page, fixtures.used);
+    await remove(page, [service.id]);
+    await ctx.close();
   }
-  for (const id of fixtures.orders) await api(page, `orders/${id}/status/`, { method: 'POST', data: { status: 'cancelled' } }).catch(() => {});
-  await deactivate(page, fixtures.used);
-  await remove(page, [service.id]);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

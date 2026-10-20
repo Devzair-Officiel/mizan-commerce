@@ -415,39 +415,42 @@ async function checkFollowUps(page, locale, label) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      await clearCalculations(page);
-      await checkHome(page, locale, label);
-      await checkSettings(page, locale, label);
-      await checkMissingChoice(page, ctx, viewport, locale, label);
-      await checkBelow(page, locale, label);
-      await checkConflict(page, locale, label);
-      await checkYearTaken(page, locale, label);
-      const due = await checkResult(page, viewport, locale, label);
-      await checkWhy(page, locale, label, due);
-      await checkOtherSources(page, viewport, locale, label, due);
-      await checkHistoryPdf(page, locale, label);
-      await checkBasisKeyboard(page, viewport, locale, label);
-      await checkPayment(page, locale, label, due);
-      await checkScope(page, viewport, locale, label);
-      await checkFollowUps(page, locale, label);
-      // Les 409 (version, année) sont provoqués par l'audit lui-même.
-      const problems = watch.problems.slice(before).filter((p) => !/status of 409 .*\/zakat\/calculations\//.test(p));
-      report.check(problems.length === 0, `${label} : console propre${problems.map((p) => `\n      ${p}`).join('')}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        await clearCalculations(page);
+        await checkHome(page, locale, label);
+        await checkSettings(page, locale, label);
+        await checkMissingChoice(page, ctx, viewport, locale, label);
+        await checkBelow(page, locale, label);
+        await checkConflict(page, locale, label);
+        await checkYearTaken(page, locale, label);
+        const due = await checkResult(page, viewport, locale, label);
+        await checkWhy(page, locale, label, due);
+        await checkOtherSources(page, viewport, locale, label, due);
+        await checkHistoryPdf(page, locale, label);
+        await checkBasisKeyboard(page, viewport, locale, label);
+        await checkPayment(page, locale, label, due);
+        await checkScope(page, viewport, locale, label);
+        await checkFollowUps(page, locale, label);
+        // Les 409 (version, année) sont provoqués par l'audit lui-même.
+        const problems = watch.problems.slice(before).filter((p) => !/status of 409 .*\/zakat\/calculations\//.test(p));
+        report.check(problems.length === 0, `${label} : console propre${problems.map((p) => `\n      ${p}`).join('')}`);
+      }
     }
+    await clearCalculations(page);
+    await ctx.close();
   }
-  await clearCalculations(page);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

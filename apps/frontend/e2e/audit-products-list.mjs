@@ -208,27 +208,30 @@ async function checkServicesShop(browser) {
 
 const browser = await launch();
 let lot = [];
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  if (!lot.length) lot = await ensureLot(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const nested = [];
-      await auditList(page, (key) => msg(locale, key), { label, viewport, locale, theme }, nested);
-      const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    if (!lot.length) lot = await ensureLot(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const nested = [];
+        await auditList(page, (key) => msg(locale, key), { label, viewport, locale, theme }, nested);
+        const problems = [...watch.problems.slice(before), ...nested.map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
+      }
     }
+    if (viewport === VIEWPORTS.at(-1)) await deactivate(page, lot);
+    await ctx.close();
   }
-  if (viewport === VIEWPORTS.at(-1)) await deactivate(page, lot);
-  await ctx.close();
+  await checkServicesShop(browser);
+} finally {
+  await browser.close();
 }
-await checkServicesShop(browser);
-await browser.close();
 report.finish();

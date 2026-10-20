@@ -95,46 +95,49 @@ async function widthChecks(page, locale, label, mobile) {
   await page.setViewportSize(viewport);
 }
 
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const state = { code: 'solo' };
-  await settingsPlan(ctx, state);
-  // Éditeur complet, sans créer ni publier de vitrine sur le serveur.
-  await ctx.route(/\/api\/proxy\/public-page\/?(\?.*)?$/, (route) => route.fulfill({ json: { exists: true, page: {
-    id: 'audit-settings', slug: 'audit-settings', display_name: 'Boutique Audit', is_active: true,
-    is_published: false, is_live: false, tagline: '', description: '', logo_object_key: '', logo_url: null,
-    cover_object_key: '', cover_url: null, theme: 'classic', primary_color: '#123456', order_message_template: '',
-    published_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
-    sections: [], catalog_items: [], contact_buttons: [],
-  } } }));
-  await ctx.route(/\/boutique\/audit-settings\?/, (route) => route.fulfill({ contentType: 'text/html', body: '<html lang="fr"><body>Aperçu audit</body></html>' }));
-  const original = await api(page, 'shop/');
-  for (const locale of ['fr', 'ar']) for (const theme of ['light', 'dark']) {
-    if (!inMatrix(viewport, locale, theme)) continue;
-    const label = `${viewport.name}px ${locale} ${theme}`;
-    console.log(`\n=== ${label}`);
-    await setLocale(locale); setTheme(theme); watch.setLabel(label);
-    try {
-      state.code = 'solo';
-      await settingsGoto(page);
-      await page.locator('[data-settings-lock]').first().waitFor({ state: 'attached' });
-      await page.screenshot({ path: `results/settings-nav-${viewport.name}-${locale}-${theme}-solo.png`, fullPage: true });
-      await navigation(page, locale, label, viewport.mobile);
-      await boutique(page, locale, label, original);
-      state.code = 'boutique';
-      await widthChecks(page, locale, label, viewport.mobile);
-      const nested = await nestedInteractive(page);
-      report.check(nested.length === 0, `${label} : aucun élément interactif imbriqué (${nested.join(', ')})`);
-      await settingsGoto(page);
-      await page.screenshot({ path: `results/settings-${viewport.name}-${locale}-${theme}.png`, fullPage: true });
-    } catch (error) {
-      report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
-    } finally {
-      await api(page, 'shop/', { method: 'PATCH', data: { name: original.name } });
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const state = { code: 'solo' };
+    await settingsPlan(ctx, state);
+    // Éditeur complet, sans créer ni publier de vitrine sur le serveur.
+    await ctx.route(/\/api\/proxy\/public-page\/?(\?.*)?$/, (route) => route.fulfill({ json: { exists: true, page: {
+      id: 'audit-settings', slug: 'audit-settings', display_name: 'Boutique Audit', is_active: true,
+      is_published: false, is_live: false, tagline: '', description: '', logo_object_key: '', logo_url: null,
+      cover_object_key: '', cover_url: null, theme: 'classic', primary_color: '#123456', order_message_template: '',
+      published_at: null, created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+      sections: [], catalog_items: [], contact_buttons: [],
+    } } }));
+    await ctx.route(/\/boutique\/audit-settings\?/, (route) => route.fulfill({ contentType: 'text/html', body: '<html lang="fr"><body>Aperçu audit</body></html>' }));
+    const original = await api(page, 'shop/');
+    for (const locale of ['fr', 'ar']) for (const theme of ['light', 'dark']) {
+      if (!inMatrix(viewport, locale, theme)) continue;
+      const label = `${viewport.name}px ${locale} ${theme}`;
+      console.log(`\n=== ${label}`);
+      await setLocale(locale); setTheme(theme); watch.setLabel(label);
+      try {
+        state.code = 'solo';
+        await settingsGoto(page);
+        await page.locator('[data-settings-lock]').first().waitFor({ state: 'attached' });
+        await page.screenshot({ path: `results/settings-nav-${viewport.name}-${locale}-${theme}-solo.png`, fullPage: true });
+        await navigation(page, locale, label, viewport.mobile);
+        await boutique(page, locale, label, original);
+        state.code = 'boutique';
+        await widthChecks(page, locale, label, viewport.mobile);
+        const nested = await nestedInteractive(page);
+        report.check(nested.length === 0, `${label} : aucun élément interactif imbriqué (${nested.join(', ')})`);
+        await settingsGoto(page);
+        await page.screenshot({ path: `results/settings-${viewport.name}-${locale}-${theme}.png`, fullPage: true });
+      } catch (error) {
+        report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+      } finally {
+        await api(page, 'shop/', { method: 'PATCH', data: { name: original.name } });
+      }
     }
+    report.check(watch.problems.length === 0, `${viewport.name}px : console propre, défilement libre${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await ctx.close();
   }
-  report.check(watch.problems.length === 0, `${viewport.name}px : console propre, défilement libre${watch.problems.map((p) => `\n      ${p}`).join('')}`);
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

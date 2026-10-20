@@ -125,39 +125,42 @@ async function checkRemembered(page, ctx) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  const order = await setup(page);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      const run = { label, locale, viewport };
-      try {
-        await api(page, 'auth/me/', { method: 'PATCH', data: { sales_period: '7d' } });
-        await openHome(page);
-        report.check(await shown(card(page, locale).locator('.recharts-area-curve')), `${label} : courbe des ventes affichée`);
-        for (const period of PERIODS) {
-          const data = await checkPeriod(page, run, period);
-          await checkHover(page, run, data);
+try {
+  for (const viewport of VIEWPORTS) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    const order = await setup(page);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme === 'dark' ? 'sombre' : 'clair'}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        const run = { label, locale, viewport };
+        try {
+          await api(page, 'auth/me/', { method: 'PATCH', data: { sales_period: '7d' } });
+          await openHome(page);
+          report.check(await shown(card(page, locale).locator('.recharts-area-curve')), `${label} : courbe des ventes affichée`);
+          for (const period of PERIODS) {
+            const data = await checkPeriod(page, run, period);
+            await checkHover(page, run, data);
+          }
+          await checkKeyboard(page, run);
+          await checkRemembered(page, run);
+        } catch (error) {
+          report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
         }
-        await checkKeyboard(page, run);
-        await checkRemembered(page, run);
-      } catch (error) {
-        report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
+        const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
+        report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = [...watch.problems.slice(before), ...nested.splice(0).map((n) => `imbriqué : ${n}`)];
-      report.check(problems.length === 0, `${label} : console propre, aucun élément imbriqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await api(page, 'auth/me/', { method: 'PATCH', data: { sales_period: '7d' } });
+    await api(page, `orders/${order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
+    await ctx.close();
   }
-  await api(page, 'auth/me/', { method: 'PATCH', data: { sales_period: '7d' } });
-  await api(page, `orders/${order.id}/status/`, { method: 'POST', data: { status: 'cancelled' } });
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();

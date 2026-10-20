@@ -69,6 +69,7 @@ services:
     env_file: .env
     environment:
       - HOME=/tmp                               # l'uid hôte n'a pas de dossier personnel dans l'image
+      - PYTEST_XDIST_AUTO_NUM_WORKERS=4         # `pytest -n auto` : 4 workers en local au lieu de 16 (cœurs logiques, psutil absent) ; plus : `-n 8`
     volumes:
       - ./apps/backend:/app                     # monte le code local dans le conteneur (hot reload)
     ports:
@@ -153,12 +154,15 @@ services:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"   # node_modules créés au nom de l'utilisateur hôte
     working_dir: /e2e
     ipc: host                                   # recommandé par Playwright pour Chromium
+    init: true                                  # processus 1 minimal : signaux transmis, processus orphelins récupérés
+    mem_limit: ${AUDIT_MEM_LIMIT:-3g}           # au-delà, Chromium est arrêté dans le conteneur au lieu de saturer la machine (à ajuster selon les mesures)
+    memswap_limit: ${AUDIT_MEMSWAP_LIMIT:-${AUDIT_MEM_LIMIT:-3g}}   # mémoire + swap : égal à mem_limit, le conteneur ne swappe pas
     environment:
       - HOME=/tmp                               # cache npm accessible à l'utilisateur hôte
       - NPM_CONFIG_UPDATE_NOTIFIER=false
       - BASE_URL=http://frontend:3000           # frontend du réseau compose
       - AUDIT_MATRIX=${AUDIT_MATRIX:-smoke}     # smoke : 1440 fr clair + 360 ar sombre ; full : les 8 configurations
-      - AUDIT_JOBS=${AUDIT_JOBS:-3}             # audits lancés en même temps (une boutique d'audit chacun)
+      - AUDIT_JOBS=${AUDIT_JOBS:-1}             # audits lancés en même temps (une boutique d'audit chacun) ; à passer en préfixe (`AUDIT_JOBS=2 docker compose run …`) pour qu'e2e-reset crée autant de boutiques
     volumes:
       - ./apps/frontend/e2e:/e2e
       - ./apps/frontend/messages:/messages:ro   # textes attendus (fr/en/ar)
@@ -182,7 +186,7 @@ services:
       - HOME=/tmp
     volumes:
       - ./apps/backend:/app
-    command: ["python", "manage.py", "reset_audit_shop", "--slots", "${AUDIT_JOBS:-3}"]   # une boutique par audit simultané ; DEBUG ou ALLOW_SEED=1 requis, comme seed_data
+    command: ["python", "manage.py", "reset_audit_shop", "--slots", "${AUDIT_JOBS:-1}"]   # une boutique par audit simultané ; DEBUG ou ALLOW_SEED=1 requis, comme seed_data
     depends_on:
       - postgres
 

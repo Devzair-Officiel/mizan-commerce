@@ -216,42 +216,45 @@ async function checkRail(page, locale, label) {
 }
 
 const browser = await launch();
-for (const viewport of VIEWPORTS.filter((v) => !v.mobile)) {
-  const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-  for (const locale of ['fr', 'ar']) {
-    for (const theme of ['light', 'dark']) {
-      if (!inMatrix(viewport, locale, theme)) continue;
-      const label = `${viewport.name}px ${locale} ${theme}`;
-      console.log(`\n=== ${label}`);
-      await setLocale(locale);
-      setTheme(theme);
-      watch.setLabel(label);
-      const before = watch.problems.length;
-      try {
-        await openDashboard(page);
-        if (await isCollapsed(page)) await toggle(page, locale, false);
-        await checkExpanded(page, locale, label);
-        await checkEdgeToggle(page, locale, label);
-        await toggle(page, locale, true);
-        await checkRail(page, locale, label);
-        await openDashboard(page);
-        report.check(await isCollapsed(page), `${label} : rail gardé après rechargement`);
-        await toggle(page, locale, false, { shortcut: true });
-        report.check(!(await isCollapsed(page)), `${label} : Ctrl+B redéploie la sidebar`);
-        await toggle(page, locale, true, { shortcut: true });
-        report.check(await isCollapsed(page), `${label} : Ctrl+B replie la sidebar`);
-        await toggle(page, locale, false);
-        await openDashboard(page);
-        report.check(!(await isCollapsed(page)), `${label} : sidebar déployée gardée après rechargement`);
-      } catch (error) {
-        report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
-        await openDashboard(page).then(async () => { if (await isCollapsed(page)) await toggle(page, locale, false); }).catch(() => {});
+try {
+  for (const viewport of VIEWPORTS.filter((v) => !v.mobile)) {
+    const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
+    for (const locale of ['fr', 'ar']) {
+      for (const theme of ['light', 'dark']) {
+        if (!inMatrix(viewport, locale, theme)) continue;
+        const label = `${viewport.name}px ${locale} ${theme}`;
+        console.log(`\n=== ${label}`);
+        await setLocale(locale);
+        setTheme(theme);
+        watch.setLabel(label);
+        const before = watch.problems.length;
+        try {
+          await openDashboard(page);
+          if (await isCollapsed(page)) await toggle(page, locale, false);
+          await checkExpanded(page, locale, label);
+          await checkEdgeToggle(page, locale, label);
+          await toggle(page, locale, true);
+          await checkRail(page, locale, label);
+          await openDashboard(page);
+          report.check(await isCollapsed(page), `${label} : rail gardé après rechargement`);
+          await toggle(page, locale, false, { shortcut: true });
+          report.check(!(await isCollapsed(page)), `${label} : Ctrl+B redéploie la sidebar`);
+          await toggle(page, locale, true, { shortcut: true });
+          report.check(await isCollapsed(page), `${label} : Ctrl+B replie la sidebar`);
+          await toggle(page, locale, false);
+          await openDashboard(page);
+          report.check(!(await isCollapsed(page)), `${label} : sidebar déployée gardée après rechargement`);
+        } catch (error) {
+          report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
+          await openDashboard(page).then(async () => { if (await isCollapsed(page)) await toggle(page, locale, false); }).catch(() => {});
+        }
+        const problems = watch.problems.slice(before);
+        report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
       }
-      const problems = watch.problems.slice(before);
-      report.check(problems.length === 0, `${label} : console propre, défilement jamais bloqué${problems.map((p) => `\n      ${p}`).join('')}`);
     }
+    await ctx.close();
   }
-  await ctx.close();
+} finally {
+  await browser.close();
 }
-await browser.close();
 report.finish();
