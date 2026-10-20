@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-18
+**Dernière mise à jour** : 2026-10-20
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -490,6 +490,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Lot 3 (avant fusion, avec maquette) : formats dans le formulaire article
   - [~] En-têtes des cartes de formulaire en bande teintée (formulaires article et client)
   - [~] Formats dans le formulaire article : tableau « Formats et prix », création et modification tout ou rien
+  - [~] Formulaire article : ordre des champs (nom → unité → prix → stock → photo → référence)
 - [~] Puis : pull request, fusion (session Postman abandonnée : Postman n'est plus utilisé, collection retirée du dépôt)
 - [~] Lot 4 (après fusion)
   - [~] Page et formulaire Rappels + assignation à un employé

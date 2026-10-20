@@ -1002,7 +1002,6 @@
       "unit_short": "{unit, select, piece {pièce} other {{unit}}}",
       "section_info": "Informations",
       "section_price": "Prix",
-      "section_sale": "Vente",
       "purchase_help": "Pour suivre votre marge et calculer la zakât.",
       "margin_rate": "Marge {margin} %",
       "margin_amount": "{unit, select, piece {soit {amount} par pièce vendue} other {soit {amount} par {unit} vendu}}",

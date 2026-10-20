@@ -1002,7 +1002,6 @@
       "unit_short": "{unit, select, piece {قطعة} other {{unit}}}",
       "section_info": "المعلومات",
       "section_price": "السعر",
-      "section_sale": "البيع",
       "purchase_help": "لمتابعة هامش ربحك وحساب الزكاة.",
       "margin_rate": "الهامش {margin}٪",
       "margin_amount": "{unit, select, piece {أي {amount} لكل قطعة مبيعة} other {أي {amount} لكل {unit} مبيع}}",
