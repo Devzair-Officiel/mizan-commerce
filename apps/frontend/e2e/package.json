@@ -13,6 +13,7 @@
     "audit:product-form": "node audit-product-form.mjs",
     "audit:product-formats": "node audit-product-formats.mjs",
     "audit:product-photos": "node audit-product-photos.mjs",
+    "audit:product-scan": "node audit-product-scan.mjs",
     "audit:stock": "node audit-stock.mjs",
     "audit:product-sheet": "node audit-product-sheet.mjs",
     "audit:loading": "node audit-loading.mjs",

@@ -149,3 +149,33 @@ class SupplierLineMatch(models.Model):
     def __str__(self) -> str:
         target = 'ignorée' if self.is_ignored else self.variant_id
         return f'{self.supplier_key or "—"} / {self.label_key} → {target}'
+
+
+class ProductScanUsage(models.Model):
+    """Appels au secours vision du scan d'emballage, par boutique et par mois.
+
+    Plafonnés par `SubscriptionPlan.max_vision_scans_per_month`. Le compteur ne
+    s'écrit qu'en SQL atomique (`services.reserve_vision_scan`), jamais par une
+    lecture suivie d'une écriture.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shop = models.ForeignKey(
+        Shop, on_delete=models.CASCADE, related_name='product_scan_usages'
+    )
+    # Premier jour du mois, dans le fuseau de la boutique.
+    month = models.DateField()
+    vision_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'product_scan_usages'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['shop', 'month'], name='uniq_product_scan_usage_month',
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.shop_id} {self.month:%Y-%m} : {self.vision_count}'

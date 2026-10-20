@@ -164,3 +164,30 @@ class InvoiceExtraction(BaseModel):
         default_factory=list,
         description='Avertissements de la validation déterministe (incohérences non corrigées).',
     )
+
+
+# ─── Scan d'emballage (URS-109) ───────────────────────────────────────────
+#
+# Lecture locale : code-barres puis OCR. Aucune notion de boutique ici : c'est
+# Django qui interroge Open Food Facts, décide du secours vision et compte le
+# quota. Les champs absents ou illisibles valent `null`.
+
+
+class ScanFieldProposal(BaseModel):
+    """Une valeur proposée et la confiance qu'on lui accorde (0 à 1)."""
+
+    value: str
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
+class ProductScanLocalResult(BaseModel):
+    """Sortie de `POST /internal/product-scan` (code-barres + OCR local)."""
+
+    barcode: ScanFieldProposal | None = None
+    barcode_format: str | None = None
+    name: ScanFieldProposal | None = None
+    brand: ScanFieldProposal | None = None
+    net_quantity: ScanFieldProposal | None = None
+    description: ScanFieldProposal | None = None
+    # Un fournisseur de vision est configuré : Django peut demander le secours.
+    vision_available: bool = False

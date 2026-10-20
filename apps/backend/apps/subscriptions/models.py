@@ -51,6 +51,8 @@ class SubscriptionPlan(models.Model):
     max_customers = models.PositiveIntegerField(null=True, blank=True)
     # Membres de la boutique, propriétaire compris.
     max_members = models.PositiveIntegerField(null=True, blank=True)
+    # Appels au secours vision du scan d'emballage par mois (`ocr.ProductScanUsage`).
+    max_vision_scans_per_month = models.PositiveIntegerField(null=True, blank=True)
     features_json = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

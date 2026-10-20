@@ -8,6 +8,10 @@ Endpoints exposés :
   (texte lu directement s'il y en a, sinon pages rendues puis OCR — protégé).
 - `POST /internal/invoice/structure`    : proposition structurée d'une
   facture à partir d'une sortie OCR, via un LLM externe (protégé, POC 6A).
+- `POST /internal/product-scan`         : lecture locale d'un emballage
+  (code-barres puis OCR, protégé, URS-109).
+- `POST /internal/product-scan/vision`  : secours vision de ce scan, appelé
+  par Django seulement s'il le décide (quota, confiance — protégé).
 
 Interprétation métier :
 - `extract-text` reste OCR pur — texte brut + confiances + bboxes.
@@ -25,7 +29,8 @@ import tempfile
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 
 from . import config
-from .file_validation import FileValidationError, validate_uploaded_document
+from .file_validation import FileValidationError, validate_product_image, validate_uploaded_document
+from .image_prep import ImageDecodeError
 from .invoice_extraction import (
     InvoiceExtractionError,
     MissingProviderKeyError,
@@ -34,8 +39,10 @@ from .invoice_extraction import (
 )
 from .ocr import OcrEngineError, extract_text_from_image
 from .pdf import extract_text_from_pdf
-from .schemas import InvoiceExtraction, InvoiceStructureRequest, OcrExtractionResult
+from .product_scan import VisionDisabledError, scan_locally, scan_with_vision
+from .schemas import InvoiceExtraction, InvoiceStructureRequest, OcrExtractionResult, ProductScanLocalResult
 from .security import require_internal_api_key
+from .vision.base import ProductVisionResult, VisionProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -195,4 +202,69 @@ def structure_invoice(payload: InvoiceStructureRequest) -> InvoiceExtraction:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail='Réponse invalide du fournisseur LLM.',
+        ) from exc
+
+
+async def _read_product_image(image: UploadFile) -> bytes:
+    content = await image.read()
+    try:
+        validate_product_image(content=content, content_type=image.content_type)
+    except FileValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return content
+
+
+def _unreadable_image(exc: ImageDecodeError) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.post(
+    '/internal/product-scan',
+    dependencies=[Depends(require_internal_api_key)],
+    response_model=ProductScanLocalResult,
+)
+async def product_scan(image: UploadFile = File(...)) -> ProductScanLocalResult:
+    """Lecture locale d'un emballage : code-barres puis OCR (aucun appel externe).
+
+    L'image n'est ni conservée ni journalisée ; le seul fichier temporaire
+    (exigé par PaddleOCR) est supprimé dès la lecture finie.
+    """
+    content = await _read_product_image(image)
+    try:
+        return scan_locally(content)
+    except ImageDecodeError as exc:
+        raise _unreadable_image(exc) from exc
+    except OcrEngineError as exc:
+        logger.warning('OCR engine error during product scan: %s', type(exc).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Erreur interne du moteur OCR.',
+        ) from exc
+
+
+@app.post(
+    '/internal/product-scan/vision',
+    dependencies=[Depends(require_internal_api_key)],
+    response_model=ProductVisionResult,
+)
+async def product_scan_vision(image: UploadFile = File(...)) -> ProductVisionResult:
+    """Secours vision : image réduite et sans métadonnées envoyée au fournisseur.
+
+    - aucun fournisseur configuré → 503 (Django renvoie la lecture locale) ;
+    - fournisseur en échec → 502 générique, détail dans les logs seulement.
+    """
+    content = await _read_product_image(image)
+    try:
+        return scan_with_vision(content)
+    except ImageDecodeError as exc:
+        raise _unreadable_image(exc) from exc
+    except VisionDisabledError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail='Secours vision non configuré.',
+        ) from exc
+    except VisionProviderError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail='Fournisseur de vision indisponible.',
         ) from exc

@@ -12,19 +12,32 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, NamedTuple
+from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.core.audit import log_action
 from apps.core.storage import delete_object, upload_fileobj
 from apps.products.models import ProductVariant
 from apps.stock.services import EntryLine, EntryReference, create_entry
 
+from .ai_client import (
+    AiProductScanLocal,
+    AiProductVision,
+    AiServiceUnavailableError,
+    scan_product_locally_with_ai_service,
+    scan_product_vision_with_ai_service,
+)
 from .matching import line_label_key, normalize_text
-from .models import OcrResult, SupplierLineMatch, UploadedDocument
+from .models import OcrResult, ProductScanUsage, SupplierLineMatch, UploadedDocument
+from .open_food_facts import is_restricted_gtin, is_valid_gtin, lookup_barcode
 from .pdf import validate_invoice_pdf
 
 if TYPE_CHECKING:
@@ -48,6 +61,7 @@ __all__ = (
     'InvoiceAlreadyRecordedError',
     'InvoiceEntryLine',
     'OcrResultNotReviewableError',
+    'ProductScanResult',
     'ReviewConflictError',
     'ReviewPayloadValidationError',
     'SupplierInvoiceUpload',
@@ -57,8 +71,12 @@ __all__ = (
     'mark_ocr_failed',
     'mark_ocr_processing',
     'record_invoice_entry',
+    'release_vision_scan',
+    'reserve_vision_scan',
+    'scan_product_image',
     'validate_file_signature',
     'validate_invoice_review',
+    'vision_quota_month',
 )
 
 
@@ -822,3 +840,188 @@ def record_invoice_entry(
         _remember_choices(shop, user, result, lines, ignored, invoice_lines)
         _mark_recorded(result, user, lines, invoice_lines)
         return movements
+
+
+# ─── Scan d'emballage (URS-109) ────────────────────────────────────────────
+#
+# Ordre des sources : code-barres, Open Food Facts, OCR local, puis secours
+# vision. Une source suivante ne remplace une valeur que si elle est plus sûre
+# (confiance strictement supérieure). L'IA ne fait que proposer : rien n'est
+# enregistré ici, hormis le compteur du secours vision et le journal d'audit
+# (sources utilisées, jamais le contenu lu).
+
+SCAN_SOURCE_BARCODE = 'barcode'
+SCAN_SOURCE_OPEN_FOOD_FACTS = 'open_food_facts'
+SCAN_SOURCE_OCR = 'ocr'
+SCAN_SOURCE_VISION = 'vision'
+SCAN_FIELD_NAMES = (
+    'name', 'brand', 'net_quantity', 'unit_suggestion', 'barcode', 'description',
+)
+SCAN_WARNING_VISION_QUOTA = 'vision_quota_reached'
+SCAN_WARNING_VISION_UNAVAILABLE = 'vision_unavailable'
+
+# Fiche publique saisie par un humain : plus sûre que l'OCR, moins qu'un code lu.
+_OPEN_FOOD_FACTS_CONFIDENCE = 0.9
+# Une réponse de modèle ne passe jamais devant une base publique ni un code lu.
+_VISION_MAX_CONFIDENCE = 0.85
+# L'unité de vente d'un article emballé est la pièce ; jamais g/kg d'après la
+# contenance (un paquet de 500 g se vend à la pièce).
+_UNIT_PIECE = 'piece'
+_UNIT_CONFIDENCE = 0.8
+
+
+class ScanField(NamedTuple):
+    value: str
+    confidence: float
+    source: str
+
+
+class ProductScanResult(NamedTuple):
+    fields: dict[str, ScanField | None]
+    warnings: list[str]
+
+
+def _offer(
+    found: dict[str, ScanField], key: str, value: str | None, confidence: float,
+    source: str,
+) -> None:
+    if not value:
+        return
+    current = found.get(key)
+    if current is None or confidence > current.confidence:
+        found[key] = ScanField(value, round(confidence, 3), source)
+
+
+def _apply_local(found: dict[str, ScanField], local: AiProductScanLocal) -> None:
+    if local.barcode is not None and is_valid_gtin(local.barcode.value):
+        barcode = local.barcode
+        _offer(found, 'barcode', barcode.value, barcode.confidence, SCAN_SOURCE_BARCODE)
+        product = lookup_barcode(barcode.value)
+        if product is not None:
+            for key, value in (
+                ('name', product.name),
+                ('brand', product.brand),
+                ('net_quantity', product.quantity),
+            ):
+                _offer(
+                    found, key, value, _OPEN_FOOD_FACTS_CONFIDENCE,
+                    SCAN_SOURCE_OPEN_FOOD_FACTS,
+                )
+    for key in ('name', 'brand', 'net_quantity', 'description'):
+        proposal = getattr(local, key)
+        if proposal is not None:
+            _offer(found, key, proposal.value, proposal.confidence, SCAN_SOURCE_OCR)
+
+
+def _apply_vision(found: dict[str, ScanField], vision: AiProductVision) -> None:
+    confidence = min(vision.confidence or 0.0, _VISION_MAX_CONFIDENCE)
+    for key in ('name', 'brand', 'net_quantity', 'description'):
+        _offer(found, key, getattr(vision, key), confidence, SCAN_SOURCE_VISION)
+    if vision.barcode and is_valid_gtin(vision.barcode):
+        _offer(found, 'barcode', vision.barcode, confidence, SCAN_SOURCE_VISION)
+
+
+def _suggest_unit(found: dict[str, ScanField]) -> None:
+    """« Pièce » seulement si un indice sûr désigne un article emballé.
+
+    Un code à diffusion restreinte (article pesé en magasin) ou l'absence
+    d'indice : aucune unité proposée.
+    """
+    barcode = found.get('barcode')
+    if barcode is not None:
+        if is_restricted_gtin(barcode.value):
+            return
+        source = barcode.source
+    elif 'net_quantity' in found:
+        source = found['net_quantity'].source
+    else:
+        return
+    found['unit_suggestion'] = ScanField(_UNIT_PIECE, _UNIT_CONFIDENCE, source)
+
+
+def vision_quota_month(shop: Shop) -> date:
+    """Premier jour du mois courant, dans le fuseau de la boutique."""
+    return timezone.localdate(timezone=ZoneInfo(shop.timezone)).replace(day=1)
+
+
+def reserve_vision_scan(shop: Shop, month: date) -> bool:
+    """Réserve un appel au secours vision ; `False` si le quota du mois est atteint.
+
+    SQL atomique uniquement : la ligne du mois est créée par un INSERT … ON
+    CONFLICT DO NOTHING, puis incrémentée par un UPDATE conditionnel
+    (`vision_count < limite`). Deux scans simultanés ne peuvent pas dépasser
+    la limite, sans aucune lecture suivie d'une écriture.
+    """
+    limit = shop.effective_plan.max_vision_scans_per_month
+    if limit == 0:
+        return False
+    ProductScanUsage.objects.bulk_create(
+        [ProductScanUsage(shop=shop, month=month)], ignore_conflicts=True,
+    )
+    usage = ProductScanUsage.objects.filter(shop=shop, month=month)
+    if limit is not None:
+        usage = usage.filter(vision_count__lt=limit)
+    now = timezone.now()
+    return usage.update(vision_count=F('vision_count') + 1, updated_at=now) == 1
+
+
+def release_vision_scan(shop: Shop, month: date) -> None:
+    """Rend l'appel réservé quand le secours vision a échoué (décrément atomique)."""
+    ProductScanUsage.objects.filter(shop=shop, month=month, vision_count__gt=0).update(
+        vision_count=F('vision_count') - 1, updated_at=timezone.now(),
+    )
+
+
+def _vision_fallback(
+    shop: Shop, found: dict[str, ScanField], local: AiProductScanLocal,
+    content: bytes, mime_type: str,
+) -> tuple[list[str], str]:
+    """(avertissements, issue du secours) — jamais d'erreur bloquante."""
+    name = found.get('name')
+    if name is not None and name.confidence >= settings.PRODUCT_SCAN_VISION_THRESHOLD:
+        return [], 'not_needed'
+    if not local.vision_available:
+        return [], 'disabled'
+    month = vision_quota_month(shop)
+    if not reserve_vision_scan(shop, month):
+        return [SCAN_WARNING_VISION_QUOTA], 'quota_reached'
+    try:
+        vision = scan_product_vision_with_ai_service(
+            content=content, mime_type=mime_type,
+        )
+    except AiServiceUnavailableError:
+        release_vision_scan(shop, month)
+        return [SCAN_WARNING_VISION_UNAVAILABLE], 'unavailable'
+    _apply_vision(found, vision)
+    return [], 'used'
+
+
+def scan_product_image(
+    *, shop: Shop, user: User, content: bytes, mime_type: str,
+) -> ProductScanResult:
+    """Propose les champs d'une fiche article à partir d'une photo d'emballage.
+
+    `content` est déjà validé (type réel, taille) et ne vit qu'en mémoire :
+    rien n'est stocké ni journalisé de l'image ou du texte lu. Lève
+    `AiServiceUnavailableError` si la lecture locale échoue (la vue répond 503).
+    """
+    local = scan_product_locally_with_ai_service(content=content, mime_type=mime_type)
+    found: dict[str, ScanField] = {}
+    _apply_local(found, local)
+    warnings, vision_outcome = _vision_fallback(shop, found, local, content, mime_type)
+    _suggest_unit(found)
+    minimum = settings.PRODUCT_SCAN_MIN_CONFIDENCE
+    fields: dict[str, ScanField | None] = {}
+    for key in SCAN_FIELD_NAMES:
+        field = found.get(key)
+        shown = field is not None and field.confidence >= minimum
+        fields[key] = field if shown else None
+    log_action(
+        shop_id=shop.pk, user=user, action='product_scan', model_name='ProductScan',
+        obj_id=shop.pk, obj_repr="Scan d'emballage",
+        changes={
+            'sources': sorted({f.source for f in fields.values() if f is not None}),
+            'vision': vision_outcome,
+        },
+    )
+    return ProductScanResult(fields=fields, warnings=warnings)

@@ -11,7 +11,12 @@ from .models import OcrResult, UploadedDocument
 from .pdf import InvalidInvoicePdfError, validate_invoice_pdf
 from .services import (
     REVIEW_SCHEMA_VERSION,
+    SCAN_SOURCE_BARCODE,
+    SCAN_SOURCE_OCR,
+    SCAN_SOURCE_OPEN_FOOD_FACTS,
+    SCAN_SOURCE_VISION,
     InvalidFileSignatureError,
+    ProductScanResult,
     validate_file_signature,
 )
 
@@ -79,6 +84,68 @@ class SupplierInvoiceUploadResponseSerializer(serializers.Serializer):
             'mime_type': document.mime_type,
             'size_bytes': document.size_bytes,
             'created_at': document.created_at,
+        }).data
+
+
+class ProductScanRequestSerializer(serializers.Serializer):
+    """Photo d'emballage (URS-109) : présence, taille, MIME, signature réelle."""
+
+    image = serializers.FileField()
+
+    def validate_image(self, file: UploadedFile) -> UploadedFile:
+        max_bytes = settings.PRODUCT_SCAN_MAX_SIZE_MB * 1024 * 1024
+        if file.size == 0:
+            raise serializers.ValidationError('Le fichier est vide.', code='empty')
+        if file.size > max_bytes:
+            raise serializers.ValidationError(
+                f"L'image ne doit pas dépasser {settings.PRODUCT_SCAN_MAX_SIZE_MB} Mo.",
+                code='too_large',
+            )
+        if file.content_type not in settings.PRODUCT_SCAN_ALLOWED_TYPES:
+            raise serializers.ValidationError(
+                'Formats acceptés : JPEG, PNG, WebP.', code='type',
+            )
+        try:
+            validate_file_signature(file, file.content_type)
+        except InvalidFileSignatureError as exc:
+            raise serializers.ValidationError(str(exc), code='signature') from exc
+        return file
+
+
+class _ScanFieldSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    confidence = serializers.FloatField(min_value=0.0, max_value=1.0)
+    source = serializers.ChoiceField(choices=(
+        SCAN_SOURCE_BARCODE,
+        SCAN_SOURCE_OPEN_FOOD_FACTS,
+        SCAN_SOURCE_OCR,
+        SCAN_SOURCE_VISION,
+    ))
+
+
+class _ScanFieldsSerializer(serializers.Serializer):
+    name = _ScanFieldSerializer(allow_null=True)
+    brand = _ScanFieldSerializer(allow_null=True)
+    net_quantity = _ScanFieldSerializer(allow_null=True)
+    unit_suggestion = _ScanFieldSerializer(allow_null=True)
+    barcode = _ScanFieldSerializer(allow_null=True)
+    description = _ScanFieldSerializer(allow_null=True)
+
+
+class ProductScanResponseSerializer(serializers.Serializer):
+    """Propositions du scan : un champ incertain vaut `null`."""
+
+    fields = _ScanFieldsSerializer()
+    warnings = serializers.ListField(child=serializers.CharField())
+
+    @classmethod
+    def from_result(cls, result: ProductScanResult) -> dict:
+        return cls({
+            'fields': {
+                key: field._asdict() if field is not None else None
+                for key, field in result.fields.items()
+            },
+            'warnings': result.warnings,
         }).data
 
 

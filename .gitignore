@@ -33,3 +33,5 @@ deploy/state/
 
 # Aperçus PDF régénérables (les fichiers de recette sont dans docs/recette/lot6)
 apps/backend/artifacts/
+
+e2e/results/

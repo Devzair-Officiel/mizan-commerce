@@ -1044,6 +1044,30 @@
       "format_name_taken": "Un autre format de cet article porte déjà ce nom.",
       "sku_taken": "Cette référence est déjà utilisée."
     },
+    "scan": {
+      "title": "Gagnez du temps avec une photo",
+      "help": "Photographiez l'emballage : nous proposons le nom, la description et le code-barres. Vérifiez-les avant d'enregistrer ; le prix reste à saisir.",
+      "scan": "Scanner l'emballage",
+      "scan_again": "Scanner une autre photo",
+      "retry": "Réessayer",
+      "detected": "Détecté, à vérifier",
+      "filled": "{count, plural, one {# champ pré-rempli : vérifiez-le avant d'enregistrer.} other {# champs pré-remplis : vérifiez-les avant d'enregistrer.}}",
+      "nothing_filled": "Les informations lues étaient déjà saisies : rien n'a été modifié.",
+      "nothing_found": "Aucune information lisible sur cette photo. Essayez une photo nette, de face et bien éclairée.",
+      "error": {
+        "type": "Choisissez une photo JPEG, PNG ou WebP.",
+        "too_large": "La photo dépasse {max} Mo. Choisissez une photo plus légère.",
+        "signature": "Ce fichier n'est pas une image lisible. Choisissez une autre photo.",
+        "empty": "Le fichier est vide. Choisissez une autre photo.",
+        "throttled": "Trop de scans en peu de temps. Patientez une minute, puis réessayez.",
+        "unavailable": "La lecture de la photo est indisponible pour le moment. Réessayez, ou remplissez le formulaire à la main.",
+        "session": "Votre session a expiré. Reconnectez-vous pour scanner."
+      },
+      "warning": {
+        "vision_quota_reached": "Lecture avancée épuisée ce mois-ci pour votre formule : seule la lecture rapide a servi.",
+        "vision_unavailable": "Lecture avancée indisponible pour le moment : seule la lecture rapide a servi."
+      }
+    },
     "units": {
       "piece": "Pièce",
       "gram": "Gramme (g)",

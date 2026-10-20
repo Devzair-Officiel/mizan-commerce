@@ -897,6 +897,24 @@ L'application est organisée autour des modules suivants :
 
 ---
 
+## URS-109 — Scanner l'emballage d'un article pour pré-remplir sa fiche (proposée)
+
+**En tant que** commerçant,  
+**je veux** photographier l'emballage d'un article à la création de sa fiche,  
+**afin de** ne pas recopier à la main son nom, sa marque, sa contenance et son code-barres.
+
+### Critères d'acceptation
+
+- Dans le formulaire de création d'un article (pas d'un service, pas en modification), un bouton « Scanner l'emballage » ouvre l'appareil photo ou la galerie en un seul geste.
+- Le système lit le code-barres (EAN-8, EAN-12/UPC-A, EAN-13, EAN-14), le recherche dans une base publique (Open Food Facts), puis lit le texte de l'emballage ; une source moins fiable ne remplace jamais une valeur plus fiable.
+- Si le nom reste incertain, une lecture par un fournisseur de vision externe peut être tentée, seulement s'il est configuré et dans la limite du quota mensuel de la formule ; quota atteint ou fournisseur indisponible : le résultat local est proposé avec un avertissement, jamais une erreur bloquante.
+- Seuls les champs encore vides sont pré-remplis ; chacun porte un badge « Détecté, à vérifier » retiré dès que l'utilisateur le modifie. Le prix n'est jamais proposé. Une unité de vente n'est proposée que sans ambiguïté.
+- Rien n'est enregistré tant que l'utilisateur n'a pas relu et validé le formulaire.
+- L'image n'est ni stockée ni journalisée ; seul le code-barres part vers la base publique ; l'image n'est envoyée au fournisseur de vision qu'en secours, réduite et sans métadonnées (position GPS).
+- Chaque scan est consigné dans le journal d'audit (boutique, membre, source utilisée), sans contenu.
+
+---
+
 # 15. URS — Détection d'objets / inventaire visuel
 
 ## URS-047 — Prendre une photo d'étagère
@@ -2377,6 +2395,7 @@ URS concernées :
 
 ```text
 URS-042 à URS-054
+URS-109 (proposée)
 ```
 
 ---

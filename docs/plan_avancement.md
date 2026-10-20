@@ -418,6 +418,16 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Validation humaine ligne par ligne
 - [ ] Création des `StockMovement` après validation uniquement
 
+### Scan d'emballage (URS-109, proposée)
+
+- [x] ai-service : code-barres EAN-8/12/13/14 (`zxing-cpp`), OCR local, contenance et description proposées (`POST /internal/product-scan`)
+- [x] Secours vision interchangeable (`app/vision/` : `ProductVisionProvider`, OpenAI, registre `VISION_PROVIDER`, `none` par défaut) ; image réduite, ré-encodée en JPEG, EXIF retiré ; coût journalisé sans contenu
+- [x] Backend : `POST /api/ocr/product-scan/` (image en mémoire seulement, mime et taille vérifiés, limite de débit), Open Food Facts par EAN validé (cache 30 jours), gating `product_scan`, journal d'audit sans contenu
+- [x] Quota mensuel du secours vision (`max_vision_scans_per_month`, `ProductScanUsage`), incrément atomique, quota atteint = résultat local avec avertissement
+- [x] Frontend : « Scanner l'emballage » à la création d'un article, champs vides seulement, badge « Détecté, à vérifier », prix jamais pré-rempli ; audit `e2e/audit-product-scan.mjs`
+- [ ] Tests de coût réel par image avec plusieurs fournisseurs, puis choix du fournisseur et ajustement des quotas par formule
+- [ ] Point d'entrée dans l'onboarding (composant `ProductScanCard` réutilisable)
+
 ### OCR adresses clients (URS-046)
 
 - [ ] Endpoint extraction nom + téléphone + adresse depuis image
@@ -656,6 +666,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
+- [ ] **Bloquant** — Réviser la politique de confidentialité (traitement d'images, envoi au fournisseur de vision) AVANT de passer `VISION_PROVIDER` hors de `none` en production.
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
 ### Vérification des affirmations marketing (lot 7d)

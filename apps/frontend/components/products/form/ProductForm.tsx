@@ -7,6 +7,7 @@ import { FormActions } from '@/components/form/FormActions';
 import { FORM_COLUMN, FORM_COLUMNS } from '@/components/form/fieldStyles';
 import { useFormLeave } from '@/components/form/useFormLeave';
 import type { ProductDetail, ProductType } from '@/lib/hooks/useProducts';
+import { ProductScanCard } from '@/components/products/scan/ProductScanCard';
 import { ProductFormatsSection } from './ProductFormatsSection';
 import { ProductInfoSection } from './ProductInfoSection';
 import { ProductPhotoSection } from './ProductPhotoSection';
@@ -37,11 +38,11 @@ interface ProductFormProps {
  * les prix et le stock qui en dépendent), puis Prix et Stock (format unique) ou Formats et prix
  * (plusieurs formats) ; colonne latérale : Photo, Référence. Sur mobile, la photo facultative vient
  * après les champs obligatoires. Un service n'a ni stock ni unité ; s'il a plusieurs formats, ses
- * prix se règlent sur la fiche.
+ * prix se règlent sur la fiche. En création d'un article, « Scanner l'emballage » vient en tête.
  */
 export function ProductForm({ mode, type, mixed, currencyCode, product, onSubmit, isSubmitting, onLeave, focusPhotos }: ProductFormProps) {
   const t = useTranslations('articles.form');
-  const { form, submit, sections, formats, photos } = useProductForm({ mode, type, product, onSubmit, initialSection: focusPhotos ? 'photo' : undefined });
+  const { form, submit, sections, formats, photos, scan } = useProductForm({ mode, type, product, onSubmit, initialSection: focusPhotos ? 'photo' : undefined });
   const { register, control, setFocus, formState: { errors, isDirty } } = form;
   const [currentType, unit] = useWatch({ control, name: ['type', 'unit'] });
   const dirty = isDirty || photos.dirty;
@@ -60,9 +61,10 @@ export function ProductForm({ mode, type, mixed, currencyCode, product, onSubmit
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-5 px-4 pt-4 pb-28 lg:pt-0 lg:pb-8">
+      {mode === 'create' && article && <ProductScanCard onScanned={scan.apply} />}
       <div className={FORM_COLUMNS}>
         <div className={FORM_COLUMN}>
-          <ProductInfoSection {...fields} mode={mode} mixed={mixed} type={currentType} multi={multi} formats={serviceNote} order="max-lg:order-1" />
+          <ProductInfoSection {...fields} detected={scan.detected} mode={mode} mixed={mixed} type={currentType} multi={multi} formats={serviceNote} order="max-lg:order-1" />
           {multi ? (
             <ProductFormatsSection form={form} formats={formats} product={product} unit={unit} currency={currency} currencyCode={currencyCode} order="max-lg:order-2" />
           ) : !serviceNote && (
@@ -75,7 +77,7 @@ export function ProductForm({ mode, type, mixed, currencyCode, product, onSubmit
         </div>
         <div className={FORM_COLUMN}>
           <ProductPhotoSection photos={photos} productId={product?.id} {...section('photo')} order="max-lg:order-4" />
-          {article && <ProductReferenceSection {...fields} setFocus={setFocus} multi={multi} {...section('reference')} order="max-lg:order-5" />}
+          {article && <ProductReferenceSection {...fields} detected={scan.detected} setFocus={setFocus} multi={multi} {...section('reference')} order="max-lg:order-5" />}
         </div>
       </div>
       <FormActions dirty={dirty} submitting={isSubmitting}
