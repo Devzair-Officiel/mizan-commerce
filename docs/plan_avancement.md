@@ -640,10 +640,20 @@ Décision du 2026-10-16 : pas de publications automatiques.
       logique lu dans le sens réel du document (`getComputedStyle(document.documentElement)
       .direction`), contre-épreuve condition inversée en échec en fr comme en ar.
 
-- [ ] Audit invoices, recherche par numéro : échec intermittent en 1440 fr clair, sur main
+- [ ] Audits qui déduisent le sens d'écriture de la langue (`locale === 'ar'`) au lieu du
+      document : account-menu:87, customer-form:45, sales:83, sidebar:50, 149, 154, 159,
+      177, subscription:162-165. Les passer sur `getComputedStyle(document.documentElement)
+      .direction`, comme invoices, puis relancer chacun dans les 8 configurations. Sans
+      urgence : sidebar:180 déplace le pointeur de 600 px vers la droite sans tenir compte
+      du sens (impact probablement nul).
+
+- [x] Audit invoices, recherche par numéro : échec intermittent en 1440 fr clair, sur main
       comme sur Z3 (environ 1 passage sur 3), déjà vu en 360 ar sombre. Le serveur renvoie
       bien 1 facture sur 24 ; le contrôle lit la liste juste après `networkidle`, encore vide
-      (0 lien), et la bonne ligne n'apparaît qu'ensuite, une seule fois.
+      (0 lien), et la bonne ligne n'apparaît qu'ensuite, une seule fois. Corrigé : réponse
+      filtrée attendue avant la saisie (`waitForResponse`), puis liste égale au résultat ;
+      `networkidle`, déjà atteint au chargement, n'attendait pas la requête. 0 échec sur 10
+      en 1440 ar clair avant comme après (course mesurée : marge de 13 à 148 ms).
 
 - [ ] Catégorie de rappel zakat : plus aucun rappel automatique depuis Z2b. Décider du filtre
       de la liste et du reclassement des rappels restants.

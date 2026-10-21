@@ -115,10 +115,19 @@ async function checkMobile(page, locale, label) {
 
 async function checkSearch(page, locale, label) {
   const input = page.getByRole('searchbox', { name: text(locale, 'list.search_label') });
-  await input.fill(fixtures[0].number);
-  await page.waitForURL(url => url.searchParams.get('search') === fixtures[0].number);
-  await page.waitForLoadState('networkidle');
-  const result = await api(page, `invoices/?search=${fixtures[0].number}`);
+  const number = fixtures[0].number;
+  // Réponse filtrée écoutée avant la saisie : `networkidle`, déjà atteint au chargement, ne l'attend pas.
+  const [response] = await Promise.all([
+    page.waitForResponse(r => listPageResponse(r, 1) && new URL(r.url()).searchParams.get('search') === number),
+    input.fill(number),
+  ]);
+  await page.waitForURL(url => url.searchParams.get('search') === number);
+  const shown = (await response.json()).results.map(i => `/invoices/${i.id}`);
+  await page.waitForFunction(want => {
+    const links = new Set([...document.querySelectorAll('main a[href^="/invoices/"]')].map(a => a.getAttribute('href')));
+    return links.size === want.length && want.every(href => links.has(href));
+  }, shown);
+  const result = await api(page, `invoices/?search=${number}`);
   report.check(result.count === 1 && await page.locator(`main a[href="/invoices/${fixtures[0].id}"]`).count() === 1,
     `${label} : recherche numéro côté serveur`);
   await input.fill('Karima Audit');
