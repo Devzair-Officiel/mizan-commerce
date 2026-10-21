@@ -16,7 +16,11 @@
  *   téléchargé sur desktop, préparé puis partagé (Web Share simulé) sur mobile ;
  * - limite de débit (429 simulé, une fois par passage) : notification, fenêtre ouverte ;
  * - WhatsApp : message préparé (aperçu = texte du serveur), « Copier le texte », « Ouvrir WhatsApp »
- *   → wa.me avec ce texte (wa.me servi par l'audit). Un seul bouton plein à chaque étape du pied.
+ *   → wa.me avec ce texte (wa.me servi par l'audit). Un seul bouton plein à chaque étape du pied ;
+ * - message tronqué (résumé simulé à 42, puis 1 500) : avertissement « 15 commandes sur N », qui
+ *   tient à 360×640 ; mobile : « Partager le PDF avec le résumé » prépare le PDF et le texte, puis le
+ *   pied les partage ensemble (Web Share simulé : fichier intact, texte = message du serveur) ;
+ *   desktop : « Passer au PDF » ; au-delà du plafond du PDF : « Passer au CSV ».
  */
 import { readFile } from 'node:fs/promises';
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
@@ -136,20 +140,25 @@ async function checkPdfOption(page, ctx) {
   await choose(formatRadio(page, locale, 'csv'));
 }
 
+/** Ce qui dépasse de l'écran ou défile dans la fenêtre ; vide si elle tient. */
+async function fitIssue(page, locale) {
+  await animationsDone(dialog(page, locale));
+  return dialog(page, locale).evaluate((root) => {
+    const box = root.getBoundingClientRect();
+    if (box.top < 0 || box.bottom > innerHeight + 1) return `fenêtre ${Math.round(box.top)}→${Math.round(box.bottom)}`;
+    const scrolled = [root, ...root.querySelectorAll('*')].find((el) => el.scrollHeight > el.clientHeight + 1
+      && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
+    return scrolled ? `défile de ${scrolled.scrollHeight - scrolled.clientHeight}px` : '';
+  });
+}
+
 /** À 360×640 : la fenêtre tient dans l'écran et rien n'y défile, pour chaque format. */
 async function checkFits(page, ctx) {
   const { label, locale, viewport } = ctx;
   await page.setViewportSize({ width: 360, height: 640 });
   for (const format of ['csv', 'pdf', 'whatsapp']) {
     await choose(formatRadio(page, locale, format));
-    await animationsDone(dialog(page, locale));
-    const issue = await dialog(page, locale).evaluate((root) => {
-      const box = root.getBoundingClientRect();
-      if (box.top < 0 || box.bottom > innerHeight + 1) return `fenêtre ${Math.round(box.top)}→${Math.round(box.bottom)}`;
-      const scrolled = [root, ...root.querySelectorAll('*')].find((el) => el.scrollHeight > el.clientHeight + 1
-        && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
-      return scrolled ? `défile de ${scrolled.scrollHeight - scrolled.clientHeight}px` : '';
-    });
+    const issue = await fitIssue(page, locale);
     report.check(issue === '', `${label} : 360×640, ${format} → tient sans défiler${issue ? ` (${issue})` : ''}`);
   }
   await choose(formatRadio(page, locale, 'csv'));
@@ -305,16 +314,97 @@ async function checkWhatsApp(page, ctx) {
     `${label} : « ${E(locale, 'step.open_whatsapp')} » → wa.me avec le message, fenêtre refermée (${url.slice(0, 40)}…)`);
 }
 
+/** Avertissement du message tronqué : texte, et son action (texte, pas un second bouton plein). */
+async function limitNotice(page, ctx, count, target) {
+  const notice = dialog(page, ctx.locale).getByRole('status')
+    .filter({ hasText: E(ctx.locale, 'whatsapp_limit', { max: 15, count, target }) });
+  return notice.waitFor({ timeout: 8000 }).then(() => notice, () => null);
+}
+
+/**
+ * Message tronqué (résumé simulé ; PDF et message réels) : avertissement, qui tient à 360×640 ;
+ * au-delà du plafond du PDF, renvoi au CSV ; sinon PDF et résumé partagés ensemble (mobile) ou
+ * passage au PDF (desktop).
+ */
+async function checkWhatsAppLimit(page, ctx) {
+  const { label, locale, viewport } = ctx;
+  const mocked = { rows: 42 };
+  const summary = '**/api/proxy/exports/orders/summary/**';
+  await page.route(summary, (route) => route.fulfill({ json: { rows: mocked.rows, pdf_max_rows: 1000, whatsapp_max_rows: 15 } }));
+  // Page rechargée : résumé hors cache, simulé dès l'ouverture.
+  await page.goto(`${BASE}/orders`);
+  await page.waitForLoadState('networkidle');
+  await openDialog(page, ctx);
+  const start = await periodRadio(page, locale, 'month').isChecked() ? 'month' : 'all';
+  await choose(formatRadio(page, locale, 'whatsapp'));
+  let notice = await limitNotice(page, ctx, 42, 'pdf');
+  const action = viewport.mobile ? 'share_bundle' : 'use_pdf';
+  const button = notice?.getByRole('button', { name: E(locale, action), exact: true });
+  report.check(!!notice && await button.isVisible() && await dialog(page, locale).getByText(E(locale, 'rows', { count: 42 })).count() === 0,
+    `${label} : 42 commandes → « ${E(locale, 'whatsapp_limit', { max: 15, count: 42, target: 'pdf' })} », action « ${E(locale, action)} »`);
+  await checkOneFilled(page, ctx, 'prepare_message');
+  if (viewport.mobile) {
+    await page.setViewportSize({ width: 360, height: 640 });
+    const issue = await fitIssue(page, locale);
+    report.check(issue === '', `${label} : 360×640, avertissement du message → tient sans défiler${issue ? ` (${issue})` : ''}`);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+  }
+
+  mocked.rows = 1500;
+  await choose(periodRadio(page, locale, 'last_month'));
+  notice = await limitNotice(page, ctx, 1500, 'csv');
+  await notice?.getByRole('button', { name: E(locale, 'use_csv'), exact: true }).click();
+  report.check(!!notice && await formatRadio(page, locale, 'csv').isChecked(),
+    `${label} : 1 500 commandes → « ${E(locale, 'whatsapp_limit', { max: 15, count: 1500, target: 'csv' })} », « ${E(locale, 'use_csv')} » choisit le CSV`);
+
+  // Retour à la période d'ouverture : 42 commandes (résumé en cache).
+  await choose(periodRadio(page, locale, start));
+  await choose(formatRadio(page, locale, 'whatsapp'));
+  notice = await limitNotice(page, ctx, 42, 'pdf');
+  if (!viewport.mobile) {
+    await notice?.getByRole('button', { name: E(locale, 'use_pdf'), exact: true }).click();
+    report.check(!!notice && await formatRadio(page, locale, 'pdf').isChecked(), `${label} : « ${E(locale, 'use_pdf')} » choisit le PDF`);
+    await closeDialog(page, ctx);
+  } else {
+    await checkSharedBundle(page, ctx, notice);
+  }
+  await page.unroute(summary);
+}
+
+/** Mobile : l'action de l'avertissement prépare PDF et texte ; le pied les partage ensemble. */
+async function checkSharedBundle(page, ctx, notice) {
+  const { label, locale } = ctx;
+  const [pdf, message] = await Promise.all([
+    page.waitForResponse(isPdf, { timeout: 15000 }),
+    page.waitForResponse(final('whatsapp'), { timeout: 10000 }),
+    notice.getByRole('button', { name: E(locale, 'share_bundle'), exact: true }).click(),
+  ]);
+  const { text } = await message.json();
+  // Même libellé que l'action de l'avertissement : on attend qu'elle laisse la place au pied.
+  const moved = await notice.getByRole('button').waitFor({ state: 'detached', timeout: 8000 }).then(() => true, () => false);
+  report.check(pdf.status() === 200 && moved && await stepButton(page, locale, 'share_bundle').count() === 1,
+    `${label} : « ${E(locale, 'share_bundle')} » → PDF et message préparés, l'action passe au pied`);
+  await checkOneFilled(page, ctx, 'share_bundle');
+  await stepButton(page, locale, 'share_bundle').click();
+  const shared = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue(), () => null);
+  report.check(FILE_NAME('pdf').test(shared?.name ?? '') && binaryPdf(shared.head, shared.tail) && shared.text === text,
+    `${label} : partage → ${shared?.name} (${shared?.size} octets intacts) + texte du résumé (« ${flat(shared?.text ?? '').slice(0, 40)}… »)`);
+  await dialog(page, locale).waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+  report.check(!await dialog(page, locale).isVisible(), `${label} : fenêtre refermée après le partage`);
+}
+
 /** Web Share niveau 2 simulé (mobile) : le fichier partagé est gardé dans `window.__shared`. */
 function fakeShare() {
   window.__shared = null;
   Object.defineProperty(navigator, 'canShare', { configurable: true, value: (data) => !!data?.files?.length });
   Object.defineProperty(navigator, 'share', {
     configurable: true,
-    value: async ({ files: [file] }) => {
+    value: async ({ files: [file], text: message = null }) => {
       // latin1 : octets bruts, comme le fichier téléchargé.
       const text = async (blob) => new TextDecoder('latin1').decode(await blob.arrayBuffer());
-      window.__shared = { name: file.name, type: file.type, size: file.size, head: await text(file.slice(0, 4)), tail: await text(file.slice(-1024)) };
+      window.__shared = {
+        name: file.name, type: file.type, size: file.size, head: await text(file.slice(0, 4)), tail: await text(file.slice(-1024)), text: message,
+      };
     },
   });
 }
@@ -342,6 +432,7 @@ async function runConfig(page, run, throttled) {
   }
   await openDialog(page, run);
   await checkWhatsApp(page, run);
+  await checkWhatsAppLimit(page, run);
 }
 
 // Débit de la pile locale relevé (EXPORTS_RENDER_RATE, docker-compose.yml) : PDF et message réels

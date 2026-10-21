@@ -60,8 +60,8 @@ TEXTS: dict[str, dict[str, str]] = {
         'pair': '{label} : {value}',
         'detail': 'Détail',
         'totals': 'Totaux',
-        'more.one': '… et 1 autre, détail dans le PDF',
-        'more.other': '… et {count} autres, détail dans le PDF',
+        'more.one': '… et 1 autre commande (liste complète en PDF ou CSV)',
+        'more.other': '… et {count} autres commandes (liste complète en PDF ou CSV)',
     },
     'en': {
         'orders.title': 'Orders',
@@ -111,8 +111,8 @@ TEXTS: dict[str, dict[str, str]] = {
         'pair': '{label}: {value}',
         'detail': 'Details',
         'totals': 'Totals',
-        'more.one': '… and 1 more, details in the PDF',
-        'more.other': '… and {count} more, details in the PDF',
+        'more.one': '… and 1 more order (full list in the PDF or CSV)',
+        'more.other': '… and {count} more orders (full list in the PDF or CSV)',
     },
     'ar': {
         'orders.title': 'الطلبات',
@@ -162,8 +162,10 @@ TEXTS: dict[str, dict[str, str]] = {
         'pair': '{label}: {value}',
         'detail': 'التفاصيل',
         'totals': 'المجاميع',
-        'more.one': '… وطلب آخر، التفاصيل في ملف PDF',
-        'more.other': '… و{count} أخرى، التفاصيل في ملف PDF',
+        'more.one': '… وطلب آخر (القائمة الكاملة في ملف PDF أو CSV)',
+        'more.other': (
+            '… والطلبات المتبقية: {count} (القائمة الكاملة في ملف PDF أو CSV)'
+        ),
     },
 }
 

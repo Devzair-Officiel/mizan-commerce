@@ -10,6 +10,7 @@ import { ExportFooter } from './ExportFooter';
 import { ExportFormatField } from './ExportFormatField';
 import { ExportPeriodField } from './ExportPeriodField';
 import { ExportRowsBox } from './ExportRowsBox';
+import { ExportWhatsAppLimit } from './ExportWhatsAppLimit';
 import { useOrdersExportActions } from './useOrdersExportActions';
 import { useOrdersExportForm } from './useOrdersExportForm';
 
@@ -37,16 +38,24 @@ export function OrdersExportDialog({ state, onClose }: { state: OrdersPageState;
   const actions = useOrdersExportActions({ format, query, onDone: onClose });
   const { register, setValue, formState: { errors } } = form;
   const overCap = format === 'pdf' && !!summary && summary.rows > summary.pdf_max_rows;
+  // Message tronqué : l'avertissement remplace la description du format et le nombre de commandes.
+  const truncated = format === 'whatsapp' && summary && summary.rows > summary.whatsapp_max_rows ? summary : null;
 
   return (
     <BottomSheet open onClose={onClose} title={t('title')} description={scope} footer={
       <ExportFooter formId={formId} actions={actions} disabled={summary?.rows === 0 || overCap} onClose={onClose} />
     }>
       <form id={formId} noValidate onSubmit={form.handleSubmit(actions.run)} className="flex flex-col gap-4">
-        <ExportFormatField register={register} format={format} />
+        <ExportFormatField register={register} format={format} notice={truncated && (
+          <ExportWhatsAppLimit summary={truncated} actions={actions}
+            onShareBundle={() => void form.handleSubmit(actions.prepareBundle)()}
+            onUseFormat={(value) => setValue('format', value)} />
+        )} />
         <ExportPeriodField register={register} period={period} error={errors.to?.message} />
-        <ExportRowsBox format={format} summary={summary} preview={actions.text}
-          onUseCsv={() => setValue('format', 'csv')} />
+        {(!truncated || actions.text !== null) && (
+          <ExportRowsBox format={format} summary={summary} preview={actions.text}
+            onUseCsv={() => setValue('format', 'csv')} />
+        )}
       </form>
     </BottomSheet>
   );

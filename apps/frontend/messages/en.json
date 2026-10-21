@@ -899,6 +899,9 @@
       "rows": "{count, plural, =0 {No orders to export.} one {# order to export.} other {# orders to export.}}",
       "pdf_limit": "Too many orders for a PDF ({count}, up to {max}).",
       "use_csv": "Switch to CSV",
+      "whatsapp_limit": "The message shows {max} of {count} orders. To send them all, {target, select, csv {export the CSV.} other {share the PDF.}}",
+      "use_pdf": "Switch to PDF",
+      "share_bundle": "Share the PDF with the summary",
       "preview_label": "Message preview",
       "cancel": "Cancel",
       "copy": "Copy text",
@@ -910,7 +913,8 @@
         "prepare_pdf": "Prepare PDF",
         "share_pdf": "Share PDF",
         "prepare_message": "Prepare message",
-        "open_whatsapp": "Open WhatsApp"
+        "open_whatsapp": "Open WhatsApp",
+        "share_bundle": "Share the PDF with the summary"
       },
       "errors": {
         "throttled": "Too many exports in a minute: try again shortly.",
