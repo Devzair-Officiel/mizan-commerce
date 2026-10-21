@@ -70,6 +70,7 @@ services:
     environment:
       - HOME=/tmp                               # l'uid hôte n'a pas de dossier personnel dans l'image
       - PYTEST_XDIST_AUTO_NUM_WORKERS=4         # `pytest -n auto` : 4 workers en local au lieu de 16 (cœurs logiques, psutil absent) ; plus : `-n 8`
+      - EXPORTS_RENDER_RATE=${EXPORTS_RENDER_RATE:-1000/minute}  # rendus PDF/WhatsApp des exports : 10/minute par défaut (base.py) ; relevé pour que les audits ne dépendent pas de la minute
     volumes:
       - ./apps/backend:/app                     # monte le code local dans le conteneur (hot reload)
     ports:

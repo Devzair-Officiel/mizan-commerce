@@ -10,13 +10,13 @@
  * - période personnalisée à l'envers : erreur sous la date de fin, rien n'est téléchargé ;
  * - plafond du PDF (résumé simulé à 1 500) : alerte, bouton désactivé, « Passer au CSV » ;
  * - CSV : `commandes-AAAA-MM-JJ.csv`, BOM, « ; », colonnes dans la langue, autant de lignes qu'annoncé ;
- * - PDF, réel une fois par taille (limite de 10 rendus par minute) : en-têtes du proxy
+ * - PDF réel dans chaque configuration (débit relevé dans la pile locale) : en-têtes du proxy
  *   (`application/pdf`, `Content-Disposition` en pièce jointe, aucun ne porte le jeton), octets
  *   reçus intacts (`%PDF` … `%%EOF`) ;
  *   téléchargé sur desktop, préparé puis partagé (Web Share simulé) sur mobile ;
- * - limite de débit (429 simulé) : notification, fenêtre ouverte ;
+ * - limite de débit (429 simulé, une fois par passage) : notification, fenêtre ouverte ;
  * - WhatsApp : message préparé (aperçu = texte du serveur), « Copier le texte », « Ouvrir WhatsApp »
- *   → wa.me avec ce texte (wa.me servi par l'audit). Une seule action pleine dans le pied.
+ *   → wa.me avec ce texte (wa.me servi par l'audit). Un seul bouton plein à chaque étape du pied.
  */
 import { readFile } from 'node:fs/promises';
 import { BASE, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
@@ -45,6 +45,16 @@ const choose = (input) => input.locator('xpath=..').click();
 const stepButton = (page, locale, step) => visibleButton(page, E(locale, `step.${step}`));
 const toast = (page, text) => page.locator('[data-sonner-toast]').filter({ hasText: text }).first();
 const flat = (text) => text.replace(/\s+/g, ' ').trim();
+/** Boutons pleins (fond opaque) de la fenêtre : un seul attendu, l'action de l'étape. */
+const filledButtons = (page, locale) => dialog(page, locale).evaluate((root) => [...root.querySelectorAll('button')]
+  .filter((b) => b.checkVisibility() && !/^(transparent|rgba\(0, 0, 0, 0\))$|\/ 0\)$/.test(getComputedStyle(b).backgroundColor))
+  .map((b) => b.innerText.trim()));
+
+async function checkOneFilled(page, ctx, step) {
+  const filled = await filledButtons(page, ctx.locale);
+  report.check(filled.length === 1 && filled[0] === E(ctx.locale, `step.${step}`),
+    `${ctx.label} : un seul bouton plein, « ${E(ctx.locale, `step.${step}`)} » (${filled.map((f) => `« ${f} »`).join(', ')})`);
+}
 const exportButton = (page, ctx) => visibleButton(page, ctx.viewport.mobile ? E(ctx.locale, 'button_label') : E(ctx.locale, 'button'));
 
 async function openDialog(page, ctx) {
@@ -111,6 +121,7 @@ async function checkDialog(page, ctx) {
   report.check(await dialog(page, locale).getByText(hint).isVisible(), `${label} : description « ${hint} »`);
   const rows = await rowsShown(page, ctx, '');
   report.check(rows.shown, `${label} : ${rows.text} (résumé de l'API : ${rows.expected})`);
+  await checkOneFilled(page, ctx, 'download_csv');
   return rows.expected;
 }
 
@@ -241,6 +252,8 @@ async function checkPdf(page, ctx) {
       stepButton(page, locale, 'prepare_pdf').click(),
     ]);
     await checkPdfResponse(page, ctx, response);
+    await stepButton(page, locale, 'share_pdf').waitFor();
+    await checkOneFilled(page, ctx, 'share_pdf');
     await stepButton(page, locale, 'share_pdf').click();
     const shared = await page.waitForFunction(() => window.__shared, null, { timeout: 5000 }).then((h) => h.jsonValue(), () => null);
     report.check(FILE_NAME('pdf').test(shared?.name ?? '') && shared.type === 'application/pdf' && binaryPdf(shared.head, shared.tail),
@@ -277,6 +290,7 @@ async function checkWhatsApp(page, ctx) {
   const cancel = await dialog(page, locale).getByRole('button', { name: E(locale, 'cancel'), exact: true }).count();
   report.check(await stepButton(page, locale, 'open_whatsapp').isVisible() && cancel === 0,
     `${label} : pied « ${E(locale, 'copy')} » (texte) + « ${E(locale, 'step.open_whatsapp')} » (plein)`);
+  await checkOneFilled(page, ctx, 'open_whatsapp');
   await visibleButton(page, E(locale, 'copy')).click();
   const copied = await toast(page, E(locale, 'copied')).waitFor({ timeout: 5000 }).then(() => true, () => false);
   const clipboard = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
@@ -308,7 +322,7 @@ function fakeShare() {
 // 429 simulé : l'erreur réseau qu'en affiche la console est attendue.
 const expectedNoise = (problem) => problem.includes('status of 429') && problem.includes('/api/proxy/exports/orders/pdf');
 
-async function runConfig(page, run, realPdf) {
+async function runConfig(page, run, throttled) {
   await checkFilteredScope(page, run);
   await page.goto(`${BASE}/orders`);
   await page.waitForLoadState('networkidle');
@@ -320,16 +334,20 @@ async function runConfig(page, run, realPdf) {
   await checkCustomPeriod(page, run);
   await checkPdfCap(page, run);
   await checkCsv(page, run, expected);
-  if (realPdf) {
-    await openDialog(page, run);
-    await checkPdf(page, run);
-  }
   await openDialog(page, run);
-  await checkThrottled(page, run);
+  await checkPdf(page, run);
+  if (throttled) {
+    await openDialog(page, run);
+    await checkThrottled(page, run);
+  }
   await openDialog(page, run);
   await checkWhatsApp(page, run);
 }
 
+// Débit de la pile locale relevé (EXPORTS_RENDER_RATE, docker-compose.yml) : PDF et message réels
+// dans chaque configuration. Le 429, couvert côté serveur par un test, n'est simulé qu'une fois
+// par passage, pour la notification.
+let throttle = true;
 const browser = await launch();
 try {
   for (const viewport of VIEWPORTS) {
@@ -337,8 +355,6 @@ try {
     await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE });
     await ctx.route('https://wa.me/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>wa</title>' }));
     if (viewport.mobile) await ctx.addInitScript(fakeShare);
-    // Rendus PDF limités à 10 par minute et par utilisateur : un PDF réel par taille, le 429 est simulé.
-    let realPdf = true;
     for (const locale of ['fr', 'ar']) {
       for (const theme of ['light', 'dark']) {
         if (!inMatrix(viewport, locale, theme)) continue;
@@ -349,11 +365,11 @@ try {
         watch.setLabel(label);
         const before = watch.problems.length;
         try {
-          await runConfig(page, { label, locale, viewport }, realPdf);
+          await runConfig(page, { label, locale, viewport }, throttle);
         } catch (error) {
           report.check(false, `${label} : parcours interrompu — ${error.message.split('\n')[0]}`);
         }
-        realPdf = false;
+        throttle = false;
         const problems = [
           ...watch.problems.slice(before).filter((p) => !expectedNoise(p)),
           ...nested.splice(0).map((n) => `imbriqué : ${n}`),

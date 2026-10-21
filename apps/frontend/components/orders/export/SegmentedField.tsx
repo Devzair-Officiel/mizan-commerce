@@ -17,7 +17,7 @@ interface SegmentedFieldProps {
 export function SegmentedField({ label, options, register, columns, children }: SegmentedFieldProps) {
   const labelId = useId();
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <span id={labelId} className="text-[0.8125rem] font-semibold text-foreground">{label}</span>
       <div role="radiogroup" aria-labelledby={labelId} className={`grid ${columns} gap-1 rounded-[0.875rem] bg-muted p-1`}>
         {options.map((option) => (

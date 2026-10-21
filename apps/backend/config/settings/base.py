@@ -156,7 +156,9 @@ REST_FRAMEWORK = {
         'auth': '10/minute',       # login, register, password reset, refresh
         'resend_email': '3/hour',  # renvoi du lien de vérification email
         'product_scan': '10/minute',  # scan d'emballage (OCR, secours vision payant)
-        'exports_render': '10/minute',  # exports PDF et WhatsApp (rendu serveur)
+        # Exports PDF et WhatsApp (rendu serveur) ; relevé dans la pile locale
+        # (docker-compose.yml), où tournent les audits.
+        'exports_render': os.environ.get('EXPORTS_RENDER_RATE', '10/minute'),
     },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }

@@ -356,8 +356,8 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Exports
 
-- [x] Export CSV commandes (avec filtre période) — lot 1 des exports (URS-058) : app `exports` sans modèle, un jeu de données (période sur la date de création, filtres de la page Commandes, totaux hors annulées, reste dû par commande plancher 0, trop-perçu à part), CSV en flux (BOM, « ; », langue de l'interface), fenêtre « Exporter » de Commandes, journal d'audit (`orders_export`, migration `core/0007`), audit `exports`
-  - [x] Rendus PDF et message WhatsApp du même jeu : PDF ReportLab à l'en-tête des factures (période, génération, totaux, « Page n sur N », 1 000 commandes au plus puis CSV proposé), préparé puis partagé (Web Share) sur mobile, téléchargé ailleurs ; message texte (15 commandes au plus), wa.me ou copie, aucun envoi automatique ; 10 rendus par minute et par utilisateur
+- [~] Export CSV commandes (avec filtre période) — lot 1 des exports (URS-058) : app `exports` sans modèle, un jeu de données (période sur la date de création, filtres de la page Commandes, totaux hors annulées, reste dû par commande plancher 0, trop-perçu à part), CSV en flux (BOM, « ; », langue de l'interface), fenêtre « Exporter » de Commandes, journal d'audit (`orders_export`, migration `core/0007`), audit `exports` ; reste la recette et le passage en staging
+  - [~] Rendus PDF et message WhatsApp du même jeu : PDF ReportLab à l'en-tête des factures (période, génération, totaux, « Page n sur N », 1 000 commandes au plus puis CSV proposé), préparé puis partagé (Web Share) sur mobile, téléchargé ailleurs ; message texte (15 commandes au plus), wa.me ou copie, aucun envoi automatique ; 10 rendus par minute et par utilisateur (`EXPORTS_RENDER_RATE`) ; reste la recette et le passage en staging
 - [ ] Export CSV stock (quantités, prix, valeur estimée)
 - [x] Export PDF zakat (mention "indicatif" obligatoire) — livré avec le justificatif de Z2b (Zakat — refonte)
 - [ ] Export asynchrone via Celery + email de notification quand prêt

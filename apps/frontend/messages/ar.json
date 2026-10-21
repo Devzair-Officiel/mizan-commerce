@@ -889,7 +889,7 @@
       "search": "بحث «{query}»",
       "format_label": "الصيغة",
       "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {واتساب} other {أخرى}}",
-      "format_hint": "{format, select, csv {جدول بكل الأعمدة، لـ Excel أو Google Sheets.} pdf {مستند A4 بألوانك، مع المجاميع.} whatsapp {رسالة بالمجاميع و15 طلبًا كحد أقصى؛ لا يُرسل شيء دونك.} other {اختر صيغة.}}",
+      "format_hint": "{format, select, csv {جدول لـ Excel أو Google Sheets.} pdf {مستند A4 بألوانك، مع المجاميع.} whatsapp {ملخص بالمجاميع، ترسله بنفسك.} other {اختر صيغة.}}",
       "pdf_french": "ملف PDF باللغة الفرنسية.",
       "period_label": "تاريخ الإنشاء",
       "period": "{period, select, month {هذا الشهر} last_month {الشهر الماضي} all {الكل} custom {مخصصة} other {أخرى}}",

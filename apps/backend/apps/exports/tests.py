@@ -1,3 +1,4 @@
+import io
 from dataclasses import replace
 from datetime import datetime
 from datetime import timezone as dt_timezone
@@ -5,7 +6,8 @@ from decimal import Decimal
 from unittest import mock
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.core.management import call_command
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -416,11 +418,54 @@ class OrdersExportOverpaymentTest(OrdersExportTestCase):
         self.assertNotIn('Trop-perçu', self._whatsapp())
 
 
+class OrdersExportSeedOverpaymentTest(TestCase):
+    """Commande 2026-011 de la démo : 64,88 € encaissés 80,00 €.
+
+    Reste dû 0,00, trop-perçu 15,12.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        with override_settings(DEBUG=True):
+            call_command(
+                'seed_data', reset=True, stdout=io.StringIO(), stderr=io.StringIO(),
+            )
+        cls.shop = Shop.objects.get(name='La Boutique de Youssef')
+        subscribe(cls.shop, SubscriptionPlan.CODE_BOUTIQUE)
+        cls.owner = ShopMember.objects.get(shop=cls.shop, role='owner').user
+
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.owner)
+        self.query = {'search': '2026-011', 'lang': 'fr'}
+
+    def get(self, output: str):
+        response = self.client.get(reverse('exports-orders', kwargs={'output': output}), self.query)  # noqa: E501
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response
+
+    def test_csv_due_zero_and_overpaid_column(self):
+        body = b''.join(self.get('csv').streaming_content).decode('utf-8-sig')
+        header, row = (line.split(';') for line in body.splitlines())
+        self.assertEqual(header[10:], ['Reste dû', 'Trop-perçu'])
+        self.assertEqual((row[0], row[8], row[9], row[10], row[11]), ('2026-011', '64,88', '80,00', '0,00', '15,12'))  # noqa: E501
+
+    def test_message_and_pdf_totals(self):
+        text = self.get('whatsapp').data['text']
+        self.assertIn('- Reste dû : 0,00\u00a0€', text)
+        self.assertIn('- Trop-perçu : 15,12\u00a0€', text)
+        pdf = '\n'.join(text_pages(self.get('pdf').content))
+        self.assertIn('TROP-PERÇU', pdf)
+        self.assertIn('15,12', pdf)
+
+
 class OrdersExportThrottleTest(OrdersExportTestCase):
     """PDF et message : 10 par minute et par utilisateur ; le CSV n'est pas limité."""
 
+    # Débit par défaut, quelle que soit la pile locale (EXPORTS_RENDER_RATE).
+    @mock.patch.object(ExportRenderRateThrottle, 'THROTTLE_RATES', {'exports_render': '10/minute'})  # noqa: E501
     def test_pdf_and_whatsapp_limited_per_user(self):
-        self.assertEqual(ExportRenderRateThrottle().get_rate(), '10/minute')
         for i in range(10):
             output = ('pdf', 'whatsapp')[i % 2]
             self.assertEqual(self.client.get(self.url(output)).status_code, status.HTTP_200_OK)  # noqa: E501

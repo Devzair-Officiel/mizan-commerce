@@ -889,7 +889,7 @@
       "search": "Search “{query}”",
       "format_label": "Format",
       "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {WhatsApp} other {Other}}",
-      "format_hint": "{format, select, csv {Spreadsheet with every column, for Excel or Google Sheets.} pdf {A4 document in your colours, with totals.} whatsapp {Message with totals and up to 15 orders; nothing is sent without you.} other {Choose a format.}}",
+      "format_hint": "{format, select, csv {Spreadsheet for Excel or Google Sheets.} pdf {A4 document in your colours, with totals.} whatsapp {Summary with totals, for you to send.} other {Choose a format.}}",
       "pdf_french": "The PDF is in French.",
       "period_label": "Creation date",
       "period": "{period, select, month {This month} last_month {Last month} all {All} custom {Custom} other {Other}}",
