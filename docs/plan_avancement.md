@@ -636,7 +636,9 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
       avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
 
-- [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL.
+- [x] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL. Corrigé : ordre
+      logique lu dans le sens réel du document (`getComputedStyle(document.documentElement)
+      .direction`), contre-épreuve condition inversée en échec en fr comme en ar.
 
 - [ ] Audit invoices, recherche par numéro : échec intermittent en 1440 fr clair, sur main
       comme sur Z3 (environ 1 passage sur 3), déjà vu en 360 ar sombre. Le serveur renvoie
