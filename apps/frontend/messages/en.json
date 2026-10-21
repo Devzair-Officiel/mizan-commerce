@@ -1066,9 +1066,12 @@
         "session": "Your session has expired. Sign in again to scan."
       },
       "warning": {
-        "vision_quota_reached": "Advanced reading used up this month for your plan: only quick reading was used.",
-        "vision_unavailable": "Advanced reading unavailable right now: only quick reading was used."
-      }
+        "text_quota_reached": "Advanced reading unavailable this month: your plan's limit is reached, only quick reading was used.",
+        "vision_quota_reached": "Photo reading used up this month for your plan: only the text reading was used.",
+        "vision_unavailable": "Photo reading unavailable right now: only the text reading was used."
+      },
+      "ai_reads_more": "More advanced reads",
+      "ai_reads_sheet_title": "Advanced reads used up this month"
     },
     "units": {
       "piece": "Piece",
@@ -1716,8 +1719,8 @@
       "fulfillment_both": "Both"
     },
     "upgrade": {
-      "title": "{feature, select, products {{kind, select, products {Unlimited items with the Solo plan} services {Unlimited services with the Solo plan} other {Unlimited items and services with the Solo plan}}} orders_this_month {Unlimited sales with the Solo plan} customers {Unlimited customers with the Solo plan} members {More members with the {plan, select, commerce_plus {Commerce+} other {Boutique}} plan} other {Available with the {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}} plan}}",
-      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} invoices {Issue numbered invoices and send them to your customers as PDFs.} invoice_branding {Add your logo and your shop's colour to every invoice.} products {{kind, select, products {Add as many items as you like, without archiving anything.} services {Offer as many services as you like, without archiving anything.} other {Grow your catalogue without limits, without archiving anything.}}} orders_this_month {Record every sale of the month, with no cap.} customers {Keep track of all your customers, with no limit on records.} members {{plan, select, commerce_plus {Invite your whole team, with no member limit.} other {Work as a team: up to 4 members, each with their own role.}}} other {Upgrade your plan to save time every day.}}",
+      "title": "{feature, select, products {{kind, select, products {Unlimited items with the Solo plan} services {Unlimited services with the Solo plan} other {Unlimited items and services with the Solo plan}}} orders_this_month {Unlimited sales with the Solo plan} customers {Unlimited customers with the Solo plan} members {More members with the {plan, select, commerce_plus {Commerce+} other {Boutique}} plan} ai_reads {More advanced reads with the {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}} plan} other {Available with the {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}} plan}}",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} invoices {Issue numbered invoices and send them to your customers as PDFs.} invoice_branding {Add your logo and your shop's colour to every invoice.} products {{kind, select, products {Add as many items as you like, without archiving anything.} services {Offer as many services as you like, without archiving anything.} other {Grow your catalogue without limits, without archiving anything.}}} orders_this_month {Record every sale of the month, with no cap.} customers {Keep track of all your customers, with no limit on records.} members {{plan, select, commerce_plus {Invite your whole team, with no member limit.} other {Work as a team: up to 4 members, each with their own role.}}} ai_reads {Read more packages every month: brand, product name and size filled in for you.} other {Upgrade your plan to save time every day.}}",
       "cta": "See plans"
     },
     "usage": {
@@ -1726,6 +1729,7 @@
       "orders_this_month": "{count} / {limit} sales this month",
       "customers": "{count} / {limit} active customers",
       "members": "{count} / {limit} members",
+      "ai_reads_this_month": "{count} / {limit} advanced reads",
       "level": "{level, select, ok {Within the limit} near {Nearly at the limit} reached {Limit reached} other {Over the limit}}",
       "short": {
         "orders_this_month": "Sales this month",
@@ -1840,7 +1844,8 @@
           "f2": "{orders} sales per month",
           "f3": "{customers} customers",
           "f4": "Stock, notes and reminders",
-          "f5": "Zakat calculation"
+          "f5": "Zakat calculation",
+          "f6": "{text_scans} advanced package reads per month"
         },
         "solo": {
           "name": "Solo",
@@ -1848,7 +1853,8 @@
           "f1": "Unlimited catalogue, sales and customers",
           "f2": "PDF invoices",
           "f3": "Ready-made WhatsApp messages",
-          "f4": "Automatic unpaid follow-ups"
+          "f4": "Automatic unpaid follow-ups",
+          "f5": "{text_scans} advanced package reads per month"
         },
         "boutique": {
           "name": "Boutique",
@@ -1858,7 +1864,8 @@
           "f3": "Invoices in your colours, with your logo",
           "f4": "Daily summary by email",
           "f5": "Shareable public page",
-          "f6": "Exports and supplier invoice import"
+          "f6": "Exports and supplier invoice import",
+          "f7": "{text_scans} advanced package reads per month"
         },
         "commerce_plus": {
           "name": "Commerce+",
@@ -1866,7 +1873,8 @@
           "f1": "Everything in Boutique",
           "f2": "Unlimited staff",
           "f3": "Activity log",
-          "f4": "Priority support"
+          "f4": "Priority support",
+          "f5": "{text_scans} advanced package reads per month"
         }
       },
       "current": "Current plan",
@@ -1885,6 +1893,8 @@
       "activity_title": "Your activity",
       "activity_limits": "Discovery limits",
       "activity_after": "{status, select, trialing {When your trial ends, the Discovery plan applies} other {If you cancel, the Discovery plan applies}}: your data stays intact, but creating more is blocked beyond these limits.",
+      "ai_reads_title": "This month",
+      "ai_reads_help": "Advanced package scan reads, within your plan's limit. Beyond it, scanning continues with the quick read.",
       "choose_title": "Choose a plan",
       "period_label": "Billing period",
       "period": "{period, select, year {Yearly} other {Monthly}}",

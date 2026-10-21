@@ -179,3 +179,18 @@ def shop_usage(shop: 'Shop') -> dict[str, UsageCounter]:
             'limit': plan.max_members,
         },
     }
+
+
+def ai_reads_usage(shop: 'Shop') -> UsageCounter:
+    """Lectures avancées du mois (fuseau de la boutique) face au plafond de la
+    formule effective — pas de Découverte : le compteur repart chaque mois."""
+    from apps.ocr.models import ProductScanUsage
+    from apps.ocr.services import scan_quota_month
+
+    usage = ProductScanUsage.objects.filter(
+        shop=shop, month=scan_quota_month(shop),
+    ).values_list('text_count', flat=True).first()
+    return {
+        'count': usage or 0,
+        'limit': shop.effective_plan.max_text_scans_per_month,
+    }

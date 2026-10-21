@@ -55,6 +55,11 @@ export function featureMinPlan(feature: Feature): PlanCode {
   return FEATURE_MIN_PLAN[feature];
 }
 
+/** Formule juste au-dessus dans la grille (Commerce+ reste Commerce+). */
+export function nextPlan(code: PlanCode): PlanCode {
+  return TIER_ORDER[tierIndex(code) + 1] ?? code;
+}
+
 export function hasFeature(planCode: PlanCode, feature: Feature): boolean {
   return tierIndex(planCode) >= tierIndex(featureMinPlan(feature));
 }

@@ -53,6 +53,9 @@ class SubscriptionPlan(models.Model):
     max_members = models.PositiveIntegerField(null=True, blank=True)
     # Appels au secours vision du scan d'emballage par mois (`ocr.ProductScanUsage`).
     max_vision_scans_per_month = models.PositiveIntegerField(null=True, blank=True)
+    # Structurations du texte du scan par mois (« lectures avancées »,
+    # `ocr.ProductScanUsage.text_count`).
+    max_text_scans_per_month = models.PositiveIntegerField(null=True, blank=True)
     features_json = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

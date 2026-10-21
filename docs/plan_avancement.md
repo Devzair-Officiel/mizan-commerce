@@ -661,9 +661,16 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Sondes de formule de test_plans.py : un 404 compte comme accès autorisé ; exiger 200
       pour chaque module.
 
-- [ ] Scan d'emballage (URS-109) : plafond mensuel par boutique sur les appels de
-      structuration du texte (aujourd'hui seulement la limite de débit), avec incrément
-      atomique SQL — à traiter avant l'ouverture publique et avant tout import en lot.
+- [x] Scan d'emballage (URS-109) : plafond mensuel par boutique sur les appels de
+      structuration du texte — « lectures avancées » : `ProductScanUsage.text_count`,
+      `SubscriptionPlan.max_text_scans_per_month` (Découverte 10, Solo 30, Boutique 60,
+      Commerce+ 130, NULL = illimité, formule effective), réservation SQL atomique avant
+      l'appel (`structure=true` envoyé par Django seul), remboursement si la structuration
+      n'aboutit pas, face + dos = une place (empreinte de la face en cache 15 min) ;
+      plafond atteint → règles locales + avertissement `text_quota_reached` et mise à
+      niveau ; jauge « Ce mois-ci » dans Paramètres → Abonnement si `VISION_PROVIDER`
+      ≠ none. Limite connue : processus tué entre réservation et remboursement → place
+      perdue. Coût unitaire (≈ 0,03 €) à confirmer sur facture réelle.
 
 ---
 

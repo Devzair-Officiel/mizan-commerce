@@ -9,8 +9,8 @@ import type { PlanCode, SubscriptionPlan, SubscriptionStatus } from '@/lib/hooks
 import { planPrice, type BillingPeriod } from '@/lib/plan-pricing';
 import { cn } from '@/lib/utils';
 
-/** Nombre de lignes `f1…fN` sous `settings.subscription.plans.{code}`. */
-const FEATURE_LINES: Record<PlanCode, number> = { free: 5, solo: 4, boutique: 6, commerce_plus: 4 };
+/** Nombre de lignes `f1…fN` sous `settings.subscription.plans.{code}` ; la dernière : les lectures avancées du mois. */
+const FEATURE_LINES: Record<PlanCode, number> = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
 
 /** Où en est la boutique avec cette formule : elle l'a, elle l'essaie, ou non. */
 export type PlanCardState = 'current' | 'trial' | 'other';
@@ -20,6 +20,8 @@ interface PlanCardProps {
   period: BillingPeriod;
   state: PlanCardState;
   status: SubscriptionStatus;
+  /** Lectures avancées du scan disponibles : sinon leur ligne n'est pas promise. */
+  aiReads: boolean;
   recommended: boolean;
   /** Sur mobile, une seule carte à la fois (celle de l'onglet). */
   hiddenOnMobile: boolean;
@@ -27,7 +29,7 @@ interface PlanCardProps {
 }
 
 /** CTA en bas de carte ; Découverte n'en a pas : on y revient en résiliant, son texte prend la place (même hauteur). */
-function PlanCta({ plan, period, state, status, recommended, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile'>) {
+function PlanCta({ plan, period, state, status, recommended, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile' | 'aiReads'>) {
   const t = useTranslations('settings.subscription');
   const name = t(`plans.${plan.code}.name`);
   if (state === 'current') {
@@ -45,7 +47,7 @@ function PlanCta({ plan, period, state, status, recommended, onChoose }: Omit<Pl
 }
 
 /** Une formule : prix sur la période choisie, l'autre période en regard, ce qu'elle comprend, puis le CTA en bas (alignés d'une carte à l'autre). */
-export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
+export function PlanCard({ hiddenOnMobile, aiReads, ...props }: PlanCardProps) {
   const { plan, period, recommended } = props;
   const t = useTranslations('settings.subscription');
   const kind = useCatalogKind();
@@ -58,7 +60,9 @@ export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
     orders: plan.max_orders_per_month ?? 0,
     customers: plan.max_customers ?? 0,
     staff: Math.max(0, (plan.max_members ?? 1) - 1),
+    text_scans: plan.max_text_scans_per_month ?? 0,
   };
+  const lines = FEATURE_LINES[plan.code] - (aiReads && plan.max_text_scans_per_month !== null ? 0 : 1);
 
   return (
     <article id={`plan-card-${plan.code}`} aria-labelledby={`plan-name-${plan.code}`} data-plan={plan.code}
@@ -85,7 +89,7 @@ export function PlanCard({ hiddenOnMobile, ...props }: PlanCardProps) {
         </p>
       </div>
       <ul className="flex flex-1 flex-col gap-2 border-t border-border pt-4">
-        {Array.from({ length: FEATURE_LINES[plan.code] }, (_, i) => (
+        {Array.from({ length: lines }, (_, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-foreground">
             <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             <span>{t(`plans.${plan.code}.f${i + 1}`, values)}</span>

@@ -16,11 +16,12 @@ import threading
 import time
 import uuid
 from collections.abc import Callable
+from datetime import timedelta
 from unittest import mock
 
 from django.apps import apps as django_apps
 from django.db import connection, transaction
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -28,12 +29,15 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.customers.models import Customer
+from apps.ocr.models import ProductScanUsage
+from apps.ocr.services import scan_quota_month
 from apps.orders.models import Order
 from apps.products.models import Product
 from apps.shops.models import Shop, ShopMember
 from apps.subscriptions import limits
 from apps.subscriptions.models import Subscription, SubscriptionPlan
 from apps.subscriptions.permissions import FEATURE_MIN_PLAN
+from apps.subscriptions.services import start_trial_or_default
 from apps.subscriptions.test_utils import attach_subscription
 
 FREE = SubscriptionPlan.CODE_FREE
@@ -111,6 +115,14 @@ class PlanCatalogTest(TestCase):
         self.assertEqual(
             {p.code: p.max_vision_scans_per_month for p in plans},
             {FREE: 5, SOLO: 30, BOUTIQUE: 100, COMMERCE_PLUS: 300},
+        )
+
+    def test_text_scan_quotas(self) -> None:
+        """Lectures avancées du scan d'emballage par mois (URS-109)."""
+        plans = SubscriptionPlan.objects.all()
+        self.assertEqual(
+            {p.code: p.max_text_scans_per_month for p in plans},
+            {FREE: 10, SOLO: 30, BOUTIQUE: 60, COMMERCE_PLUS: 130},
         )
 
     def test_plans_endpoint_lists_the_grid(self) -> None:
@@ -423,6 +435,58 @@ class UsageTest(TestCase):
                 "customers": None,
                 "members": None,
             },
+        )
+
+
+class AiReadsUsageTest(TestCase):
+    """Lectures avancées dans GET /subscriptions/current/ : du mois, de la
+    boutique seule, face au plafond de sa formule effective (pas Découverte)."""
+
+    def _current(self, user: User) -> dict:
+        client = APIClient()
+        client.force_authenticate(user=user)
+        return client.get("/api/subscriptions/current/").data
+
+    @override_settings(PRODUCT_SCAN_AI_ENABLED=True)
+    def test_counts_this_month_of_the_shop_only(self) -> None:
+        user, shop = make_shop("ai-reads@example.com", SOLO)
+        _, other = make_shop("ai-reads-other@example.com", SOLO)
+        month = scan_quota_month(shop)
+        ProductScanUsage.objects.create(shop=shop, month=month, text_count=7)
+        previous = (month - timedelta(days=1)).replace(day=1)
+        ProductScanUsage.objects.create(shop=shop, month=previous, text_count=30)
+        ProductScanUsage.objects.create(shop=other, month=month, text_count=29)
+
+        data = self._current(user)
+        self.assertIs(data["ai_reads_enabled"], True)
+        self.assertEqual(data["ai_reads"], {"count": 7, "limit": 30})
+        self.assertNotIn("ai_reads", data["usage"])
+
+    @override_settings(PRODUCT_SCAN_AI_ENABLED=True)
+    def test_no_scan_yet_and_trial_counts_as_boutique(self) -> None:
+        user = User.objects.create_user(email="ai-trial@example.com", password="StrongPass123!")  # noqa: E501
+        shop = Shop.objects.create(name="Essai", currency="EUR", country="FR")
+        ShopMember.objects.create(shop=shop, user=user, role=ShopMember.ROLE_OWNER)
+        start_trial_or_default(shop=shop, user=user)
+        self.assertEqual(self._current(user)["ai_reads"], {"count": 0, "limit": 60})
+
+    @override_settings(PRODUCT_SCAN_AI_ENABLED=False)
+    def test_hidden_when_no_provider(self) -> None:
+        user, shop = make_shop("ai-off@example.com", SOLO)
+        ProductScanUsage.objects.create(shop=shop, month=scan_quota_month(shop), text_count=3)  # noqa: E501
+        data = self._current(user)
+        self.assertIs(data["ai_reads_enabled"], False)
+        self.assertIsNone(data["ai_reads"])
+
+    def test_plans_expose_the_monthly_cap(self) -> None:
+        user, _ = make_shop("ai-plans@example.com", FREE)
+        client = APIClient()
+        client.force_authenticate(user=user)
+        plans = client.get("/api/subscriptions/plans/").data
+        rows = plans["results"] if isinstance(plans, dict) else plans
+        self.assertEqual(
+            {plan["code"]: plan["max_text_scans_per_month"] for plan in rows},
+            {FREE: 10, SOLO: 30, BOUTIQUE: 60, COMMERCE_PLUS: 130},
         )
 
 

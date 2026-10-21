@@ -195,9 +195,9 @@ class ProductScanLocalResult(BaseModel):
     # Allégations mises en avant (« 98 % d'ingrédients naturels », « 24 h »).
     claims: list[ScanFieldProposal] = Field(default_factory=list)
     net_quantity: ScanFieldProposal | None = None
-    # Structuration du texte : faite, désactivée (aucun fournisseur) ou en échec
-    # (règles en repli dans les deux derniers cas).
-    structuring: Literal['done', 'disabled', 'failed'] = 'disabled'
+    # Structuration du texte : faite, désactivée (aucun fournisseur), en échec, ou
+    # non demandée par Django (`skipped`, plafond mensuel) — règles en repli sauf `done`.
+    structuring: Literal['done', 'disabled', 'failed', 'skipped'] = 'disabled'
     # Critère sémantique : la lecture ne suffit pas à nommer le produit.
     vision_recommended: bool = False
     # Secours image possible : fournisseur configuré ET `PRODUCT_SCAN_IMAGE_FALLBACK`.

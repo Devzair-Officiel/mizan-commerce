@@ -208,6 +208,22 @@ PRODUCT_SCAN_VISION_THRESHOLD = float(
 # Sous cette confiance, un champ n'est pas proposé (il vaut null).
 PRODUCT_SCAN_MIN_CONFIDENCE = 0.5
 
+
+def ai_provider_enabled(value: str | None) -> bool:
+    """Fournisseur IA configuré : `VISION_PROVIDER` ni vide ni `none`."""
+    return (value or '').strip().lower() not in ('', 'none')
+
+
+# Lectures avancées (structuration du texte par le fournisseur IA) : même
+# variable qu'ai-service, qui doit lire la même valeur. Faux : Django ne demande
+# jamais la structuration (aucun appel payant) et masque jauge et ligne de
+# formule. Limite connue : `openai` sans clé côté ai-service laisse ce réglage
+# vrai ; ai-service répond alors `disabled` et la place réservée est rendue.
+PRODUCT_SCAN_AI_ENABLED = ai_provider_enabled(os.environ.get('VISION_PROVIDER'))
+# Photo du dos envoyée après la face : le même scan, sans nouvelle place, si
+# elle arrive dans ce délai (empreinte de la face gardée dans Redis).
+PRODUCT_SCAN_BACK_GRACE_SECONDS = 15 * 60
+
 # Open Food Facts : seul l'EAN, validé, sort vers ce domaine fixe. Réponses
 # gardées 30 jours dans Redis (une fiche produit change rarement).
 OPEN_FOOD_FACTS_TIMEOUT_SECONDS = 3.0
@@ -222,6 +238,15 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/0'),
         'KEY_PREFIX': 'product-lookup',
+        'OPTIONS': {'socket_connect_timeout': 1, 'socket_timeout': 1},
+    },
+    # Scan d'emballage : empreintes de face en attente d'une photo du dos.
+    # Partagé entre processus (Redis) : la face et le dos peuvent arriver sur
+    # deux workers différents.
+    'product_scans': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/0'),
+        'KEY_PREFIX': 'product-scan',
         'OPTIONS': {'socket_connect_timeout': 1, 'socket_timeout': 1},
     },
 }

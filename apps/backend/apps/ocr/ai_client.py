@@ -526,7 +526,7 @@ def structure_invoice_with_ai_service(
 
 _SCAN_TEXT_MAX_LENGTH = 300
 _SCAN_MAX_CLAIMS = 5
-_SCAN_STRUCTURING = frozenset({'done', 'disabled', 'failed'})
+_SCAN_STRUCTURING = frozenset({'done', 'disabled', 'failed', 'skipped'})
 
 
 class AiScanField(NamedTuple):
@@ -541,7 +541,8 @@ class AiProductScanLocal(NamedTuple):
     variant: AiScanField | None
     claims: tuple[AiScanField, ...]
     net_quantity: AiScanField | None
-    # Structuration du texte par le fournisseur IA : 'done', 'disabled', 'failed'.
+    # Structuration du texte par le fournisseur IA : 'done', 'disabled', 'failed',
+    # ou 'skipped' (non demandée : plafond mensuel atteint).
     structuring: str
     vision_recommended: bool
     vision_available: bool
@@ -627,6 +628,7 @@ def _parse_product_vision(payload: Any) -> AiProductVision:
 
 def _post_product_images(
     path: str, *, face: ScanPhoto, back: ScanPhoto | None = None,
+    data: dict[str, str] | None = None,
 ) -> Any:
     """POST multipart d'une ou deux photos d'emballage, erreurs ramenées au
     type domaine.
@@ -639,9 +641,12 @@ def _post_product_images(
     if back is not None:
         files['image_back'] = ('scan-back', back.content, back.mime_type)
     timeout = settings.AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS
+    extra = {'data': data} if data is not None else {}
 
     try:
-        response = httpx.post(url, headers=headers, files=files, timeout=timeout)
+        response = httpx.post(
+            url, headers=headers, files=files, timeout=timeout, **extra,
+        )
     except httpx.TimeoutException as exc:
         logger.warning('AI service product scan timeout on %s', path)
         raise AiServiceUnavailableError('Service IA : délai dépassé.') from exc
@@ -668,15 +673,18 @@ def _post_product_images(
 
 
 def scan_product_locally_with_ai_service(
-    *, face: ScanPhoto, back: ScanPhoto | None = None,
+    *, face: ScanPhoto, back: ScanPhoto | None = None, structure: bool = False,
 ) -> AiProductScanLocal:
-    """Code-barres, OCR et structuration du texte (`/internal/product-scan`).
+    """Code-barres, OCR et, si `structure`, structuration du texte
+    (`/internal/product-scan`). Réponse typée.
 
-    Réponse typée.
-
-    Le texte lu peut partir vers le fournisseur IA (texte seul), jamais l'image.
+    `structure` vrai seulement quand une place de lecture avancée est réservée :
+    le texte lu part alors vers le fournisseur IA (texte seul), jamais l'image.
     """
-    payload = _post_product_images('/internal/product-scan', face=face, back=back)
+    payload = _post_product_images(
+        '/internal/product-scan', face=face, back=back,
+        data={'structure': 'true' if structure else 'false'},
+    )
     return _parse_product_scan_local(payload)
 
 

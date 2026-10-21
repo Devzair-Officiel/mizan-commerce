@@ -22,7 +22,8 @@ export const USAGE_BAR: Record<UsageLevel, string> = {
 };
 
 interface UsageGaugeProps {
-  usageKey: UsageKey;
+  /** Compteur de la formule, ou lectures avancées du scan d'emballage (hors grille « Votre activité »). */
+  usageKey: UsageKey | 'ai_reads_this_month';
   count: number;
   limit: number;
   labelClassName?: string;

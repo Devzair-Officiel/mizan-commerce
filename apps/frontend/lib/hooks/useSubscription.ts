@@ -30,6 +30,8 @@ export interface SubscriptionPlan {
   max_customers: number | null;
   /** Membres de la boutique, propriétaire compris. */
   max_members: number | null;
+  /** Lectures avancées du scan d'emballage par mois (`null` : illimité). */
+  max_text_scans_per_month: number | null;
   features_json: string[];
   is_active: boolean;
 }
@@ -62,6 +64,10 @@ export interface Subscription {
   days_remaining: number | null;
   /** Usage de la boutique face aux limites de la formule effective. */
   usage: Record<UsageKey, UsageCounter>;
+  /** Lectures avancées du scan d'emballage disponibles (fournisseur IA configuré côté serveur). */
+  ai_reads_enabled: boolean;
+  /** Lectures avancées du mois, face au plafond de la formule effective ; `null` si indisponibles. */
+  ai_reads: UsageCounter | null;
   created_at: string;
   updated_at: string;
 }

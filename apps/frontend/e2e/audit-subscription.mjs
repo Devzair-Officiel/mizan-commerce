@@ -7,6 +7,9 @@
  *   sans carte « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
  * - Découverte : jauges de la formule, pas de résiliation ;
  * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
+ * « Ce mois-ci » (lectures avancées du scan) : section à part, hors de « Votre activité », plafond de la formule en cours
+ * (essai : 50 / 60 de Boutique, ambre ; Découverte : 10 / 10, rouge ; Solo : 3 / 30), niveau écrit ; dernière ligne de chaque
+ * formule « N lectures avancées » lue sur la formule. Fonction éteinte (`ai_reads_enabled` faux) : ni section ni ligne.
  * Partout : 4 cartes ou 2 × 2 selon la largeur du conteneur desktop, pastille « Recommandé » à cheval sur le haut de la carte
  * Boutique, côté début de ligne (à droite en arabe), CTA en bas de chaque carte, après la liste, à la même
  * hauteur d'une carte à l'autre (Découverte : son texte à la place du bouton), une par onglet sur mobile (onglet par défaut : formule
@@ -23,9 +26,18 @@ const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
 const DAY = 24 * 60 * 60 * 1000;
 const USAGE = { products: 3, orders_this_month: 12, customers: 15, members: 1 };
 const TEAM = 3;
+/** Lectures avancées du mois par situation, face au plafond de la formule en cours. */
+const AI_READS = { trial: { count: 50, limit: 60 }, free: { count: 10, limit: 10 }, paid: { count: 3, limit: 30 } };
+/** Plafonds mensuels de la grille (migration `subscriptions/0007`, `seed_plans`) et nombre de lignes `fN` (la dernière : lectures). */
+const TEXT_SCANS = { free: 10, solo: 30, boutique: 60, commerce_plus: 130 };
+const FEATURE_LINES = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
 
-/** Réponse `/subscriptions/current/` de la situation `state.mode`. */
-function situation(subscription, mode, members) {
+/** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non. */
+function situation(subscription, mode, members, aiReads) {
+  return { ...plan(subscription, mode, members), ai_reads_enabled: aiReads, ai_reads: aiReads ? AI_READS[mode] : null };
+}
+
+function plan(subscription, mode, members) {
   const now = Date.now();
   const usage = (limits) => Object.fromEntries(Object.entries({ ...USAGE, members })
     .map(([key, count]) => [key, { count, limit: limits[key] ?? null }]));
@@ -45,7 +57,7 @@ async function routePlan(ctx, state) {
   await ctx.route(/\/api\/proxy\/subscriptions\/current\/?(\?.*)?$/, async (route) => {
     try {
       const response = await route.fetch();
-      await route.fulfill({ response, json: situation(await response.json(), state.mode, state.members) });
+      await route.fulfill({ response, json: situation(await response.json(), state.mode, state.members, state.aiReads) });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -98,6 +110,47 @@ async function checkActivity(page, locale, label, mode, members, mobile) {
   const rows = await rowsOf(activity);
   const expected = mobile ? (team ? '2+2' : '2+1') : (team ? '4' : '3');
   report.check(rows === expected, `${label} : cartes d'activité ${mobile ? 'sur deux colonnes' : 'en une rangée'} (${rows})`);
+}
+
+/** « Ce mois-ci » : section à part, plafond de la formule en cours, niveau écrit ; dernière ligne de chaque formule. */
+async function checkAiReads(page, locale, label, mode) {
+  const section = page.locator('[data-ai-reads]');
+  const gauge = section.locator('[data-usage=ai_reads_this_month]');
+  const { count, limit } = AI_READS[mode];
+  const expected = fmt(locale, 'settings.usage.ai_reads_this_month', { count, limit });
+  const level = await gauge.getAttribute('data-level');
+  const levelText = level === 'ok' ? '' : fmt(locale, 'settings.usage.level', { level });
+  const text = await gauge.textContent();
+  const title = (await section.getByRole('heading').textContent())?.trim();
+  const outside = await page.locator('[data-activity] [data-usage=ai_reads_this_month]').count() === 0;
+  const wanted = { trial: 'near', free: 'reached', paid: 'ok' }[mode];
+  report.check(title === msg(locale, 'settings.subscription.ai_reads_title') && text.includes(expected) && text.includes(levelText)
+    && level === wanted && outside,
+  `${label} : « ${title} » à part, « ${expected} »${levelText ? ` « ${levelText} »` : ''} (${level})`);
+  const lines = await featureLines(page);
+  const ok = Object.entries(FEATURE_LINES).every(([code, n]) => lines[code]?.length === n
+    && lines[code][n - 1] === fmt(locale, `settings.subscription.plans.${code}.f${n}`, { text_scans: TEXT_SCANS[code] }));
+  report.check(ok, `${label} : dernière ligne de chaque formule, lectures avancées lues sur la formule (${Object.values(lines).map((l) => l.at(-1)).join(' | ')})`);
+}
+
+/** Lignes de chaque carte de formule, visible ou non (une par onglet sur mobile). */
+const featureLines = (page) => page.locator('[data-plan]').evaluateAll((cards) => Object.fromEntries(cards.map((card) =>
+  [card.dataset.plan, [...card.querySelectorAll('li')].map((li) => li.textContent.trim())])));
+
+/** Fonction éteinte côté serveur : ni « Ce mois-ci » ni ligne promise. */
+async function checkAiReadsOff(page, locale, label, state) {
+  state.aiReads = false;
+  try {
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await page.locator('[data-activity]').waitFor({ timeout: 10000 });
+    const lines = await featureLines(page);
+    const ok = Object.entries(FEATURE_LINES).every(([code, n]) => lines[code]?.length === n - 1);
+    report.check(await page.locator('[data-ai-reads]').count() === 0 && ok,
+      `${label} : lectures avancées éteintes, ni « ${msg(locale, 'settings.subscription.ai_reads_title')} » ni ligne de formule`);
+  } finally {
+    state.aiReads = true;
+  }
 }
 
 /** « Recommandé » à cheval sur le bord supérieur de la carte Boutique, côté début de ligne. */
@@ -217,7 +270,7 @@ try {
     const viewport = VIEWPORTS.find((v) => v.name === name);
     if (!viewport) continue;
     const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-    const state = { mode: 'trial', members: USAGE.members };
+    const state = { mode: 'trial', members: USAGE.members, aiReads: true };
     const requests = [];
     page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/proxy/subscriptions/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
     await routePlan(ctx, state);
@@ -235,6 +288,7 @@ try {
         if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/abonnement-${name}-${locale}-${theme}-${mode}.png`, fullPage: true });
         await checkCurrent(page, locale, label, mode, viewport.mobile);
         await checkActivity(page, locale, label, mode, USAGE.members, viewport.mobile);
+        await checkAiReads(page, locale, label, mode);
         await checkBadge(page, locale, label);
         await checkCards(page, locale, label, mode, viewport.mobile);
         await checkCtaBottom(page, locale, label, viewport.mobile);
@@ -242,6 +296,7 @@ try {
         await checkChoose(page, locale, label, requests);
         await checkCancel(page, locale, label, mode);
         await checkTeam(page, locale, label, mode, state, viewport.mobile);
+        if (mode === 'free') await checkAiReadsOff(page, locale, label, state);
       } catch (error) {
         report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
       }

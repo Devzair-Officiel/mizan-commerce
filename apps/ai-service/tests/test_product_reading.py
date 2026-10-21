@@ -49,16 +49,18 @@ def _ocr(lines: list[ScanTextLine]) -> OcrExtractionResult:
 
 def _scan(
     provider: FakeProvider | None, ocr: list[list[ScanTextLine]], *, back: bytes | None = None,
-    image_fallback: bool = False,
+    image_fallback: bool = False, structure: str | None = 'true', api_key: str | None = _TEST_API_KEY,
 ) -> httpx.Response:
     files = {'image': ('face', _jpeg(Image.new('RGB', (400, 400), 'white')), 'image/jpeg')}
     if back is not None:
         files['image_back'] = ('back', back, 'image/jpeg')
+    data = {} if structure is None else {'structure': structure}
+    headers = {} if api_key is None else {INTERNAL_API_KEY_HEADER: api_key}
     with patch('app.config.API_KEY', _TEST_API_KEY), \
          patch('app.product_scan.extract_text_from_image', side_effect=[_ocr(lines) for lines in ocr]), \
          patch('app.product_scan.get_provider', return_value=provider), \
          patch('app.config.PRODUCT_SCAN_IMAGE_FALLBACK', image_fallback):
-        return client.post('/internal/product-scan', headers={INTERNAL_API_KEY_HEADER: _TEST_API_KEY}, files=files)
+        return client.post('/internal/product-scan', headers=headers, files=files, data=data)
 
 
 def _value(body: dict, key: str) -> str | None:
@@ -116,6 +118,25 @@ def test_provider_failure_falls_back_to_rules() -> None:
     body = _scan(FakeProvider(error=VisionProviderError('timeout')), [ZIYADA_LINES]).json()
     assert body['structuring'] == 'failed'
     assert _value(body, 'product_name') == 'ZIYADA'
+
+
+@pytest.mark.parametrize('structure', [None, 'false'])
+def test_structuring_only_when_django_asks(structure: str | None) -> None:
+    # Plafond mensuel atteint (ou flag absent) : aucun appel au modèle, règles locales.
+    provider = FakeProvider(ZIYADA_READING)
+    body = _scan(provider, [ZIYADA_LINES], structure=structure).json()
+    assert provider.structured == []
+    assert body['structuring'] == 'skipped'
+    assert _value(body, 'product_name') == 'ZIYADA'
+
+
+def test_structure_flag_requires_internal_key() -> None:
+    provider = FakeProvider(ZIYADA_READING)
+    for api_key in (None, 'wrong-key'):
+        for structure in ('false', 'true'):
+            response = _scan(provider, [ZIYADA_LINES], structure=structure, api_key=api_key)
+            assert response.status_code == 401
+    assert provider.structured == []
 
 
 def test_vision_available_only_with_image_fallback() -> None:

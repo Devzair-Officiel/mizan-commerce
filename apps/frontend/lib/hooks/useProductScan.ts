@@ -49,7 +49,7 @@ export interface ScanOutcome {
 }
 
 /** Avertissements connus (le reste est ignoré à l'affichage). */
-export const SCAN_WARNINGS = ['vision_quota_reached', 'vision_unavailable'] as const;
+export const SCAN_WARNINGS = ['text_quota_reached', 'vision_quota_reached', 'vision_unavailable'] as const;
 export type ScanWarning = (typeof SCAN_WARNINGS)[number];
 
 export const isScanWarning = (code: string): code is ScanWarning => SCAN_WARNINGS.some((w) => w === code);

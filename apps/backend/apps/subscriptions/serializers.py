@@ -1,6 +1,7 @@
+from django.conf import settings
 from rest_framework import serializers
 
-from .limits import UsageCounter, shop_usage
+from .limits import UsageCounter, ai_reads_usage, shop_usage
 from .models import Subscription, SubscriptionPlan
 
 
@@ -11,7 +12,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             'id', 'code', 'name', 'description',
             'price_amount', 'price_yearly_amount', 'currency', 'billing_period',
             'max_products', 'max_orders_per_month', 'max_customers', 'max_members',
-            'features_json', 'is_active',
+            'max_text_scans_per_month', 'features_json', 'is_active',
         )
         read_only_fields = fields
 
@@ -28,6 +29,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     effective_plan_code = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
     usage = serializers.SerializerMethodField()
+    ai_reads_enabled = serializers.SerializerMethodField()
+    ai_reads = serializers.SerializerMethodField()
 
     class Meta:
         model = Subscription
@@ -39,6 +42,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'effective_plan_code',
             'days_remaining',
             'usage',
+            'ai_reads_enabled', 'ai_reads',
             'created_at', 'updated_at',
         )
         read_only_fields = fields
@@ -46,6 +50,17 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     def get_usage(self, obj: Subscription) -> dict[str, UsageCounter]:
         """Compteurs des jauges face aux limites de la formule effective."""
         return shop_usage(obj.shop)
+
+    def get_ai_reads_enabled(self, obj: Subscription) -> bool:
+        """Lectures avancées du scan en service (fournisseur IA configuré) : sinon
+        jauge et ligne de formule sont masquées, rien n'est promis."""
+        return settings.PRODUCT_SCAN_AI_ENABLED
+
+    def get_ai_reads(self, obj: Subscription) -> UsageCounter | None:
+        """Lectures avancées du mois face au plafond de la formule effective."""
+        if not settings.PRODUCT_SCAN_AI_ENABLED:
+            return None
+        return ai_reads_usage(obj.shop)
 
     def get_effective_plan_code(self, obj: Subscription) -> str:
         return obj.shop.effective_plan.code
