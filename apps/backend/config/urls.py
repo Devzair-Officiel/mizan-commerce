@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/subscriptions/', include('apps.subscriptions.urls')),
     path('api/ocr/', include('apps.ocr.urls')),
     path('api/loyalty/', include('apps.loyalty.urls')),
+    path('api/exports/', include('apps.exports.urls')),
     path('api/public/boutique/', include('apps.public_pages.public_urls')),
     path('api/', include('apps.core.urls')),
 ]

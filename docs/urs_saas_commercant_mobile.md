@@ -1104,6 +1104,14 @@ L'application est organisée autour des modules suivants :
 - L'utilisateur peut exporter au format CSV.
 - L'utilisateur peut filtrer par période.
 - L'export contient les informations principales des commandes.
+- Un même jeu de données donne trois rendus : CSV, PDF et message WhatsApp ; la période porte sur la date de création et les filtres de la page Commandes (statut, paiement, à encaisser, client, recherche, tri) s'appliquent.
+- Les totaux (nombre, total, encaissé, reste dû) excluent les commandes annulées ; celles-ci restent listées avec leur statut si le filtre les inclut.
+- Le reste dû d'une commande vaut max(0, total − encaissé) et le total du reste dû est la somme de ces valeurs. Un encaissement supérieur au total est un trop-perçu : colonne « Trop-perçu » dans le CSV ; ligne « Trop-perçu » (somme des excédents) dans le PDF et le message, seulement si elle est positive.
+- Le PDF reprend l'en-tête des factures (logo, couleur, boutique) et indique la période, la date de génération, les totaux et « Page n sur N ». Au-delà de 1 000 commandes, le PDF est refusé et le CSV proposé. Sur mobile avec partage de fichiers, le PDF est préparé puis partagé ; ailleurs, il est téléchargé.
+- Le message WhatsApp est un texte seul (gras, listes) : 15 commandes au plus, puis « … et N autres, détail dans le PDF ». Aucun envoi automatique : le commerçant ouvre WhatsApp ou copie le texte.
+- Les rendus PDF et WhatsApp sont limités à 10 par minute et par utilisateur ; au-delà, un message invite à réessayer.
+- Le nombre de commandes est affiché avant l'export. Chaque export est consigné dans le journal d'audit (format, période, filtres, nombre de lignes).
+- Réservé à la formule Boutique et au-delà, aux membres qui ont accès aux commandes.
 
 ---
 

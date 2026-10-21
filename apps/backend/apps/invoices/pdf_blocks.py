@@ -9,7 +9,16 @@ from reportlab.platypus import Image, KeepTogether, Spacer, Table
 
 from apps.core.storage import download_bytes, is_storage_configured
 from apps.products.constants import is_default_variant
-from .pdf_style import BORDER, MUTED, STRIPE, WIDTH, InvoiceStyle, table, xml
+from .pdf_style import (
+    BORDER,
+    MUTED,
+    STRIPE,
+    WIDTH,
+    InvoiceStyle,
+    PdfStyle,
+    table,
+    xml,
+)
 from .services import display_line_description
 from .formatting import (
     format_iban,
@@ -28,19 +37,33 @@ def status_key(style: InvoiceStyle) -> str:
 
 
 def brand(style: InvoiceStyle) -> Table:
-    invoice = style.invoice
-    key = style.snapshot.get('logo_object_key')
+    return brand_block(
+        style,
+        name=style.invoice.seller_name,
+        logo_key=style.snapshot.get('logo_object_key') or '',
+        activity=style.snapshot.get('activity') or '',
+        colored=bool(style.snapshot.get('color')),
+    )
+
+
+def brand_block(
+    style: PdfStyle, *, name: str, logo_key: str, activity: str, colored: bool
+) -> Table:
+    """Logo (sinon l'initiale sur l'accent), nom et activité : factures, exports.
+
+    Sans couleur choisie, le logo passe en niveaux de gris.
+    """
     mark = style.paragraph(
-        xml(invoice.seller_name[:1].upper()),
+        xml(name[:1].upper()),
         size=22,
         color=colors.white,
         bold=True,
         align=1,
     )
-    if key and is_storage_configured():
-        # Référence privée de l'instantané, jamais une URL fournie par le client.
-        content = download_bytes(key)
-        if not style.snapshot.get('color'):
+    if logo_key and is_storage_configured():
+        # Référence privée (instantané ou boutique), jamais une URL du client.
+        content = download_bytes(logo_key)
+        if not colored:
             with PillowImage.open(BytesIO(content)) as source:
                 gray = ImageOps.grayscale(source).convert('RGBA')
                 gray.putalpha(source.convert('RGBA').getchannel('A'))
@@ -54,19 +77,19 @@ def brand(style: InvoiceStyle) -> Table:
             kind='proportional',
             lazy=0,
         )
-    name = [style.paragraph(xml(invoice.seller_name), size=13.5, bold=True)]
-    if style.snapshot.get('activity'):
-        name.append(
-            style.paragraph(xml(style.snapshot['activity']), size=9, color=MUTED)
-        )
+    lines = [style.paragraph(xml(name), size=13.5, bold=True)]
+    if activity:
+        lines.append(style.paragraph(xml(activity), size=9, color=MUTED))
     mark_box = table(
         [[mark]],
         [39],
-        commands=[('BACKGROUND', (0, 0), (-1, -1), style.accent)] if not key else [],
+        commands=(
+            [('BACKGROUND', (0, 0), (-1, -1), style.accent)] if not logo_key else []
+        ),
         minRowHeights=[39],
         cornerRadii=[10.5] * 4,
     )
-    return table([[mark_box, '', name]], [39, 9, 196])
+    return table([[mark_box, '', lines]], [39, 9, 196])
 
 
 def header(style: InvoiceStyle) -> Table:

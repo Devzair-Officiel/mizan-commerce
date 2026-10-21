@@ -117,6 +117,8 @@ export const qk = {
     listInfinite: (filters: Omit<OrdersListFilters, 'page'>) => ['orders', 'infinite', filters] as const,
     summary: ['orders', 'summary'] as const,
     facets: (filters: Omit<OrdersListFilters, 'page'>) => ['orders', 'facets', filters] as const,
+    /** Nombre de lignes d'un export (paramètres de la requête, sans la langue). */
+    exportSummary: (query: string) => ['orders', 'export', query] as const,
     byCustomer: (customerId: string, filters: OrdersCustomerFilters) =>
       ['orders', 'customer', customerId, filters] as const,
     detail: (id: string) => ['orders', id] as const,

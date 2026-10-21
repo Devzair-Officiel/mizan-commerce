@@ -356,7 +356,8 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Exports
 
-- [ ] Export CSV commandes (avec filtre période)
+- [x] Export CSV commandes (avec filtre période) — lot 1 des exports (URS-058) : app `exports` sans modèle, un jeu de données (période sur la date de création, filtres de la page Commandes, totaux hors annulées, reste dû par commande plancher 0, trop-perçu à part), CSV en flux (BOM, « ; », langue de l'interface), fenêtre « Exporter » de Commandes, journal d'audit (`orders_export`, migration `core/0007`), audit `exports`
+  - [x] Rendus PDF et message WhatsApp du même jeu : PDF ReportLab à l'en-tête des factures (période, génération, totaux, « Page n sur N », 1 000 commandes au plus puis CSV proposé), préparé puis partagé (Web Share) sur mobile, téléchargé ailleurs ; message texte (15 commandes au plus), wa.me ou copie, aucun envoi automatique ; 10 rendus par minute et par utilisateur
 - [ ] Export CSV stock (quantités, prix, valeur estimée)
 - [x] Export PDF zakat (mention "indicatif" obligatoire) — livré avec le justificatif de Z2b (Zakat — refonte)
 - [ ] Export asynchrone via Celery + email de notification quand prêt
@@ -692,7 +693,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
 - [ ] Souscription payante — Stripe Billing et webhooks non livrés ; l'API publique autorise uniquement le retour sur Découverte (`apps/backend/apps/subscriptions/views.py`).
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
-- [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`), lot 4 encore en cours ; terminer la recette et préciser le périmètre (exports généraux V4 encore non cochés).
+- [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; reste l'export du stock (V4) et la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).

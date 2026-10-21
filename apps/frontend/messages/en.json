@@ -879,6 +879,45 @@
       "sort_oldest": "Oldest",
       "sort_amount_desc": "Amount, high to low",
       "sort_amount_asc": "Amount, low to high"
+    },
+    "export": {
+      "button": "Export",
+      "button_label": "Export orders",
+      "title": "Export orders",
+      "scope_all": "No filter: all orders",
+      "scope_filtered": "List filters: {filters}",
+      "search": "Search “{query}”",
+      "format_label": "Format",
+      "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {WhatsApp} other {Other}}",
+      "format_hint": "{format, select, csv {Spreadsheet with every column, for Excel or Google Sheets.} pdf {A4 document in your colours, with totals.} whatsapp {Message with totals and up to 15 orders; nothing is sent without you.} other {Choose a format.}}",
+      "pdf_french": "The PDF is in French.",
+      "period_label": "Creation date",
+      "period": "{period, select, month {This month} last_month {Last month} all {All} custom {Custom} other {Other}}",
+      "from": "From",
+      "to": "To",
+      "dates_order": "The end date is before the start date.",
+      "rows": "{count, plural, =0 {No orders to export.} one {# order to export.} other {# orders to export.}}",
+      "pdf_limit": "Too many orders for a PDF ({count}, up to {max}).",
+      "use_csv": "Switch to CSV",
+      "preview_label": "Message preview",
+      "cancel": "Cancel",
+      "copy": "Copy text",
+      "copied": "Text copied",
+      "preparing": "Preparing…",
+      "step": {
+        "download_csv": "Download CSV",
+        "download_pdf": "Download PDF",
+        "prepare_pdf": "Prepare PDF",
+        "share_pdf": "Share PDF",
+        "prepare_message": "Prepare message",
+        "open_whatsapp": "Open WhatsApp"
+      },
+      "errors": {
+        "throttled": "Too many exports in a minute: try again shortly.",
+        "pdf_limit": "Too many orders for a PDF: export them as CSV.",
+        "generic": "The export failed. Please try again.",
+        "copy": "Couldn't copy: select the preview text instead."
+      }
     }
   },
   "articles": {
