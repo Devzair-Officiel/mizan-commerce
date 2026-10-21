@@ -51,7 +51,7 @@ const PLANS: Plan[] = [
       'Factures à vos couleurs, avec votre logo',
       'Page boutique en ligne',
       'Programme de fidélité',
-      'Exports et statistiques de ventes',
+      'Exports',
       'Lecture des factures fournisseurs',
       'Inventaire photo et QR codes',
     ],

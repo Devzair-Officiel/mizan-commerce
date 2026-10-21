@@ -682,11 +682,11 @@ la livraison complète et la recette de lancement ne sont pas attestées ; la pr
 d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 
 - [ ] Fidélité — modèles, services et API dans `apps/backend/apps/loyalty/`, mais aucune interface commerçant ; gating de formule Boutique à raccorder sur ces vues.
-- [ ] Statistiques de ventes — graphique et API présents (`components/dashboard/sales/`, `apps/backend/apps/core/views.py`, `apps/backend/apps/core/services.py`), lot 4 encore en cours ; restriction `sales_stats` à raccorder côté serveur.
+- [ ] Statistiques de ventes — décision du 2026-10-21 : accessibles à toutes les formules, sans gating Boutique (clé `sales_stats` retirée, grille réduite à « Exports ») ; graphique et API présents (`components/dashboard/sales/`, `apps/backend/apps/core/views.py`, `apps/backend/apps/core/services.py`), reste la recette du lot 4.
 - [ ] Inventaire photo (Boutique) — promis dans Pricing et Features ; clé `visual_inventory` seulement, détection visuelle de la phase V6 non livrée.
 - [ ] QR codes (Boutique) — promis dans Pricing ; clé `qr_codes` seulement, génération, impression et scan de la phase V6 non livrés.
 - [ ] Page boutique en ligne — code admin et public présent (`apps/backend/apps/public_pages/`, `app/boutique/`, `components/public-page-admin/`) ; phase V3 encore non validée dans ce suivi, recette de publication à terminer.
-- [ ] Modèles de messages — code et audit présents (`components/settings/messages/`, `e2e/audit-message-templates.mjs`), lot 4 encore en cours ; restriction `message_templates` à raccorder côté serveur.
+- [ ] Modèles de messages — décision du 2026-10-21 : personnalisation accessible dès Solo, avec WhatsApp, sans gating Boutique (clé `message_templates` retirée) ; code et audit présents (`components/settings/messages/`, `e2e/audit-message-templates.mjs`), reste la recette du lot 4.
 - [ ] Rôles et permissions — déjà implémentés et cochés en V1, écran Équipe livré en 7c ; confirmer la recette de lancement (gating `multi_user`, limites 1 / 1 / 4 / illimité), sans les présenter comme du code absent.
 - [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.

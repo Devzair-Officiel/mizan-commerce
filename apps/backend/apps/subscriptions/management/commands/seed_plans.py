@@ -22,9 +22,9 @@ from apps.subscriptions.models import SubscriptionPlan
 _FREE = ['products', 'stock', 'notes', 'reminders', 'orders', 'zakat', 'product_scan']
 _SOLO = _FREE + ['invoices', 'whatsapp', 'zakat_history', 'auto_reminders']
 _BOUTIQUE = _SOLO + [
-    'multi_user', 'roles_permissions', 'invoice_branding', 'message_templates',
-    'daily_digest', 'sales_stats', 'exports', 'public_pages', 'loyalty', 'ocr',
-    'visual_inventory', 'qr_codes', 'partnerships',
+    'multi_user', 'roles_permissions', 'invoice_branding', 'daily_digest',
+    'exports', 'public_pages', 'loyalty', 'ocr', 'visual_inventory', 'qr_codes',
+    'partnerships',
 ]
 _COMMERCE_PLUS = _BOUTIQUE + ['audit_log', 'priority_support']
 
