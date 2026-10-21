@@ -879,6 +879,45 @@
       "sort_oldest": "الأقدم",
       "sort_amount_desc": "المبلغ، من الأعلى",
       "sort_amount_asc": "المبلغ، من الأدنى"
+    },
+    "export": {
+      "button": "تصدير",
+      "button_label": "تصدير الطلبات",
+      "title": "تصدير الطلبات",
+      "scope_all": "بدون تصفية: كل الطلبات",
+      "scope_filtered": "تصفية القائمة: {filters}",
+      "search": "بحث «{query}»",
+      "format_label": "الصيغة",
+      "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {واتساب} other {أخرى}}",
+      "format_hint": "{format, select, csv {جدول لـ Excel أو Google Sheets.} pdf {مستند A4 بألوانك، مع المجاميع.} whatsapp {ملخص بالمجاميع، ترسله بنفسك.} other {اختر صيغة.}}",
+      "pdf_french": "ملف PDF باللغة الفرنسية.",
+      "period_label": "تاريخ الإنشاء",
+      "period": "{period, select, month {هذا الشهر} last_month {الشهر الماضي} all {الكل} custom {مخصصة} other {أخرى}}",
+      "from": "من",
+      "to": "إلى",
+      "dates_order": "تاريخ النهاية قبل تاريخ البداية.",
+      "rows": "{count, plural, =0 {لا توجد طلبات للتصدير.} one {طلب واحد للتصدير.} two {طلبان للتصدير.} few {# طلبات للتصدير.} many {# طلبًا للتصدير.} other {# طلب للتصدير.}}",
+      "pdf_limit": "طلبات كثيرة جدًا لملف PDF ‏({count}، والحد {max}).",
+      "use_csv": "التبديل إلى CSV",
+      "preview_label": "معاينة الرسالة",
+      "cancel": "إلغاء",
+      "copy": "نسخ النص",
+      "copied": "تم نسخ النص",
+      "preparing": "جارٍ التحضير…",
+      "step": {
+        "download_csv": "تنزيل CSV",
+        "download_pdf": "تنزيل PDF",
+        "prepare_pdf": "تحضير PDF",
+        "share_pdf": "مشاركة PDF",
+        "prepare_message": "تحضير الرسالة",
+        "open_whatsapp": "فتح واتساب"
+      },
+      "errors": {
+        "throttled": "تصديرات كثيرة في دقيقة واحدة: أعد المحاولة بعد قليل.",
+        "pdf_limit": "طلبات كثيرة جدًا لملف PDF: صدّرها بصيغة CSV.",
+        "generic": "تعذّر التصدير. أعد المحاولة.",
+        "copy": "تعذّر النسخ: حدّد نص المعاينة."
+      }
     }
   },
   "articles": {

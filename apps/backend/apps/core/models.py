@@ -15,6 +15,7 @@ class AuditLog(models.Model):
         ('product_delete', 'Suppression produit'),
         ('product_deactivate', 'Désactivation produit'),
         ('customer_activity_export', 'Export activité client'),
+        ('orders_export', 'Export commandes'),
         # Scan d'emballage : sources utilisées seulement, jamais l'image ni le texte lu.
         ('product_scan', "Scan d'emballage"),
         # Zakat : données personnelles, jamais affichées dans le journal de la boutique.

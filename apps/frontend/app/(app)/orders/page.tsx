@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/orders/list/EmptyState';
 import { OrdersDesktopView } from '@/components/orders/list/OrdersDesktopView';
 import { OrdersMobileList } from '@/components/orders/list/OrdersMobileList';
 import { useOrdersPageState } from '@/components/orders/list/useOrdersPageState';
+import { OrdersExportButton } from '@/components/orders/export/OrdersExportButton';
 
 const PAGE_SIZE = 20;
 
@@ -43,7 +44,12 @@ function OrdersContent() {
       <TopBar
         title={t('topbar')}
         subtitle={hasLoaded ? t('count', { count: totalCount }) : undefined}
-        action={<ListCreateButton href="/orders/new" label={t('new_order')} usage="orders_this_month" />}
+        action={
+          <div className="flex items-center gap-2">
+            <OrdersExportButton state={state} />
+            <ListCreateButton href="/orders/new" label={t('new_order')} usage="orders_this_month" />
+          </div>
+        }
         hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">

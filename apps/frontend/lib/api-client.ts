@@ -17,12 +17,8 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Toutes les requêtes passent par le proxy Next.js (/api/proxy/...).
- * Le token JWT est stocké dans un cookie HttpOnly côté serveur — jamais
- * accessible depuis le JS client.
- */
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+/** Chemin de l'API → URL du proxy Next.js, avec un seul slash final. */
+function proxyUrl(path: string): string {
   // Strip leading slash
   const stripped = path.replace(/^\//, '');
   // Separate path from query string
@@ -32,16 +28,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   // Le proxy ajoute déjà le slash final — on s'assure juste de ne pas en doubler
   const cleanPath = pathOnly.endsWith('/') ? pathOnly : `${pathOnly}/`;
   // N'ajouter le query que s'il contient vraiment des params (pas juste '?')
-  const url = `/api/proxy/${cleanPath}${query.length > 1 ? query : ''}`;
+  return `/api/proxy/${cleanPath}${query.length > 1 ? query : ''}`;
+}
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    },
-  });
-
+/** Session expirée, accès suspendu ou erreur de l'API : `ApiError` (corps JSON s'il y en a un). */
+async function throwIfFailed(res: Response): Promise<void> {
   if (res.status === 401) {
     // Le proxy a déjà tenté le refresh — session vraiment expirée
     window.location.href = '/login';
@@ -56,8 +47,39 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     }
     throw new ApiError(res.status, data, `API error ${res.status}`);
   }
+}
+
+/**
+ * Toutes les requêtes passent par le proxy Next.js (/api/proxy/...).
+ * Le token JWT est stocké dans un cookie HttpOnly côté serveur — jamais
+ * accessible depuis le JS client.
+ */
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(proxyUrl(path), {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    },
+  });
+  await throwIfFailed(res);
 
   // 204 No Content — l'appelant doit typer comme apiFetch<void>(...)
   if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
+}
+
+/** Nom proposé par le serveur (`Content-Disposition`), sinon `fallback`. */
+function attachmentName(header: string | null, fallback: string): string {
+  const encoded = header?.match(/filename\*=utf-8''([^;]+)/i)?.[1];
+  if (encoded) return decodeURIComponent(encoded);
+  return header?.match(/filename="([^"]+)"/)?.[1] ?? fallback;
+}
+
+/** Fichier (PDF…) par le même proxy, avec les mêmes erreurs que `apiFetch` ; nommé comme le propose le serveur. */
+export async function apiFetchFile(path: string, fallbackName: string): Promise<File> {
+  const res = await fetch(proxyUrl(path));
+  await throwIfFailed(res);
+  const blob = await res.blob();
+  return new File([blob], attachmentName(res.headers.get('Content-Disposition'), fallbackName), { type: blob.type });
 }

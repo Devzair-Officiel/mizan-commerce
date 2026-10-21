@@ -879,6 +879,45 @@
       "sort_oldest": "Plus anciennes",
       "sort_amount_desc": "Montant décroissant",
       "sort_amount_asc": "Montant croissant"
+    },
+    "export": {
+      "button": "Exporter",
+      "button_label": "Exporter les commandes",
+      "title": "Exporter les commandes",
+      "scope_all": "Sans filtre : toutes les commandes",
+      "scope_filtered": "Filtres de la liste : {filters}",
+      "search": "Recherche « {query} »",
+      "format_label": "Format",
+      "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {WhatsApp} other {Autre}}",
+      "format_hint": "{format, select, csv {Tableur pour Excel ou Google Sheets.} pdf {Document A4 à vos couleurs, avec les totaux.} whatsapp {Résumé avec les totaux, à envoyer vous-même.} other {Choisissez un format.}}",
+      "pdf_french": "Le PDF est en français.",
+      "period_label": "Date de création",
+      "period": "{period, select, month {Ce mois-ci} last_month {Mois dernier} all {Tout} custom {Personnalisée} other {Autre}}",
+      "from": "Du",
+      "to": "Au",
+      "dates_order": "La date de fin précède la date de début.",
+      "rows": "{count, plural, =0 {Aucune commande à exporter.} one {# commande à exporter.} other {# commandes à exporter.}}",
+      "pdf_limit": "Trop de commandes pour un PDF ({count} pour {max} au plus).",
+      "use_csv": "Passer au CSV",
+      "preview_label": "Aperçu du message",
+      "cancel": "Annuler",
+      "copy": "Copier le texte",
+      "copied": "Texte copié",
+      "preparing": "Préparation…",
+      "step": {
+        "download_csv": "Télécharger le CSV",
+        "download_pdf": "Télécharger le PDF",
+        "prepare_pdf": "Préparer le PDF",
+        "share_pdf": "Partager le PDF",
+        "prepare_message": "Préparer le message",
+        "open_whatsapp": "Ouvrir WhatsApp"
+      },
+      "errors": {
+        "throttled": "Trop d'exports en une minute : réessayez dans un instant.",
+        "pdf_limit": "Trop de commandes pour un PDF : exportez-les en CSV.",
+        "generic": "L'export n'a pas abouti. Réessayez.",
+        "copy": "Copie impossible : sélectionnez le texte de l'aperçu."
+      }
     }
   },
   "articles": {
