@@ -61,7 +61,7 @@ class SupplierLineMatchFactory(DjangoModelFactory):
 
 
 class ProductScanUsageFactory(DjangoModelFactory):
-    """Compteur mensuel du secours vision (scan d'emballage, URS-109)."""
+    """Compteurs mensuels du scan d'emballage : texte et secours vision (URS-109)."""
 
     class Meta:
         model = ProductScanUsage
@@ -69,3 +69,4 @@ class ProductScanUsageFactory(DjangoModelFactory):
     shop = factory.SubFactory(ShopFactory)
     month = factory.LazyFunction(lambda: timezone.localdate().replace(day=1))
     vision_count = 0
+    text_count = 0

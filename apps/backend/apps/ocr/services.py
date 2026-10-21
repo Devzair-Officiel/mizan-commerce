@@ -10,14 +10,16 @@ Aucun appel OCR / IA n'est déclenché ici — c'est l'objet des étapes suivant
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import uuid
 from datetime import date
 from decimal import Decimal
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
 from zoneinfo import ZoneInfo
 
 from django.conf import settings
+from django.core.cache import caches
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -72,12 +74,14 @@ __all__ = (
     'mark_ocr_failed',
     'mark_ocr_processing',
     'record_invoice_entry',
+    'release_text_scan',
     'release_vision_scan',
+    'reserve_text_scan',
     'reserve_vision_scan',
     'scan_product_image',
+    'scan_quota_month',
     'validate_file_signature',
     'validate_invoice_review',
-    'vision_quota_month',
 )
 
 
@@ -851,8 +855,8 @@ def record_invoice_entry(
 # strictement supérieure). Le nom et la description sont composés ici, avec la
 # boutique en tête (sa marque n'est pas répétée) : aucune donnée de la boutique
 # ne part vers ai-service ni le fournisseur. L'IA ne fait que proposer : rien
-# n'est enregistré ici, hormis le compteur du secours image et le journal
-# d'audit (sources et issues, jamais le contenu lu).
+# n'est enregistré ici, hormis les compteurs mensuels (lectures avancées,
+# secours image) et le journal d'audit (sources et issues, jamais le contenu lu).
 
 SCAN_SOURCE_BARCODE = 'barcode'
 SCAN_SOURCE_OPEN_FOOD_FACTS = 'open_food_facts'
@@ -862,6 +866,7 @@ SCAN_FIELD_NAMES = (
     'name', 'brand', 'product_name', 'variant', 'net_quantity', 'unit_suggestion',
     'barcode', 'description',
 )
+SCAN_WARNING_TEXT_QUOTA = 'text_quota_reached'
 SCAN_WARNING_VISION_QUOTA = 'vision_quota_reached'
 SCAN_WARNING_VISION_UNAVAILABLE = 'vision_unavailable'
 
@@ -993,20 +998,25 @@ def _suggest_unit(found: dict[str, ScanField]) -> None:
     found['unit_suggestion'] = ScanField(_UNIT_PIECE, _UNIT_CONFIDENCE, source)
 
 
-def vision_quota_month(shop: Shop) -> date:
+def scan_quota_month(shop: Shop) -> date:
     """Premier jour du mois courant, dans le fuseau de la boutique."""
     return timezone.localdate(timezone=ZoneInfo(shop.timezone)).replace(day=1)
 
 
-def reserve_vision_scan(shop: Shop, month: date) -> bool:
-    """Réserve un appel au secours vision ; `False` si le quota du mois est atteint.
+_ScanCounter = Literal['text_count', 'vision_count']
+
+
+def _reserve_scan(
+    shop: Shop, month: date, counter: _ScanCounter, limit: int | None,
+) -> bool:
+    """Réserve un appel payant du scan ; `False` si le plafond du mois est atteint.
 
     SQL atomique uniquement : la ligne du mois est créée par un INSERT … ON
     CONFLICT DO NOTHING, puis incrémentée par un UPDATE conditionnel
-    (`vision_count < limite`). Deux scans simultanés ne peuvent pas dépasser
-    la limite, sans aucune lecture suivie d'une écriture.
+    (`compteur < plafond`). Deux scans simultanés ne peuvent pas dépasser le
+    plafond, sans aucune lecture suivie d'une écriture. Plafond `None`
+    (illimité) : l'incrément reste fait, pour la jauge d'usage.
     """
-    limit = shop.effective_plan.max_vision_scans_per_month
     if limit == 0:
         return False
     ProductScanUsage.objects.bulk_create(
@@ -1014,16 +1024,37 @@ def reserve_vision_scan(shop: Shop, month: date) -> bool:
     )
     usage = ProductScanUsage.objects.filter(shop=shop, month=month)
     if limit is not None:
-        usage = usage.filter(vision_count__lt=limit)
+        usage = usage.filter(**{f'{counter}__lt': limit})
     now = timezone.now()
-    return usage.update(vision_count=F('vision_count') + 1, updated_at=now) == 1
+    return usage.update(**{counter: F(counter) + 1, 'updated_at': now}) == 1
+
+
+def _release_scan(shop: Shop, month: date, counter: _ScanCounter) -> None:
+    """Rend un appel réservé qui n'a pas abouti (décrément atomique, jamais sous 0)."""
+    ProductScanUsage.objects.filter(
+        shop=shop, month=month, **{f'{counter}__gt': 0},
+    ).update(**{counter: F(counter) - 1, 'updated_at': timezone.now()})
+
+
+def reserve_vision_scan(shop: Shop, month: date) -> bool:
+    """Réserve un secours image (`max_vision_scans_per_month`)."""
+    limit = shop.effective_plan.max_vision_scans_per_month
+    return _reserve_scan(shop, month, 'vision_count', limit)
 
 
 def release_vision_scan(shop: Shop, month: date) -> None:
-    """Rend l'appel réservé quand le secours vision a échoué (décrément atomique)."""
-    ProductScanUsage.objects.filter(shop=shop, month=month, vision_count__gt=0).update(
-        vision_count=F('vision_count') - 1, updated_at=timezone.now(),
-    )
+    _release_scan(shop, month, 'vision_count')
+
+
+def reserve_text_scan(shop: Shop, month: date) -> bool:
+    """Réserve une lecture avancée (`max_text_scans_per_month` de la formule
+    effective : l'essai Boutique compte comme Boutique)."""
+    limit = shop.effective_plan.max_text_scans_per_month
+    return _reserve_scan(shop, month, 'text_count', limit)
+
+
+def release_text_scan(shop: Shop, month: date) -> None:
+    _release_scan(shop, month, 'text_count')
 
 
 def _vision_needed(found: dict[str, ScanField], local: AiProductScanLocal) -> bool:
@@ -1044,7 +1075,7 @@ def _vision_fallback(
         return [], 'not_needed'
     if not local.vision_available:
         return [], 'disabled'
-    month = vision_quota_month(shop)
+    month = scan_quota_month(shop)
     if not reserve_vision_scan(shop, month):
         return [SCAN_WARNING_VISION_QUOTA], 'quota_reached'
     try:
@@ -1054,6 +1085,108 @@ def _vision_fallback(
         return [SCAN_WARNING_VISION_UNAVAILABLE], 'unavailable'
     _apply_vision(found, vision)
     return [], 'used'
+
+
+class _TextSlot(NamedTuple):
+    """Place de lecture avancée d'un scan.
+
+    `structure` : demander la structuration à ai-service ; `reserved` : place
+    prise par cette requête (rendue si la structuration n'aboutit pas) ;
+    `outcome` : `disabled`, `same_scan` (dos d'une face déjà structurée),
+    `reserved` ou `quota_reached`.
+    """
+
+    structure: bool
+    reserved: bool
+    outcome: str
+
+
+_SCAN_CACHE_ALIAS = 'product_scans'
+
+
+def _face_key(shop: Shop, face: ScanPhoto) -> str:
+    # Empreinte seule : ni l'image ni le texte lu ne sont gardés.
+    return f'{shop.pk}:{hashlib.sha256(face.content).hexdigest()}'
+
+
+def _keep_face_for_back(shop: Shop, face: ScanPhoto) -> None:
+    """Face structurée : sa photo du dos, envoyée ensuite, ne prendra pas de place."""
+    try:
+        caches[_SCAN_CACHE_ALIAS].set(
+            _face_key(shop, face), 1, settings.PRODUCT_SCAN_BACK_GRACE_SECONDS,
+        )
+    except Exception as exc:  # noqa: BLE001 — Redis indisponible : le dos prendra une place
+        logger.warning('Product scan cache unavailable: %s', type(exc).__name__)
+
+
+def _claim_face_for_back(shop: Shop, face: ScanPhoto) -> bool:
+    """Reprend une seule fois (DEL atomique) la place déjà prise par la face."""
+    try:
+        return bool(caches[_SCAN_CACHE_ALIAS].delete(_face_key(shop, face)))
+    except Exception as exc:  # noqa: BLE001 — Redis indisponible : une place est réservée
+        logger.warning('Product scan cache unavailable: %s', type(exc).__name__)
+        return False
+
+
+def _take_text_slot(
+    shop: Shop, month: date, face: ScanPhoto, back: ScanPhoto | None,
+) -> _TextSlot:
+    """Face et dos d'un même scan : une seule place."""
+    if not settings.PRODUCT_SCAN_AI_ENABLED:
+        return _TextSlot(structure=False, reserved=False, outcome='disabled')
+    if back is not None and _claim_face_for_back(shop, face):
+        return _TextSlot(structure=True, reserved=False, outcome='same_scan')
+    if reserve_text_scan(shop, month):
+        return _TextSlot(structure=True, reserved=True, outcome='reserved')
+    return _TextSlot(structure=False, reserved=False, outcome='quota_reached')
+
+
+def _settle_text_slot(
+    shop: Shop, month: date, slot: _TextSlot, face: ScanPhoto,
+    back: ScanPhoto | None, structuring: str | None,
+) -> None:
+    """Après l'appel (`structuring` à None : ai-service injoignable).
+
+    Structuration non aboutie (`disabled`, `failed`, injoignable) : la place
+    réservée est rendue, ou celle de la face reste disponible pour le dos.
+
+    Limite connue : si le processus est tué entre la réservation et ce
+    règlement, la place reste consommée à tort (au pire une lecture de moins
+    pour la boutique, jamais un appel non compté) : accepté plutôt qu'une
+    réconciliation.
+    """
+    if not slot.structure:
+        return
+    if structuring != 'done':
+        if slot.reserved:
+            release_text_scan(shop, month)
+        else:
+            _keep_face_for_back(shop, face)
+    elif back is None:
+        _keep_face_for_back(shop, face)
+
+
+def _read_locally(
+    shop: Shop, face: ScanPhoto, back: ScanPhoto | None,
+) -> tuple[AiProductScanLocal, str]:
+    """Lecture locale, structurée si une place de lecture avancée est libre.
+
+    Renvoie la lecture et l'issue du texte pour le journal d'audit. Plafond
+    atteint : règles locales, jamais une erreur.
+    """
+    month = scan_quota_month(shop)
+    slot = _take_text_slot(shop, month, face, back)
+    try:
+        local = scan_product_locally_with_ai_service(
+            face=face, back=back, structure=slot.structure,
+        )
+    except AiServiceUnavailableError:
+        _settle_text_slot(shop, month, slot, face, back, structuring=None)
+        raise
+    _settle_text_slot(shop, month, slot, face, back, structuring=local.structuring)
+    if slot.outcome == 'quota_reached':
+        return local, 'quota_reached'
+    return local, local.structuring
 
 
 def scan_product_image(
@@ -1066,10 +1199,12 @@ def scan_product_image(
     mémoire : rien n'est stocké ni journalisé des images ou du texte lu. Lève
     `AiServiceUnavailableError` si la lecture locale échoue (la vue répond 503).
     """
-    local = scan_product_locally_with_ai_service(face=face, back=back)
+    local, text_outcome = _read_locally(shop, face, back)
     found: dict[str, ScanField] = {}
     _apply_local(found, local)
     warnings, vision_outcome = _vision_fallback(shop, found, local, face)
+    if text_outcome == 'quota_reached':
+        warnings.insert(0, SCAN_WARNING_TEXT_QUOTA)
     _suggest_unit(found)
     minimum = settings.PRODUCT_SCAN_MIN_CONFIDENCE
     fields: dict[str, ScanField | None] = {
@@ -1084,7 +1219,7 @@ def scan_product_image(
         changes={
             'sources': sorted({f.source for f in fields.values() if f is not None}),
             'photos': 1 if back is None else 2,
-            'text': local.structuring,
+            'text': text_outcome,
             'vision': vision_outcome,
         },
     )

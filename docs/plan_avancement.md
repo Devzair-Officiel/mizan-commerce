@@ -636,12 +636,24 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Journal d'activité (Commerce+) : écran de lecture des logs d'audit existants — à livrer
       avant le lancement. Exclure les actions `zakat_*` de l'écran (données personnelles).
 
-- [ ] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL.
+- [x] Audit invoices ar 1440 : contrôle de disposition non adapté au RTL. Corrigé : ordre
+      logique lu dans le sens réel du document (`getComputedStyle(document.documentElement)
+      .direction`), contre-épreuve condition inversée en échec en fr comme en ar.
 
-- [ ] Audit invoices, recherche par numéro : échec intermittent en 1440 fr clair, sur main
+- [ ] Audits qui déduisent le sens d'écriture de la langue (`locale === 'ar'`) au lieu du
+      document : account-menu:87, customer-form:45, sales:83, sidebar:50, 149, 154, 159,
+      177, subscription:162-165. Les passer sur `getComputedStyle(document.documentElement)
+      .direction`, comme invoices, puis relancer chacun dans les 8 configurations. Sans
+      urgence : sidebar:180 déplace le pointeur de 600 px vers la droite sans tenir compte
+      du sens (impact probablement nul).
+
+- [x] Audit invoices, recherche par numéro : échec intermittent en 1440 fr clair, sur main
       comme sur Z3 (environ 1 passage sur 3), déjà vu en 360 ar sombre. Le serveur renvoie
       bien 1 facture sur 24 ; le contrôle lit la liste juste après `networkidle`, encore vide
-      (0 lien), et la bonne ligne n'apparaît qu'ensuite, une seule fois.
+      (0 lien), et la bonne ligne n'apparaît qu'ensuite, une seule fois. Corrigé : réponse
+      filtrée attendue avant la saisie (`waitForResponse`), puis liste égale au résultat ;
+      `networkidle`, déjà atteint au chargement, n'attendait pas la requête. 0 échec sur 10
+      en 1440 ar clair avant comme après (course mesurée : marge de 13 à 148 ms).
 
 - [ ] Catégorie de rappel zakat : plus aucun rappel automatique depuis Z2b. Décider du filtre
       de la liste et du reclassement des rappels restants.
@@ -649,9 +661,16 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Sondes de formule de test_plans.py : un 404 compte comme accès autorisé ; exiger 200
       pour chaque module.
 
-- [ ] Scan d'emballage (URS-109) : plafond mensuel par boutique sur les appels de
-      structuration du texte (aujourd'hui seulement la limite de débit), avec incrément
-      atomique SQL — à traiter avant l'ouverture publique et avant tout import en lot.
+- [x] Scan d'emballage (URS-109) : plafond mensuel par boutique sur les appels de
+      structuration du texte — « lectures avancées » : `ProductScanUsage.text_count`,
+      `SubscriptionPlan.max_text_scans_per_month` (Découverte 10, Solo 30, Boutique 60,
+      Commerce+ 130, NULL = illimité, formule effective), réservation SQL atomique avant
+      l'appel (`structure=true` envoyé par Django seul), remboursement si la structuration
+      n'aboutit pas, face + dos = une place (empreinte de la face en cache 15 min) ;
+      plafond atteint → règles locales + avertissement `text_quota_reached` et mise à
+      niveau ; jauge « Ce mois-ci » dans Paramètres → Abonnement si `VISION_PROVIDER`
+      ≠ none. Limite connue : processus tué entre réservation et remboursement → place
+      perdue. Coût unitaire (≈ 0,03 €) à confirmer sur facture réelle.
 
 ---
 

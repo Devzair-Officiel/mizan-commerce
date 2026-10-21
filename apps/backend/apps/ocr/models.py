@@ -152,11 +152,13 @@ class SupplierLineMatch(models.Model):
 
 
 class ProductScanUsage(models.Model):
-    """Appels au secours vision du scan d'emballage, par boutique et par mois.
+    """Appels payants du scan d'emballage, par boutique et par mois.
 
-    Plafonnés par `SubscriptionPlan.max_vision_scans_per_month`. Le compteur ne
-    s'écrit qu'en SQL atomique (`services.reserve_vision_scan`), jamais par une
-    lecture suivie d'une écriture.
+    Deux compteurs, deux plafonds de formule : la structuration du texte
+    (`text_count`, « lectures avancées », `max_text_scans_per_month`) et le
+    secours image (`vision_count`, `max_vision_scans_per_month`). Ils ne
+    s'écrivent qu'en SQL atomique (`services.reserve_text_scan`,
+    `services.reserve_vision_scan`), jamais par une lecture suivie d'une écriture.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -166,6 +168,7 @@ class ProductScanUsage(models.Model):
     # Premier jour du mois, dans le fuseau de la boutique.
     month = models.DateField()
     vision_count = models.PositiveIntegerField(default=0)
+    text_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -178,4 +181,7 @@ class ProductScanUsage(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f'{self.shop_id} {self.month:%Y-%m} : {self.vision_count}'
+        return (
+            f'{self.shop_id} {self.month:%Y-%m} : '
+            f'texte {self.text_count}, vision {self.vision_count}'
+        )

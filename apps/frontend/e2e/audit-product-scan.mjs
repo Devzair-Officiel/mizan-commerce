@@ -6,7 +6,9 @@
  *   service et en modification ;
  * - lecture en cours : squelette ; puis pré-remplissage des seuls champs vides (le nom déjà saisi
  *   reste intact), badge « Détecté, à vérifier » sur la description et le code-barres, carte
- *   Référence ouverte, avertissement du quota de lecture avancée, prix jamais pré-rempli ;
+ *   Référence ouverte, avertissements des quotas (lecture avancée, lecture de la photo), prix jamais pré-rempli ;
+ * - lectures avancées du mois épuisées : « Plus de lectures avancées » (44px) ouvre la mise à niveau vers la
+ *   formule suivante ; « Voir les formules » demande confirmation avant de quitter le formulaire saisi ;
  * - le badge disparaît dès que la description est corrigée ; l'article créé porte la description
  *   corrigée et le code-barres lu (relus dans l'API) ;
  * - erreur réseau : alerte et « Réessayer », qui relance la même photo et pré-remplit le nom
@@ -20,11 +22,13 @@ import { fmt, msg } from './lib/messages.mjs';
 import { api, remove } from './lib/products.mjs';
 import { makeImage } from './lib/photos.mjs';
 import { cardToggle, textbox, visibleButton } from './lib/form.mjs';
+import { animationsDone } from './lib/wait.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 
 const report = createReport();
 const SCAN_URL = '**/api/ocr/product-scan';
 const field = (value, source, confidence = 0.9) => ({ value, confidence, source });
+const NEXT_PLAN = { free: 'solo', solo: 'boutique', boutique: 'commerce_plus', commerce_plus: null };
 
 /**
  * Réponse simulée du scan : `barcode` change à chaque passage (code-barres unique dans la boutique).
@@ -41,7 +45,7 @@ const scanResponse = (barcode, { quantity = true } = {}) => ({
     barcode: field(barcode, 'barcode', 1),
     description: field('Lait UHT, sans conservateur', 'ocr', 0.7),
   },
-  warnings: ['vision_quota_reached'],
+  warnings: ['text_quota_reached', 'vision_quota_reached'],
 });
 
 async function goto(page, path, nested) {
@@ -120,9 +124,11 @@ async function prefillAndCreate(page, t, ctx, photo, nested) {
     price: (await textbox(page, t('articles.form.selling_price')).inputValue()) === '',
     badges: (await badges(page, t).count()) === 2,
     message: status.includes(fmt(locale, 'articles.scan.filled', { count: 2 })),
-    warning: status.includes(t('articles.scan.warning.vision_quota_reached')) };
+    warning: status.includes(t('articles.scan.warning.vision_quota_reached')) && status.includes(t('articles.scan.warning.text_quota_reached')) };
   report.check(Object.values(state).every(Boolean),
     `${label} : squelette, puis description et code-barres pré-remplis avec « ${t('articles.scan.detected')} », nom saisi intact, prix vide, avertissement du quota ${JSON.stringify(state)}`);
+
+  await checkTextQuota(page, t, ctx);
 
   const corrected = 'Lait UHT demi-écrémé (audit, corrigé)';
   await textbox(page, t('articles.form.description')).fill(corrected);
@@ -137,6 +143,37 @@ async function prefillAndCreate(page, t, ctx, photo, nested) {
   report.check(Object.values(saveState).every(Boolean),
     `${label} : badge retiré à la correction ; article créé avec la description corrigée et le code-barres lu ${JSON.stringify(saveState)}`);
   return id;
+}
+
+/**
+ * Lectures avancées épuisées : mise à niveau vers la formule suivante (aucune au-dessus de Commerce+) ;
+ * « Voir les formules » demande confirmation (refusée ici) avant de quitter le formulaire saisi.
+ */
+async function checkTextQuota(page, t, ctx) {
+  const { effective_plan_code: current } = await api(page, 'subscriptions/current/');
+  const target = NEXT_PLAN[current];
+  const button = scanCard(page).getByRole('button', { name: t('articles.scan.ai_reads_more'), exact: true });
+  if (!target) {
+    report.check(await button.count() === 0, `${ctx.label} : ${current}, aucune formule au-dessus, pas de mise à niveau proposée`);
+    return;
+  }
+  const tap = ((await button.boundingBox())?.height ?? 0) >= 44;
+  await button.click();
+  const sheet = page.getByRole('dialog', { name: t('articles.scan.ai_reads_sheet_title') });
+  await sheet.waitFor();
+  await animationsDone(sheet);
+  const title = fmt(ctx.locale, 'settings.upgrade.title', { feature: 'ai_reads', plan: target });
+  const heading = await sheet.getByRole('heading', { name: title, exact: true }).isVisible();
+  let asked = false;
+  page.once('dialog', (dialog) => { asked = dialog.type() === 'confirm'; dialog.dismiss(); });
+  await sheet.getByRole('link', { name: t('settings.upgrade.cta'), exact: true }).click();
+  await page.waitForTimeout(300);
+  const stayed = new URL(page.url()).pathname === '/products/new';
+  await page.keyboard.press('Escape');
+  await sheet.waitFor({ state: 'hidden' });
+  const state = { tap, heading, asked, stayed };
+  report.check(Object.values(state).every(Boolean),
+    `${ctx.label} : « ${t('articles.scan.ai_reads_more')} » (≥ 44px) ouvre « ${title} » ; « ${t('settings.upgrade.cta')} » demande confirmation, formulaire gardé ${JSON.stringify(state)}`);
 }
 
 /** Panne réseau : alerte et « Réessayer », qui relance la même photo. Pas d'encadré en modification. */

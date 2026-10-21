@@ -55,6 +55,12 @@ x-django: &django
     AI_SERVICE_OCR_TIMEOUT_SECONDS: ${AI_SERVICE_OCR_TIMEOUT_SECONDS:-180}
     AI_SERVICE_INVOICE_TIMEOUT_SECONDS: ${AI_SERVICE_INVOICE_TIMEOUT_SECONDS:-50}
     AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS: ${AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS:-40}
+    # Même valeur qu'ai-service (lue ici et là-bas) : le backend en déduit si les
+    # lectures avancées du scan d'emballage existent (plafond mensuel réservé,
+    # jauge Abonnement affichée). `none` ici = ni réservation ni jauge, et
+    # ai-service n'appelle pas le modèle texte (structure=false), quel que soit
+    # son fournisseur.
+    VISION_PROVIDER: ${VISION_PROVIDER:-none}
     SENTRY_DSN: ${SENTRY_DSN:-}
     SENTRY_ENVIRONMENT: ${APP_ENV:?}
     SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0}
@@ -322,6 +328,7 @@ services:
       #   sinon le texte lu (jamais l'image) part à la structuration ;
       # - PRODUCT_SCAN_IMAGE_FALLBACK : `true` autorise en plus l'envoi de la
       #   photo de face en secours.
+      # Même valeur que le backend (ancre x-django), qui tient le plafond mensuel.
       VISION_PROVIDER: ${VISION_PROVIDER:-none}
       PRODUCT_TEXT_MODEL: ${PRODUCT_TEXT_MODEL:-}
       PRODUCT_TEXT_TIMEOUT_SECONDS: ${PRODUCT_TEXT_TIMEOUT_SECONDS:-15}

@@ -846,18 +846,19 @@ Association mémorisée d'une ligne de facture fournisseur à un format, faite �
 
 ### `product_scan_usages`
 
-Compteur mensuel des appels au secours vision du scan d'emballage (URS-109, proposée), plafonnés par `subscription_plans.max_vision_scans_per_month`. Seul le secours vision est compté : le code-barres, Open Food Facts et l'OCR local restent libres. L'image scannée n'est jamais enregistrée.
+Compteurs mensuels des appels payants du scan d'emballage (URS-109, proposée) : la structuration du texte par le modèle (« lectures avancées », plafonnées par `subscription_plans.max_text_scans_per_month` ; face et dos d'un même scan = une lecture) et le secours vision (plafonné par `subscription_plans.max_vision_scans_per_month`). Le code-barres, Open Food Facts et l'OCR local restent libres. Mois compté dans le fuseau de la boutique. L'image scannée n'est jamais enregistrée.
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
 | month | DATE | NOT NULL | Premier jour du mois (fuseau de la boutique) |
+| text_count | INTEGER | NOT NULL, DEFAULT 0, ≥ 0 | Lectures avancées (structuration du texte) ce mois-ci ; comptées aussi en formule illimitée, pour la jauge |
 | vision_count | INTEGER | NOT NULL, DEFAULT 0, ≥ 0 | Appels au fournisseur de vision ce mois-ci |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
-**Contraintes** : `UNIQUE (shop_id, month)`. L'incrément est atomique en SQL (`UPDATE … SET vision_count = vision_count + 1 WHERE vision_count < limite`), jamais une lecture suivie d'une écriture ; un appel en échec rend son unité.
+**Contraintes** : `UNIQUE (shop_id, month)`. L'incrément de chaque compteur est atomique en SQL (`UPDATE … SET vision_count = vision_count + 1 WHERE vision_count < limite`), jamais une lecture suivie d'une écriture ; un appel en échec (ou une structuration qui n'aboutit pas) rend son unité, par un décrément atomique borné à 0.
 
 ---
 
@@ -1211,6 +1212,7 @@ L'essai de 14 jours à l'inscription porte sur `boutique`. Les limites sont vér
 | max_orders_per_month | INTEGER | | NULL = illimité |
 | max_customers | INTEGER | | Clients actifs. NULL = illimité |
 | max_members | INTEGER | | Membres, propriétaire compris. NULL = illimité |
+| max_text_scans_per_month | INTEGER | | Lectures avancées (structuration du texte) du scan d'emballage par mois. NULL = illimité |
 | max_vision_scans_per_month | INTEGER | | Secours vision du scan d'emballage par mois. NULL = illimité |
 | features_json | JSONB | | Liste fonctionnalités incluses (projection de `FEATURE_MIN_PLAN`) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | |

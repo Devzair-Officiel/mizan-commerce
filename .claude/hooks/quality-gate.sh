@@ -22,8 +22,15 @@ report=""
 
 if [ "$backend_changed" -eq 0 ]; then
   docker compose ps --status running --services 2>/dev/null | grep -q '^backend$' && {
+    # pytest complet = phase lourde : il passe par mem-check (CLAUDE.md, « Mémoire »). Si une autre phase
+    # lourde tourne déjà (audits, build), il s'efface sans échec ; sous pression mémoire, mem-check refuse.
+    # Course résiduelle : une phase lourde qui démarre entre ce relevé et `mem-check run` fait refuser
+    # celui-ci (code 2), que le hook prend pour un échec factice. Piste, hors de ce lot : un code de sortie
+    # dédié à « occupé » dans mem-check.sh.
+    pytest_cmd=(infra/scripts/mem-check.sh run docker compose exec -T backend python -m pytest -n auto -q)
+    infra/scripts/mem-check.sh >/dev/null 2>&1; [ $? -eq 2 ] && pytest_cmd=(true)
     out=$( { docker compose exec -T backend ruff check . \
-          && docker compose exec -T backend python -m pytest -n auto -q; } 2>&1 ) || { fail=1; report+=$'\n--- Backend ---\n'"$out"; }
+          && MEM_LABEL="quality-gate pytest" "${pytest_cmd[@]}"; } 2>&1 ) || { fail=1; report+=$'\n--- Backend ---\n'"$out"; }
   }
 fi
 

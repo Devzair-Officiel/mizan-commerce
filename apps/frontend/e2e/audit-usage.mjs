@@ -4,7 +4,8 @@
  * - à 12 ventes sur 15, le bandeau de /orders porte la jauge « 12 / 15 ventes ce mois », en ambre ;
  * - à 15 sur 15, la jauge passe au rouge, et « Nouvelle commande » ouvre la fenêtre de mise à niveau (carte Solo,
  *   bouton vers Paramètres → Abonnement) au lieu de mener au formulaire ;
- * - Paramètres → Abonnement montre les jauges de la formule.
+ * - Paramètres → Abonnement montre les jauges de la formule, puis, à part, « Ce mois-ci » : 8 / 10 lectures avancées
+ *   en ambre, « Bientôt à la limite » écrit.
  * L'usage et la formule sont réécrits dans la réponse `/subscriptions/current/` (comme audit-stock-entry-plan) :
  * la boutique d'audit reste en Boutique, aucune vente n'est créée.
  */
@@ -15,6 +16,7 @@ import { animationsDone } from './lib/wait.mjs';
 const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
 const LIMIT = 15;
+const AI_READS = { count: 8, limit: 10 };
 
 /** Formule Découverte, `state.orders` ventes ce mois sur 15. */
 async function routePlan(ctx, state) {
@@ -37,6 +39,8 @@ async function routePlan(ctx, state) {
             customers: { count: 2, limit: 15 },
             members: { count: 1, limit: 1 },
           },
+          ai_reads_enabled: true,
+          ai_reads: AI_READS,
         },
       });
     } catch {
@@ -82,13 +86,18 @@ async function checkReached(page, locale, label, state) {
   await sheet.waitFor({ state: 'hidden' });
 }
 
-async function checkSettings(page, label) {
+async function checkSettings(page, locale, label) {
   await page.goto(`${BASE}/settings/subscription`);
   await page.waitForLoadState('networkidle');
   const gauges = page.locator('[data-usage]');
   await gauges.first().waitFor({ timeout: 10000 });
   const keys = await gauges.evaluateAll((els) => els.map((el) => el.dataset.usage));
-  report.check(keys.join(',') === 'orders_this_month,products,customers', `${label} : Paramètres → Abonnement, jauges ${keys.join(', ')}`);
+  report.check(keys.join(',') === 'orders_this_month,products,customers,ai_reads_this_month', `${label} : Paramètres → Abonnement, jauges ${keys.join(', ')}`);
+  const reads = page.locator('[data-ai-reads] [data-usage=ai_reads_this_month]');
+  const text = await reads.textContent();
+  const near = fmt(locale, 'settings.usage.level', { level: 'near' });
+  report.check(await reads.getAttribute('data-level') === 'near' && text.includes(fmt(locale, 'settings.usage.ai_reads_this_month', AI_READS))
+    && text.includes(near), `${label} : « ${msg(locale, 'settings.subscription.ai_reads_title')} », 8 / 10 lectures avancées en ambre, « ${near} »`);
 }
 
 const browser = await launch();
@@ -107,7 +116,7 @@ try {
     try {
       await checkNear(page, locale, label, state);
       await checkReached(page, locale, label, state);
-      await checkSettings(page, label);
+      await checkSettings(page, locale, label);
     } catch (error) {
       report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
     }

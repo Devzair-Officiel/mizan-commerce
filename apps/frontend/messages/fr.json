@@ -1066,9 +1066,12 @@
         "session": "Votre session a expiré. Reconnectez-vous pour scanner."
       },
       "warning": {
-        "vision_quota_reached": "Lecture avancée épuisée ce mois-ci pour votre formule : seule la lecture rapide a servi.",
-        "vision_unavailable": "Lecture avancée indisponible pour le moment : seule la lecture rapide a servi."
-      }
+        "text_quota_reached": "Lecture avancée indisponible ce mois-ci : le plafond de votre formule est atteint, seule la lecture rapide a servi.",
+        "vision_quota_reached": "Lecture de la photo épuisée ce mois-ci pour votre formule : seule la lecture du texte a servi.",
+        "vision_unavailable": "Lecture de la photo indisponible pour le moment : seule la lecture du texte a servi."
+      },
+      "ai_reads_more": "Plus de lectures avancées",
+      "ai_reads_sheet_title": "Lectures avancées épuisées ce mois-ci"
     },
     "units": {
       "piece": "Pièce",
@@ -1716,8 +1719,8 @@
       "fulfillment_both": "Les deux"
     },
     "upgrade": {
-      "title": "{feature, select, products {{kind, select, products {Articles illimités avec la formule Solo} services {Services illimités avec la formule Solo} other {Articles et services illimités avec la formule Solo}}} orders_this_month {Ventes illimitées avec la formule Solo} customers {Clients illimités avec la formule Solo} members {Plus de membres avec la formule {plan, select, commerce_plus {Commerce+} other {Boutique}}} other {Disponible avec la formule {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}}}",
-      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} invoices {Émettez des factures numérotées et envoyez-les en PDF à vos clients.} invoice_branding {Ajoutez votre logo et la couleur de votre boutique sur chacune de vos factures.} products {{kind, select, products {Ajoutez autant d'articles que vous le souhaitez, sans rien archiver.} services {Proposez autant de services que vous le souhaitez, sans rien archiver.} other {Développez votre catalogue sans limite, sans rien archiver.}}} orders_this_month {Enregistrez toutes vos ventes du mois, sans plafond.} customers {Suivez tous vos clients, sans limite de fiches.} members {{plan, select, commerce_plus {Invitez toute votre équipe, sans limite de membres.} other {Travaillez à plusieurs : jusqu'à 4 membres, chacun avec son rôle.}}} other {Passez à la formule supérieure pour gagner du temps au quotidien.}}",
+      "title": "{feature, select, products {{kind, select, products {Articles illimités avec la formule Solo} services {Services illimités avec la formule Solo} other {Articles et services illimités avec la formule Solo}}} orders_this_month {Ventes illimitées avec la formule Solo} customers {Clients illimités avec la formule Solo} members {Plus de membres avec la formule {plan, select, commerce_plus {Commerce+} other {Boutique}}} ai_reads {Plus de lectures avancées avec la formule {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}} other {Disponible avec la formule {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}}}",
+      "text": "{feature, select, multi_user {Invitez vos employés et choisissez ce que chacun peut faire.} public_pages {Publiez une page pour votre boutique, avec votre catalogue et vos contacts.} ocr {Prenez en photo une facture fournisseur : les articles et les quantités sont repris pour vous.} whatsapp {Préparez vos messages WhatsApp en un geste, avec le ton et les textes de votre boutique.} exports {Téléchargez l'activité de vos clients en fichier CSV, à ouvrir dans un tableur.} invoices {Émettez des factures numérotées et envoyez-les en PDF à vos clients.} invoice_branding {Ajoutez votre logo et la couleur de votre boutique sur chacune de vos factures.} products {{kind, select, products {Ajoutez autant d'articles que vous le souhaitez, sans rien archiver.} services {Proposez autant de services que vous le souhaitez, sans rien archiver.} other {Développez votre catalogue sans limite, sans rien archiver.}}} orders_this_month {Enregistrez toutes vos ventes du mois, sans plafond.} customers {Suivez tous vos clients, sans limite de fiches.} members {{plan, select, commerce_plus {Invitez toute votre équipe, sans limite de membres.} other {Travaillez à plusieurs : jusqu'à 4 membres, chacun avec son rôle.}}} ai_reads {Lisez davantage d'emballages chaque mois : marque, désignation et contenance reprises pour vous.} other {Passez à la formule supérieure pour gagner du temps au quotidien.}}",
       "cta": "Voir les formules"
     },
     "usage": {
@@ -1726,6 +1729,7 @@
       "orders_this_month": "{count} / {limit} ventes ce mois",
       "customers": "{count} / {limit} clients actifs",
       "members": "{count} / {limit} membres",
+      "ai_reads_this_month": "{count} / {limit} lectures avancées",
       "level": "{level, select, ok {Dans la limite} near {Bientôt à la limite} reached {Limite atteinte} other {Au-delà de la limite}}",
       "short": {
         "orders_this_month": "Ventes ce mois",
@@ -1840,7 +1844,8 @@
           "f2": "{orders} ventes par mois",
           "f3": "{customers} clients",
           "f4": "Stock, notes et rappels",
-          "f5": "Calcul de la zakat"
+          "f5": "Calcul de la zakat",
+          "f6": "{text_scans} lectures avancées d'emballage par mois"
         },
         "solo": {
           "name": "Solo",
@@ -1848,7 +1853,8 @@
           "f1": "Catalogue, ventes et clients illimités",
           "f2": "Factures PDF",
           "f3": "Messages WhatsApp préparés",
-          "f4": "Relance automatique des impayés"
+          "f4": "Relance automatique des impayés",
+          "f5": "{text_scans} lectures avancées d'emballage par mois"
         },
         "boutique": {
           "name": "Boutique",
@@ -1858,7 +1864,8 @@
           "f3": "Factures à vos couleurs, avec votre logo",
           "f4": "Résumé quotidien par e-mail",
           "f5": "Page publique partageable",
-          "f6": "Exports et import de factures fournisseur"
+          "f6": "Exports et import de factures fournisseur",
+          "f7": "{text_scans} lectures avancées d'emballage par mois"
         },
         "commerce_plus": {
           "name": "Commerce+",
@@ -1866,7 +1873,8 @@
           "f1": "Tout Boutique inclus",
           "f2": "Employés illimités",
           "f3": "Journal d'activité",
-          "f4": "Support prioritaire"
+          "f4": "Support prioritaire",
+          "f5": "{text_scans} lectures avancées d'emballage par mois"
         }
       },
       "current": "Formule actuelle",
@@ -1885,6 +1893,8 @@
       "activity_title": "Votre activité",
       "activity_limits": "Plafonds Découverte",
       "activity_after": "{status, select, trialing {À la fin de l'essai, la formule Découverte s'applique} other {Si vous résiliez, la formule Découverte s'applique}} : vos données restent intactes, mais la création est bloquée au-delà de ces plafonds.",
+      "ai_reads_title": "Ce mois-ci",
+      "ai_reads_help": "Lectures avancées du scan d'emballage, dans la limite de votre formule. Au-delà, le scan continue avec la lecture rapide.",
       "choose_title": "Choisir une formule",
       "period_label": "Période de facturation",
       "period": "{period, select, year {Annuel} other {Mensuel}}",

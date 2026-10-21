@@ -33,7 +33,7 @@ from .ai_client import (
 from .factories import ProductScanUsageFactory
 from .models import ProductScanUsage
 from .open_food_facts import OpenFoodFactsProduct, is_restricted_gtin, is_valid_gtin
-from .services import reserve_vision_scan, vision_quota_month
+from .services import reserve_vision_scan, scan_quota_month
 from .throttles import ProductScanRateThrottle
 
 URL = '/api/ocr/product-scan/'
@@ -49,6 +49,10 @@ _CACHES = {
     'product_lookups': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'product-scan-tests',
+    },
+    'product_scans': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'product-scan-faces-tests',
     },
 }
 # Texte « lu » sur l'emballage : ne doit jamais apparaître dans un journal.
@@ -106,7 +110,10 @@ def jpeg(content: bytes = JPEG_BYTES, content_type: str = 'image/jpeg') -> Simpl
     return SimpleUploadedFile('photo.jpg', content, content_type=content_type)
 
 
-@override_settings(CACHES=_CACHES, PRODUCT_SCAN_VISION_THRESHOLD=0.7)
+# Lectures avancées éteintes ici : le plafond est testé dans `test_product_scan_quota`.
+@override_settings(
+    CACHES=_CACHES, PRODUCT_SCAN_VISION_THRESHOLD=0.7, PRODUCT_SCAN_AI_ENABLED=False,
+)
 class ProductScanViewTest(TestCase):
     def setUp(self) -> None:
         self.user, self.shop = make_user_shop('scan@example.com')
@@ -239,7 +246,7 @@ class ProductScanViewTest(TestCase):
         self.vision.return_value = vision_result()
         self._post()
         for mock in (self.local, self.vision):
-            self.assertEqual(set(mock.call_args.kwargs) - {'face', 'back'}, set())
+            self.assertEqual(set(mock.call_args.kwargs) - {'face', 'back', 'structure'}, set())  # noqa: E501
             self.assertNotIn('Yasmine', repr(mock.call_args))
 
     # ─── Deux photos : face et dos ───────────────────────────────────────
@@ -298,7 +305,7 @@ class ProductScanViewTest(TestCase):
         self.assertEqual(fields['unit_suggestion']['source'], 'vision')
         usage = ProductScanUsage.objects.get(shop=self.shop)
         self.assertEqual(usage.vision_count, 1)
-        self.assertEqual(usage.month, vision_quota_month(self.shop))
+        self.assertEqual(usage.month, scan_quota_month(self.shop))
         log = AuditLog.objects.get(shop_id=self.shop.pk, action='product_scan')
         self.assertEqual(log.changes['vision'], 'used')
 
@@ -346,7 +353,7 @@ class ProductScanViewTest(TestCase):
 
     def test_quota_reached_returns_local_result_with_warning(self) -> None:
         ProductScanUsageFactory(
-            shop=self.shop, month=vision_quota_month(self.shop), vision_count=5,
+            shop=self.shop, month=scan_quota_month(self.shop), vision_count=5,
         )
         self.local.return_value = local_result(
             product_name=field('NUT', 0.55), vision_available=True,
@@ -372,7 +379,7 @@ class ProductScanViewTest(TestCase):
 
     def test_counter_of_another_shop_is_invisible(self) -> None:
         _, other = make_user_shop('other-scan@example.com')
-        ProductScanUsageFactory(shop=other, month=vision_quota_month(other), vision_count=5)  # noqa: E501
+        ProductScanUsageFactory(shop=other, month=scan_quota_month(other), vision_count=5)  # noqa: E501
         self.local.return_value = local_result(
             product_name=field('NUT', 0.4), vision_available=True,
         )
@@ -470,6 +477,7 @@ class _FakeResponse:
     AI_SERVICE_URL='http://ai-service:8000',
     AI_SERVICE_API_KEY=_TEST_AI_KEY,
     AI_SERVICE_PRODUCT_SCAN_TIMEOUT_SECONDS=41.0,
+    PRODUCT_SCAN_AI_ENABLED=True,
 )
 class ProductScanLogsTest(TestCase):
     """Bout en bout jusqu'à httpx : ni image, ni texte lu, ni clé dans les journaux."""
@@ -514,9 +522,14 @@ class ProductScanLogsTest(TestCase):
         })
         # Le secours image ne reçoit que la face.
         self.assertEqual(set(vision_call.kwargs['files']), {'image'})
-        # Aucune donnée de la boutique ne part : seulement les photos.
+        # Aucune donnée de la boutique ne part : les photos, et la demande de
+        # structuration (place de lecture avancée réservée).
+        self.assertEqual(local_call.kwargs['data'], {'structure': 'true'})
+        self.assertEqual(
+            set(local_call.kwargs), {'headers', 'files', 'timeout', 'data'},
+        )
+        self.assertEqual(set(vision_call.kwargs), {'headers', 'files', 'timeout'})
         for call in post.call_args_list:
-            self.assertEqual(set(call.kwargs), {'headers', 'files', 'timeout'})
             self.assertNotIn(shop.name, repr(call))
 
 
@@ -560,6 +573,16 @@ class ProductScanAiClientTest(SimpleTestCase):
         # Seul un vrai booléen active le secours.
         self.assertFalse(result.vision_recommended)
         self.assertFalse(result.vision_available)
+
+    def test_structure_flag_is_explicit(self) -> None:
+        for kwargs, expected in (({}, 'false'), ({'structure': True}, 'true')):
+            with patch('apps.ocr.ai_client.httpx.post', return_value=_FakeResponse(200, {})) as post:  # noqa: E501
+                scan_product_locally_with_ai_service(face=FACE, **kwargs)
+            self.assertEqual(post.call_args.kwargs['data'], {'structure': expected})
+
+    def test_skipped_structuring_is_parsed(self) -> None:
+        result = self._local(_FakeResponse(200, {'structuring': 'skipped'}))
+        self.assertEqual(result.structuring, 'skipped')
 
     def test_back_photo_is_sent_as_image_back(self) -> None:
         back = ScanPhoto(b'back', 'image/png')
@@ -717,7 +740,7 @@ class VisionQuotaConcurrencyTest(TransactionTestCase):
     def _race(self, shop: Shop) -> list[bool]:
         barrier = threading.Barrier(2)
         results: list[bool] = []
-        month = vision_quota_month(shop)
+        month = scan_quota_month(shop)
 
         def worker() -> None:
             try:
@@ -735,7 +758,7 @@ class VisionQuotaConcurrencyTest(TransactionTestCase):
 
     def test_last_slot(self) -> None:
         _, shop = make_user_shop('race-vision@example.com')
-        ProductScanUsageFactory(shop=shop, month=vision_quota_month(shop), vision_count=4)  # noqa: E501
+        ProductScanUsageFactory(shop=shop, month=scan_quota_month(shop), vision_count=4)  # noqa: E501
         results = self._race(shop)
         self.assertEqual(sorted(results), [False, True])
         self.assertEqual(ProductScanUsage.objects.get(shop=shop).vision_count, 5)
@@ -757,7 +780,7 @@ class VisionQuotaTest(TestCase):
             max_vision_scans_per_month=None,
         )
         _, shop = make_user_shop('unlimited-vision@example.com')
-        month = vision_quota_month(shop)
+        month = scan_quota_month(shop)
         ProductScanUsageFactory(shop=shop, month=month, vision_count=10_000)
         self.assertTrue(reserve_vision_scan(shop, month))
 
@@ -766,7 +789,7 @@ class VisionQuotaTest(TestCase):
             max_vision_scans_per_month=0,
         )
         _, shop = make_user_shop('no-vision@example.com')
-        self.assertFalse(reserve_vision_scan(shop, vision_quota_month(shop)))
+        self.assertFalse(reserve_vision_scan(shop, scan_quota_month(shop)))
         self.assertFalse(ProductScanUsage.objects.exists())
 
     def test_month_follows_shop_timezone(self) -> None:
@@ -775,4 +798,4 @@ class VisionQuotaTest(TestCase):
         shop.timezone = 'Pacific/Kiritimati'  # UTC+14
         late_utc = datetime(2026, 10, 31, 12, 0, tzinfo=dt_timezone.utc)
         with patch('django.utils.timezone.now', return_value=late_utc):
-            self.assertEqual(vision_quota_month(shop).isoformat(), '2026-11-01')
+            self.assertEqual(scan_quota_month(shop).isoformat(), '2026-11-01')

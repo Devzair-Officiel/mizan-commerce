@@ -33,7 +33,7 @@ export function PlanPicker({ plans, subscription, isTrial, onChoosePlan }: PlanP
       <div className="grid gap-4 lg:grid-cols-2 @[880px]/plans:grid-cols-4">
         {plans.map((plan) => (
           <PlanCard key={plan.code} plan={plan} period={period} state={stateOf(plan.code)} status={subscription.status}
-            recommended={plan.code === RECOMMENDED_PLAN} hiddenOnMobile={plan.code !== tab} onChoose={onChoosePlan} />
+            aiReads={subscription.ai_reads_enabled} recommended={plan.code === RECOMMENDED_PLAN} hiddenOnMobile={plan.code !== tab} onChoose={onChoosePlan} />
         ))}
       </div>
     </section>

@@ -91,8 +91,8 @@ def _rule_fields(lines: list[ScanTextLine]) -> dict[str, object]:
     return {'brand': proposals.brand, 'product_name': proposals.product_name, 'net_quantity': proposals.net_quantity}
 
 
-def scan_locally(face: bytes, back: bytes | None = None) -> ProductScanLocalResult:
-    """Code-barres, OCR et structuration. Lève `ImageDecodeError` ou `OcrEngineError`."""
+def scan_locally(face: bytes, back: bytes | None = None, *, structure: bool = False) -> ProductScanLocalResult:
+    """Code-barres, OCR et, si `structure`, structuration. Lève `ImageDecodeError` ou `OcrEngineError`."""
     barcode: DetectedBarcode | None = None
     lines: list[ScanTextLine] = []
     for side, content in (('face', face), ('back', back)):
@@ -103,7 +103,10 @@ def scan_locally(face: bytes, back: bytes | None = None) -> ProductScanLocalResu
         lines.extend(side_lines)
 
     provider = get_provider()
-    reading, structuring = _structure(provider, lines)
+    if structure or provider is None:
+        reading, structuring = _structure(provider, lines)
+    else:
+        reading, structuring = None, 'skipped'
     fields = _model_fields(reading) if reading is not None else _rule_fields(lines)
     if barcode is not None:
         fields['barcode'] = ScanFieldProposal(value=barcode.value, confidence=_BARCODE_CONFIDENCE)

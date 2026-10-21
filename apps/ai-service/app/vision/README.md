@@ -10,6 +10,13 @@ Un fournisseur sert à deux niveaux. Chacun se désactive séparément.
    assainit cette réponse, puis écarte toute valeur absente du texte lu.
    Sans fournisseur, ou s'il échoue, les règles de `product_text.py`
    prennent le relais.
+
+   Django décide de chaque appel : il envoie le champ `structure=true`
+   seulement s'il a réservé une « lecture avancée » sur le plafond mensuel de
+   la boutique (`max_text_scans_per_month`, face et dos d'un même scan = une
+   place). Sans ce champ, ou avec `false` (plafond atteint), le modèle n'est
+   pas appelé : `structuring` vaut `skipped` et seules les règles lisent le
+   texte. Django rembourse la place si `structuring` n'est pas `done`.
 2. **Secours image** (`extract`). `POST /internal/product-scan/vision`
    n'est appelé que si Django le décide. Il faut à la fois :
    - une lecture insuffisante (critère sémantique `needs_vision`, ou

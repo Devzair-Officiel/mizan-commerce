@@ -27,7 +27,7 @@ import logging
 import os
 import tempfile
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 
 from . import config
 from .file_validation import FileValidationError, validate_product_image, validate_uploaded_document
@@ -226,17 +226,22 @@ def _unreadable_image(exc: ImageDecodeError) -> HTTPException:
 )
 async def product_scan(
     image: UploadFile = File(...), image_back: UploadFile | None = File(None),
+    structure: bool = Form(False),
 ) -> ProductScanLocalResult:
     """Lecture d'un emballage (face, dos facultatif) : code-barres, OCR, structuration.
 
     Seul le texte lu peut sortir (structuration, si un fournisseur est
     configuré) : jamais l'image. Elle n'est ni conservée ni journalisée ; le
     seul fichier temporaire (exigé par PaddleOCR) est supprimé dès la lecture finie.
+
+    `structure` : demandée explicitement par Django, qui tient le plafond mensuel
+    de la boutique. Absente ou fausse, le modèle n'est pas appelé (`skipped`) et
+    les règles locales répondent : aucun appel payant sans place réservée.
     """
     face = await _read_product_image(image)
     back = await _read_product_image(image_back) if image_back is not None else None
     try:
-        return scan_locally(face, back)
+        return scan_locally(face, back, structure=structure)
     except ImageDecodeError as exc:
         raise _unreadable_image(exc) from exc
     except OcrEngineError as exc:

@@ -115,10 +115,19 @@ async function checkMobile(page, locale, label) {
 
 async function checkSearch(page, locale, label) {
   const input = page.getByRole('searchbox', { name: text(locale, 'list.search_label') });
-  await input.fill(fixtures[0].number);
-  await page.waitForURL(url => url.searchParams.get('search') === fixtures[0].number);
-  await page.waitForLoadState('networkidle');
-  const result = await api(page, `invoices/?search=${fixtures[0].number}`);
+  const number = fixtures[0].number;
+  // Réponse filtrée écoutée avant la saisie : `networkidle`, déjà atteint au chargement, ne l'attend pas.
+  const [response] = await Promise.all([
+    page.waitForResponse(r => listPageResponse(r, 1) && new URL(r.url()).searchParams.get('search') === number),
+    input.fill(number),
+  ]);
+  await page.waitForURL(url => url.searchParams.get('search') === number);
+  const shown = (await response.json()).results.map(i => `/invoices/${i.id}`);
+  await page.waitForFunction(want => {
+    const links = new Set([...document.querySelectorAll('main a[href^="/invoices/"]')].map(a => a.getAttribute('href')));
+    return links.size === want.length && want.every(href => links.has(href));
+  }, shown);
+  const result = await api(page, `invoices/?search=${number}`);
   report.check(result.count === 1 && await page.locator(`main a[href="/invoices/${fixtures[0].id}"]`).count() === 1,
     `${label} : recherche numéro côté serveur`);
   await input.fill('Karima Audit');
@@ -139,10 +148,13 @@ async function checkDetail(page, locale, label) {
     `${label} : symbole monétaire, format par défaut masqué, aucune édition de montant`);
   report.check(await page.getByRole('heading', { name: text(locale, 'account.title'), exact: true }).count() === 1
     && await page.locator('main input, main textarea').count() === 0, `${label} : compte client présent et montants en lecture seule`);
-  const left = await page.getByRole('heading', { name: text(locale, 'detail.lines_title'), exact: true }).locator('xpath=../..').boundingBox();
-  const right = await page.getByRole('heading', { name: text(locale, 'detail.seller'), exact: true }).locator('xpath=../..').boundingBox();
-  report.check(page.viewportSize().width < 1024 ? right.y > left.y : right.x > left.x + left.width,
-    `${label} : objet à gauche et vendeur à droite, pile réordonnée sur mobile`);
+  const lines = await page.getByRole('heading', { name: text(locale, 'detail.lines_title'), exact: true }).locator('xpath=../..').boundingBox();
+  const seller = await page.getByRole('heading', { name: text(locale, 'detail.seller'), exact: true }).locator('xpath=../..').boundingBox();
+  // Ordre logique lu dans le sens réel du document : le vendeur suit l'objet, à droite en LTR, à gauche en RTL.
+  const rtl = await page.evaluate(() => getComputedStyle(document.documentElement).direction === 'rtl');
+  const sellerAfter = rtl ? seller.x + seller.width < lines.x : seller.x > lines.x + lines.width;
+  report.check(page.viewportSize().width < 1024 ? seller.y > lines.y : sellerAfter,
+    `${label} : objet puis vendeur dans le sens d'écriture, pile réordonnée sur mobile`);
   const logo = page.getByAltText(text(locale, 'detail.seller_logo'));
   await logo.waitFor();
   report.check(await logo.evaluate(img => img.complete && img.naturalWidth === 128), `${label} : logo émis chargé`);
