@@ -40,17 +40,14 @@ from apps.public_pages.models import PublicPage
 from apps.shops.models import Shop
 from apps.subscriptions.permissions import shop_has_feature
 
-from .services import COUNT, DATETIME, MONEY, ExportColumn, ExportDataset, ExportRow, format_day  # noqa: E501
+from .services import (
+    COUNT, DATETIME, MONEY, QUANTITY, ExportColumn, ExportDataset, ExportRow,
+    format_day,
+)
 
-# Largeurs fixes, mesurées sur les libellés (corps 8,25, marges de 5) ; les
-# colonnes absentes (client) se partagent le reste.
-COLUMN_WIDTHS = {
-    'number': 54, 'created_at': 56, 'status': 80, 'payment': 56,
-    'total': 60, 'paid': 60, 'due': 60,
-}
-# Colonnes qui passent à la ligne (Paragraph) ; le reste en texte brut, plus rapide.
-WRAPPED = ('customer', 'status')
 CELL_SIZE = 8.25
+# Nombres alignés à droite.
+NUMERIC = (MONEY, QUANTITY)
 
 
 @dataclass(frozen=True)
@@ -145,24 +142,26 @@ def _totals(style: PdfStyle, dataset: ExportDataset) -> list:
 def _cell(
     style: PdfStyle, column: ExportColumn, row: ExportRow, dataset: ExportDataset,
 ) -> str | Paragraph:
-    """Texte brut, rapide sur 1 000 lignes ; client et statut passent à la ligne."""
+    """Texte brut, rapide sur 1 000 lignes ; les colonnes `wrap` passent à la ligne."""
     value = row.values[column.key]
     if column.kind == MONEY:
         return '—' if value is None else style.money(value)
+    if column.kind == QUANTITY:
+        return '' if value is None else format_decimal(value, locale=dataset.lang)
     if column.kind == DATETIME:
         local: datetime = value.astimezone(dataset.tz)
         return format_date(local.date(), 'short', locale=dataset.lang)
-    if column.key in WRAPPED:
+    if column.wrap:
         return style.paragraph(xml(value or ''), size=CELL_SIZE, color=MUTED if row.excluded else INK)  # noqa: E501
     return value or ''
 
 
 def _rows_table(style: PdfStyle, dataset: ExportDataset) -> Table | Paragraph:
     columns = [c for c in dataset.columns if c.compact]
-    fixed = sum(COLUMN_WIDTHS.get(c.key, 0) for c in columns)
-    free = [c for c in columns if c.key not in COLUMN_WIDTHS]
-    widths = [COLUMN_WIDTHS.get(c.key, (WIDTH - fixed) / max(len(free), 1)) for c in columns]  # noqa: E501
-    money = [i for i, c in enumerate(columns) if c.kind == MONEY]
+    fixed = sum(c.width or 0 for c in columns)
+    shared = (WIDTH - fixed) / max(sum(c.width is None for c in columns), 1)
+    widths = [c.width or shared for c in columns]
+    money = [i for i, c in enumerate(columns) if c.kind in NUMERIC]
     header = [
         style.paragraph(
             xml(dataset.text(f'column.{c.key}')), size=CELL_SIZE, color=colors.white,

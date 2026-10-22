@@ -27,6 +27,7 @@
     "audit:sales": "node audit-sales.mjs",
     "audit:activity-export": "node audit-activity-export.mjs",
     "audit:exports": "node audit-exports.mjs",
+    "audit:exports-stock": "node audit-exports-stock.mjs",
     "audit:invoices": "node audit-invoices.mjs",
     "audit:scroll-lock": "node audit-scroll-lock.mjs",
     "audit:header-bands": "node audit-header-bands.mjs",

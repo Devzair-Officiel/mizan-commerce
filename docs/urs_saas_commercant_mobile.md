@@ -1127,6 +1127,13 @@ L'application est organisée autour des modules suivants :
 - L'export contient les quantités.
 - L'export contient les prix d'achat et de vente.
 - L'export contient la valeur estimée du stock.
+- Un même jeu de données donne trois rendus : CSV, PDF et message WhatsApp. Une ligne par format suivi (formats actifs des articles actifs), dans l'ordre et avec la recherche de l'onglet Niveaux.
+- Deux périmètres : « Tout le stock » ou « À réapprovisionner » (négatif, rupture, stock faible) ; le filtre d'état de la liste pré-choisit le second. Le message WhatsApp liste toujours ce qui est à réapprovisionner : le choisir impose ce périmètre, repasser au CSV ou au PDF rétablit le précédent.
+- La valeur estimée d'un format vaut max(0, quantité) × prix d'achat, arrondie au centime (comme la zakat). Un format sans prix d'achat est exclu de la valeur, et le nombre de ces formats est indiqué. Les totaux donnent le nombre de formats, la valeur estimée, les ruptures, les stocks faibles et les négatifs s'il y en a.
+- Le PDF reprend l'en-tête des autres exports et indique la date de l'état du stock ; au-delà de 1 000 formats, il est refusé et le CSV proposé.
+- Le message WhatsApp liste les négatifs, puis les ruptures et les stocks faibles, du plus bas au plus haut : 15 formats au plus, puis « … et N autres formats (liste complète en PDF ou CSV) ». Sans rien à réapprovisionner, il le dit, sans totaux. Aucun envoi automatique.
+- Les rendus PDF et WhatsApp ont la même limite de débit que les commandes. Le nombre de formats est affiché avant l'export, et chaque export est consigné dans le journal d'audit (`stock_export` : format, périmètre, présence d'une recherche, nombre de lignes).
+- Réservé à la formule Boutique et au-delà, aux membres qui ont accès au stock.
 
 ---
 

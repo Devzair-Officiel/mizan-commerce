@@ -881,47 +881,49 @@
       "sort_amount_asc": "Montant croissant"
     },
     "export": {
-      "button": "Exporter",
       "button_label": "Exporter les commandes",
       "title": "Exporter les commandes",
       "scope_all": "Sans filtre : toutes les commandes",
       "scope_filtered": "Filtres de la liste : {filters}",
       "search": "Recherche « {query} »",
-      "format_label": "Format",
-      "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {WhatsApp} other {Autre}}",
-      "format_hint": "{format, select, csv {Tableur pour Excel ou Google Sheets.} pdf {Document A4 à vos couleurs, avec les totaux.} whatsapp {Résumé avec les totaux, à envoyer vous-même.} other {Choisissez un format.}}",
-      "pdf_french": "Le PDF est en français.",
       "period_label": "Date de création",
       "period": "{period, select, month {Ce mois-ci} last_month {Mois dernier} all {Tout} custom {Personnalisée} other {Autre}}",
       "from": "Du",
       "to": "Au",
-      "dates_order": "La date de fin précède la date de début.",
-      "rows": "{count, plural, =0 {Aucune commande à exporter.} one {# commande à exporter.} other {# commandes à exporter.}}",
-      "pdf_limit": "Trop de commandes pour un PDF ({count} pour {max} au plus).",
-      "use_csv": "Passer au CSV",
-      "whatsapp_limit": "Le message montre {max} commandes sur {count}. Pour tout envoyer, {target, select, csv {exportez le CSV.} other {partagez le PDF.}}",
-      "use_pdf": "Passer au PDF",
-      "share_bundle": "Partager le PDF avec le résumé",
-      "preview_label": "Aperçu du message",
-      "cancel": "Annuler",
-      "copy": "Copier le texte",
-      "copied": "Texte copié",
-      "preparing": "Préparation…",
-      "step": {
-        "download_csv": "Télécharger le CSV",
-        "download_pdf": "Télécharger le PDF",
-        "prepare_pdf": "Préparer le PDF",
-        "share_pdf": "Partager le PDF",
-        "prepare_message": "Préparer le message",
-        "open_whatsapp": "Ouvrir WhatsApp",
-        "share_bundle": "Partager le PDF avec le résumé"
-      },
-      "errors": {
-        "throttled": "Trop d'exports en une minute : réessayez dans un instant.",
-        "pdf_limit": "Trop de commandes pour un PDF : exportez-les en CSV.",
-        "generic": "L'export n'a pas abouti. Réessayez.",
-        "copy": "Copie impossible : sélectionnez le texte de l'aperçu."
-      }
+      "dates_order": "La date de fin précède la date de début."
+    }
+  },
+  "export": {
+    "button": "Exporter",
+    "format_label": "Format",
+    "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {WhatsApp} other {Autre}}",
+    "format_hint": "{format, select, csv {Tableur pour Excel ou Google Sheets.} pdf {Document A4 à vos couleurs, avec les totaux.} whatsapp {{kind, select, orders {Résumé avec les totaux, à envoyer vous-même.} stock {Liste à réapprovisionner, ruptures d'abord, à envoyer vous-même.} other {Résumé avec les totaux, à envoyer vous-même.}}} other {Choisissez un format.}}",
+    "pdf_french": "Le PDF est en français.",
+    "rows": "{kind, select, orders {{count, plural, =0 {Aucune commande à exporter.} one {# commande à exporter.} other {# commandes à exporter.}}} stock {{count, plural, =0 {Aucun format à exporter.} one {# format à exporter.} other {# formats à exporter.}}} other {{count, plural, =0 {Aucune commande à exporter.} one {# commande à exporter.} other {# commandes à exporter.}}}}",
+    "pdf_limit": "{kind, select, orders {Trop de commandes pour un PDF ({count} pour {max} au plus).} stock {Trop de formats pour un PDF ({count} pour {max} au plus).} other {Trop de commandes pour un PDF ({count} pour {max} au plus).}}",
+    "use_csv": "Passer au CSV",
+    "whatsapp_limit": "{kind, select, orders {Le message montre {max} commandes sur {count}.} stock {Le message montre {max} formats sur {count}.} other {Le message montre {max} commandes sur {count}.}} Pour tout envoyer, {target, select, csv {exportez le CSV.} other {partagez le PDF.}}",
+    "use_pdf": "Passer au PDF",
+    "share_bundle": "Partager le PDF avec le résumé",
+    "preview_label": "Aperçu du message",
+    "cancel": "Annuler",
+    "copy": "Copier le texte",
+    "copied": "Texte copié",
+    "preparing": "Préparation…",
+    "step": {
+      "download_csv": "Télécharger le CSV",
+      "download_pdf": "Télécharger le PDF",
+      "prepare_pdf": "Préparer le PDF",
+      "share_pdf": "Partager le PDF",
+      "prepare_message": "Préparer le message",
+      "open_whatsapp": "Ouvrir WhatsApp",
+      "share_bundle": "Partager le PDF avec le résumé"
+    },
+    "errors": {
+      "throttled": "Trop d'exports en une minute : réessayez dans un instant.",
+      "pdf_limit": "{kind, select, orders {Trop de commandes pour un PDF : exportez-les en CSV.} stock {Trop de formats pour un PDF : exportez-les en CSV.} other {Trop de commandes pour un PDF : exportez-les en CSV.}}",
+      "generic": "L'export n'a pas abouti. Réessayez.",
+      "copy": "Copie impossible : sélectionnez le texte de l'aperçu."
     }
   },
   "articles": {
@@ -1555,6 +1557,14 @@
       "submit_count": "Enregistrer la correction ({count, plural, =0 {aucun écart} one {# écart} other {# écarts}})",
       "success": "Sortie enregistrée : {count, plural, one {# article} other {# articles}}, {units, plural, one {{unitsLabel} unité} other {{unitsLabel} unités}}",
       "adjust_success": "{count, plural, =0 {Aucun écart : le stock était juste.} one {Stock corrigé pour # article.} other {Stock corrigé pour # articles.}}"
+    },
+    "export": {
+      "button_label": "Exporter le stock",
+      "title": "Exporter le stock",
+      "scope_all": "Ordre de la liste, sans recherche",
+      "scope_search": "Ordre de la liste, recherche « {query} »",
+      "scope_label": "Périmètre",
+      "scope": "{scope, select, all {Tout le stock} restock {À réapprovisionner} other {Autre}}"
     }
   },
   "messages": {

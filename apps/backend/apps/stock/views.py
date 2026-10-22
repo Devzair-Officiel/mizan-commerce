@@ -1,4 +1,4 @@
-from django.db.models import F, OrderBy, QuerySet
+from django.db.models import QuerySet
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -13,6 +13,7 @@ from apps.ocr.services import (  # noqa: E402
     record_invoice_entry,
 )
 from . import services  # noqa: E402
+from .filters import LevelOrderingFilter  # noqa: E402
 from .serializers import (  # noqa: E402
     StockAdjustmentSerializer, StockEntrySerializer, StockExitSerializer,
     StockInSerializer, StockLevelSerializer, StockMovementSerializer,
@@ -45,39 +46,11 @@ class StockMovementListView(generics.ListAPIView):
         return qs.order_by(*qs.query.order_by, 'id')
 
 
-class _LevelOrderingFilter(filters.OrderingFilter):
-    """Tri des niveaux : stock (défaut, croissant), nom, valeur, dernier mouvement.
-
-    Valeurs absentes en fin de liste ; départage par nom d'article, format, identifiant.
-    """
-    FIELDS = {
-        'stock': ('stock_quantity',),
-        'name': ('product__name', 'packaging_name'),
-        'purchase_value': ('purchase_value',),
-        'last_movement': ('last_movement_at',),
-    }
-
-    def filter_queryset(
-        self, request: Request, queryset: QuerySet, view: APIView,
-    ) -> QuerySet:
-        term = request.query_params.get(self.ordering_param, 'stock')
-        key = term.lstrip('-')
-        if key not in self.FIELDS:
-            term, key = 'stock', 'stock'
-        desc = term.startswith('-')
-        ordering: list[OrderBy] = [
-            F(field).desc(nulls_last=True) if desc else F(field).asc(nulls_last=True)
-            for field in self.FIELDS[key]
-        ]
-        ordering += [F(f).asc() for f in ('product__name', 'packaging_name', 'id')]
-        return queryset.order_by(*ordering)
-
-
 class StockLevelListView(generics.ListAPIView):
     """Niveaux de stock : une ligne par format suivi (articles actifs)."""
     serializer_class = StockLevelSerializer
     permission_classes = (IsAuthenticated, HasStockModule)
-    filter_backends = (filters.SearchFilter, _LevelOrderingFilter)
+    filter_backends = (filters.SearchFilter, LevelOrderingFilter)
     search_fields = LEVEL_SEARCH_FIELDS
 
     def get_queryset(self) -> QuerySet:

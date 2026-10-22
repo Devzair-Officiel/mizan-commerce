@@ -1,8 +1,8 @@
 """Socle des exports : un seul jeu de données, trois rendus (CSV, PDF, WhatsApp).
 
-App sans modèle : les données viennent des apps métier (les commandes dans ce lot)
-et chaque export est consigné dans `core.AuditLog` ; les tests s'appuient sur les
-factories existantes (boutiques, commandes, formules).
+App sans modèle : les données viennent des apps métier (commandes ici, stock dans
+`stock_dataset`) et chaque export est consigné dans `core.AuditLog` ; les tests
+s'appuient sur les factories existantes (boutiques, commandes, formules).
 
 Un jeu de données porte un titre, une période (phrase), les filtres actifs, des
 colonnes typées, des lignes lues à la demande et des totaux en `Decimal`. Les
@@ -34,6 +34,8 @@ from apps.shops.models import Shop
 from .texts import LANGUAGES, TEXTS, status_label
 
 TEXT, DATETIME, MONEY, COUNT = 'text', 'datetime', 'money', 'count'
+# Quantité de stock (3 décimales, signée) : nombre, jamais neutralisé comme formule.
+QUANTITY = 'quantity'
 FORMATS = ('csv', 'pdf', 'whatsapp')
 PDF_LANGUAGES = ('fr', 'en')
 # Au-delà, le PDF est refusé et la fenêtre propose le CSV.
@@ -53,6 +55,11 @@ class ExportColumn:
     kind: str
     # Repris dans le PDF et le message ; le CSV garde toutes les colonnes.
     compact: bool = False
+    # Largeur dans le PDF (points), mesurée sur les libellés ; `None` : les
+    # colonnes sans largeur se partagent le reste.
+    width: float | None = None
+    # Passe à la ligne dans le PDF (Paragraph) ; sinon texte brut, plus rapide.
+    wrap: bool = False
 
 
 @dataclass(frozen=True)
@@ -73,6 +80,8 @@ class ExportTotal:
 class ExportDataset:
     shop: Shop
     lang: str
+    # Famille du jeu (`orders`, `stock`) : ligne et renvoi du message WhatsApp.
+    kind: str
     title: str
     filename_stem: str
     period: str
@@ -135,18 +144,19 @@ def period_text(date_from: date | None, date_to: date | None, lang: str) -> str:
 
 # ── Commandes ────────────────────────────────────────────────────────────────
 
+# Largeurs PDF mesurées au corps 8,25 avec des marges de 5 ; le client prend le reste.
 ORDER_COLUMNS = (
-    ExportColumn('number', TEXT, compact=True),
-    ExportColumn('created_at', DATETIME, compact=True),
-    ExportColumn('customer', TEXT, compact=True),
-    ExportColumn('status', TEXT, compact=True),
-    ExportColumn('payment', TEXT, compact=True),
+    ExportColumn('number', TEXT, compact=True, width=54),
+    ExportColumn('created_at', DATETIME, compact=True, width=56),
+    ExportColumn('customer', TEXT, compact=True, wrap=True),
+    ExportColumn('status', TEXT, compact=True, width=80, wrap=True),
+    ExportColumn('payment', TEXT, compact=True, width=56),
     ExportColumn('subtotal', MONEY),
     ExportColumn('discount', MONEY),
     ExportColumn('shipping', MONEY),
-    ExportColumn('total', MONEY, compact=True),
-    ExportColumn('paid', MONEY, compact=True),
-    ExportColumn('due', MONEY, compact=True),
+    ExportColumn('total', MONEY, compact=True, width=60),
+    ExportColumn('paid', MONEY, compact=True, width=60),
+    ExportColumn('due', MONEY, compact=True, width=60),
     ExportColumn('overpaid', MONEY),
 )
 
@@ -269,6 +279,7 @@ def orders_dataset(
     return ExportDataset(
         shop=shop,
         lang=lang,
+        kind='orders',
         title=texts['orders.title'],
         filename_stem=texts['orders.filename'],
         period=period_text(filters.date_from, filters.date_to, lang),

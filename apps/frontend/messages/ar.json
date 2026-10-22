@@ -881,47 +881,49 @@
       "sort_amount_asc": "المبلغ، من الأدنى"
     },
     "export": {
-      "button": "تصدير",
       "button_label": "تصدير الطلبات",
       "title": "تصدير الطلبات",
       "scope_all": "بدون تصفية: كل الطلبات",
       "scope_filtered": "تصفية القائمة: {filters}",
       "search": "بحث «{query}»",
-      "format_label": "الصيغة",
-      "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {واتساب} other {أخرى}}",
-      "format_hint": "{format, select, csv {جدول لـ Excel أو Google Sheets.} pdf {مستند A4 بألوانك، مع المجاميع.} whatsapp {ملخص بالمجاميع، ترسله بنفسك.} other {اختر صيغة.}}",
-      "pdf_french": "ملف PDF باللغة الفرنسية.",
       "period_label": "تاريخ الإنشاء",
       "period": "{period, select, month {هذا الشهر} last_month {الشهر الماضي} all {الكل} custom {مخصصة} other {أخرى}}",
       "from": "من",
       "to": "إلى",
-      "dates_order": "تاريخ النهاية قبل تاريخ البداية.",
-      "rows": "{count, plural, =0 {لا توجد طلبات للتصدير.} one {طلب واحد للتصدير.} two {طلبان للتصدير.} few {# طلبات للتصدير.} many {# طلبًا للتصدير.} other {# طلب للتصدير.}}",
-      "pdf_limit": "طلبات كثيرة جدًا لملف PDF ‏({count}، والحد {max}).",
-      "use_csv": "التبديل إلى CSV",
-      "whatsapp_limit": "تعرض الرسالة {max} طلبًا من أصل {count}. لإرسالها كلها، {target, select, csv {صدّر ملف CSV.} other {شارك ملف PDF.}}",
-      "use_pdf": "التبديل إلى PDF",
-      "share_bundle": "مشاركة PDF مع الملخص",
-      "preview_label": "معاينة الرسالة",
-      "cancel": "إلغاء",
-      "copy": "نسخ النص",
-      "copied": "تم نسخ النص",
-      "preparing": "جارٍ التحضير…",
-      "step": {
-        "download_csv": "تنزيل CSV",
-        "download_pdf": "تنزيل PDF",
-        "prepare_pdf": "تحضير PDF",
-        "share_pdf": "مشاركة PDF",
-        "prepare_message": "تحضير الرسالة",
-        "open_whatsapp": "فتح واتساب",
-        "share_bundle": "مشاركة PDF مع الملخص"
-      },
-      "errors": {
-        "throttled": "تصديرات كثيرة في دقيقة واحدة: أعد المحاولة بعد قليل.",
-        "pdf_limit": "طلبات كثيرة جدًا لملف PDF: صدّرها بصيغة CSV.",
-        "generic": "تعذّر التصدير. أعد المحاولة.",
-        "copy": "تعذّر النسخ: حدّد نص المعاينة."
-      }
+      "dates_order": "تاريخ النهاية قبل تاريخ البداية."
+    }
+  },
+  "export": {
+    "button": "تصدير",
+    "format_label": "الصيغة",
+    "format": "{format, select, csv {CSV} pdf {PDF} whatsapp {واتساب} other {أخرى}}",
+    "format_hint": "{format, select, csv {جدول لـ Excel أو Google Sheets.} pdf {مستند A4 بألوانك، مع المجاميع.} whatsapp {{kind, select, orders {ملخص بالمجاميع، ترسله بنفسك.} stock {قائمة ما يحتاج إلى تموين، النافد أولًا، ترسلها بنفسك.} other {ملخص بالمجاميع، ترسله بنفسك.}}} other {اختر صيغة.}}",
+    "pdf_french": "ملف PDF باللغة الفرنسية.",
+    "rows": "{kind, select, orders {{count, plural, =0 {لا توجد طلبات للتصدير.} one {طلب واحد للتصدير.} two {طلبان للتصدير.} few {# طلبات للتصدير.} many {# طلبًا للتصدير.} other {# طلب للتصدير.}}} stock {{count, plural, =0 {لا توجد أشكال للتصدير.} one {شكل واحد للتصدير.} two {شكلان للتصدير.} few {# أشكال للتصدير.} many {# شكلًا للتصدير.} other {# شكل للتصدير.}}} other {{count, plural, =0 {لا توجد طلبات للتصدير.} one {طلب واحد للتصدير.} two {طلبان للتصدير.} few {# طلبات للتصدير.} many {# طلبًا للتصدير.} other {# طلب للتصدير.}}}}",
+    "pdf_limit": "{kind, select, orders {طلبات كثيرة جدًا لملف PDF ‏({count}، والحد {max}).} stock {أشكال كثيرة جدًا لملف PDF ‏({count}، والحد {max}).} other {طلبات كثيرة جدًا لملف PDF ‏({count}، والحد {max}).}}",
+    "use_csv": "التبديل إلى CSV",
+    "whatsapp_limit": "{kind, select, orders {تعرض الرسالة {max, plural, one {طلبًا واحدًا} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}} من أصل {count}.} stock {تعرض الرسالة {max, plural, one {شكلًا واحدًا} two {شكلين} few {# أشكال} many {# شكلًا} other {# شكل}} من أصل {count}.} other {تعرض الرسالة {max, plural, one {طلبًا واحدًا} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}} من أصل {count}.}} لإرسالها كلها، {target, select, csv {صدّر ملف CSV.} other {شارك ملف PDF.}}",
+    "use_pdf": "التبديل إلى PDF",
+    "share_bundle": "مشاركة PDF مع الملخص",
+    "preview_label": "معاينة الرسالة",
+    "cancel": "إلغاء",
+    "copy": "نسخ النص",
+    "copied": "تم نسخ النص",
+    "preparing": "جارٍ التحضير…",
+    "step": {
+      "download_csv": "تنزيل CSV",
+      "download_pdf": "تنزيل PDF",
+      "prepare_pdf": "تحضير PDF",
+      "share_pdf": "مشاركة PDF",
+      "prepare_message": "تحضير الرسالة",
+      "open_whatsapp": "فتح واتساب",
+      "share_bundle": "مشاركة PDF مع الملخص"
+    },
+    "errors": {
+      "throttled": "تصديرات كثيرة في دقيقة واحدة: أعد المحاولة بعد قليل.",
+      "pdf_limit": "{kind, select, orders {طلبات كثيرة جدًا لملف PDF: صدّرها بصيغة CSV.} stock {أشكال كثيرة جدًا لملف PDF: صدّرها بصيغة CSV.} other {طلبات كثيرة جدًا لملف PDF: صدّرها بصيغة CSV.}}",
+      "generic": "تعذّر التصدير. أعد المحاولة.",
+      "copy": "تعذّر النسخ: حدّد نص المعاينة."
     }
   },
   "articles": {
@@ -1555,6 +1557,14 @@
       "submit_count": "تسجيل التصحيح ({count, plural, =0 {لا فرق} one {فرق واحد} two {فرقان} few {# فروق} many {# فرقًا} other {# فرق}})",
       "success": "تم تسجيل الإخراج: {count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}، {units, plural, one {{unitsLabel} وحدة} other {{unitsLabel} وحدات}}",
       "adjust_success": "{count, plural, =0 {لا فرق: كان المخزون صحيحًا.} one {تم تصحيح مخزون منتج واحد.} two {تم تصحيح مخزون منتجين.} few {تم تصحيح مخزون # منتجات.} many {تم تصحيح مخزون # منتجًا.} other {تم تصحيح مخزون # منتج.}}"
+    },
+    "export": {
+      "button_label": "تصدير المخزون",
+      "title": "تصدير المخزون",
+      "scope_all": "ترتيب القائمة، دون بحث",
+      "scope_search": "ترتيب القائمة، بحث «{query}»",
+      "scope_label": "النطاق",
+      "scope": "{scope, select, all {كل المخزون} restock {بحاجة إلى تموين} other {أخرى}}"
     }
   },
   "messages": {

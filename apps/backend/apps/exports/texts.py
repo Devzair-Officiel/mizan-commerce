@@ -2,7 +2,8 @@
 
 Le PDF n'existe qu'en français et en anglais : un compte en arabe le reçoit en
 français, comme les factures (dette « PDF en arabe »). Les libellés de statut
-suivent ceux de la page Commandes (`lib/orderStatusLabels.ts`).
+suivent ceux de la page Commandes (`lib/orderStatusLabels.ts`), ceux des états
+du stock les pastilles de la page Stock.
 """
 
 from __future__ import annotations
@@ -60,8 +61,43 @@ TEXTS: dict[str, dict[str, str]] = {
         'pair': '{label} : {value}',
         'detail': 'Détail',
         'totals': 'Totaux',
-        'more.one': '… et 1 autre commande (liste complète en PDF ou CSV)',
-        'more.other': '… et {count} autres commandes (liste complète en PDF ou CSV)',
+        'orders.more.one': '… et 1 autre commande (liste complète en PDF ou CSV)',
+        'orders.more.other': (
+            '… et {count} autres commandes (liste complète en PDF ou CSV)'
+        ),
+        'stock.title.all': 'Stock',
+        'stock.title.restock': 'À réapprovisionner',
+        'stock.filename.all': 'stock',
+        'stock.filename.restock': 'reapprovisionnement',
+        'stock.empty.all': 'Aucun format ne correspond à ces critères.',
+        'stock.empty.restock': 'Rien à réapprovisionner',
+        'stock.as_of': 'Au {date}',
+        'stock.threshold': '{state} (seuil {threshold})',
+        'stock.no_price.one': "1 format sans prix d'achat, hors valeur estimée",
+        'stock.no_price.other': (
+            "{count} formats sans prix d'achat, hors valeur estimée"
+        ),
+        'stock.more.one': '… et 1 autre format (liste complète en PDF ou CSV)',
+        'stock.more.other': (
+            '… et {count} autres formats (liste complète en PDF ou CSV)'
+        ),
+        'column.product': 'Article',
+        'column.variant': 'Format',
+        'column.sku': 'Référence',
+        'column.quantity': 'Quantité',
+        'column.threshold': "Seuil d'alerte",
+        'column.purchase_price': "Prix d'achat",
+        'column.selling_price': 'Prix de vente',
+        'column.value': 'Valeur estimée',
+        'state.in': 'En stock',
+        'state.low': 'Faible',
+        'state.out': 'Rupture',
+        'state.negative': 'Négatif',
+        'total.formats': 'Formats',
+        'total.value': 'Valeur estimée',
+        'total.out': 'En rupture',
+        'total.low': 'Stock faible',
+        'total.negative': 'Négatif',
     },
     'en': {
         'orders.title': 'Orders',
@@ -111,8 +147,41 @@ TEXTS: dict[str, dict[str, str]] = {
         'pair': '{label}: {value}',
         'detail': 'Details',
         'totals': 'Totals',
-        'more.one': '… and 1 more order (full list in the PDF or CSV)',
-        'more.other': '… and {count} more orders (full list in the PDF or CSV)',
+        'orders.more.one': '… and 1 more order (full list in the PDF or CSV)',
+        'orders.more.other': '… and {count} more orders (full list in the PDF or CSV)',
+        'stock.title.all': 'Stock',
+        'stock.title.restock': 'To restock',
+        'stock.filename.all': 'stock',
+        'stock.filename.restock': 'restock',
+        'stock.empty.all': 'No formats match these criteria.',
+        'stock.empty.restock': 'Nothing to restock',
+        'stock.as_of': 'As of {date}',
+        'stock.threshold': '{state} (threshold {threshold})',
+        'stock.no_price.one': (
+            '1 format without a purchase price, not in the estimated value'
+        ),
+        'stock.no_price.other': (
+            '{count} formats without a purchase price, not in the estimated value'
+        ),
+        'stock.more.one': '… and 1 more format (full list in the PDF or CSV)',
+        'stock.more.other': '… and {count} more formats (full list in the PDF or CSV)',
+        'column.product': 'Item',
+        'column.variant': 'Format',
+        'column.sku': 'Reference',
+        'column.quantity': 'Quantity',
+        'column.threshold': 'Threshold',
+        'column.purchase_price': 'Purchase price',
+        'column.selling_price': 'Selling price',
+        'column.value': 'Estimated value',
+        'state.in': 'In stock',
+        'state.low': 'Low',
+        'state.out': 'Out',
+        'state.negative': 'Negative',
+        'total.formats': 'Formats',
+        'total.value': 'Estimated value',
+        'total.out': 'Out of stock',
+        'total.low': 'Low stock',
+        'total.negative': 'Negative',
     },
     'ar': {
         'orders.title': 'الطلبات',
@@ -162,10 +231,41 @@ TEXTS: dict[str, dict[str, str]] = {
         'pair': '{label}: {value}',
         'detail': 'التفاصيل',
         'totals': 'المجاميع',
-        'more.one': '… وطلب آخر (القائمة الكاملة في ملف PDF أو CSV)',
-        'more.other': (
+        'orders.more.one': '… وطلب آخر (القائمة الكاملة في ملف PDF أو CSV)',
+        'orders.more.other': (
             '… والطلبات المتبقية: {count} (القائمة الكاملة في ملف PDF أو CSV)'
         ),
+        'stock.title.all': 'المخزون',
+        'stock.title.restock': 'بحاجة إلى تموين',
+        'stock.filename.all': 'stock',
+        'stock.filename.restock': 'reapprovisionnement',
+        'stock.empty.all': 'لا توجد أشكال تطابق هذه المعايير.',
+        'stock.empty.restock': 'لا شيء بحاجة إلى تموين',
+        'stock.as_of': 'بتاريخ {date}',
+        'stock.threshold': '{state} (الحد {threshold})',
+        'stock.no_price.one': 'شكل واحد دون سعر شراء، خارج القيمة التقديرية',
+        'stock.no_price.other': 'أشكال دون سعر شراء: {count}، خارج القيمة التقديرية',
+        'stock.more.one': '… وشكل آخر (القائمة الكاملة في ملف PDF أو CSV)',
+        'stock.more.other': (
+            '… والأشكال المتبقية: {count} (القائمة الكاملة في ملف PDF أو CSV)'
+        ),
+        'column.product': 'المنتج',
+        'column.variant': 'الشكل',
+        'column.sku': 'المرجع',
+        'column.quantity': 'الكمية',
+        'column.threshold': 'حد التنبيه',
+        'column.purchase_price': 'سعر الشراء',
+        'column.selling_price': 'سعر البيع',
+        'column.value': 'القيمة التقديرية',
+        'state.in': 'متوفر',
+        'state.low': 'منخفض',
+        'state.out': 'نفد',
+        'state.negative': 'سالب',
+        'total.formats': 'الأشكال',
+        'total.value': 'القيمة التقديرية',
+        'total.out': 'نفد',
+        'total.low': 'مخزون منخفض',
+        'total.negative': 'سالب',
     },
 }
 

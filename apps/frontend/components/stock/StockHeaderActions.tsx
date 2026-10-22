@@ -3,15 +3,18 @@ import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { StockExportButton } from './export/StockExportButton';
 
 /**
- * Actions de l'en-tête du stock : « Sortie de stock » (contour) et « Entrée de
- * stock » (principale). Sur mobile, l'entrée seule, en bouton icône de 44px.
+ * Actions de l'en-tête du stock : « Exporter » (onglet Niveaux), « Sortie de
+ * stock » (contour) et « Entrée de stock » (principale). Sur mobile, des
+ * boutons icônes de 44px.
  */
-export function StockHeaderActions() {
+export function StockHeaderActions({ exportable }: { exportable: boolean }) {
   const t = useTranslations('stock.page');
   return (
     <div className="flex items-center gap-2">
+      {exportable && <StockExportButton />}
       <Link href="/stock/sortie" className={cn(buttonVariants({ variant: 'outline' }), 'hidden h-10 rounded-full px-4 text-sm lg:inline-flex')}>
         <ArrowUpFromLine aria-hidden />
         {t('exit_cta')}

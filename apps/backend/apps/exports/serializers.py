@@ -2,8 +2,15 @@ from rest_framework import serializers
 
 from apps.customers.models import Customer
 from apps.orders.models import Order
+from apps.stock.filters import LevelOrderingFilter
 
+from .stock_dataset import STOCK_SCOPES
 from .texts import LANGUAGES
+
+# Tris de la liste des niveaux, croissants et décroissants : rien d'autre.
+STOCK_ORDERINGS = tuple(
+    term for key in LevelOrderingFilter.FIELDS for term in (key, f'-{key}')
+)
 
 
 class OrdersExportQuerySerializer(serializers.Serializer):
@@ -45,3 +52,19 @@ class OrdersExportQuerySerializer(serializers.Serializer):
         if start and end and start > end:
             raise serializers.ValidationError({'to': 'La fin précède le début.'})
         return attrs
+
+
+class StockExportQuerySerializer(serializers.Serializer):
+    """Périmètre, recherche et tri de la page Stock, langue de l'export.
+
+    Recherche et tri sont appliqués par les filtres DRF de la vue ; validés ici
+    (longueur, liste blanche) pour l'en-tête du PDF et du message.
+    """
+
+    scope = serializers.ChoiceField(choices=STOCK_SCOPES, required=False, default='all')
+    search = serializers.CharField(required=False, allow_blank=True, max_length=100)
+    ordering = serializers.ChoiceField(choices=STOCK_ORDERINGS, required=False)
+    lang = serializers.ChoiceField(choices=LANGUAGES, required=False)
+
+    def validate_search(self, value: str) -> str:
+        return value.strip()

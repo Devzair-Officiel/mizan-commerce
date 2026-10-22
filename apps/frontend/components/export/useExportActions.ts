@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  exportErrorKind, ordersCsvUrl, useOrdersPdfExport, useOrdersWhatsAppExport, type OrdersExportFormat,
-} from '@/lib/hooks/useOrderExports';
+  exportCsvUrl, exportErrorKind, usePdfExport, useWhatsAppExport, type ExportFormat, type ExportKind,
+} from '@/lib/hooks/useExports';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { notify } from '@/lib/notify';
 
@@ -42,7 +42,7 @@ const isAbort = (error: unknown): boolean => error instanceof DOMException && er
  * wa.me ou copie du message.
  */
 function useHandoff(file: File | null, sharedText: string | null, text: string | null, onDone: () => void) {
-  const t = useTranslations('orders.export');
+  const t = useTranslations('export');
 
   async function share(): Promise<void> {
     if (!file) return;
@@ -78,7 +78,8 @@ function useHandoff(file: File | null, sharedText: string | null, text: string |
 }
 
 interface ExportActionsOptions {
-  format: OrdersExportFormat;
+  kind: ExportKind;
+  format: ExportFormat;
   query: string;
   onDone: () => void;
 }
@@ -87,19 +88,20 @@ interface ExportActionsOptions {
  * Actions de l'export. CSV : lien direct. PDF : téléchargé (desktop, navigateur sans partage de
  * fichiers) ou, sur mobile, préparé puis partagé. WhatsApp : texte préparé, puis wa.me ou copie ;
  * message tronqué, sur mobile : PDF et texte préparés ensemble, puis partagés ensemble.
- * Le résultat préparé est attaché à ses paramètres : changer de période ou de filtre l'ignore.
+ * Le résultat préparé est attaché à ses paramètres : changer de période, de périmètre ou de filtre
+ * l'ignore. Commun aux exports des commandes et du stock (`kind`).
  */
-export function useOrdersExportActions({ format, query, onDone }: ExportActionsOptions) {
-  const t = useTranslations('orders.export');
+export function useExportActions({ kind, format, query, onDone }: ExportActionsOptions) {
+  const t = useTranslations('export');
   const lang = useLocale();
   const [shareFiles] = useState(canShareFiles);
   const sharePdf = useIsDesktop() === false && shareFiles;
   const [pdf, setPdf] = useState<{ key: string; file: File } | null>(null);
   const [message, setMessage] = useState<{ key: string; text: string } | null>(null);
   const [bundle, setBundle] = useState<string | null>(null);
-  const pdfExport = useOrdersPdfExport();
-  const whatsapp = useOrdersWhatsAppExport();
-  const onError = (error: unknown) => notify.error(t(`errors.${exportErrorKind(error)}`));
+  const pdfExport = usePdfExport(kind);
+  const whatsapp = useWhatsAppExport(kind);
+  const onError = (error: unknown) => notify.error(t(`errors.${exportErrorKind(error)}`, { kind }));
   const file = pdf?.key === query ? pdf.file : null;
   const text = message?.key === query ? message.text : null;
   const bundled = bundle === query && file !== null && text !== null;
@@ -117,7 +119,7 @@ export function useOrdersExportActions({ format, query, onDone }: ExportActionsO
   /** Étapes qui appellent le serveur (après validation du formulaire). */
   function run(): void {
     if (step === 'download_csv') {
-      saveFile(ordersCsvUrl(query, lang));
+      saveFile(exportCsvUrl(kind, query, lang));
       onDone();
     } else if (step === 'download_pdf' || step === 'prepare_pdf') {
       pdfExport.mutate({ query, lang }, {
@@ -148,4 +150,4 @@ export function useOrdersExportActions({ format, query, onDone }: ExportActionsO
   return { step, text, pending, canShareBundle: sharePdf, run, prepareBundle, ...handoff };
 }
 
-export type OrdersExportActions = ReturnType<typeof useOrdersExportActions>;
+export type ExportActions = ReturnType<typeof useExportActions>;
