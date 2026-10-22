@@ -10,7 +10,7 @@
  * - relevé de compte (URS-104) : PDF et WhatsApp remplacent les cases par une ligne fixe (« notes
  *   non incluses »), nombre de commandes égal au résumé de l'API (à régler pour le message),
  *   « PDF en français » en arabe ; à 360×640, rien ne défile en PDF et en WhatsApp (le CSV, avec
- *   ses quatre cases, défile, comme avant le choix du format : décision du 22/10/2026) ;
+ *   ses quatre cases, défile : comportement existant, non modifié) ;
  * - PDF réel `releve-audit-export-AAAA-MM-JJ.pdf`, téléchargé sur desktop, partagé (Web Share
  *   simulé) sur mobile ; message du serveur, puis wa.me vers le téléphone du client ;
  * - message tronqué (résumé simulé à 42) : « Passer au PDF » (desktop) garde les commandes à régler,
