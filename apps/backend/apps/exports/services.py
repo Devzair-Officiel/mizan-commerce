@@ -12,7 +12,7 @@ rendus (`render_csv`, `render_pdf`, `render_whatsapp`) ne recalculent rien.
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -21,11 +21,12 @@ from babel.dates import format_date
 from django.db.models import Count, DecimalField, F, QuerySet, Sum, Value
 from django.db.models.functions import Greatest
 from django.utils import timezone
+from django.utils.text import slugify
 
 from apps.accounts.models import User
 from apps.core.models import AuditLog
 from apps.customers.models import Customer
-from apps.customers.services import local_period
+from apps.customers.services import format_phone_display, local_period
 from apps.orders.filters import annotate_ranks
 from apps.orders.models import Order
 from apps.orders.services import filter_orders
@@ -80,7 +81,7 @@ class ExportTotal:
 class ExportDataset:
     shop: Shop
     lang: str
-    # Famille du jeu (`orders`, `stock`) : ligne et renvoi du message WhatsApp.
+    # Famille du jeu (`orders`, `stock`, `statement`) : ligne et renvoi du message.
     kind: str
     title: str
     filename_stem: str
@@ -93,6 +94,10 @@ class ExportDataset:
     totals_note: str = ''
     empty: str = ''
     filters: tuple[str, ...] = field(default_factory=tuple)
+    # Destinataire (relevé d'un client) : nom, puis coordonnées, sous le titre.
+    subject: tuple[str, ...] = field(default_factory=tuple)
+    # Date des montants (« Situation au … ») quand ce n'est pas la fin de la période.
+    as_of: str = ''
 
     @property
     def tz(self) -> ZoneInfo:
@@ -291,6 +296,83 @@ def orders_dataset(
         totals_note=texts['totals.note'],
         empty=texts['orders.empty'],
         filters=_filter_labels(shop, filters, lang),
+    )
+
+
+# ── Relevé de compte d'un client ─────────────────────────────────────────────
+
+# Le client est dans l'en-tête : pas de colonne Client ; le statut prend le reste.
+STATEMENT_COLUMNS = (
+    ExportColumn('created_at', DATETIME, compact=True, width=56),
+    ExportColumn('number', TEXT, compact=True, width=54),
+    ExportColumn('status', TEXT, compact=True, wrap=True),
+    ExportColumn('payment', TEXT, compact=True, width=56),
+    ExportColumn('total', MONEY, compact=True, width=72),
+    ExportColumn('paid', MONEY, compact=True, width=72),
+    ExportColumn('due', MONEY, compact=True, width=72),
+)
+
+
+def statement_queryset(shop: Shop, filters: OrderFilters) -> QuerySet[Order]:
+    """Commandes du client `filters.customer` créées dans la période, de la plus
+    récente à la plus ancienne ; « À encaisser » avec `filters.due`."""
+    return export_orders_queryset(shop, filters).order_by('-created_at', '-pk')
+
+
+def _customer_identity(customer: Customer) -> tuple[str, ...]:
+    """Nom, téléphone, e-mail et adresse renseignés du client."""
+    phone = format_phone_display(customer.phone)
+    city = ' '.join(part for part in (customer.postal_code, customer.city) if part)
+    lines = (customer.display_name, phone, customer.email, customer.address_line, city)
+    return tuple(line for line in lines if line)
+
+
+def statement_dataset(
+    shop: Shop, qs: QuerySet[Order], filters: OrderFilters, lang: str,
+) -> ExportDataset:
+    """Relevé de compte : le jeu des commandes `qs` du client, une ligne par
+    commande (paiements compris, jamais les notes), son identité en en-tête.
+
+    Encaissé et reste dû sont ceux d'aujourd'hui, pas ceux de la fin de la
+    période : l'en-tête le dit (« Situation au … »).
+    """
+    texts = TEXTS[lang]
+    customer = filters.customer
+    dataset = orders_dataset(shop, qs, filters, lang)
+    slug = slugify(customer.display_name, allow_unicode=True) or 'client'
+    return replace(
+        dataset,
+        kind='statement',
+        title=texts['statement.title'],
+        filename_stem=f"{texts['statement.filename']}-{slug}",
+        columns=STATEMENT_COLUMNS,
+        empty=texts['statement.empty.due' if filters.due else 'statement.empty'],
+        # Le client est déjà dans l'en-tête.
+        filters=_filter_labels(shop, replace(filters, customer=None), lang),
+        subject=_customer_identity(customer),
+        as_of=texts['statement.as_of'].format(
+            date=dataset.generated_at.strftime('%d/%m/%Y'),
+        ),
+    )
+
+
+def log_statement_export(
+    dataset: ExportDataset, *, user: User, export_format: str, filters: OrderFilters,
+) -> AuditLog:
+    """Même journal que le CSV de l'activité (`customer_activity_export`), avec
+    le format : période, « À encaisser » et nombre de lignes."""
+    customer = filters.customer
+    return AuditLog.objects.create(
+        shop_id=dataset.shop.id, user=user, action='customer_activity_export',
+        model_name='Customer', object_id=str(customer.id),
+        object_repr=customer.display_name[:200],
+        changes={
+            'format': export_format,
+            'pending': filters.due,
+            'rows': dataset.row_count,
+            'from': filters.date_from.isoformat() if filters.date_from else None,
+            'to': filters.date_to.isoformat() if filters.date_to else None,
+        },
     )
 
 

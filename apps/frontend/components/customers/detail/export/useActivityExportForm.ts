@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLocale, useTranslations } from 'next-intl';
@@ -9,6 +9,7 @@ import {
   ACTIVITY_TYPES, activityExportUrl, useCustomerActivityExportSummary,
   type ActivityExportRange, type ActivityFilter,
 } from '@/lib/hooks/useCustomers';
+import { EXPORT_FORMATS, useExportSummary } from '@/lib/hooks/useExports';
 import { useShopTimeZone } from '@/lib/hooks/useShop';
 import { toDateInput } from '@/components/reminders/reminderDates';
 
@@ -20,12 +21,16 @@ function yearBefore(day: string): string {
   return new Date(Date.UTC(y - 1, m - 1, d)).toISOString().slice(0, 10);
 }
 
+// Le contenu ne se choisit que pour le CSV : le PDF et le message ont un contenu fixe.
 function exportSchema(t: (key: 'types_required' | 'dates_order') => string) {
   return z.object({
-    types: z.array(z.enum(ACTIVITY_TYPES)).min(1, t('types_required')),
+    format: z.enum(EXPORT_FORMATS),
+    types: z.array(z.enum(ACTIVITY_TYPES)),
     period: z.enum(EXPORT_PERIODS),
     from: z.string(),
     to: z.string(),
+  }).refine((v) => v.format !== 'csv' || v.types.length > 0, {
+    path: ['types'], message: t('types_required'),
   }).refine((v) => v.period !== 'custom' || !v.from || !v.to || v.from <= v.to, {
     path: ['to'], message: t('dates_order'),
   });
@@ -40,6 +45,15 @@ function rangeOf({ period, from, to }: Pick<ActivityExportValues, 'period' | 'fr
   return {};
 }
 
+/** Paramètres du relevé (PDF, message), sans la langue, ajoutée au moment de l'export. */
+function statementQuery(range: ActivityExportRange, due: boolean): string {
+  const params = new URLSearchParams();
+  if (range.from) params.set('from', range.from);
+  if (range.to) params.set('to', range.to);
+  if (due) params.set('due', 'true');
+  return params.toString();
+}
+
 interface ActivityExportFormOptions {
   customerId: string;
   /** Puce affichée sur la carte : seul ce type est pré-coché (tous sans puce). */
@@ -49,8 +63,11 @@ interface ActivityExportFormOptions {
 }
 
 /**
- * Formulaire de l'export : contenu, période, nombre de lignes (avant le téléchargement) et
- * téléchargement du CSV par un lien vers le proxy, dans le geste de l'utilisateur.
+ * Formulaire de l'export : format, contenu (CSV), période, nombre de lignes avant l'export, et
+ * téléchargement du CSV par un lien vers le proxy, dans le geste de l'utilisateur. Le PDF et le
+ * message (relevé de compte) passent par les actions d'export communes, avec `query`.
+ * Seulement les commandes à régler (`due`) : « À encaisser » sur la carte, le message, ou le
+ * passage au PDF ou au CSV que propose l'avertissement du message, qui garde sa liste.
  */
 export function useActivityExportForm({ customerId, activityFilter, pendingOnly, onDone }: ActivityExportFormOptions) {
   const t = useTranslations('customers.export');
@@ -58,21 +75,35 @@ export function useActivityExportForm({ customerId, activityFilter, pendingOnly,
   const today = toDateInput(new Date(), useShopTimeZone());
   const form = useForm<ActivityExportValues>({
     resolver: zodResolver(exportSchema(t)),
-    defaultValues: { types: activityFilter ? [activityFilter] : [...ACTIVITY_TYPES], period: '12m', from: '', to: '' },
+    defaultValues: { format: 'csv', types: activityFilter ? [activityFilter] : [...ACTIVITY_TYPES], period: '12m', from: '', to: '' },
   });
-  const [types, period, from, to] = useWatch({ control: form.control, name: ['types', 'period', 'from', 'to'] });
+  const [format, types, period, from, to] = useWatch({ control: form.control, name: ['format', 'types', 'period', 'from', 'to'] });
+  const [keptList, setKeptList] = useState(false);
+  const due = pendingOnly || keptList || format === 'whatsapp';
   const range = useMemo(() => rangeOf({ period, from, to }, today), [period, from, to, today]);
   const validRange = !range.from || !range.to || range.from <= range.to;
-  const summary = useCustomerActivityExportSummary(customerId, range, pendingOnly, validRange);
-  const rows = summary.data ? types.reduce((sum, type) => sum + summary.data.counts[type], 0) : undefined;
+  const activity = useCustomerActivityExportSummary(customerId, range, due, validRange && format === 'csv');
+  const rows = activity.data ? types.reduce((sum, type) => sum + activity.data.counts[type], 0) : undefined;
+  const query = statementQuery(range, due);
+  const statement = useExportSummary({ kind: 'statement', customerId }, query, validRange && format !== 'csv');
 
-  const submit = form.handleSubmit((values) => {
+  // Choisir un format dans le contrôle rend le périmètre de la carte.
+  const registerFormat = form.register('format', { onChange: () => setKeptList(false) });
+  function switchKeepingList(next: 'pdf' | 'csv'): void {
+    setKeptList(true);
+    form.setValue('format', next);
+  }
+
+  const submitCsv = form.handleSubmit((values) => {
     const link = document.createElement('a');
-    link.href = activityExportUrl(customerId, values.types, rangeOf(values, today), pendingOnly, locale);
+    link.href = activityExportUrl(customerId, values.types, rangeOf(values, today), due, locale);
     link.download = '';
     link.click();
     onDone();
   });
 
-  return { form, period, counts: summary.data?.counts, rows, submit };
+  return {
+    form, format, period, due, keptList, counts: activity.data?.counts, rows, query, summary: statement.data,
+    registerFormat, switchKeepingList, submitCsv,
+  };
 }

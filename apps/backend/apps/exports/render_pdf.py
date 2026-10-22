@@ -80,6 +80,21 @@ def _style(dataset: ExportDataset, branding: Branding) -> PdfStyle:
     )
 
 
+def _subject(style: PdfStyle, dataset: ExportDataset) -> list:
+    """Destinataire (relevé d'un client) : nom en gras, coordonnées, puis un blanc."""
+    if not dataset.subject:
+        return []
+    name, *details = dataset.subject
+    return [
+        style.paragraph(xml(name), size=11, bold=True, align=2),
+        *[
+            style.paragraph(xml(line), size=8.5, color=MUTED, align=2)
+            for line in details
+        ],
+        Spacer(1, 6),
+    ]
+
+
 def _header(style: PdfStyle, dataset: ExportDataset, branding: Branding) -> Table:
     generated = dataset.text('generated').format(
         date=format_day(dataset.generated_at.date(), dataset.lang),
@@ -88,7 +103,9 @@ def _header(style: PdfStyle, dataset: ExportDataset, branding: Branding) -> Tabl
     right = [
         style.paragraph(xml(dataset.title), size=20, color=style.accent, bold=True, align=2),  # noqa: E501
         Spacer(1, 8),
+        *_subject(style, dataset),
         style.paragraph(xml(dataset.period), align=2),
+        *([style.paragraph(xml(dataset.as_of), bold=True, align=2)] if dataset.as_of else []),  # noqa: E501
         style.paragraph(xml(generated), size=8.5, color=MUTED, align=2),
     ]
     brand = brand_block(
@@ -194,7 +211,7 @@ def _rows_table(style: PdfStyle, dataset: ExportDataset) -> Table | Paragraph:
 
 
 def _footer(style: PdfStyle, dataset: ExportDataset) -> Paragraph:
-    parts = [dataset.shop.name, dataset.title, dataset.period]
+    parts = [dataset.shop.name, dataset.title, *dataset.subject[:1], dataset.period]
     return style.paragraph(xml(' · '.join(parts)), size=8.25, color=MUTED, align=1)
 
 

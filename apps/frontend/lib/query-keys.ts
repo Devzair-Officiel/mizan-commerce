@@ -222,6 +222,8 @@ export const qk = {
       range: { from?: string; to?: string },
       pendingOnly: boolean,
     ) => ['customers', customerId, 'activity-export', range, pendingOnly] as const,
+    /** Lignes du relevé de compte (PDF, message) : paramètres de l'export, sans la langue. */
+    statementExport: (customerId: string, query: string) => ['customers', customerId, 'statement', query] as const,
   },
 
   invoices: {

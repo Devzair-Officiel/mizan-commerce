@@ -1168,7 +1168,10 @@ L'application est organisée autour des modules suivants :
 - Le nombre de lignes du fichier est annoncé avant le téléchargement.
 - Le fichier est un CSV (UTF-8 avec BOM, séparateur « ; ») : date, type, référence, description, montant, statut, auteur, du plus récent au plus ancien ; en-têtes et séparateur décimal dans la langue de l'interface ; une formule saisie dans une note est neutralisée.
 - Mêmes droits que l'activité (module Clients) ; seuls les clients de la boutique sont exportables.
-- Chaque export est consigné dans le journal d'audit (types, période, nombre de lignes).
+- Chaque export est consigné dans le journal d'audit (format, types, période, nombre de lignes).
+- Le format se choisit dans la même fenêtre : CSV (ci-dessus, inchangé), PDF ou message WhatsApp. Le PDF et le message forment le relevé de compte du client : une ligne par commande créée dans la période (date, numéro, statut, paiement, total, encaissé, reste dû), les annulées exclues des totaux, avec le bloc d'identité du client et « Situation au JJ/MM/AAAA » (montants du jour) en en-tête. Ils ne contiennent jamais les notes, réservées au CSV ; la fenêtre l'indique.
+- « À encaisser » sur la carte limite aussi le relevé aux commandes à régler. Le message liste toujours les commandes à régler, de la plus récente à la plus ancienne : 15 au plus, puis « … et N autres (liste complète en PDF ou CSV) ». Il s'ouvre dans WhatsApp vers le téléphone du client s'il en a un ; aucun envoi automatique.
+- Le PDF est refusé au-delà de 1 000 commandes, et le CSV proposé ; en arabe, il est en français. Les rendus PDF et WhatsApp ont la même limite de débit que les autres exports ; réservés à la formule Boutique et au-delà.
 
 ---
 

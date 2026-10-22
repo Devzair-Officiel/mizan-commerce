@@ -25,7 +25,7 @@ export function StockExportDialog({ levels, onClose }: StockExportDialogProps) {
   const t = useTranslations('stock.export');
   const formId = useId();
   const { form, format, query, summary, registerFormat, switchKeepingList } = useStockExportForm(levels);
-  const actions = useExportActions({ kind: 'stock', format, query, onDone: onClose });
+  const actions = useExportActions({ target: { kind: 'stock' }, format, query, onDone: onClose });
   const overCap = format === 'pdf' && !!summary && summary.rows > summary.pdf_max_rows;
   // Message tronqué : l'avertissement remplace la description du format et le nombre de formats.
   const truncated = format === 'whatsapp' && summary && summary.rows > summary.whatsapp_max_rows ? summary : null;

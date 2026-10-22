@@ -15,17 +15,9 @@ from decimal import Decimal
 
 from babel.numbers import get_decimal_symbol
 
+from apps.core.spreadsheet import spreadsheet_safe
+
 from .services import DATETIME, MONEY, QUANTITY, ExportDataset
-
-# Caractères qui font d'une cellule une formule pour un tableur.
-FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
-
-
-def spreadsheet_safe(value: str | None) -> str:
-    """Texte saisi : une formule de tableur en tête (=, +, -, @) est neutralisée."""
-    value = value or ''
-    return f"'{value}" if value[:1] in FORMULA_PREFIXES else value
-
 
 def csv_amount(value: Decimal | None, lang: str) -> str:
     """Montant au séparateur décimal de la langue, chiffres latins, sans milliers."""

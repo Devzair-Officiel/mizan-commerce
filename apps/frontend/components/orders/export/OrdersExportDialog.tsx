@@ -35,7 +35,7 @@ export function OrdersExportDialog({ state, onClose }: { state: OrdersPageState;
   const formId = useId();
   const scope = useScope(state);
   const { form, format, period, query, summary } = useOrdersExportForm(state.filters);
-  const actions = useExportActions({ kind: 'orders', format, query, onDone: onClose });
+  const actions = useExportActions({ target: { kind: 'orders' }, format, query, onDone: onClose });
   const { register, setValue, formState: { errors } } = form;
   const overCap = format === 'pdf' && !!summary && summary.rows > summary.pdf_max_rows;
   // Message tronqué : l'avertissement remplace la description du format et le nombre de commandes.

@@ -44,7 +44,7 @@ export function ExportRowsBox({ kind, format, summary, preview, onUseCsv }: Expo
   return (
     <div className="flex items-center gap-2.5 rounded-xl bg-muted px-3.5 py-2.5 text-[0.8125rem] text-foreground">
       <FileText size={18} aria-hidden className="shrink-0 text-muted-foreground" />
-      <p aria-live="polite">{summary ? t('rows', { kind, count: summary.rows }) : ' '}</p>
+      <p aria-live="polite">{summary ? t('rows', { kind, format, count: summary.rows }) : ' '}</p>
     </div>
   );
 }

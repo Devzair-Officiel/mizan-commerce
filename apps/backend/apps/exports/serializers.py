@@ -13,20 +13,11 @@ STOCK_ORDERINGS = tuple(
 )
 
 
-class OrdersExportQuerySerializer(serializers.Serializer):
-    """Filtres de la page Commandes, période de création et langue de l'export.
+class _OrdersPeriodQuery(serializers.Serializer):
+    """Période de création, « À encaisser », client de la boutique et langue."""
 
-    La recherche et le tri sont appliqués par les filtres DRF de la vue ; la
-    recherche est validée ici pour l'en-tête du PDF et du message.
-    """
-
-    status = serializers.ChoiceField(choices=Order.STATUS_CHOICES, required=False)
-    payment_status = serializers.ChoiceField(
-        choices=Order.PAYMENT_STATUS_CHOICES, required=False,
-    )
     due = serializers.BooleanField(required=False, default=False)
     customer = serializers.UUIDField(required=False)
-    search = serializers.CharField(required=False, allow_blank=True, max_length=100)
     # Langue de l'interface : en-têtes, libellés, dates et montants.
     lang = serializers.ChoiceField(choices=LANGUAGES, required=False)
 
@@ -44,14 +35,35 @@ class OrdersExportQuerySerializer(serializers.Serializer):
             raise serializers.ValidationError('Client introuvable.')
         return customer
 
-    def validate_search(self, value: str) -> str:
-        return value.strip()
-
     def validate(self, attrs: dict) -> dict:
         start, end = attrs.get('date_from'), attrs.get('date_to')
         if start and end and start > end:
             raise serializers.ValidationError({'to': 'La fin précède le début.'})
         return attrs
+
+
+class OrdersExportQuerySerializer(_OrdersPeriodQuery):
+    """Filtres de la page Commandes, période de création et langue de l'export.
+
+    La recherche et le tri sont appliqués par les filtres DRF de la vue ; la
+    recherche est validée ici pour l'en-tête du PDF et du message.
+    """
+
+    status = serializers.ChoiceField(choices=Order.STATUS_CHOICES, required=False)
+    payment_status = serializers.ChoiceField(
+        choices=Order.PAYMENT_STATUS_CHOICES, required=False,
+    )
+    search = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+    def validate_search(self, value: str) -> str:
+        return value.strip()
+
+
+class StatementQuerySerializer(_OrdersPeriodQuery):
+    """Relevé de compte : le client (pris dans le chemin), la période de création,
+    « À encaisser » et la langue ; ni statut, ni recherche, ni tri."""
+
+    customer = serializers.UUIDField()
 
 
 class StockExportQuerySerializer(serializers.Serializer):

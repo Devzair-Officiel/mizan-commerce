@@ -77,9 +77,26 @@ def _stock_line(row: ExportRow, dataset: ExportDataset) -> str:
     return '- ' + ' · '.join(parts)
 
 
+def _statement_line(row: ExportRow, dataset: ExportDataset) -> str:
+    """N°, jour, total, puis le reste dû (le client est dans l'en-tête)."""
+    values = row.values
+    created: datetime = values['created_at']
+    due = dataset.text('statement.line_due').format(
+        amount=whatsapp_money(values['due'] or Decimal('0'), dataset),
+    )
+    parts = [
+        f'*{plain(values["number"])}*',
+        format_day(created.astimezone(dataset.tz).date(), dataset.lang),
+        whatsapp_money(values['total'], dataset),
+        due,
+    ]
+    return '- ' + ' · '.join(parts)
+
+
 _LINES: dict[str, Callable[[ExportRow, ExportDataset], str]] = {
     'orders': _order_line,
     'stock': _stock_line,
+    'statement': _statement_line,
 }
 
 
@@ -91,7 +108,13 @@ def _remaining(count: int, dataset: ExportDataset) -> str:
 
 def render_whatsapp(dataset: ExportDataset) -> str:
     pair = dataset.text('pair')
-    lines = [f'*{dataset.title} · {plain(dataset.shop.name)}*', dataset.period]
+    lines = [f'*{dataset.title} · {plain(dataset.shop.name)}*']
+    if dataset.subject:
+        # Le nom seul : le destinataire n'a pas besoin de ses coordonnées.
+        lines.append(plain(dataset.subject[0]))
+    lines.append(dataset.period)
+    if dataset.as_of:
+        lines.append(dataset.as_of)
     if dataset.filters:
         filters = ' · '.join(plain(label) for label in dataset.filters)
         lines.append(pair.format(label=dataset.text('filters'), value=filters))

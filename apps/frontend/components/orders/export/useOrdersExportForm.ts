@@ -78,7 +78,7 @@ export function useOrdersExportForm(filters: Omit<OrdersListFilters, 'page'>) {
   const range = useMemo(() => rangeOf({ period, from, to }, today), [period, from, to, today]);
   const validRange = !range.from || !range.to || range.from <= range.to;
   const query = ordersExportQuery(filters, range);
-  const summary = useExportSummary('orders', query, validRange);
+  const summary = useExportSummary({ kind: 'orders' }, query, validRange);
 
   return { form, format, period, query, summary: summary.data };
 }

@@ -72,6 +72,16 @@ TEXTS: dict[str, dict[str, str]] = {
         'stock.empty.all': 'Aucun format ne correspond à ces critères.',
         'stock.empty.restock': 'Rien à réapprovisionner',
         'stock.as_of': 'Au {date}',
+        'statement.title': 'Relevé de compte',
+        'statement.filename': 'releve',
+        'statement.as_of': 'Situation au {date}',
+        'statement.empty': 'Aucune commande sur cette période.',
+        'statement.empty.due': 'Aucune commande à régler sur cette période.',
+        'statement.line_due': 'reste dû {amount}',
+        'statement.more.one': '… et 1 autre commande (liste complète en PDF ou CSV)',
+        'statement.more.other': (
+            '… et {count} autres commandes (liste complète en PDF ou CSV)'
+        ),
         'stock.threshold': '{state} (seuil {threshold})',
         'stock.no_price.one': "1 format sans prix d'achat, hors valeur estimée",
         'stock.no_price.other': (
@@ -156,6 +166,16 @@ TEXTS: dict[str, dict[str, str]] = {
         'stock.empty.all': 'No formats match these criteria.',
         'stock.empty.restock': 'Nothing to restock',
         'stock.as_of': 'As of {date}',
+        'statement.title': 'Account statement',
+        'statement.filename': 'statement',
+        'statement.as_of': 'Balance as of {date}',
+        'statement.empty': 'No orders in this period.',
+        'statement.empty.due': 'No orders to settle in this period.',
+        'statement.line_due': '{amount} due',
+        'statement.more.one': '… and 1 more order (full list in the PDF or CSV)',
+        'statement.more.other': (
+            '… and {count} more orders (full list in the PDF or CSV)'
+        ),
         'stock.threshold': '{state} (threshold {threshold})',
         'stock.no_price.one': (
             '1 format without a purchase price, not in the estimated value'
@@ -242,6 +262,16 @@ TEXTS: dict[str, dict[str, str]] = {
         'stock.empty.all': 'لا توجد أشكال تطابق هذه المعايير.',
         'stock.empty.restock': 'لا شيء بحاجة إلى تموين',
         'stock.as_of': 'بتاريخ {date}',
+        'statement.title': 'كشف حساب',
+        'statement.filename': 'statement',
+        'statement.as_of': 'الرصيد بتاريخ {date}',
+        'statement.empty': 'لا توجد طلبات في هذه الفترة.',
+        'statement.empty.due': 'لا توجد طلبات للتسديد في هذه الفترة.',
+        'statement.line_due': 'المتبقي {amount}',
+        'statement.more.one': '… وطلب آخر (القائمة الكاملة في ملف PDF أو CSV)',
+        'statement.more.other': (
+            '… والطلبات المتبقية: {count} (القائمة الكاملة في ملف PDF أو CSV)'
+        ),
         'stock.threshold': '{state} (الحد {threshold})',
         'stock.no_price.one': 'شكل واحد دون سعر شراء، خارج القيمة التقديرية',
         'stock.no_price.other': 'أشكال دون سعر شراء: {count}، خارج القيمة التقديرية',

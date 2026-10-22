@@ -63,6 +63,6 @@ export function useStockExportForm(levels: LevelsList) {
   }
 
   const query = stockExportQuery(scope, levels);
-  const summary = useExportSummary('stock', query, true);
+  const summary = useExportSummary({ kind: 'stock' }, query, true);
   return { form, format, query, summary: summary.data, registerFormat, switchKeepingList };
 }

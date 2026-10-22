@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from django.db.models import QuerySet
 from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.http import content_disposition_header
@@ -19,12 +21,15 @@ from . import services, stock_dataset
 from .render_csv import render_csv
 from .render_pdf import render_pdf
 from .render_whatsapp import render_whatsapp
-from .serializers import OrdersExportQuerySerializer, StockExportQuerySerializer
+from .serializers import (
+    OrdersExportQuerySerializer, StatementQuerySerializer, StockExportQuerySerializer,
+)
 from .services import ExportDataset, OrderFilters
 from .stock_dataset import StockFilters
 from .throttles import ExportRenderRateThrottle
 
 HasOrdersModule = HasModulePermission.for_module('orders')
+HasCustomersModule = HasModulePermission.for_module('customers')
 HasStockModule = HasModulePermission.for_module('stock')
 HasExportsPlan = HasPlanForFeature.for_feature('exports')
 # Rendus générés par le serveur, limités par utilisateur ; le CSV part en flux.
@@ -119,6 +124,62 @@ class OrdersExportView(_RateLimitedRenders, _OrdersExportBase):
         response = _rendered(dataset, output)
         services.log_orders_export(
             dataset, user=request.user, export_format=output, filters=order_filters,
+        )
+        return response
+
+
+class _StatementExportBase(GenericAPIView):
+    """Relevé de compte d'un client de la boutique : module Clients, pas Commandes."""
+
+    permission_classes = (IsAuthenticated, HasExportsPlan, HasCustomersModule)
+
+    def export_params(self) -> tuple[OrderFilters, str | None]:
+        """Client du chemin (400 « Client introuvable. » hors boutique, comme
+        l'export des commandes), période validée, puis la langue."""
+        shop = get_shop(self.request.user)
+        params = {**self.request.query_params.dict(), 'customer': self.kwargs['pk']}
+        query = StatementQuerySerializer(data=params, context={'shop': shop})
+        query.is_valid(raise_exception=True)
+        data = dict(query.validated_data)
+        lang = data.pop('lang', None)
+        return OrderFilters(**data), lang
+
+
+class StatementExportSummaryView(_StatementExportBase):
+    """Nombre de commandes du relevé, avant l'export, et plafonds."""
+
+    def get(self, request: Request, pk: str) -> Response:
+        statement_filters, _ = self.export_params()
+        qs = services.statement_queryset(get_shop(request.user), statement_filters)
+        return Response({
+            'rows': qs.count(),
+            'pdf_max_rows': services.PDF_MAX_ROWS,
+            'whatsapp_max_rows': services.WHATSAPP_MAX_ROWS,
+        })
+
+
+class StatementExportView(_RateLimitedRenders, _StatementExportBase):
+    """Relevé de compte en PDF ou texte WhatsApp (toujours les commandes à
+    régler) ; journal `customer_activity_export`."""
+
+    def get(self, request: Request, pk: str, output: str) -> HttpResponse | Response:
+        statement_filters, lang = self.export_params()
+        if output == 'whatsapp':
+            statement_filters = replace(statement_filters, due=True)
+        shop = get_shop(request.user)
+        qs = services.statement_queryset(shop, statement_filters)
+        dataset = services.statement_dataset(
+            shop, qs, statement_filters,
+            services.export_language(lang, request.user, output),
+        )
+        try:
+            services.check_row_limit(dataset, output)
+        except services.TooManyRows:
+            detail = 'Trop de commandes pour un PDF : exportez-les en CSV.'
+            return _too_many_rows(detail)
+        response = _rendered(dataset, output)
+        services.log_statement_export(
+            dataset, user=request.user, export_format=output, filters=statement_filters,
         )
         return response
 
