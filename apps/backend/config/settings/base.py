@@ -109,6 +109,13 @@ AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
 RECAPTCHA_MIN_SCORE = float(os.environ.get('RECAPTCHA_MIN_SCORE', '0.5'))
 
+# Stripe Billing — facturation désactivée si la clé secrète est vide (dev / tests).
+# Staging : clé de test `sk_test_…` ; production : clé restreinte `rk_live_…`.
+# Jamais de clé dans un log : apps/subscriptions/stripe_client.py.
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+# Secret de signature des webhooks (`whsec_…`), propre à chaque endpoint Stripe.
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},  # noqa: E501
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},

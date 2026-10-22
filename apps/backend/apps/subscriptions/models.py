@@ -113,6 +113,10 @@ class Subscription(models.Model):
     current_period_end = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    # Début du retard de paiement en cours ; vidé quand le paiement aboutit.
+    past_due_since = models.DateTimeField(null=True, blank=True)
+    # Envoi du message de fin d'essai (24 h avant) : un seul envoi par essai.
+    trial_ending_notice_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -135,3 +139,25 @@ class Subscription(models.Model):
         if not self.current_period_end:
             return False
         return self.current_period_end <= timezone.now()
+
+
+class StripeEvent(models.Model):
+    """Événement de webhook Stripe déjà reçu : rend son traitement idempotent.
+
+    Stripe peut livrer plusieurs fois le même événement ; la clé primaire est son
+    identifiant `evt_…`. On ne garde que de quoi dédoublonner et suivre le
+    traitement : aucun contenu d'événement, aucune donnée de paiement.
+    """
+
+    id = models.CharField(max_length=255, primary_key=True)
+    event_type = models.CharField(max_length=100)
+    stripe_created_at = models.DateTimeField()
+    received_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'stripe_events'
+        indexes = [models.Index(fields=['event_type', 'received_at'])]
+
+    def __str__(self) -> str:
+        return f'{self.event_type} ({self.id})'

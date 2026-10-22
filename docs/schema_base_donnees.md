@@ -1237,8 +1237,28 @@ Abonnement d'une boutique à un plan.
 | current_period_end | TIMESTAMPTZ | | |
 | cancel_at_period_end | BOOLEAN | NOT NULL, DEFAULT false | |
 | cancelled_at | TIMESTAMPTZ | | |
+| past_due_since | TIMESTAMPTZ | | Début du retard de paiement en cours |
+| trial_ending_notice_sent_at | TIMESTAMPTZ | | Envoi du message 24 h avant la fin d'essai |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+Catalogue Stripe : un produit `mizan_<code>` par formule payante active, prix repérés par `lookup_key` (`<code>_monthly`, `<code>_yearly`), synchronisés par `manage.py stripe_sync_plans`. Souscription, changement de formule et résiliation : propriétaire seul (`IsShopOwner`).
+
+---
+
+### `stripe_events`
+
+Événements de webhook Stripe déjà reçus, pour traiter chacun une seule fois. Aucun contenu d'événement ni donnée de paiement.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | VARCHAR(255) | PK | Identifiant Stripe `evt_…` |
+| event_type | VARCHAR(100) | NOT NULL | `invoice.paid`, `customer.subscription.updated`… |
+| stripe_created_at | TIMESTAMPTZ | NOT NULL | Date de création chez Stripe |
+| received_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| processed_at | TIMESTAMPTZ | | NULL tant que le traitement n'a pas abouti |
+
+**Index** : `(event_type, received_at)`.
 
 ---
 

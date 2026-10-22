@@ -7,8 +7,8 @@ du membre courant. Ce module centralise :
 - `get_member(user)` : récupère le `ShopMember` complet (shop + role + permissions).
 - `ShopScopedQuerysetMixin` : mixin DRF qui filtre automatiquement par `shop`
   et injecte la boutique dans le contexte du serializer.
-- `IsShopAdmin` / `HasModulePermission` : permissions DRF basées sur le rôle
-  et les modules accordés au membre.
+- `IsShopAdmin` / `IsShopOwner` / `HasModulePermission` : permissions DRF
+  basées sur le rôle et les modules accordés au membre.
 """
 
 from __future__ import annotations
@@ -88,6 +88,22 @@ class IsShopAdmin(BasePermission):
             return False
         try:
             return get_member(request.user).is_admin
+        except PermissionDenied:
+            return False
+
+
+class IsShopOwner(BasePermission):
+    """Autorise uniquement le membre `owner` (abonnement : souscrire, changer, résilier)."""  # noqa: E501
+
+    message = "Accès réservé au propriétaire de la boutique."
+
+    def has_permission(self, request, view) -> bool:
+        from apps.shops.models import ShopMember
+
+        if not request.user or not request.user.is_authenticated:
+            return False
+        try:
+            return get_member(request.user).role == ShopMember.ROLE_OWNER
         except PermissionDenied:
             return False
 
