@@ -162,6 +162,8 @@ export const qk = {
     levelsFacets: (filters: Omit<StockLevelsFilters, 'page' | 'ordering'>) =>
       ['stock', 'levels', 'facets', filters] as const,
     levelsSummary: ['stock', 'levels', 'summary'] as const,
+    /** Nombre de formats d'un export (paramètres de la requête, sans la langue). */
+    exportSummary: (query: string) => ['stock', 'export', query] as const,
   },
 
   search: {
@@ -220,6 +222,8 @@ export const qk = {
       range: { from?: string; to?: string },
       pendingOnly: boolean,
     ) => ['customers', customerId, 'activity-export', range, pendingOnly] as const,
+    /** Lignes du relevé de compte (PDF, message) : paramètres de l'export, sans la langue. */
+    statementExport: (customerId: string, query: string) => ['customers', customerId, 'statement', query] as const,
   },
 
   invoices: {

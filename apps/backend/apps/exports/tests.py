@@ -15,6 +15,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.core.models import AuditLog
+from apps.core.spreadsheet import spreadsheet_safe
 from apps.customers.models import Customer
 from apps.invoices.test_pdf import text_pages
 from apps.orders.models import Order
@@ -22,7 +23,6 @@ from apps.shops.models import Shop, ShopMember
 from apps.subscriptions.models import Subscription, SubscriptionPlan
 
 from . import services
-from .render_csv import spreadsheet_safe
 from .throttles import ExportRenderRateThrottle
 
 CSV_HEADER = [

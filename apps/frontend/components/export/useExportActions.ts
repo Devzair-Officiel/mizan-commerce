@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import {
-  exportErrorKind, ordersCsvUrl, useOrdersPdfExport, useOrdersWhatsAppExport, type OrdersExportFormat,
-} from '@/lib/hooks/useOrderExports';
+  exportCsvUrl, exportErrorKind, usePdfExport, useWhatsAppExport, type ExportFormat, type ExportTarget,
+} from '@/lib/hooks/useExports';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { notify } from '@/lib/notify';
 
@@ -39,10 +39,10 @@ const isAbort = (error: unknown): boolean => error instanceof DOMException && er
 /**
  * Remise du résultat prêt, dans le geste (après un await, le navigateur mobile la bloque) : partage
  * du PDF (avec `sharedText` : le résumé, repris ou ignoré selon le système et l'application choisie),
- * wa.me ou copie du message.
+ * wa.me (vers `phone`, au format international, s'il est connu) ou copie du message.
  */
-function useHandoff(file: File | null, sharedText: string | null, text: string | null, onDone: () => void) {
-  const t = useTranslations('orders.export');
+function useHandoff(file: File | null, sharedText: string | null, text: string | null, phone: string, onDone: () => void) {
+  const t = useTranslations('export');
 
   async function share(): Promise<void> {
     if (!file) return;
@@ -60,7 +60,7 @@ function useHandoff(file: File | null, sharedText: string | null, text: string |
 
   function openWhatsApp(): void {
     if (text === null) return;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
     onDone();
   }
 
@@ -78,8 +78,11 @@ function useHandoff(file: File | null, sharedText: string | null, text: string |
 }
 
 interface ExportActionsOptions {
-  format: OrdersExportFormat;
+  target: ExportTarget;
+  format: ExportFormat;
   query: string;
+  /** Destinataire du message (relevé : le téléphone du client) ; sans lui, WhatsApp demande le contact. */
+  phone?: string | null;
   onDone: () => void;
 }
 
@@ -87,19 +90,21 @@ interface ExportActionsOptions {
  * Actions de l'export. CSV : lien direct. PDF : téléchargé (desktop, navigateur sans partage de
  * fichiers) ou, sur mobile, préparé puis partagé. WhatsApp : texte préparé, puis wa.me ou copie ;
  * message tronqué, sur mobile : PDF et texte préparés ensemble, puis partagés ensemble.
- * Le résultat préparé est attaché à ses paramètres : changer de période ou de filtre l'ignore.
+ * Le résultat préparé est attaché à ses paramètres : changer de période, de périmètre ou de filtre
+ * l'ignore. Commun aux exports des commandes, du stock et du relevé d'un client (`target`).
  */
-export function useOrdersExportActions({ format, query, onDone }: ExportActionsOptions) {
-  const t = useTranslations('orders.export');
+export function useExportActions({ target, format, query, phone, onDone }: ExportActionsOptions) {
+  const { kind } = target;
+  const t = useTranslations('export');
   const lang = useLocale();
   const [shareFiles] = useState(canShareFiles);
   const sharePdf = useIsDesktop() === false && shareFiles;
   const [pdf, setPdf] = useState<{ key: string; file: File } | null>(null);
   const [message, setMessage] = useState<{ key: string; text: string } | null>(null);
   const [bundle, setBundle] = useState<string | null>(null);
-  const pdfExport = useOrdersPdfExport();
-  const whatsapp = useOrdersWhatsAppExport();
-  const onError = (error: unknown) => notify.error(t(`errors.${exportErrorKind(error)}`));
+  const pdfExport = usePdfExport(target);
+  const whatsapp = useWhatsAppExport(target);
+  const onError = (error: unknown) => notify.error(t(`errors.${exportErrorKind(error)}`, { kind }));
   const file = pdf?.key === query ? pdf.file : null;
   const text = message?.key === query ? message.text : null;
   const bundled = bundle === query && file !== null && text !== null;
@@ -117,7 +122,8 @@ export function useOrdersExportActions({ format, query, onDone }: ExportActionsO
   /** Étapes qui appellent le serveur (après validation du formulaire). */
   function run(): void {
     if (step === 'download_csv') {
-      saveFile(ordersCsvUrl(query, lang));
+      // Le relevé n'arrive jamais ici : sa fenêtre télécharge le CSV de l'activité elle-même.
+      if (target.kind !== 'statement') saveFile(exportCsvUrl(target.kind, query, lang));
       onDone();
     } else if (step === 'download_pdf' || step === 'prepare_pdf') {
       pdfExport.mutate({ query, lang }, {
@@ -143,9 +149,9 @@ export function useOrdersExportActions({ format, query, onDone }: ExportActionsO
     if (text === null) prepareMessage();
   }
 
-  const handoff = useHandoff(file, step === 'share_bundle' ? text : null, text, onDone);
+  const handoff = useHandoff(file, step === 'share_bundle' ? text : null, text, phone?.replace(/\D/g, '') ?? '', onDone);
   const pending = pdfExport.isPending || whatsapp.isPending;
   return { step, text, pending, canShareBundle: sharePdf, run, prepareBundle, ...handoff };
 }
 
-export type OrdersExportActions = ReturnType<typeof useOrdersExportActions>;
+export type ExportActions = ReturnType<typeof useExportActions>;

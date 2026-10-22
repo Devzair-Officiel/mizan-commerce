@@ -16,6 +16,7 @@ import { OrdersExportDialog } from './OrdersExportDialog';
  */
 export function OrdersExportButton({ state }: { state: OrdersPageState }) {
   const t = useTranslations('orders.export');
+  const tExport = useTranslations('export');
   const [open, setOpen] = useState(false);
   const allowed = usePlanGating().can('exports');
   return (
@@ -23,7 +24,7 @@ export function OrdersExportButton({ state }: { state: OrdersPageState }) {
       <button type="button" onClick={() => setOpen(true)}
         className={cn(buttonVariants({ variant: 'outline' }), 'hidden h-11 rounded-full px-4 text-sm lg:inline-flex')}>
         <Download aria-hidden />
-        {t('button')}
+        {tExport('button')}
       </button>
       <button type="button" onClick={() => setOpen(true)} aria-label={t('button_label')}
         className={cn(buttonVariants({ variant: 'outline', size: 'icon' }), 'size-11 rounded-full lg:hidden')}>

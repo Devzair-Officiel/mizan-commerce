@@ -22,6 +22,7 @@ from django.utils.text import slugify
 from apps.accounts.models import User
 from apps.core.models import AuditLog
 from apps.core.pagination import TimelineSource
+from apps.core.spreadsheet import spreadsheet_safe
 from apps.notes.models import Note
 from apps.orders.models import Order
 from apps.orders.services import current_month_bounds
@@ -427,16 +428,11 @@ def _amount(value: Decimal | None, lang: str) -> str:
     return f'{value:.2f}'.replace('.', separator)
 
 
-def _cell(value: str | None) -> str:
-    """Texte saisi : une formule de tableur en tête (=, +, -, @) est neutralisée."""
-    value = value or ''
-    return f"'{value}" if value[:1] in ('=', '+', '-', '@', '\t', '\r') else value
-
-
 def _export_cells(kind: str, item: Order | Note, texts: dict, lang: str) -> list[str]:
     """Type, référence, description, montant et statut d'un événement."""
     if isinstance(item, Note):
-        return [texts['types'][kind], item.reference or '', _cell(item.content), '', '']
+        content = spreadsheet_safe(item.content)
+        return [texts['types'][kind], item.reference or '', content, '', '']
     if kind == EVENT_PAYMENT:
         description = texts['description'][f'payment_{item.payment_status}']
         return [texts['types'][kind], item.order_number, description,
@@ -466,7 +462,7 @@ def _export_lines(
     for occurred_at, kind, item in heapq.merge(*streams, key=lambda e: e[0], reverse=True):  # noqa: E501
         local = occurred_at.astimezone(tz).strftime('%Y-%m-%d %H:%M')
         cells = _export_cells(kind, item, texts, lang)
-        yield writer.writerow([local, *cells, _cell(item.author_name)])
+        yield writer.writerow([local, *cells, spreadsheet_safe(item.author_name)])
 
 
 def export_customer_activity(
@@ -491,7 +487,7 @@ def export_customer_activity(
         model_name='Customer', object_id=str(customer.id),
         object_repr=customer.display_name[:200],
         changes={
-            'types': selected, 'pending': pending_only, 'rows': rows,
+            'format': 'csv', 'types': selected, 'pending': pending_only, 'rows': rows,
             'from': date_from.isoformat() if date_from else None,
             'to': date_to.isoformat() if date_to else None,
         },

@@ -4,7 +4,7 @@ import type { UseFormRegister } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { FormField } from '@/components/form/FormField';
 import { FIELD_CONTROL } from '@/components/form/fieldStyles';
-import { SegmentedField } from './SegmentedField';
+import { SegmentedField } from '@/components/export/SegmentedField';
 import { EXPORT_PERIODS, type OrdersExportValues } from './useOrdersExportForm';
 
 interface ExportPeriodFieldProps {

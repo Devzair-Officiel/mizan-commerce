@@ -6,12 +6,12 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { useCustomer } from '@/lib/hooks/useCustomers';
 import { useOrderFilterOptions } from '@/components/orders/list/useOrderFilterOptions';
 import type { OrdersPageState } from '@/components/orders/list/useOrdersPageState';
-import { ExportFooter } from './ExportFooter';
-import { ExportFormatField } from './ExportFormatField';
+import { ExportFooter } from '@/components/export/ExportFooter';
+import { ExportFormatField } from '@/components/export/ExportFormatField';
+import { ExportRowsBox } from '@/components/export/ExportRowsBox';
+import { ExportWhatsAppLimit } from '@/components/export/ExportWhatsAppLimit';
+import { useExportActions } from '@/components/export/useExportActions';
 import { ExportPeriodField } from './ExportPeriodField';
-import { ExportRowsBox } from './ExportRowsBox';
-import { ExportWhatsAppLimit } from './ExportWhatsAppLimit';
-import { useOrdersExportActions } from './useOrdersExportActions';
 import { useOrdersExportForm } from './useOrdersExportForm';
 
 /** Filtres de la liste repris par l'export, en clair (sous le titre). */
@@ -35,7 +35,7 @@ export function OrdersExportDialog({ state, onClose }: { state: OrdersPageState;
   const formId = useId();
   const scope = useScope(state);
   const { form, format, period, query, summary } = useOrdersExportForm(state.filters);
-  const actions = useOrdersExportActions({ format, query, onDone: onClose });
+  const actions = useExportActions({ target: { kind: 'orders' }, format, query, onDone: onClose });
   const { register, setValue, formState: { errors } } = form;
   const overCap = format === 'pdf' && !!summary && summary.rows > summary.pdf_max_rows;
   // Message tronqué : l'avertissement remplace la description du format et le nombre de commandes.
@@ -46,14 +46,14 @@ export function OrdersExportDialog({ state, onClose }: { state: OrdersPageState;
       <ExportFooter formId={formId} actions={actions} disabled={summary?.rows === 0 || overCap} onClose={onClose} />
     }>
       <form id={formId} noValidate onSubmit={form.handleSubmit(actions.run)} className="flex flex-col gap-4">
-        <ExportFormatField register={register} format={format} notice={truncated && (
-          <ExportWhatsAppLimit summary={truncated} actions={actions}
+        <ExportFormatField kind="orders" register={register('format')} format={format} notice={truncated && (
+          <ExportWhatsAppLimit kind="orders" summary={truncated} actions={actions}
             onShareBundle={() => void form.handleSubmit(actions.prepareBundle)()}
             onUseFormat={(value) => setValue('format', value)} />
         )} />
         <ExportPeriodField register={register} period={period} error={errors.to?.message} />
         {(!truncated || actions.text !== null) && (
-          <ExportRowsBox format={format} summary={summary} preview={actions.text}
+          <ExportRowsBox kind="orders" format={format} summary={summary} preview={actions.text}
             onUseCsv={() => setValue('format', 'csv')} />
         )}
       </form>

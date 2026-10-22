@@ -2,7 +2,7 @@
 
 En-têtes et séparateur décimal dans la langue de l'interface, comme l'export de
 l'activité d'un client ; dates au fuseau de la boutique (`AAAA-MM-JJ HH:MM`),
-montants sans devise ni séparateur de milliers. Pas de ligne de totaux : le
+montants et quantités sans devise ni séparateur de milliers. Pas de ligne de totaux : le
 fichier reste une table que le tableur peut trier et additionner.
 """
 
@@ -15,17 +15,9 @@ from decimal import Decimal
 
 from babel.numbers import get_decimal_symbol
 
-from .services import DATETIME, MONEY, ExportDataset
+from apps.core.spreadsheet import spreadsheet_safe
 
-# Caractères qui font d'une cellule une formule pour un tableur.
-FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
-
-
-def spreadsheet_safe(value: str | None) -> str:
-    """Texte saisi : une formule de tableur en tête (=, +, -, @) est neutralisée."""
-    value = value or ''
-    return f"'{value}" if value[:1] in FORMULA_PREFIXES else value
-
+from .services import DATETIME, MONEY, QUANTITY, ExportDataset
 
 def csv_amount(value: Decimal | None, lang: str) -> str:
     """Montant au séparateur décimal de la langue, chiffres latins, sans milliers."""
@@ -33,6 +25,15 @@ def csv_amount(value: Decimal | None, lang: str) -> str:
         return ''
     separator = get_decimal_symbol(lang, numbering_system='latn')
     return f'{value:.2f}'.replace('.', separator)
+
+
+def csv_quantity(value: Decimal | None, lang: str) -> str:
+    """Quantité sans zéros inutiles (3, 2,5, -4) : un nombre, que le tableur
+    additionne ; le signe moins n'en fait pas une formule à neutraliser."""
+    if value is None:
+        return ''
+    separator = get_decimal_symbol(lang, numbering_system='latn')
+    return f'{value.normalize():f}'.replace('.', separator)
 
 
 class _Echo:
@@ -45,6 +46,8 @@ class _Echo:
 def _cell(kind: str, value: str | Decimal | datetime | None, dataset: ExportDataset) -> str:  # noqa: E501
     if kind == MONEY:
         return csv_amount(value, dataset.lang)
+    if kind == QUANTITY:
+        return csv_quantity(value, dataset.lang)
     if kind == DATETIME:
         return value.astimezone(dataset.tz).strftime('%Y-%m-%d %H:%M') if value else ''
     return spreadsheet_safe(value)

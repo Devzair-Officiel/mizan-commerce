@@ -29,6 +29,7 @@ import { nestedInteractive } from './lib/watch.mjs';
 import { api } from './lib/products.mjs';
 import { visibleButton } from './lib/form.mjs';
 import { animationsDone } from './lib/wait.mjs';
+import { binaryPdf, choose, fakeShare, filledButtons as filledIn, finalResponse, fitIssue as fitIn, flat, toast } from './lib/exports.mjs';
 
 const report = createReport();
 const nested = [];
@@ -38,21 +39,19 @@ const COLUMNS = {
   ar: ['الرقم', 'التاريخ', 'العميل', 'الحالة', 'الدفع', 'المجموع الفرعي', 'الخصم', 'التوصيل', 'المجموع', 'المحصَّل', 'المتبقي', 'المدفوع الزائد'],
 };
 const FILE_NAME = (ext) => new RegExp(`^commandes-\\d{4}-\\d{2}-\\d{2}\\.${ext}$`);
-const E = (locale, key, params) => (params ? fmt(locale, `orders.export.${key}`, params) : msg(locale, `orders.export.${key}`));
+// Textes communs aux exports (`export.*`, `kind` = orders) ; les autres, propres aux commandes.
+const ORDERS_ONLY = ['button_label', 'title', 'scope_all', 'scope_filtered', 'search', 'period_label', 'period', 'from', 'to', 'dates_order'];
+const E = (locale, key, params) => {
+  const path = ORDERS_ONLY.includes(key) ? `orders.export.${key}` : `export.${key}`;
+  return params || !ORDERS_ONLY.includes(key) ? fmt(locale, path, { kind: 'orders', ...params }) : msg(locale, path);
+};
 
 const dialog = (page, locale) => page.getByRole('dialog', { name: E(locale, 'title') });
 const radio = (page, locale, label) => dialog(page, locale).getByRole('radio', { name: label, exact: true });
 const formatRadio = (page, locale, format) => radio(page, locale, E(locale, 'format', { format }));
 const periodRadio = (page, locale, period) => radio(page, locale, E(locale, 'period', { period }));
-// Radio masqué visuellement (`sr-only`) : on clique sur son libellé, comme un utilisateur.
-const choose = (input) => input.locator('xpath=..').click();
 const stepButton = (page, locale, step) => visibleButton(page, E(locale, `step.${step}`));
-const toast = (page, text) => page.locator('[data-sonner-toast]').filter({ hasText: text }).first();
-const flat = (text) => text.replace(/\s+/g, ' ').trim();
-/** Boutons pleins (fond opaque) de la fenêtre : un seul attendu, l'action de l'étape. */
-const filledButtons = (page, locale) => dialog(page, locale).evaluate((root) => [...root.querySelectorAll('button')]
-  .filter((b) => b.checkVisibility() && !/^(transparent|rgba\(0, 0, 0, 0\))$|\/ 0\)$/.test(getComputedStyle(b).backgroundColor))
-  .map((b) => b.innerText.trim()));
+const filledButtons = (page, locale) => filledIn(dialog(page, locale));
 
 async function checkOneFilled(page, ctx, step) {
   const filled = await filledButtons(page, ctx.locale);
@@ -140,17 +139,7 @@ async function checkPdfOption(page, ctx) {
   await choose(formatRadio(page, locale, 'csv'));
 }
 
-/** Ce qui dépasse de l'écran ou défile dans la fenêtre ; vide si elle tient. */
-async function fitIssue(page, locale) {
-  await animationsDone(dialog(page, locale));
-  return dialog(page, locale).evaluate((root) => {
-    const box = root.getBoundingClientRect();
-    if (box.top < 0 || box.bottom > innerHeight + 1) return `fenêtre ${Math.round(box.top)}→${Math.round(box.bottom)}`;
-    const scrolled = [root, ...root.querySelectorAll('*')].find((el) => el.scrollHeight > el.clientHeight + 1
-      && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
-    return scrolled ? `défile de ${scrolled.scrollHeight - scrolled.clientHeight}px` : '';
-  });
-}
+const fitIssue = (page, locale) => fitIn(dialog(page, locale));
 
 /** À 360×640 : la fenêtre tient dans l'écran et rien n'y défile, pour chaque format. */
 async function checkFits(page, ctx) {
@@ -218,12 +207,8 @@ async function checkCsv(page, ctx, expected) {
 
 
 const PDF_URL = '**/api/proxy/exports/orders/pdf/**';
-// Réponse finale (la barre oblique finale passe par une redirection 308 de Next.js).
-const final = (part) => (response) => new RegExp(`/api/proxy/exports/orders/${part}/?(\\?|$)`).test(response.url())
-  && (response.status() < 300 || response.status() >= 400);
+const final = (part) => finalResponse('orders', part);
 const isPdf = final('pdf');
-// Le corps d'une réponse lue par fetch n'est pas relu par Playwright : on contrôle les octets reçus.
-const binaryPdf = (head, tail) => head === '%PDF' && tail.includes('%%EOF');
 
 /** En-têtes relayés par le proxy : PDF en pièce jointe, aucun en-tête qui porte le jeton. */
 async function checkPdfResponse(page, ctx, response) {
@@ -391,22 +376,6 @@ async function checkSharedBundle(page, ctx, notice) {
     `${label} : partage → ${shared?.name} (${shared?.size} octets intacts) + texte du résumé (« ${flat(shared?.text ?? '').slice(0, 40)}… »)`);
   await dialog(page, locale).waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   report.check(!await dialog(page, locale).isVisible(), `${label} : fenêtre refermée après le partage`);
-}
-
-/** Web Share niveau 2 simulé (mobile) : le fichier partagé est gardé dans `window.__shared`. */
-function fakeShare() {
-  window.__shared = null;
-  Object.defineProperty(navigator, 'canShare', { configurable: true, value: (data) => !!data?.files?.length });
-  Object.defineProperty(navigator, 'share', {
-    configurable: true,
-    value: async ({ files: [file], text: message = null }) => {
-      // latin1 : octets bruts, comme le fichier téléchargé.
-      const text = async (blob) => new TextDecoder('latin1').decode(await blob.arrayBuffer());
-      window.__shared = {
-        name: file.name, type: file.type, size: file.size, head: await text(file.slice(0, 4)), tail: await text(file.slice(-1024)), text: message,
-      };
-    },
-  });
 }
 
 // 429 simulé : l'erreur réseau qu'en affiche la console est attendue.

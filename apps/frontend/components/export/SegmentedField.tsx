@@ -5,7 +5,8 @@ import type { UseFormRegisterReturn } from 'react-hook-form';
 
 interface SegmentedFieldProps {
   label: string;
-  options: readonly { value: string; label: ReactNode }[];
+  /** `disabled` : option visible mais non choisissable (périmètre imposé par le format). */
+  options: readonly { value: string; label: ReactNode; disabled?: boolean }[];
   register: UseFormRegisterReturn;
   /** Colonnes de la grille (« grid-cols-3 », « grid-cols-2 sm:grid-cols-4 »). */
   columns: string;
@@ -22,8 +23,8 @@ export function SegmentedField({ label, options, register, columns, children }: 
       <div role="radiogroup" aria-labelledby={labelId} className={`grid ${columns} gap-1 rounded-[0.875rem] bg-muted p-1`}>
         {options.map((option) => (
           <label key={option.value}
-            className="flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[0.625rem] px-1.5 py-1 text-center text-[0.8125rem] leading-tight font-medium text-muted-foreground transition-colors hover:text-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-3 has-focus-visible:ring-primary/30">
-            <input type="radio" value={option.value} {...register} className="sr-only" />
+            className="flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[0.625rem] px-1.5 py-1 text-center text-[0.8125rem] leading-tight font-medium text-muted-foreground transition-colors hover:text-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-3 has-focus-visible:ring-primary/30 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-disabled:hover:text-muted-foreground">
+            <input type="radio" value={option.value} {...register} disabled={option.disabled} className="sr-only" />
             {option.label}
           </label>
         ))}

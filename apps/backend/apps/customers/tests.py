@@ -563,7 +563,19 @@ class CustomerActivityExportTest(TestCase):
         self._csv(types='order,note', **{'from': '2025-10-14'})
         log = AuditLog.objects.get(action='customer_activity_export')
         self.assertEqual((log.shop_id, log.user, log.object_id), (self.shop.id, self.user, str(self.customer.pk)))  # noqa: E501
-        self.assertEqual(log.changes, {'types': ['note', 'order'], 'pending': False, 'rows': 2, 'from': '2025-10-14', 'to': None})  # noqa: E501
+        self.assertEqual(log.changes, {'format': 'csv', 'types': ['note', 'order'], 'pending': False, 'rows': 2, 'from': '2025-10-14', 'to': None})  # noqa: E501
+
+    def test_csv_unchanged_byte_for_byte(self):
+        # Fichier de référence d'avant le PDF et le message du relevé : même octets.
+        body, _ = self._csv()
+        self.assertEqual(body, (
+            b'\xef\xbb\xbfDate;Type;R\xc3\xa9f\xc3\xa9rence;Description;Montant;Statut;Auteur\r\n'  # noqa: E501
+            b"2026-10-02 10:00;Note;C-1;'=SOMME(A1:A2);;;Youssef Benali\r\n"
+            b'2026-09-30 23:30;Commande;C-1;Commande cr\xc3\xa9\xc3\xa9e;1234,50;\xc3\x80 pr\xc3\xa9parer;Youssef Benali\r\n'  # noqa: E501
+            b'2026-09-30 23:30;Paiement;C-1;Paiement partiel;1000,00;Partiel;Youssef Benali\r\n'  # noqa: E501
+            b'2024-05-01 11:00;Commande;C-0;Commande cr\xc3\xa9\xc3\xa9e;20,00;\xc3\x80 pr\xc3\xa9parer;Youssef Benali\r\n'  # noqa: E501
+            b'2024-05-01 11:00;Paiement;C-0;Paiement en attente;0,00;Non pay\xc3\xa9e;Youssef Benali\r\n'  # noqa: E501
+        ))
 
     def test_rights_and_isolation(self):
         staff = User.objects.create_user(email='export-staff@example.com', password='Pass123!Strong')  # noqa: E501

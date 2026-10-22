@@ -36,7 +36,7 @@ function StockContent() {
       <TopBar
         title={t('title')}
         subtitle={summary ? t('subtitle', { count: summary.formats, value: formatMoney(summary.purchase_value, currency) }) : undefined}
-        action={<StockHeaderActions />}
+        action={<StockHeaderActions exportable={tab === 'levels'} />}
         hideSearch
       />
       <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">

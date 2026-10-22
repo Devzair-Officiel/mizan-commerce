@@ -1127,6 +1127,13 @@ L'application est organisée autour des modules suivants :
 - L'export contient les quantités.
 - L'export contient les prix d'achat et de vente.
 - L'export contient la valeur estimée du stock.
+- Un même jeu de données donne trois rendus : CSV, PDF et message WhatsApp. Une ligne par format suivi (formats actifs des articles actifs), dans l'ordre et avec la recherche de l'onglet Niveaux.
+- Deux périmètres : « Tout le stock » ou « À réapprovisionner » (négatif, rupture, stock faible) ; le filtre d'état de la liste pré-choisit le second. Le message WhatsApp liste toujours ce qui est à réapprovisionner : le choisir impose ce périmètre, repasser au CSV ou au PDF rétablit le précédent.
+- La valeur estimée d'un format vaut max(0, quantité) × prix d'achat, arrondie au centime (comme la zakat). Un format sans prix d'achat est exclu de la valeur, et le nombre de ces formats est indiqué. Les totaux donnent le nombre de formats, la valeur estimée, les ruptures, les stocks faibles et les négatifs s'il y en a.
+- Le PDF reprend l'en-tête des autres exports et indique la date de l'état du stock ; au-delà de 1 000 formats, il est refusé et le CSV proposé.
+- Le message WhatsApp liste les négatifs, puis les ruptures et les stocks faibles, du plus bas au plus haut : 15 formats au plus, puis « … et N autres formats (liste complète en PDF ou CSV) ». Sans rien à réapprovisionner, il le dit, sans totaux. Aucun envoi automatique.
+- Les rendus PDF et WhatsApp ont la même limite de débit que les commandes. Le nombre de formats est affiché avant l'export, et chaque export est consigné dans le journal d'audit (`stock_export` : format, périmètre, présence d'une recherche, nombre de lignes).
+- Réservé à la formule Boutique et au-delà, aux membres qui ont accès au stock.
 
 ---
 
@@ -1161,7 +1168,10 @@ L'application est organisée autour des modules suivants :
 - Le nombre de lignes du fichier est annoncé avant le téléchargement.
 - Le fichier est un CSV (UTF-8 avec BOM, séparateur « ; ») : date, type, référence, description, montant, statut, auteur, du plus récent au plus ancien ; en-têtes et séparateur décimal dans la langue de l'interface ; une formule saisie dans une note est neutralisée.
 - Mêmes droits que l'activité (module Clients) ; seuls les clients de la boutique sont exportables.
-- Chaque export est consigné dans le journal d'audit (types, période, nombre de lignes).
+- Chaque export est consigné dans le journal d'audit (format, types, période, nombre de lignes).
+- Le format se choisit dans la même fenêtre : CSV (ci-dessus, inchangé ; à 360×640 sa fenêtre défile : comportement existant, non modifié), PDF ou message WhatsApp (sans défilement à 360×640). Le PDF et le message forment le relevé de compte du client : une ligne par commande créée dans la période (date, numéro, statut, paiement, total, encaissé, reste dû), les annulées exclues des totaux, avec le bloc d'identité du client et « Situation au JJ/MM/AAAA » (montants du jour) en en-tête. Ils ne contiennent jamais les notes, réservées au CSV ; la fenêtre l'indique.
+- « À encaisser » sur la carte limite aussi le relevé aux commandes à régler. Le message liste toujours les commandes à régler, de la plus récente à la plus ancienne : 15 au plus, puis « … et N autres (liste complète en PDF ou CSV) ». Il s'ouvre dans WhatsApp vers le téléphone du client s'il en a un ; aucun envoi automatique.
+- Le PDF est refusé au-delà de 1 000 commandes, et le CSV proposé ; en arabe, il est en français. Les rendus PDF et WhatsApp ont la même limite de débit que les autres exports ; réservés à la formule Boutique et au-delà.
 
 ---
 

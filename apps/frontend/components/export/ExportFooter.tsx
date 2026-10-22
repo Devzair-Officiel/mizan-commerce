@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Download, FileText, Loader2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/orders/detail/constants';
-import type { ExportStep, OrdersExportActions } from './useOrdersExportActions';
+import type { ExportActions, ExportStep } from './useExportActions';
 
 const ICONS: Record<ExportStep, React.ReactNode> = {
   download_csv: <Download size={17} aria-hidden />,
@@ -18,7 +18,7 @@ const ICONS: Record<ExportStep, React.ReactNode> = {
 
 interface ExportFooterProps {
   formId: string;
-  actions: OrdersExportActions;
+  actions: ExportActions;
   disabled: boolean;
   onClose: () => void;
 }
@@ -29,7 +29,7 @@ interface ExportFooterProps {
  * partager et ouvrir WhatsApp restent dans le geste (clic direct).
  */
 export function ExportFooter({ formId, actions, disabled, onClose }: ExportFooterProps) {
-  const t = useTranslations('orders.export');
+  const t = useTranslations('export');
   const { step, pending } = actions;
   const direct = step === 'share_pdf' || step === 'share_bundle' ? () => void actions.share()
     : step === 'open_whatsapp' ? actions.openWhatsApp : undefined;
