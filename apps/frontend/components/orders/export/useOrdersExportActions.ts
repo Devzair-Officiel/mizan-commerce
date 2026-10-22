@@ -8,8 +8,12 @@ import {
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { notify } from '@/lib/notify';
 
-/** Étape du pied : préparer (requête), puis partager ou ouvrir WhatsApp avec le résultat prêt. */
-export type ExportStep = 'download_csv' | 'download_pdf' | 'prepare_pdf' | 'share_pdf' | 'prepare_message' | 'open_whatsapp';
+/**
+ * Étape du pied : préparer (requête), puis partager ou ouvrir WhatsApp avec le résultat prêt.
+ * `share_bundle` : message tronqué, le PDF complet partagé avec le texte du résumé (mobile).
+ */
+export type ExportStep =
+  | 'download_csv' | 'download_pdf' | 'prepare_pdf' | 'share_pdf' | 'prepare_message' | 'open_whatsapp' | 'share_bundle';
 
 /** Partage de fichiers (Web Share niveau 2) : mobiles surtout ; ailleurs, téléchargement. */
 function canShareFiles(): boolean {
@@ -32,62 +36,20 @@ function saveBlob(file: File): void {
 
 const isAbort = (error: unknown): boolean => error instanceof DOMException && error.name === 'AbortError';
 
-interface ExportActionsOptions {
-  format: OrdersExportFormat;
-  query: string;
-  onDone: () => void;
-}
-
 /**
- * Actions de l'export. CSV : lien direct. PDF : téléchargé (desktop, navigateur sans partage de
- * fichiers) ou, sur mobile, préparé puis partagé. WhatsApp : texte préparé, puis wa.me ou copie.
- * Le résultat préparé est attaché à ses paramètres : changer de format ou de période l'ignore.
+ * Remise du résultat prêt, dans le geste (après un await, le navigateur mobile la bloque) : partage
+ * du PDF (avec `sharedText` : le résumé, repris ou ignoré selon le système et l'application choisie),
+ * wa.me ou copie du message.
  */
-export function useOrdersExportActions({ format, query, onDone }: ExportActionsOptions) {
+function useHandoff(file: File | null, sharedText: string | null, text: string | null, onDone: () => void) {
   const t = useTranslations('orders.export');
-  const lang = useLocale();
-  const [shareFiles] = useState(canShareFiles);
-  const sharePdf = useIsDesktop() === false && shareFiles;
-  const key = `${format}?${query}`;
-  const [pdf, setPdf] = useState<{ key: string; file: File } | null>(null);
-  const [message, setMessage] = useState<{ key: string; text: string } | null>(null);
-  const pdfExport = useOrdersPdfExport();
-  const whatsapp = useOrdersWhatsAppExport();
-  const onError = (error: unknown) => notify.error(t(`errors.${exportErrorKind(error)}`));
-  const file = pdf?.key === key ? pdf.file : null;
-  const text = message?.key === key ? message.text : null;
 
-  const step: ExportStep = format === 'csv' ? 'download_csv'
-    : format === 'pdf' ? (!sharePdf ? 'download_pdf' : file ? 'share_pdf' : 'prepare_pdf')
-      : text === null ? 'prepare_message' : 'open_whatsapp';
-
-  /** Étapes qui appellent le serveur (après validation du formulaire). */
-  function run(): void {
-    if (step === 'download_csv') {
-      saveFile(ordersCsvUrl(query, lang));
-      onDone();
-    } else if (step === 'download_pdf' || step === 'prepare_pdf') {
-      pdfExport.mutate({ query, lang }, {
-        onError,
-        onSuccess: (ready) => {
-          if (step === 'prepare_pdf') {
-            setPdf({ key, file: ready });
-          } else {
-            saveBlob(ready);
-            onDone();
-          }
-        },
-      });
-    } else if (step === 'prepare_message') {
-      whatsapp.mutate({ query, lang }, { onError, onSuccess: (data) => setMessage({ key, text: data.text }) });
-    }
-  }
-
-  // Partage et WhatsApp s'ouvrent dans le geste (après un await, le navigateur mobile les bloque).
   async function share(): Promise<void> {
     if (!file) return;
     try {
-      await navigator.share({ files: [file], title: file.name });
+      await navigator.share(sharedText === null
+        ? { files: [file], title: file.name }
+        : { files: [file], title: file.name, text: sharedText });
       onDone();
     } catch (error) {
       if (isAbort(error)) return;
@@ -112,7 +74,78 @@ export function useOrdersExportActions({ format, query, onDone }: ExportActionsO
     }
   }
 
-  return { step, text, pending: pdfExport.isPending || whatsapp.isPending, run, share, openWhatsApp, copy };
+  return { share, openWhatsApp, copy };
+}
+
+interface ExportActionsOptions {
+  format: OrdersExportFormat;
+  query: string;
+  onDone: () => void;
+}
+
+/**
+ * Actions de l'export. CSV : lien direct. PDF : téléchargé (desktop, navigateur sans partage de
+ * fichiers) ou, sur mobile, préparé puis partagé. WhatsApp : texte préparé, puis wa.me ou copie ;
+ * message tronqué, sur mobile : PDF et texte préparés ensemble, puis partagés ensemble.
+ * Le résultat préparé est attaché à ses paramètres : changer de période ou de filtre l'ignore.
+ */
+export function useOrdersExportActions({ format, query, onDone }: ExportActionsOptions) {
+  const t = useTranslations('orders.export');
+  const lang = useLocale();
+  const [shareFiles] = useState(canShareFiles);
+  const sharePdf = useIsDesktop() === false && shareFiles;
+  const [pdf, setPdf] = useState<{ key: string; file: File } | null>(null);
+  const [message, setMessage] = useState<{ key: string; text: string } | null>(null);
+  const [bundle, setBundle] = useState<string | null>(null);
+  const pdfExport = useOrdersPdfExport();
+  const whatsapp = useOrdersWhatsAppExport();
+  const onError = (error: unknown) => notify.error(t(`errors.${exportErrorKind(error)}`));
+  const file = pdf?.key === query ? pdf.file : null;
+  const text = message?.key === query ? message.text : null;
+  const bundled = bundle === query && file !== null && text !== null;
+
+  const step: ExportStep = format === 'csv' ? 'download_csv'
+    : format === 'pdf' ? (!sharePdf ? 'download_pdf' : file ? 'share_pdf' : 'prepare_pdf')
+      : bundled ? 'share_bundle' : text === null ? 'prepare_message' : 'open_whatsapp';
+
+  const keepPdf = (ready: File) => setPdf({ key: query, file: ready });
+
+  function prepareMessage(): void {
+    whatsapp.mutate({ query, lang }, { onError, onSuccess: (data) => setMessage({ key: query, text: data.text }) });
+  }
+
+  /** Étapes qui appellent le serveur (après validation du formulaire). */
+  function run(): void {
+    if (step === 'download_csv') {
+      saveFile(ordersCsvUrl(query, lang));
+      onDone();
+    } else if (step === 'download_pdf' || step === 'prepare_pdf') {
+      pdfExport.mutate({ query, lang }, {
+        onError,
+        onSuccess: (ready) => {
+          if (step === 'prepare_pdf') {
+            keepPdf(ready);
+          } else {
+            saveBlob(ready);
+            onDone();
+          }
+        },
+      });
+    } else if (step === 'prepare_message') {
+      prepareMessage();
+    }
+  }
+
+  /** Message tronqué : prépare ce qui manque du PDF complet et du texte, partagés ensemble ensuite. */
+  function prepareBundle(): void {
+    setBundle(query);
+    if (!file) pdfExport.mutate({ query, lang }, { onError, onSuccess: keepPdf });
+    if (text === null) prepareMessage();
+  }
+
+  const handoff = useHandoff(file, step === 'share_bundle' ? text : null, text, onDone);
+  const pending = pdfExport.isPending || whatsapp.isPending;
+  return { step, text, pending, canShareBundle: sharePdf, run, prepareBundle, ...handoff };
 }
 
 export type OrdersExportActions = ReturnType<typeof useOrdersExportActions>;

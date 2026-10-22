@@ -14,6 +14,8 @@ export interface OrdersExportRange {
 export interface OrdersExportSummary {
   rows: number;
   pdf_max_rows: number;
+  /** Commandes détaillées dans le message WhatsApp ; au-delà, un renvoi au PDF ou au CSV. */
+  whatsapp_max_rows: number;
 }
 
 export interface OrdersWhatsAppExport {

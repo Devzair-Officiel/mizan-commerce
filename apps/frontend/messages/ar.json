@@ -899,6 +899,9 @@
       "rows": "{count, plural, =0 {لا توجد طلبات للتصدير.} one {طلب واحد للتصدير.} two {طلبان للتصدير.} few {# طلبات للتصدير.} many {# طلبًا للتصدير.} other {# طلب للتصدير.}}",
       "pdf_limit": "طلبات كثيرة جدًا لملف PDF ‏({count}، والحد {max}).",
       "use_csv": "التبديل إلى CSV",
+      "whatsapp_limit": "تعرض الرسالة {max} طلبًا من أصل {count}. لإرسالها كلها، {target, select, csv {صدّر ملف CSV.} other {شارك ملف PDF.}}",
+      "use_pdf": "التبديل إلى PDF",
+      "share_bundle": "مشاركة PDF مع الملخص",
       "preview_label": "معاينة الرسالة",
       "cancel": "إلغاء",
       "copy": "نسخ النص",
@@ -910,7 +913,8 @@
         "prepare_pdf": "تحضير PDF",
         "share_pdf": "مشاركة PDF",
         "prepare_message": "تحضير الرسالة",
-        "open_whatsapp": "فتح واتساب"
+        "open_whatsapp": "فتح واتساب",
+        "share_bundle": "مشاركة PDF مع الملخص"
       },
       "errors": {
         "throttled": "تصديرات كثيرة في دقيقة واحدة: أعد المحاولة بعد قليل.",

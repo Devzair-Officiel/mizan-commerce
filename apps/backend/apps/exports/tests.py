@@ -251,7 +251,7 @@ class OrdersExportFiltersTest(OrdersExportTestCase):
 
     def test_summary_counts_rows_and_cap(self):
         data = self.client.get(self.summary_url, {'from': '2026-10-01'}).data
-        self.assertEqual(data, {'rows': 2, 'pdf_max_rows': 1000})
+        self.assertEqual(data, {'rows': 2, 'pdf_max_rows': 1000, 'whatsapp_max_rows': 15})  # noqa: E501
         data = self.client.get(self.summary_url, {'search': 'A-2'}).data
         self.assertEqual(data['rows'], 1)
         self.assertFalse(AuditLog.objects.filter(action='orders_export').exists())
@@ -311,9 +311,12 @@ class OrdersExportWhatsappTest(OrdersExportTestCase):
         text = self._whatsapp()
         detail = [line for line in text.split('\n') if line.startswith('- *')]
         self.assertEqual(len(detail), services.WHATSAPP_MAX_ROWS)
-        self.assertTrue(text.endswith('… et 2 autres, détail dans le PDF'))
+        self.assertTrue(text.endswith('… et 2 autres commandes (liste complète en PDF ou CSV)'))  # noqa: E501
+        self.assertNotIn('joint', text)
+        self.assertTrue(self._whatsapp(lang='en').endswith('… and 2 more orders (full list in the PDF or CSV)'))  # noqa: E501
+        self.assertTrue(self._whatsapp(lang='ar').endswith('… والطلبات المتبقية: 2 (القائمة الكاملة في ملف PDF أو CSV)'))  # noqa: E501
         Order.objects.filter(order_number='B-00').delete()
-        self.assertTrue(self._whatsapp().endswith('… et 1 autre, détail dans le PDF'))
+        self.assertTrue(self._whatsapp().endswith('… et 1 autre commande (liste complète en PDF ou CSV)'))  # noqa: E501
 
     def test_filters_line_and_formatting_marks_removed(self):
         Customer.objects.filter(pk=self.customer.pk).update(first_name='*Karima*', name='_B_')  # noqa: E501

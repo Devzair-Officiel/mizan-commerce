@@ -1,8 +1,10 @@
 """Rendu WhatsApp d'un jeu de données : texte seul, à copier ou ouvrir dans wa.me.
 
 Rien n'est envoyé par le serveur. Gras WhatsApp (`*…*`) pour les titres, listes
-en « - », `WHATSAPP_MAX_ROWS` lignes au plus puis un renvoi au PDF. Les textes
-saisis (boutique, clients, recherche) perdent leurs marques de mise en forme.
+en « - », `WHATSAPP_MAX_ROWS` lignes au plus, puis le nombre de commandes restantes
+et un renvoi à la liste complète en PDF ou CSV (aucun fichier n'est joint au
+message). Les textes saisis (boutique, clients, recherche) perdent leurs marques
+de mise en forme.
 """
 
 from __future__ import annotations

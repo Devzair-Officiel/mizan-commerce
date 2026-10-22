@@ -13,6 +13,7 @@ const ICONS: Record<ExportStep, React.ReactNode> = {
   share_pdf: <Share2 size={17} aria-hidden />,
   prepare_message: <WhatsAppIcon size={16} />,
   open_whatsapp: <WhatsAppIcon size={16} />,
+  share_bundle: <Share2 size={17} aria-hidden />,
 };
 
 interface ExportFooterProps {
@@ -24,14 +25,15 @@ interface ExportFooterProps {
 
 /**
  * Un seul bouton plein, selon l'étape ; le secondaire en texte (« Annuler », ou « Copier le texte »
- * une fois le message prêt). Les étapes qui appellent le serveur valident le formulaire (submit) ;
+ * une fois le message prêt, partagé seul ou avec le PDF). Les étapes qui appellent le serveur valident le formulaire (submit) ;
  * partager et ouvrir WhatsApp restent dans le geste (clic direct).
  */
 export function ExportFooter({ formId, actions, disabled, onClose }: ExportFooterProps) {
   const t = useTranslations('orders.export');
   const { step, pending } = actions;
-  const direct = step === 'share_pdf' ? () => void actions.share() : step === 'open_whatsapp' ? actions.openWhatsApp : undefined;
-  const ready = step === 'open_whatsapp';
+  const direct = step === 'share_pdf' || step === 'share_bundle' ? () => void actions.share()
+    : step === 'open_whatsapp' ? actions.openWhatsApp : undefined;
+  const ready = step === 'open_whatsapp' || step === 'share_bundle';
   return (
     <div className="flex items-center justify-end gap-1.5">
       <Button type="button" variant="ghost" onClick={ready ? () => void actions.copy() : onClose} className="h-11 rounded-full px-4 lg:h-10">

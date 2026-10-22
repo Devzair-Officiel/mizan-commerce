@@ -899,6 +899,9 @@
       "rows": "{count, plural, =0 {Aucune commande à exporter.} one {# commande à exporter.} other {# commandes à exporter.}}",
       "pdf_limit": "Trop de commandes pour un PDF ({count} pour {max} au plus).",
       "use_csv": "Passer au CSV",
+      "whatsapp_limit": "Le message montre {max} commandes sur {count}. Pour tout envoyer, {target, select, csv {exportez le CSV.} other {partagez le PDF.}}",
+      "use_pdf": "Passer au PDF",
+      "share_bundle": "Partager le PDF avec le résumé",
       "preview_label": "Aperçu du message",
       "cancel": "Annuler",
       "copy": "Copier le texte",
@@ -910,7 +913,8 @@
         "prepare_pdf": "Préparer le PDF",
         "share_pdf": "Partager le PDF",
         "prepare_message": "Préparer le message",
-        "open_whatsapp": "Ouvrir WhatsApp"
+        "open_whatsapp": "Ouvrir WhatsApp",
+        "share_bundle": "Partager le PDF avec le résumé"
       },
       "errors": {
         "throttled": "Trop d'exports en une minute : réessayez dans un instant.",

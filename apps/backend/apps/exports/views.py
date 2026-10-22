@@ -63,6 +63,7 @@ class OrdersExportSummaryView(_OrdersExportBase):
         return Response({
             'rows': self.export_queryset(order_filters).count(),
             'pdf_max_rows': services.PDF_MAX_ROWS,
+            'whatsapp_max_rows': services.WHATSAPP_MAX_ROWS,
         })
 
 
