@@ -149,6 +149,15 @@ services:
     depends_on:
       - backend
 
+  stripe-cli:
+    image: stripe/stripe-cli:v1.53.1                # version épinglée ; relais des webhooks Stripe en local
+    profiles: ["stripe"]                            # ne démarre pas avec la stack : `docker compose --profile stripe up stripe-cli`
+    command: listen --forward-to http://backend:8000/webhooks/stripe/   # le secret whsec_ affiché dans les logs va dans .env (STRIPE_WEBHOOK_SECRET)
+    environment:
+      STRIPE_API_KEY: ${STRIPE_SECRET_KEY}          # clé de test lue dans .env, jamais en argument de ligne de commande
+    depends_on:
+      - backend
+
   e2e:
     image: mcr.microsoft.com/playwright:v1.62.1-noble   # image officielle : Chromium + dépendances, Node inclus
     profiles: ["audit"]                         # ne démarre pas avec la stack : `docker compose run --rm e2e`

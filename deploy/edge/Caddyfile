@@ -3,8 +3,9 @@
 #
 # Seul le frontend Next.js est exposé : le navigateur n'appelle jamais Django
 # directement (les appels authentifiés passent par /app/api/*, côté serveur).
-# De Django, seule la route /healthz est routée. L'admin Django n'est jamais
-# exposé : accès par tunnel SSH (docs/exploitation/deploiement.md).
+# De Django, seules les routes /healthz et /webhooks/stripe/ (appelée par
+# Stripe, authentifiée par sa signature) sont routées. L'admin Django n'est
+# jamais exposé : accès par tunnel SSH (docs/exploitation/deploiement.md).
 {
 	email {$ACME_EMAIL}
 	# Vide en production. Tests locaux : « local_certs » (autorité interne de Caddy).
@@ -31,6 +32,9 @@
 (app) {
 	encode zstd gzip
 	handle /healthz {
+		reverse_proxy mizan-{args[0]}-backend:8000
+	}
+	handle /webhooks/stripe/ {
 		reverse_proxy mizan-{args[0]}-backend:8000
 	}
 	handle {

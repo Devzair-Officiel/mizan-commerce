@@ -575,7 +575,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
 - [~] Intégration Stripe Billing — Lot 1 : code et tests prêts
-- [ ] Webhook Stripe → mise à jour de l'abonnement local
+- [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 
 ### Monitoring

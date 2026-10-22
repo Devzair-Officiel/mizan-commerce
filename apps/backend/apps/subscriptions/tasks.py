@@ -1,10 +1,17 @@
 """Tâches Celery pour les abonnements."""
 
+import logging
+
+import stripe
 from celery import shared_task
 from django.utils import timezone
 
 from .models import Subscription
 from .services import expire_trial
+from .stripe_client import billing_enabled, get_client
+from .stripe_sync import sync_subscription_from_stripe
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -28,3 +35,35 @@ def expire_trials() -> dict:
         expire_trial(sub)
         count += 1
     return {'expired': count, 'ran_at': now.isoformat()}
+
+
+@shared_task
+def reconcile_subscriptions() -> dict:
+    """Resynchronise chaque abonnement Stripe : rattrape un webhook perdu.
+
+    Une erreur Stripe sur une boutique est journalisée (identifiant de la
+    souscription locale seulement) et n'arrête pas les autres. Sans clé Stripe,
+    rien n'est fait.
+    """
+
+    now = timezone.now()
+    stats = {'synced': 0, 'errors': 0, 'ran_at': now.isoformat()}
+    if not billing_enabled():
+        return stats
+    client = get_client()
+    rows = list(
+        Subscription.objects.exclude(stripe_subscription_id='')
+        .values_list('pk', 'stripe_subscription_id'),
+    )
+    for pk, stripe_subscription_id in rows:
+        try:
+            sync_subscription_from_stripe(client, stripe_subscription_id)
+        except stripe.StripeError as exc:
+            stats['errors'] += 1
+            logger.warning(
+                'Réconciliation Stripe : échec pour la souscription %s (%s).',
+                pk, type(exc).__name__,
+            )
+            continue
+        stats['synced'] += 1
+    return stats

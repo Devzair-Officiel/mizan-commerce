@@ -284,6 +284,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.subscriptions.tasks.expire_trials',
         'schedule': crontab(hour=6, minute=30),  # juste après les rappels zakat
     },
+    # Rattrape un webhook Stripe perdu : chaque abonnement Stripe est redemandé.
+    'subscriptions-reconcile-stripe-daily': {
+        'task': 'apps.subscriptions.tasks.reconcile_subscriptions',
+        'schedule': crontab(hour=7, minute=0),
+    },
     # Toutes les heures : chaque boutique est traitée à son heure locale.
     'notes-automatic-reminders-hourly': {
         'task': 'apps.notes.tasks.run_automatic_reminders',
