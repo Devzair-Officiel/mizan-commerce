@@ -36,6 +36,9 @@ LIVE_STATUSES: dict[str, str] = {
     'unpaid': Subscription.STATUS_PAST_DUE,
 }
 STRIPE_CANCELED = 'canceled'
+NO_SCHEDULED_CHANGE: dict[str, Any] = {
+    'scheduled_plan_code': '', 'scheduled_interval': '', 'scheduled_change_at': None,
+}
 
 
 def stripe_id(value: Any) -> str:
@@ -59,26 +62,32 @@ def find_by_customer(customer_id: str) -> Subscription | None:
 
 def sync_subscription_from_stripe(
     client: stripe.StripeClient, stripe_subscription_id: str,
-) -> None:
-    """Redemande l'abonnement à Stripe et aligne la `Subscription` locale."""
+) -> Any:
+    """Redemande l'abonnement à Stripe et aligne la `Subscription` locale.
+
+    Renvoie l'abonnement Stripe relu, pour l'appelant qui en a besoin.
+    """
     remote = client.v1.subscriptions.retrieve(stripe_subscription_id)
     local = find_by_customer(stripe_id(remote.customer)) or (
         Subscription.objects.filter(stripe_subscription_id=remote.id).first()
     )
     if local is None:
         logger.warning('Abonnement Stripe %s : client inconnu, rien modifié.', remote.id)  # noqa: E501
-        return
+        return remote
     if remote.status == STRIPE_CANCELED:
         _apply_canceled(local.pk, remote.id)
-        return
+        return remote
     local_status = LIVE_STATUSES.get(remote.status)
     if local_status is None:
         logger.warning(
             'Abonnement Stripe %s : statut %s non pris en charge, rien modifié.',
             remote.id, remote.status,
         )
-        return
-    _apply_live(local.pk, remote_state(remote, local_status))
+        return remote
+    state = remote_state(remote, local_status)
+    state.update(scheduled_state(client, remote))
+    _apply_live(local.pk, state)
+    return remote
 
 
 def remote_state(remote: Any, local_status: str) -> dict[str, Any]:
@@ -104,10 +113,50 @@ def remote_state(remote: Any, local_status: str) -> dict[str, Any]:
 
 
 def _interval_from_items(items: Sequence[Any]) -> str:
-    recurring = field_or_none(items[0].price, 'recurring') if items else None
+    return price_interval(items[0].price) if items else ''
+
+
+def price_interval(price: Any) -> str:
+    """Rythme mensuel ou annuel d'un prix Stripe développé ; vide sinon."""
+    recurring = field_or_none(price, 'recurring')
     interval = field_or_none(recurring, 'interval') if recurring else None
     known = (SubscriptionPlan.PERIOD_MONTH, SubscriptionPlan.PERIOD_YEAR)
     return interval if interval in known else ''
+
+
+def scheduled_state(client: stripe.StripeClient, remote: Any) -> dict[str, Any]:
+    """Changement programmé : phase qui suit la phase en cours du calendrier.
+
+    Le calendrier n'est lu que si l'abonnement en a un (aucun appel sinon).
+    """
+    schedule_id = stripe_id(field_or_none(remote, 'schedule'))
+    if not schedule_id:
+        return dict(NO_SCHEDULED_CHANGE)
+    schedule = client.v1.subscription_schedules.retrieve(
+        schedule_id, params={'expand': ['phases.items.price']},
+    )
+    phase = _next_phase(schedule)
+    items = list(phase['items']) if phase is not None else []
+    # Prix développé (`expand`) : produit et rythme se lisent sur l'objet.
+    price = items[0].price if items and not isinstance(items[0].price, str) else None
+    plan = _plan_from_product(remote.id, price.product) if price is not None else None
+    interval = price_interval(price) if plan is not None else ''
+    if not interval:
+        return dict(NO_SCHEDULED_CHANGE)
+    return {
+        'scheduled_plan_code': plan.code,
+        'scheduled_interval': interval,
+        'scheduled_change_at': datetime.fromtimestamp(phase.start_date, tz=UTC),
+    }
+
+
+def _next_phase(schedule: Any) -> Any | None:
+    # Date de la phase en cours, pas l'horloge : aucune dépendance à l'heure locale.
+    current = field_or_none(schedule, 'current_phase')
+    if schedule.status != 'active' or current is None:
+        return None
+    later = [p for p in schedule.phases if p.start_date > current.start_date]
+    return min(later, key=lambda phase: phase.start_date) if later else None
 
 
 def _period_bound(
@@ -121,8 +170,12 @@ def _period_bound(
 
 
 def _plan_from_items(remote_id: str, items: Sequence[Any]) -> SubscriptionPlan | None:
+    return _plan_from_product(remote_id, items[0].price.product if items else None)
+
+
+def _plan_from_product(remote_id: str, product_ref: Any) -> SubscriptionPlan | None:
     # Formule déduite du produit, pas du prix : un ancien prix reste reconnu.
-    product = stripe_id(items[0].price.product) if items else ''
+    product = stripe_id(product_ref)
     code = product.removeprefix(PRODUCT_ID_PREFIX) if product.startswith(PRODUCT_ID_PREFIX) else ''  # noqa: E501
     plan = SubscriptionPlan.objects.filter(code=code).first() if code else None
     if plan is None:
@@ -167,6 +220,7 @@ def _apply_canceled(pk: Any, remote_id: str) -> None:
             stripe_subscription_id='', current_period_start=now,
             current_period_end=None, cancel_at_period_end=False, billing_interval='',
             cancelled_at=now, past_due_since=None, updated_at=now,
+            **NO_SCHEDULED_CHANGE,
         )
         audit_subscription(before, 'subscription_ended', {'from': before.plan.code, 'to': free_plan.code})  # noqa: E501
 
@@ -192,7 +246,7 @@ def _audit_live_changes(before: Subscription, state: dict[str, Any]) -> None:
 
 
 def audit_subscription(
-    subscription: Subscription, action: str, changes: dict[str, str],
+    subscription: Subscription, action: str, changes: dict[str, Any],
 ) -> None:
     """Journal de la boutique, sans auteur (Stripe) ni donnée de paiement."""
     log_action(

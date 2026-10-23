@@ -119,6 +119,11 @@ class Subscription(models.Model):
             (SubscriptionPlan.PERIOD_YEAR, 'Annuel'),
         ],
     )
+    # Changement de formule programmé en fin de période (calendrier Stripe) :
+    # recopié par `stripe_sync`, vide s'il n'y en a pas.
+    scheduled_plan_code = models.CharField(max_length=30, blank=True, default='')
+    scheduled_interval = models.CharField(max_length=10, blank=True, default='')
+    scheduled_change_at = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     # Début du retard de paiement en cours ; vidé quand le paiement aboutit.

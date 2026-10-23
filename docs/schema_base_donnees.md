@@ -1236,6 +1236,9 @@ Abonnement d'une boutique à un plan.
 | current_period_start | TIMESTAMPTZ | | |
 | current_period_end | TIMESTAMPTZ | | |
 | billing_interval | VARCHAR(10) | NOT NULL, DEFAULT '' | `month`, `year` : rythme du prix Stripe, posé par la synchronisation ; vide hors abonnement Stripe |
+| scheduled_plan_code | VARCHAR(30) | NOT NULL, DEFAULT '' | Formule du changement programmé en fin de période (phase suivante du calendrier Stripe, produit `mizan_<code>`) ; vide sans changement programmé |
+| scheduled_interval | VARCHAR(10) | NOT NULL, DEFAULT '' | `month`, `year` : rythme du changement programmé (prix de la phase suivante) ; vide sans changement programmé |
+| scheduled_change_at | TIMESTAMPTZ | | Début de la phase suivante du calendrier ; NULL sans changement programmé. Les trois champs sont écrits par la synchronisation Stripe uniquement |
 | cancel_at_period_end | BOOLEAN | NOT NULL, DEFAULT false | |
 | cancelled_at | TIMESTAMPTZ | | |
 | past_due_since | TIMESTAMPTZ | | Début du retard de paiement en cours |

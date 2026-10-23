@@ -4,8 +4,9 @@ URS-100 — Permet au frontend d'afficher le plan courant (essai/payant/gratuit)
 et au commerçant de résilier (downgrade vers Découverte). Une formule payante se
 souscrit par Stripe Checkout (`checkout/`), jamais par `change/`.
 
-Facturation (lot 3a) : réservée au propriétaire, boutique tirée de
-`get_shop(request.user)` uniquement ; la logique vit dans `stripe_billing`.
+Facturation (lots 3a, 3b) : réservée au propriétaire, boutique tirée de
+`get_shop(request.user)` uniquement ; la logique vit dans `stripe_billing` et
+`stripe_plan_change` (changement de formule).
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from apps.core.permissions import IsShopOwner, get_shop
 
 from .models import Subscription, SubscriptionPlan
 from .serializers import (
+    ChangePreviewSerializer,
     CheckoutSerializer,
     SubscriptionChangeSerializer,
     SubscriptionPlanSerializer,
@@ -33,6 +35,11 @@ from .stripe_billing import (
     create_portal_session,
     refresh_subscription,
     resume_subscription,
+)
+from .stripe_plan_change import (
+    apply_plan_change,
+    cancel_scheduled_change,
+    preview_plan_change,
 )
 from .throttles import (
     BillingCheckoutRateThrottle,
@@ -71,20 +78,57 @@ class SubscriptionCurrentView(APIView):
 
 
 class SubscriptionChangeView(APIView):
-    """POST /api/subscriptions/change/ — retour sur Découverte seulement.
+    """POST /api/subscriptions/change/ — changement de formule (propriétaire seul).
 
-    Propriétaire seul. Un abonnement Stripe en cours est résilié chez Stripe
-    (`cancel_subscription`) ; un essai ou une formule sans Stripe bascule tout
-    de suite.
+    - `plan_code: free` : un abonnement Stripe en cours est résilié chez Stripe
+      (`cancel_subscription`) ; un essai ou une formule sans Stripe bascule tout
+      de suite.
+    - `plan` + `interval` : montée immédiate confirmée (`expected_amount`,
+      `proration_date` de l'aperçu) ou descente programmée en fin de période.
     """
 
     permission_classes = (IsAuthenticated, IsShopOwner)
+    throttle_classes = (UserRateThrottle, BillingCheckoutRateThrottle)
 
     def post(self, request) -> Response:
         serializer = SubscriptionChangeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
         shop = get_shop(request.user)
-        subscription = change_plan(shop, serializer.validated_data['plan_code'])
+        if 'plan_code' in data:
+            subscription = change_plan(shop, data['plan_code'])
+        else:
+            subscription = apply_plan_change(
+                shop, data['plan'], data['interval'],
+                data.get('expected_amount'), data.get('proration_date'),
+            )
+        return _subscription_response(subscription, request)
+
+
+class SubscriptionChangePreviewView(APIView):
+    """POST /api/subscriptions/change-preview/ — aperçu chiffré, sans aucun débit."""
+
+    permission_classes = (IsAuthenticated, IsShopOwner)
+    throttle_classes = (UserRateThrottle, BillingRefreshRateThrottle)
+
+    def post(self, request) -> Response:
+        serializer = ChangePreviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        preview = preview_plan_change(
+            get_shop(request.user),
+            serializer.validated_data['plan'], serializer.validated_data['interval'],
+        )
+        return Response(preview)
+
+
+class SubscriptionScheduledChangeCancelView(APIView):
+    """POST /api/subscriptions/scheduled-change/cancel/ — garde la formule actuelle."""
+
+    permission_classes = (IsAuthenticated, IsShopOwner)
+    throttle_classes = (UserRateThrottle, BillingCheckoutRateThrottle)
+
+    def post(self, request) -> Response:
+        subscription = cancel_scheduled_change(get_shop(request.user))
         return _subscription_response(subscription, request)
 
 

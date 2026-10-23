@@ -1,5 +1,8 @@
 """Actions de facturation du propriétaire : paiement, portail, résiliation, reprise.
 
+Le changement de formule payante vit dans `stripe_plan_change`, qui réutilise
+les outils de ce module.
+
 Chaque action appelle Stripe puis resynchronise par `stripe_sync` : la
 `Subscription` locale n'est écrite que par la synchronisation, sauf
 l'identifiant client Stripe, posé ici sous condition SQL. Toute erreur Stripe
@@ -37,7 +40,9 @@ from .stripe_client import billing_enabled, get_client
 from .stripe_sync import (
     LIVE_STATUSES,
     STRIPE_CANCELED,
+    audit_subscription,
     field_or_none,
+    stripe_id,
     sync_subscription_from_stripe,
 )
 
@@ -223,8 +228,27 @@ def _cancel_scheduled(remote: Any) -> bool:
     )
 
 
+def release_schedule(
+    client: stripe.StripeClient, subscription: Subscription, remote: Any,
+) -> bool:
+    """Abandonne le changement programmé : le calendrier lâche l'abonnement.
+
+    L'abonnement continue tel quel ; faux s'il n'avait pas de calendrier.
+    """
+    schedule_id = stripe_id(field_or_none(remote, 'schedule'))
+    if not schedule_id:
+        return False
+    client.v1.subscription_schedules.release(schedule_id)
+    audit_subscription(subscription, 'subscription_plan_changed', {'scheduled_cancelled': True})  # noqa: E501
+    return True
+
+
 def cancel_subscription(shop: Shop) -> Subscription:
-    """Résilie : en fin de période si à jour, tout de suite si paiement en retard."""
+    """Résilie : en fin de période si à jour, tout de suite si paiement en retard.
+
+    Un changement de formule programmé est abandonné d'abord : Stripe refuse de
+    modifier la résiliation d'un abonnement piloté par un calendrier.
+    """
     client = _client()
     subscription = _subscription_of(shop)
     if not has_live_stripe_subscription(subscription):
@@ -234,8 +258,10 @@ def cancel_subscription(shop: Shop) -> Subscription:
         remote = client.v1.subscriptions.retrieve(sub_id)
         local_status = LIVE_STATUSES.get(remote.status)
         if local_status == Subscription.STATUS_PAST_DUE:
+            release_schedule(client, subscription, remote)
             client.v1.subscriptions.cancel(sub_id)
         elif local_status == Subscription.STATUS_ACTIVE and not _cancel_scheduled(remote):  # noqa: E501
+            release_schedule(client, subscription, remote)
             client.v1.subscriptions.update(sub_id, params={'cancel_at_period_end': True})  # noqa: E501
         sync_subscription_from_stripe(client, sub_id)
     return _subscription_of(shop)
@@ -293,7 +319,10 @@ def refresh_subscription(shop: Shop) -> Subscription:
 
 
 def change_plan(shop: Shop, plan_code: str) -> Subscription:
-    """POST /change/ : seul le retour sur Découverte passe par cet endpoint."""
+    """POST /change/ avec `plan_code` : seul le retour sur Découverte passe ici.
+
+    Une formule payante passe par `stripe_plan_change.apply_plan_change`.
+    """
     if plan_code != SubscriptionPlan.CODE_FREE:
         raise UseCheckoutOrChangePlan()
     subscription = _subscription_of(shop)
