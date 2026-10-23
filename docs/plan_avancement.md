@@ -577,7 +577,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Intégration Stripe Billing — Lot 1 : code et tests prêts
   - [~] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise)
   - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée)
-  - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai)
+  - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée)
 - [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 

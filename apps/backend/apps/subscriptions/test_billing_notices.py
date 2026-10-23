@@ -251,6 +251,22 @@ class PastDueResetTests(PastDueTestCase):
         sync_subscription_from_stripe(self.stripe, 'sub_a')
         self.assertEqual(self._reload().past_due_notices_sent, 1)
 
+    def test_new_subscription_clears_a_pending_end_notice(self) -> None:
+        # Résilié pour retard, puis réabonné avant le message de fin : une
+        # résiliation ordinaire plus tard ne doit pas l'envoyer.
+        self._past_due(16, sent=3)
+        Subscription.objects.filter(pk=self.subscription.pk).update(
+            status=Subscription.STATUS_ACTIVE, past_due_since=None,
+            past_due_cancel_requested_at=NOW,
+        )
+        self.stripe.subscriptions.items['sub_a']['status'] = 'active'
+        sync_subscription_from_stripe(self.stripe, 'sub_a')
+        self.assertIsNone(self._reload().past_due_cancel_requested_at)
+        self.stripe.subscriptions.items['sub_a']['status'] = 'canceled'
+        sync_subscription_from_stripe(self.stripe, 'sub_a')
+        self._run()
+        self.assertEqual(mail.outbox, [])
+
 
 class PastDueCancelTests(PastDueTestCase):
     def test_cancels_at_day_fifteen(self) -> None:
@@ -319,7 +335,11 @@ class PastDueCancelTests(PastDueTestCase):
         outcomes = [billing_notices.process_past_due(sub, NOW) for sub in (first, second)]  # noqa: E501
         self.assertEqual(outcomes, [billing_notices.CANCELLED, billing_notices.SKIPPED])
         self.assertEqual(len(self.stripe.subscriptions.cancel_calls), 1)
+        # Le message de fin part à part, une fois la résiliation constatée.
+        self.assertEqual(mail.outbox, [])
+        self._run()
         self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(self.stripe.subscriptions.cancel_calls), 1)
 
     @override_settings(STRIPE_SECRET_KEY='')
     def test_without_stripe_key_nothing_is_cancelled(self) -> None:
@@ -346,6 +366,205 @@ class PastDueCancelTests(PastDueTestCase):
         with mock.patch.object(billing_notices, 'process_past_due', side_effect=outcomes):  # noqa: E501
             stats = self._run()
         self.assertEqual((stats['sent'], stats['failed']), (1, 1))
+
+
+class PastDueRetryTests(PastDueTestCase):
+    """Résiliation retentée à chaque passage, message de fin envoyé à part."""
+
+    def _key(self, since: datetime) -> str:
+        return f'mizan-pastdue-cancel-{self.subscription.pk}-{int(since.timestamp())}'
+
+    def _mark(self, at: datetime = NOW) -> None:
+        Subscription.objects.filter(pk=self.subscription.pk).update(
+            past_due_cancel_requested_at=at,
+        )
+
+    def test_failed_cancel_is_retried_with_the_same_key(self) -> None:
+        since = self._past_due(15, sent=3).past_due_since
+        self.stripe.subscriptions.cancel_error = stripe.APIConnectionError('injoignable')  # noqa: E501
+        self.assertEqual(self._run()['failed'], 1)
+        self.assertEqual(self._reload().past_due_cancel_requested_at, NOW)
+        self.stripe.subscriptions.cancel_error = None
+        stats = self._run(NOW + timedelta(minutes=15))
+        self.assertEqual((stats['cancelled'], stats['sent']), (1, 1))
+        self._run(NOW + timedelta(minutes=30))
+        keys = [options['idempotency_key'] for _, _, options in self.stripe.subscriptions.cancel_calls]  # noqa: E501
+        self.assertEqual(keys, [self._key(since)] * 2)
+        self.assertEqual(self.stripe.subscriptions.cancels, ['sub_a'])
+        self.assertEqual([m.subject for m in mail.outbox], ['Votre abonnement Mizan est résilié'])  # noqa: E501
+        subscription = self._reload()
+        self.assertEqual(subscription.plan.code, SubscriptionPlan.CODE_FREE)
+        self.assertIsNone(subscription.past_due_cancel_requested_at)
+
+    def test_retry_ignores_the_reminder_counter(self) -> None:
+        # Quel que soit le compteur (même un ancien 4), la résiliation est tentée.
+        for sent in (0, 3, 4):
+            with self.subTest(sent=sent):
+                self._past_due(15, sent=sent)
+                self.stripe.subscriptions.cancel_error = stripe.APIConnectionError('injoignable')  # noqa: E501
+                self._run()
+                self.assertEqual(self._reload().past_due_notices_sent, sent)
+        self.assertEqual(len(self.stripe.subscriptions.cancel_calls), 3)
+
+    def test_interrupted_before_the_cancel_call(self) -> None:
+        # Marque posée, processus arrêté avant l'appel : le passage suivant résilie.
+        since = self._past_due(15, sent=3).past_due_since
+        self._mark(NOW - timedelta(minutes=15))
+        self.assertEqual(self._run()['cancelled'], 1)
+        self.assertEqual(self.stripe.subscriptions.cancel_calls[0][2], {'idempotency_key': self._key(since)})  # noqa: E501
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_interrupted_after_the_cancel_call(self) -> None:
+        # Résilié chez Stripe, rien d'appliqué en local : pas de seconde résiliation.
+        self._past_due(15, sent=3)
+        self._mark()
+        self.stripe.invoices.put_invoice('in_a', 'sub_a')
+        self.stripe.subscriptions.items['sub_a']['status'] = 'canceled'
+        stats = self._run(NOW + timedelta(minutes=15))
+        self.assertEqual((stats['cancelled'], stats['sent']), (1, 1))
+        self.assertEqual(self.stripe.subscriptions.cancel_calls, [])
+        self.assertEqual(self.stripe.invoices.items['in_a']['status'], 'void')
+        self.assertEqual(self._reload().plan.code, SubscriptionPlan.CODE_FREE)
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_interrupted_before_the_end_email(self) -> None:
+        # Retour sur Découverte appliqué (ici par le webhook), message pas envoyé.
+        self._past_due(15, sent=3)
+        self._mark()
+        self.stripe.subscriptions.items['sub_a']['status'] = 'canceled'
+        sync_subscription_from_stripe(self.stripe, 'sub_a')
+        self.assertEqual(self._run(NOW + timedelta(minutes=15))['sent'], 1)
+        self._run(NOW + timedelta(minutes=30))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('abonnement Solo', mail.outbox[0].body)
+        self.assertEqual(self.stripe.subscriptions.cancel_calls, [])
+
+    def test_paid_between_two_attempts_cancels_nothing(self) -> None:
+        self._past_due(15, sent=3)
+        self.stripe.subscriptions.cancel_error = stripe.APIConnectionError('injoignable')  # noqa: E501
+        self._run()
+        self.stripe.subscriptions.cancel_error = None
+        self.stripe.subscriptions.items['sub_a']['status'] = 'active'
+        for minutes in (15, 30):
+            self._run(NOW + timedelta(minutes=minutes))
+        self.assertEqual(len(self.stripe.subscriptions.cancel_calls), 1)
+        self.assertEqual(self.stripe.subscriptions.cancels, [])
+        self.assertEqual(mail.outbox, [])
+        subscription = self._reload()
+        self.assertEqual((subscription.status, subscription.plan.code), (Subscription.STATUS_ACTIVE, 'solo'))  # noqa: E501
+        self.assertIsNone(subscription.past_due_cancel_requested_at)
+
+    def test_two_overlapping_end_notices_send_one_email(self) -> None:
+        self._past_due(15, sent=3)
+        billing_notices.process_past_due(self._reload(), NOW)
+        first = billing_notices.past_due_ended_subscriptions().get()
+        second = Subscription.objects.get(pk=first.pk)
+        outcomes = [billing_notices.send_past_due_end_notice(s, NOW) for s in (first, second)]  # noqa: E501
+        self.assertEqual(outcomes, [billing_notices.SENT, billing_notices.SKIPPED])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_failed_end_email_is_retried_once(self) -> None:
+        self._past_due(15, sent=3)
+        with mock.patch(SEND_MAIL, side_effect=smtplib.SMTPException('refusé')):
+            stats = self._run()
+        self.assertEqual((stats['cancelled'], stats['failed']), (1, 1))
+        self.assertEqual(self._reload().past_due_cancel_requested_at, NOW)
+        self.assertEqual(self._run(NOW + timedelta(minutes=15))['sent'], 1)
+        self._run(NOW + timedelta(minutes=30))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(self.stripe.subscriptions.cancel_calls), 1)
+
+    def test_temporary_error_is_a_warning_then_an_error_after_24_hours(self) -> None:
+        self._past_due(15, sent=3)
+        self.stripe.subscriptions.cancel_error = stripe.APIError('indisponible', code='api_error')  # noqa: E501
+        levels = []
+        for hours in (0, 23, 25):
+            with ExitStack() as stack:
+                records = _capture_records(stack, (LOGGER,))
+                self._run(NOW + timedelta(hours=hours))
+            [record] = [r for r in records if 'échec Stripe' in r.getMessage()]
+            levels.append(record.levelname)
+            message = record.getMessage()
+            self.assertIn(str(self.subscription.pk), message)
+            self.assertIn('APIError', message)
+            self.assertIn('api_error', message)
+            self.assertNotIn('sub_a', message)
+        self.assertEqual(levels, ['WARNING', 'WARNING', 'ERROR'])
+
+    def test_a_failure_on_one_shop_does_not_stop_the_others(self) -> None:
+        self._past_due(15, sent=3)
+        self._past_due(15, sent=3, subscription=self.subscription_b)
+        self.stripe.subscriptions.failing.add('sub_a')
+        self._run()
+        self.stripe.subscriptions.failing.clear()
+        self._run(NOW + timedelta(minutes=15))
+        self.assertEqual(self.stripe.subscriptions.cancels, ['sub_b', 'sub_a'])
+        self.assertEqual(sorted(m.to[0] for m in mail.outbox), ['owner-a@example.com', 'owner-b@example.com'])  # noqa: E501
+
+
+class PastDueInvoiceTests(PastDueTestCase):
+    """Dernière facture ouverte de l'abonnement résilié annulée (void)."""
+
+    def test_voids_the_latest_open_invoice_of_this_subscription_only(self) -> None:
+        self._past_due(15, sent=3)
+        self._past_due(3, subscription=self.subscription_b)
+        invoices = self.stripe.invoices
+        invoices.put_invoice('in_old', 'sub_a', created=1)
+        invoices.put_invoice('in_last', 'sub_a', created=2)
+        invoices.put_invoice('in_paid', 'sub_a', status='paid', created=3)
+        invoices.put_invoice('in_b', 'sub_b', created=4)
+        self._run()
+        self.assertEqual(invoices.list_calls, [{'subscription': 'sub_a', 'status': 'open', 'limit': 1}])  # noqa: E501
+        self.assertEqual(invoices.voided, [('in_last', {'idempotency_key': 'mizan-pastdue-void-in_last'})])  # noqa: E501
+        statuses = {key: value['status'] for key, value in invoices.items.items()}
+        self.assertEqual(statuses, {'in_old': 'open', 'in_last': 'void', 'in_paid': 'paid', 'in_b': 'open'})  # noqa: E501
+
+    def test_already_paid_or_voided_invoice_is_left_alone(self) -> None:
+        self._past_due(15, sent=3)
+        self.stripe.invoices.put_invoice('in_paid', 'sub_a', status='paid')
+        self.stripe.invoices.put_invoice('in_void', 'sub_a', status='void')
+        stats = self._run()
+        self.assertEqual(stats['cancelled'], 1)
+        self.assertEqual(self.stripe.invoices.voided, [])
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_void_failure_does_not_block_the_cancellation(self) -> None:
+        errors = (
+            ('list_error', stripe.APIConnectionError('injoignable')),
+            ('void_error', stripe.InvalidRequestError('Invoice is not open', 'invoice', code='invoice_not_open')),  # noqa: E501
+        )
+        for attribute, error in errors:
+            with self.subTest(attribute=attribute):
+                mail.outbox.clear()
+                self._past_due(15, sent=3)
+                self.stripe.invoices.put_invoice('in_a', 'sub_a')
+                setattr(self.stripe.invoices, attribute, error)
+                with ExitStack() as stack:
+                    records = _capture_records(stack, (LOGGER,))
+                    stats = self._run()
+                setattr(self.stripe.invoices, attribute, None)
+                self.assertEqual((stats['cancelled'], stats['failed'], stats['sent']), (1, 0, 1))  # noqa: E501
+                self.assertEqual(self._reload().plan.code, SubscriptionPlan.CODE_FREE)
+                self.assertEqual(len(mail.outbox), 1)
+                [record] = [r for r in records if 'facture ouverte' in r.getMessage()]
+                self.assertEqual(record.levelname, 'WARNING')
+                self.assertIn(str(self.subscription.pk), record.getMessage())
+                self.assertIn(type(error).__name__, record.getMessage())
+                _subscribe_again(self.subscription)
+
+    def test_no_void_when_nothing_is_cancelled(self) -> None:
+        self._past_due(15, sent=3, remote_status='active')
+        self.stripe.invoices.put_invoice('in_a', 'sub_a')
+        self._run()
+        self.assertEqual(self.stripe.invoices.list_calls, [])
+        self.assertEqual(self.stripe.invoices.items['in_a']['status'], 'open')
+
+
+def _subscribe_again(subscription: Subscription) -> None:
+    """Remet l'abonnement sur Solo (nouveau cas dans le même test)."""
+    Subscription.objects.filter(pk=subscription.pk).update(
+        plan=SubscriptionPlan.objects.get(code='solo'),
+    )
 
 
 class TrialEndingTestCase(NoticeTestCase):

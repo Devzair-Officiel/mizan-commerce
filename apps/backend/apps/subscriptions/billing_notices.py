@@ -1,14 +1,18 @@
 """Messages de facturation au propriétaire : fin d'essai, retard de paiement.
 
 Retard de paiement (règle des 15 jours, `PAST_DUE_GRACE_DAYS`) : rappels à J0,
-J+7 et J+13, puis résiliation à J+15 ; `past_due_notices_sent` retient la
-dernière étape faite (0 aucune, 1 J0, 2 J+7, 3 J+13, 4 résiliation) et
-`stripe_sync` le remet à 0 avec `past_due_since` quand le retard disparaît.
+J+7 et J+13 (`past_due_notices_sent` retient le dernier envoyé), puis
+résiliation à partir de J+15, retentée à chaque passage tant que Stripe confirme
+le retard, sans dépendre du compteur. `past_due_cancel_requested_at` date la
+première tentative ; il survit à la résiliation (`stripe_sync` remet le compteur
+à 0) et garde le message de fin à envoyer, une seule fois, quand le retour sur
+Découverte est constaté. Le retour du paiement efface tout (`stripe_sync`).
 
 Chaque envoi est d'abord réservé par un update conditionnel : seul l'appel qui a
 modifié la ligne envoie, deux exécutions simultanées ne doublent rien. Un envoi
 en échec annule sa réservation (update conditionnel inverse) et la prochaine
-exécution réessaie. Journaux : identifiant local de la souscription seulement.
+exécution réessaie. Journaux : identifiant local de la souscription seulement,
+avec le type et le code d'une erreur Stripe.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ from django.core.mail import send_mail
 from django.db.models import QuerySet
 
 from apps.accounts.models import User
+from apps.core.models import AuditLog
 from apps.shops.models import ShopMember
 
 from . import billing_notice_texts as texts
@@ -30,7 +35,7 @@ from .limits import shop_usage
 from .models import Subscription, SubscriptionPlan
 from .services import PAST_DUE_GRACE_DAYS
 from .stripe_client import billing_enabled, get_client
-from .stripe_sync import sync_subscription_from_stripe
+from .stripe_sync import STRIPE_CANCELED, sync_subscription_from_stripe
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +51,8 @@ STAGE_THRESHOLDS: tuple[tuple[int, int], ...] = (
     (STAGE_WEEK, 7),
     (STAGE_FIRST, 0),
 )
-# Au-delà, une résiliation réservée mais restée en retard est signalée.
-STUCK_CANCEL_DELAY = timedelta(days=PAST_DUE_GRACE_DAYS + 1)
+# Au-delà, depuis la première tentative, l'échec de résiliation passe en erreur.
+CANCEL_ALERT_DELAY = timedelta(hours=24)
 STRIPE_PAST_DUE_STATUSES = frozenset({'past_due', 'unpaid'})
 TRIAL_NOTICE_WINDOW = timedelta(hours=24)
 # Compteurs de `shop_usage` → limite de la formule Découverte.
@@ -90,13 +95,12 @@ def past_due_subscriptions() -> QuerySet[Subscription]:
 def process_past_due(subscription: Subscription, now: datetime) -> str:
     """Fait l'étape due d'un abonnement en retard : un rappel ou la résiliation."""
     since = subscription.past_due_since
+    if now - since >= timedelta(days=PAST_DUE_GRACE_DAYS):
+        return _end_past_due(subscription, since, now)
     current = subscription.past_due_notices_sent
     stage = next_past_due_stage(since, now, current)
     if stage is None:
-        _report_stuck_cancel(subscription, now)
         return SKIPPED
-    if stage == STAGE_ENDED:
-        return _end_past_due(subscription, since, current, now)
     owner = owner_of(subscription)
     if owner is None or not _claim(subscription.pk, since, current, stage):
         return SKIPPED
@@ -108,18 +112,6 @@ def process_past_due(subscription: Subscription, now: datetime) -> str:
         return SENT
     _release(subscription.pk, since, stage, current)
     return FAILED
-
-
-def _report_stuck_cancel(subscription: Subscription, now: datetime) -> None:
-    """Résiliation réservée mais toujours en retard un jour plus tard (arrêt brutal)."""
-    since = subscription.past_due_since
-    if subscription.past_due_notices_sent != STAGE_ENDED or since is None:
-        return
-    if now - since >= STUCK_CANCEL_DELAY:
-        logger.error(
-            'Résiliation de la souscription %s commencée sans aboutir : à vérifier.',  # noqa: E501
-            subscription.pk,
-        )
 
 
 def _claim(pk: Any, since: datetime, current: int, stage: int) -> bool:
@@ -137,60 +129,65 @@ def _release(pk: Any, since: datetime, stage: int, previous: int) -> None:
     ).update(past_due_notices_sent=previous)
 
 
-def _end_past_due(
-    subscription: Subscription, since: datetime, current: int, now: datetime,
-) -> str:
-    """Résiliation à J+15 : relit Stripe, résilie si le retard dure, prévient.
+def _end_past_due(subscription: Subscription, since: datetime, now: datetime) -> str:
+    """Résiliation à partir de J+15, retentée à chaque passage tant qu'elle n'a pas abouti.
 
-    Sans clé Stripe (ou sans abonnement Stripe), rien n'est fait. La réservation
-    précède les appels : une seule exécution résilie et envoie le message.
-    """
+    Sans clé Stripe (ou sans abonnement Stripe), rien n'est fait. Le message de
+    fin part à part (`send_past_due_end_notice`), une fois la résiliation constatée.
+    """  # noqa: E501
     if not billing_enabled() or not subscription.stripe_subscription_id:
         return SKIPPED
-    if not _claim(subscription.pk, since, current, STAGE_ENDED):
+    if not _mark_cancel_requested(subscription, since, now):
         return SKIPPED
-    plan_name = subscription.plan.name
     try:
-        cancelled = _cancel_if_still_past_due(subscription, since)
+        return _cancel_if_still_past_due(subscription, since)
     except stripe.StripeError as exc:
-        _release(subscription.pk, since, STAGE_ENDED, current)
-        logger.warning(
-            'Résiliation pour retard : échec Stripe pour la souscription %s (%s).',
-            subscription.pk, type(exc).__name__,
-        )
+        _log_cancel_failure(subscription, now, exc)
         return FAILED
-    if not cancelled:
-        # Plus en retard chez Stripe : la resynchronisation a déjà remis à zéro,
-        # sauf statut non pris en charge, d'où la libération (sans effet sinon).
-        _release(subscription.pk, since, STAGE_ENDED, current)
-        return SKIPPED
-    owner = owner_of(subscription)
-    if owner is not None:
-        subject, body = texts.subscription_ended_email(
-            owner, subscription.shop, plan_name, now,
-        )
-        _send(owner, subject, body, subscription.pk)
-    return CANCELLED
 
 
-def _cancel_if_still_past_due(subscription: Subscription, since: datetime) -> bool:
+def _mark_cancel_requested(
+    subscription: Subscription, since: datetime, now: datetime,
+) -> bool:
+    """Date la première tentative ; `False` si le retard lu n'est plus celui en base.
+
+    Les tentatives suivantes gardent la date : elles réutilisent la même clé
+    d'idempotence, une résiliation en double est donc sans effet chez Stripe.
+    """
+    if subscription.past_due_cancel_requested_at is not None:
+        return True
+    marked = Subscription.objects.filter(
+        pk=subscription.pk, status=Subscription.STATUS_PAST_DUE,
+        past_due_since=since, past_due_cancel_requested_at__isnull=True,
+    ).update(past_due_cancel_requested_at=now)
+    if marked:
+        subscription.past_due_cancel_requested_at = now
+    return bool(marked)
+
+
+def _cancel_if_still_past_due(subscription: Subscription, since: datetime) -> str:
     """Resynchronise, résilie sur-le-champ si toujours en retard, resynchronise.
 
-    Ni facture finale ni prorata (`invoice_now`, `prorate` à False). La seconde
-    synchronisation applique le retour sur Découverte (`stripe_sync`) ; si elle
-    échoue, le webhook `customer.subscription.deleted` le fera.
+    Ni facture finale ni prorata (`invoice_now`, `prorate` à False). Déjà résilié
+    chez Stripe (passage précédent interrompu) : seule la facture reste à annuler.
+    La seconde synchronisation applique le retour sur Découverte (`stripe_sync`) ;
+    si elle échoue, le webhook ou la réconciliation le fera.
     """
     client = get_client()
     stripe_subscription_id = subscription.stripe_subscription_id
     remote = sync_subscription_from_stripe(client, stripe_subscription_id)
+    if remote.status == STRIPE_CANCELED:
+        _void_open_invoice(client, subscription.pk, stripe_subscription_id)
+        return CANCELLED
     if remote.status not in STRIPE_PAST_DUE_STATUSES:
-        return False
+        return SKIPPED
     key = f'mizan-pastdue-cancel-{subscription.pk}-{int(since.timestamp())}'
     client.v1.subscriptions.cancel(
         stripe_subscription_id,
         params={'invoice_now': False, 'prorate': False},
         options={'idempotency_key': key},
     )
+    _void_open_invoice(client, subscription.pk, stripe_subscription_id)
     try:
         sync_subscription_from_stripe(client, stripe_subscription_id)
     except stripe.StripeError as exc:
@@ -198,7 +195,94 @@ def _cancel_if_still_past_due(subscription: Subscription, since: datetime) -> bo
             'Résiliation pour retard : resynchronisation à refaire pour la '
             'souscription %s (%s).', subscription.pk, type(exc).__name__,
         )
-    return True
+    return CANCELLED
+
+
+def _log_cancel_failure(
+    subscription: Subscription, now: datetime, exc: stripe.StripeError,
+) -> None:
+    """Avertissement, puis erreur après 24 h de tentatives sans résiliation."""
+    first_attempt = subscription.past_due_cancel_requested_at or now
+    level = logging.ERROR if now - first_attempt > CANCEL_ALERT_DELAY else logging.WARNING  # noqa: E501
+    logger.log(
+        level,
+        'Résiliation pour retard : échec Stripe pour la souscription %s (%s, code %s).',  # noqa: E501
+        subscription.pk, type(exc).__name__, exc.code or '-',
+    )
+
+
+def _void_open_invoice(
+    client: stripe.StripeClient, pk: Any, stripe_subscription_id: str,
+) -> None:
+    """Annule la dernière facture ouverte de cet abonnement, plus payable ensuite.
+
+    Seul le statut `open` est demandé : une facture payée ou déjà annulée n'est
+    pas listée. Un échec est journalisé et ne remet pas la résiliation en cause.
+    """
+    try:
+        invoices = client.v1.invoices.list(
+            params={'subscription': stripe_subscription_id, 'status': 'open', 'limit': 1},  # noqa: E501
+        )
+        for invoice in invoices.data:
+            client.v1.invoices.void_invoice(
+                invoice.id, options={'idempotency_key': f'mizan-pastdue-void-{invoice.id}'},  # noqa: E501
+            )
+    except Exception as exc:
+        logger.warning(
+            'Résiliation pour retard : facture ouverte non annulée pour la '
+            'souscription %s (%s, code %s).',
+            pk, type(exc).__name__, getattr(exc, 'code', None) or '-',
+        )
+
+
+def past_due_ended_subscriptions() -> QuerySet[Subscription]:
+    """Résiliations pour retard constatées (retour sur Découverte), non prévenues."""
+    return Subscription.objects.filter(
+        past_due_cancel_requested_at__isnull=False,
+        stripe_subscription_id='',
+        plan__code=SubscriptionPlan.CODE_FREE,
+    )
+
+
+def send_past_due_end_notice(subscription: Subscription, now: datetime) -> str:
+    """Message de fin, une seule fois : la réservation efface la marque.
+
+    Ne dépend pas de `past_due_notices_sent`, remis à 0 par la résiliation. Sans
+    propriétaire à prévenir, la marque est effacée quand même (rien à réessayer).
+    """
+    requested_at = subscription.past_due_cancel_requested_at
+    claimed = past_due_ended_subscriptions().filter(
+        pk=subscription.pk, past_due_cancel_requested_at=requested_at,
+    ).update(past_due_cancel_requested_at=None)
+    owner = owner_of(subscription) if claimed else None
+    if owner is None:
+        return SKIPPED
+    subject, body = texts.subscription_ended_email(
+        owner, subscription.shop, _ended_plan_name(subscription),
+        subscription.cancelled_at or now,
+    )
+    if _send(owner, subject, body, subscription.pk):
+        return SENT
+    Subscription.objects.filter(
+        pk=subscription.pk, past_due_cancel_requested_at__isnull=True,
+        stripe_subscription_id='',
+    ).update(past_due_cancel_requested_at=requested_at)
+    return FAILED
+
+
+def _ended_plan_name(subscription: Subscription) -> str:
+    """Formule résiliée, lue au journal `subscription_ended` (`stripe_sync`)."""
+    changes = (
+        AuditLog.objects.filter(
+            shop_id=subscription.shop_id, action='subscription_ended',
+            model_name='Subscription', object_id=str(subscription.pk),
+        )
+        .values_list('changes', flat=True)
+        .first()
+    )
+    code = (changes or {}).get('from', '')
+    plan = SubscriptionPlan.objects.filter(code=code).first() if code else None
+    return plan.name if plan is not None else ''
 
 
 def trial_ending_subscriptions(now: datetime) -> QuerySet[Subscription]:

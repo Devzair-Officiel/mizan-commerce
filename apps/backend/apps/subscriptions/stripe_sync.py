@@ -18,6 +18,7 @@ from typing import Any
 
 import stripe
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.audit import log_action
@@ -200,8 +201,12 @@ def _apply_live(pk: Any, state: dict[str, Any]) -> None:
         if state['status'] == Subscription.STATUS_PAST_DUE:
             rows.filter(past_due_since__isnull=True).update(past_due_since=now, updated_at=now)  # noqa: E501
         else:
-            rows.filter(past_due_since__isnull=False).update(
-                past_due_since=None, past_due_notices_sent=0, updated_at=now,
+            rows.filter(
+                Q(past_due_since__isnull=False)
+                | Q(past_due_cancel_requested_at__isnull=False),
+            ).update(
+                past_due_since=None, past_due_notices_sent=0,
+                past_due_cancel_requested_at=None, updated_at=now,
             )
         if changes:
             _audit_live_changes(before, state)

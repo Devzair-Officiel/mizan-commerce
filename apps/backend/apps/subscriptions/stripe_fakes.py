@@ -3,7 +3,8 @@
 `FakeStripeClient` répond aux seuls appels faits par `stripe_sync`,
 `stripe_events`, `stripe_billing` et `stripe_plan_change` : lecture, liste, mise
 à jour et résiliation d'abonnements, lecture de paiements, création de clients et
-de sessions (Checkout, portail), aperçu de facture et calendriers d'abonnement.
+de sessions (Checkout, portail), aperçu, liste et annulation de factures,
+calendriers d'abonnement.
 Les objets sont construits par le SDK (`construct_from`) à partir de
 dictionnaires, comme une vraie réponse de l'API. Les helpers signent un corps
 de webhook comme Stripe (`t=<horodatage>,v1=<HMAC-SHA256>`).
@@ -91,15 +92,58 @@ class _FakeSubscriptions(_FakeResource):
 
 
 class _FakeInvoices:
-    """Aperçu de facture : `amounts` (centimes) donne les montants successifs."""
+    """Aperçu de facture : `amounts` (centimes) donne les montants successifs.
+
+    Factures d'abonnement (`put_invoice`) : `list` filtre par abonnement et
+    statut, la plus récente d'abord, comme Stripe ; `void_invoice` refuse une
+    facture qui n'est plus ouverte. `list_error` et `void_error` font échouer
+    l'appel sans rien modifier.
+    """
 
     def __init__(self) -> None:
+        self.items: dict[str, dict[str, Any]] = {}
+        self.list_calls: list[dict[str, Any]] = []
+        self.list_error: stripe.StripeError | None = None
+        self.voided: list[tuple[str, dict[str, Any]]] = []
+        self.void_error: stripe.StripeError | None = None
         self.previews: list[dict[str, Any]] = []
         self.amounts: list[int] = []
         self.amount_due = 1000
         self.total: int | None = None
         self.period_end = 1_792_592_000
         self.error: stripe.StripeError | None = None
+
+    def put_invoice(
+        self, invoice_id: str, subscription: str, status: str = 'open',
+        created: int = 0,
+    ) -> None:
+        self.items[invoice_id] = {
+            'id': invoice_id, 'object': 'invoice', 'status': status, 'created': created,
+            'parent': {'subscription_details': {'subscription': subscription}},
+        }
+
+    def list(self, params: Any = None, options: Any = None) -> Any:  # noqa: A003
+        self.list_calls.append(dict(params or {}))
+        if self.list_error is not None:
+            raise self.list_error
+        mine = [
+            d for d in self.items.values()
+            if d['status'] == params['status']
+            and d['parent']['subscription_details']['subscription'] == params['subscription']  # noqa: E501
+        ]
+        mine.sort(key=lambda d: d['created'], reverse=True)
+        data = mine[:params.get('limit', 10)]
+        return stripe.ListObject.construct_from({'object': 'list', 'data': data}, FAKE_KEY)  # noqa: E501
+
+    def void_invoice(self, invoice: str, params: Any = None, options: Any = None) -> Any:  # noqa: E501
+        self.voided.append((invoice, dict(options or {})))
+        if self.void_error is not None:
+            raise self.void_error
+        data = self.items[invoice]
+        if data['status'] != 'open':
+            raise stripe.InvalidRequestError('Invoice is not open', 'invoice', code='invoice_not_open')  # noqa: E501
+        data['status'] = 'void'
+        return stripe.Invoice.construct_from(data, FAKE_KEY)
 
     def create_preview(self, params: Any = None, options: Any = None) -> Any:
         self.previews.append(dict(params or {}))

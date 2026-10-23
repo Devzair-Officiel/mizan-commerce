@@ -94,7 +94,9 @@ def send_trial_ending_notices() -> dict:
 def process_past_due_subscriptions() -> dict:
     """Retard de paiement (toutes les 15 minutes) : rappels J0, J+7, J+13, résiliation à J+15.
 
-    Une erreur sur un abonnement n'arrête pas les autres. Sans clé Stripe, la
+    La résiliation est retentée à chaque passage tant qu'elle n'a pas abouti ; le
+    message de fin part ensuite, une fois la résiliation constatée (`sent`). Une
+    erreur sur un abonnement n'arrête pas les autres. Sans clé Stripe, la
     résiliation n'est pas tentée ; les rappels partent quand même.
     """  # noqa: E501
 
@@ -106,6 +108,13 @@ def process_past_due_subscriptions() -> dict:
         except Exception:
             outcome = billing_notices.FAILED
             logger.exception('Retard de paiement en échec pour la souscription %s.', subscription.pk)  # noqa: E501
+        _count(stats, outcome)
+    for subscription in billing_notices.past_due_ended_subscriptions().select_related('shop'):  # noqa: E501
+        try:
+            outcome = billing_notices.send_past_due_end_notice(subscription, now)
+        except Exception:
+            outcome = billing_notices.FAILED
+            logger.exception('Message de fin d\'abonnement en échec pour la souscription %s.', subscription.pk)  # noqa: E501
         _count(stats, outcome)
     return stats
 
