@@ -1242,6 +1242,7 @@ Abonnement d'une boutique à un plan.
 | cancel_at_period_end | BOOLEAN | NOT NULL, DEFAULT false | |
 | cancelled_at | TIMESTAMPTZ | | |
 | past_due_since | TIMESTAMPTZ | | Début du retard de paiement en cours |
+| past_due_notices_sent | SMALLINT | NOT NULL DEFAULT 0 | Étape du retard en cours : 0 rien, 1 rappel J0, 2 rappel J+7, 3 rappel J+13, 4 résiliation à J+15. Réservée par update conditionnel avant chaque envoi ; remise à 0 avec `past_due_since` par la synchronisation Stripe. Non exposée par l'API |
 | trial_ending_notice_sent_at | TIMESTAMPTZ | | Envoi du message 24 h avant la fin d'essai |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |

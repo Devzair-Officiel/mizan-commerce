@@ -44,7 +44,9 @@ class _FakeSubscriptions(_FakeResource):
     """Abonnements : `retrieve` (dans `calls`), puis `update`, `cancel`, `list`.
 
     `update_error` fait échouer un changement de prix (paramètre `items`) sans
-    rien modifier, comme `payment_behavior=error_if_incomplete`.
+    rien modifier, comme `payment_behavior=error_if_incomplete`. `cancel_calls`
+    garde paramètres et options de chaque résiliation ; `cancel_error` la fait
+    échouer sans rien modifier.
     """
 
     def __init__(self, prices: dict[str, tuple[str, str]]) -> None:
@@ -54,6 +56,8 @@ class _FakeSubscriptions(_FakeResource):
         self.update_options: list[dict[str, Any]] = []
         self.update_error: stripe.StripeError | None = None
         self.cancels: list[str] = []
+        self.cancel_calls: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
+        self.cancel_error: stripe.StripeError | None = None
         self.listed: list[dict[str, Any]] = []
 
     def update(self, id: str, params: Any = None, options: Any = None) -> Any:  # noqa: A002, E501
@@ -72,6 +76,9 @@ class _FakeSubscriptions(_FakeResource):
         return self.resource.construct_from(data, FAKE_KEY)
 
     def cancel(self, id: str, params: Any = None, options: Any = None) -> Any:  # noqa: A002, E501
+        self.cancel_calls.append((id, dict(params or {}), dict(options or {})))
+        if self.cancel_error is not None:
+            raise self.cancel_error
         self.cancels.append(id)
         self.items[id]['status'] = 'canceled'
         return self.resource.construct_from(self.items[id], FAKE_KEY)

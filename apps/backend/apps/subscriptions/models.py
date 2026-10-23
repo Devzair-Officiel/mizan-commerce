@@ -128,6 +128,9 @@ class Subscription(models.Model):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     # Début du retard de paiement en cours ; vidé quand le paiement aboutit.
     past_due_since = models.DateTimeField(null=True, blank=True)
+    # Messages du retard en cours : 0 aucun, 1 J0, 2 J+7, 3 J+13, 4 résiliation.
+    # Remis à 0 avec `past_due_since` (`stripe_sync`).
+    past_due_notices_sent = models.PositiveSmallIntegerField(default=0)
     # Envoi du message de fin d'essai (24 h avant) : un seul envoi par essai.
     trial_ending_notice_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

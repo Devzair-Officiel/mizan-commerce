@@ -6,6 +6,7 @@ import stripe
 from celery import shared_task
 from django.utils import timezone
 
+from . import billing_notices
 from .models import Subscription
 from .services import expire_trial
 from .stripe_client import billing_enabled, get_client
@@ -67,3 +68,48 @@ def reconcile_subscriptions() -> dict:
             continue
         stats['synced'] += 1
     return stats
+
+
+@shared_task
+def send_trial_ending_notices() -> dict:
+    """Rappel au propriétaire 24 h avant la fin de l'essai (toutes les 15 minutes).
+
+    Un échec sur une boutique est journalisé et n'arrête pas les autres ; sans clé
+    Stripe, les rappels partent quand même (l'essai ne dépend pas de Stripe).
+    """
+
+    now = timezone.now()
+    stats = {'sent': 0, 'failed': 0, 'ran_at': now.isoformat()}
+    for subscription in billing_notices.trial_ending_subscriptions(now).select_related('shop'):  # noqa: E501
+        try:
+            outcome = billing_notices.send_trial_ending_notice(subscription, now)
+        except Exception:
+            outcome = billing_notices.FAILED
+            logger.exception('Rappel de fin d\'essai en échec pour la souscription %s.', subscription.pk)  # noqa: E501
+        _count(stats, outcome)
+    return stats
+
+
+@shared_task
+def process_past_due_subscriptions() -> dict:
+    """Retard de paiement (toutes les 15 minutes) : rappels J0, J+7, J+13, résiliation à J+15.
+
+    Une erreur sur un abonnement n'arrête pas les autres. Sans clé Stripe, la
+    résiliation n'est pas tentée ; les rappels partent quand même.
+    """  # noqa: E501
+
+    now = timezone.now()
+    stats = {'sent': 0, 'cancelled': 0, 'failed': 0, 'ran_at': now.isoformat()}
+    for subscription in billing_notices.past_due_subscriptions():
+        try:
+            outcome = billing_notices.process_past_due(subscription, now)
+        except Exception:
+            outcome = billing_notices.FAILED
+            logger.exception('Retard de paiement en échec pour la souscription %s.', subscription.pk)  # noqa: E501
+        _count(stats, outcome)
+    return stats
+
+
+def _count(stats: dict, outcome: str) -> None:
+    if outcome in stats:
+        stats[outcome] += 1

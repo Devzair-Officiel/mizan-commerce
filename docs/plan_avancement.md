@@ -577,6 +577,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Intégration Stripe Billing — Lot 1 : code et tests prêts
   - [~] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise)
   - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée)
+  - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai)
 - [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 
@@ -696,7 +697,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Rôles et permissions — déjà implémentés et cochés en V1, écran Équipe livré en 7c ; confirmer la recette de lancement (gating `multi_user`, limites 1 / 1 / 4 / illimité), sans les présenter comme du code absent.
 - [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
-- [ ] Souscription payante — backend codé et testé sans réseau (`apps/backend/apps/subscriptions/`) : paiement (Checkout), portail, résiliation et reprise, webhooks, changement de formule ; restent le frontend, les impayés et la fin d'essai, la recette en mode test Stripe et la mise en production.
+- [ ] Souscription payante — backend codé et testé sans réseau (`apps/backend/apps/subscriptions/`) : paiement (Checkout), portail, résiliation et reprise, webhooks, changement de formule, retard de paiement (règle des 15 jours) et rappel de fin d'essai ; restent le frontend, la recette en mode test Stripe et la mise en production.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.

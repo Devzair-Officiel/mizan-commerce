@@ -140,6 +140,8 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@mizan.app')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+# Adresse de contact donnée en fin des e-mails envoyés aux commerçants.
+SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'support@mizan-commerce.com')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -292,6 +294,15 @@ CELERY_BEAT_SCHEDULE = {
     'subscriptions-reconcile-stripe-daily': {
         'task': 'apps.subscriptions.tasks.reconcile_subscriptions',
         'schedule': crontab(hour=7, minute=0),
+    },
+    # Facturation : rappel de fin d'essai (24 h avant) et retard de paiement.
+    'subscriptions-trial-ending-notices': {
+        'task': 'apps.subscriptions.tasks.send_trial_ending_notices',
+        'schedule': crontab(minute='*/15'),
+    },
+    'subscriptions-past-due': {
+        'task': 'apps.subscriptions.tasks.process_past_due_subscriptions',
+        'schedule': crontab(minute='*/15'),
     },
     # Toutes les heures : chaque boutique est traitée à son heure locale.
     'notes-automatic-reminders-hourly': {

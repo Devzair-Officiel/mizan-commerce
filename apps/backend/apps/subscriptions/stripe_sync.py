@@ -200,7 +200,9 @@ def _apply_live(pk: Any, state: dict[str, Any]) -> None:
         if state['status'] == Subscription.STATUS_PAST_DUE:
             rows.filter(past_due_since__isnull=True).update(past_due_since=now, updated_at=now)  # noqa: E501
         else:
-            rows.filter(past_due_since__isnull=False).update(past_due_since=None, updated_at=now)  # noqa: E501
+            rows.filter(past_due_since__isnull=False).update(
+                past_due_since=None, past_due_notices_sent=0, updated_at=now,
+            )
         if changes:
             _audit_live_changes(before, state)
 
@@ -219,7 +221,8 @@ def _apply_canceled(pk: Any, remote_id: str) -> None:
             plan=free_plan, status=Subscription.STATUS_ACTIVE,
             stripe_subscription_id='', current_period_start=now,
             current_period_end=None, cancel_at_period_end=False, billing_interval='',
-            cancelled_at=now, past_due_since=None, updated_at=now,
+            cancelled_at=now, past_due_since=None, past_due_notices_sent=0,
+            updated_at=now,
             **NO_SCHEDULED_CHANGE,
         )
         audit_subscription(before, 'subscription_ended', {'from': before.plan.code, 'to': free_plan.code})  # noqa: E501

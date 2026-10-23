@@ -48,6 +48,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     ai_reads_enabled = serializers.SerializerMethodField()
     ai_reads = serializers.SerializerMethodField()
     grace_ends_at = serializers.SerializerMethodField()
+    trial_ends_at = serializers.SerializerMethodField()
     stripe_managed = serializers.SerializerMethodField()
     has_billing_customer = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
@@ -66,6 +67,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'usage',
             'ai_reads_enabled', 'ai_reads',
             'billing_interval', 'past_due_since', 'grace_ends_at',
+            'trial_ends_at',
             'stripe_managed', 'has_billing_customer', 'can_manage', 'billing_enabled',
             'scheduled_change',
             'created_at', 'updated_at',
@@ -78,6 +80,14 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             return None
         grace_end = obj.past_due_since + timedelta(days=PAST_DUE_GRACE_DAYS)
         return serializers.DateTimeField().to_representation(grace_end)
+
+    def get_trial_ends_at(self, obj: Subscription) -> str | None:
+        """Fin de l'essai Mizan (null hors essai ou avec un abonnement Stripe)."""
+        if obj.status != Subscription.STATUS_TRIALING or obj.stripe_subscription_id:
+            return None
+        if obj.current_period_end is None:
+            return None
+        return serializers.DateTimeField().to_representation(obj.current_period_end)
 
     def get_scheduled_change(self, obj: Subscription) -> dict[str, str | None] | None:
         """Changement de formule programmé en fin de période, null sans changement."""
