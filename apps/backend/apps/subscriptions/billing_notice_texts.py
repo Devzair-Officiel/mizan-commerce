@@ -311,8 +311,10 @@ def subscription_ended_email(
 
 
 def _greeting(user: Any, texts: dict[str, Any]) -> str:
-    if user.full_name:
-        return texts['greeting'].format(name=user.full_name)
+    """Salue le propriétaire par son nom complet, jamais par celui de la boutique."""
+    name = ' '.join((user.full_name or '').split())
+    if name:
+        return texts['greeting'].format(name=name)
     return texts['greeting_anonymous']
 
 

@@ -24,7 +24,8 @@ from apps.accounts.factories import UserFactory
 from apps.core.models import AuditLog
 from apps.products.factories import ProductFactory
 from apps.shops.factories import ShopMemberFactory
-from apps.shops.models import Shop
+from apps.shops.models import Shop, ShopMember
+from apps.subscriptions import billing_notice_texts as texts
 from apps.subscriptions import billing_notices, tasks
 from apps.subscriptions.billing_notices import next_past_due_stage
 from apps.subscriptions.models import Subscription, SubscriptionPlan
@@ -43,6 +44,8 @@ SUPPORT = 'support@mizan-commerce.com'
 NOW = datetime(2026, 10, 23, 12, 0, tzinfo=UTC)
 LOGGER = 'apps.subscriptions.billing_notices'
 SEND_MAIL = 'apps.subscriptions.billing_notices.send_mail'
+# Ligne « membres » de la section des limites déjà atteintes.
+MEMBERS_REACHED = 'membres, la limite est'
 # Rien qui ressemble à une donnée de paiement : montant, devise, carte.
 PAYMENT_WORDS = ('€', 'EUR', '4242', 'Visa', 'IBAN', 'carte bancaire')
 
@@ -707,6 +710,87 @@ class TrialEndingContentTests(TrialEndingTestCase):
         self.free.save()
         self._run()
         self.assertNotIn('atteint déjà', mail.outbox[0].body)
+
+    def test_members_equal_to_the_limit_are_not_listed(self) -> None:
+        # Propriétaire et admin : 2 membres pour une limite de 2.
+        self.free.max_members = 2
+        self.free.save()
+        self._run()
+        body = mail.outbox[0].body
+        self.assertNotIn(MEMBERS_REACHED, body)
+        self.assertIn('Vous avez 7 articles et services actifs, la limite est 5', body)  # noqa: E501
+
+    def test_lone_owner_is_not_listed(self) -> None:
+        self.free.max_members = 1
+        self.free.save()
+        ShopMember.objects.filter(shop=self.shop, user=self.admin).delete()
+        self._run()
+        self.assertNotIn(MEMBERS_REACHED, mail.outbox[0].body)
+
+    def test_members_above_the_limit_are_listed(self) -> None:
+        self.free.max_members = 1
+        self.free.save()
+        self._run()
+        self.assertIn('Votre boutique compte 2 membres, la limite est 1', mail.outbox[0].body)  # noqa: E501
+
+    def test_other_limits_listed_when_equal(self) -> None:
+        self.free.max_products = 7
+        self.free.save()
+        self._run()
+        self.assertIn('Vous avez 7 articles et services actifs, la limite est 7', mail.outbox[0].body)  # noqa: E501
+
+    def test_no_section_when_only_members_equal_the_limit(self) -> None:
+        self.free.max_products = 50
+        self.free.max_members = 2
+        self.free.save()
+        self._run()
+        body = mail.outbox[0].body
+        self.assertNotIn('atteint déjà', body)
+        self.assertNotIn(MEMBERS_REACHED, body)
+
+
+class GreetingTests(NoticeTestCase):
+    """Salutation : nom complet du propriétaire, jamais le nom de la boutique."""
+
+    def _first_lines(self) -> list[str]:
+        shop, owner = self.shop, self.owner
+        deadline = NOW + timedelta(days=15)
+        emails = [
+            texts.trial_ending_email(owner, shop, NOW + timedelta(hours=20), [], []),
+            *(texts.past_due_email(owner, shop, stage, 'Solo', deadline, NOW) for stage in (1, 2, 3)),  # noqa: E501
+            texts.subscription_ended_email(owner, shop, 'Solo', NOW),
+        ]
+        return [body.splitlines()[0] for _, body in emails]
+
+    def test_owner_full_name_cleaned(self) -> None:
+        self.owner.full_name = '  Amina   Haddad '
+        self.owner.save()
+        self.assertEqual(self._first_lines(), ['Bonjour Amina Haddad,'] * 5)
+
+    def test_without_name_no_shop_name(self) -> None:
+        for name in ('', '   '):
+            with self.subTest(name=name):
+                self.owner.full_name = name
+                self.owner.save()
+                self.assertEqual(self._first_lines(), ['Bonjour,'] * 5)
+
+    def test_english(self) -> None:
+        self._language('en')
+        self.assertEqual(self._first_lines(), ['Hello Amina,'] * 5)
+        self.owner.full_name = ''
+        self.owner.save()
+        self.assertEqual(self._first_lines(), ['Hello,'] * 5)
+
+    def test_sent_email_greets_the_owner(self) -> None:
+        Subscription.objects.filter(pk=self.subscription.pk).update(
+            status=Subscription.STATUS_TRIALING,
+            current_period_end=NOW + timedelta(hours=20),
+        )
+        with mock.patch('apps.subscriptions.tasks.timezone.now', return_value=NOW):
+            tasks.send_trial_ending_notices()
+        first_line = mail.outbox[0].body.splitlines()[0]
+        self.assertEqual(first_line, 'Bonjour Amina,')
+        self.assertNotIn(self.shop.name, first_line)
 
 
 class CurrentSubscriptionTests(NoticeTestCase):

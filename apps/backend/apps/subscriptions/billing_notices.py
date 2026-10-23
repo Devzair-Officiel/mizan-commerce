@@ -55,6 +55,8 @@ STAGE_THRESHOLDS: tuple[tuple[int, int], ...] = (
 CANCEL_ALERT_DELAY = timedelta(hours=24)
 STRIPE_PAST_DUE_STATUSES = frozenset({'past_due', 'unpaid'})
 TRIAL_NOTICE_WINDOW = timedelta(hours=24)
+# Signalés seulement au-delà de la limite : un propriétaire seul est à 1 sur 1.
+REACHED_ONLY_ABOVE: frozenset[str] = frozenset({'members'})
 # Compteurs de `shop_usage` → limite de la formule Découverte.
 FREE_LIMIT_FIELDS: tuple[tuple[str, str], ...] = (
     ('products', 'max_products'),
@@ -322,7 +324,10 @@ def send_trial_ending_notice(subscription: Subscription, now: datetime) -> str:
 def _free_plan_limits(
     shop: Any,
 ) -> tuple[list[tuple[str, int]], list[tuple[str, int, int]]]:
-    """Limites de Découverte (illimitées omises) et celles que l'usage atteint."""
+    """Limites de Découverte (illimitées omises) et celles que l'usage atteint.
+
+    Membres : signalés seulement si l'usage dépasse la limite, pas s'il l'égale.
+    """
     free_plan = SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
     usage = shop_usage(shop)
     limits: list[tuple[str, int]] = []
@@ -333,7 +338,7 @@ def _free_plan_limits(
             continue
         limits.append((key, limit))
         count = usage[key]['count']
-        if count >= limit:
+        if count > limit or (count == limit and key not in REACHED_ONLY_ABOVE):
             reached.append((key, count, limit))
     return limits, reached
 
