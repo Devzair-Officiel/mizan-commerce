@@ -159,6 +159,14 @@ class StripeSyncTests(TestCase):
             ['subscription_cancel_reverted', 'subscription_cancel_scheduled'],
         )
 
+    def test_billing_interval_follows_the_price_then_clears(self) -> None:
+        self._sync(interval='year')
+        self.assertEqual(self.local.billing_interval, 'year')
+        self._sync(interval='month')
+        self.assertEqual(self.local.billing_interval, 'month')
+        self._sync(status='canceled')
+        self.assertEqual(self.local.billing_interval, '')
+
     def test_new_subscription_is_audited_as_started(self) -> None:
         Subscription.objects.filter(pk=self.local.pk).update(
             plan=SubscriptionPlan.objects.get(code='free'), stripe_subscription_id='',

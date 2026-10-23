@@ -166,6 +166,10 @@ REST_FRAMEWORK = {
         # Exports PDF et WhatsApp (rendu serveur) ; relevé dans la pile locale
         # (docker-compose.yml), où tournent les audits.
         'exports_render': os.environ.get('EXPORTS_RENDER_RATE', '10/minute'),
+        # Facturation Stripe : chaque appel interroge Stripe (sessions, liste).
+        'billing_checkout': '10/hour',
+        'billing_portal': '10/hour',
+        'billing_refresh': '30/hour',
     },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }

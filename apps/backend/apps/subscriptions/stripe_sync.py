@@ -94,10 +94,20 @@ def remote_state(remote: Any, local_status: str) -> dict[str, Any]:
         moment = _period_bound(remote, items, key, pick)
         if moment is not None:
             state[key] = moment
+    interval = _interval_from_items(items)
+    if interval:
+        state['billing_interval'] = interval
     plan = _plan_from_items(remote.id, items)
     if plan is not None:
         state['plan_id'] = plan.pk
     return state
+
+
+def _interval_from_items(items: Sequence[Any]) -> str:
+    recurring = field_or_none(items[0].price, 'recurring') if items else None
+    interval = field_or_none(recurring, 'interval') if recurring else None
+    known = (SubscriptionPlan.PERIOD_MONTH, SubscriptionPlan.PERIOD_YEAR)
+    return interval if interval in known else ''
 
 
 def _period_bound(
@@ -155,7 +165,7 @@ def _apply_canceled(pk: Any, remote_id: str) -> None:
         rows.update(
             plan=free_plan, status=Subscription.STATUS_ACTIVE,
             stripe_subscription_id='', current_period_start=now,
-            current_period_end=None, cancel_at_period_end=False,
+            current_period_end=None, cancel_at_period_end=False, billing_interval='',
             cancelled_at=now, past_due_since=None, updated_at=now,
         )
         audit_subscription(before, 'subscription_ended', {'from': before.plan.code, 'to': free_plan.code})  # noqa: E501

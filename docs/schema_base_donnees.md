@@ -1235,6 +1235,7 @@ Abonnement d'une boutique à un plan.
 | stripe_customer_id | VARCHAR(100) | | |
 | current_period_start | TIMESTAMPTZ | | |
 | current_period_end | TIMESTAMPTZ | | |
+| billing_interval | VARCHAR(10) | NOT NULL, DEFAULT '' | `month`, `year` : rythme du prix Stripe, posé par la synchronisation ; vide hors abonnement Stripe |
 | cancel_at_period_end | BOOLEAN | NOT NULL, DEFAULT false | |
 | cancelled_at | TIMESTAMPTZ | | |
 | past_due_since | TIMESTAMPTZ | | Début du retard de paiement en cours |

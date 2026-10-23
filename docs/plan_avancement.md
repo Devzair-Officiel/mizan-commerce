@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-22
+**Dernière mise à jour** : 2026-10-23
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -575,6 +575,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
 - [~] Intégration Stripe Billing — Lot 1 : code et tests prêts
+  - [~] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise)
 - [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 

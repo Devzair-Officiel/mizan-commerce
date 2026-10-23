@@ -111,6 +111,14 @@ class Subscription(models.Model):
     stripe_customer_id = models.CharField(max_length=100, blank=True)
     current_period_start = models.DateTimeField(null=True, blank=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
+    # Rythme de l'abonnement Stripe (prix de l'item) ; vide hors abonnement Stripe.
+    billing_interval = models.CharField(
+        max_length=10, blank=True, default='',
+        choices=[
+            (SubscriptionPlan.PERIOD_MONTH, 'Mensuel'),
+            (SubscriptionPlan.PERIOD_YEAR, 'Annuel'),
+        ],
+    )
     cancel_at_period_end = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
     # Début du retard de paiement en cours ; vidé quand le paiement aboutit.
