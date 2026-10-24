@@ -3,46 +3,37 @@
 /**
  * Page Settings → Abonnement : votre formule, votre activité, choix d'une formule, résiliation.
  *
- * Tant que Stripe n'est pas branché, tous les CTA de souscription passent par `onChoosePlan`,
- * qui ouvre une fenêtre « paiement pas encore activé » sans appeler le serveur ; le backend
- * refuse de toute façon tout passage à une formule payante (`POST /subscriptions/change/`).
+ * Souscription : un CTA de la grille ouvre le récapitulatif (`CheckoutSummary`), qui quitte
+ * l'application vers la page de paiement Stripe ; au retour (`?checkout=…`), `CheckoutReturn`
+ * attend la confirmation du serveur. Un abonnement Stripe se gère depuis « Votre formule »
+ * (portail, reprise, impayé) ; le changement de formule payante arrive au lot 5b.
  *
  * Prix et limites viennent de l'API (`/subscriptions/plans/`) ; noms, descriptions
  * et lignes de fonctions de l'i18n (`settings.subscription.plans.{code}`).
  */
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { CreditCard } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
 import { CancelPlan } from '@/components/subscription/CancelPlan';
+import { CheckoutReturn } from '@/components/subscription/CheckoutReturn';
+import { CheckoutSummary } from '@/components/subscription/CheckoutSummary';
 import { CurrentPlanCard } from '@/components/subscription/CurrentPlanCard';
 import { PlanActivity } from '@/components/subscription/PlanActivity';
-import { PlanPicker } from '@/components/subscription/PlanPicker';
+import { PlanPicker, type PlanPickerLock } from '@/components/subscription/PlanPicker';
 import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
-import { Button } from '@/components/ui/button';
 import { SectionsSkeleton } from '@/components/ui/SectionsSkeleton';
-import { useFormatMoney } from '@/lib/hooks/useFormat';
-import { usePlans, useSubscription, type PlanCode } from '@/lib/hooks/useSubscription';
-import { planPrice, type BillingPeriod } from '@/lib/plan-pricing';
+import { usePlans, useSubscription, type PlanCode, type Subscription } from '@/lib/hooks/useSubscription';
+import type { BillingPeriod } from '@/lib/plan-pricing';
 
-/** Contenu de la fenêtre ouverte par un CTA de souscription, tant que le paiement n'est pas branché. */
-function PaymentPending({ onClose }: { onClose: () => void }) {
-  const t = useTranslations('settings.subscription');
-  return (
-    <div className="flex flex-col items-center gap-4 text-center" data-payment-pending>
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-primary">
-        <CreditCard size={20} aria-hidden />
-      </div>
-      <p className="max-w-sm text-sm text-muted-foreground">{t('payment_pending')}</p>
-      <Button type="button" onClick={onClose} className="h-11 rounded-full px-6 text-sm active:scale-[0.98]">{t('payment_ok')}</Button>
-    </div>
-  );
+/** CTA de la grille inactifs : réservés au propriétaire ; abonnement Stripe déjà en place (lot 5b). */
+function planLock(subscription: Subscription): PlanPickerLock | null {
+  if (!subscription.can_manage) return 'owner_only';
+  return subscription.stripe_managed ? 'change_soon' : null;
 }
 
 export default function SubscriptionPage() {
   const t = useTranslations('settings.subscription');
-  const formatMoney = useFormatMoney();
   const subscription = useSubscription();
   const plans = usePlans();
   const [choice, setChoice] = useState<{ code: PlanCode; period: BillingPeriod } | null>(null);
@@ -65,20 +56,17 @@ export default function SubscriptionPage() {
       )}
       {sub && grid && (
         <div className="flex flex-col gap-6 px-4 pt-4 pb-32">
+          <Suspense fallback={null}><CheckoutReturn /></Suspense>
           <CurrentPlanCard subscription={sub} plan={grid.find((plan) => plan.code === sub.effective_plan_code)}
             isTrial={isTrial} onChoosePlan={onChoosePlan} />
           <PlanActivity subscription={sub} freePlan={grid.find((plan) => plan.code === 'free')} />
-          <PlanPicker plans={grid} subscription={sub} isTrial={isTrial} onChoosePlan={onChoosePlan} />
-          {sub.effective_plan_code !== 'free' && <CancelPlan />}
+          <PlanPicker plans={grid} subscription={sub} isTrial={isTrial} lock={planLock(sub)} onChoosePlan={onChoosePlan} />
+          {sub.effective_plan_code !== 'free' && <CancelPlan subscription={sub} />}
         </div>
       )}
-      {chosen && (
-        <UpgradeSheet open onClose={() => setChoice(null)} title={t('checkout_title', {
-          name: t(`plans.${chosen.code}.name`),
-          price: formatMoney(planPrice(chosen, choice.period), chosen.currency, { maximumFractionDigits: 0 }),
-          period: choice.period,
-        })}>
-          <PaymentPending onClose={() => setChoice(null)} />
+      {chosen && sub && (
+        <UpgradeSheet open onClose={() => setChoice(null)} title={t('checkout_title', { name: t(`plans.${chosen.code}.name`) })}>
+          <CheckoutSummary plan={chosen} period={choice.period} subscription={sub} isTrial={isTrial} onClose={() => setChoice(null)} />
         </UpgradeSheet>
       )}
     </div>

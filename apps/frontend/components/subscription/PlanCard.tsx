@@ -25,11 +25,13 @@ interface PlanCardProps {
   recommended: boolean;
   /** Sur mobile, une seule carte à la fois (celle de l'onglet). */
   hiddenOnMobile: boolean;
+  /** CTA inactif (raison affichée au-dessus de la grille). */
+  disabled: boolean;
   onChoose: (code: PlanCode, period: BillingPeriod) => void;
 }
 
 /** CTA en bas de carte ; Découverte n'en a pas : on y revient en résiliant, son texte prend la place (même hauteur). */
-function PlanCta({ plan, period, state, status, recommended, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile' | 'aiReads'>) {
+function PlanCta({ plan, period, state, status, recommended, disabled, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile' | 'aiReads'>) {
   const t = useTranslations('settings.subscription');
   const name = t(`plans.${plan.code}.name`);
   if (state === 'current') {
@@ -39,7 +41,7 @@ function PlanCta({ plan, period, state, status, recommended, onChoose }: Omit<Pl
     return <p className="flex h-11 items-center justify-center text-center text-sm text-muted-foreground" data-plan-cta>{t('free_fallback', { status: status === 'trialing' ? 'trialing' : 'paid' })}</p>;
   }
   return (
-    <Button type="button" variant={state === 'trial' || recommended ? 'default' : 'outline'} onClick={() => onChoose(plan.code, period)} data-plan-cta
+    <Button type="button" variant={state === 'trial' || recommended ? 'default' : 'outline'} onClick={() => onChoose(plan.code, period)} disabled={disabled} data-plan-cta
       className="h-11 w-full rounded-full px-5 text-sm active:scale-[0.98]">
       {t(state === 'trial' ? 'keep_short' : 'choose_cta', { name })}
     </Button>

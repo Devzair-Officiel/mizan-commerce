@@ -45,6 +45,14 @@ export interface UsageCounter {
   limit: number | null;
 }
 
+export type BillingInterval = 'month' | 'year';
+
+export interface ScheduledChange {
+  plan: PlanCode;
+  interval: BillingInterval | '';
+  at: string | null;
+}
+
 export interface Subscription {
   id: string;
   plan: SubscriptionPlan;
@@ -68,6 +76,24 @@ export interface Subscription {
   ai_reads_enabled: boolean;
   /** Lectures avancées du mois, face au plafond de la formule effective ; `null` si indisponibles. */
   ai_reads: UsageCounter | null;
+  /** Rythme de l'abonnement Stripe ; vide hors abonnement Stripe. */
+  billing_interval: BillingInterval | '';
+  /** Début du retard de paiement (statut `past_due`), sinon `null`. */
+  past_due_since: string | null;
+  /** Fin du délai de grâce : l'accès est conservé jusque-là, puis l'abonnement est résilié. */
+  grace_ends_at: string | null;
+  /** Fin de l'essai Mizan ; `null` hors essai. */
+  trial_ends_at: string | null;
+  /** Abonnement payé par Stripe (souscrit par le paiement en ligne). */
+  stripe_managed: boolean;
+  /** Compte de facturation existant : le portail de paiement peut s'ouvrir. */
+  has_billing_customer: boolean;
+  /** Propriétaire de la boutique : seul à pouvoir souscrire, résilier ou ouvrir le portail. */
+  can_manage: boolean;
+  /** Paiement en ligne ouvert côté serveur. */
+  billing_enabled: boolean;
+  /** Changement de formule programmé en fin de période. */
+  scheduled_change: ScheduledChange | null;
   created_at: string;
   updated_at: string;
 }
@@ -91,11 +117,9 @@ export function useSubscription() {
 }
 
 /**
- * Résilie la souscription courante et bascule sur Découverte.
- *
- * Tant que Stripe n'est pas branché, c'est la seule mutation acceptée par
- * `POST /api/subscriptions/change/`. Un envoi avec `plan_code` autre que
- * 'free' renvoie 400 côté backend.
+ * Retour immédiat sur Découverte (`POST /api/subscriptions/change/`), pour une boutique
+ * sans abonnement Stripe (essai, formule attribuée). Un abonnement Stripe se résilie
+ * par `useCancelSubscription` (`lib/hooks/useBilling.ts`), en fin de période.
  */
 export function useDowngradeToFree() {
   const qc = useQueryClient();

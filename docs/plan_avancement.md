@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-23
+**Dernière mise à jour** : 2026-10-24
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -578,6 +578,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [~] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise)
   - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée)
   - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée)
+  - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé)
 - [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 

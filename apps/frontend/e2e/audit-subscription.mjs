@@ -13,13 +13,19 @@
  * Partout : 4 cartes ou 2 × 2 selon la largeur du conteneur desktop, pastille « Recommandé » à cheval sur le haut de la carte
  * Boutique, côté début de ligne (à droite en arabe), CTA en bas de chaque carte, après la liste, à la même
  * hauteur d'une carte à l'autre (Découverte : son texte à la place du bouton), une par onglet sur mobile (onglet par défaut : formule
- * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre la fenêtre
- * « paiement pas encore activé » sans aucune requête au serveur ; la résiliation demande confirmation.
- * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) : rien n'est résilié.
+ * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre le récapitulatif
+ * de paiement sans requête (essai : départ vers checkout.stripe.com ; Découverte : autre hôte refusé) ;
+ * la résiliation demande confirmation.
+ * Paiement Stripe (lib/billing.mjs) : abonné mensuel et annuel (renouvellement, portail), résiliation
+ * programmée puis reprise, retard de paiement propriétaire et membre, membre non propriétaire sans
+ * bouton, retour `?checkout=success` / `cancelled` ; pas de défilement horizontal, cibles ≥ 44 px.
+ * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) et les POST de
+ * facturation sont simulés : rien n'est résilié, aucun appel à Stripe.
  */
 import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { animationsDone } from './lib/wait.mjs';
+import { auditBilling, billing, checkCheckout, routeBilling } from './lib/billing.mjs';
 
 const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
@@ -33,8 +39,9 @@ const TEXT_SCANS = { free: 10, solo: 30, boutique: 60, commerce_plus: 130 };
 const FEATURE_LINES = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
 
 /** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non. */
-function situation(subscription, mode, members, aiReads) {
-  return { ...plan(subscription, mode, members), ai_reads_enabled: aiReads, ai_reads: aiReads ? AI_READS[mode] : null };
+function situation(subscription, state) {
+  const { mode, members, aiReads } = state;
+  return billing({ ...plan(subscription, mode, members), ai_reads_enabled: aiReads, ai_reads: aiReads ? AI_READS[mode] ?? AI_READS.paid : null }, state);
 }
 
 function plan(subscription, mode, members) {
@@ -57,7 +64,7 @@ async function routePlan(ctx, state) {
   await ctx.route(/\/api\/proxy\/subscriptions\/current\/?(\?.*)?$/, async (route) => {
     try {
       const response = await route.fetch();
-      await route.fulfill({ response, json: situation(await response.json(), state.mode, state.members, state.aiReads) });
+      await route.fulfill({ response, json: situation(await response.json(), state) });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -235,20 +242,6 @@ async function checkYearly(page, locale, label) {
     `${label} : « Annuel · ${badge} », prix « ${perYear} »`);
 }
 
-async function checkChoose(page, locale, label, requests) {
-  const card = page.locator('[data-plan]').filter({ visible: true }).filter({ has: page.getByRole('button') }).last();
-  requests.length = 0;
-  await card.getByRole('button').click();
-  const sheet = page.getByRole('dialog');
-  await sheet.waitFor();
-  await animationsDone(sheet);
-  const text = await sheet.textContent();
-  report.check(text.includes(msg(locale, 'settings.subscription.payment_pending')) && requests.length === 0,
-    `${label} : le CTA ouvre « paiement pas encore activé », sans requête au serveur (${requests.join(', ') || 'aucune'})`);
-  await sheet.getByRole('button', { name: msg(locale, 'settings.subscription.payment_ok'), exact: true }).click();
-  await sheet.waitFor({ state: 'hidden' });
-}
-
 async function checkCancel(page, locale, label, mode) {
   const cancel = page.getByRole('button', { name: msg(locale, 'settings.subscription.cancel_cta'), exact: true });
   if (mode === 'free') {
@@ -270,10 +263,9 @@ try {
     const viewport = VIEWPORTS.find((v) => v.name === name);
     if (!viewport) continue;
     const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-    const state = { mode: 'trial', members: USAGE.members, aiReads: true };
-    const requests = [];
-    page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/proxy/subscriptions/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
+    const state = { mode: 'trial', members: USAGE.members, aiReads: true, posts: [], foreign: [], cancelAtEnd: false, afterRefresh: null, checkoutUrl: null };
     await routePlan(ctx, state);
+    await routeBilling(ctx, state);
     await setLocale(locale);
     setTheme(theme);
     for (const mode of ['trial', 'free', 'paid']) {
@@ -293,7 +285,7 @@ try {
         await checkCards(page, locale, label, mode, viewport.mobile);
         await checkCtaBottom(page, locale, label, viewport.mobile);
         await checkYearly(page, locale, label);
-        await checkChoose(page, locale, label, requests);
+        await checkCheckout(page, report, locale, label, mode, state);
         await checkCancel(page, locale, label, mode);
         await checkTeam(page, locale, label, mode, state, viewport.mobile);
         if (mode === 'free') await checkAiReadsOff(page, locale, label, state);
@@ -301,6 +293,7 @@ try {
         report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
       }
     }
+    await auditBilling(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
     report.check(watch.problems.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
     await ctx.close();
   }
