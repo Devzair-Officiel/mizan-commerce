@@ -4,48 +4,35 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { BillingNotice } from '@/components/subscription/BillingNotice';
+import { ScheduledChangeNotice } from '@/components/subscription/ScheduledChangeNotice';
 import { Button } from '@/components/ui/button';
 import {
-  billingErrorCode, billingErrorKey, useOpenPortal, useRefreshSubscription, useResumeSubscription, type BillingErrorKey,
+  billingErrorCode, billingErrorKey, useRefreshSubscription, useResumeSubscription, type BillingErrorKey,
 } from '@/lib/hooks/useBilling';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
+import { usePortalRedirect } from '@/lib/hooks/usePortalRedirect';
 import type { Subscription, SubscriptionPlan } from '@/lib/hooks/useSubscription';
 import { planPrice } from '@/lib/plan-pricing';
-import { redirectToStripe } from '@/lib/stripe-redirect';
 
 /** Portail de paiement et reprise de l'abonnement, avec leur erreur traduite. */
 function useStripeActions() {
-  const portal = useOpenPortal();
+  const portal = usePortalRedirect();
   const resume = useResumeSubscription();
   const { mutate: resync } = useRefreshSubscription();
-  const [leaving, setLeaving] = useState(false);
-  const [error, setError] = useState<BillingErrorKey | null>(null);
-
-  async function openPortal() {
-    setError(null);
-    try {
-      const { url } = await portal.mutateAsync();
-      redirectToStripe(url, 'portal');
-      setLeaving(true);
-    } catch (err) {
-      // Compte de facturation absent côté serveur : l'état affiché est périmé.
-      if (billingErrorCode(err) === 'no_billing_customer') resync();
-      setError(billingErrorKey(err, 'portal_failed'));
-    }
-  }
+  const [resumeError, setResumeError] = useState<BillingErrorKey | null>(null);
 
   async function keep() {
-    setError(null);
+    setResumeError(null);
     try {
       await resume.mutateAsync();
     } catch (err) {
       // Plus rien à reprendre (déjà repris, ou résilié entre-temps) : on relit l'état.
       if (billingErrorCode(err) === 'nothing_to_resume') resync();
-      else setError(billingErrorKey(err, 'resume_failed'));
+      else setResumeError(billingErrorKey(err, 'resume_failed'));
     }
   }
 
-  return { openPortal, keep, portalBusy: portal.isPending || leaving, resumeBusy: resume.isPending, error };
+  return { openPortal: portal.open, keep, portalBusy: portal.busy, resumeBusy: resume.isPending, error: portal.error ?? resumeError };
 }
 
 interface StripePlanSummaryProps {
@@ -56,7 +43,8 @@ interface StripePlanSummaryProps {
 
 /**
  * « Votre formule » d'un abonnement Stripe : formule et rythme, prochain renouvellement,
- * portail de paiement ; bandeau de résiliation programmée (reprise) ou de paiement échoué.
+ * portail de paiement ; bandeau de résiliation programmée (reprise), de paiement échoué ou de
+ * changement de formule programmé (annulable ; il remplace la ligne de renouvellement).
  */
 export function StripePlanSummary({ subscription, plan }: StripePlanSummaryProps) {
   const t = useTranslations('settings.subscription');
@@ -68,6 +56,7 @@ export function StripePlanSummary({ subscription, plan }: StripePlanSummaryProps
   const amount = plan ? formatMoney(planPrice(plan, interval), plan.currency, { maximumFractionDigits: 0 }) : '';
   const pastDue = subscription.status === 'past_due';
   const scheduled = subscription.cancel_at_period_end && !pastDue;
+  const change = pastDue || scheduled ? null : subscription.scheduled_change;
   const manage = subscription.can_manage;
 
   return (
@@ -79,7 +68,7 @@ export function StripePlanSummary({ subscription, plan }: StripePlanSummaryProps
             {t('period', { period: interval })}
           </span>
         </div>
-        {!pastDue && !scheduled && subscription.current_period_end && (
+        {!pastDue && !scheduled && !change && subscription.current_period_end && (
           <p className="text-sm tabular-nums text-muted-foreground" data-renewal>{t('renewal_line', { date: date(subscription.current_period_end), amount })}</p>
         )}
       </div>
@@ -87,6 +76,7 @@ export function StripePlanSummary({ subscription, plan }: StripePlanSummaryProps
         <BillingNotice kind="cancel_scheduled" text={t('cancel_scheduled', { date: date(subscription.current_period_end) })}
           action={manage ? { label: t('resume_cta'), onClick: keep, pending: resumeBusy } : undefined} />
       )}
+      {change && <ScheduledChangeNotice subscription={subscription} change={change} />}
       {pastDue && (
         <BillingNotice kind="past_due" text={t('past_due', { date: date(subscription.grace_ends_at) })}
           hint={manage ? undefined : t('past_due_owner')}

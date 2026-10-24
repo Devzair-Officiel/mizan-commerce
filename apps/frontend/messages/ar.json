@@ -220,14 +220,16 @@
       "back_home": "العودة إلى الرئيسية"
     },
     "trial": {
-      "banner_expired": "انتهت تجربة Boutique. انتقل إلى خطة مدفوعة لاستعادة جميع الميزات.",
-      "banner_expired_cta": "عرض الخطط",
-      "banner_today": "تنتهي تجربة Boutique اليوم.",
-      "banner_tomorrow": "تنتهي تجربة Boutique غداً.",
-      "banner_days": "تنتهي تجربة Boutique خلال {days} أيام.",
-      "banner_cta": "إدارة",
       "card_expired": "انتهت التجربة",
       "badge_trial": "تجربة · {days, plural, =0 {اليوم الأخير} one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}"
+    },
+    "billing": {
+      "past_due": "{dated, select, yes {تعذّر آخر دفع: يبقى وصولكم محفوظًا حتى {date}.} other {تعذّر آخر دفع.}}",
+      "past_due_admin": "تواصلوا مع مالك المتجر.",
+      "past_due_cta": "تحديث وسيلة الدفع",
+      "trial_end": "تنتهي تجربتكم المجانية يوم {date} الساعة {time}.",
+      "trial_end_cta": "اختيار باقة",
+      "dismiss": "إخفاء"
     }
   },
   "dashboard": {
@@ -1961,6 +1963,8 @@
       "per": "{period, select, year {/ سنويًا} other {/ شهريًا}}",
       "price_alt": "{period, select, year {أو {price} شهريًا} other {أو {price} سنويًا}}",
       "choose_cta": "اختيار {name}",
+      "change_cta": "الانتقال إلى {name}",
+      "switch_cta": "{period, select, year {الانتقال إلى الدفع السنوي} other {الانتقال إلى الدفع الشهري}}",
       "free_fallback": "{status, select, trialing {تُطبَّق بعد التجربة} other {تُطبَّق إذا ألغيتم}}",
       "checkout_title": "الاشتراك في باقة {name}",
       "cancel_hint": "عودة فورية إلى باقة اكتشاف، وتبقى بياناتكم سليمة.",
@@ -1971,7 +1975,8 @@
       "checkout_cta": "المتابعة إلى الدفع الآمن",
       "checkout_back": "رجوع",
       "owner_only": "وحده مالك المتجر يمكنه تعديل الاشتراك.",
-      "change_soon": "سيُتاح تغيير الباقة قريبًا.",
+      "lock_past_due": "سدّدوا آخر دفعة أولًا.",
+      "lock_cancel_scheduled": "تراجعوا عن الإلغاء أولًا.",
       "renewal_line": "التجديد القادم في {date} · {amount}",
       "portal_cta": "إدارة الدفع والفواتير",
       "cancel_scheduled": "الإلغاء مُبرمج: يبقى وصولكم كاملًا حتى {date}، ثم ينتقل متجركم إلى باقة اكتشاف. بياناتكم محفوظة.",
@@ -1998,6 +2003,51 @@
         "pending": "دفعكم قيد المعالجة. حدّثوا الصفحة بعد لحظات؛ وإن لم يتغيّر شيء، راسلونا على support@mizan-commerce.com.",
         "reload": "تحديث",
         "cancelled": "أُلغي الدفع: لم يُخصم أي مبلغ."
+      },
+      "features": {
+        "multi_user": "الموظفون والمسؤولون",
+        "roles_permissions": "الأدوار والصلاحيات",
+        "invoice_branding": "الشعار واللون على الفواتير",
+        "daily_digest": "ملخص يومي بالبريد الإلكتروني",
+        "exports": "التصدير",
+        "ocr": "قراءة فواتير المورّدين"
+      },
+      "change": {
+        "title": "تغيير الباقة",
+        "plan_period": "{period, select, year {باقة {plan} السنوية} month {باقة {plan} الشهرية} other {باقة {plan}}}",
+        "due_today": "المبلغ المستحق اليوم",
+        "effective_now": "يسري فورًا",
+        "next_renewal": "التجديد القادم: {amount} في {date}",
+        "prorata": "يُحتسب المبلغ بالتناسب مع المدة المتبقية من فترتكم الحالية.",
+        "no_payment_today": "لا دفع اليوم",
+        "takes_effect": "يسري هذا التغيير في {date}؛ وحتى ذلك التاريخ تبقى {plan} سارية.",
+        "overwrites": "{kind, select, immediate {سيُلغي هذا التغيير التغييرَ المبرمج مسبقًا إلى {plan}.} other {سيحلّ هذا التغيير محلّ التغيير المبرمج مسبقًا إلى {plan}.}}",
+        "losses_title": "ستفقدون",
+        "members_suspended": "يحتفظ موظفوكم ومسؤولوكم بحساباتهم وصلاحياتهم، لكن لن يتمكنوا من الوصول إلى المتجر حتى تعودوا إلى باقة Boutique أو Commerce+.",
+        "over_limit": "{resource, select, products {{kind, select, products {لديكم {usage} من المنتجات النشطة} services {لديكم {usage} من الخدمات النشطة} other {لديكم {usage} من المنتجات والخدمات النشطة}}} orders_this_month {لديكم {usage} من المبيعات هذا الشهر} customers {لديكم {usage} من العملاء النشطين} other {لديكم {usage} من الأعضاء}}، والحد الأقصى {limit}: تبقى بياناتكم محفوظة لكن لن تتمكنوا من إضافة المزيد.",
+        "confirm_pay": "التأكيد ودفع {amount}",
+        "confirm_schedule": "برمجة التغيير",
+        "amount_changed": "تغيّر المبلغ: تحقّقوا منه قبل التأكيد.",
+        "preview_expired": "انتهت صلاحية المعاينة: تحقّقوا من المبلغ الجديد قبل التأكيد.",
+        "done_now": "باقتكم الآن هي {plan}.",
+        "done_scheduled": "{dated, select, yes {بُرمج التغيير ليوم {date}.} other {بُرمج التغيير.}}",
+        "scheduled_notice": "{dated, select, yes {الانتقال إلى {target} في {date}.} other {الانتقال إلى {target} في نهاية الفترة.}} تبقى {current} سارية حتى ذلك الحين.",
+        "cancel_cta": "إلغاء هذا التغيير",
+        "cancelled": "أُلغي تغيير الباقة.",
+        "errors": {
+          "payment_failed": "لم يتمّ الدفع. حدّثوا وسيلة الدفع ثم أعيدوا المحاولة.",
+          "change_not_supported": "يجب إجراء هذا التغيير على مرحلتين: غيّروا الباقة أولًا، ثم فترة الفوترة.",
+          "payment_overdue": "تعذّر آخر دفع: سدّدوه أولًا، ثم غيّروا الباقة.",
+          "cancellation_scheduled": "الإلغاء مُبرمج: تراجعوا عنه أولًا، ثم غيّروا الباقة.",
+          "no_change": "هذه باقتكم الحالية بالفعل.",
+          "use_checkout": "اشتراككم لم يعد مفعّلًا: اختاروا باقة للاشتراك.",
+          "nothing_scheduled": "لم يعد هناك أي تغيير مبرمج.",
+          "unavailable": "الدفع غير متاح حاليًا.",
+          "owner_only": "وحده مالك المتجر يمكنه تعديل الاشتراك.",
+          "throttled": "محاولات كثيرة، حاولوا مجددًا بعد بضع دقائق.",
+          "change_failed": "حدث خطأ، ولم يُخصم أي مبلغ.",
+          "cancel_change_failed": "تعذّر إلغاء هذا التغيير حاليًا. حاولوا لاحقًا."
+        }
       }
     },
     "navigation": {

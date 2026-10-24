@@ -220,14 +220,16 @@
       "back_home": "Retour à l'accueil"
     },
     "trial": {
-      "banner_expired": "Essai Boutique terminé. Passez à un plan payant pour retrouver toutes les fonctionnalités.",
-      "banner_expired_cta": "Voir les formules",
-      "banner_today": "Votre essai Boutique se termine aujourd'hui.",
-      "banner_tomorrow": "Votre essai Boutique se termine demain.",
-      "banner_days": "Votre essai Boutique se termine dans {days} jours.",
-      "banner_cta": "Gérer",
       "card_expired": "Essai terminé",
       "badge_trial": "Essai · {days, plural, =0 {dernier jour} one {# j} other {# j}}"
+    },
+    "billing": {
+      "past_due": "{dated, select, yes {Le dernier paiement a échoué : votre accès est conservé jusqu'au {date}.} other {Le dernier paiement a échoué.}}",
+      "past_due_admin": "Contactez le propriétaire de la boutique.",
+      "past_due_cta": "Mettre à jour mon moyen de paiement",
+      "trial_end": "Votre essai gratuit se termine {date} à {time}.",
+      "trial_end_cta": "Choisir une formule",
+      "dismiss": "Masquer"
     }
   },
   "dashboard": {
@@ -1961,6 +1963,8 @@
       "per": "{period, select, year {/ an} other {/ mois}}",
       "price_alt": "{period, select, year {ou {price} par mois} other {ou {price} par an}}",
       "choose_cta": "Choisir {name}",
+      "change_cta": "Passer à {name}",
+      "switch_cta": "{period, select, year {Passer en annuel} other {Passer en mensuel}}",
       "free_fallback": "{status, select, trialing {Appliquée après l'essai} other {Appliquée si vous résiliez}}",
       "checkout_title": "Souscrire à {name}",
       "cancel_hint": "Retour immédiat sur Découverte, vos données restent intactes.",
@@ -1971,7 +1975,8 @@
       "checkout_cta": "Continuer vers le paiement sécurisé",
       "checkout_back": "Retour",
       "owner_only": "Seul le propriétaire de la boutique peut modifier l'abonnement.",
-      "change_soon": "Le changement de formule arrive bientôt.",
+      "lock_past_due": "Réglez d'abord le dernier paiement.",
+      "lock_cancel_scheduled": "Annulez d'abord la résiliation.",
       "renewal_line": "Prochain renouvellement le {date} · {amount}",
       "portal_cta": "Gérer le paiement et les factures",
       "cancel_scheduled": "Résiliation programmée : votre accès reste complet jusqu'au {date}, puis votre boutique passera sur Découverte. Vos données sont conservées.",
@@ -1998,6 +2003,51 @@
         "pending": "Votre paiement est en cours de traitement. Actualisez dans un instant ; si rien ne change, écrivez-nous à support@mizan-commerce.com.",
         "reload": "Actualiser",
         "cancelled": "Paiement annulé : rien n'a été débité."
+      },
+      "features": {
+        "multi_user": "Employés et administrateurs",
+        "roles_permissions": "Rôles et permissions",
+        "invoice_branding": "Logo et couleur sur les factures",
+        "daily_digest": "Résumé quotidien par e-mail",
+        "exports": "Exports",
+        "ocr": "Lecture des factures fournisseur"
+      },
+      "change": {
+        "title": "Changer de formule",
+        "plan_period": "{period, select, year {{plan} annuel} month {{plan} mensuel} other {{plan}}}",
+        "due_today": "À payer aujourd'hui",
+        "effective_now": "Effectif immédiatement",
+        "next_renewal": "Prochain renouvellement : {amount} le {date}",
+        "prorata": "Montant calculé au prorata du temps restant sur votre période en cours.",
+        "no_payment_today": "Aucun paiement aujourd'hui",
+        "takes_effect": "Ce changement prendra effet le {date} ; jusqu'à cette date vous gardez {plan}.",
+        "overwrites": "{kind, select, immediate {Ce changement annulera le changement déjà programmé vers {plan}.} other {Ce changement remplacera celui déjà programmé vers {plan}.}}",
+        "losses_title": "Vous perdez",
+        "members_suspended": "Vos employés et administrateurs gardent leur compte et leurs droits, mais n'auront plus accès à la boutique tant que vous ne repasserez pas sur Boutique ou Commerce+.",
+        "over_limit": "Vous avez {resource, select, products {{kind, select, products {{usage, plural, one {# article actif} other {# articles actifs}}} services {{usage, plural, one {# service actif} other {# services actifs}}} other {{usage, plural, one {# article ou service actif} other {# articles et services actifs}}}}} orders_this_month {{usage, plural, one {# vente ce mois} other {# ventes ce mois}}} customers {{usage, plural, one {# client actif} other {# clients actifs}}} other {{usage, plural, one {# membre} other {# membres}}}}, la limite est {limit} : vos données sont conservées mais vous ne pourrez plus en créer.",
+        "confirm_pay": "Confirmer et payer {amount}",
+        "confirm_schedule": "Programmer le changement",
+        "amount_changed": "Le montant a changé : vérifiez avant de confirmer.",
+        "preview_expired": "L'aperçu a expiré : vérifiez le nouveau montant avant de confirmer.",
+        "done_now": "Votre formule est maintenant {plan}.",
+        "done_scheduled": "{dated, select, yes {Changement programmé pour le {date}.} other {Changement programmé.}}",
+        "scheduled_notice": "{dated, select, yes {Passage à {target} le {date}.} other {Passage à {target} en fin de période.}} Vous gardez {current} d'ici là.",
+        "cancel_cta": "Annuler ce changement",
+        "cancelled": "Changement de formule annulé.",
+        "errors": {
+          "payment_failed": "Le paiement n'a pas abouti. Mettez à jour votre moyen de paiement puis réessayez.",
+          "change_not_supported": "Ce changement doit se faire en deux temps : changez d'abord de formule, puis de période.",
+          "payment_overdue": "Le dernier paiement a échoué : réglez-le d'abord, puis changez de formule.",
+          "cancellation_scheduled": "Une résiliation est programmée : annulez-la d'abord, puis changez de formule.",
+          "no_change": "C'est déjà votre formule actuelle.",
+          "use_checkout": "Votre abonnement n'est plus actif : choisissez une formule pour souscrire.",
+          "nothing_scheduled": "Aucun changement n'est plus programmé.",
+          "unavailable": "Le paiement n'est pas disponible pour le moment.",
+          "owner_only": "Seul le propriétaire de la boutique peut modifier l'abonnement.",
+          "throttled": "Trop de tentatives, réessayez dans quelques minutes.",
+          "change_failed": "Une erreur est survenue, aucun paiement n'a été effectué.",
+          "cancel_change_failed": "Impossible d'annuler ce changement pour le moment. Réessayez plus tard."
+        }
       }
     },
     "navigation": {

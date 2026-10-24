@@ -12,6 +12,8 @@ interface PlanActivityProps {
   subscription: Subscription;
   /** Découverte, dont les plafonds servent de comparaison en essai et après une résiliation programmée. */
   freePlan: SubscriptionPlan | undefined;
+  /** Formule d'un changement programmé (lue dans la grille), comparée à l'usage à partir de sa date. */
+  scheduledPlan: SubscriptionPlan | undefined;
 }
 
 /**
@@ -38,15 +40,19 @@ function AiReadsUsage({ counter }: { counter: UsageCounter | null }) {
  * « Votre activité ». Essai sans abonnement Stripe : l'usage comparé aux plafonds de Découverte, qui
  * s'appliqueront à la fin de l'essai. Sinon (Découverte, formule payante) : l'usage face aux limites
  * de la formule en vigueur, illimitées comprises ; résiliation programmée : en plus, « Après le … »
- * face aux plafonds de Découverte. Suivi, à part, de « Ce mois-ci » (lectures avancées), dont le
+ * face aux plafonds de Découverte ; changement de formule programmé : « Après le … » face aux limites
+ * de la formule qui prendra le relais. Suivi, à part, de « Ce mois-ci » (lectures avancées), dont le
  * plafond est celui de la formule en cours.
  */
-export function PlanActivity({ subscription, freePlan }: PlanActivityProps) {
+export function PlanActivity({ subscription, freePlan, scheduledPlan }: PlanActivityProps) {
   const t = useTranslations('settings.subscription');
   const formatDate = useFormatDate();
   const trial = subscription.effective_plan_code !== 'free' && subscription.status === 'trialing' && !subscription.stripe_managed;
   const usage = trial ? freePlan && againstPlan(subscription.usage, freePlan) : subscription.usage;
   const end = subscription.stripe_managed && subscription.cancel_at_period_end ? subscription.current_period_end : null;
+  const change = subscription.scheduled_change;
+  const changeAt = change && change.plan !== subscription.effective_plan_code ? change.at ?? subscription.current_period_end : null;
+  const longDate = (iso: string) => formatDate(iso, { day: 'numeric', month: 'long', year: 'numeric' });
   const aiReads = <AiReadsUsage counter={subscription.ai_reads_enabled ? subscription.ai_reads : null} />;
   if (!usage) return aiReads;
 
@@ -62,10 +68,8 @@ export function PlanActivity({ subscription, freePlan }: PlanActivityProps) {
         </div>
         <PlanUsage usage={usage} />
       </section>
-      {end && freePlan && (
-        <ActivityAfter usage={subscription.usage} plan={freePlan}
-          date={formatDate(end, { day: 'numeric', month: 'long', year: 'numeric' })} />
-      )}
+      {end && freePlan && <ActivityAfter usage={subscription.usage} plan={freePlan} date={longDate(end)} />}
+      {!end && changeAt && scheduledPlan && <ActivityAfter usage={subscription.usage} plan={scheduledPlan} date={longDate(changeAt)} />}
       {aiReads}
     </>
   );

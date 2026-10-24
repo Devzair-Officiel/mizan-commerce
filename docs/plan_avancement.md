@@ -580,6 +580,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée)
   - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé)
     - [~] correctif : activité d'un abonné payant face aux limites réelles
+  - [~] Lot 5b : code prêt (changement de formule, changement programmé, bandeaux globaux) — 2026-10-24
 - [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 
@@ -700,6 +701,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
 - [ ] Souscription payante — backend codé et testé sans réseau (`apps/backend/apps/subscriptions/`) : paiement (Checkout), portail, résiliation et reprise, webhooks, changement de formule, retard de paiement (règle des 15 jours) et rappel de fin d'essai ; restent le frontend, la recette en mode test Stripe et la mise en production.
+- [ ] Libellés des fonctions perdues lors d'un changement de formule : étendre SHIPPED_FEATURES (`apps/frontend/lib/plan-features.ts`) à chaque fonction livrée.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.

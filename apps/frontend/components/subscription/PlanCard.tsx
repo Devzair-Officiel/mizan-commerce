@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 /** Nombre de lignes `f1…fN` sous `settings.subscription.plans.{code}` ; la dernière : les lectures avancées du mois. */
 const FEATURE_LINES: Record<PlanCode, number> = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
 
-/** Où en est la boutique avec cette formule : elle l'a, elle l'essaie, ou non. */
-export type PlanCardState = 'current' | 'trial' | 'other';
+/** Où en est la boutique avec cette formule : elle l'a, elle l'essaie, elle l'a sur l'autre période, ou non. */
+export type PlanCardState = 'current' | 'trial' | 'switch' | 'other';
 
 interface PlanCardProps {
   plan: SubscriptionPlan;
@@ -25,13 +25,15 @@ interface PlanCardProps {
   recommended: boolean;
   /** Sur mobile, une seule carte à la fois (celle de l'onglet). */
   hiddenOnMobile: boolean;
+  /** Abonné Stripe : le CTA change de formule (« Passer à … ») au lieu de souscrire. */
+  changing: boolean;
   /** CTA inactif (raison affichée au-dessus de la grille). */
   disabled: boolean;
   onChoose: (code: PlanCode, period: BillingPeriod) => void;
 }
 
 /** CTA en bas de carte ; Découverte n'en a pas : on y revient en résiliant, son texte prend la place (même hauteur). */
-function PlanCta({ plan, period, state, status, recommended, disabled, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile' | 'aiReads'>) {
+function PlanCta({ plan, period, state, status, recommended, changing, disabled, onChoose }: Omit<PlanCardProps, 'hiddenOnMobile' | 'aiReads'>) {
   const t = useTranslations('settings.subscription');
   const name = t(`plans.${plan.code}.name`);
   if (state === 'current') {
@@ -40,10 +42,13 @@ function PlanCta({ plan, period, state, status, recommended, disabled, onChoose 
   if (plan.code === 'free') {
     return <p className="flex h-11 items-center justify-center text-center text-sm text-muted-foreground" data-plan-cta>{t('free_fallback', { status: status === 'trialing' ? 'trialing' : 'paid' })}</p>;
   }
+  const label = state === 'trial' ? t('keep_short', { name })
+    : state === 'switch' ? t('switch_cta', { period })
+      : t(changing ? 'change_cta' : 'choose_cta', { name });
   return (
     <Button type="button" variant={state === 'trial' || recommended ? 'default' : 'outline'} onClick={() => onChoose(plan.code, period)} disabled={disabled} data-plan-cta
       className="h-11 w-full rounded-full px-5 text-sm active:scale-[0.98]">
-      {t(state === 'trial' ? 'keep_short' : 'choose_cta', { name })}
+      {label}
     </Button>
   );
 }

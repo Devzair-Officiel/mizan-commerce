@@ -1,8 +1,9 @@
 /**
- * Paiement en ligne de la page Abonnement (lot 5a), pour audit-subscription. Tout est simulé :
- * `/subscriptions/current/` réécrit (champs de facturation, abonnement Stripe), POST checkout,
- * portal, cancel, resume et refresh répondus par `ctx.route` sans atteindre le serveur, pages
- * Stripe remplacées par une page factice. Aucun appel à Stripe, rien n'est enregistré.
+ * Paiement en ligne de la page Abonnement (lots 5a et 5b), pour audit-subscription. Tout est simulé :
+ * `/subscriptions/current/` réécrit (champs de facturation, abonnement Stripe, changement programmé
+ * `state.scheduled`, fin d'essai `state.trialEndsAt`), POST checkout, portal, cancel, resume et refresh
+ * répondus par `ctx.route` sans atteindre le serveur (changement de formule : lib/plan-change.mjs),
+ * pages Stripe remplacées par une page factice. Aucun appel à Stripe, rien n'est enregistré.
  */
 import { BASE } from './session.mjs';
 import { fmt, msg } from './messages.mjs';
@@ -28,7 +29,7 @@ const DEFAULTS = {
 
 /** Champs de facturation de la réponse `/subscriptions/current/` pour `state.mode`. */
 export function billing(base, state) {
-  if (!STRIPE_MODES.includes(state.mode) && state.mode !== SOLO_MODE) return { ...base, ...DEFAULTS };
+  if (!STRIPE_MODES.includes(state.mode) && state.mode !== SOLO_MODE) return { ...base, ...DEFAULTS, trial_ends_at: state.trialEndsAt ?? null };
   const now = Date.now();
   const pastDue = state.mode.startsWith('past_due');
   const code = state.mode === SOLO_MODE ? 'solo' : 'boutique';
@@ -41,10 +42,11 @@ export function billing(base, state) {
     days_remaining: null, cancel_at_period_end: state.cancelAtEnd,
     past_due_since: pastDue ? new Date(now - 3 * DAY).toISOString() : null,
     grace_ends_at: pastDue ? new Date(now + 12 * DAY).toISOString() : null,
+    scheduled_change: state.scheduled ?? null,
   };
 }
 
-/** Réponses simulées des POST de facturation ; `change` ne doit jamais partir (lot 5b). */
+/** Réponses simulées des POST de facturation. */
 const ACTIONS = {
   checkout: (state) => ({ url: state.checkoutUrl }),
   portal: () => ({ url: PORTAL_URL }),
@@ -58,14 +60,13 @@ const ACTIONS = {
  * `state.hold` est posé ; pages Stripe factices ; tout autre hôte noté dans `state.foreign` et coupé.
  */
 export async function routeBilling(ctx, state) {
-  await ctx.route(/\/api\/proxy\/subscriptions\/(checkout|portal|cancel|resume|refresh|change)\/?$/, async (route) => {
+  await ctx.route(/\/api\/proxy\/subscriptions\/(checkout|portal|cancel|resume|refresh)\/?$/, async (route) => {
     const request = route.request();
     const action = new URL(request.url()).pathname.split('/').filter(Boolean).at(-1);
     state.posts.push(`${action}${request.postData() ? ` ${request.postData()}` : ''}`);
     try {
       if (state.hold) await state.hold.promise;
-      const answer = ACTIONS[action];
-      await route.fulfill(answer ? { json: answer(state) } : { status: 400, json: { detail: 'audit', code: 'no_change' } });
+      await route.fulfill({ json: ACTIONS[action](state) });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -77,40 +78,42 @@ export async function routeBilling(ctx, state) {
 }
 
 /** Retient les POST de facturation jusqu'à l'appel de la fonction renvoyée. */
-function hold(state) {
+export function hold(state) {
   let release;
   state.hold = { promise: new Promise((resolve) => { release = resolve; }) };
   return () => { state.hold = null; release(); };
 }
 
-async function load(page, query = '') {
+export async function load(page, query = '') {
   await page.goto(`${BASE}/settings/subscription${query}`);
   await page.waitForLoadState('networkidle');
   await page.locator('[data-current-plan]').waitFor({ timeout: 10000 });
 }
 
-/** Pas de défilement horizontal ; cibles des zones de paiement d'au moins 44 px. */
-async function checkLayout(page, report, label) {
-  const { overflow, small } = await page.evaluate(() => ({
+const PAYMENT_ZONES = '[data-current-plan], [data-cancel-plan], [data-checkout-summary], [data-checkout-return]';
+
+/** Pas de défilement horizontal ; cibles des zones de paiement (ou de `zones`) d'au moins 44 px. */
+export async function checkLayout(page, report, label, zones = PAYMENT_ZONES) {
+  const { overflow, small } = await page.evaluate((selector) => ({
     overflow: document.scrollingElement.scrollWidth - innerWidth,
-    small: [...document.querySelectorAll('[data-current-plan], [data-cancel-plan], [data-checkout-summary], [data-checkout-return]')]
+    small: [...document.querySelectorAll(selector)]
       .flatMap((zone) => [...zone.querySelectorAll('button, a')])
       .filter((el) => el.getClientRects().length > 0)
       .map((el) => [el.textContent.trim(), el.getBoundingClientRect()])
       .filter(([, r]) => r.height < 44 || r.width < 44)
       .map(([text, r]) => `${text} ${Math.round(r.width)}×${Math.round(r.height)}`),
-  }));
+  }), zones);
   report.check(overflow <= 0 && small.length === 0,
     `${label} : pas de défilement horizontal (${overflow}), cibles ≥ 44 px${small.length ? ` (✗ ${small.join(' | ')})` : ''}`);
 }
 
 /** Texte d'un message avant sa date ou son montant (formatés par le navigateur). */
-const before = (locale, key, params = {}) => fmt(locale, key, { ...params, date: '§', amount: '§' }).split('§')[0];
+export const before = (locale, key, params = {}) => fmt(locale, key, { ...params, date: '§', amount: '§' }).split('§')[0];
 
 /** Attribut du premier élément, null s'il n'y en a pas (sans attendre qu'il apparaisse). */
 const attr = (locator, name) => locator.evaluateAll((els, n) => els[0]?.getAttribute(n) ?? null, name);
 
-const shot = (page, label, suffix = '') => process.env.SHOTS
+export const shot = (page, label, suffix = '') => process.env.SHOTS
   && page.screenshot({ path: `${process.env.SHOTS}/abonnement-${label.replace('px', '').replaceAll(' ', '-')}${suffix}.png`, fullPage: true });
 
 /**
@@ -154,7 +157,10 @@ export async function checkCheckout(page, report, locale, label, mode, state) {
   await sheet.waitFor({ state: 'hidden' });
 }
 
-/** Attendu de « Votre formule » par abonnement Stripe : boutons, bandeau, motif de la grille, résiliation. */
+/**
+ * Attendu de « Votre formule » par abonnement Stripe : boutons, bandeau, motif de la grille (aucun pour le
+ * propriétaire à jour : CTA actifs), résiliation.
+ */
 function expected(locale, mode) {
   const t = (key) => msg(locale, `settings.subscription.${key}`);
   const owner = !mode.endsWith('member');
@@ -164,12 +170,12 @@ function expected(locale, mode) {
     notice: pastDue ? 'past_due' : null,
     text: pastDue ? before(locale, 'settings.subscription.past_due') : owner ? before(locale, 'settings.subscription.renewal_line') : t('owner_only'),
     hint: mode === 'past_due_member' ? t('past_due_owner') : null,
-    lock: owner ? 'change_soon' : 'owner_only',
+    lock: !owner ? 'owner_only' : pastDue ? 'lock_past_due' : null,
     cancel: owner ? 'stripe' : null,
   };
 }
 
-/** « Votre formule » d'un abonnement Stripe, grille inactive avec son motif, résiliation selon le rôle. */
+/** « Votre formule » d'un abonnement Stripe, grille inactive avec son motif (active sinon), résiliation selon le rôle. */
 async function checkSummary(page, report, locale, label, mode) {
   const card = page.locator('[data-current-plan]');
   const want = expected(locale, mode);
@@ -180,19 +186,26 @@ async function checkSummary(page, report, locale, label, mode) {
   const period = mode === 'yearly' ? 'year' : 'month';
   const lock = await attr(page.locator('[data-plan-lock]'), 'data-plan-lock');
   // Découverte porte son texte à la place du bouton : seuls les boutons comptent.
-  const ctas = await page.locator('button[data-plan-cta]').evaluateAll((els) => els.length > 0 && els.every((el) => el.disabled));
+  const ctas = await ctasDisabled(page) === (want.lock !== null);
   const cancel = await attr(page.locator('[data-cancel-plan]'), 'data-cancel-plan');
   report.check(await card.getAttribute('data-stripe-managed') !== null && interval === period
     && text.includes(fmt(locale, 'settings.subscription.period', { period })) && buttons.join('|') === want.buttons.join('|')
     && notice === want.notice && text.includes(want.text) && (!want.hint || text.includes(want.hint)),
   `${label} : abonnement Stripe ${period}, ${want.notice ? 'bandeau d\'impayé, ' : ''}boutons « ${buttons.join(' | ') || 'aucun'} »`);
   report.check(lock === want.lock && ctas && cancel === want.cancel,
-    `${label} : grille inactive (« ${lock} »), résiliation ${cancel ?? 'masquée'}`);
+    `${label} : grille ${lock ? `inactive (« ${lock} »)` : 'active'}, résiliation ${cancel ?? 'masquée'}`);
   if (mode !== 'monthly' && mode !== 'yearly') return;
   const renewal = (await card.locator('[data-renewal]').textContent()).split(' · ').at(-1);
   report.check((await page.locator('[data-plan=boutique]').textContent()).includes(renewal),
     `${label} : renouvellement au montant ${period === 'year' ? 'annuel' : 'mensuel'} de la grille (${renewal})`);
 }
+
+/** CTA de la grille (boutons) tous inactifs : vrai ; tous actifs : faux ; mélange ou aucun : null. */
+export const ctasDisabled = (page) => page.locator('button[data-plan-cta]').evaluateAll((els) => {
+  if (els.length === 0) return null;
+  if (els.every((el) => el.disabled)) return true;
+  return els.every((el) => !el.disabled) ? false : null;
+});
 
 /** Bouton de « Votre formule » qui part vers billing.stripe.com, puis retour sur la page. */
 async function checkPortal(page, report, locale, label, key, state) {
@@ -236,6 +249,9 @@ async function checkCancelResume(page, report, locale, label, state) {
   report.check((await notice.textContent()).includes(before(locale, 'settings.subscription.cancel_scheduled'))
     && await page.locator('[data-cancel-plan]').count() === 0,
   `${label} : bandeau « résiliation programmée », lien de résiliation masqué`);
+  const lock = await attr(page.locator('[data-plan-lock]'), 'data-plan-lock');
+  report.check(lock === 'lock_cancel_scheduled' && await ctasDisabled(page) === true,
+    `${label} : résiliation programmée, grille inactive (« ${msg(locale, 'settings.subscription.lock_cancel_scheduled')} »)`);
   await checkLayout(page, report, `${label} résiliation programmée`);
   await shot(page, label, '-scheduled');
   await notice.getByRole('button', { name: msg(locale, 'settings.subscription.resume_cta'), exact: true }).click();

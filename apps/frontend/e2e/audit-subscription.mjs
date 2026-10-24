@@ -22,6 +22,12 @@
  * Paiement Stripe (lib/billing.mjs) : abonné mensuel et annuel (renouvellement, portail), résiliation
  * programmée puis reprise, retard de paiement propriétaire et membre, membre non propriétaire sans
  * bouton, retour `?checkout=success` / `cancelled` ; pas de défilement horizontal, cibles ≥ 44 px.
+ * Changement de formule (lib/plan-change.mjs, lot 5b) : grille active de l'abonné à jour (période de départ = son rythme,
+ * « Passer à … », « Passer en annuel / mensuel »), verrous (propriétaire seul, impayé, résiliation programmée), aperçu
+ * immédiat puis programmé avec pertes, confirmation identique à l'aperçu, 409 amount_changed (montant changé, aperçu
+ * expiré), 402 (portail, « Réessayer »), change_not_supported, bandeau du changement programmé et son annulation.
+ * Bandeaux globaux (lib/banners.mjs) : impayé (propriétaire, admin, employé, absent de la page Abonnement), fin d'essai
+ * à 20 h (masquable pour la session).
  * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) et les POST de
  * facturation sont simulés : rien n'est résilié, aucun appel à Stripe.
  */
@@ -30,6 +36,8 @@ import { fmt, msg } from './lib/messages.mjs';
 import { animationsDone } from './lib/wait.mjs';
 import { auditBilling, billing, checkCheckout, routeBilling } from './lib/billing.mjs';
 import { auditPaidActivity } from './lib/activity.mjs';
+import { auditPlanChange, routePlanChange } from './lib/plan-change.mjs';
+import { auditBanners, routeRole } from './lib/banners.mjs';
 
 const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
@@ -42,7 +50,7 @@ const AI_READS = { trial: { count: 50, limit: 60 }, free: { count: 10, limit: 10
 const TEXT_SCANS = { free: 10, solo: 30, boutique: 60, commerce_plus: 130 };
 const FEATURE_LINES = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
 
-/** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non. */
+/** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non ; gardée dans `state.current`. */
 function situation(subscription, state) {
   const { mode, members, aiReads } = state;
   return billing({ ...plan(subscription, mode, members), ai_reads_enabled: aiReads, ai_reads: aiReads ? AI_READS[mode] ?? AI_READS.paid : null }, state);
@@ -68,7 +76,8 @@ async function routePlan(ctx, state) {
   await ctx.route(/\/api\/proxy\/subscriptions\/current\/?(\?.*)?$/, async (route) => {
     try {
       const response = await route.fetch();
-      await route.fulfill({ response, json: situation(await response.json(), state) });
+      state.current = situation(await response.json(), state);
+      await route.fulfill({ response, json: state.current });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -275,9 +284,14 @@ try {
     const viewport = VIEWPORTS.find((v) => v.name === name);
     if (!viewport) continue;
     const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-    const state = { mode: 'trial', members: USAGE.members, aiReads: true, posts: [], foreign: [], cancelAtEnd: false, afterRefresh: null, checkoutUrl: null };
+    const state = {
+      mode: 'trial', members: USAGE.members, aiReads: true, posts: [], foreign: [], cancelAtEnd: false, afterRefresh: null, checkoutUrl: null,
+      current: null, scheduled: null, changeScript: [], role: null, theme, trialEndsAt: null,
+    };
     await routePlan(ctx, state);
     await routeBilling(ctx, state);
+    await routePlanChange(ctx, state);
+    await routeRole(ctx, state);
     await setLocale(locale);
     setTheme(theme);
     for (const mode of ['trial', 'free', 'paid']) {
@@ -307,7 +321,12 @@ try {
     }
     await auditBilling(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
     await auditPaidActivity(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);
-    report.check(watch.problems.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await auditPlanChange(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);
+    await auditBanners(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
+    // Seuls 402 / 409 attendus : refus simulés du changement de formule (lib/plan-change.mjs), vérifiés à l'écran.
+    const issues = watch.problems.filter((p) => !(/Failed to load resource: the server responded with a status of 40[29]/.test(p)
+      && /\(\/api\/proxy\/subscriptions\/change(-preview)?\/\)$/.test(p)));
+    report.check(issues.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${issues.map((p) => `\n      ${p}`).join('')}`);
     await ctx.close();
   }
 } finally {
