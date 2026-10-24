@@ -209,7 +209,7 @@ class PreviewTests(PlanChangeTestCase):
             'target': {'plan': 'boutique', 'interval': 'month'},
             'amount_due_now': '12.34', 'currency': 'EUR',
             'proration_date': proration_date, 'effective_at': _iso(proration_date),
-            'next_renewal': {'amount': '19.00', 'date': _iso(PERIOD_END)},
+            'next_renewal': {'amount': '16.00', 'date': _iso(PERIOD_END)},
             'lost_features': [], 'over_limits': [],
         })
         self.assertEqual(self.stripe.invoices.previews, [{

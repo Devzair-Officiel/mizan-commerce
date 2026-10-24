@@ -1,9 +1,10 @@
 """Faux client Stripe en mémoire, pour les tests uniquement (aucun appel réseau).
 
 `FakeStripeClient` répond aux seuls appels faits par `stripe_sync`,
-`stripe_events`, `stripe_billing` et `stripe_plan_change` : lecture, liste, mise
-à jour et résiliation d'abonnements, lecture de paiements, création de clients et
-de sessions (Checkout, portail), aperçu, liste et annulation de factures,
+`stripe_events`, `stripe_billing`, `stripe_plan_change` et
+`stripe_price_migration` : lecture, liste, mise à jour et résiliation
+d'abonnements, lecture de prix et de paiements, création de clients et de
+sessions (Checkout, portail), aperçu, liste et annulation de factures,
 calendriers d'abonnement.
 Les objets sont construits par le SDK (`construct_from`) à partir de
 dictionnaires, comme une vraie réponse de l'API. Les helpers signent un corps
@@ -39,6 +40,25 @@ class _FakeResource:
         if id not in self.items:
             raise stripe.InvalidRequestError(f'No such {self.label}', 'id', code='resource_missing')  # noqa: E501
         return self.resource.construct_from(self.items[id], FAKE_KEY)
+
+
+class FakePrices(dict[str, tuple[str, str]]):
+    """Prix connus : identifiant → (produit, rythme) ; `retrieve` comme `v1.prices`.
+
+    `amounts` (centimes, en euros) ajoute `unit_amount` et `currency` au prix
+    développé ; `calls` garde chaque lecture.
+    """
+
+    def __init__(self, items: dict[str, tuple[str, str]]) -> None:
+        super().__init__(items)
+        self.amounts: dict[str, int] = {}
+        self.calls: list[str] = []
+
+    def retrieve(self, price: str, params: Any = None, options: Any = None) -> Any:
+        self.calls.append(price)
+        if price not in self:
+            raise stripe.InvalidRequestError('No such price', 'id', code='resource_missing')  # noqa: E501
+        return stripe.Price.construct_from(price_object(price, self), FAKE_KEY)
 
 
 class _FakeSubscriptions(_FakeResource):
@@ -234,12 +254,11 @@ class FakeStripeClient:
     """Imite `StripeClient.v1` pour les abonnements, paiements et sessions."""
 
     def __init__(self) -> None:
-        # Prix connus : identifiant → (produit, rythme).
-        self.prices: dict[str, tuple[str, str]] = {
+        self.prices = FakePrices({
             f'price_{code}_{interval}': (f'mizan_{code}', interval)
             for code in ('solo', 'boutique', 'commerce_plus')
             for interval in ('month', 'year')
-        }
+        })
         self.subscriptions = _FakeSubscriptions(self.prices)
         self.invoices = _FakeInvoices()
         self.subscription_schedules = _FakeSchedules(self)
@@ -297,12 +316,16 @@ def subscription_data(
 
 
 def price_object(price_id: str, prices: dict[str, tuple[str, str]]) -> dict[str, Any]:  # noqa: E501
-    """Prix Stripe développé ; produit et rythme tirés de `prices` s'il y figure."""
+    """Prix Stripe développé ; produit, rythme (et montant) tirés de `prices`."""
     product, interval = prices.get(price_id, ('prod_inconnu', 'month'))
-    return {
+    data: dict[str, Any] = {
         'id': price_id, 'object': 'price', 'product': product,
         'recurring': {'interval': interval, 'interval_count': 1},
     }
+    amount = getattr(prices, 'amounts', {}).get(price_id)
+    if amount is not None:
+        data.update(unit_amount=amount, currency='eur')
+    return data
 
 
 def schedule_data(

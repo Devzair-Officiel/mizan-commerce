@@ -1185,14 +1185,14 @@ Signalements d'un projet ou d'un profil.
 
 Plans tarifaires (gérés par l'admin de la plateforme, pas par les commerçants).
 
-Grille 2026 (migration `0004_rename_plans`, codes renommés en place) :
+Grille 2026 (migration `0004_rename_plans`, codes renommés en place ; prix annuels `0005_plan_yearly_price` ; prix Boutique et Commerce+ revus par `0014_plan_prices_boutique_commerce_plus`, avant 19 / 190 € et 39 / 390 €) :
 
 | code | Nom | Prix | Produits actifs | Ventes / mois | Clients actifs | Membres |
 |---|---|---|---|---|---|---|
 | `free` | Découverte | 0 € | 30 | 15 | 15 | 1 |
-| `solo` (ex-`pro`) | Solo | 9 € / mois | ∞ | ∞ | ∞ | 1 |
-| `boutique` (ex-`boutique_plus`) | Boutique | 19 € / mois | ∞ | ∞ | ∞ | 4 |
-| `commerce_plus` | Commerce+ | 39 € / mois | ∞ | ∞ | ∞ | ∞ |
+| `solo` (ex-`pro`) | Solo | 9 € / mois (90 € / an) | ∞ | ∞ | ∞ | 1 |
+| `boutique` (ex-`boutique_plus`) | Boutique | 16 € / mois (160 € / an) | ∞ | ∞ | ∞ | 4 |
+| `commerce_plus` | Commerce+ | 29 € / mois (290 € / an) | ∞ | ∞ | ∞ | ∞ |
 
 L'essai de 14 jours à l'inscription porte sur `boutique`. Les limites sont vérifiées sous verrou de la ligne `shops` (`select_for_update`), dans la transaction de création.
 

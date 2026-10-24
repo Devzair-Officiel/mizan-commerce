@@ -42,8 +42,8 @@ const PLANS: Plan[] = [
     tag: 'Recommandé',
     name: 'Boutique',
     desc: 'Je veux attirer et fidéliser',
-    m: 19,
-    y: 190,
+    m: 16,
+    y: 160,
     feature: true,
     feats: [
       'Tout Solo inclus',
@@ -62,8 +62,8 @@ const PLANS: Plan[] = [
   {
     name: 'Commerce+',
     desc: "J'ai une équipe et du volume",
-    m: 39,
-    y: 390,
+    m: 29,
+    y: 290,
     feats: ['Tout Boutique inclus', 'Équipe illimitée', "Journal d'activité", 'Support prioritaire'],
     cta: 'Choisir Commerce+',
     kind: 'btn-dark',

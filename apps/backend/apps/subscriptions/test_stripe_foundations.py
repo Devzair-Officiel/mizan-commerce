@@ -7,6 +7,7 @@ de Stripe de donner une lookup_key déjà prise sans `transfer_lookup_key`.
 
 from __future__ import annotations
 
+import importlib
 from decimal import Decimal
 from io import StringIO
 from types import SimpleNamespace
@@ -14,6 +15,7 @@ from typing import Any
 from unittest import mock
 
 import stripe
+from django.apps import apps as django_apps
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
@@ -122,8 +124,8 @@ class SyncCatalogTest(TestCase):
         amounts = {p['lookup_key']: p['unit_amount'] for p in self.fake.prices.created}
         self.assertEqual(amounts, {
             'solo_monthly': 900, 'solo_yearly': 9000,
-            'boutique_monthly': 1900, 'boutique_yearly': 19000,
-            'commerce_plus_monthly': 3900, 'commerce_plus_yearly': 39000,
+            'boutique_monthly': 1600, 'boutique_yearly': 16000,
+            'commerce_plus_monthly': 2900, 'commerce_plus_yearly': 29000,
         })
         for params in self.fake.prices.created:
             self.assertEqual(params['currency'], 'eur')
@@ -186,6 +188,31 @@ class SyncCatalogTest(TestCase):
         self.assertTrue(old.active)
         self.assertIsNone(old.lookup_key)
         self.assertEqual(_plan('solo').stripe_price_id, new.id)
+
+    def test_new_grid_creates_new_prices_and_keeps_old_active(self) -> None:
+        """Migration 0014 : 16 / 160 € et 29 / 290 € créés, anciens prix gardés actifs."""  # noqa: E501
+        migration = importlib.import_module(
+            'apps.subscriptions.migrations.0014_plan_prices_boutique_commerce_plus',
+        )
+        migration.backwards(django_apps, None)
+        sync_catalog(self.fake, dry_run=False)
+        keys = ('boutique_monthly', 'boutique_yearly', 'commerce_plus_monthly', 'commerce_plus_yearly')  # noqa: E501
+        old = {key: self.fake.prices.by_key(key) for key in keys}
+        migration.forwards(django_apps, None)
+        sync_catalog(self.fake, dry_run=False)
+
+        created = {p['lookup_key']: p['unit_amount'] for p in self.fake.prices.created[6:]}  # noqa: E501
+        self.assertEqual(created, {
+            'boutique_monthly': 1600, 'boutique_yearly': 16000,
+            'commerce_plus_monthly': 2900, 'commerce_plus_yearly': 29000,
+        })
+        for key, price in old.items():
+            with self.subTest(key=key):
+                self.assertTrue(price.active)
+                self.assertIsNone(price.lookup_key)
+                self.assertNotEqual(self.fake.prices.by_key(key).id, price.id)
+        self.assertEqual(_plan('boutique').stripe_price_id, self.fake.prices.by_key('boutique_monthly').id)  # noqa: E501
+        self.assertEqual(_plan('commerce_plus').stripe_price_id_yearly, self.fake.prices.by_key('commerce_plus_yearly').id)  # noqa: E501
 
     def test_rename_updates_product_only(self) -> None:
         sync_catalog(self.fake, dry_run=False)
