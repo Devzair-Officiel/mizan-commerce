@@ -1185,14 +1185,14 @@ Signalements d'un projet ou d'un profil.
 
 Plans tarifaires (gérés par l'admin de la plateforme, pas par les commerçants).
 
-Grille 2026 (migration `0004_rename_plans`, codes renommés en place) :
+Grille 2026 (migration `0004_rename_plans`, codes renommés en place ; prix annuels `0005_plan_yearly_price` ; prix Boutique et Commerce+ revus par `0014_plan_prices_boutique_commerce_plus`, avant 19 / 190 € et 39 / 390 €) :
 
 | code | Nom | Prix | Produits actifs | Ventes / mois | Clients actifs | Membres |
 |---|---|---|---|---|---|---|
 | `free` | Découverte | 0 € | 30 | 15 | 15 | 1 |
-| `solo` (ex-`pro`) | Solo | 9 € / mois | ∞ | ∞ | ∞ | 1 |
-| `boutique` (ex-`boutique_plus`) | Boutique | 19 € / mois | ∞ | ∞ | ∞ | 4 |
-| `commerce_plus` | Commerce+ | 39 € / mois | ∞ | ∞ | ∞ | ∞ |
+| `solo` (ex-`pro`) | Solo | 9 € / mois (90 € / an) | ∞ | ∞ | ∞ | 1 |
+| `boutique` (ex-`boutique_plus`) | Boutique | 16 € / mois (160 € / an) | ∞ | ∞ | ∞ | 4 |
+| `commerce_plus` | Commerce+ | 29 € / mois (290 € / an) | ∞ | ∞ | ∞ | ∞ |
 
 L'essai de 14 jours à l'inscription porte sur `boutique`. Les limites sont vérifiées sous verrou de la ligne `shops` (`select_for_update`), dans la transaction de création.
 
@@ -1235,10 +1235,36 @@ Abonnement d'une boutique à un plan.
 | stripe_customer_id | VARCHAR(100) | | |
 | current_period_start | TIMESTAMPTZ | | |
 | current_period_end | TIMESTAMPTZ | | |
+| billing_interval | VARCHAR(10) | NOT NULL, DEFAULT '' | `month`, `year` : rythme du prix Stripe, posé par la synchronisation ; vide hors abonnement Stripe |
+| scheduled_plan_code | VARCHAR(30) | NOT NULL, DEFAULT '' | Formule du changement programmé en fin de période (phase suivante du calendrier Stripe, produit `mizan_<code>`) ; vide sans changement programmé |
+| scheduled_interval | VARCHAR(10) | NOT NULL, DEFAULT '' | `month`, `year` : rythme du changement programmé (prix de la phase suivante) ; vide sans changement programmé |
+| scheduled_change_at | TIMESTAMPTZ | | Début de la phase suivante du calendrier ; NULL sans changement programmé. Les trois champs sont écrits par la synchronisation Stripe uniquement |
 | cancel_at_period_end | BOOLEAN | NOT NULL, DEFAULT false | |
 | cancelled_at | TIMESTAMPTZ | | |
+| past_due_since | TIMESTAMPTZ | | Début du retard de paiement en cours |
+| past_due_notices_sent | SMALLINT | NOT NULL DEFAULT 0 | Dernier rappel du retard en cours : 0 rien, 1 rappel J0, 2 rappel J+7, 3 rappel J+13. Réservé par update conditionnel avant chaque envoi ; remis à 0 avec `past_due_since` par la synchronisation Stripe. Non exposé par l'API |
+| past_due_cancel_requested_at | TIMESTAMPTZ | | Première tentative de résiliation pour retard (à partir de J+15, retentée à chaque passage). Survit à la résiliation pour l'unique message de fin, dont la réservation l'efface ; effacée aussi au retour du paiement ou à un nouvel abonnement (synchronisation Stripe). Erreur journalisée si la résiliation échoue encore 24 h après. Non exposée par l'API |
+| trial_ending_notice_sent_at | TIMESTAMPTZ | | Envoi du message 24 h avant la fin d'essai |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+Catalogue Stripe : un produit `mizan_<code>` par formule payante active, prix repérés par `lookup_key` (`<code>_monthly`, `<code>_yearly`), synchronisés par `manage.py stripe_sync_plans`. Souscription, changement de formule et résiliation : propriétaire seul (`IsShopOwner`).
+
+---
+
+### `stripe_events`
+
+Événements de webhook Stripe déjà reçus, pour traiter chacun une seule fois. Aucun contenu d'événement ni donnée de paiement.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | VARCHAR(255) | PK | Identifiant Stripe `evt_…` |
+| event_type | VARCHAR(100) | NOT NULL | `invoice.paid`, `customer.subscription.updated`… |
+| stripe_created_at | TIMESTAMPTZ | NOT NULL | Date de création chez Stripe |
+| received_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| processed_at | TIMESTAMPTZ | | NULL tant que le traitement n'a pas abouti |
+
+**Index** : `(event_type, received_at)`.
 
 ---
 

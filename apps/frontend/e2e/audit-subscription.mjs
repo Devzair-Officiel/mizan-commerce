@@ -6,20 +6,38 @@
  *   une rangée de cartes (2 colonnes sur mobile), statut écrit (« Dans la limite », ambre, rouge),
  *   sans carte « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
  * - Découverte : jauges de la formule, pas de résiliation ;
- * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
+ * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète ; « Votre activité »
+ *   face aux limites de Solo (ventes, articles, clients « Illimité », sans barre), carte « équipe » pour une équipe de 3.
+ * Abonné Stripe (lib/activity.mjs) : « Votre activité » face aux limites réelles (Boutique : équipe 2 sur 4, le reste
+ * illimité ; Solo), sans plafonds Découverte ; résiliation programmée : bloc « Après le … » face à Découverte.
  * « Ce mois-ci » (lectures avancées du scan) : section à part, hors de « Votre activité », plafond de la formule en cours
  * (essai : 50 / 60 de Boutique, ambre ; Découverte : 10 / 10, rouge ; Solo : 3 / 30), niveau écrit ; dernière ligne de chaque
  * formule « N lectures avancées » lue sur la formule. Fonction éteinte (`ai_reads_enabled` faux) : ni section ni ligne.
  * Partout : 4 cartes ou 2 × 2 selon la largeur du conteneur desktop, pastille « Recommandé » à cheval sur le haut de la carte
  * Boutique, côté début de ligne (à droite en arabe), CTA en bas de chaque carte, après la liste, à la même
  * hauteur d'une carte à l'autre (Découverte : son texte à la place du bouton), une par onglet sur mobile (onglet par défaut : formule
- * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre la fenêtre
- * « paiement pas encore activé » sans aucune requête au serveur ; la résiliation demande confirmation.
- * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) : rien n'est résilié.
+ * payante courante, sinon Boutique) ; Mensuel / Annuel (« 2 mois offerts ») ; un CTA ouvre le récapitulatif
+ * de paiement sans requête (essai : départ vers checkout.stripe.com ; Découverte : autre hôte refusé) ;
+ * la résiliation demande confirmation.
+ * Paiement Stripe (lib/billing.mjs) : abonné mensuel et annuel (renouvellement, portail), résiliation
+ * programmée puis reprise, retard de paiement propriétaire et membre, membre non propriétaire sans
+ * bouton, retour `?checkout=success` / `cancelled` ; pas de défilement horizontal, cibles ≥ 44 px.
+ * Changement de formule (lib/plan-change.mjs, lot 5b) : grille active de l'abonné à jour (période de départ = son rythme,
+ * « Passer à … », « Passer en annuel / mensuel »), verrous (propriétaire seul, impayé, résiliation programmée), aperçu
+ * immédiat puis programmé avec pertes, confirmation identique à l'aperçu, 409 amount_changed (montant changé, aperçu
+ * expiré), 402 (portail, « Réessayer »), change_not_supported, bandeau du changement programmé et son annulation.
+ * Bandeaux globaux (lib/banners.mjs) : impayé (propriétaire, admin, employé, absent de la page Abonnement), fin d'essai
+ * à 20 h (masquable pour la session).
+ * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) et les POST de
+ * facturation sont simulés : rien n'est résilié, aucun appel à Stripe.
  */
 import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { animationsDone } from './lib/wait.mjs';
+import { auditBilling, billing, checkCheckout, routeBilling } from './lib/billing.mjs';
+import { auditPaidActivity } from './lib/activity.mjs';
+import { auditPlanChange, routePlanChange } from './lib/plan-change.mjs';
+import { auditBanners, routeRole } from './lib/banners.mjs';
 
 const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
@@ -32,9 +50,10 @@ const AI_READS = { trial: { count: 50, limit: 60 }, free: { count: 10, limit: 10
 const TEXT_SCANS = { free: 10, solo: 30, boutique: 60, commerce_plus: 130 };
 const FEATURE_LINES = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
 
-/** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non. */
-function situation(subscription, mode, members, aiReads) {
-  return { ...plan(subscription, mode, members), ai_reads_enabled: aiReads, ai_reads: aiReads ? AI_READS[mode] : null };
+/** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non ; gardée dans `state.current`. */
+function situation(subscription, state) {
+  const { mode, members, aiReads } = state;
+  return billing({ ...plan(subscription, mode, members), ai_reads_enabled: aiReads, ai_reads: aiReads ? AI_READS[mode] ?? AI_READS.paid : null }, state);
 }
 
 function plan(subscription, mode, members) {
@@ -48,7 +67,7 @@ function plan(subscription, mode, members) {
       days_remaining: 10, usage: usage({}) };
   }
   const code = mode === 'free' ? 'free' : 'solo';
-  const limits = mode === 'free' ? { products: 30, orders_this_month: 15, customers: 15, members: 1 } : {};
+  const limits = mode === 'free' ? { products: 30, orders_this_month: 15, customers: 15, members: 1 } : { members: 1 };
   return { ...base, status: 'active', effective_plan_code: code, plan: { ...subscription.plan, code },
     current_period_end: null, days_remaining: null, usage: usage(limits) };
 }
@@ -57,7 +76,8 @@ async function routePlan(ctx, state) {
   await ctx.route(/\/api\/proxy\/subscriptions\/current\/?(\?.*)?$/, async (route) => {
     try {
       const response = await route.fetch();
-      await route.fulfill({ response, json: situation(await response.json(), state.mode, state.members, state.aiReads) });
+      state.current = situation(await response.json(), state);
+      await route.fulfill({ response, json: state.current });
     } catch {
       // Contexte fermé pendant la requête (fin d'audit) : plus personne ne l'attend.
     }
@@ -100,13 +120,21 @@ async function checkActivity(page, locale, label, mode, members, mobile) {
   const text = await activity.textContent();
   const products = await activity.locator('[data-usage=products]').textContent();
   const orders = await activity.locator('[data-usage=orders_this_month]').textContent();
-  const limits = mode !== 'free' ? text.includes(msg(locale, 'settings.subscription.activity_limits')) : true;
-  report.check(await activity.getAttribute('data-activity') === (mode === 'free' ? 'plan' : 'free_limits')
-    && gauges.join(',') === `orders_this_month:near,products:ok,customers:reached${team ? ',members:reached' : ''}`
-    && products.includes(level('ok')) && text.includes(level('near')) && text.includes(level('reached'))
-    && text.includes(level('over')) === team && orders.includes('12') && orders.includes('/ 15') && limits,
-  `${label} : « Votre activité » ${mode === 'free' ? 'de la formule' : 'face aux plafonds Découverte'}, « ${level('ok')} » écrit, `
-    + `${team ? `équipe de ${members} au-delà de la limite` : 'sans carte « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
+  const limits = text.includes(msg(locale, 'settings.subscription.activity_limits')) === (mode === 'trial');
+  // Solo : limites réelles de la formule, ventes, articles et clients illimités.
+  const paid = mode === 'paid';
+  const unlimited = msg(locale, 'settings.usage.unlimited');
+  const counters = paid
+    ? 'orders_this_month:unlimited,products:unlimited,customers:unlimited'
+    : 'orders_this_month:near,products:ok,customers:reached';
+  const written = paid
+    ? products.includes(unlimited) && orders.includes('12') && !orders.includes('/')
+    : products.includes(level('ok')) && text.includes(level('near')) && text.includes(level('reached')) && orders.includes('12') && orders.includes('/ 15');
+  report.check(await activity.getAttribute('data-activity') === (mode === 'trial' ? 'free_limits' : 'plan')
+    && gauges.join(',') === `${counters}${team ? ',members:reached' : ''}`
+    && written && text.includes(level('over')) === team && limits,
+  `${label} : « Votre activité » ${{ free: 'de la formule', trial: 'face aux plafonds Découverte', paid: `face aux limites de Solo (« ${unlimited} »)` }[mode]}, `
+    + `${paid ? '' : `« ${level('ok')} » écrit, `}${team ? `équipe de ${members} au-delà de la limite` : 'sans carte « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
   const rows = await rowsOf(activity);
   const expected = mobile ? (team ? '2+2' : '2+1') : (team ? '4' : '3');
   report.check(rows === expected, `${label} : cartes d'activité ${mobile ? 'sur deux colonnes' : 'en une rangée'} (${rows})`);
@@ -235,20 +263,6 @@ async function checkYearly(page, locale, label) {
     `${label} : « Annuel · ${badge} », prix « ${perYear} »`);
 }
 
-async function checkChoose(page, locale, label, requests) {
-  const card = page.locator('[data-plan]').filter({ visible: true }).filter({ has: page.getByRole('button') }).last();
-  requests.length = 0;
-  await card.getByRole('button').click();
-  const sheet = page.getByRole('dialog');
-  await sheet.waitFor();
-  await animationsDone(sheet);
-  const text = await sheet.textContent();
-  report.check(text.includes(msg(locale, 'settings.subscription.payment_pending')) && requests.length === 0,
-    `${label} : le CTA ouvre « paiement pas encore activé », sans requête au serveur (${requests.join(', ') || 'aucune'})`);
-  await sheet.getByRole('button', { name: msg(locale, 'settings.subscription.payment_ok'), exact: true }).click();
-  await sheet.waitFor({ state: 'hidden' });
-}
-
 async function checkCancel(page, locale, label, mode) {
   const cancel = page.getByRole('button', { name: msg(locale, 'settings.subscription.cancel_cta'), exact: true });
   if (mode === 'free') {
@@ -270,10 +284,14 @@ try {
     const viewport = VIEWPORTS.find((v) => v.name === name);
     if (!viewport) continue;
     const { ctx, page, watch, setLocale, setTheme } = await openSession(browser, viewport);
-    const state = { mode: 'trial', members: USAGE.members, aiReads: true };
-    const requests = [];
-    page.on('request', (r) => { if (r.method() !== 'GET' && r.url().includes('/api/proxy/subscriptions/')) requests.push(`${r.method()} ${new URL(r.url()).pathname}`); });
+    const state = {
+      mode: 'trial', members: USAGE.members, aiReads: true, posts: [], foreign: [], cancelAtEnd: false, afterRefresh: null, checkoutUrl: null,
+      current: null, scheduled: null, changeScript: [], role: null, theme, trialEndsAt: null,
+    };
     await routePlan(ctx, state);
+    await routeBilling(ctx, state);
+    await routePlanChange(ctx, state);
+    await routeRole(ctx, state);
     await setLocale(locale);
     setTheme(theme);
     for (const mode of ['trial', 'free', 'paid']) {
@@ -293,7 +311,7 @@ try {
         await checkCards(page, locale, label, mode, viewport.mobile);
         await checkCtaBottom(page, locale, label, viewport.mobile);
         await checkYearly(page, locale, label);
-        await checkChoose(page, locale, label, requests);
+        await checkCheckout(page, report, locale, label, mode, state);
         await checkCancel(page, locale, label, mode);
         await checkTeam(page, locale, label, mode, state, viewport.mobile);
         if (mode === 'free') await checkAiReadsOff(page, locale, label, state);
@@ -301,7 +319,14 @@ try {
         report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
       }
     }
-    report.check(watch.problems.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
+    await auditBilling(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
+    await auditPaidActivity(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);
+    await auditPlanChange(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);
+    await auditBanners(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
+    // Seuls 402 / 409 attendus : refus simulés du changement de formule (lib/plan-change.mjs), vérifiés à l'écran.
+    const issues = watch.problems.filter((p) => !(/Failed to load resource: the server responded with a status of 40[29]/.test(p)
+      && /\(\/api\/proxy\/subscriptions\/change(-preview)?\/\)$/.test(p)));
+    report.check(issues.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${issues.map((p) => `\n      ${p}`).join('')}`);
     await ctx.close();
   }
 } finally {

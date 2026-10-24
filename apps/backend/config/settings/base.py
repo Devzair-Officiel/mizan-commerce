@@ -109,6 +109,13 @@ AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
 RECAPTCHA_MIN_SCORE = float(os.environ.get('RECAPTCHA_MIN_SCORE', '0.5'))
 
+# Stripe Billing — facturation désactivée si la clé secrète est vide (dev / tests).
+# Staging : clé de test `sk_test_…` ; production : clé restreinte `rk_live_…`.
+# Jamais de clé dans un log : apps/subscriptions/stripe_client.py.
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+# Secret de signature des webhooks (`whsec_…`), propre à chaque endpoint Stripe.
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},  # noqa: E501
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -133,6 +140,8 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@mizan.app')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+# Adresse de contact donnée en fin des e-mails envoyés aux commerçants.
+SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'support@mizan-commerce.com')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -159,6 +168,10 @@ REST_FRAMEWORK = {
         # Exports PDF et WhatsApp (rendu serveur) ; relevé dans la pile locale
         # (docker-compose.yml), où tournent les audits.
         'exports_render': os.environ.get('EXPORTS_RENDER_RATE', '10/minute'),
+        # Facturation Stripe : chaque appel interroge Stripe (sessions, liste).
+        'billing_checkout': '10/hour',
+        'billing_portal': '10/hour',
+        'billing_refresh': '30/hour',
     },
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }
@@ -276,6 +289,20 @@ CELERY_BEAT_SCHEDULE = {
     'subscriptions-expire-trials-daily': {
         'task': 'apps.subscriptions.tasks.expire_trials',
         'schedule': crontab(hour=6, minute=30),  # juste après les rappels zakat
+    },
+    # Rattrape un webhook Stripe perdu : chaque abonnement Stripe est redemandé.
+    'subscriptions-reconcile-stripe-daily': {
+        'task': 'apps.subscriptions.tasks.reconcile_subscriptions',
+        'schedule': crontab(hour=7, minute=0),
+    },
+    # Facturation : rappel de fin d'essai (24 h avant) et retard de paiement.
+    'subscriptions-trial-ending-notices': {
+        'task': 'apps.subscriptions.tasks.send_trial_ending_notices',
+        'schedule': crontab(minute='*/15'),
+    },
+    'subscriptions-past-due': {
+        'task': 'apps.subscriptions.tasks.process_past_due_subscriptions',
+        'schedule': crontab(minute='*/15'),
     },
     # Toutes les heures : chaque boutique est traitée à son heure locale.
     'notes-automatic-reminders-hourly': {

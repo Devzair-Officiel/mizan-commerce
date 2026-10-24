@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 
+from apps.subscriptions.webhooks import stripe_webhook
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.accounts.urls')),
@@ -20,4 +22,6 @@ urlpatterns = [
     path('api/exports/', include('apps.exports.urls')),
     path('api/public/boutique/', include('apps.public_pages.public_urls')),
     path('api/', include('apps.core.urls')),
+    # Appelé par Stripe, hors de /api/ : pas de JWT, authentifié par sa signature.
+    path('webhooks/stripe/', stripe_webhook, name='stripe-webhook'),
 ]

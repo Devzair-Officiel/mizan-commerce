@@ -2,9 +2,14 @@
  * Attentes sur un état précis, à la place des pauses fixes (`waitForTimeout`).
  */
 
-/** Animations et transitions de l'élément et de ses descendants terminées (ouverture d'une fenêtre, d'un menu). */
+/**
+ * Animations et transitions de l'élément et de ses descendants terminées (ouverture d'une fenêtre, d'un menu).
+ * Animations sans fin (indicateur `animate-spin`, squelette `animate-pulse`) ignorées : `evaluate` attendrait toujours.
+ */
 export function animationsDone(locator) {
-  return locator.first().evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => {}))));
+  return locator.first().evaluate((el) => Promise.all(el.getAnimations({ subtree: true })
+    .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+    .map((a) => a.finished.catch(() => {}))));
 }
 
 /** Prochain changement du DOM de la page (`timeout` ms au plus ; aussitôt si la page est en cours de remplacement). */

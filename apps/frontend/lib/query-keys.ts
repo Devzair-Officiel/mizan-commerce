@@ -278,6 +278,11 @@ export const qk = {
     plans: ['subscription', 'plans'] as const,
   },
 
+  /** Hors du préfixe `subscription` : relire l'abonnement ne relance jamais un aperçu (quota partagé). */
+  billing: {
+    changePreview: (plan: string, interval: string) => ['billing', 'change-preview', plan, interval] as const,
+  },
+
   ocr: {
     all: ['ocr'] as const,
     result: (id: string) => ['ocr', 'result', id] as const,

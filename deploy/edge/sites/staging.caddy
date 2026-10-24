@@ -1,9 +1,10 @@
 # Staging (importé par deploy/edge/Caddyfile).
-# Authentification HTTP basique, sauf /healthz (surveillance externe).
+# Authentification HTTP basique, sauf /healthz (surveillance externe) et
+# /webhooks/stripe/ (Stripe ne sait pas s'y authentifier ; la signature suffit).
 {$STAGING_DOMAIN} {
 	import security_headers
 	header X-Robots-Tag "noindex, nofollow"
-	@protected not path /healthz
+	@protected not path /healthz /webhooks/stripe/
 	basic_auth @protected {
 		{$STAGING_BASIC_AUTH_USER} {$STAGING_BASIC_AUTH_HASH}
 	}

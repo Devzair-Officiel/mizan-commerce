@@ -43,7 +43,7 @@ class TrialingSubscriptionFactory(SubscriptionFactory):
     plan = factory.SubFactory(
         SubscriptionPlanFactory,
         code=SubscriptionPlan.CODE_BOUTIQUE,
-        price_amount=Decimal('19'),
+        price_amount=Decimal('16'),
     )
     current_period_end = factory.LazyFunction(
         lambda: timezone.now() + timedelta(days=14),

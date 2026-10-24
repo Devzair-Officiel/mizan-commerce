@@ -1,5 +1,6 @@
 'use client';
 
+import { BillingBanner } from '@/components/layout/BillingBanner';
 import { useMe } from '@/lib/hooks/useMe';
 import { useBurger } from './BurgerMenu';
 import type { ReactNode } from 'react';
@@ -14,6 +15,8 @@ export function AppContent({ children }: { children: ReactNode }) {
       className={`flex min-h-dvh flex-col transition-[transform,filter,padding] duration-300 ease-in-out ${offset}`}
       style={open ? { transform: 'scale(1.008)', filter: 'blur(1.5px) brightness(0.97)', transformOrigin: 'center center' } : undefined}
     >
+      {/* Aucun en-tête global : le bandeau précède le TopBar de chaque page, sans le recouvrir. */}
+      <BillingBanner />
       {children}
     </div>
   );

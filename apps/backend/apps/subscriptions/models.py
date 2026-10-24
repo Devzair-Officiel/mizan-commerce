@@ -111,8 +111,32 @@ class Subscription(models.Model):
     stripe_customer_id = models.CharField(max_length=100, blank=True)
     current_period_start = models.DateTimeField(null=True, blank=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
+    # Rythme de l'abonnement Stripe (prix de l'item) ; vide hors abonnement Stripe.
+    billing_interval = models.CharField(
+        max_length=10, blank=True, default='',
+        choices=[
+            (SubscriptionPlan.PERIOD_MONTH, 'Mensuel'),
+            (SubscriptionPlan.PERIOD_YEAR, 'Annuel'),
+        ],
+    )
+    # Changement de formule programmé en fin de période (calendrier Stripe) :
+    # recopié par `stripe_sync`, vide s'il n'y en a pas.
+    scheduled_plan_code = models.CharField(max_length=30, blank=True, default='')
+    scheduled_interval = models.CharField(max_length=10, blank=True, default='')
+    scheduled_change_at = models.DateTimeField(null=True, blank=True)
     cancel_at_period_end = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    # Début du retard de paiement en cours ; vidé quand le paiement aboutit.
+    past_due_since = models.DateTimeField(null=True, blank=True)
+    # Rappels du retard en cours : 0 aucun, 1 J0, 2 J+7, 3 J+13.
+    # Remis à 0 avec `past_due_since` (`stripe_sync`).
+    past_due_notices_sent = models.PositiveSmallIntegerField(default=0)
+    # Première tentative de résiliation pour retard (J+15) ; garde le message de
+    # fin à envoyer après la résiliation, effacé par cet envoi ou par le retour
+    # du paiement (`stripe_sync`).
+    past_due_cancel_requested_at = models.DateTimeField(null=True, blank=True)
+    # Envoi du message de fin d'essai (24 h avant) : un seul envoi par essai.
+    trial_ending_notice_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -135,3 +159,25 @@ class Subscription(models.Model):
         if not self.current_period_end:
             return False
         return self.current_period_end <= timezone.now()
+
+
+class StripeEvent(models.Model):
+    """Événement de webhook Stripe déjà reçu : rend son traitement idempotent.
+
+    Stripe peut livrer plusieurs fois le même événement ; la clé primaire est son
+    identifiant `evt_…`. On ne garde que de quoi dédoublonner et suivre le
+    traitement : aucun contenu d'événement, aucune donnée de paiement.
+    """
+
+    id = models.CharField(max_length=255, primary_key=True)
+    event_type = models.CharField(max_length=100)
+    stripe_created_at = models.DateTimeField()
+    received_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'stripe_events'
+        indexes = [models.Index(fields=['event_type', 'received_at'])]
+
+    def __str__(self) -> str:
+        return f'{self.event_type} ({self.id})'

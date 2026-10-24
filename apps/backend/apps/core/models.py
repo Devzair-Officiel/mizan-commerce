@@ -31,6 +31,14 @@ class AuditLog(models.Model):
         ('zakat_followup_paid', 'Zakat de créance marquée comme versée'),
         ('zakat_followup_ignored', 'Créance zakat ignorée'),
         ('zakat_followup_reverted', 'Action sur créance zakat défaite'),
+        # Abonnement Stripe : aucune donnée de paiement (carte, IBAN) dans les détails.
+        ('subscription_started', 'Abonnement souscrit'),
+        ('subscription_plan_changed', "Formule d'abonnement changée"),
+        ('subscription_cancel_scheduled', 'Résiliation programmée'),
+        ('subscription_cancel_reverted', 'Résiliation annulée'),
+        ('subscription_payment_failed', "Échec de paiement de l'abonnement"),
+        ('subscription_ended', 'Abonnement terminé'),
+        ('subscription_dispute', "Contestation d'un paiement de l'abonnement"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

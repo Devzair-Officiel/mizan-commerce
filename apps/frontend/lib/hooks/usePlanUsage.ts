@@ -2,7 +2,7 @@ import { useState, type MouseEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
-import { subscriptionQuery, type UsageCounter, type UsageKey } from '@/lib/hooks/useSubscription';
+import { subscriptionQuery, type SubscriptionPlan, type UsageCounter, type UsageKey } from '@/lib/hooks/useSubscription';
 
 export type UsageLevel = 'ok' | 'near' | 'reached';
 
@@ -13,6 +13,19 @@ export function usageLevel({ count, limit }: UsageCounter): UsageLevel {
   if (limit === null) return 'ok';
   if (count >= limit) return 'reached';
   return count >= limit * NEAR_RATIO ? 'near' : 'ok';
+}
+
+/**
+ * Usage de la boutique face aux limites d'une autre formule que celle en vigueur (Découverte en fin
+ * d'essai ou après une résiliation, formule d'un changement programmé) : mêmes comptes, autres limites.
+ */
+export function againstPlan(usage: Record<UsageKey, UsageCounter>, plan: SubscriptionPlan): Record<UsageKey, UsageCounter> {
+  return {
+    orders_this_month: { count: usage.orders_this_month.count, limit: plan.max_orders_per_month },
+    products: { count: usage.products.count, limit: plan.max_products },
+    customers: { count: usage.customers.count, limit: plan.max_customers },
+    members: { count: usage.members.count, limit: plan.max_members },
+  };
 }
 
 /**

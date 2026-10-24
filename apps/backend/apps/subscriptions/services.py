@@ -14,6 +14,8 @@ from django.utils import timezone
 from .models import Subscription, SubscriptionPlan
 
 TRIAL_DAYS = 14
+# Délai laissé à un paiement en retard avant le retour sur Découverte (lot 4).
+PAST_DUE_GRACE_DAYS = 15
 
 
 @transaction.atomic

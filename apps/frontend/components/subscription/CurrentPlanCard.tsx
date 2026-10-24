@@ -3,6 +3,7 @@
 import { useId } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { StripePlanSummary } from '@/components/subscription/StripePlanSummary';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { useFormatDate, useFormatMoney } from '@/lib/hooks/useFormat';
 import type { PlanCode, Subscription, SubscriptionPlan } from '@/lib/hooks/useSubscription';
@@ -36,7 +37,8 @@ function TrialBar({ day, total, end }: { day: number; total: number; end: string
 
 /**
  * « Votre formule », pleine largeur : nom, essai en cours ou formule active ; en essai, la barre ambre
- * et le seul CTA « Garder Boutique », à droite sur desktop, sous le texte sur mobile.
+ * et le seul CTA « Garder Boutique », à droite sur desktop, sous le texte sur mobile (inactif pour
+ * un membre qui n'est pas le propriétaire). Abonnement Stripe : `StripePlanSummary`.
  */
 export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: CurrentPlanCardProps) {
   const t = useTranslations('settings.subscription');
@@ -48,6 +50,16 @@ export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: C
   const end = subscription.current_period_end;
   const progress = isTrial ? trialProgress(subscription) : null;
   const showCta = isTrial && plan;
+
+  if (subscription.stripe_managed) {
+    return (
+      <SectionCard title={t('current_plan')}>
+        <div className="flex p-5" data-current-plan={code} data-stripe-managed>
+          <StripePlanSummary subscription={subscription} plan={plan} />
+        </div>
+      </SectionCard>
+    );
+  }
 
   return (
     <SectionCard title={t('current_plan')}>
@@ -73,10 +85,11 @@ export function CurrentPlanCard({ subscription, plan, isTrial, onChoosePlan }: C
         </div>
         {showCta && (
           <div className="flex flex-col gap-2 text-center @[640px]/settings:w-64 @[640px]/settings:shrink-0">
-            <Button type="button" onClick={() => onChoosePlan(code, 'month')} className="h-11 w-full rounded-full px-5 active:scale-[0.98]">
+            <Button type="button" onClick={() => onChoosePlan(code, 'month')} disabled={!subscription.can_manage}
+              className="h-11 w-full rounded-full px-5 active:scale-[0.98]">
               {t('keep_cta', { name, price })}
             </Button>
-            <p className="text-xs text-muted-foreground">{t('no_commitment')}</p>
+            <p className="text-xs text-muted-foreground">{t(subscription.can_manage ? 'no_commitment' : 'owner_only')}</p>
           </div>
         )}
       </div>

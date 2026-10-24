@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-20
+**Dernière mise à jour** : 2026-10-24
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -533,7 +533,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [x] Raccourci clair/sombre dans le header (à côté de la loupe sur mobile, avant la barre de recherche sur desktop)
   - [x] Menu desktop : sidebar translucide déployée (272 px) ou en rail (80 px, préférence gardée sur le compte), accordéon Articles → Catalogue / Stock, groupe Compte avec Abonnement, pied d'une ligne dont « ⋯ » ouvre le menu du compte (apparence, langue, Se déconnecter), bouton replier/déplier sur le bord et Ctrl+B, sans défilement à 1440×900, flyout du rail au survol et au clavier, audit `sidebar`
   - [x] Refonte de Paramètres boutique, Équipe, Abonnement et Mon profil (maquettes d'abord)
-    - [x] Page Abonnement (7c-1) : votre formule (essai « Jour N sur 14 », CTA « Garder »), votre activité comparée aux plafonds Découverte, choix de formule mensuel / annuel (prix annuels 0 / 90 / 190 / 390 €, migration 0005), 4 cartes sur desktop et onglets sur mobile, paiement en ligne pas encore activé (`UpgradeSheet`), résiliation discrète ; audit `subscription`
+    - [x] Page Abonnement (7c-1) : votre formule (essai « Jour N sur 14 », CTA « Garder »), votre activité comparée aux plafonds Découverte, choix de formule mensuel / annuel (prix annuels 0 / 90 / 190 / 390 €, migration 0005 ; revus en 160 / 290 € par la migration 0014), 4 cartes sur desktop et onglets sur mobile, paiement en ligne pas encore activé (`UpgradeSheet`), résiliation discrète ; audit `subscription`
     - [x] Paramètres boutique et Équipe (7c-2) : sous-navigation desktop collante (208 px), liens verrouillés visibles et formule traduite, « Autres réglages » sur mobile ; cartes Boutique à plat et barre d'enregistrement dans la colonne ; formules sur 4 colonnes dès 880 px de conteneur, sinon 2 × 2 sur desktop ; Équipe en tableau / cartes, usage et plafond API, places disponibles et ajout limité via `UpgradeSheet` ; audits `settings`, `team` et audits existants adaptés
     - [x] Mon profil (7c-3) : en-tête du compte et vérification d’email, cartes Informations / Mot de passe côte à côte sur desktop et empilées sur mobile, composants et logique existants conservés ; audit `profile`, six maquettes 7c versionnées
     - [x] Pages marketing : grille 4 offres (Pricing, Faq)
@@ -541,7 +541,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] Pages marketing (7d-3) : 8 cartes cohérentes avec la grille, partenariats et mentions d'attente retirés, section Valeurs recentrée sur la zakat ; contrôle des métadonnées et recette aux quatre largeurs ci-dessous
     - [~] Pages marketing (7d-4) : « Prêt en trois étapes » en cartes crème avec mini-interfaces HTML/CSS, lien d'inscription, grille responsive et réduction des animations ; recette à 375 / 390 / 768 / 1024 / 1440 px, staging non validé
     - [~] Pages marketing (7d-5) : section Zakat crème, transition SVG dorée et exemple statique explicite, liens vers `/zakat` et la FAQ, calculateur inchangé ; recette en production à 320 / 375 / 390 / 768 / 1024 / 1440 px, trois étapes identiques au pixel près, staging non validé
-  - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
+  - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € (revus en 16 € et 29 € par la migration 0014) ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 
 ### Tests
@@ -574,8 +574,15 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
-- [ ] Intégration Stripe Billing
-- [ ] Webhook Stripe → mise à jour de l'abonnement local
+- [~] Intégration Stripe Billing — Lot 1 : code et tests prêts
+  - [~] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise)
+  - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée)
+  - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée)
+  - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé)
+    - [~] correctif : activité d'un abonné payant face aux limites réelles
+  - [~] Lot 5b : code prêt (changement de formule, changement programmé, bandeaux globaux) — 2026-10-24
+  - [~] Changement de prix (Boutique 16 € / 160 €, Commerce+ 29 € / 290 €) : code prêt, à appliquer en test puis en production avec stripe_sync_plans et stripe_migrate_prices — migration `0014_plan_prices_boutique_commerce_plus`, procédure dans docs/exploitation/deploiement.md (« Changement de prix »)
+- [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 
 ### Monitoring
@@ -694,7 +701,8 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Rôles et permissions — déjà implémentés et cochés en V1, écran Équipe livré en 7c ; confirmer la recette de lancement (gating `multi_user`, limites 1 / 1 / 4 / illimité), sans les présenter comme du code absent.
 - [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
-- [ ] Souscription payante — Stripe Billing et webhooks non livrés ; l'API publique autorise uniquement le retour sur Découverte (`apps/backend/apps/subscriptions/views.py`).
+- [ ] Souscription payante — backend codé et testé sans réseau (`apps/backend/apps/subscriptions/`) : paiement (Checkout), portail, résiliation et reprise, webhooks, changement de formule, retard de paiement (règle des 15 jours) et rappel de fin d'essai ; restent le frontend, la recette en mode test Stripe et la mise en production.
+- [ ] Libellés des fonctions perdues lors d'un changement de formule : étendre SHIPPED_FEATURES (`apps/frontend/lib/plan-features.ts`) à chaque fonction livrée.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
@@ -705,7 +713,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 
 | Affirmation conservée | Appui vérifié dans le dépôt |
 | --- | --- |
-| Découverte / Solo / Boutique / Commerce+, prix mensuels 0 / 9 / 19 / 39 € et annuels 0 / 90 / 190 / 390 € | `settings.subscription.plans.*` dans `apps/frontend/messages/fr.json`, migrations abonnements `0004_rename_plans` et `0005_plan_yearly_price` ; lot 7b/7c ci-dessus. |
+| Découverte / Solo / Boutique / Commerce+, prix mensuels 0 / 9 / 16 / 29 € et annuels 0 / 90 / 160 / 290 € ; « 2 mois offerts » à l'annuel (chaque annuel vaut 10 mensualités) | Landing `apps/frontend/components/marketing/Pricing.tsx` ; page Abonnement : prix lus dans `GET /subscriptions/plans/`, mois offerts calculés par `freeMonthsPerYear` (`apps/frontend/lib/plan-pricing.ts`) ; migrations abonnements `0004_rename_plans`, `0005_plan_yearly_price` et `0014_plan_prices_boutique_commerce_plus`, `seed_plans` ; lot 7b/7c ci-dessus. Prix Stripe à aligner par `stripe_sync_plans` (puis `stripe_migrate_prices` pour les abonnés en cours) avant d'annoncer la nouvelle grille. |
 | Découverte sans limite de durée, 30 articles actifs, 15 ventes/mois, 15 clients actifs ; Solo et au-delà illimités | Migrations des plans, `apps/backend/apps/subscriptions/limits.py` ; lot 7b. La création est bloquée dès le plafond atteint, sans supprimer les données ; désactivation articles/clients et nouveau mois libèrent les places correspondantes. |
 | Stock, notes, rappels et calcul de la zakat dès Découverte | `apps/backend/apps/subscriptions/permissions.py`, modules V1 cochés ci-dessus. |
 | Essai Boutique de 14 jours pour les nouveaux comptes, sans carte, puis retour automatique sur Découverte ; résiliation immédiate, données intactes | `start_trial_or_default`, `expire_trial`, `downgrade_to_free` dans `apps/backend/apps/subscriptions/services.py`, tâche `expire_trials`, `Shop.effective_plan` ; seul l'abonnement est modifié, aucun objet métier supprimé. |

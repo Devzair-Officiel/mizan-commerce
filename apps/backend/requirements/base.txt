@@ -50,3 +50,8 @@ httpx==0.28.1
 
 # Suivi des erreurs : actif seulement si SENTRY_DSN est défini (apps/core/sentry.py)
 sentry-sdk==2.72.0
+
+# Abonnements Mizan : Stripe Billing (catalogue, Checkout et webhooks). Client
+# `stripe.StripeClient` uniquement, clé lue depuis STRIPE_SECRET_KEY
+# (apps/subscriptions/stripe_client.py) ; facturation désactivée si elle est vide.
+stripe==15.6.1

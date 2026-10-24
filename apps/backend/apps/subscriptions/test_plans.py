@@ -73,8 +73,8 @@ class PlanCatalogTest(TestCase):
             [
                 (FREE, "Découverte", "0.00"),
                 (SOLO, "Solo", "9.00"),
-                (BOUTIQUE, "Boutique", "19.00"),
-                (COMMERCE_PLUS, "Commerce+", "39.00"),
+                (BOUTIQUE, "Boutique", "16.00"),
+                (COMMERCE_PLUS, "Commerce+", "29.00"),
             ],
         )
 
@@ -138,7 +138,7 @@ class PlanCatalogTest(TestCase):
         self.assertIn("max_members", response.data[0])
         self.assertEqual(
             [p["price_yearly_amount"] for p in response.data],
-            ["0.00", "90.00", "190.00", "390.00"],
+            ["0.00", "90.00", "160.00", "290.00"],
         )
         self.assertNotIn("stripe_price_id_yearly", response.data[0])
 
