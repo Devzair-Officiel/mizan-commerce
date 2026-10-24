@@ -48,3 +48,16 @@ Clés supprimées (plus utilisées) : `payment_pending`, `payment_ok`. Clé modi
 - `settings.subscription.cancel_hint_stripe` : Formulation courte sous le bouton ; deux branches (past_due / autre).
 - `settings.subscription.errors.throttled` : « محاولات كثيرة » : peut-être « محاولات كثيرة جدًا ».
 - `settings.subscription.checkout_return.pending` : « حدّثوا الصفحة » pour « Actualisez » ; ponctuation « ؛ » à vérifier.
+
+## Correctif « Votre activité » (abonné payant face aux limites réelles)
+
+Clés nouvelles, sous `settings.usage` et `settings.subscription`. `{plan}` reçoit le nom traduit de la formule (« اكتشاف » pour l'instant).
+
+| Clé | FR | AR | Incertain |
+|---|---|---|---|
+| `settings.usage.unlimited` | Illimité | غير محدود | **oui** |
+| `settings.subscription.activity_after_date` | Après le {date} | بعد {date} | non |
+| `settings.subscription.activity_after_date_text` | Après cette date, la formule {plan} s'applique : vos données restent intactes, mais la création est bloquée au-delà de ces plafonds. | بعد هذا التاريخ، تُطبَّق باقة {plan}: تبقى بياناتكم سليمة، لكن الإضافة تُحظر بعد هذه الحدود. | **oui** |
+
+- `settings.usage.unlimited` : affiché seul sous le compteur des cartes « مبيعات هذا الشهر », « عملاء نشطون »… ; « غير محدود » au masculin : « غير محدودة » s'accorderait mieux avec certains libellés au pluriel.
+- `settings.subscription.activity_after_date_text` : reprend la fin de `activity_after` (« تبقى بياناتكم سليمة، لكن الإضافة تُحظر بعد هذه الحدود ») ; « تُطبَّق باقة {plan} » à confirmer quand `{plan}` sera une autre formule (lot 5b).

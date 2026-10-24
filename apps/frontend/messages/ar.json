@@ -1785,6 +1785,7 @@
       "members": "{count} / {limit} أعضاء",
       "ai_reads_this_month": "{count} / {limit} قراءة متقدمة",
       "level": "{level, select, ok {ضمن الحدّ} near {قريب من الحدّ} reached {تم بلوغ الحدّ} other {تجاوز الحدّ}}",
+      "unlimited": "غير محدود",
       "short": {
         "orders_this_month": "مبيعات هذا الشهر",
         "products": "{kind, select, products {منتجات نشطة} services {خدمات نشطة} other {منتجات وخدمات نشطة}}",
@@ -1947,6 +1948,8 @@
       "activity_title": "نشاطكم",
       "activity_limits": "حدود باقة اكتشاف",
       "activity_after": "{status, select, trialing {عند انتهاء التجربة، تُطبَّق باقة اكتشاف} other {إذا ألغيتم، تُطبَّق باقة اكتشاف}}: تبقى بياناتكم سليمة، لكن الإضافة تُحظر بعد هذه الحدود.",
+      "activity_after_date": "بعد {date}",
+      "activity_after_date_text": "بعد هذا التاريخ، تُطبَّق باقة {plan}: تبقى بياناتكم سليمة، لكن الإضافة تُحظر بعد هذه الحدود.",
       "ai_reads_title": "هذا الشهر",
       "ai_reads_help": "القراءات المتقدمة لمسح العبوات، في حدود باقتكم. بعد بلوغ الحدّ، يستمر المسح بالقراءة السريعة.",
       "choose_title": "اختيار باقة",

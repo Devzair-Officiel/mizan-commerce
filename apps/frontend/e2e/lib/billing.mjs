@@ -15,6 +15,10 @@ const PORTAL_URL = 'https://billing.stripe.com/p/session/test_audit';
 export const FOREIGN_URL = 'https://checkout.stripe.com.evil.example/c/pay/cs_test_audit';
 /** Abonnements Stripe audités ; `member` : membre non propriétaire (`can_manage` faux). */
 export const STRIPE_MODES = ['monthly', 'yearly', 'past_due', 'past_due_member', 'member'];
+/** Abonnement Stripe Solo, audité pour « Votre activité » seulement (lib/activity.mjs). */
+export const SOLO_MODE = 'solo_monthly';
+/** Limites de la grille (`seed_plans`) des formules payantes : absente = illimitée. */
+const LIMITS = { solo: { members: 1 }, boutique: { members: 4 } };
 
 /** Paiement ouvert (`billing_enabled` forcé : il peut être faux en dev), propriétaire, sans Stripe. */
 const DEFAULTS = {
@@ -24,12 +28,14 @@ const DEFAULTS = {
 
 /** Champs de facturation de la réponse `/subscriptions/current/` pour `state.mode`. */
 export function billing(base, state) {
-  if (!STRIPE_MODES.includes(state.mode)) return { ...base, ...DEFAULTS };
+  if (!STRIPE_MODES.includes(state.mode) && state.mode !== SOLO_MODE) return { ...base, ...DEFAULTS };
   const now = Date.now();
   const pastDue = state.mode.startsWith('past_due');
+  const code = state.mode === SOLO_MODE ? 'solo' : 'boutique';
+  const usage = Object.fromEntries(Object.entries(base.usage).map(([key, { count }]) => [key, { count, limit: LIMITS[code][key] ?? null }]));
   return {
-    ...base, ...DEFAULTS, status: pastDue ? 'past_due' : 'active', effective_plan_code: 'boutique',
-    plan: { ...base.plan, code: 'boutique' }, stripe_managed: true, has_billing_customer: true,
+    ...base, ...DEFAULTS, status: pastDue ? 'past_due' : 'active', effective_plan_code: code, usage,
+    plan: { ...base.plan, code }, stripe_managed: true, has_billing_customer: true,
     billing_interval: state.mode === 'yearly' ? 'year' : 'month', can_manage: !state.mode.endsWith('member'),
     current_period_start: new Date(now - 10 * DAY).toISOString(), current_period_end: new Date(now + 20 * DAY).toISOString(),
     days_remaining: null, cancel_at_period_end: state.cancelAtEnd,

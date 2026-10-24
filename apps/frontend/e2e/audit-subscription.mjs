@@ -6,7 +6,10 @@
  *   une rangée de cartes (2 colonnes sur mobile), statut écrit (« Dans la limite », ambre, rouge),
  *   sans carte « équipe » pour un propriétaire seul, avec pour une équipe de 3 (« Au-delà de la limite ») ;
  * - Découverte : jauges de la formule, pas de résiliation ;
- * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète.
+ * - Solo actif : « Formule Solo active », carte Solo « Formule actuelle », résiliation discrète ; « Votre activité »
+ *   face aux limites de Solo (ventes, articles, clients « Illimité », sans barre), carte « équipe » pour une équipe de 3.
+ * Abonné Stripe (lib/activity.mjs) : « Votre activité » face aux limites réelles (Boutique : équipe 2 sur 4, le reste
+ * illimité ; Solo), sans plafonds Découverte ; résiliation programmée : bloc « Après le … » face à Découverte.
  * « Ce mois-ci » (lectures avancées du scan) : section à part, hors de « Votre activité », plafond de la formule en cours
  * (essai : 50 / 60 de Boutique, ambre ; Découverte : 10 / 10, rouge ; Solo : 3 / 30), niveau écrit ; dernière ligne de chaque
  * formule « N lectures avancées » lue sur la formule. Fonction éteinte (`ai_reads_enabled` faux) : ni section ni ligne.
@@ -26,6 +29,7 @@ import { BASE, VIEWPORTS, createReport, launch, openSession } from './lib/sessio
 import { fmt, msg } from './lib/messages.mjs';
 import { animationsDone } from './lib/wait.mjs';
 import { auditBilling, billing, checkCheckout, routeBilling } from './lib/billing.mjs';
+import { auditPaidActivity } from './lib/activity.mjs';
 
 const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
@@ -55,7 +59,7 @@ function plan(subscription, mode, members) {
       days_remaining: 10, usage: usage({}) };
   }
   const code = mode === 'free' ? 'free' : 'solo';
-  const limits = mode === 'free' ? { products: 30, orders_this_month: 15, customers: 15, members: 1 } : {};
+  const limits = mode === 'free' ? { products: 30, orders_this_month: 15, customers: 15, members: 1 } : { members: 1 };
   return { ...base, status: 'active', effective_plan_code: code, plan: { ...subscription.plan, code },
     current_period_end: null, days_remaining: null, usage: usage(limits) };
 }
@@ -107,13 +111,21 @@ async function checkActivity(page, locale, label, mode, members, mobile) {
   const text = await activity.textContent();
   const products = await activity.locator('[data-usage=products]').textContent();
   const orders = await activity.locator('[data-usage=orders_this_month]').textContent();
-  const limits = mode !== 'free' ? text.includes(msg(locale, 'settings.subscription.activity_limits')) : true;
-  report.check(await activity.getAttribute('data-activity') === (mode === 'free' ? 'plan' : 'free_limits')
-    && gauges.join(',') === `orders_this_month:near,products:ok,customers:reached${team ? ',members:reached' : ''}`
-    && products.includes(level('ok')) && text.includes(level('near')) && text.includes(level('reached'))
-    && text.includes(level('over')) === team && orders.includes('12') && orders.includes('/ 15') && limits,
-  `${label} : « Votre activité » ${mode === 'free' ? 'de la formule' : 'face aux plafonds Découverte'}, « ${level('ok')} » écrit, `
-    + `${team ? `équipe de ${members} au-delà de la limite` : 'sans carte « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
+  const limits = text.includes(msg(locale, 'settings.subscription.activity_limits')) === (mode === 'trial');
+  // Solo : limites réelles de la formule, ventes, articles et clients illimités.
+  const paid = mode === 'paid';
+  const unlimited = msg(locale, 'settings.usage.unlimited');
+  const counters = paid
+    ? 'orders_this_month:unlimited,products:unlimited,customers:unlimited'
+    : 'orders_this_month:near,products:ok,customers:reached';
+  const written = paid
+    ? products.includes(unlimited) && orders.includes('12') && !orders.includes('/')
+    : products.includes(level('ok')) && text.includes(level('near')) && text.includes(level('reached')) && orders.includes('12') && orders.includes('/ 15');
+  report.check(await activity.getAttribute('data-activity') === (mode === 'trial' ? 'free_limits' : 'plan')
+    && gauges.join(',') === `${counters}${team ? ',members:reached' : ''}`
+    && written && text.includes(level('over')) === team && limits,
+  `${label} : « Votre activité » ${{ free: 'de la formule', trial: 'face aux plafonds Découverte', paid: `face aux limites de Solo (« ${unlimited} »)` }[mode]}, `
+    + `${paid ? '' : `« ${level('ok')} » écrit, `}${team ? `équipe de ${members} au-delà de la limite` : 'sans carte « équipe » (propriétaire seul)'} (${gauges.join(', ')})`);
   const rows = await rowsOf(activity);
   const expected = mobile ? (team ? '2+2' : '2+1') : (team ? '4' : '3');
   report.check(rows === expected, `${label} : cartes d'activité ${mobile ? 'sur deux colonnes' : 'en une rangée'} (${rows})`);
@@ -294,6 +306,7 @@ try {
       }
     }
     await auditBilling(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
+    await auditPaidActivity(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);
     report.check(watch.problems.length === 0, `${name}px ${locale} ${theme} : console propre, défilement jamais bloqué${watch.problems.map((p) => `\n      ${p}`).join('')}`);
     await ctx.close();
   }

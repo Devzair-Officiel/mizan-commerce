@@ -579,6 +579,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée)
   - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée)
   - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé)
+    - [~] correctif : activité d'un abonné payant face aux limites réelles
 - [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
 - [ ] Page tarifs publique + flow upgrade payant
 

@@ -1785,6 +1785,7 @@
       "members": "{count} / {limit} membres",
       "ai_reads_this_month": "{count} / {limit} lectures avancées",
       "level": "{level, select, ok {Dans la limite} near {Bientôt à la limite} reached {Limite atteinte} other {Au-delà de la limite}}",
+      "unlimited": "Illimité",
       "short": {
         "orders_this_month": "Ventes ce mois",
         "products": "{kind, select, products {Articles actifs} services {Services actifs} other {Articles et services actifs}}",
@@ -1947,6 +1948,8 @@
       "activity_title": "Votre activité",
       "activity_limits": "Plafonds Découverte",
       "activity_after": "{status, select, trialing {À la fin de l'essai, la formule Découverte s'applique} other {Si vous résiliez, la formule Découverte s'applique}} : vos données restent intactes, mais la création est bloquée au-delà de ces plafonds.",
+      "activity_after_date": "Après le {date}",
+      "activity_after_date_text": "Après cette date, la formule {plan} s'applique : vos données restent intactes, mais la création est bloquée au-delà de ces plafonds.",
       "ai_reads_title": "Ce mois-ci",
       "ai_reads_help": "Lectures avancées du scan d'emballage, dans la limite de votre formule. Au-delà, le scan continue avec la lecture rapide.",
       "choose_title": "Choisir une formule",

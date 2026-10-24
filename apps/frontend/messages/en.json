@@ -1785,6 +1785,7 @@
       "members": "{count} / {limit} members",
       "ai_reads_this_month": "{count} / {limit} advanced reads",
       "level": "{level, select, ok {Within the limit} near {Nearly at the limit} reached {Limit reached} other {Over the limit}}",
+      "unlimited": "Unlimited",
       "short": {
         "orders_this_month": "Sales this month",
         "products": "{kind, select, products {Active items} services {Active services} other {Active items and services}}",
@@ -1947,6 +1948,8 @@
       "activity_title": "Your activity",
       "activity_limits": "Discovery limits",
       "activity_after": "{status, select, trialing {When your trial ends, the Discovery plan applies} other {If you cancel, the Discovery plan applies}}: your data stays intact, but creating more is blocked beyond these limits.",
+      "activity_after_date": "After {date}",
+      "activity_after_date_text": "After this date, the {plan} plan applies: your data stays intact, but creating more is blocked beyond these limits.",
       "ai_reads_title": "This month",
       "ai_reads_help": "Advanced package scan reads, within your plan's limit. Beyond it, scanning continues with the quick read.",
       "choose_title": "Choose a plan",
