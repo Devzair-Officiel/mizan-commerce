@@ -80,7 +80,11 @@
 - [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
 - [x] Endpoint mot de passe oublié + email de reset
 - [x] Validation email à l'inscription
+<<<<<<< HEAD
 - [ ] Correctif : jeton de vérification d'e-mail dédié (`apps/accounts/tokens.py`), toujours valable après une connexion ou un changement de mot de passe, invalidé par un changement d'adresse ; validité `EMAIL_VERIFICATION_TIMEOUT` (7 jours) ; les e-mails d'inscription, de renvoi et de réinitialisation annoncent la durée de leur réglage (`validity_label`, `apps/accounts/formatting.py`) au lieu de « 24 heures » en dur
+=======
+- [ ] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté
+>>>>>>> origin/main
 - [x] Pages frontend : inscription, connexion
 - [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
