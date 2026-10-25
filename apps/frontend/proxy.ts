@@ -7,7 +7,7 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, isLocale, type Locale } from '@
  *
  * 1. **Auth gate** : redirige les pages applicatives non authentifiées vers
  *    `/login`, et renvoie un utilisateur déjà connecté vers `/dashboard` s'il
- *    atterrit sur les écrans d'auth. Check optimiste basé sur la présence du
+ *    atterrit sur les écrans d'auth (sauf `/verify-email`). Check optimiste basé sur la présence du
  *    cookie `access_token` (HttpOnly, posé par `/api/auth/login`). La vraie
  *    autorisation reste côté Django.
  *
@@ -27,6 +27,10 @@ const PUBLIC_AUTH_PREFIXES = [
   '/reset-password',
   '/verify-email',
 ];
+
+// Écran d'auth ouvert aussi par un utilisateur connecté : le lien reçu après
+// l'inscription doit appeler l'API de vérification, pas renvoyer vers /dashboard.
+const EMAIL_VERIFICATION_PREFIX = '/verify-email';
 
 // Pages publiques sans auth (vitrines boutiques publiées).
 const PUBLIC_PAGE_PREFIXES = ['/boutique/'];
@@ -55,7 +59,7 @@ export function proxy(request: NextRequest) {
     return applyLocaleCookie(NextResponse.redirect(url), request);
   }
 
-  if (hasSession && onAuthPage) {
+  if (hasSession && onAuthPage && !pathname.startsWith(EMAIL_VERIFICATION_PREFIX)) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     url.search = '';

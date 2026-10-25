@@ -39,7 +39,8 @@
     "audit:subscription": "node audit-subscription.mjs",
     "audit:settings": "node audit-settings.mjs",
     "audit:team": "node audit-team.mjs",
-    "audit:profile": "node audit-profile.mjs"
+    "audit:profile": "node audit-profile.mjs",
+    "audit:verify-email": "node audit-verify-email.mjs"
   },
   "dependencies": {
     "playwright": "1.62.1"
