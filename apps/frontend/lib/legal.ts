@@ -30,7 +30,7 @@ export const LEGAL = {
   siret: '835 317 413 00036',
   apeCode: '6201Z',
   apeLabel: 'programmation informatique',
-  address: '4 B rue Saint Leger, 78100 Saint Germain en Laye',
+  address: '4 bis rue Saint-Léger, 78100 Saint-Germain-en-Laye',
   email: 'support@mizan-commerce.com',
   vatNotice: 'TVA non applicable, art. 293 B du CGI',
   publicationDirector: 'Aurélien Boudon',
