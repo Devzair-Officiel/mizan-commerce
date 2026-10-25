@@ -1,5 +1,7 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import (
+    TokenBlacklistView, TokenObtainPairView, TokenRefreshView,
+)
 
 from .throttles import AuthRateThrottle
 from .views import (
@@ -17,10 +19,16 @@ class ThrottledTokenRefreshView(TokenRefreshView):
     throttle_classes = [AuthRateThrottle]
 
 
+class ThrottledTokenBlacklistView(TokenBlacklistView):
+    """Déconnexion : le jeton de rafraîchissement transmis passe sur liste noire."""
+    throttle_classes = [AuthRateThrottle]
+
+
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth-register'),
     path('login/', ThrottledTokenObtainPairView.as_view(), name='auth-login'),
     path('token/refresh/', ThrottledTokenRefreshView.as_view(), name='auth-token-refresh'),  # noqa: E501
+    path('logout/', ThrottledTokenBlacklistView.as_view(), name='auth-logout'),
     path('me/', MeView.as_view(), name='auth-me'),
     path('change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='auth-password-reset'),  # noqa: E501

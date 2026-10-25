@@ -576,6 +576,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 ### Durcissement avant production (2026-10-25)
 
 - [~] Node 24 partout (images frontend, CI, `@types/node`) : code prêt, à valider sur staging
+- [~] Révocation des jetons de rafraîchissement (liste noire, déconnexion, mot de passe, purge quotidienne, rafraîchissement à vol unique dans le proxy Next.js) : code prêt, à valider sur staging — migrations `token_blacklist` (paquet simplejwt), vérifications dans docs/exploitation/deploiement.md (« Sessions »)
 
 ### Abonnement SaaS (URS-064, URS-065, URS-100)
 

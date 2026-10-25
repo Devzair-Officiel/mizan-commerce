@@ -23,6 +23,9 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    # Liste noire des jetons de rafraîchissement : rotation, déconnexion,
+    # changement de mot de passe.
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'axes',
 ]
@@ -185,7 +188,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
+    # Un jeton de rafraîchissement ne sert qu'une fois : réutilisé, il est refusé.
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
     'UPDATE_LAST_LOGIN': True,
 }
@@ -306,6 +310,11 @@ CELERY_BEAT_SCHEDULE = {
     'subscriptions-past-due': {
         'task': 'apps.subscriptions.tasks.process_past_due_subscriptions',
         'schedule': crontab(minute='*/15'),
+    },
+    # Purge des jetons de rafraîchissement expirés (liste noire comprise).
+    'accounts-flush-expired-tokens-daily': {
+        'task': 'apps.accounts.tasks.flush_expired_tokens',
+        'schedule': crontab(hour=3, minute=0),
     },
     # Toutes les heures : chaque boutique est traitée à son heure locale.
     'notes-automatic-reminders-hourly': {

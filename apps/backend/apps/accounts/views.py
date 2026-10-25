@@ -17,6 +17,7 @@ from .serializers import (
     RegisterSerializer, UserSerializer, MeSerializer, ChangePasswordSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
+from .services import set_password_and_revoke_sessions
 from .throttles import AuthRateThrottle, ResendEmailVerificationThrottle
 from .tokens import email_verification_token
 
@@ -95,9 +96,16 @@ class ChangePasswordView(APIView):
         user = request.user
         if not user.check_password(serializer.validated_data['old_password']):
             return Response({'old_password': 'Mot de passe incorrect.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
-        user.set_password(serializer.validated_data['new_password'])
-        user.save()
-        return Response({'detail': 'Mot de passe modifié.'})
+        new_password = serializer.validated_data['new_password']
+        set_password_and_revoke_sessions(user, new_password)
+        # Toutes les sessions sont fermées, celle-ci comprise : nouvelle paire pour
+        # rester connecté ici (le proxy Next.js la pose en cookies HttpOnly).
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'detail': 'Mot de passe modifié.',
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        })
 
 
 class PasswordResetRequestView(APIView):
@@ -145,8 +153,8 @@ class PasswordResetConfirmView(APIView):
         if not default_token_generator.check_token(user, serializer.validated_data['token']):  # noqa: E501
             return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
-        user.set_password(serializer.validated_data['new_password'])
-        user.save()
+        new_password = serializer.validated_data['new_password']
+        set_password_and_revoke_sessions(user, new_password)
         return Response({'detail': 'Mot de passe réinitialisé.'})
 
 
