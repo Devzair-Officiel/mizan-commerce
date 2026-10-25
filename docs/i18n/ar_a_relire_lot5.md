@@ -134,3 +134,13 @@ Clés nouvelles sous `settings.subscription` (grille, `features`, `change`) et `
 - `settings.subscription.change.confirm_schedule` : « برمجة التغيير » pour un bouton : « جدولة التغيير » possible.
 - `settings.subscription.change.errors.cancellation_scheduled` : « الإلغاء مُبرمج » : même question « مُبرمج / مُجدول ».
 - `layout.billing.trial_end` : « يوم {date} الساعة {time} » : `{date}` contient déjà le jour de la semaine (« الأحد 25 أكتوبر ») ; « يوم » peut faire doublon.
+
+## Pages légales (lien vers les CGV à l'inscription)
+
+Clé modifiée, sous `auth.register` : la phrase de la politique de confidentialité renvoie aussi vers les CGV (`<terms>` → `/cgv`). Le début de l'ancienne phrase passe au vouvoiement pluriel (« بياناتك » → « بياناتكم »), comme le reste du lot.
+
+| Clé | FR | AR | Incertain |
+|---|---|---|---|
+| `auth.register.privacy_notice` | En créant un compte, vous acceptez nos <terms>conditions générales de vente et d'utilisation</terms>. Vos données sont traitées selon notre <privacy>politique de confidentialité</privacy>. | بإنشائكم حسابًا، فإنكم توافقون على <terms>الشروط العامة للبيع والاستخدام</terms>. تُعالَج بياناتكم وفقًا لـ<privacy>سياسة الخصوصية</privacy> الخاصة بنا. | **oui** |
+
+- `auth.register.privacy_notice` : « الشروط العامة للبيع والاستخدام » calque « conditions générales de vente et d'utilisation » ; « شروط البيع والاستخدام » ou « الشروط والأحكام » seraient peut-être plus courants. La page CGV elle-même n'existe qu'en français.

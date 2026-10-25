@@ -44,7 +44,7 @@
       "error_recaptcha": "Vérification anti-bot échouée. Réessayez.",
       "have_account": "Déjà inscrit ?",
       "signin_link": "Se connecter",
-      "privacy_notice": "Vos données sont traitées selon notre <privacy>politique de confidentialité</privacy>.",
+      "privacy_notice": "En créant un compte, vous acceptez nos <terms>conditions générales de vente et d'utilisation</terms>. Vos données sont traitées selon notre <privacy>politique de confidentialité</privacy>.",
       "trust_line": "Aucune carte requise — résiliable à tout moment",
       "check_email_title": "Vérifiez votre email",
       "check_email_body": "Un lien d'activation a été envoyé à votre adresse email. Cliquez sur ce lien pour activer votre compte."

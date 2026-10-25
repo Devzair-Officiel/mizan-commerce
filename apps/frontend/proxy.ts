@@ -32,6 +32,9 @@ const PUBLIC_AUTH_PREFIXES = [
 // l'inscription doit appeler l'API de vérification, pas renvoyer vers /dashboard.
 const EMAIL_VERIFICATION_PREFIX = '/verify-email';
 
+// Pages légales publiques : /cgv est aussi le lien des CGV de Stripe Checkout.
+const LEGAL_PAGES = ['/mentions-legales', '/confidentialite', '/cgv'];
+
 // Pages publiques sans auth (vitrines boutiques publiées).
 const PUBLIC_PAGE_PREFIXES = ['/boutique/'];
 
@@ -41,7 +44,7 @@ export function proxy(request: NextRequest) {
   const onAuthPage = PUBLIC_AUTH_PREFIXES.some((p) => pathname.startsWith(p));
   const onPublicPage = PUBLIC_PAGE_PREFIXES.some((p) => pathname.startsWith(p));
   // Pages marketing et légales accessibles sans session.
-  const onLanding = pathname === '/' || pathname === '/mentions-legales' || pathname === '/confidentialite';
+  const onLanding = pathname === '/' || LEGAL_PAGES.includes(pathname);
 
   if (onPublicPage || onLanding) {
     return applyLocaleCookie(NextResponse.next(), request);

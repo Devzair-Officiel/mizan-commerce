@@ -44,7 +44,7 @@
       "error_recaptcha": "Bot verification failed. Please try again.",
       "have_account": "Already registered?",
       "signin_link": "Sign in",
-      "privacy_notice": "Your data is processed according to our <privacy>privacy policy</privacy>.",
+      "privacy_notice": "By creating an account, you accept our <terms>terms of sale and use</terms>. Your data is processed according to our <privacy>privacy policy</privacy>.",
       "trust_line": "No card required — cancel anytime",
       "check_email_title": "Check your email",
       "check_email_body": "An activation link has been sent to your email. Click it to activate your account."
