@@ -20,10 +20,25 @@ x-logging: &logging
     max-size: "10m"
     max-file: "5"
 
+# Isolation des services applicatifs (Django, frontend, ai-service, redis) :
+# aucun gain de privilège à l'exécution (setuid, capacités de fichier) et aucune
+# capacité Linux, inutiles à ces processus qui tournent sous un utilisateur non
+# root. Chacun borne en plus son nombre de processus et de threads (pids_limit).
+# PostgreSQL et backup n'en ont pas : docs/exploitation/deploiement.md
+# (« Isolation des conteneurs »).
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
 # Django : backend (gunicorn), workers Celery et Celery Beat. Même image.
 x-django: &django
+  <<: *hardening
   image: ghcr.io/devzair-officiel/mizan-backend:${IMAGE_TAG:?IMAGE_TAG manquant (deploy/deploy.sh)}
   restart: unless-stopped
+  # Gunicorn (3 workers) ou Celery (2 processus) : quelques dizaines de threads.
+  pids_limit: 256
   environment:
     SECRET_KEY: ${SECRET_KEY:?}
     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?}
@@ -190,9 +205,11 @@ services:
   # Broker Celery : mot de passe (fichier de configuration généré, jamais sur la
   # ligne de commande), persistance AOF, aucune éviction (une tâche ne se perd pas).
   redis:
+    <<: *hardening
     image: redis:7-alpine
     restart: unless-stopped
     user: redis
+    pids_limit: 64  # quelques threads, plus le processus de réécriture AOF
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?}
       REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-192mb}
@@ -216,6 +233,12 @@ services:
 
   backend:
     <<: *django
+    # Système de fichiers en lecture seule : le code ne peut pas être modifié.
+    # /tmp : fichiers envoyés de plus de 2,5 Mo, le temps de la requête (Django).
+    # Le battement des workers Gunicorn est dans /dev/shm (gunicorn.conf.py).
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
     healthcheck:
       test:
         - CMD
@@ -290,8 +313,16 @@ services:
     mem_limit: ${CELERY_BEAT_MEM_LIMIT:-192m}
 
   frontend:
+    <<: *hardening
     image: ghcr.io/devzair-officiel/mizan-frontend:${IMAGE_TAG:?}
     restart: unless-stopped
+    pids_limit: 256
+    # Lecture seule, sauf le cache de Next.js (images redimensionnées par
+    # next/image, réponses mises en cache), vidé à chaque redémarrage.
+    read_only: true
+    tmpfs:
+      - /app/.next/cache:size=128m,mode=1777
+      - /tmp:size=16m,mode=1777
     environment:
       API_URL: http://backend:8000/api
       COOKIE_SECURE: "true"
@@ -316,8 +347,11 @@ services:
     logging: *logging
 
   ai-service:
+    <<: *hardening
     image: ghcr.io/devzair-officiel/mizan-ai-service:${IMAGE_TAG:?}
     restart: unless-stopped
+    # PaddleOCR crée un pool de threads OpenMP par cœur : marge plus large.
+    pids_limit: 512
     environment:
       APP_ENV: ${APP_ENV:?}
       AI_SERVICE_API_KEY: ${AI_SERVICE_API_KEY:?}
