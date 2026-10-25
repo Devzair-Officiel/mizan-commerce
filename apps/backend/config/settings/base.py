@@ -140,6 +140,9 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@mizan.app')
 FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+# Validité du lien de vérification d'e-mail, en secondes (apps/accounts/tokens.py).
+# Indépendante de PASSWORD_RESET_TIMEOUT, qui reste celle du lien de réinitialisation.
+EMAIL_VERIFICATION_TIMEOUT = 60 * 60 * 24 * 7
 # Adresse de contact donnée en fin des e-mails envoyés aux commerçants.
 SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL', 'support@mizan-commerce.com')
 
