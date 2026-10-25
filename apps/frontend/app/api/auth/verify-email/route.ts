@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
 
@@ -9,7 +10,9 @@ export async function GET(req: NextRequest) {
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/auth/verify-email/?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}`);
+    res = await fetch(`${API_BASE}/auth/verify-email/?uid=${encodeURIComponent(uid)}&token=${encodeURIComponent(token)}`, {
+      headers: clientIpHeaders(req.headers),
+    });
   } catch {
     return NextResponse.json({ detail: 'Impossible de joindre le backend.' }, { status: 502 });
   }

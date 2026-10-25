@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
 import { ACCESS_COOKIE, REFRESH_COOKIE, refreshFailure, refreshSession, setSessionCookies } from '@/lib/server-session';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const send = (token: string | undefined) => fetch(`${API_BASE}/ocr/product-scan/`, {
     method: 'POST',
-    headers: { 'Content-Type': contentType, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': contentType, ...clientIpHeaders(req.headers), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body,
   });
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Token expiré : un rafraîchissement (partagé avec les requêtes simultanées), puis un seul
   // nouvel essai (le corps est déjà en mémoire).
   const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
-  const session = refresh ? await refreshSession(refresh) : { status: 'expired' as const };
+  const session = refresh ? await refreshSession(refresh, req.headers) : { status: 'expired' as const };
   if (session.status !== 'ok') return refreshFailure(session);
   const response = await relay(await send(session.access));
   setSessionCookies(response, session);

@@ -1,5 +1,5 @@
 from django.core import mail
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -263,7 +263,7 @@ class EmailVerificationTokenTest(TestCase):
 
     def setUp(self):
         # Inscription, connexion et réinitialisation : même limite 'auth' (10/min).
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
         self.url = reverse('auth-verify-email')
         mail.outbox = []
@@ -383,7 +383,7 @@ class PasswordResetTokenTest(TestCase):
     """Le lien de réinitialisation garde le jeton de Django et son comportement."""
 
     def setUp(self):
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
         self.user = User.objects.create_user(email='reset@example.com', password='StrongPass123!')  # noqa: E501
         mail.outbox = []
@@ -445,7 +445,7 @@ class LinkValidityInEmailsTest(TestCase):
 
     def setUp(self):
         # Inscriptions et réinitialisations : même limite 'auth' (10/min).
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
 
     def test_register_email(self):

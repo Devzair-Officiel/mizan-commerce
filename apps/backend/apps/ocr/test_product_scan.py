@@ -46,6 +46,10 @@ NUTELLA_EAN = '3017620422003'
 _TEST_AI_KEY = 'test-internal-key-product-scan'
 _CACHES = {
     'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
+    'throttle': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'product-scan-throttle-tests',
+    },
     'product_lookups': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'product-scan-tests',

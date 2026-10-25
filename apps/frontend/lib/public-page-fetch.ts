@@ -1,5 +1,6 @@
-import { cookies } from 'next/headers';
+import { cookies, headers as requestHeaders } from 'next/headers';
 
+import { clientIpHeaders } from './client-ip';
 import type { PublicPageData } from './public-page-types';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
@@ -17,7 +18,8 @@ export async function fetchPublicPage(
   options: { preview?: boolean } = {},
 ): Promise<PublicPageData | null> {
   const url = new URL(`${API_BASE}/public/boutique/${encodeURIComponent(slug)}/`);
-  const headers: Record<string, string> = {};
+  // Adresse du visiteur : la limite anonyme par IP s'applique à lui, pas au serveur Next.js.
+  const headers: Record<string, string> = clientIpHeaders(await requestHeaders());
 
   if (options.preview) {
     url.searchParams.set('preview', '1');

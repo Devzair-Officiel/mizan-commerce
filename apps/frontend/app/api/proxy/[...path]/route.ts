@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
 import {
   ACCESS_COOKIE, REFRESH_COOKIE, forgetRefresh, refreshFailure, refreshSession, setSessionCookies,
 } from '@/lib/server-session';
@@ -21,7 +22,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
   const isMultipart = req.headers.get('content-type')?.startsWith('multipart/form-data');
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = clientIpHeaders(req.headers);
   if (!isMultipart) headers['Content-Type'] = 'application/json';
 
   // Pour multipart, on forward les headers d'origine (inclut le boundary)
@@ -51,7 +52,7 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   if (!refreshToken) {
     return NextResponse.json({ detail: 'Non authentifié' }, { status: 401 });
   }
-  const session = await refreshSession(refreshToken);
+  const session = await refreshSession(refreshToken, req.headers);
   if (session.status !== 'ok') return refreshFailure(session);
 
   const response = await finish(await send(session.access));

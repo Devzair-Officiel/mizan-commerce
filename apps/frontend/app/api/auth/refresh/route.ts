@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ detail: 'No refresh token' }, { status: 401 });
   }
 
-  const session = await refreshSession(refresh);
+  const session = await refreshSession(refresh, req.headers);
   if (session.status !== 'ok') return refreshFailure(session);
 
   const response = NextResponse.json({ ok: true });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
 import { REFRESH_COOKIE, clearSessionCookies, forgetRefresh } from '@/lib/server-session';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   if (refresh) {
     await fetch(`${API_BASE}/auth/logout/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...clientIpHeaders(req.headers) },
       body: JSON.stringify({ refresh }),
       signal: AbortSignal.timeout(5_000),
     }).catch(() => undefined);

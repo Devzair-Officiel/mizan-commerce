@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
 
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     res = await fetch(`${API_BASE}/auth/password-reset/confirm/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...clientIpHeaders(req.headers) },
       body: JSON.stringify(body),
     });
   } catch {

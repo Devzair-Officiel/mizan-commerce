@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import TestCase
 from django.urls import reverse
 from django.utils.encoding import force_bytes
@@ -28,7 +28,7 @@ PASSWORD = 'StrongPass123!'
 class TokenRevocationTestCase(TestCase):
     def setUp(self) -> None:
         # Connexion, rafraîchissement, déconnexion : même limite 'auth' (10/min).
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
         self.user = User.objects.create_user(email='session@example.com', password=PASSWORD)  # noqa: E501
 

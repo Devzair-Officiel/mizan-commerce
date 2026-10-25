@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { clientIpHeaders } from './client-ip';
+
 /**
  * Session côté serveur Next.js (route handlers uniquement) : cookies HttpOnly et rafraîchissement
  * du jeton d'accès. Le backend fait tourner le jeton de rafraîchissement et met l'ancien sur liste
@@ -49,11 +51,11 @@ function prune(now: number): void {
   }
 }
 
-async function requestRefresh(refresh: string): Promise<RefreshResult> {
+async function requestRefresh(refresh: string, incoming: Headers): Promise<RefreshResult> {
   try {
     const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...clientIpHeaders(incoming) },
       body: JSON.stringify({ refresh }),
       signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
     });
@@ -71,13 +73,16 @@ async function requestRefresh(refresh: string): Promise<RefreshResult> {
   }
 }
 
-/** Rafraîchit la session : une seule demande au backend par jeton, partagée par les requêtes simultanées. */
-export function refreshSession(refresh: string): Promise<RefreshResult> {
+/**
+ * Rafraîchit la session : une seule demande au backend par jeton, partagée par les requêtes simultanées.
+ * `incoming` : en-têtes de la requête du navigateur (adresse du visiteur, limite 'auth' par IP).
+ */
+export function refreshSession(refresh: string, incoming: Headers): Promise<RefreshResult> {
   prune(Date.now());
   const existing = flights.get(refresh);
   if (existing) return existing.promise;
 
-  const flight: Flight = { promise: requestRefresh(refresh) };
+  const flight: Flight = { promise: requestRefresh(refresh, incoming) };
   flights.set(refresh, flight);
   void flight.promise.then((result) => {
     if (flights.get(refresh) !== flight) return; // oublié entre-temps (déconnexion, mot de passe)

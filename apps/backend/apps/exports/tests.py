@@ -5,7 +5,7 @@ from datetime import timezone as dt_timezone
 from decimal import Decimal
 from unittest import mock
 
-from django.core.cache import cache
+from django.core.cache import caches
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -56,7 +56,7 @@ class OrdersExportTestCase(TestCase):
 
     def setUp(self):
         # Compteurs de la limitation de débit : remis à zéro à chaque test.
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
         self.user, self.shop = setup('orders-export@example.com')
         subscribe(self.shop, SubscriptionPlan.CODE_BOUTIQUE)
@@ -438,7 +438,7 @@ class OrdersExportSeedOverpaymentTest(TestCase):
         cls.owner = ShopMember.objects.get(shop=cls.shop, role='owner').user
 
     def setUp(self):
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
         self.client.force_authenticate(user=self.owner)
         self.query = {'search': '2026-011', 'lang': 'fr'}

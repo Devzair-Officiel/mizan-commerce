@@ -15,10 +15,10 @@ from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.core.permissions import IsShopOwner, get_shop
+from apps.core.throttling import UserRateThrottle
 
 from .models import Subscription, SubscriptionPlan
 from .serializers import (
