@@ -7,7 +7,10 @@ export const INVOICE_MAX_MB = 10;
 export const INVOICE_PDF_MAX_PAGES = 5;
 
 /** Codes du refus d'un document par le serveur (`code` de la réponse 400), traduits à l'écran. */
-export const INVOICE_REFUSALS = ['pdf_protected', 'pdf_too_many_pages', 'pdf_unreadable', 'signature', 'too_large', 'type'] as const;
+export const INVOICE_REFUSALS = [
+  'image_too_large', 'image_unreadable', 'pdf_page_too_large', 'pdf_protected', 'pdf_too_many_pages', 'pdf_unreadable',
+  'signature', 'too_large', 'type',
+] as const;
 export type InvoiceRefusal = (typeof INVOICE_REFUSALS)[number];
 
 export function isInvoiceRefusal(code: unknown): code is InvoiceRefusal {

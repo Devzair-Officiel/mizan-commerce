@@ -31,6 +31,21 @@
 # alias des conteneurs sur le réseau edge (deploy/app/compose.yml).
 (app) {
 	encode zstd gzip
+	# Taille maximale d'un corps de requête, contrôlée ici avant tout transfert
+	# (413 au-delà). Le scan d'emballage envoie deux photos de 8 Mo au plus
+	# (MAX_BODY_BYTES de app/api/ocr/product-scan/route.ts : 16 Mio + 64 Kio) ;
+	# ailleurs, le plus grand fichier est une facture de 10 Mo
+	# (OCR_DOCUMENT_MAX_SIZE_MB). Marge pour l'enveloppe multipart : les
+	# plafonds de Next.js et de Django restent la règle, celui-ci borne ce
+	# qu'un client peut faire lire au frontend.
+	@product_scan path /api/ocr/product-scan
+	@not_product_scan not path /api/ocr/product-scan
+	request_body @product_scan {
+		max_size 17MiB
+	}
+	request_body @not_product_scan {
+		max_size 11MiB
+	}
 	handle /healthz {
 		reverse_proxy mizan-{args[0]}-backend:8000
 	}

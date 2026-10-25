@@ -15,6 +15,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.core.models import AuditLog
+from apps.core.test_utils import image_bytes
 from apps.shops.models import Shop, ShopMember
 from apps.subscriptions.models import SubscriptionPlan
 from apps.subscriptions.permissions import FEATURE_MIN_PLAN
@@ -37,11 +38,8 @@ from .services import reserve_vision_scan, scan_quota_month
 from .throttles import ProductScanRateThrottle
 
 URL = '/api/ocr/product-scan/'
-JPEG_BYTES = (
-    b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
-    b'\xff\xd9'
-)
-PNG_BYTES = b'\x89PNG\r\n\x1a\n' + b'\x00' * 16
+JPEG_BYTES = image_bytes('JPEG')
+PNG_BYTES = image_bytes('PNG')
 NUTELLA_EAN = '3017620422003'
 _TEST_AI_KEY = 'test-internal-key-product-scan'
 _CACHES = {

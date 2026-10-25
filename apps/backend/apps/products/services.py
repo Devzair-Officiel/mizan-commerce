@@ -17,6 +17,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.core.images import validate_uploaded_image
 from apps.core.storage import (
     delete_object, download_bytes, get_signed_url, upload_fileobj,
 )
@@ -206,6 +207,7 @@ def _store_image_file(product: Product, file: InMemoryUploadedFile) -> str:
         raise ValidationError(f"L'image ne doit pas dépasser {max_bytes // (1024 * 1024)} Mo.")  # noqa: E501
     if file.content_type not in allowed_types or file.content_type not in _IMAGE_EXTENSIONS:  # noqa: E501
         raise ValidationError("Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP.")  # noqa: E501
+    validate_uploaded_image(file)
 
     ext = _IMAGE_EXTENSIONS[file.content_type]
     object_key = f"products/{product.shop_id}/{product.pk}/{uuid.uuid4()}.{ext}"

@@ -7,6 +7,8 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from rest_framework import serializers
 
+from apps.core.images import validate_uploaded_image
+
 from .models import OcrResult, UploadedDocument
 from .pdf import InvalidInvoicePdfError, validate_invoice_pdf
 from .services import (
@@ -25,7 +27,8 @@ class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
     """Valide la requête d'upload : présence, taille, MIME, signature réelle.
 
     Pour un PDF : ouverture réelle (mot de passe, document illisible, nombre
-    de pages), message destiné au commerçant.
+    et taille des pages) ; pour une image : format, dimensions et intégrité.
+    Messages destinés au commerçant.
     """
 
     document = serializers.FileField()
@@ -52,6 +55,8 @@ class SupplierInvoiceUploadRequestSerializer(serializers.Serializer):
             validate_file_signature(file, file.content_type)
             if file.content_type == 'application/pdf':
                 validate_invoice_pdf(file)
+            else:
+                validate_uploaded_image(file)
         except InvalidFileSignatureError as exc:
             raise serializers.ValidationError(str(exc), code='signature') from exc
         except InvalidInvoicePdfError as exc:
@@ -104,12 +109,13 @@ def _validate_scan_photo(file: UploadedFile) -> UploadedFile:
         validate_file_signature(file, file.content_type)
     except InvalidFileSignatureError as exc:
         raise serializers.ValidationError(str(exc), code='signature') from exc
+    validate_uploaded_image(file)
     return file
 
 
 class ProductScanRequestSerializer(serializers.Serializer):
     """Photos d'emballage (URS-109) : face obligatoire, dos facultatif. Pour
-    chacune : présence, taille, MIME, signature réelle."""
+    chacune : présence, taille, MIME, signature réelle, dimensions, intégrité."""
 
     image = serializers.FileField()
     image_back = serializers.FileField(required=False)

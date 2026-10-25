@@ -6,6 +6,8 @@ from io import BytesIO
 from PIL import Image, UnidentifiedImageError
 from rest_framework.exceptions import ValidationError
 
+from apps.core.images import InvalidImageError, verify_image
+
 
 def white_contrast(color: str) -> float:
     """Rapport WCAG entre une couleur sRGB et le blanc (dans les deux sens)."""
@@ -26,27 +28,23 @@ def accessible_color(color: str) -> str:
     return color.lower()
 
 
+# Un logo est décodé en entier pour sa couleur : plafond plus bas qu'une photo.
+LOGO_MAX_PIXELS = 25_000_000
+
+
 def inspect_logo(content: bytes, content_type: str) -> tuple[str, str]:
     """Vérifie l’image et extrait sa couleur dominante hors pixels achromatiques."""
     formats = {'image/png': 'PNG', 'image/jpeg': 'JPEG', 'image/webp': 'WEBP'}
     try:
-        with Image.open(BytesIO(content)) as source:
-            if (
-                source.format != formats.get(content_type)
-                or source.width * source.height > 25_000_000
-            ):
-                raise ValidationError('Image invalide ou dimensions trop grandes.')
-            source.verify()
+        verify_image(content, content_type, max_pixels=LOGO_MAX_PIXELS)
+    except InvalidImageError as exc:
+        raise ValidationError(str(exc), code=exc.code) from exc
+    try:
         with Image.open(BytesIO(content)) as source:
             source.thumbnail((128, 128))
             data = source.convert('RGBA').tobytes()
             pixels = zip(data[0::4], data[1::4], data[2::4], data[3::4])
-    except (
-        UnidentifiedImageError,
-        OSError,
-        ValueError,
-        Image.DecompressionBombError,
-    ) as exc:
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
         raise ValidationError(
             'Image invalide. Formats acceptés : JPEG, PNG, WebP.'
         ) from exc

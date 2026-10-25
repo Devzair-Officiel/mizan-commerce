@@ -31,7 +31,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, sta
 
 from . import config
 from .file_validation import FileValidationError, validate_product_image, validate_uploaded_document
-from .image_prep import ImageDecodeError
+from .image_prep import ImageDecodeError, check_image
 from .invoice_extraction import (
     InvoiceExtractionError,
     MissingProviderKeyError,
@@ -94,8 +94,9 @@ def internal_health() -> dict[str, str | bool]:
 async def extract_text(document: UploadFile = File(...)) -> OcrExtractionResult:
     """Extrait le texte brut d'un document image (PaddleOCR) ou PDF.
 
-    - Validation locale : taille, MIME, signature binaire ; pour un PDF,
-      mot de passe et nombre de pages à l'ouverture (400).
+    - Validation locale : taille, MIME, signature binaire ; pour une image,
+      dimensions et intégrité ; pour un PDF, mot de passe, nombre et taille
+      des pages à l'ouverture (400).
     - PDF : texte lu directement sur les pages qui en ont, les autres
       rendues en image puis passées au même OCR (voir `pdf.py`).
     - Écriture dans un `tempfile` : le nom fourni par le client n'est
@@ -119,6 +120,13 @@ async def extract_text(document: UploadFile = File(...)) -> OcrExtractionResult:
 
     if document.content_type == 'application/pdf':
         return _extract_pdf(content)
+
+    # PaddleOCR décode l'image sans limite : une « bombe » de quelques Ko
+    # occuperait plusieurs Go de mémoire.
+    try:
+        check_image(content)
+    except ImageDecodeError as exc:
+        raise _unreadable_image(exc) from exc
 
     # `delete=False` pour pouvoir passer le chemin à PaddleOCR (qui rouvre
     # le fichier) puis supprimer explicitement dans le `finally`. On ignore

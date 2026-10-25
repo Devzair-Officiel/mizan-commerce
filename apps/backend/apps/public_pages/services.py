@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.exceptions import ValidationError
 
+from apps.core.images import IMAGE_EXTENSIONS, validate_uploaded_image
 from apps.core.storage import delete_object, upload_fileobj
 
 from .models import (
@@ -190,9 +191,10 @@ def _upload_page_image(
         )
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
         raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")  # noqa: E501
+    validate_uploaded_image(file)
 
     field = f'{kind}_object_key'
-    ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else 'jpg'
+    ext = IMAGE_EXTENSIONS[file.content_type]
     new_key = f"public_pages/{page.pk}/{kind}-{uuid.uuid4()}.{ext}"
 
     upload_fileobj(file, new_key, file.content_type)
