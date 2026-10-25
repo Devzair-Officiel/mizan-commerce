@@ -80,6 +80,7 @@
 - [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
 - [x] Endpoint mot de passe oublié + email de reset
 - [x] Validation email à l'inscription
+- [ ] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté
 - [x] Pages frontend : inscription, connexion
 - [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
