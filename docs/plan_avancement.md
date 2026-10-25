@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-24
+**Dernière mise à jour** : 2026-10-25
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -466,6 +466,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [x] **Palette Sauge + Crème** — Remplacer la palette par défaut (menthe saturée hors-gamut + blanc pur) par la palette adoucie validée design : primaire Sauge `oklch(0.52 0.075 170)` (#367762), fond Crème `oklch(0.975 0.010 85)` (#FAF6EF). Inclut le mécanisme `overrides` par thème dans `buildThemeVars` (formule → overrides fond → overrides primaire) et les valeurs sombre calibrées (cards détachées du fond, contrastes vérifiés). Aucun autre thème impacté.
 - [~] **Correctif police** — `--font-sans` ne se référence plus lui-même ; Geist + Noto Sans Arabic pour l'arabe
+- [ ] Polices hébergées (next/font/local), build indépendant de Google Fonts
 - [~] Étape 2 — Jeu de données de démo réaliste (seed)
 - [~] Étape 3 — Shell grand écran : sidebar groupée, en-tête de page, largeur max, bandeau unique
 - [x] Étape 4 — Nouvel accueil : compteurs « À faire », listes, carte Ventes, écran de démarrage

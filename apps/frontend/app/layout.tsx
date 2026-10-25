@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Noto_Sans_Arabic } from 'next/font/google';
+import localFont from 'next/font/local';
 import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -8,10 +8,20 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { getDirection, isLocale, DEFAULT_LOCALE } from '@/i18n/locales';
 import './globals.css';
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' });
-const notoArabic = Noto_Sans_Arabic({
-  subsets: ['arabic'],
-  weight: ['400', '500', '600', '700'],
+// Polices hébergées dans app/fonts (régénération : docs/ci.md). Une face par graisse, comme
+// le faisait next/font/google : même sélection de graisse par le navigateur.
+const geist = localFont({
+  src: './fonts/geist/Geist-Variable.woff2',
+  weight: '100 900',
+  variable: '--font-geist',
+});
+const notoArabic = localFont({
+  src: [
+    { path: './fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2', weight: '400' },
+    { path: './fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2', weight: '500' },
+    { path: './fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2', weight: '600' },
+    { path: './fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2', weight: '700' },
+  ],
   display: 'swap',
   variable: '--font-arabic',
 });

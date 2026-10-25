@@ -53,6 +53,42 @@ Dependabot (`.github/dependabot.yml`) ouvre chaque lundi :
 
 Chacune passe par le CI.
 
+## Polices hébergées dans le dépôt
+
+Les polices sont servies par `next/font/local` depuis `apps/frontend/app/fonts/<famille>/` (woff2 et licence `OFL.txt` de chaque famille) : le build ne contacte plus Google Fonts, dont le téléchargement faisait échouer le job `docker` par intermittence (« Can't resolve '@vercel/turbopack-next/internal/font/google/font' »). Chaque fichier regroupe les sous-ensembles que servait Google pour nos usages : `latin` + `latin-ext` partout, plus les diacritiques combinants (`combining.txt`) pour Geist et Manrope, `arabic` pour Noto Sans Arabic et Amiri, `math` + `symbols` pour Noto Sans Arabic. Les plages Unicode sont celles de Google, dans `app/fonts/subsets/`. Les fichiers sont réduits comme ceux de Google : sans hinting, Noto Sans Arabic figée à `wdth=100` avec l'axe `wght` complet.
+
+Sources (dépôt `google/fonts`) :
+- `https://raw.githubusercontent.com/google/fonts/main/ofl/<famille>/<fichier>.ttf` pour `geist/Geist[wght].ttf`, `notosansarabic/NotoSansArabic[wdth,wght].ttf`, `instrumentserif/InstrumentSerif-{Regular,Italic}.ttf` et `amiri/Amiri-{Regular,Bold}.ttf` ;
+- Manrope au commit `8f9a401dbb3793e0d1264b15d96aa253f05280f5` (`ofl/manrope/Manrope[wght].ttf`, version 4.504, celle que sert Google) : la 4.505 de `main` a d'autres contours.
+
+Pour régénérer, préparer un dossier de travail **hors du dépôt** contenant `src/` (les `.ttf`, Manrope dans `src2/`), `subsets/` (copie de `app/fonts/subsets/`) et un dossier `out2/` vide. Seul ce dossier est monté dans le conteneur, jamais le dépôt ni `.env`, et aucun outil n'entre dans les dépendances du projet. Versions : image `python:3.12-slim`, `fonttools==4.55.3`, `brotli==1.1.0`.
+
+```bash
+W=/chemin/du/dossier-de-travail
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$W:/fonts" -w /fonts python:3.12-slim sh -ec '
+pip install -q --no-cache-dir --user fonttools==4.55.3 brotli==1.1.0
+cat subsets/latin.txt subsets/latin-ext.txt > /tmp/latin.txt
+cat /tmp/latin.txt subsets/combining.txt > /tmp/latin-combining.txt
+cat /tmp/latin.txt subsets/arabic.txt > /tmp/arabic.txt
+cat /tmp/arabic.txt subsets/math.txt subsets/symbols.txt > /tmp/noto.txt
+python -m fontTools.varLib.instancer -q "src/NotoSansArabic[wdth,wght].ttf" wdth=100 -o /tmp/NotoSansArabic.ttf
+sub() { python -m fontTools.subset "$1" --unicodes-file="$2" --output-file="out2/$3" --flavor=woff2 --layout-features="*" --no-hinting --name-IDs="*"; }
+sub "src/Geist[wght].ttf" /tmp/latin-combining.txt Geist-Variable.woff2
+sub /tmp/NotoSansArabic.ttf /tmp/noto.txt NotoSansArabic-Variable.woff2
+sub "src2/Manrope[wght].ttf" /tmp/latin-combining.txt Manrope-Variable.woff2
+sub src/InstrumentSerif-Regular.ttf /tmp/latin.txt InstrumentSerif-Regular.woff2
+sub src/InstrumentSerif-Italic.ttf /tmp/latin.txt InstrumentSerif-Italic.woff2
+sub src/Amiri-Regular.ttf /tmp/arabic.txt Amiri-Regular.woff2
+sub src/Amiri-Bold.ttf /tmp/arabic.txt Amiri-Bold.woff2'
+```
+
+**Ajouter une police** :
+1. Télécharger le `.ttf` (variable de préférence) et son `OFL.txt` depuis `google/fonts`, en vérifiant que la version est celle que sert Google.
+2. Le réduire avec la commande ci-dessus, aux seuls sous-ensembles utilisés.
+3. Placer le woff2 et la licence dans `app/fonts/<famille>/`.
+4. Déclarer la police avec `localFont` dans le layout concerné : une entrée `src` par graisse utilisée, `variable` et `display: 'swap'` ; `adjustFontFallback: 'Times New Roman'` pour une police à empattements.
+5. La CSP (`font-src 'self' data:`) suffit : les fichiers sont servis depuis `/_next/static/media`, sur la même origine.
+
 ## Protéger `main` sur GitHub
 
 À faire une fois, après une première exécution du workflow : avant elle, GitHub ne propose pas les jobs comme vérifications.

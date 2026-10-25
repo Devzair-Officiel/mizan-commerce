@@ -1,27 +1,37 @@
 import type { Metadata } from 'next';
-import { Manrope, Instrument_Serif, Amiri } from 'next/font/google';
+import localFont from 'next/font/local';
 import './marketing.css';
 
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
+// Polices hébergées dans app/fonts (régénération : docs/ci.md), une face par graisse.
+const manrope = localFont({
+  src: [
+    { path: '../fonts/manrope/Manrope-Variable.woff2', weight: '500' },
+    { path: '../fonts/manrope/Manrope-Variable.woff2', weight: '600' },
+    { path: '../fonts/manrope/Manrope-Variable.woff2', weight: '700' },
+    { path: '../fonts/manrope/Manrope-Variable.woff2', weight: '800' },
+  ],
   variable: '--font-manrope',
   display: 'swap',
 });
 
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: ['400'],
-  style: ['normal', 'italic'],
+const instrumentSerif = localFont({
+  src: [
+    { path: '../fonts/instrument-serif/InstrumentSerif-Regular.woff2', weight: '400', style: 'normal' },
+    { path: '../fonts/instrument-serif/InstrumentSerif-Italic.woff2', weight: '400', style: 'italic' },
+  ],
   variable: '--font-instrument-serif',
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 });
 
-const amiri = Amiri({
-  subsets: ['arabic'],
-  weight: ['400', '700'],
+const amiri = localFont({
+  src: [
+    { path: '../fonts/amiri/Amiri-Regular.woff2', weight: '400' },
+    { path: '../fonts/amiri/Amiri-Bold.woff2', weight: '700' },
+  ],
   variable: '--font-amiri',
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 });
 
 export const metadata: Metadata = {
