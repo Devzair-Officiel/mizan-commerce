@@ -168,6 +168,7 @@ function RegisterFormView() {
       <p className="au-foot au-foot-secondary">
         {t.rich('privacy_notice', {
           privacy: (chunks) => <Link href="/confidentialite">{chunks}</Link>,
+          terms: (chunks) => <Link href="/cgv">{chunks}</Link>,
         })}
       </p>
     </div>

@@ -1,22 +1,22 @@
 # Mentions légales
 
-Dernière mise à jour : 17 octobre 2026
+Dernière mise à jour : 25 octobre 2026
 
 ## Éditeur
 
 Le site mizan-commerce.com et l'application Mizan sont édités par :
 
-**Houd Sarahoui, entrepreneur individuel (EI)**, exerçant sous le nom commercial HYPEDESIGN
+**Aurélien BOUDON, entrepreneur individuel (EI)**, exerçant sous le nom commercial HYPEDESIGN
 
-- Adresse : 9 rue Marie-Anne de Bovet, 57000 Metz, France
+- Adresse : 4 B rue Saint Leger, 78100 Saint Germain en Laye
 - E-mail : support@mizan-commerce.com
 - SIREN : 835 317 413 — SIRET : 835 317 413 00036
-- Numéro de TVA intracommunautaire : FR28835317413
 - Code APE : 6201Z (programmation informatique)
+- TVA non applicable, art. 293 B du CGI
 
 ## Directeur de la publication
 
-Houd Sarahoui.
+Aurélien Boudon.
 
 ## Hébergement
 

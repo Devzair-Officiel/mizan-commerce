@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SUBSCRIPTION_PAGE = '/settings/subscription'
-# Pas encore de page CGV dans le frontend : l'URL est réservée.
+# Page CGV publique du frontend (app/(marketing)/cgv), lien des CGV de Checkout.
 TERMS_PAGE = '/cgv'
 INTERVALS = (SubscriptionPlan.PERIOD_MONTH, SubscriptionPlan.PERIOD_YEAR)
 

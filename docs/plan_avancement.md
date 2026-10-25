@@ -566,8 +566,9 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Sécurité & RGPD
 
-- [~] Page mentions légales — staging non validé
-- [~] Page politique de confidentialité — staging non validé
+- [~] Page mentions légales — staging non validé ; mises à jour pour l'éditeur réel et Stripe
+- [~] Page politique de confidentialité — staging non validé ; mises à jour pour l'éditeur réel et Stripe
+- [~] Page CGV (/cgv) : code prêt, texte à faire relire
 - [ ] Endpoint export des données utilisateur
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
@@ -713,6 +714,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
+- [ ] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
 ### Vérification des affirmations marketing (lot 7d)

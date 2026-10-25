@@ -38,6 +38,7 @@ export function Footer() {
           <span>© 2026 mizan commerce. Tous droits réservés.</span>
           <div className="foot-legal">
             <Link href="/mentions-legales">Mentions légales</Link>
+            <Link href="/cgv">CGV</Link>
             <Link href="/confidentialite">Confidentialité</Link>
           </div>
           <span style={{ color: 'rgba(227,201,135,0.6)' }}>mizan — l&apos;équilibre de votre commerce</span>

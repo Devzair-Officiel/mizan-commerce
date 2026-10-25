@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Nav } from '@/components/marketing/Nav';
 import { Footer } from '@/components/marketing/Footer';
+import { LEGAL } from '@/lib/legal';
 
 export const metadata: Metadata = {
   title: 'Mentions légales — Mizan',
@@ -16,21 +17,21 @@ export default function MentionsLegalesPage() {
       <main className="wrap" lang="fr" dir="ltr">
         <article className="legal">
           <h1>Mentions légales</h1>
-          <p>Dernière mise à jour : 17 octobre 2026</p>
+          <p>Dernière mise à jour : 25 octobre 2026</p>
 
           <h2>Éditeur</h2>
-          <p>Le site mizan-commerce.com et l&apos;application Mizan sont édités par :</p>
-          <p><strong>Houd Sarahoui, entrepreneur individuel (EI)</strong>, exerçant sous le nom commercial HYPEDESIGN</p>
+          <p>Le site mizan-commerce.com et l&apos;application {LEGAL.product} sont édités par :</p>
+          <p><strong>{LEGAL.name}, {LEGAL.legalForm}</strong>, exerçant sous le nom commercial {LEGAL.tradeName}</p>
           <ul>
-            <li>Adresse : 9 rue Marie-Anne de Bovet, 57000 Metz, France</li>
-            <li>E-mail : support@mizan-commerce.com</li>
-            <li>SIREN : 835 317 413 — SIRET : 835 317 413 00036</li>
-            <li>Numéro de TVA intracommunautaire : FR28835317413</li>
-            <li>Code APE : 6201Z (programmation informatique)</li>
+            <li>Adresse : {LEGAL.address}</li>
+            <li>E-mail : {LEGAL.email}</li>
+            <li>SIREN : {LEGAL.siren} — SIRET : {LEGAL.siret}</li>
+            <li>Code APE : {LEGAL.apeCode} ({LEGAL.apeLabel})</li>
+            <li>{LEGAL.vatNotice}</li>
           </ul>
 
           <h2>Directeur de la publication</h2>
-          <p>Houd Sarahoui.</p>
+          <p>{LEGAL.publicationDirector}.</p>
 
           <h2>Hébergement</h2>
           <p>
@@ -49,7 +50,7 @@ export default function MentionsLegalesPage() {
           <p>Le traitement des données personnelles et l&apos;usage des cookies sont décrits dans la <Link href="/confidentialite">politique de confidentialité</Link>. Le site n&apos;utilise ni cookie publicitaire ni outil de mesure d&apos;audience.</p>
 
           <h2>Contact</h2>
-          <p>Pour toute question : support@mizan-commerce.com.</p>
+          <p>Pour toute question : {LEGAL.email}.</p>
         </article>
       </main>
       <Footer />
