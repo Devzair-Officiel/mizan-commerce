@@ -573,6 +573,10 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
 
+### Durcissement avant production (2026-10-25)
+
+- [~] Node 24 partout (images frontend, CI, `@types/node`) : code prêt, à valider sur staging
+
 ### Abonnement SaaS (URS-064, URS-065, URS-100)
 
 - [x] Modèles `Subscription`, `SubscriptionPlan` + seed des 3 plans

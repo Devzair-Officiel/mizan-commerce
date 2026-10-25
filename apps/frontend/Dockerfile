@@ -1,5 +1,5 @@
 # ── base ──────────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -33,7 +33,7 @@ RUN npm run build
 
 # ── production (deploy/app/compose.yml) ───────────────────────────────────────
 # Sortie standalone de Next.js : server.js et les seuls node_modules nécessaires.
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
