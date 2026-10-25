@@ -12,11 +12,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .formatting import validity_label
 from .serializers import (
     RegisterSerializer, UserSerializer, MeSerializer, ChangePasswordSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
 from .throttles import AuthRateThrottle, ResendEmailVerificationThrottle
+from .tokens import email_verification_token
 
 User = get_user_model()
 
@@ -49,11 +51,11 @@ class RegisterView(generics.CreateAPIView):
             start_trial_or_default(shop, user)
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
+        token = email_verification_token.make_token(user)
         verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",  # noqa: E501
+            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable {validity_label(settings.EMAIL_VERIFICATION_TIMEOUT)}.",  # noqa: E501
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -114,7 +116,7 @@ class PasswordResetRequestView(APIView):
             reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"  # noqa: E501
             send_mail(
                 subject='Réinitialisation de votre mot de passe — Mizan',
-                message=f"Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n{reset_url}\n\nCe lien est valable 24 heures.",  # noqa: E501
+                message=f"Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n{reset_url}\n\nCe lien est valable {validity_label(settings.PASSWORD_RESET_TIMEOUT)}.",  # noqa: E501
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
@@ -162,11 +164,11 @@ class ResendEmailVerificationView(APIView):
             return Response({'detail': 'Email déjà vérifié.', 'already_verified': True})
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
+        token = email_verification_token.make_token(user)
         verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable 24 heures.",  # noqa: E501
+            message=f"Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable {validity_label(settings.EMAIL_VERIFICATION_TIMEOUT)}.",  # noqa: E501
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -187,7 +189,7 @@ class EmailVerificationView(APIView):
         except (User.DoesNotExist, ValueError, TypeError):
             return Response({'detail': 'Lien invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
-        if not default_token_generator.check_token(user, token):
+        if not email_verification_token.check_token(user, token):
             return Response({'detail': 'Lien expiré ou invalide.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
         if user.email_verified_at is None:
