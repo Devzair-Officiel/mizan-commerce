@@ -74,6 +74,7 @@ write_env_file() {
   cp "$ROOT/deploy/env/staging.env.example" "$ENV_FILE"
   set_var SECRET_KEY "$(openssl rand -hex 32)"
   set_var POSTGRES_PASSWORD "$(openssl rand -hex 16)"
+  set_var APP_DB_PASSWORD "$(openssl rand -hex 16)"
   set_var REDIS_PASSWORD "$(openssl rand -hex 16)"
   set_var EMAIL_HOST localhost
   set_var OVH_S3_ACCESS_KEY test
@@ -139,6 +140,7 @@ prepare() {
   fi
   compose build --quiet postgres
   compose up --detach --wait postgres heartbeat
+  compose exec -T postgres mizan-db-roles  # comme deploy/deploy.sh
   compose run --rm --no-deps -T backend python manage.py migrate --noinput >/dev/null
 }
 
