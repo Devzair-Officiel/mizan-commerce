@@ -118,12 +118,26 @@ jobs:
           API_URL: http://localhost:8000/api
           NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ""
 
-  # Images de production. Sur un push vers main, une fois backend et frontend
-  # verts : publiées sur GHCR, étiquetées avec l'identifiant du commit et latest.
-  # Ailleurs : construites sans publication.
+  # Scripts et configuration de déploiement (deploy/) : shellcheck, et contrôle
+  # statique de deploy/app/compose.yml pour staging et production (réseau edge
+  # partagé : aucun nom ambigu entre les deux environnements).
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Shellcheck
+        run: shellcheck deploy/*.sh deploy/*/*.sh
+      - name: Compose (staging et production)
+        run: deploy/check-compose.sh
+
+  # Images de production. Sur un push vers main, une fois backend, frontend et
+  # deploy verts : publiées sur GHCR, étiquetées avec l'identifiant du commit et
+  # latest. Ailleurs : construites sans publication.
   docker:
     name: docker
-    needs: [backend, frontend]
+    needs: [backend, frontend, deploy]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

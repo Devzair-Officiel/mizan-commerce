@@ -6,9 +6,10 @@
 #
 # Étapes : récupération des images, rôle PostgreSQL de l'application,
 # migrations dans un conteneur ponctuel, redémarrage des services, attente de
-# leur santé et de /healthz. S'arrête à la
-# première erreur ; les conteneurs en place continuent de servir tant que le
-# redémarrage n'a pas eu lieu. Retour à la version précédente : deploy/rollback.sh.
+# leur santé et de /healthz, puis contrôle que le frontend joint le backend du
+# même environnement (réseau edge partagé). S'arrête à la première erreur ; les
+# conteneurs en place continuent de servir tant que le redémarrage n'a pas eu
+# lieu. Retour à la version précédente : deploy/rollback.sh.
 #
 # Variables facultatives :
 #   ENV_FILE=…   fichier de variables (défaut : deploy/env/<env>.env)
@@ -96,6 +97,16 @@ for attempt in $(seq 1 30); do
   fi
   sleep 2
 done
+
+# Le frontend doit joindre SON backend : sur le réseau edge, un nom partagé par
+# staging et production se résout en plusieurs adresses (deploy/check-api-url.sh).
+log "Résolution d'API_URL depuis le frontend"
+if ! ENV_FILE=$ENV_FILE COMPOSE_FILE=$DEPLOY_DIR/app/compose.yml \
+  "$DEPLOY_DIR/check-api-url.sh" "$ENVIRONMENT"; then
+  echo "Déploiement en échec, version non enregistrée : le frontend peut joindre l'autre" \
+    "environnement. Les conteneurs sont laissés tels quels ; corriger API_URL puis redéployer." >&2
+  exit 1
+fi
 
 if [[ ${NO_RECORD:-0} != 1 ]]; then
   mkdir -p "$(dirname "$STATE_FILE")"

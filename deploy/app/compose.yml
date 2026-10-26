@@ -12,7 +12,9 @@
 # NOM DU SERVICE (« backend », « frontend ») de chaque environnement. Un service
 # qui rejoint edge ne joint donc un pair que par son alias unique
 # mizan-<env>-<service>, ou par un nom absent d'edge (postgres, redis,
-# ai-service : réseau privé du projet).
+# ai-service : réseau privé du projet). Contrôles : deploy/check-compose.sh,
+# et deploy/deploy.sh à chaque déploiement.
+#
 # Total des limites mémoire en production ≈ 6,1 Go sur 12 (staging : moins,
 # réglé dans deploy/env/staging.env).
 #

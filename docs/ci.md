@@ -11,7 +11,8 @@ Un push sur une branche de travail ne lance rien tant qu'aucune pull request n'e
 |---|---|
 | `backend` | Python 3.12, PostgreSQL 16 et Redis 7 (mêmes images que `docker-compose.yml`) ; `ruff check`, `makemigrations --check --dry-run`, `pytest -n auto` |
 | `frontend` | Node 24 (comme `node:24-alpine`) ; `npm ci`, lint, typecheck, `i18n:check`, `tokens:check`, `text:check`, `deps:check`, build |
-| `docker` | Après `backend` et `frontend` : images de production backend, frontend et ai-service (cache GitHub Actions). Publiées sur GHCR seulement sur un push vers `main` ; construites sans publication sinon. L'image PostgreSQL avec WAL-G (`deploy/postgres`) est seulement construite, jamais publiée : le serveur la construit lui-même |
+| `deploy` | `shellcheck` des scripts de `deploy/`, puis `deploy/check-compose.sh` : `deploy/app/compose.yml` rendu pour staging et production avec les modèles `deploy/env/*.env.example`, échec si un service du réseau edge joint un pair par un nom ambigu (`docs/exploitation/deploiement.md`, « Réseau edge partagé ») |
+| `docker` | Après `backend`, `frontend` et `deploy` : images de production backend, frontend et ai-service (cache GitHub Actions). Publiées sur GHCR seulement sur un push vers `main` ; construites sans publication sinon. L'image PostgreSQL avec WAL-G (`deploy/postgres`) est seulement construite, jamais publiée : le serveur la construit lui-même |
 
 Le CI n'utilise **aucun secret** du dépôt : la publication sur GHCR passe par le `GITHUB_TOKEN` fourni par GitHub. Les variables OVH sont vides, donc `is_storage_configured()` est faux. Les tests d'upload forcent leurs réglages avec `override_settings` et simulent boto3 avec `patch` : aucun test ne contacte le bucket, même en local avec un `.env` complet. Un test qui dépendrait des variables OVH du `.env` passerait en local mais échouerait en CI. Pour le reproduire en local :
 
@@ -101,11 +102,11 @@ sub src/Amiri-Bold.ttf /tmp/arabic.txt Amiri-Bold.woff2'
    - **Restrict deletions** ;
    - **Block force pushes** ;
    - **Require a pull request before merging** : *Required approvals* à `0` tant que vous êtes seul sur le dépôt (GitHub interdit d'approuver sa propre pull request) ; cocher *Dismiss stale pull request approvals when new commits are pushed* ;
-   - **Require status checks to pass** : cocher *Require branches to be up to date before merging*, puis *Add checks* : `backend`, `frontend`, `docker` (source : GitHub Actions).
+   - **Require status checks to pass** : cocher *Require branches to be up to date before merging*, puis *Add checks* : `backend`, `frontend`, `deploy`, `docker` (source : GitHub Actions).
 6. **Create.**
 
-Résultat : plus de push direct ni de push forcé sur `main`. Toute fusion passe par une pull request dont les trois jobs sont verts.
+Résultat : plus de push direct ni de push forcé sur `main`. Toute fusion passe par une pull request dont les quatre jobs sont verts.
 
-Variante si les rulesets ne sont pas disponibles : **Settings → Branches → Add classic branch protection rule**, motif `main`, mêmes cases : *Require a pull request*, *Require status checks* avec les trois jobs, *Do not allow bypassing*. Les push forcés et la suppression restent interdits par défaut.
+Variante si les rulesets ne sont pas disponibles : **Settings → Branches → Add classic branch protection rule**, motif `main`, mêmes cases : *Require a pull request*, *Require status checks* avec les quatre jobs, *Do not allow bypassing*. Les push forcés et la suppression restent interdits par défaut.
 
 À activer aussi dans **Settings → Code security** : *Dependabot alerts* et *Dependabot security updates*.
