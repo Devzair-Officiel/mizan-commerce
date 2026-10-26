@@ -142,6 +142,10 @@ prepare() {
   compose up --detach --wait postgres heartbeat
   compose exec -T postgres mizan-db-roles  # comme deploy/deploy.sh
   compose run --rm --no-deps -T backend python manage.py migrate --noinput >/dev/null
+  [[ $(psql_live "SELECT tableowner FROM pg_tables WHERE tablename = 'django_migrations'") == mizan_app ]] \
+    || fail "migrations non jouées par mizan_app"
+  [[ $(psql_live "SELECT rolsuper OR rolcreatedb OR rolcreaterole FROM pg_roles WHERE rolname = 'mizan_app'") == f ]] \
+    || fail "mizan_app a un attribut d'administration"
 }
 
 scenario_backup() {
