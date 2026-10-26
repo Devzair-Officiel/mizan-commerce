@@ -17,6 +17,7 @@
       "submitting": "جاري تسجيل الدخول…",
       "password_required": "كلمة المرور مطلوبة",
       "error_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+      "error_too_many_attempts": "محاولات كثيرة جدًا، أعيدوا المحاولة بعد بضع دقائق.",
       "no_account": "ليس لديك حساب؟",
       "signup_link": "إنشاء حساب",
       "forgot_password_link": "نسيت كلمة المرور؟",

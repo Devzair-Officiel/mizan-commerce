@@ -1,9 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from apps.core.recaptcha import verify_recaptcha_token
 from apps.customers.serializers import validated_phone
+
+from .services import ensure_login_allowed, forget_login_failures
 
 User = get_user_model()
 
@@ -122,3 +125,16 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(write_only=True, validators=[validate_password])  # noqa: E501
+
+
+class LoginSerializer(TokenObtainPairSerializer):
+    """Connexion JWT : blocage d'axes contrôlé avant le mot de passe (`LoginLocked`),
+    échecs du couple (compte, adresse) effacés après un succès."""
+
+    def validate(self, attrs: dict) -> dict:
+        request = self.context['request']
+        username = attrs[self.username_field]
+        ensure_login_allowed(request, username)
+        data = super().validate(attrs)
+        forget_login_failures(request, username)
+        return data

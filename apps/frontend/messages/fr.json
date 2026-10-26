@@ -20,6 +20,7 @@
       "submitting": "Connexion…",
       "password_required": "Mot de passe requis",
       "error_credentials": "Email ou mot de passe incorrect.",
+      "error_too_many_attempts": "Trop de tentatives, réessayez dans quelques minutes.",
       "no_account": "Pas encore de compte ?",
       "signup_link": "S'inscrire",
       "forgot_password_link": "Mot de passe oublié ?"

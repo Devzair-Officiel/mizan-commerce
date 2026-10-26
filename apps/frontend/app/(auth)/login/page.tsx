@@ -41,6 +41,10 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (res.status === 429) {
+        setError('root', { message: t('error_too_many_attempts') });
+        return;
+      }
       if (!res.ok) throw new ApiError(res.status, null, '');
       router.replace('/dashboard');
     } catch {

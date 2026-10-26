@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 import os
@@ -103,11 +104,17 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
-# django-axes — anti brute-force sur /admin/login/ et endpoints d'auth
+# django-axes — anti brute-force sur /admin/login/ et la connexion JWT.
+# Blocage par couple (compte, adresse) : un tiers ne peut pas enfermer dehors
+# un client depuis une autre adresse, et une adresse qui essaie plusieurs
+# comptes reste bornée par la limite 'auth' de DRF (10/minute).
 AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = 1  # heure(s) avant déblocage
+AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
-AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
+AXES_LOCKOUT_PARAMETERS = [['username', 'ip_address']]
+# Adresse du visiteur, même clé que la limitation de DRF (dernière entrée de
+# X-Forwarded-For, IPv6 par /64) : REMOTE_ADDR est celle du conteneur Next.js.
+AXES_CLIENT_IP_CALLABLE = 'apps.core.throttling.axes_client_ip'
 
 # reCAPTCHA v3 — désactivé si la clé secrète est vide (dev / tests).
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
@@ -187,7 +194,6 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
 }
 
-from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),

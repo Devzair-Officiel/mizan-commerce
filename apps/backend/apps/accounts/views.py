@@ -8,20 +8,47 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .formatting import validity_label
 from .serializers import (
     RegisterSerializer, UserSerializer, MeSerializer, ChangePasswordSerializer,
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer, LoginSerializer,
 )
-from .services import set_password_and_revoke_sessions
+from .services import LoginLocked, set_password_and_revoke_sessions
 from .throttles import AuthRateThrottle, ResendEmailVerificationThrottle
 from .tokens import email_verification_token
 
 User = get_user_model()
+
+
+# Même message que le compte existe ou non : le blocage porte sur ce qui a été saisi.
+LOGIN_LOCKED_DETAIL = 'Trop de tentatives, réessayez dans quelques minutes.'
+
+
+class LoginView(TokenObtainPairView):
+    """Connexion JWT ; couple (compte, adresse) bloqué par axes : 429, délai restant."""
+
+    serializer_class = LoginSerializer
+    throttle_classes = [AuthRateThrottle]
+
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
+        try:
+            return super().post(request, *args, **kwargs)
+        except LoginLocked as locked:
+            return Response(
+                {
+                    'detail': LOGIN_LOCKED_DETAIL,
+                    'code': 'too_many_attempts',
+                    'retry_after': locked.retry_after,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                headers={'Retry-After': str(locked.retry_after)},
+            )
 
 
 class RegisterView(generics.CreateAPIView):
