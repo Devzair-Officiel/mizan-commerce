@@ -1,7 +1,7 @@
 """Blocage d'un compte par django-axes après des échecs de connexion (login JWT).
 
-AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username'] : blocage par adresse OU par
-nom d'utilisateur, chacun compté à part. AXES_FAILURE_LIMIT = 5.
+AXES_LOCKOUT_PARAMETERS = [['username', 'ip_address']] : blocage du couple
+(compte, adresse du visiteur). AXES_FAILURE_LIMIT = 5.
 """
 
 from django.conf import settings
@@ -31,21 +31,15 @@ class UsernameLockoutTest(TestCase):
             REMOTE_ADDR=address, HTTP_X_FORWARDED_FOR=address,
         ).status_code
 
-    def test_username_locked_after_limit_whatever_the_address(self) -> None:
-        limit = settings.AXES_FAILURE_LIMIT
-        for i in range(limit):
+    def test_failures_spread_over_addresses_do_not_lock_the_account(self) -> None:
+        for i in range(settings.AXES_FAILURE_LIMIT):
             self.assertEqual(
                 self._login('alice@example.com', 'mauvais', f'203.0.113.{i + 1}'),
                 status.HTTP_401_UNAUTHORIZED,
             )
-        # Bon mot de passe, adresse jamais vue : refusé (même réponse qu'un échec).
+        # Une adresse de plus : aucun couple (compte, adresse) à la limite.
         self.assertEqual(
             self._login('alice@example.com', PASSWORD, '198.51.100.1'),
-            status.HTTP_401_UNAUTHORIZED,
-        )
-        # Le blocage porte sur ce nom, pas sur toutes les connexions.
-        self.assertEqual(
-            self._login('bob@example.com', PASSWORD, '198.51.100.2'),
             status.HTTP_200_OK,
         )
 
