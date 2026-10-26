@@ -144,3 +144,13 @@ Clé modifiée, sous `auth.register` : la phrase de la politique de confidential
 | `auth.register.privacy_notice` | En créant un compte, vous acceptez nos <terms>conditions générales de vente et d'utilisation</terms>. Vos données sont traitées selon notre <privacy>politique de confidentialité</privacy>. | بإنشائكم حسابًا، فإنكم توافقون على <terms>الشروط العامة للبيع والاستخدام</terms>. تُعالَج بياناتكم وفقًا لـ<privacy>سياسة الخصوصية</privacy> الخاصة بنا. | **oui** |
 
 - `auth.register.privacy_notice` : « الشروط العامة للبيع والاستخدام » calque « conditions générales de vente et d'utilisation » ; « شروط البيع والاستخدام » ou « الشروط والأحكام » seraient peut-être plus courants. La page CGV elle-même n'existe qu'en français.
+
+## Blocage de la connexion (trop de tentatives)
+
+Clé ajoutée, sous `auth.login` : affichée quand la connexion répond 429 (couple compte et adresse bloqué quinze minutes, ou limite par adresse).
+
+| Clé | FR | AR | Incertain |
+|---|---|---|---|
+| `auth.login.error_too_many_attempts` | Trop de tentatives, réessayez dans quelques minutes. | محاولات كثيرة جدًا، أعيدوا المحاولة بعد بضع دقائق. | **oui** |
+
+- `auth.login.error_too_many_attempts` : vouvoiement pluriel (« أعيدوا »), comme le reste du lot, alors que les autres clés de `auth.login` sont encore au singulier (« ليس لديك حساب؟ ») ; « عدد كبير من المحاولات » possible à la place de « محاولات كثيرة جدًا ».

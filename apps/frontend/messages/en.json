@@ -20,6 +20,7 @@
       "submitting": "Signing in…",
       "password_required": "Password required",
       "error_credentials": "Invalid email or password.",
+      "error_too_many_attempts": "Too many attempts, please try again in a few minutes.",
       "no_account": "No account yet?",
       "signup_link": "Sign up",
       "forgot_password_link": "Forgot password?"

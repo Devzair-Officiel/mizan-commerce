@@ -22,6 +22,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Blocage du couple (compte, adresse) par axes ou limite 'auth' par adresse :
+  // même réponse, le délai du backend est relayé (Retry-After).
+  if (res.status === 429) {
+    const retryAfter = Number(res.headers.get('Retry-After')) || undefined;
+    return NextResponse.json(
+      {
+        detail: 'Trop de tentatives, réessayez dans quelques minutes.',
+        code: 'too_many_attempts',
+        retry_after: retryAfter,
+      },
+      { status: 429, headers: retryAfter ? { 'Retry-After': String(retryAfter) } : undefined },
+    );
+  }
+
   if (!res.ok) {
     return NextResponse.json(
       { detail: 'Email ou mot de passe incorrect.' },
