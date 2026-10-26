@@ -7,10 +7,14 @@ les classes de limitation du projet héritent de `AnonRateThrottle` ou de
 
 Redis indisponible : la limitation s'ouvre (la requête passe) plutôt que de
 renvoyer une erreur 500 sur toute l'API ; un avertissement est journalisé.
+
+Adresse du visiteur : une IPv6 compte pour son bloc /64 (un abonné en reçoit
+au moins un, et en change d'adresse à volonté) ; une IPv4 reste exacte.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from typing import TYPE_CHECKING
 
@@ -27,6 +31,29 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 THROTTLE_CACHE_ALIAS = 'throttle'
+IPV6_PREFIX_LENGTH = 64
+
+
+def rate_limit_ident(ident: str) -> str:
+    """Clé d'un visiteur : bloc /64 pour une IPv6, IPv4 exacte (mappée comprise).
+
+    Une valeur qui n'est pas une adresse est rendue telle quelle (comportement
+    de DRF : le visiteur garde un compteur, rien ne casse).
+    """
+    try:
+        address = ipaddress.ip_address(ident)
+    except ValueError:
+        return ident
+    if address.version == 4:
+        return str(address)
+    if address.ipv4_mapped is not None:  # ::ffff:203.0.113.7
+        return str(address.ipv4_mapped)
+    # Par l'entier : laisse aussi de côté un éventuel identifiant de zone (%eth0).
+    host_bits = 128 - IPV6_PREFIX_LENGTH
+    network = ipaddress.IPv6Network(
+        ((int(address) >> host_bits) << host_bits, IPV6_PREFIX_LENGTH),
+    )
+    return str(network)
 
 
 class SharedCacheThrottleMixin:
@@ -34,6 +61,9 @@ class SharedCacheThrottleMixin:
 
     cache = ConnectionProxy(caches, THROTTLE_CACHE_ALIAS)
     scope: str | None
+
+    def get_ident(self, request: Request) -> str:
+        return rate_limit_ident(super().get_ident(request))  # type: ignore[misc]
 
     def allow_request(self, request: Request, view: APIView) -> bool:
         try:

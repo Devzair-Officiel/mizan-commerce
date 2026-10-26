@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.throttles import AuthRateThrottle
-from apps.core.throttling import SharedCacheThrottleMixin
+from apps.core.throttling import SharedCacheThrottleMixin, rate_limit_ident
 from config.settings.base import _redis_url_with_db
 
 EMAIL = 'throttle@example.com'
@@ -153,3 +153,63 @@ class ClientAddressTest(ThrottleTestCase):
             self._refresh(HTTP_X_FORWARDED_FOR='10.9.9.9, 203.0.113.7').status_code,
             status.HTTP_429_TOO_MANY_REQUESTS,
         )
+
+
+class RateLimitIdentTest(SimpleTestCase):
+    """Clé de limitation : bloc /64 pour une IPv6, IPv4 exacte."""
+
+    def test_ipv6_counts_for_its_64_block(self) -> None:
+        for address in ('2001:db8:1:2::1', '2001:db8:1:2:ffff:ffff:ffff:ffff',
+                        '2001:DB8:1:2:0:0:0:7', 'fe80::1%eth0'):
+            with self.subTest(address=address):
+                self.assertTrue(rate_limit_ident(address).endswith('::/64'))
+        self.assertEqual(rate_limit_ident('2001:db8:1:2::1'), '2001:db8:1:2::/64')
+        self.assertEqual(rate_limit_ident('fe80::1%eth0'), 'fe80::/64')
+
+    def test_ipv4_unchanged(self) -> None:
+        self.assertEqual(rate_limit_ident('203.0.113.7'), '203.0.113.7')
+
+    def test_ipv4_mapped_ipv6_is_the_ipv4_address(self) -> None:
+        self.assertEqual(rate_limit_ident('::ffff:203.0.113.7'), '203.0.113.7')
+
+    def test_invalid_value_returned_as_is(self) -> None:
+        for value in ('', 'pas-une-ip', '203.0.113.300', '2001:db8::/64', '::1::2'):
+            with self.subTest(value=value):
+                self.assertEqual(rate_limit_ident(value), value)
+
+
+class Ipv6BlockTest(ThrottleTestCase):
+    """Limite 'auth' (10/minute) : un compteur par bloc /64, IPv4 exacte."""
+
+    def _exhaust(self, address: str) -> None:
+        for _ in range(10):
+            self._refresh(HTTP_X_FORWARDED_FOR=address)
+
+    def _status(self, address: str) -> int:
+        return self._refresh(HTTP_X_FORWARDED_FOR=address).status_code
+
+    def test_addresses_of_one_64_block_share_their_counter(self) -> None:
+        for i in range(10):
+            self._refresh(HTTP_X_FORWARDED_FOR=f'2001:db8:1:2::{i + 1:x}')
+        self.assertEqual(
+            self._status('2001:db8:1:2:abcd:ef01:2345:6789'),
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+    def test_two_64_blocks_have_separate_counters(self) -> None:
+        self._exhaust('2001:db8:1:2::1')
+        self.assertEqual(self._status('2001:db8:1:3::1'), status.HTTP_401_UNAUTHORIZED)
+
+    def test_neighbouring_ipv4_addresses_stay_separate(self) -> None:
+        self._exhaust('203.0.113.7')
+        self.assertEqual(self._status('203.0.113.7'), status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(self._status('203.0.113.8'), status.HTTP_401_UNAUTHORIZED)
+
+    def test_ipv4_mapped_address_shares_the_ipv4_counter(self) -> None:
+        self._exhaust('::ffff:203.0.113.7')
+        self.assertEqual(self._status('203.0.113.7'), status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_invalid_address_still_throttled_without_error(self) -> None:
+        self._exhaust('pas-une-ip')
+        self.assertEqual(self._status('pas-une-ip'), status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(self._status('203.0.113.7'), status.HTTP_401_UNAUTHORIZED)
