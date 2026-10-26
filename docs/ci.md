@@ -22,6 +22,8 @@ docker compose run --rm --no-deps -e OVH_S3_ACCESS_KEY= -e OVH_S3_SECRET_KEY= \
   backend pytest -n auto
 ```
 
+Hors CI, à la main : `deploy/edge/test-isolation.sh`. Il lance deux projets Compose (staging et production) sur un réseau edge partagé et éprouve le garde-fou de `deploy/deploy.sh` (phase lourde, via `infra/scripts/mem-check.sh run` ; `docs/exploitation/deploiement.md`, « Réseau edge partagé »). Sa surcharge `deploy/edge/compose.isolation-test.yml` coupe l'archivage WAL-G, car le test n'a aucun bucket. Elle sert **uniquement** à ce test, jamais à `deploy/deploy.sh`, `deploy/rollback.sh` ni à aucun chemin de déploiement.
+
 ## Images publiées (GHCR)
 
 Sur chaque push vers `main`, le job `docker` publie :

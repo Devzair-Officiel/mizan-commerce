@@ -1,0 +1,10 @@
+# TEST UNIQUEMENT : utilisé par deploy/edge/test-isolation.sh, et jamais par
+# deploy/deploy.sh, deploy/rollback.sh ni aucun chemin de déploiement (sur le
+# serveur, l'archivage continu du journal est obligatoire).
+#
+# Surcharge de deploy/app/compose.yml : le test n'a aucun bucket de sauvegardes,
+# donc pas d'archivage WAL-G (sinon l'arrêt de la base temporaire
+# d'initialisation attend indéfiniment l'envoi du journal).
+services:
+  postgres:
+    command: [postgres]
