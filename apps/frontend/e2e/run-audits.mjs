@@ -23,6 +23,7 @@ const AUDITS = [
   'reminder-timezone', 'order-numbers', 'whatsapp', 'message-templates', 'sales', 'activity-export', 'exports', 'exports-stock',
   'invoice-settings', 'invoices', 'scroll-lock', 'header-bands', 'show-more', 'stock-entry-plan', 'account-menu',
   'sidebar', 'usage', 'subscription', 'settings', 'team', 'profile', 'verify-email', 'legal',
+  'session-refresh',
 ];
 
 const requested = process.argv.slice(2).map((a) => a.replace(/^audit-/, '').replace(/\.mjs$/, ''));

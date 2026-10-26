@@ -1,4 +1,4 @@
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from apps.core.throttling import AnonRateThrottle, UserRateThrottle
 
 
 class AuthRateThrottle(AnonRateThrottle):

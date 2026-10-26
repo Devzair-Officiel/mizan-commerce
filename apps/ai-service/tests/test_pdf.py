@@ -8,13 +8,18 @@ Fichiers de `tests/fixtures/` (quelques Ko, générés avec reportlab) :
 - `invoice_protected.pdf` : protégé par mot de passe ;
 - `invoice_six_pages.pdf` : 6 pages ;
 - `not_a_pdf.pdf`         : extension .pdf, contenu texte.
+
+Les PDF de pages blanches (nombre et taille de pages) sont fabriqués dans les
+tests avec pypdfium2 (`_blank_pdf`).
 """
 from __future__ import annotations
 
+import io
 import os
 from pathlib import Path
 from unittest.mock import patch
 
+import pypdfium2 as pdfium
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -38,6 +43,29 @@ def _post_pdf(name: str, read_image=None) -> tuple[object, int]:  # noqa: ANN001
             '/internal/ocr/extract-text',
             headers={INTERNAL_API_KEY_HEADER: _TEST_API_KEY},
             files={'document': (name, (_FIXTURES / name).read_bytes(), 'application/pdf')},
+        )
+    return response, ocr.call_count
+
+
+def _blank_pdf(sizes: list[tuple[float, float]]) -> bytes:
+    """PDF de pages blanches, aux tailles données en points."""
+    document = pdfium.PdfDocument.new()
+    for width, height in sizes:
+        document.new_page(width, height)
+    buffer = io.BytesIO()
+    document.save(buffer)
+    document.close()
+    return buffer.getvalue()
+
+
+def _post_built_pdf(content: bytes, read_image=None) -> tuple[object, int]:  # noqa: ANN001
+    side_effect = read_image or _unexpected_ocr
+    with patch('app.config.API_KEY', _TEST_API_KEY), \
+         patch('app.main.extract_text_from_image', side_effect=side_effect) as ocr:
+        response = client.post(
+            '/internal/ocr/extract-text',
+            headers={INTERNAL_API_KEY_HEADER: _TEST_API_KEY},
+            files={'document': ('built.pdf', content, 'application/pdf')},
         )
     return response, ocr.call_count
 
@@ -130,6 +158,45 @@ def test_truncated_pdf_is_refused() -> None:
             headers={INTERNAL_API_KEY_HEADER: _TEST_API_KEY},
             files={'document': ('cut.pdf', content, 'application/pdf')},
         )
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'PDF illisible.'
+
+
+_A4 = (595, 842)
+
+
+def test_built_pdf_with_many_pages_is_refused() -> None:
+    response, _ = _post_built_pdf(_blank_pdf([_A4] * 50))
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'PDF trop long (5 pages au maximum).'
+
+
+def test_pdf_with_a_poster_page_is_refused_before_rendering() -> None:
+    """Page A0 après une page A4 : refusée sans rendre aucune page."""
+    with patch('pypdfium2.PdfPage.render') as render:
+        response, ocr_calls = _post_built_pdf(_blank_pdf([_A4, (2384, 3370)]))
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'PDF : page trop grande (format A2 au maximum).'
+    render.assert_not_called()
+    assert ocr_calls == 0
+
+
+def test_pdf_with_a_very_long_page_is_refused() -> None:
+    response, _ = _post_built_pdf(_blank_pdf([(227, 6000)]))  # 2,10 m de long
+    assert response.status_code == 400
+
+
+def test_long_receipt_pdf_is_accepted() -> None:
+    """Ticket de caisse de 8 cm sur 1,40 m : rendu (côté long ≤ 4000 px) puis lu."""
+    empty = OcrExtractionResult(raw_text='', confidence_score=0.0, lines=[])
+    response, ocr_calls = _post_built_pdf(_blank_pdf([(227, 4000)]), read_image=lambda _path: empty)
+    assert response.status_code == 200
+    assert ocr_calls == 1
+
+
+def test_built_truncated_pdf_is_refused() -> None:
+    content = _blank_pdf([_A4] * 3)
+    response, _ = _post_built_pdf(content[: len(content) // 2])
     assert response.status_code == 400
     assert response.json()['detail'] == 'PDF illisible.'
 

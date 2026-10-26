@@ -310,6 +310,17 @@ def test_product_scan_rejects_corrupted_image() -> None:
     assert response.json() == {'detail': 'Image illisible.'}
 
 
+def test_product_scan_refuses_a_decompression_bomb_before_reading() -> None:
+    """PNG uni de 12 000 × 12 000 px (140 Ko) : refusé sans OCR ni vision."""
+    buffer = io.BytesIO()
+    Image.new('L', (12_000, 12_000), 0).save(buffer, 'PNG')
+    with patch('app.product_scan.extract_text_from_image') as ocr:
+        response = _post('/internal/product-scan', buffer.getvalue(), 'image/png')
+    assert response.status_code == 400
+    assert response.json() == {'detail': 'Image trop grande (50 millions de pixels au maximum).'}
+    ocr.assert_not_called()
+
+
 # ─── Registre des fournisseurs ─────────────────────────────────────────────
 
 

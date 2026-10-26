@@ -573,6 +573,14 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
 
+### Durcissement avant production (2026-10-25)
+
+- [~] Node 24 partout (images frontend, CI, `@types/node`) : code prêt, à valider sur staging
+- [~] Révocation des jetons de rafraîchissement (liste noire, déconnexion, mot de passe, purge quotidienne, rafraîchissement à vol unique dans le proxy Next.js) : code prêt, à valider sur staging — migrations `token_blacklist` (paquet simplejwt), vérifications dans docs/exploitation/deploiement.md (« Sessions »)
+- [~] Limitation de débit partagée (compteurs DRF dans Redis base 1, ouverte si Redis tombe, adresse du visiteur transmise par le proxy Next.js) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Limitation de débit »)
+- [~] Isolation des conteneurs (`no-new-privileges`, aucune capacité sauf `NET_BIND_SERVICE` pour Caddy, `pids_limit`, backend et frontend en lecture seule avec tmpfs ; PostgreSQL et backup : proposition non appliquée) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Isolation des conteneurs »)
+- [~] Fichiers envoyés (plafond de 50 Mpx et bombes de décompression refusées dans le backend et l'ai-service, images vérifiées entières et au bon format, taille de page des PDF bornée avant rendu, `request_body` de Caddy à 17 Mio pour le scan et 11 Mio ailleurs) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Fichiers envoyés »)
+
 ### Abonnement SaaS (URS-064, URS-065, URS-100)
 
 - [x] Modèles `Subscription`, `SubscriptionPlan` + seed des 3 plans

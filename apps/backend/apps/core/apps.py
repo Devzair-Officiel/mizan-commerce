@@ -7,4 +7,5 @@ class CoreConfig(AppConfig):
     label = 'core'
 
     def ready(self) -> None:
+        import apps.core.images  # noqa: F401  (plafond de pixels de Pillow)
         import apps.core.signals  # noqa: F401

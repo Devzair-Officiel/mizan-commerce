@@ -1109,6 +1109,8 @@
         "too_large": "The photo exceeds {max} MB. Choose a smaller photo.",
         "signature": "This file is not a readable image. Choose another photo.",
         "empty": "The file is empty. Choose another photo.",
+        "image_too_large": "The photo is too large (over 50 million pixels). Choose a smaller photo.",
+        "image_unreadable": "This photo is unreadable or incomplete. Choose another photo.",
         "throttled": "Too many scans in a short time. Wait a minute, then try again.",
         "unavailable": "Photo reading is unavailable right now. Try again, or fill in the form by hand.",
         "session": "Your session has expired. Sign in again to scan."
@@ -1474,6 +1476,9 @@
       "file_size": "The file must not exceed {max} MB.",
       "upload_failed": "The invoice could not be sent. Try again.",
       "refused": {
+        "image_too_large": "This photo is too large (over 50 million pixels). Reduce its size, then send it again.",
+        "image_unreadable": "This photo is unreadable or incomplete. Save it again, or take another photo of the invoice.",
+        "pdf_page_too_large": "A page of this PDF is too large (A2 at most). Send the invoice in A4 format, or a photo.",
         "pdf_protected": "This PDF is password-protected. Save it without a password, then send it again.",
         "pdf_too_many_pages": "This PDF has more than {pages} pages. Send only the pages of the invoice.",
         "pdf_unreadable": "This PDF is unreadable or damaged. Save it again, or send a photo of the invoice.",

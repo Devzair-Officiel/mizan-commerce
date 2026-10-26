@@ -1109,6 +1109,8 @@
         "too_large": "La photo dépasse {max} Mo. Choisissez une photo plus légère.",
         "signature": "Ce fichier n'est pas une image lisible. Choisissez une autre photo.",
         "empty": "Le fichier est vide. Choisissez une autre photo.",
+        "image_too_large": "La photo est trop grande (plus de 50 millions de pixels). Choisissez une photo plus petite.",
+        "image_unreadable": "Cette photo est illisible ou incomplète. Choisissez une autre photo.",
         "throttled": "Trop de scans en peu de temps. Patientez une minute, puis réessayez.",
         "unavailable": "La lecture de la photo est indisponible pour le moment. Réessayez, ou remplissez le formulaire à la main.",
         "session": "Votre session a expiré. Reconnectez-vous pour scanner."
@@ -1474,6 +1476,9 @@
       "file_size": "Le fichier ne doit pas dépasser {max} Mo.",
       "upload_failed": "L'envoi de la facture a échoué. Réessayez.",
       "refused": {
+        "image_too_large": "Cette photo est trop grande (plus de 50 millions de pixels). Réduisez sa taille, puis envoyez-la à nouveau.",
+        "image_unreadable": "Cette photo est illisible ou incomplète. Enregistrez-la à nouveau, ou prenez une autre photo de la facture.",
+        "pdf_page_too_large": "Une page de ce PDF est trop grande (format A2 au maximum). Envoyez la facture au format A4, ou une photo.",
         "pdf_protected": "Ce PDF est protégé par un mot de passe. Enregistrez-le sans mot de passe, puis envoyez-le à nouveau.",
         "pdf_too_many_pages": "Ce PDF compte plus de {pages} pages. Envoyez seulement les pages de la facture.",
         "pdf_unreadable": "Ce PDF est illisible ou endommagé. Enregistrez-le à nouveau, ou envoyez une photo de la facture.",

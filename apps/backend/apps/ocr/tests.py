@@ -11,6 +11,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.core.test_utils import A4_PT, image_bytes, pdf_bytes
 from apps.products.models import Product, ProductVariant
 from apps.shops.models import Shop, ShopMember
 from apps.stock.models import StockMovement
@@ -19,16 +20,10 @@ from apps.subscriptions.test_utils import attach_subscription
 
 from .models import OcrResult, UploadedDocument
 
-# ─── Payloads binaires valides pour la validation de signature ─────────────
-# JPEG minimal : SOI + APP0 + EOI. Suffisant pour matcher \xff\xd8\xff.
-JPEG_BYTES = (
-    b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
-    b'\xff\xd9'
-)
-# PNG : signature 8 octets + IHDR minimal (contenu bidon accepté par notre check).
-PNG_BYTES = b'\x89PNG\r\n\x1a\n' + b'\x00' * 16
-# WebP : RIFF....WEBP + payload bidon.
-WEBP_BYTES = b'RIFF\x00\x00\x00\x00WEBP' + b'\x00' * 8
+# ─── Vraies images minuscules (signature, format et intégrité vérifiés) ────
+JPEG_BYTES = image_bytes('JPEG')
+PNG_BYTES = image_bytes('PNG')
+WEBP_BYTES = image_bytes('WEBP')
 
 
 def make_user_shop(
@@ -465,6 +460,38 @@ class SupplierInvoicePdfUploadTest(TestCase):
         truncated = (PDF_FIXTURES / 'invoice_text.pdf').read_bytes()[:200]
         message = self._refused(pdf_upload('facture.pdf', truncated), 'pdf_unreadable')
         self.assertIn('illisible ou endommagé', message)
+
+    def test_built_pdf_with_many_pages_refused(self) -> None:
+        message = self._refused(
+            pdf_upload('facture.pdf', pdf_bytes([A4_PT] * 50)), 'pdf_too_many_pages',
+        )
+        self.assertIn('50 pages : 5 au maximum', message)
+
+    def test_pdf_with_a_poster_page_refused_before_rendering(self) -> None:
+        """Page A0 : sa taille est lue sans rendre aucune page."""
+        content = pdf_bytes([A4_PT, (2384, 3370)])
+        with patch('pypdfium2.PdfPage.render') as render:
+            message = self._refused(
+                pdf_upload('facture.pdf', content), 'pdf_page_too_large',
+            )
+        render.assert_not_called()
+        self.assertIn('A2 au maximum', message)
+
+    def test_pdf_with_a_very_long_side_refused(self) -> None:
+        content = pdf_bytes([(227, 6000)])  # 2,10 m de long
+        self._refused(pdf_upload('facture.pdf', content), 'pdf_page_too_large')
+
+    def test_long_receipt_pdf_accepted(self) -> None:
+        """Ticket de caisse de 8 cm sur 1,40 m : étroit, il passe."""
+        response = self._post(pdf_upload('ticket.pdf', pdf_bytes([(227, 4000)])))
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED, response.content,
+        )
+
+    def test_built_truncated_pdf_refused(self) -> None:
+        content = pdf_bytes([A4_PT] * 3)
+        truncated = content[: len(content) // 2]
+        self._refused(pdf_upload('facture.pdf', truncated), 'pdf_unreadable')
 
     def test_pdf_over_size_limit_refused(self) -> None:
         padding = b'\x00' * (10 * 1024 * 1024)

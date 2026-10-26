@@ -59,7 +59,7 @@ export const SCAN_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export const SCAN_MAX_MB = 8;
 
 /** Refus de la photo (code de la réponse 400) ou indisponibilité, traduits à l'écran. */
-const SCAN_REFUSALS = ['type', 'too_large', 'signature', 'empty'] as const;
+const SCAN_REFUSALS = ['type', 'too_large', 'signature', 'empty', 'image_too_large', 'image_unreadable'] as const;
 export type ProductScanFailure = (typeof SCAN_REFUSALS)[number] | 'throttled' | 'unavailable' | 'session';
 
 export class ProductScanError extends Error {

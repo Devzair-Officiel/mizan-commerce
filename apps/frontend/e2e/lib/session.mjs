@@ -11,7 +11,7 @@ export const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
  */
 const SLOT = Number(process.env.AUDIT_SLOT ?? 1);
 const PREFIX = SLOT > 1 ? `e2e${SLOT}` : 'e2e';
-const EMAIL = process.env.AUDIT_EMAIL ?? `${PREFIX}@example.com`;
+export const EMAIL = process.env.AUDIT_EMAIL ?? `${PREFIX}@example.com`;
 /** Employée de la boutique d'audit de l'emplacement. */
 export const STAFF_EMAIL = `${PREFIX}-staff@example.com`;
 /**
@@ -19,7 +19,7 @@ export const STAFF_EMAIL = `${PREFIX}-staff@example.com`;
  * qu'invoice-settings ou order-numbers émettent sur leur emplacement ne s'y mêlent pas.
  */
 export const INVOICES_EMAIL = 'e2e-invoices@example.com';
-const PASSWORD = process.env.AUDIT_PASSWORD ?? 'Mizan1234!';
+export const PASSWORD = process.env.AUDIT_PASSWORD ?? 'Mizan1234!';
 
 const ALL_VIEWPORTS = [
   { name: '1440', width: 1440, height: 1000, mobile: false },

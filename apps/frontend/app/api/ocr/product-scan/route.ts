@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
+import { ACCESS_COOKIE, REFRESH_COOKIE, refreshFailure, refreshSession, setSessionCookies } from '@/lib/server-session';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
-const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
 
 /**
  * Deux photos (face, dos) de 8 Mo au plus chacune (le serveur reste seul juge), plus l'enveloppe
@@ -30,39 +31,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const send = (token: string | undefined) => fetch(`${API_BASE}/ocr/product-scan/`, {
     method: 'POST',
-    headers: { 'Content-Type': contentType, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': contentType, ...clientIpHeaders(req.headers), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body,
   });
 
-  const res = await send(req.cookies.get('access_token')?.value);
+  const res = await send(req.cookies.get(ACCESS_COOKIE)?.value);
   if (res.status !== 401) return relay(res);
 
-  // Token expiré : un rafraîchissement, puis un seul nouvel essai (le corps est déjà en mémoire).
-  const newAccess = await refreshAccess(req.cookies.get('refresh_token')?.value);
-  if (!newAccess) {
-    const expired = NextResponse.json({ detail: 'Session expirée' }, { status: 401 });
-    expired.cookies.delete('access_token');
-    expired.cookies.delete('refresh_token');
-    return expired;
-  }
-  const response = await relay(await send(newAccess));
-  response.cookies.set('access_token', newAccess, {
-    httpOnly: true, secure: SECURE_COOKIES, sameSite: 'lax', path: '/', maxAge: 60 * 60,
-  });
+  // Token expiré : un rafraîchissement (partagé avec les requêtes simultanées), puis un seul
+  // nouvel essai (le corps est déjà en mémoire).
+  const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
+  const session = refresh ? await refreshSession(refresh, req.headers) : { status: 'expired' as const };
+  if (session.status !== 'ok') return refreshFailure(session);
+  const response = await relay(await send(session.access));
+  setSessionCookies(response, session);
   return response;
-}
-
-async function refreshAccess(refresh: string | undefined): Promise<string | null> {
-  if (!refresh) return null;
-  const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  });
-  if (!res.ok) return null;
-  const data: unknown = await res.json().catch(() => null);
-  const access = typeof data === 'object' && data !== null ? (data as { access?: unknown }).access : undefined;
-  return typeof access === 'string' ? access : null;
 }
 
 /** Réponse JSON du backend relayée ; tout autre corps (page d'erreur du serveur…) devient un 502 générique. */

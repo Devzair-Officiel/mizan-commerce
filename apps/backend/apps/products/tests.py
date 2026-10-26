@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.core.test_utils import image_bytes
 from apps.shops.models import Shop, ShopMember
 from .models import Product
 
@@ -287,7 +288,7 @@ class ProductImageUploadTest(TestCase):
         from unittest.mock import patch
         from django.core.files.uploadedfile import SimpleUploadedFile
         from .services import upload_product_image
-        file = SimpleUploadedFile(name, b'\x89PNG', content_type='image/png')
+        file = SimpleUploadedFile(name, image_bytes('PNG'), content_type='image/png')
         with patch('apps.products.services.upload_fileobj'):
             return upload_product_image(
                 shop=self.shop, product_id=str(self.product.pk), file=file,
@@ -565,7 +566,7 @@ class ProductImageManageTest(TestCase):
     def _upload(self, product, content_type='image/png'):
         from django.core.files.uploadedfile import SimpleUploadedFile
         from .services import upload_product_image
-        file = SimpleUploadedFile('photo.png', b'\x89PNG', content_type=content_type)
+        file = SimpleUploadedFile('photo.png', image_bytes('PNG'), content_type=content_type)  # noqa: E501
         return upload_product_image(shop=product.shop, product_id=str(product.pk), file=file)  # noqa: E501
 
     def url(self, image, name='product-image-detail', product=None):
@@ -583,7 +584,7 @@ class ProductImageManageTest(TestCase):
 
     def test_upload_endpoint_returns_the_new_primary_without_key(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
-        file = SimpleUploadedFile('new.png', b'\x89PNG', content_type='image/png')
+        file = SimpleUploadedFile('new.png', image_bytes('PNG'), content_type='image/png')  # noqa: E501
         response = self.client.post(reverse('product-image-upload', args=[self.product.pk]), {'image': file}, format='multipart')  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(set(response.data), {'id', 'url', 'is_primary', 'position', 'created_at'})  # noqa: E501
@@ -621,7 +622,7 @@ class ProductImageManageTest(TestCase):
     def test_replace_file_keeps_place_and_status(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
         old_key = self.second.object_key
-        file = SimpleUploadedFile('crop.jpg', b'\xff\xd8', content_type='image/jpeg')
+        file = SimpleUploadedFile('crop.jpg', image_bytes('JPEG'), content_type='image/jpeg')  # noqa: E501
         response = self.client.put(self.url(self.second, 'product-image-file'), {'image': file}, format='multipart')  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.second.refresh_from_db()
@@ -650,7 +651,7 @@ class ProductImageManageTest(TestCase):
         intruder, _ = setup_user_shop('photos-intruder@example.com')
         self.client.force_authenticate(user=intruder)
         detail, file = self.url(self.first), self.url(self.first, 'product-image-file')
-        png = SimpleUploadedFile('p.png', b'\x89PNG', content_type='image/png')
+        png = SimpleUploadedFile('p.png', image_bytes('PNG'), content_type='image/png')
         responses = [
             self.client.patch(detail, {'is_primary': True}, format='json'),
             self.client.delete(detail),

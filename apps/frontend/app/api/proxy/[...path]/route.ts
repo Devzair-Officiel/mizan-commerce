@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIpHeaders } from '@/lib/client-ip';
+import {
+  ACCESS_COOKIE, REFRESH_COOKIE, forgetRefresh, refreshFailure, refreshSession, setSessionCookies,
+} from '@/lib/server-session';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
+/** Le backend ferme toutes les sessions et renvoie une nouvelle paire de jetons (voir relayPasswordChange). */
+const PASSWORD_CHANGE_PATH = 'auth/change-password';
 
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
-  const accessToken = req.cookies.get('access_token')?.value;
+  const accessToken = req.cookies.get(ACCESS_COOKIE)?.value;
   // Next.js strip le slash final des segments [..path] — on le réajoute pour Django APPEND_SLASH
   const pathStr = path.join('/');
   const endpoint = `${API_BASE}/${pathStr}/`;
@@ -16,9 +22,8 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
   const isMultipart = req.headers.get('content-type')?.startsWith('multipart/form-data');
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = clientIpHeaders(req.headers);
   if (!isMultipart) headers['Content-Type'] = 'application/json';
-  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
   // Pour multipart, on forward les headers d'origine (inclut le boundary)
   if (isMultipart) {
@@ -31,56 +36,46 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     body = isMultipart ? await req.arrayBuffer() : await req.text();
   }
 
-  const res = await fetch(url.toString(), {
+  const send = (token: string | undefined) => fetch(url.toString(), {
     method: req.method,
-    headers,
+    headers: { ...headers, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body,
   });
+  const finish = (res: Response) => (pathStr === PASSWORD_CHANGE_PATH ? relayPasswordChange(req, res) : relay(res));
 
-  // Token expired — try refresh
-  if (res.status === 401) {
-    const refreshToken = req.cookies.get('refresh_token')?.value;
-    if (!refreshToken) {
-      return NextResponse.json({ detail: 'Non authentifié' }, { status: 401 });
-    }
+  const res = await send(accessToken);
+  if (res.status !== 401) return finish(res);
 
-    const refreshRes = await fetch(`${API_BASE}/auth/token/refresh/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh: refreshToken }),
-    });
-
-    if (!refreshRes.ok) {
-      const errResponse = NextResponse.json({ detail: 'Session expirée' }, { status: 401 });
-      errResponse.cookies.delete('access_token');
-      errResponse.cookies.delete('refresh_token');
-      return errResponse;
-    }
-
-    const { access: newAccess } = await refreshRes.json();
-
-    // Retry with new token (body already consumed above — safe for non-multipart)
-    const retryRes = await fetch(url.toString(), {
-      method: req.method,
-      headers: { ...headers, Authorization: `Bearer ${newAccess}` },
-      body,
-    });
-
-    const response = await relay(retryRes);
-
-    const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
-    response.cookies.set('access_token', newAccess, {
-      httpOnly: true,
-      secure: SECURE_COOKIES,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60,
-    });
-
-    return response;
+  // Jeton d'accès expiré : rafraîchissement (partagé avec les requêtes simultanées), puis un seul
+  // nouvel essai (le corps est déjà en mémoire).
+  const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
+  if (!refreshToken) {
+    return NextResponse.json({ detail: 'Non authentifié' }, { status: 401 });
   }
+  const session = await refreshSession(refreshToken, req.headers);
+  if (session.status !== 'ok') return refreshFailure(session);
 
-  return relay(res);
+  const response = await finish(await send(session.access));
+  // Un changement de mot de passe a déjà posé sa propre paire, plus récente.
+  if (!response.cookies.has(REFRESH_COOKIE)) setSessionCookies(response, session);
+  return response;
+}
+
+/**
+ * Changement de mot de passe : le backend révoque toutes les sessions et renvoie une nouvelle paire
+ * pour celle-ci. Elle devient les cookies HttpOnly et ne figure jamais dans le JSON relayé.
+ */
+async function relayPasswordChange(req: NextRequest, res: Response): Promise<NextResponse> {
+  const data: unknown = await res.json().catch(() => null);
+  if (typeof data !== 'object' || data === null) return NextResponse.json(data, { status: res.status });
+  const { access, refresh, ...rest } = data as { access?: unknown; refresh?: unknown };
+  const response = NextResponse.json(rest, { status: res.status });
+  if (res.ok && typeof access === 'string' && typeof refresh === 'string') {
+    setSessionCookies(response, { access, refresh });
+    const previous = req.cookies.get(REFRESH_COOKIE)?.value;
+    if (previous) forgetRefresh(previous);
+  }
+  return response;
 }
 
 /**

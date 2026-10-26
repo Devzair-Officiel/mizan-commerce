@@ -11,12 +11,13 @@ Paddle non plus, en simulant la structure de retour native.
 """
 from __future__ import annotations
 
+import io
 import os
-import struct
-import zlib
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from app.file_validation import MAX_FILE_SIZE_BYTES
 from app.main import app
@@ -31,32 +32,24 @@ _TEST_API_KEY = 'test-internal-key-do-not-use-in-prod'
 # ─── Petits helpers : bytes réellement conformes aux signatures ────────────
 
 
-def _make_png_bytes() -> bytes:
-    """PNG 1×1 blanc — génère un vrai fichier PNG valide.
+def _image_bytes(image_format: str, size: tuple[int, int] = (8, 8)) -> bytes:
+    """Vraie image minuscule : passe la signature et le contrôle des dimensions
+    (`check_image`) ; ses pixels ne sont jamais lus (OCR mocké)."""
+    buffer = io.BytesIO()
+    Image.new('RGB', size, 'white').save(buffer, image_format)
+    return buffer.getvalue()
 
-    Suffisant pour passer notre validation de signature ; le contenu
-    n'est jamais réellement décodé (OCR mocké).
-    """
-    signature = b'\x89PNG\r\n\x1a\n'
-    ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
-    ihdr = b'IHDR' + ihdr_data
-    ihdr_chunk = struct.pack('>I', len(ihdr_data)) + ihdr + struct.pack('>I', zlib.crc32(ihdr))
-    idat_data = zlib.compress(b'\x00\xff\xff\xff')
-    idat = b'IDAT' + idat_data
-    idat_chunk = struct.pack('>I', len(idat_data)) + idat + struct.pack('>I', zlib.crc32(idat))
-    iend_chunk = b'\x00\x00\x00\x00IEND\xaeB`\x82'
-    return signature + ihdr_chunk + idat_chunk + iend_chunk
+
+def _make_png_bytes() -> bytes:
+    return _image_bytes('PNG')
 
 
 def _make_jpeg_bytes() -> bytes:
-    """JPEG minimal — les 3 octets FF D8 FF suffisent pour la signature."""
-    return b'\xff\xd8\xff\xe0\x00\x10JFIF' + b'\x00' * 128 + b'\xff\xd9'
+    return _image_bytes('JPEG')
 
 
 def _make_webp_bytes() -> bytes:
-    """WebP minimal — magic RIFF + WEBP au bon offset."""
-    size = struct.pack('<I', 20)
-    return b'RIFF' + size + b'WEBP' + b'VP8L' + b'\x00' * 16
+    return _image_bytes('WEBP')
 
 
 def _mock_extract(*_args, **_kwargs) -> OcrExtractionResult:
@@ -251,3 +244,67 @@ def test_extract_text_cleans_tempfile_on_engine_error(tmp_path, monkeypatch) -> 
     assert response.status_code == 500
     remaining = [f for f in os.listdir(tmp_path) if f.endswith(('.png', '.jpg', '.webp'))]
     assert remaining == [], f'tempfiles non nettoyés : {remaining}'
+
+
+# ─── Bombes de décompression, fichiers tronqués (fabriqués ici) ────────────
+
+
+def _bomb(image_format: str = 'PNG', side: int = 12_000) -> bytes:
+    """Image unie très grande mais très compressible : 140 Ko en PNG pour
+    12 000 × 12 000 px, 144 millions de pixels une fois décodée."""
+    buffer = io.BytesIO()
+    Image.new('L', (side, side), 0).save(buffer, image_format)
+    return buffer.getvalue()
+
+
+def _post_without_ocr(files: dict) -> object:
+    with patch('app.config.API_KEY', _TEST_API_KEY), \
+         patch('app.main.extract_text_from_image') as ocr:
+        response = client.post(
+            '/internal/ocr/extract-text',
+            headers={INTERNAL_API_KEY_HEADER: _TEST_API_KEY},
+            files=files,
+        )
+    ocr.assert_not_called()
+    return response
+
+
+@pytest.mark.parametrize(('image_format', 'side', 'mime'), [
+    ('PNG', 8_000, 'image/png'),  # 64 Mpx : avertissement de Pillow
+    ('PNG', 12_000, 'image/png'),  # 144 Mpx : erreur de Pillow
+    ('WEBP', 8_000, 'image/webp'),
+])
+def test_extract_text_refuses_a_decompression_bomb_before_ocr(
+    image_format: str, side: int, mime: str,
+) -> None:
+    content = _bomb(image_format, side)
+    assert len(content) < 200_000
+    response = _post_without_ocr({'document': ('bomb', content, mime)})
+    assert response.status_code == 400
+    assert response.json() == {'detail': 'Image trop grande (50 millions de pixels au maximum).'}
+
+
+@pytest.mark.parametrize(('image_format', 'mime'), [('PNG', 'image/png'), ('WEBP', 'image/webp')])
+def test_extract_text_refuses_a_truncated_image(image_format: str, mime: str) -> None:
+    content = _image_bytes(image_format, (640, 480))
+    response = _post_without_ocr({'document': ('cut', content[: len(content) // 2], mime)})
+    assert response.status_code == 400
+    assert response.json() == {'detail': 'Image illisible.'}
+
+
+def test_extract_text_judges_the_content_not_the_extension() -> None:
+    """Nom en .png, contenu et type JPEG : seul le contenu compte, accepté."""
+    response = _post_with_valid_key({'document': ('photo.png', _make_jpeg_bytes(), 'image/jpeg')})
+    assert response.status_code == 200
+    # Type annoncé PNG, contenu JPEG : refusé par la signature, sans OCR.
+    response = _post_without_ocr({'document': ('photo.png', _make_jpeg_bytes(), 'image/png')})
+    assert response.status_code == 400
+
+
+def test_pillow_refuses_a_bomb_anywhere_in_the_service() -> None:
+    """Plafond de Pillow posé pour tout le processus à l'import de `image_prep`."""
+    from app.image_prep import MAX_PIXELS, ImageDecodeError, open_image
+
+    assert Image.MAX_IMAGE_PIXELS == MAX_PIXELS == 50_000_000
+    with pytest.raises(ImageDecodeError, match='trop grande'):
+        open_image(_bomb('PNG', 8_000))

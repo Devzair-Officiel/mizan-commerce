@@ -1,36 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
-const SECURE_COOKIES = process.env.COOKIE_SECURE === 'true';
+import { REFRESH_COOKIE, refreshFailure, refreshSession, setSessionCookies } from '@/lib/server-session';
 
 export async function POST(req: NextRequest) {
-  const refresh = req.cookies.get('refresh_token')?.value;
+  const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
   if (!refresh) {
     return NextResponse.json({ detail: 'No refresh token' }, { status: 401 });
   }
 
-  const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  });
+  const session = await refreshSession(refresh, req.headers);
+  if (session.status !== 'ok') return refreshFailure(session);
 
-  if (!res.ok) {
-    const response = NextResponse.json({ detail: 'Session expirée' }, { status: 401 });
-    response.cookies.delete('access_token');
-    response.cookies.delete('refresh_token');
-    return response;
-  }
-
-  const { access } = await res.json();
   const response = NextResponse.json({ ok: true });
-  response.cookies.set('access_token', access, {
-    httpOnly: true,
-    secure: SECURE_COOKIES,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60,
-  });
-
+  setSessionCookies(response, session);
   return response;
 }

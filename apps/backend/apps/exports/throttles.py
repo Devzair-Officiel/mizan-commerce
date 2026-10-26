@@ -1,4 +1,4 @@
-from rest_framework.throttling import UserRateThrottle
+from apps.core.throttling import UserRateThrottle
 
 
 class ExportRenderRateThrottle(UserRateThrottle):

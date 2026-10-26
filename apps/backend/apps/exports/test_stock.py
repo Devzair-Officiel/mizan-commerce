@@ -2,7 +2,7 @@ from decimal import Decimal
 from unittest import mock
 from zoneinfo import ZoneInfo
 
-from django.core.cache import cache
+from django.core.cache import caches
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -49,7 +49,7 @@ class StockExportTestCase(TestCase):
     inactifs, jamais exportés."""
 
     def setUp(self):
-        cache.clear()
+        caches['throttle'].clear()
         self.client = APIClient()
         self.user, self.shop = create_shop('stock-export@example.com')
         subscribe(self.shop, SubscriptionPlan.CODE_BOUTIQUE)

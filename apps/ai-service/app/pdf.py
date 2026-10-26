@@ -42,6 +42,12 @@ logger = logging.getLogger(__name__)
 # comme pour la taille : les deux services valident indépendamment).
 MAX_PDF_PAGES: int = 5
 
+# Taille de page maximale, contrôlée avant tout rendu : format A2 en surface
+# (une affiche A1 ou A0 est refusée), 5040 pt (1,78 m) en longueur — un long
+# ticket de caisse de 8 cm passe. Mêmes bornes côté backend (`ocr/pdf.py`).
+MAX_PAGE_AREA_PT2: int = 1191 * 1684
+MAX_PAGE_SIDE_PT: int = 5040
+
 # Résolution de rendu d'une page scannée : 200 dpi suffisent à PaddleOCR sur
 # du texte de facture. Le côté le plus long est borné pour qu'une page géante
 # (affiche, plan) ne produise pas une image de plusieurs centaines de Mo.
@@ -69,8 +75,13 @@ def _page_scale(width_pt: float, height_pt: float) -> float:
     return scale
 
 
+def _page_too_large(width_pt: float, height_pt: float) -> bool:
+    return width_pt * height_pt > MAX_PAGE_AREA_PT2 or max(width_pt, height_pt) > MAX_PAGE_SIDE_PT
+
+
 def _open_document(content: bytes) -> pdfium.PdfDocument:
-    """Ouvre le PDF ; mot de passe, contenu illisible ou trop de pages → 400."""
+    """Ouvre le PDF ; mot de passe, contenu illisible, trop de pages ou page
+    trop grande → 400. Tailles lues sans charger les pages."""
     try:
         document = pdfium.PdfDocument(content)
     except pdfium.PdfiumError as exc:
@@ -83,6 +94,14 @@ def _open_document(content: bytes) -> pdfium.PdfDocument:
     if len(document) > MAX_PDF_PAGES:
         document.close()
         raise FileValidationError(f'PDF trop long ({MAX_PDF_PAGES} pages au maximum).')
+    try:
+        sizes = [document.get_page_size(index) for index in range(len(document))]
+    except pdfium.PdfiumError as exc:
+        document.close()
+        raise FileValidationError('PDF illisible.') from exc
+    if any(_page_too_large(width, height) for width, height in sizes):
+        document.close()
+        raise FileValidationError('PDF : page trop grande (format A2 au maximum).')
     return document
 
 
@@ -205,7 +224,8 @@ def extract_text_from_pdf(
     `read_image` : OCR d'une image (chemin d'un PNG), appelé pour chaque page
     sans texte — `extract_text_from_image` en production.
 
-    `FileValidationError` : PDF protégé, illisible ou trop long (400).
+    `FileValidationError` : PDF protégé, illisible, trop long ou à page
+    trop grande (400).
     `OcrEngineError` : rendu d'une page impossible, ou échec de l'OCR (500).
     """
     lines: list[OcrLine] = []

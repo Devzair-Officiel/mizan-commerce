@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 import os
 
 from apps.core.sentry import init_sentry
@@ -23,6 +24,9 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    # Liste noire des jetons de rafraîchissement : rotation, déconnexion,
+    # changement de mot de passe.
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'axes',
 ]
@@ -158,10 +162,14 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'apps.core.pagination.FlexiblePageNumberPagination',
     'PAGE_SIZE': 20,
+    # Compteurs partagés entre processus (cache 'throttle') : apps/core/throttling.py.
     'DEFAULT_THROTTLE_CLASSES': (
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
+        'apps.core.throttling.AnonRateThrottle',
+        'apps.core.throttling.UserRateThrottle',
     ),
+    # IP d'un visiteur : dernière entrée de X-Forwarded-For, posée par le proxy
+    # Next.js (lib/client-ip.ts) ou par Caddy pour les routes Django exposées.
+    'NUM_PROXIES': 1,
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
@@ -185,7 +193,8 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
+    # Un jeton de rafraîchissement ne sert qu'une fois : réutilisé, il est refusé.
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
     'UPDATE_LAST_LOGIN': True,
 }
@@ -249,11 +258,29 @@ PRODUCT_SCAN_BACK_GRACE_SECONDS = 15 * 60
 OPEN_FOOD_FACTS_TIMEOUT_SECONDS = 3.0
 OPEN_FOOD_FACTS_CACHE_SECONDS = 30 * 24 * 3600
 
-# Cache Redis dédié aux recherches externes. Le cache par défaut (throttling)
-# reste en mémoire locale : le basculer sur Redis changerait le comportement
-# de toute l'API. Délais courts : un Redis lent ne doit pas retarder un scan.
+
+
+def _redis_url_with_db(url: str, db: int) -> str:
+    """Même serveur Redis (hôte, mot de passe), autre base numérotée."""
+    return urlsplit(url)._replace(path=f'/{db}').geturl()
+
+
+# Caches Redis dédiés (limitation de débit, recherches externes, scans) ; le
+# cache par défaut reste en mémoire locale. Délais courts : un Redis lent ne
+# doit retarder ni une requête ni un scan.
 CACHES = {
     'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'},
+    # Limitation de débit DRF : compteurs communs à tous les processus. Base
+    # Redis 1, distincte de celle de Celery (0) : un FLUSHDB de l'une ne touche
+    # pas l'autre. Panne de Redis : la limitation s'ouvre (apps/core/throttling.py).
+    'throttle': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': _redis_url_with_db(
+            os.environ.get('REDIS_URL', 'redis://redis:6379/0'), 1,
+        ),
+        'KEY_PREFIX': 'throttle',
+        'OPTIONS': {'socket_connect_timeout': 1, 'socket_timeout': 1},
+    },
     'product_lookups': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': os.environ.get('REDIS_URL', 'redis://redis:6379/0'),
@@ -306,6 +333,11 @@ CELERY_BEAT_SCHEDULE = {
     'subscriptions-past-due': {
         'task': 'apps.subscriptions.tasks.process_past_due_subscriptions',
         'schedule': crontab(minute='*/15'),
+    },
+    # Purge des jetons de rafraîchissement expirés (liste noire comprise).
+    'accounts-flush-expired-tokens-daily': {
+        'task': 'apps.accounts.tasks.flush_expired_tokens',
+        'schedule': crontab(hour=3, minute=0),
     },
     # Toutes les heures : chaque boutique est traitée à son heure locale.
     'notes-automatic-reminders-hourly': {

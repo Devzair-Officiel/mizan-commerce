@@ -41,3 +41,14 @@ REST_FRAMEWORK = {
         'user': '100000/hour',
     },
 }
+
+# Limitation de débit en mémoire du processus, comme le cache par défaut : les
+# tests (CI compris) n'ont pas besoin de Redis pour elle, et la pile locale ne
+# fait tourner qu'un processus Django. Redis en staging et en production (base.py).
+CACHES = {
+    **CACHES,
+    'throttle': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'throttle',
+    },
+}
