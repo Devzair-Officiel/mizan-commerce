@@ -126,8 +126,18 @@ services:
   # Seuls postgres, backup et restore connaissent le super-utilisateur
   # (POSTGRES_USER) ; Django et Celery se connectent avec APP_DB_USER.
   postgres:
-    <<: *postgres-image
+    <<: [*postgres-image, *hardening]
     restart: unless-stopped
+    # Jamais root : l'entrypoint de l'image saute alors chown et gosu (volume
+    # déjà à postgres). Lecture seule hors du volume de la base ; socket et
+    # fichiers temporaires en mémoire. Processus : max_connections (100), ceux
+    # de fond, wal-g et ses threads.
+    user: postgres
+    read_only: true
+    tmpfs:
+      - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+      - /tmp:size=64m,mode=1777
+    pids_limit: 300
     command:
       - postgres
       - -c
@@ -160,9 +170,16 @@ services:
   # contrôle de l'archivage toutes les 5 min, test de restauration mensuel.
   # Lit les fichiers de la base en lecture seule.
   backup:
-    <<: *postgres-image
+    <<: [*postgres-image, *hardening]
     restart: unless-stopped
     user: postgres
+    # Écrit dans son volume de travail (instance du test de restauration) et
+    # dans /tmp (sonde de santé, fichiers temporaires). Processus : wal-g et
+    # l'instance PostgreSQL temporaire du test mensuel.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    pids_limit: 128
     command: ["mizan-backup", "scheduler"]
     environment:
       <<: *walg
