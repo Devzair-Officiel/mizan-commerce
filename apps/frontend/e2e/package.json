@@ -42,7 +42,8 @@
     "audit:profile": "node audit-profile.mjs",
     "audit:verify-email": "node audit-verify-email.mjs",
     "audit:legal": "node audit-legal.mjs",
-    "audit:session-refresh": "node audit-session-refresh.mjs"
+    "audit:session-refresh": "node audit-session-refresh.mjs",
+    "audit:session-race": "node audit-session-race.mjs"
   },
   "dependencies": {
     "playwright": "1.62.1"

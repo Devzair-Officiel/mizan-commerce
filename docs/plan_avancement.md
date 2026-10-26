@@ -82,6 +82,7 @@
 - [x] Validation email à l'inscription
 - [~] Correctif : jeton de vérification d'e-mail dédié (`apps/accounts/tokens.py`), toujours valable après une connexion ou un changement de mot de passe, invalidé par un changement d'adresse ; validité `EMAIL_VERIFICATION_TIMEOUT` (7 jours) ; les e-mails d'inscription, de renvoi et de réinitialisation annoncent la durée de leur réglage (`validity_label`, `apps/accounts/formatting.py`) au lieu de « 24 heures » en dur
 - [x] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté (validé sur staging le 2026-10-26)
+- [~] Correctif : course de rafraîchissement des jetons et boucle /login ↔ /dashboard (2026-10-26) — fenêtre de grâce de 30 s en mémoire, clé = empreinte du jeton (`lib/refresh-flights.ts`) ; échec définitif : 401 `session_expired`, les deux cookies effacés, une seule navigation vers `/login?session=expired` que `proxy.ts` ne renvoie jamais vers `/dashboard` ; journal `session_refresh_failed` / `session_refresh_graced` sans valeur sensible (`lib/session-log.ts`) ; audit `session-race`, `npm run test:session` ; reste la recette staging (docs/exploitation/deploiement.md §11)
 - [x] Pages frontend : inscription, connexion
 - [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
