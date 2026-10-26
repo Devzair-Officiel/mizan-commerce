@@ -1,3 +1,5 @@
+import { SESSION_EXPIRED_LOGIN, isSessionExpired } from './session-expired';
+
 /** Code renvoyé par le backend quand la boutique d'un employé ou d'un admin n'a plus Boutique. */
 const STAFF_SUSPENDED_CODE = 'staff_suspended_plan';
 export const SUSPENDED_PATH = '/suspended';
@@ -31,12 +33,27 @@ function proxyUrl(path: string): string {
   return `/api/proxy/${cleanPath}${query.length > 1 ? query : ''}`;
 }
 
+/** Une seule sortie vers /login par page, même si plusieurs requêtes échouent ensemble. */
+let leavingSession = false;
+
+/**
+ * Session terminée (401 `session_expired` : le proxy a déjà tenté le rafraîchissement et effacé les
+ * cookies) : une seule navigation vers la page de connexion, qui remplace la page courante (le
+ * retour arrière ne ramène pas sur une page de l'application) et que proxy.ts ne renvoie jamais
+ * vers /dashboard. Pas de navigation depuis /login, ni sur un autre 401 : aucune boucle possible.
+ */
+function leaveSession(data: unknown): void {
+  if (leavingSession || !isSessionExpired(data) || window.location.pathname.startsWith('/login')) return;
+  leavingSession = true;
+  window.location.replace(SESSION_EXPIRED_LOGIN);
+}
+
 /** Session expirée, accès suspendu ou erreur de l'API : `ApiError` (corps JSON s'il y en a un). */
 async function throwIfFailed(res: Response): Promise<void> {
   if (res.status === 401) {
-    // Le proxy a déjà tenté le refresh — session vraiment expirée
-    window.location.href = '/login';
-    throw new ApiError(401, null, 'Session expirée');
+    const data: unknown = await res.json().catch(() => null);
+    leaveSession(data);
+    throw new ApiError(401, data, 'Session expirée');
   }
 
   if (!res.ok) {

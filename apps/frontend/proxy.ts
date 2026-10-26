@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, isLocale, type Locale } from '@/i18n/locales';
+import { SESSION_EXPIRED_LOGIN } from '@/lib/session-expired';
+import { clearSessionCookies } from '@/lib/server-session';
 
 /**
  * Garde-fou serveur — deux responsabilités :
@@ -9,7 +11,9 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALES, isLocale, type Locale } from '@
  *    `/login`, et renvoie un utilisateur déjà connecté vers `/dashboard` s'il
  *    atterrit sur les écrans d'auth (sauf `/verify-email`). Check optimiste basé sur la présence du
  *    cookie `access_token` (HttpOnly, posé par `/api/auth/login`). La vraie
- *    autorisation reste côté Django.
+ *    autorisation reste côté Django. Session terminée (`/login?session=expired`, posé par le
+ *    client sur un 401 `session_expired`) : la page de connexion s'affiche et efface les cookies,
+ *    même si un cookie a survécu, au lieu de renvoyer vers `/dashboard` (boucle).
  *
  * 2. **Locale bootstrap** : à la première visite, si l'utilisateur n'a pas
  *    encore de cookie `NEXT_LOCALE`, on détecte la langue préférée via
@@ -62,6 +66,12 @@ export function proxy(request: NextRequest) {
     return applyLocaleCookie(NextResponse.redirect(url), request);
   }
 
+  if (hasSession && isSessionExpiredLogin(request)) {
+    const response = NextResponse.next();
+    clearSessionCookies(response);
+    return applyLocaleCookie(response, request);
+  }
+
   if (hasSession && onAuthPage && !pathname.startsWith(EMAIL_VERIFICATION_PREFIX)) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
@@ -71,6 +81,12 @@ export function proxy(request: NextRequest) {
 
   // --- 2. Pass-through + bootstrap éventuel du cookie de locale -----------
   return applyLocaleCookie(NextResponse.next(), request);
+}
+
+function isSessionExpiredLogin(request: NextRequest): boolean {
+  const target = new URL(SESSION_EXPIRED_LOGIN, request.nextUrl);
+  return request.nextUrl.pathname === target.pathname
+    && [...target.searchParams].every(([key, value]) => request.nextUrl.searchParams.get(key) === value);
 }
 
 /**

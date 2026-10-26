@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clientIpHeaders } from '@/lib/client-ip';
 import {
-  ACCESS_COOKIE, REFRESH_COOKIE, forgetRefresh, refreshFailure, refreshSession, setSessionCookies,
+  ACCESS_COOKIE, REFRESH_COOKIE, failed, forgetRefresh, refreshFailure, refreshSession, sessionExpired,
+  setSessionCookies,
 } from '@/lib/server-session';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
@@ -47,15 +48,17 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   if (res.status !== 401) return finish(res);
 
   // Jeton d'accès expiré : rafraîchissement (partagé avec les requêtes simultanées), puis un seul
-  // nouvel essai (le corps est déjà en mémoire).
-  const refreshToken = req.cookies.get(REFRESH_COOKIE)?.value;
-  if (!refreshToken) {
-    return NextResponse.json({ detail: 'Non authentifié' }, { status: 401 });
-  }
-  const session = await refreshSession(refreshToken, req.headers);
+  // nouvel essai (le corps est déjà en mémoire). Sans cookie de rafraîchissement, la session se termine.
+  const session = await refreshSession(req);
   if (session.status !== 'ok') return refreshFailure(session);
 
-  const response = await finish(await send(session.access));
+  const retried = await send(session.access);
+  // Jeton tout juste émis refusé : session inutilisable, terminée plutôt que relayée (boucle /login).
+  if (retried.status === 401) {
+    failed(req, { status: 'expired', cause: 'retry_rejected', backendStatus: 401 });
+    return sessionExpired();
+  }
+  const response = await finish(retried);
   // Un changement de mot de passe a déjà posé sa propre paire, plus récente.
   if (!response.cookies.has(REFRESH_COOKIE)) setSessionCookies(response, session);
   return response;

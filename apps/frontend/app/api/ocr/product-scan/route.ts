@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clientIpHeaders } from '@/lib/client-ip';
-import { ACCESS_COOKIE, REFRESH_COOKIE, refreshFailure, refreshSession, setSessionCookies } from '@/lib/server-session';
+import {
+  ACCESS_COOKIE, failed, refreshFailure, refreshSession, sessionExpired, setSessionCookies,
+} from '@/lib/server-session';
 
 const API_BASE = process.env.API_URL ?? 'http://backend:8000/api';
 
@@ -40,10 +42,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   // Token expiré : un rafraîchissement (partagé avec les requêtes simultanées), puis un seul
   // nouvel essai (le corps est déjà en mémoire).
-  const refresh = req.cookies.get(REFRESH_COOKIE)?.value;
-  const session = refresh ? await refreshSession(refresh, req.headers) : { status: 'expired' as const };
+  const session = await refreshSession(req);
   if (session.status !== 'ok') return refreshFailure(session);
-  const response = await relay(await send(session.access));
+  const retried = await send(session.access);
+  if (retried.status === 401) {
+    failed(req, { status: 'expired', cause: 'retry_rejected', backendStatus: 401 });
+    return sessionExpired();
+  }
+  const response = await relay(retried);
   setSessionCookies(response, session);
   return response;
 }
