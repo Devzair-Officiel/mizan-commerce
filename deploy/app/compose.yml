@@ -7,6 +7,14 @@
 #
 # Aucun port publié : Caddy (deploy/edge) joint frontend et backend par le
 # réseau externe « edge ». Chaque service ne reçoit que ses propres variables.
+#
+# Réseau « edge » partagé par staging et production : Compose y inscrit aussi le
+# NOM DU SERVICE (« backend », « frontend ») de chaque environnement. Un service
+# qui rejoint edge ne joint donc un pair que par son alias unique
+# mizan-<env>-<service>, ou par un nom absent d'edge (postgres, redis,
+# ai-service : réseau privé du projet). Contrôles : deploy/check-compose.sh,
+# et deploy/deploy.sh à chaque déploiement.
+#
 # Total des limites mémoire en production ≈ 6,1 Go sur 12 (staging : moins,
 # réglé dans deploy/env/staging.env).
 #
@@ -41,7 +49,8 @@ x-django: &django
   pids_limit: 256
   environment:
     SECRET_KEY: ${SECRET_KEY:?}
-    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?}
+    # Domaines publics, plus l'alias interne qu'appelle le frontend (API_URL).
+    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?},mizan-${APP_ENV:?}-backend
     CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?}
     CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}
     FRONTEND_URL: ${FRONTEND_URL:?}
@@ -347,7 +356,8 @@ services:
       - /app/.next/cache:size=128m,mode=1777
       - /tmp:size=16m,mode=1777
     environment:
-      API_URL: http://backend:8000/api
+      # Alias unique sur edge : « backend » y désigne aussi l'autre environnement.
+      API_URL: http://mizan-${APP_ENV:?}-backend:8000/api
       COOKIE_SECURE: "true"
       MAPTILER_API_KEY: ${MAPTILER_API_KEY:-}
       SENTRY_ENVIRONMENT: ${APP_ENV:?}
