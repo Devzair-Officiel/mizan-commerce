@@ -108,6 +108,9 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # heure(s) avant déblocage
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
+# Adresse du visiteur, même clé que la limitation de DRF (dernière entrée de
+# X-Forwarded-For, IPv6 par /64) : REMOTE_ADDR est celle du conteneur Next.js.
+AXES_CLIENT_IP_CALLABLE = 'apps.core.throttling.axes_client_ip'
 
 # reCAPTCHA v3 — désactivé si la clé secrète est vide (dev / tests).
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')

@@ -9,7 +9,8 @@ Redis indisponible : la limitation s'ouvre (la requête passe) plutôt que de
 renvoyer une erreur 500 sur toute l'API ; un avertissement est journalisé.
 
 Adresse du visiteur : une IPv6 compte pour son bloc /64 (un abonné en reçoit
-au moins un, et en change d'adresse à volonté) ; une IPv4 reste exacte.
+au moins un, et en change d'adresse à volonté) ; une IPv4 reste exacte. La même
+clé sert au blocage de connexion de django-axes (`axes_client_ip`).
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from rest_framework import throttling
 
 if TYPE_CHECKING:
     # rest_framework.views lit DEFAULT_THROTTLE_CLASSES (ce module) à l'import.
+    from django.http import HttpRequest
     from rest_framework.request import Request
     from rest_framework.views import APIView
 
@@ -56,6 +58,55 @@ def rate_limit_ident(ident: str) -> str:
     return str(network)
 
 
+# Règle de DRF pour l'adresse brute (NUM_PROXIES : dernière entrée de
+# X-Forwarded-For, sinon REMOTE_ADDR). Sans état : une instance suffit.
+_DRF_IDENT = throttling.BaseThrottle()
+
+
+def _remote_addr(request: HttpRequest | Request) -> str:
+    try:
+        return str(request.META.get('REMOTE_ADDR') or '')
+    except Exception:  # noqa: BLE001  (jamais d'exception : clé vide)
+        return ''
+
+
+def visitor_ident(request: HttpRequest | Request) -> str:
+    """Clé d'un visiteur, commune à la limitation de DRF et au blocage d'axes.
+
+    Adresse lue par la règle de DRF, puis `rate_limit_ident`. Ne lève jamais
+    d'exception : repli sur REMOTE_ADDR.
+    """
+    try:
+        return rate_limit_ident(_DRF_IDENT.get_ident(request))
+    except Exception:  # noqa: BLE001
+        return _remote_addr(request)
+
+
+def _is_address_key(value: str) -> bool:
+    """Une adresse, ou un bloc /64 rendu par `rate_limit_ident`."""
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        pass
+    try:
+        return ipaddress.IPv6Network(value).prefixlen == IPV6_PREFIX_LENGTH
+    except ValueError:
+        return False
+
+
+def axes_client_ip(request: HttpRequest | Request) -> str | None:
+    """Adresse retenue par django-axes (AXES_CLIENT_IP_CALLABLE) : `visitor_ident`.
+
+    Axes l'enregistre dans une colonne `inet` : une valeur qui n'est ni une
+    adresse ni un bloc /64 est remplacée par REMOTE_ADDR, jamais enregistrée.
+    """
+    for candidate in (visitor_ident(request), _remote_addr(request)):
+        if _is_address_key(candidate):
+            return candidate
+    return None
+
+
 class SharedCacheThrottleMixin:
     """À placer avant la classe DRF : remplace son cache et rend la limitation tolérante aux pannes."""  # noqa: E501
 
@@ -63,7 +114,7 @@ class SharedCacheThrottleMixin:
     scope: str | None
 
     def get_ident(self, request: Request) -> str:
-        return rate_limit_ident(super().get_ident(request))  # type: ignore[misc]
+        return visitor_ident(request)
 
     def allow_request(self, request: Request, view: APIView) -> bool:
         try:

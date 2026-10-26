@@ -3,7 +3,7 @@
 from unittest import mock
 
 from django.core.cache import caches
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import URLPattern, URLResolver, get_resolver, reverse
 from redis.exceptions import ConnectionError as RedisConnectionError
 from rest_framework import status, throttling
@@ -11,7 +11,12 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 from apps.accounts.throttles import AuthRateThrottle
-from apps.core.throttling import SharedCacheThrottleMixin, rate_limit_ident
+from apps.core.throttling import (
+    SharedCacheThrottleMixin,
+    axes_client_ip,
+    rate_limit_ident,
+    visitor_ident,
+)
 from config.settings.base import _redis_url_with_db
 
 EMAIL = 'throttle@example.com'
@@ -213,3 +218,38 @@ class Ipv6BlockTest(ThrottleTestCase):
         self._exhaust('pas-une-ip')
         self.assertEqual(self._status('pas-une-ip'), status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertEqual(self._status('203.0.113.7'), status.HTTP_401_UNAUTHORIZED)
+
+
+class AxesClientIpTest(SimpleTestCase):
+    """Clé d'axes : celle de la limitation de DRF, REMOTE_ADDR en repli."""
+
+    def _request(self, xff: str | None = None, remote: str = '172.18.0.5'):
+        extra = {'REMOTE_ADDR': remote}
+        if xff is not None:
+            extra['HTTP_X_FORWARDED_FOR'] = xff
+        return RequestFactory().post('/api/auth/login/', **extra)
+
+    def test_same_key_as_the_rate_limit(self) -> None:
+        for xff, key in (
+            ('203.0.113.7', '203.0.113.7'),
+            ('10.9.9.9, 203.0.113.7', '203.0.113.7'),  # entrée ajoutée par le client
+            ('2001:db8:1:2::abcd', '2001:db8:1:2::/64'),
+            ('::ffff:203.0.113.7', '203.0.113.7'),
+        ):
+            with self.subTest(xff=xff):
+                request = self._request(xff)
+                self.assertEqual(axes_client_ip(request), key)
+                self.assertEqual(visitor_ident(request), key)
+
+    def test_without_forwarded_address_uses_remote_addr(self) -> None:
+        self.assertEqual(axes_client_ip(self._request()), '172.18.0.5')
+
+    def test_invalid_value_falls_back_to_remote_addr(self) -> None:
+        for xff in ('pas-une-ip', '::::', '10.0.0.0/8', ''):
+            with self.subTest(xff=xff):
+                self.assertEqual(axes_client_ip(self._request(xff)), '172.18.0.5')
+
+    def test_never_raises(self) -> None:
+        self.assertIsNone(axes_client_ip(self._request('pas-une-ip', remote='')))
+        self.assertIsNone(axes_client_ip(object()))  # type: ignore[arg-type]
+        self.assertEqual(visitor_ident(object()), '')  # type: ignore[arg-type]
