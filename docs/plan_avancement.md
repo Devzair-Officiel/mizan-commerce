@@ -9,7 +9,7 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-25
+**Dernière mise à jour** : 2026-10-26
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -579,8 +579,9 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Révocation des jetons de rafraîchissement (liste noire, déconnexion, mot de passe, purge quotidienne, rafraîchissement à vol unique dans le proxy Next.js) : code prêt, à valider sur staging — migrations `token_blacklist` (paquet simplejwt), vérifications dans docs/exploitation/deploiement.md (« Sessions »)
 - [~] Limitation de débit partagée (compteurs DRF dans Redis base 1, ouverte si Redis tombe, adresse du visiteur transmise par le proxy Next.js) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Limitation de débit »)
 - [~] Blocage de connexion par (compte, adresse) avec la vraie adresse du visiteur (django-axes, même clé que la limitation DRF, IPv6 par /64 ; 5 échecs, 15 min, réponse 429 `too_many_attempts` avec délai restant ; remise à zéro à la connexion réussie et à la réinitialisation du mot de passe) : code prêt, à valider sur staging — fonctionnement, levée et recette dans docs/exploitation/deploiement.md (« Blocage de connexion »)
-- [~] Isolation des conteneurs (`no-new-privileges`, aucune capacité sauf `NET_BIND_SERVICE` pour Caddy, `pids_limit`, backend et frontend en lecture seule avec tmpfs ; PostgreSQL et backup : proposition non appliquée) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Isolation des conteneurs »)
+- [~] Isolation des conteneurs (`no-new-privileges`, aucune capacité sauf `NET_BIND_SERVICE` pour Caddy, `pids_limit`, backend et frontend en lecture seule avec tmpfs) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Isolation des conteneurs »)
 - [~] Fichiers envoyés (plafond de 50 Mpx et bombes de décompression refusées dans le backend et l'ai-service, images vérifiées entières et au bon format, taille de page des PDF bornée avant rendu, `request_body` de Caddy à 17 Mio pour le scan et 11 Mio ailleurs) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Fichiers envoyés »)
+- [~] Compte PostgreSQL applicatif (mizan_app) et durcissement de postgres : code prêt, à valider sur staging — 2026-10-26 ; rôle sans attribut d'administration, propriétaire de la base, mis en place par `mizan-db-roles` à chaque déploiement ; postgres et backup en `user: postgres`, sans capacité, en lecture seule ; nouvelles variables `APP_DB_USER` et `APP_DB_PASSWORD` ; procédure dans docs/exploitation/deploiement.md (« Comptes PostgreSQL »)
 
 ### Abonnement SaaS (URS-064, URS-065, URS-100)
 

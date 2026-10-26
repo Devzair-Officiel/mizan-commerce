@@ -4,8 +4,9 @@
 #   deploy/deploy.sh <production|staging> <étiquette d'image>
 #   deploy/deploy.sh production 3f2c1e…   # identifiant complet du commit (GHCR)
 #
-# Étapes : récupération des images, migrations dans un conteneur ponctuel,
-# redémarrage des services, attente de leur santé et de /healthz. S'arrête à la
+# Étapes : récupération des images, rôle PostgreSQL de l'application,
+# migrations dans un conteneur ponctuel, redémarrage des services, attente de
+# leur santé et de /healthz. S'arrête à la
 # première erreur ; les conteneurs en place continuent de servir tant que le
 # redémarrage n'a pas eu lieu. Retour à la version précédente : deploy/rollback.sh.
 #
@@ -61,6 +62,17 @@ fi
 
 log "Base de données et Redis"
 compose up --detach --wait postgres redis
+
+# Rôle de l'application (APP_DB_USER) : créé, ou mot de passe mis à jour depuis
+# le fichier de variables, et propriétaire de la base avant les migrations, qui
+# tournent avec lui (deploy/postgres/mizan-db-roles.sh).
+log "Rôle PostgreSQL de l'application"
+if ! compose exec -T postgres mizan-db-roles; then
+  echo "Rôle PostgreSQL de l'application non mis en place : déploiement arrêté avant les migrations." >&2
+  echo "Les conteneurs en place continuent de servir. Détails ci-dessus ;" \
+    "docs/exploitation/deploiement.md, « Comptes PostgreSQL »." >&2
+  exit 1
+fi
 
 # Migrations avec la nouvelle image, avant le redémarrage : elles doivent rester
 # compatibles avec la version encore en service (docs/exploitation/deploiement.md).

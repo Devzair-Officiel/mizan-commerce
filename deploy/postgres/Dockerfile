@@ -1,7 +1,8 @@
 # PostgreSQL de production avec WAL-G : archivage continu du journal, sauvegarde
 # complète chaque nuit, test de restauration mensuel (docs/exploitation/sauvegardes.md).
 # Construite sur le serveur par deploy/deploy.sh ; sert aux services postgres,
-# backup et restore de deploy/app/compose.yml.
+# backup et restore de deploy/app/compose.yml. Contient aussi le script du rôle
+# PostgreSQL de l'application (mizan-db-roles.sh).
 #
 # Même version majeure que la base en service : 16. Debian trixie (glibc 2.41)
 # fixée, car le binaire WAL-G est compilé pour Ubuntu 24.04 (glibc 2.39).
@@ -31,6 +32,8 @@ RUN set -eux; \
     wal-g --version
 
 COPY --chmod=755 mizan-backup.sh /usr/local/bin/mizan-backup
+# Rôle de l'application, créé ou mis à jour par deploy/deploy.sh avant les migrations.
+COPY --chmod=755 mizan-db-roles.sh /usr/local/bin/mizan-db-roles
 
 # Volume de travail du service backup (état du planificateur, restauration de
 # test). Créé ici pour qu'un volume nommé vide hérite du propriétaire postgres.

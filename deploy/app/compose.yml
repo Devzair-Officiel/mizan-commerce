@@ -47,8 +47,9 @@ x-django: &django
     FRONTEND_URL: ${FRONTEND_URL:?}
     DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
     POSTGRES_DB: ${POSTGRES_DB:?}
-    POSTGRES_USER: ${POSTGRES_USER:?}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    # Rôle de l'application, jamais le super-utilisateur (deploy/postgres/mizan-db-roles.sh).
+    POSTGRES_USER: ${APP_DB_USER:?}
+    POSTGRES_PASSWORD: ${APP_DB_PASSWORD:?}
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
     REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379/0
@@ -122,9 +123,21 @@ x-celery-healthcheck: &celery-healthcheck
 services:
   # Archivage continu : chaque segment du journal part dans le bucket de
   # sauvegardes, au plus 60 s après sa première écriture (perte maximale : 1 min).
+  # Seuls postgres, backup et restore connaissent le super-utilisateur
+  # (POSTGRES_USER) ; Django et Celery se connectent avec APP_DB_USER.
   postgres:
-    <<: *postgres-image
+    <<: [*postgres-image, *hardening]
     restart: unless-stopped
+    # Jamais root : l'entrypoint de l'image saute alors chown et gosu (volume
+    # déjà à postgres). Lecture seule hors du volume de la base ; socket et
+    # fichiers temporaires en mémoire. Processus : max_connections (100), ceux
+    # de fond, wal-g et ses threads.
+    user: postgres
+    read_only: true
+    tmpfs:
+      - /var/run/postgresql:size=1m,uid=999,gid=999,mode=2775
+      - /tmp:size=64m,mode=1777
+    pids_limit: 300
     command:
       - postgres
       - -c
@@ -138,6 +151,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?}
       POSTGRES_USER: ${POSTGRES_USER:?}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      # Rôle de l'application, créé ou mis à jour par mizan-db-roles (deploy.sh).
+      APP_DB_USER: ${APP_DB_USER:?}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     shm_size: 256m
@@ -154,9 +170,16 @@ services:
   # contrôle de l'archivage toutes les 5 min, test de restauration mensuel.
   # Lit les fichiers de la base en lecture seule.
   backup:
-    <<: *postgres-image
+    <<: [*postgres-image, *hardening]
     restart: unless-stopped
     user: postgres
+    # Écrit dans son volume de travail (instance du test de restauration) et
+    # dans /tmp (sonde de santé, fichiers temporaires). Processus : wal-g et
+    # l'instance PostgreSQL temporaire du test mensuel.
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    pids_limit: 128
     command: ["mizan-backup", "scheduler"]
     environment:
       <<: *walg
