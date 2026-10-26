@@ -80,11 +80,8 @@
 - [x] Endpoint connexion (JWT) + persistance mobile (refresh 30j)
 - [x] Endpoint mot de passe oublié + email de reset
 - [x] Validation email à l'inscription
-<<<<<<< HEAD
-- [ ] Correctif : jeton de vérification d'e-mail dédié (`apps/accounts/tokens.py`), toujours valable après une connexion ou un changement de mot de passe, invalidé par un changement d'adresse ; validité `EMAIL_VERIFICATION_TIMEOUT` (7 jours) ; les e-mails d'inscription, de renvoi et de réinitialisation annoncent la durée de leur réglage (`validity_label`, `apps/accounts/formatting.py`) au lieu de « 24 heures » en dur
-=======
-- [ ] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté
->>>>>>> origin/main
+- [~] Correctif : jeton de vérification d'e-mail dédié (`apps/accounts/tokens.py`), toujours valable après une connexion ou un changement de mot de passe, invalidé par un changement d'adresse ; validité `EMAIL_VERIFICATION_TIMEOUT` (7 jours) ; les e-mails d'inscription, de renvoi et de réinitialisation annoncent la durée de leur réglage (`validity_label`, `apps/accounts/formatting.py`) au lieu de « 24 heures » en dur
+- [x] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté (validé sur staging le 2026-10-26)
 - [x] Pages frontend : inscription, connexion
 - [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
@@ -471,7 +468,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [x] **Palette Sauge + Crème** — Remplacer la palette par défaut (menthe saturée hors-gamut + blanc pur) par la palette adoucie validée design : primaire Sauge `oklch(0.52 0.075 170)` (#367762), fond Crème `oklch(0.975 0.010 85)` (#FAF6EF). Inclut le mécanisme `overrides` par thème dans `buildThemeVars` (formule → overrides fond → overrides primaire) et les valeurs sombre calibrées (cards détachées du fond, contrastes vérifiés). Aucun autre thème impacté.
 - [~] **Correctif police** — `--font-sans` ne se référence plus lui-même ; Geist + Noto Sans Arabic pour l'arabe
-- [ ] Polices hébergées (next/font/local), build indépendant de Google Fonts
+- [x] Polices hébergées (next/font/local), build indépendant de Google Fonts (validé sur staging le 2026-10-26)
 - [~] Étape 2 — Jeu de données de démo réaliste (seed)
 - [~] Étape 3 — Shell grand écran : sidebar groupée, en-tête de page, largeur max, bandeau unique
 - [x] Étape 4 — Nouvel accueil : compteurs « À faire », listes, carte Ventes, écran de démarrage
@@ -575,13 +572,13 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Durcissement avant production (2026-10-25)
 
-- [~] Node 24 partout (images frontend, CI, `@types/node`) : code prêt, à valider sur staging
-- [~] Révocation des jetons de rafraîchissement (liste noire, déconnexion, mot de passe, purge quotidienne, rafraîchissement à vol unique dans le proxy Next.js) : code prêt, à valider sur staging — migrations `token_blacklist` (paquet simplejwt), vérifications dans docs/exploitation/deploiement.md (« Sessions »)
-- [~] Limitation de débit partagée (compteurs DRF dans Redis base 1, ouverte si Redis tombe, adresse du visiteur transmise par le proxy Next.js) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Limitation de débit »)
-- [~] Blocage de connexion par (compte, adresse) avec la vraie adresse du visiteur (django-axes, même clé que la limitation DRF, IPv6 par /64 ; 5 échecs, 15 min, réponse 429 `too_many_attempts` avec délai restant ; remise à zéro à la connexion réussie et à la réinitialisation du mot de passe) : code prêt, à valider sur staging — fonctionnement, levée et recette dans docs/exploitation/deploiement.md (« Blocage de connexion »)
-- [~] Isolation des conteneurs (`no-new-privileges`, aucune capacité sauf `NET_BIND_SERVICE` pour Caddy, `pids_limit`, backend et frontend en lecture seule avec tmpfs) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Isolation des conteneurs »)
-- [~] Fichiers envoyés (plafond de 50 Mpx et bombes de décompression refusées dans le backend et l'ai-service, images vérifiées entières et au bon format, taille de page des PDF bornée avant rendu, `request_body` de Caddy à 17 Mio pour le scan et 11 Mio ailleurs) : code prêt, à valider sur staging — vérifications dans docs/exploitation/deploiement.md (« Fichiers envoyés »)
-- [~] Compte PostgreSQL applicatif (mizan_app) et durcissement de postgres : code prêt, à valider sur staging — 2026-10-26 ; rôle sans attribut d'administration, propriétaire de la base, mis en place par `mizan-db-roles` à chaque déploiement ; postgres et backup en `user: postgres`, sans capacité, en lecture seule ; nouvelles variables `APP_DB_USER` et `APP_DB_PASSWORD` ; procédure dans docs/exploitation/deploiement.md (« Comptes PostgreSQL »)
+- [x] Node 24 partout (images frontend, CI, `@types/node`) (validé sur staging le 2026-10-26)
+- [x] Révocation des jetons de rafraîchissement (liste noire, déconnexion, mot de passe, purge quotidienne, rafraîchissement à vol unique dans le proxy Next.js) (validé sur staging le 2026-10-26) — migrations `token_blacklist` (paquet simplejwt), vérifications dans docs/exploitation/deploiement.md (« Sessions »)
+- [x] Limitation de débit partagée (compteurs DRF dans Redis base 1, ouverte si Redis tombe, adresse du visiteur transmise par le proxy Next.js) (validé sur staging le 2026-10-26) — vérifications dans docs/exploitation/deploiement.md (« Limitation de débit »)
+- [x] Blocage de connexion par (compte, adresse) avec la vraie adresse du visiteur (django-axes, même clé que la limitation DRF, IPv6 par /64 ; 5 échecs, 15 min, réponse 429 `too_many_attempts` avec délai restant ; remise à zéro à la connexion réussie et à la réinitialisation du mot de passe) (validé sur staging le 2026-10-26) — fonctionnement, levée et recette dans docs/exploitation/deploiement.md (« Blocage de connexion »)
+- [x] Isolation des conteneurs (`no-new-privileges`, aucune capacité sauf `NET_BIND_SERVICE` pour Caddy, `pids_limit`, backend et frontend en lecture seule avec tmpfs) (validé sur staging le 2026-10-26) — vérifications dans docs/exploitation/deploiement.md (« Isolation des conteneurs »)
+- [x] Fichiers envoyés (plafond de 50 Mpx et bombes de décompression refusées dans le backend et l'ai-service, images vérifiées entières et au bon format, taille de page des PDF bornée avant rendu, `request_body` de Caddy à 17 Mio pour le scan et 11 Mio ailleurs) (validé sur staging le 2026-10-26) — vérifications dans docs/exploitation/deploiement.md (« Fichiers envoyés »)
+- [x] Compte PostgreSQL applicatif (mizan_app) et durcissement de postgres (validé sur staging le 2026-10-26) — rôle sans attribut d'administration, propriétaire de la base, mis en place par `mizan-db-roles` à chaque déploiement ; postgres et backup en `user: postgres`, sans capacité, en lecture seule ; nouvelles variables `APP_DB_USER` et `APP_DB_PASSWORD` ; procédure dans docs/exploitation/deploiement.md (« Comptes PostgreSQL »)
 
 ### Abonnement SaaS (URS-064, URS-065, URS-100)
 
@@ -699,6 +696,25 @@ Décision du 2026-10-16 : pas de publications automatiques.
       niveau ; jauge « Ce mois-ci » dans Paramètres → Abonnement si `VISION_PROVIDER`
       ≠ none. Limite connue : processus tué entre réservation et remboursement → place
       perdue. Coût unitaire (≈ 0,03 €) à confirmer sur facture réelle.
+
+---
+
+## Mise en production
+
+Procédure : docs/exploitation/deploiement.md (« Premier déploiement », « Ouverture au public »).
+
+- [x] Serveur OVH (VPS Gravelines), DNS, pare-feu, Caddy, certificats
+- [x] Staging en ligne (staging.mizan-commerce.com)
+- [x] Base de production créée et migrée, rôle mizan_app, sauvegarde complète et archivage WAL vers mizan-backups/production
+- [ ] Production ouverte au public (Caddy, `EDGE_SITES=*`, certificat mizan-commerce.com)
+- [ ] reCAPTCHA v3 : clé de site dans la variable GitHub `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` et clés secrètes dans staging.env et production.env
+- [ ] Supervision : sonde de disponibilité sur `/healthz` et adresses de surveillance des sauvegardes (Healthchecks)
+- [ ] Compte administrateur de production (tunnel SSH)
+- [ ] Recette de production sur le vrai domaine
+- [ ] Stripe en mode réel : compte activé, clé restreinte, webhook de production, réglages, stripe_sync_plans
+- [ ] Relecture juridique des CGV (articles n, p, q, s)
+- [ ] Textes arabes à faire relire (docs/i18n/ar_a_relire_lot5.md et e-mails du lot 4)
+- [ ] Staging arrêté après la recette de production (mémoire du VPS : 7,6 Go)
 
 ---
 
