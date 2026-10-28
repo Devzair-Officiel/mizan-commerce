@@ -44,7 +44,7 @@ Les variables `NEXT_PUBLIC_*` sont inlinées dans le bundle du navigateur : elle
 | `NEXT_PUBLIC_SENTRY_DSN` | DSN du projet Sentry frontend ; absente = Sentry désactivé |
 | `NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | Part des transactions envoyées, de `0` à `1` ; absente = `0` |
 
-L'environnement Sentry n'en fait pas partie : côté serveur, il vient de `SENTRY_ENVIRONMENT` (fichier d'environnement du serveur) ; dans le navigateur, du domaine (`staging.*` → `staging`, sinon `production`).
+L'environnement Sentry n'en fait pas partie : côté serveur, il vient de `APP_ENV` (fichier d'environnement du serveur), que `deploy/app/compose.yml` transmet en `SENTRY_ENVIRONMENT` au backend et au serveur Next.js ; dans le navigateur, du domaine (`staging.*` → `staging`, sinon `production`).
 
 Après la première publication, les paquets apparaissent dans **Profil ou organisation → Packages**, privés par défaut. Les laisser privés : le serveur s'authentifie une fois avec `docker login ghcr.io` et un jeton *classic* limité à `read:packages` (procédure dans `docs/exploitation/deploiement.md`). Dans **Package settings** de chaque paquet, vérifier que le dépôt `mizan-commerce` a l'accès *Write* (*Manage Actions access*), sinon les publications suivantes échouent.
 
@@ -93,6 +93,8 @@ sub src/Amiri-Bold.ttf /tmp/arabic.txt Amiri-Bold.woff2'
 5. La CSP (`font-src 'self' data:`) suffit : les fichiers sont servis depuis `/_next/static/media`, sur la même origine.
 
 ## Protéger `main` sur GitHub
+
+> **État au 28/10/2026 : non appliqué.** Le ruleset `main` (4 règles) existe, mais GitHub ne l'applique pas : les rulesets ne le sont pas sur un dépôt privé sans organisation GitHub Team. En attendant, une CI verte avant fusion est une discipline manuelle ; au déploiement, `deploy/deploy.sh` récupère les 3 images étiquetées par le commit (backend, frontend, ai-service) et s'arrête avant tout changement s'il en manque une (`compose pull`, `set -e`) : un commit dont le job `docker` a échoué ne se déploie pas.
 
 À faire une fois, après une première exécution du workflow : avant elle, GitHub ne propose pas les jobs comme vérifications.
 
