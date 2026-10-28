@@ -4,7 +4,7 @@
 
 ## Project
 
-SaaS mobile-first pour petits commerçants. Backend Python (Django + DRF), frontend React (Next.js + TypeScript), PostgreSQL, Redis + Celery, OVHcloud. Détails complets dans `docs/project_instructions_saas_commercants.md` — lire ce fichier avant toute décision d'architecture.
+SaaS mobile-first pour petits commerçants. Backend Python (Django + DRF), frontend React (Next.js + TypeScript), PostgreSQL, Redis + Celery, OVHcloud. Choix d'architecture retenus : `docs/fiche_technique_saas_commercants_ovh.md` (§13) ; exploitation (déploiement, sauvegardes, Stripe) : `docs/exploitation/` — lire avant toute décision d'architecture.
 
 ## Map
 
@@ -12,17 +12,19 @@ SaaS mobile-first pour petits commerçants. Backend Python (Django + DRF), front
 apps/frontend/   Next.js + TypeScript + Tailwind + shadcn/ui
 apps/backend/    Django + Django REST Framework
 apps/ai-service/ FastAPI (OCR, détection visuelle — V6)
-infra/           Docker, nginx, configs
-docs/            URS, schéma DB, plan d'avancement
+deploy/          Production et staging : Compose, Caddy (edge), PostgreSQL + WAL-G, scripts de déploiement
+infra/           Scripts locaux (scripts/mem-check.sh) ; apache/ : configuration provisoire d'avant Caddy, obsolète
+docs/            URS, schéma DB, plan d'avancement, exploitation
 ```
 
 Documents de référence (à consulter selon le besoin, pas à charger systématiquement) :
-- `docs/urs_saas_commercant_mobile.md` — user stories URS-001 à URS-103
+- `docs/urs_saas_commercant_mobile.md` — user stories URS-001 à URS-109
 - `docs/schema_base_donnees.md` — schéma PostgreSQL canonique
 - `docs/plan_avancement.md` — phase et tâches en cours
 - `docs/fiche_technique_saas_commercants_ovh.md` — choix d'infra OVH
 - `docs/design_principles.md` — posture UX/UI + patterns canoniques (lire avant tout redesign d'écran)
 - `docs/zakat_referentiel.md` — règles, sources et textes de la zakat ; à lire avant toute modification du module
+- `docs/exploitation/` — déploiement (`deploiement.md`), sauvegardes (`sauvegardes.md`), Stripe (`stripe.md`)
 
 ## Commands
 
@@ -47,7 +49,7 @@ docker compose exec -T frontend npm run text:check  # Obligatoire avant tout com
 docker compose exec -T frontend npm run deps:check  # Obligatoire avant tout commit frontend : @base-ui/utils installé une seule fois, à la version qu'attend @base-ui/react — deux copies font deux verrous de défilement qui s'ignorent, et la page reste bloquée (6e3b998)
 docker compose exec -T frontend npm run lint     # ESLint
 docker compose restart frontend && docker compose exec -T frontend npm run build    # Build de prod, toujours après redémarrage du frontend (le serveur de dev grossit jusqu'à faire tuer le build faute de mémoire)
-# npm run test n'existe pas encore — aucune infra Vitest en place
+# npm run test n'existe pas encore — aucune infra Vitest en place ; seul test unitaire : npm run test:session (node --test, lib/session-security.test.mjs)
 
 # Stack complète
 docker compose up -d
