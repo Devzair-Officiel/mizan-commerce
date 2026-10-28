@@ -84,7 +84,7 @@
 - [~] Correctif : jeton de vérification d'e-mail dédié (`apps/accounts/tokens.py`), toujours valable après une connexion ou un changement de mot de passe, invalidé par un changement d'adresse ; validité `EMAIL_VERIFICATION_TIMEOUT` (7 jours) ; les e-mails d'inscription, de renvoi et de réinitialisation annoncent la durée de leur réglage (`validity_label`, `apps/accounts/formatting.py`) au lieu de « 24 heures » en dur
 - [x] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté (validé sur staging le 2026-10-26)
 - [~] Correctif : course de rafraîchissement des jetons et boucle /login ↔ /dashboard (2026-10-26) — fenêtre de grâce de 30 s en mémoire, clé = empreinte du jeton (`lib/refresh-flights.ts`) ; échec définitif : 401 `session_expired`, les deux cookies effacés, une seule navigation vers `/login?session=expired` que `proxy.ts` ne renvoie jamais vers `/dashboard` ; journal `session_refresh_failed` / `session_refresh_graced` sans valeur sensible (`lib/session-log.ts`) ; audit `session-race`, `npm run test:session` ; reste la recette staging (docs/exploitation/deploiement.md §11)
-- [x] Isolation staging/production : API_URL par alias unique mizan-<env>-backend (défaut constaté sur staging) (2026-10-26) — alias ajouté à `DJANGO_ALLOWED_HOSTS` par Compose ; garde-fou `deploy/check-api-url.sh` dans `deploy.sh`, contrôle statique `deploy/check-compose.sh` (job CI `deploy`), test local `deploy/edge/test-isolation.sh` (100/100 par environnement) ; ~~reste le redéploiement de staging et de la production~~ (docs/exploitation/deploiement.md §16) — commits `3f2c94a`, `6e55590`, production à `0ceef86` (validé en exploitation le 27/10/2026)
+- [~] Isolation staging/production : API_URL par alias unique mizan-<env>-backend (défaut constaté sur staging) (2026-10-26) — alias ajouté à `DJANGO_ALLOWED_HOSTS` par Compose ; garde-fou `deploy/check-api-url.sh` dans `deploy.sh`, contrôle statique `deploy/check-compose.sh` (job CI `deploy`), test local `deploy/edge/test-isolation.sh` (100/100 par environnement) ; ~~reste le redéploiement de staging et de la production~~ (docs/exploitation/deploiement.md §16) — commits `3f2c94a`, `6e55590`, production à `0ceef86` (validé en exploitation le 27/10/2026) ; redéploiement de staging non attesté (condition non remplie, décochée le 2026-10-28)
 - [x] Pages frontend : inscription, connexion
 - [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
@@ -591,16 +591,16 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
-- [x] Intégration Stripe Billing — Lot 1 : code et tests prêts (commit `6987be3`) ; Stripe en mode réel (validé en exploitation le 27/10/2026, docs/exploitation/stripe.md)
+- [~] Intégration Stripe Billing — Lot 1 : code et tests prêts (commit `6987be3`) ; Stripe en mode réel (validé en exploitation le 27/10/2026, docs/exploitation/stripe.md) ; sous-lots 3b, 4 et 5b encore ouverts (condition non remplie, décochée le 2026-10-28)
   - [x] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise) (commit `deb4fb6`) — paiement 3D Secure, portail, résiliation en fin de période puis reprise, annulation immédiate (validé en exploitation le 27/10/2026)
   - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée) (commit `c78196b`) — déployé en production ; changement de formule et descente programmée non éprouvés en production (2026-10-28)
   - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée) — commits `91f8b69`, `e23d14f`, `9f35659`, déployé ; reste [~] tant qu'aucun impayé réel n'a été observé en production (2026-10-28)
-  - [x] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé) (commit `237504b`) — parcours de souscription, portail, résiliation et reprise (validé en exploitation le 27/10/2026)
+  - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé) (commit `237504b`) — parcours de souscription, portail, résiliation et reprise (validé en exploitation le 27/10/2026) ; bandeau d'impayé non éprouvé, aucun impayé réel (condition non remplie, décochée le 2026-10-28)
     - [~] correctif : activité d'un abonné payant face aux limites réelles (commit `7a369d9`, déployé ; validation non attestée)
   - [~] Lot 5b : code prêt (changement de formule, changement programmé, bandeaux globaux) — 2026-10-24 (commit `febeb81`, déployé) ; changement de formule non éprouvé en production (2026-10-28)
   - [x] Changement de prix (Boutique 16 € / 160 €, Commerce+ 29 € / 290 €) (commit `e6c06f8`) : `stripe_sync_plans --allow-live` lancé en production, six prix « inchangé », identifiants enregistrés en base (validé en exploitation le 27/10/2026) ; `stripe_migrate_prices` sans objet (aucun abonné à migrer) ; ~~à appliquer en test puis en production avec stripe_sync_plans et stripe_migrate_prices~~ — migration `0014_plan_prices_boutique_commerce_plus`, procédure dans docs/exploitation/deploiement.md (« Changement de prix »)
 - [x] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts (commits `48dceb0`, `afc2c61`) ; webhook de production à 6 événements, traité (200) et abonnement synchronisé (validé en exploitation le 27/10/2026)
-- [x] Page tarifs publique + flow upgrade payant — `components/marketing/Pricing.tsx`, page Abonnement (lot 5a) ; paiement réel de 9 € (Solo) (validé en exploitation le 27/10/2026)
+- [x] Page tarifs publique + flow upgrade payant (de Découverte vers une formule payante) — `components/marketing/Pricing.tsx`, page Abonnement (lot 5a) ; paiement réel de 9 € (Solo) (validé en exploitation le 27/10/2026) ; le changement entre formules payantes relève du lot 3b
 
 ### Monitoring
 
@@ -740,14 +740,16 @@ Procédure : docs/exploitation/deploiement.md (« Premier déploiement », « Ou
 - [x] Staging en ligne (staging.mizan-commerce.com)
 - [x] Base de production créée et migrée, rôle mizan_app, sauvegarde complète et archivage WAL vers mizan-backups/production
 - [x] Production ouverte au public (Caddy, `EDGE_SITES=*`, certificat mizan-commerce.com) — `deploy/edge/sites/production.caddy`, inscription ouverte (validé en exploitation le 27/10/2026)
-- [x] reCAPTCHA v3 : clé de site dans la variable GitHub `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` et clés secrètes dans staging.env et production.env — `.github/workflows/ci.yml` (validé en exploitation le 27/10/2026)
+- [~] reCAPTCHA v3 : clé de site dans la variable GitHub `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` et clés secrètes dans staging.env et production.env — `.github/workflows/ci.yml` ; production (validé en exploitation le 27/10/2026) ; staging.env non attesté (condition non remplie, décochée le 2026-10-28)
 - [x] Supervision : sonde de disponibilité sur `/healthz` et adresses de surveillance des sauvegardes (Healthchecks) — UptimeRobot et 3 contrôles Healthchecks (validé en exploitation le 27/10/2026)
 - [x] Compte administrateur de production (tunnel SSH) — créé, confirmé par l'exploitant le 28/10/2026 (date de création non communiquée)
 - [ ] Recette de production sur le vrai domaine
 - [x] Stripe en mode réel : compte activé, clé restreinte, webhook de production, réglages, stripe_sync_plans — paiement réel, webhook, portail, résiliation, reprise, annulation et remboursement (validé en exploitation le 27/10/2026, docs/exploitation/stripe.md)
 - [ ] Relecture juridique des CGV (articles n, p, q, s)
 - [ ] Textes arabes à faire relire (docs/i18n/ar_a_relire_lot5.md et e-mails du lot 4)
-- [x] Staging arrêté après la recette de production (mémoire du VPS : 7,6 Go) — arrêté hors validation (validé en exploitation le 27/10/2026) ; la recette de production reste à faire
+- ~~Staging arrêté après la recette de production (mémoire du VPS : 7,6 Go)~~ — scindée le 2026-10-28 : la recette de production n'est pas faite
+- [x] Staging arrêté hors validation d'une mise à jour (constaté le 27/10/2026 ; mémoire du VPS : 7,6 Go)
+- [ ] Recette de production complète
 
 ---
 
@@ -764,6 +766,15 @@ Procédures : docs/exploitation/ (déploiement, sauvegardes, Stripe : docs/explo
 - [ ] Ne pas fusionner la branche Dependabot `@types/node` 26 (Node 24 en service)
 - [ ] Audit des promesses de la page Tarifs avant toute annonce publique (voir « Checklist de lancement »)
 - [ ] Statut de la demande PayPal à vérifier
+
+### Avant l'invitation de testeurs
+
+Voir aussi la tâche Sentry de la section Monitoring.
+
+- [ ] Tester le changement de formule depuis l'application : montée immédiate avec prorata, descente programmée en fin de période, annulation d'un changement programmé — de préférence sur le staging en mode test (lots 3b et 5b)
+- [ ] Vérifier que support@mizan-commerce.com reçoit bien les e-mails (enregistrement MX et boîte de réception)
+- [ ] Créer une URS pour la fidélité (le code de `apps/backend/apps/loyalty/` n'en a pas), puis la rattacher au plan
+
 ---
 
 ## Checklist de lancement
