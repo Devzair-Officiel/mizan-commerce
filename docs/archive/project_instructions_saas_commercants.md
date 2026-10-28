@@ -1,3 +1,5 @@
+> **ARCHIVÉ le 28/10/2026 — périmé : voir CLAUDE.md, docs/fiche_technique_saas_commercants_ovh.md (§13) et docs/exploitation/. Ne pas s'en servir pour une décision d'architecture.**
+
 # Instructions de projet — SaaS mobile-first pour commerçants
 
 > Ce document est le **contexte de référence** du projet. Il doit être collé dans les *Project instructions* de Claude (ou utilisé comme document fixe en début de toute conversation de développement) afin de garantir des réponses cohérentes, fiables et alignées avec les choix déjà faits.
