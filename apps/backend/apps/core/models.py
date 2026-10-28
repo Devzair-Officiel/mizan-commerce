@@ -39,6 +39,10 @@ class AuditLog(models.Model):
         ('subscription_payment_failed', "Échec de paiement de l'abonnement"),
         ('subscription_ended', 'Abonnement terminé'),
         ('subscription_dispute', "Contestation d'un paiement de l'abonnement"),
+        # Admin interne (apps/core/admin_site.py) : seules écritures autorisées.
+        ('user_deactivated', 'Compte désactivé (admin Mizan)'),
+        ('user_reactivated', 'Compte réactivé (admin Mizan)'),
+        ('public_page_moderated', 'Page publique modérée (admin Mizan)'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -14,7 +14,9 @@ DEBUG = False
 ALLOWED_HOSTS = []
 
 DJANGO_APPS = [
-    'django.contrib.admin',
+    # Admin interne (apps/core/admin_site.py) : superusers seuls, non filtré
+    # par boutique.
+    'apps.core.apps.MizanAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
