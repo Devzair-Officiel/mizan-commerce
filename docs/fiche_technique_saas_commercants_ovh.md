@@ -55,6 +55,8 @@ Rappels, PDF, emails, Telegram, OCR, tâches longues
 OCR, analyse image, détection produits
 ```
 
+> → retenu : PostgreSQL 16 en conteneur sur le VPS, pas de base managée ; Telegram abandonné (voir §13).
+
 ---
 
 ## 3. Stack technique recommandée
@@ -81,6 +83,8 @@ OCR, analyse image, détection produits
 | Conteneurs | Docker / Docker Compose | Déploiement reproductible |
 | Monitoring erreurs | Sentry | Suivi erreurs frontend/backend |
 | CI/CD | GitHub Actions ou GitLab CI | Tests et déploiement |
+
+> → retenu (voir §13) : PostgreSQL 16 en conteneur ; Caddy en reverse proxy ; e-mails par le SMTP OVH (backend SMTP de Django) ; PDF avec reportlab (`apps/backend/requirements/base.txt`) ; CI GitHub Actions (`.github/workflows/ci.yml`) ; tâches Celery sans Telegram (abandonné).
 
 ---
 
@@ -330,6 +334,8 @@ Cela évite de développer un back-office complet dès le départ.
 # 6. Base de données
 
 ## 6.1 Choix : PostgreSQL managé OVHcloud
+
+> → retenu : PostgreSQL 16 en conteneur sur le VPS, sauvegardé par WAL-G vers Object Storage (voir §13 et `docs/exploitation/sauvegardes.md`). La base managée reste une option d'évolution.
 
 ### Rôle
 
@@ -665,9 +671,11 @@ Pour les fichiers sensibles :
 
 ### Un bucket par environnement
 
-`mizan-private` est le bucket de développement : environnement local, audits e2e, sessions Postman.
+`mizan-private` est le bucket de développement : environnement local, audits e2e, ~~sessions Postman~~ (Postman abandonné, 2026-10-28).
 
 La production aura son propre bucket (ex. `mizan-prod-private`), à ne jamais partager avec le développement.
+
+> → retenu (`deploy/env/*.env.example`, voir §13) : `mizan-production-private` pour la production, créé à Gravelines (constaté le 28/10/2026) ; `mizan-staging-private` pour le staging, non vérifié.
 
 Le nom du bucket vient de la variable `OVH_S3_BUCKET_PRIVATE`, sans valeur par défaut dans le code. En production, `config/settings/production.py` refuse de démarrer (`ImproperlyConfigured`) si cette variable, `OVH_S3_ENDPOINT_URL`, `OVH_S3_ACCESS_KEY` ou `OVH_S3_SECRET_KEY` manque.
 
@@ -938,6 +946,8 @@ Stripe Billing permettra de gérer :
 - changement d’offre ;
 - annulation.
 
+> → retenu : formules Découverte (gratuite), Solo, Boutique et Commerce+ (migration `subscriptions.0004_rename_plans`) ; exploitation dans `docs/exploitation/stripe.md`.
+
 ### Pourquoi ce choix
 
 Stripe est très utilisé pour les SaaS, bien documenté et évite de développer soi-même toute la logique d’abonnement.
@@ -969,6 +979,8 @@ Plus tard, si gros volume :
 ```text
 Amazon SES
 ```
+
+> → retenu : SMTP OVH, par le backend SMTP de Django (`config/settings/production.py`), avec SPF, DKIM et DMARC (voir `docs/exploitation/deploiement.md`).
 
 ## Emails concernés
 
@@ -1003,6 +1015,8 @@ Playwright PDF
 ## Recommandation
 
 Commencer avec WeasyPrint pour générer des PDF à partir de HTML/CSS.
+
+> → retenu : reportlab (`apps/backend/requirements/base.txt`, `apps/exports/render_pdf.py`).
 
 ---
 
@@ -1054,6 +1068,8 @@ nginx
 ```
 
 PostgreSQL ne serait pas forcément dans Docker si tu utilises PostgreSQL managé OVHcloud.
+
+> → retenu (`deploy/app/compose.yml`) : `postgres`, `backup`, `restore`, `redis`, `backend`, `celery-default`, `celery-ocr`, `celery-beat`, `frontend`, `ai-service` ; pas de worker Telegram (abandonné) ; Caddy à la place de nginx, dans un projet à part (`deploy/edge/compose.yml`).
 
 ---
 
@@ -1141,6 +1157,8 @@ Grafana + Loki plus tard
 Prometheus plus tard
 ```
 
+> → retenu : UptimeRobot (mot-clé sur `/healthz` et sur les pages) et Healthchecks (sauvegarde, archivage WAL, test de restauration), validé en exploitation le 27/10/2026 ; Sentry en place dans le code, mais DSN vide en production (constaté le 28/10/2026). Voir `docs/exploitation/deploiement.md`.
+
 ## À surveiller
 
 - erreurs backend ;
@@ -1205,6 +1223,8 @@ Vitest
 Playwright
 ```
 
+> → retenu : GitHub Actions (`.github/workflows/ci.yml`, voir `docs/ci.md`) ; pas de Vitest (seul test unitaire frontend : `npm run test:session`, `node --test`) ; Playwright pour les audits e2e (`apps/frontend/e2e/`).
+
 ## Pipeline recommandé
 
 ```text
@@ -1256,6 +1276,8 @@ Monitoring
 Alertes
 ```
 
+> → retenu : production et staging sur le même VPS, deux projets Docker Compose (`mizan-production`, `mizan-staging`), PostgreSQL 16 en conteneur, buckets séparés (voir §13 et `docs/exploitation/deploiement.md`).
+
 ---
 
 # 18. Backups et restauration
@@ -1270,6 +1292,8 @@ Versioning Object Storage si possible
 Export manuel possible
 Plan de rollback
 ```
+
+> → retenu : WAL-G (sauvegarde complète quotidienne, archivage WAL continu, test de restauration mensuel automatique) vers `mizan-backups`, à Paris ; versioning Object Storage désactivé (constaté le 28/10/2026). Voir `docs/exploitation/sauvegardes.md`.
 
 ## Point important
 
@@ -1382,6 +1406,8 @@ Architecture :
 Monolithe Django métier + service IA séparé
 ```
 
+> → retenu (voir §13) : base PostgreSQL 16 en conteneur ; e-mails par SMTP OVH ; PDF avec reportlab ; déploiement VPS OVH + Docker Compose + Caddy ; monitoring UptimeRobot et Healthchecks, Sentry à activer ; CI GitHub Actions.
+
 ---
 
 # 21. Décision finale recommandée
@@ -1399,6 +1425,8 @@ FastAPI IA
 Docker
 Nginx / Traefik
 ```
+
+> → retenu : PostgreSQL 16 en conteneur à la place de la base managée, Caddy à la place de Nginx ou Traefik (voir §13).
 
 La base de données doit être :
 

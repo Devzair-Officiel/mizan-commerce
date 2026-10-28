@@ -14,7 +14,7 @@ L'objectif est de leur proposer une application simple, épurée et intuitive po
 - les notes et rappels ;
 - la zakat commerciale ;
 - les messages WhatsApp prêts à envoyer ;
-- les publications Telegram ;
+- les publications Telegram (abandonnées, voir `docs/plan_avancement.md`) ;
 - une page web publique de présentation ;
 - un espace de mise en relation halal entre porteurs de projets et partenaires potentiels ;
 - des fonctionnalités futures d'OCR et de détection visuelle.
@@ -1251,7 +1251,10 @@ L'application est organisée autour des modules suivants :
 
 - Le nombre de produits peut être limité.
 - Le nombre de commandes mensuelles peut être limité.
+- Le nombre de clients actifs peut être limité.
 - L'utilisateur est informé lorsqu'il atteint une limite.
+
+> Implémentation : formule Découverte (`free`), 30 articles actifs, 15 ventes par mois, 15 clients actifs (migration `subscriptions.0004_rename_plans`, `apps/subscriptions/limits.py`) ; jauges d'usage sur la page Abonnement. La création est bloquée au plafond, sans supprimer de données.
 
 ---
 
@@ -1266,21 +1269,25 @@ L'application est organisée autour des modules suivants :
 - L'utilisateur peut voir les offres disponibles.
 - L'utilisateur peut choisir une offre.
 - Les limites sont mises à jour après souscription.
+- Le paiement passe par Stripe Billing, au mois ou à l'année ; la formule est active dès le paiement.
+- La résiliation prend effet en fin de période ; le moyen de paiement et les factures se gèrent depuis le portail client.
 
 ---
 
-## URS-100 — Bénéficier d'un essai gratuit de 14 jours sur Boutique+
+## URS-100 — Bénéficier d'un essai gratuit de 14 jours sur Boutique
+
+> Formules renommées par la migration `subscriptions.0004_rename_plans` : Boutique+ → Boutique (`boutique`), Gratuit → Découverte (`free`).
 
 **En tant que** nouveau commerçant,
-**je veux** essayer gratuitement la formule Boutique+ pendant 14 jours,
+**je veux** essayer gratuitement la formule Boutique pendant 14 jours,
 **afin de** découvrir l'ensemble des fonctionnalités avant de m'engager.
 
 ### Critères d'acceptation
 
-- À la création d'un compte, une souscription en statut `trialing` sur le plan Boutique+ est automatiquement activée pour la boutique de l'utilisateur, avec une date de fin fixée à J+14.
+- À la création d'un compte, une souscription en statut `trialing` sur le plan Boutique est automatiquement activée pour la boutique de l'utilisateur, avec une date de fin fixée à J+14.
 - Aucune carte bancaire n'est demandée au moment de l'inscription.
 - L'utilisateur peut voir, depuis ses réglages, la date de fin de son essai et la formule en cours.
-- À l'expiration des 14 jours, si l'utilisateur n'a pas choisi de formule payante, la souscription bascule automatiquement sur le plan Gratuit (`status='active'`, `plan='free'`).
+- À l'expiration des 14 jours, si l'utilisateur n'a pas choisi de formule payante, la souscription bascule automatiquement sur le plan Découverte (`status='active'`, `plan='free'`).
 - L'utilisateur reçoit une notification (email + in-app) au moins une fois avant la fin de l'essai.
 - Une fois l'essai consommé pour un compte, la création d'une boutique supplémentaire ne déclenche pas un nouvel essai (le trial est lié au compte, pas à la boutique).
 - Aucun débit n'est effectué tant que l'utilisateur n'a pas explicitement souscrit à une formule payante.
@@ -2292,13 +2299,13 @@ URS-105 à URS-108 (proposées)
 
 ## Transversal — Abonnement SaaS
 
-Objectif : faire vivre les formules (gratuite, Pro, Boutique+) dès la V1, sans attendre une version donnée.
+Objectif : faire vivre les formules (Découverte, Solo, Boutique, Commerce+ ; ex-gratuite, Pro, Boutique+, migration `subscriptions.0004_rename_plans`) dès la V1, sans attendre une version donnée.
 
 Fonctionnalités :
 
 - Limites de l'offre gratuite
 - Passage à une offre payante
-- Essai gratuit de 14 jours sur Boutique+
+- Essai gratuit de 14 jours sur Boutique (ex-Boutique+)
 
 URS concernées :
 

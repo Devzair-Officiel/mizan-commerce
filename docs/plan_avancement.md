@@ -9,7 +9,8 @@
 >
 > Mettre à jour la date dans **Dernière mise à jour** quand on touche au fichier.
 
-**Dernière mise à jour** : 2026-10-26
+**Dernière mise à jour** : 2026-10-28
+**En production depuis le 27/10/2026** : https://mizan-commerce.com, commit `0ceef86` (validé en exploitation le 27/10/2026)
 **Version actuelle en développement** : Phase V3 — Page web publique / vitrine (démarrée), Phase V2 largement avancée (WhatsApp fait, Telegram abandonné : pas de publications automatiques)
 
 ---
@@ -22,12 +23,12 @@
 - [x] Initialiser l'arborescence : `apps/frontend`, `apps/backend`, `apps/ai-service`, `infra/`, `docs/`
 - [x] Ajouter `.gitignore` adapté Python + Node
 - [x] Ajouter `README.md` racine
-- [x] Copier les 3 documents de contexte dans `docs/` (URS, fiche technique, instructions)
+- [x] Copier les 3 documents de contexte dans `docs/` (URS, fiche technique, instructions) — instructions archivées et périmées : `docs/archive/project_instructions_saas_commercants.md` (2026-10-28)
 - [ ] Créer la branche `main` protégée + branche `develop`
 
 ### Environnement local
 
-- [x] Créer `docker-compose.yml` avec services : `postgres`, `redis`, `backend`, `frontend`, `ai-service`, `nginx`
+- [x] Créer `docker-compose.yml` avec services : `postgres`, `redis`, `backend`, `frontend`, `ai-service`, ~~`nginx`~~ (absent de `docker-compose.yml` ; Caddy en production, `deploy/edge` — 2026-10-28)
 - [x] Créer `.env.example` (sans secrets)
 - [x] Documenter le démarrage local dans `README.md`
 - [x] Tester `docker compose up` jusqu'à avoir tous les services qui démarrent
@@ -53,16 +54,16 @@
 
 ### Infrastructure OVH (peut être différé)
 
-- [~] Créer un VPS ou Public Cloud Instance OVH — VPS dédié retenu ; préparation du serveur documentée (docs/exploitation/deploiement.md), reste à le commander
+- [x] Créer un VPS ou Public Cloud Instance OVH — VPS OVH à Gravelines, 7,6 Go, projets `mizan-staging` et `mizan-production`, réseau `edge` (validé en exploitation le 27/10/2026) ; procédure : docs/exploitation/deploiement.md, `deploy/`
 - ~~Provisionner PostgreSQL managé OVHcloud~~ — remplacé par PostgreSQL 16 en conteneur sur le VPS
-- [~] PostgreSQL 16 en conteneur (image `deploy/postgres` avec WAL-G, volume nommé, `deploy/app/compose.yml`) — sauvegardes : section Backups
-- [ ] Provisionner le bucket privé de production (`mizan-production-private`, et `mizan-staging-private` pour staging, prévus dans `deploy/env/*.env.example`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin
-- [~] Configurer un nom de domaine + HTTPS (Let's Encrypt via Caddy, `deploy/edge`) — reste les enregistrements DNS
-- [~] Configurer un domaine de staging séparé — `staging.mizan-commerce.com` derrière une authentification basique (Caddy)
+- [x] PostgreSQL 16 en conteneur (image `deploy/postgres` avec WAL-G, volume nommé, `deploy/app/compose.yml`) — en service en production (validé en exploitation le 27/10/2026) ; sauvegardes : section Backups
+- [~] Provisionner le bucket privé de production (`mizan-production-private`, et `mizan-staging-private` pour staging, prévus dans `deploy/env/*.env.example`), distinct de `mizan-private` (bucket de développement, jamais partagé avec la production) + un bucket public si besoin — `mizan-production-private` créé à Gravelines, chiffré SSE-OMK (constaté le 28/10/2026) ; `mizan-staging-private` non vérifié
+- [x] Configurer un nom de domaine + HTTPS (Let's Encrypt via Caddy, `deploy/edge`) — `deploy/edge/sites/production.caddy`, www redirigé vers le domaine nu, enregistrements DNS dans docs/exploitation/deploiement.md (validé en exploitation le 27/10/2026)
+- [x] Configurer un domaine de staging séparé — `staging.mizan-commerce.com` derrière une authentification basique (`deploy/edge/sites/staging.caddy`) ; staging arrêté hors validation (validé en exploitation le 27/10/2026)
 
 ### CI/CD
 
-- [~] Configurer GitHub Actions (ou GitLab CI) — `.github/workflows/ci.yml`, Dependabot ; reste à protéger `main` (docs/ci.md)
+- [~] Configurer GitHub Actions (ou GitLab CI) — `.github/workflows/ci.yml`, Dependabot ; reste à protéger `main` : ruleset créé mais non appliqué (dépôt privé sans GitHub Team, constaté le 28/10/2026, docs/ci.md)
 - [~] Pipeline : lint → tests backend → tests frontend → build Docker → déploiement staging — images publiées sur GHCR à chaque push sur `main` ; déploiement staging manuel (`deploy/deploy.sh`)
 - [~] Tests obligatoires multi-tenant (un user de boutique A ne voit pas la boutique B) — dans `pytest`, obligatoires une fois `backend` requis sur `main`
 
@@ -83,7 +84,7 @@
 - [~] Correctif : jeton de vérification d'e-mail dédié (`apps/accounts/tokens.py`), toujours valable après une connexion ou un changement de mot de passe, invalidé par un changement d'adresse ; validité `EMAIL_VERIFICATION_TIMEOUT` (7 jours) ; les e-mails d'inscription, de renvoi et de réinitialisation annoncent la durée de leur réglage (`validity_label`, `apps/accounts/formatting.py`) au lieu de « 24 heures » en dur
 - [x] Correctif : lien de vérification d'e-mail ouvert par un utilisateur déjà connecté (validé sur staging le 2026-10-26)
 - [~] Correctif : course de rafraîchissement des jetons et boucle /login ↔ /dashboard (2026-10-26) — fenêtre de grâce de 30 s en mémoire, clé = empreinte du jeton (`lib/refresh-flights.ts`) ; échec définitif : 401 `session_expired`, les deux cookies effacés, une seule navigation vers `/login?session=expired` que `proxy.ts` ne renvoie jamais vers `/dashboard` ; journal `session_refresh_failed` / `session_refresh_graced` sans valeur sensible (`lib/session-log.ts`) ; audit `session-race`, `npm run test:session` ; reste la recette staging (docs/exploitation/deploiement.md §11)
-- [~] Isolation staging/production : API_URL par alias unique mizan-<env>-backend (défaut constaté sur staging) (2026-10-26) — alias ajouté à `DJANGO_ALLOWED_HOSTS` par Compose ; garde-fou `deploy/check-api-url.sh` dans `deploy.sh`, contrôle statique `deploy/check-compose.sh` (job CI `deploy`), test local `deploy/edge/test-isolation.sh` (100/100 par environnement) ; reste le redéploiement de staging et de la production (docs/exploitation/deploiement.md §16)
+- [~] Isolation staging/production : API_URL par alias unique mizan-<env>-backend (défaut constaté sur staging) (2026-10-26) — alias ajouté à `DJANGO_ALLOWED_HOSTS` par Compose ; garde-fou `deploy/check-api-url.sh` dans `deploy.sh`, contrôle statique `deploy/check-compose.sh` (job CI `deploy`), test local `deploy/edge/test-isolation.sh` (100/100 par environnement) ; ~~reste le redéploiement de staging et de la production~~ (docs/exploitation/deploiement.md §16) — commits `3f2c94a`, `6e55590`, production à `0ceef86` (validé en exploitation le 27/10/2026) ; redéploiement de staging non attesté (condition non remplie, décochée le 2026-10-28)
 - [x] Pages frontend : inscription, connexion
 - [x] Page mot de passe oublié (frontend)
 - [x] Tests unitaires + multi-tenant
@@ -565,9 +566,9 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Sécurité & RGPD
 
-- [~] Page mentions légales — staging non validé ; mises à jour pour l'éditeur réel et Stripe
-- [~] Page politique de confidentialité — staging non validé ; mises à jour pour l'éditeur réel et Stripe
-- [~] Page CGV (/cgv) : code prêt, texte à faire relire
+- [x] Page mentions légales — mises à jour pour l'éditeur réel et Stripe (commits `820cb33`, `4472011`) ; en ligne (validé en exploitation le 27/10/2026)
+- [x] Page politique de confidentialité — mises à jour pour l'éditeur réel et Stripe (commit `820cb33`) ; en ligne (validé en exploitation le 27/10/2026)
+- [~] Page CGV (/cgv) : en ligne (validé en exploitation le 27/10/2026) ; relecture juridique non faite
 - [ ] Endpoint export des données utilisateur
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
@@ -584,36 +585,37 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Abonnement SaaS (URS-064, URS-065, URS-100)
 
-- [x] Modèles `Subscription`, `SubscriptionPlan` + seed des 3 plans
-- [x] Essai 14j Boutique+ à l'inscription (URS-100) + tâche Celery d'expiration
+- [x] Modèles `Subscription`, `SubscriptionPlan` + seed des ~~3~~ 4 plans (Découverte, Solo, Boutique, Commerce+ : migration `0004_rename_plans`, 2026-10-28)
+- [x] Essai 14j Boutique (ex-Boutique+) à l'inscription (URS-100) + tâche Celery d'expiration
 - [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
-- [~] Intégration Stripe Billing — Lot 1 : code et tests prêts
-  - [~] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise)
-  - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée)
-  - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée)
-  - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé)
-    - [~] correctif : activité d'un abonné payant face aux limites réelles
-  - [~] Lot 5b : code prêt (changement de formule, changement programmé, bandeaux globaux) — 2026-10-24
-  - [~] Changement de prix (Boutique 16 € / 160 €, Commerce+ 29 € / 290 €) : code prêt, à appliquer en test puis en production avec stripe_sync_plans et stripe_migrate_prices — migration `0014_plan_prices_boutique_commerce_plus`, procédure dans docs/exploitation/deploiement.md (« Changement de prix »)
-- [~] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts
-- [ ] Page tarifs publique + flow upgrade payant
+- [~] Intégration Stripe Billing — Lot 1 : code et tests prêts (commit `6987be3`) ; Stripe en mode réel (validé en exploitation le 27/10/2026, docs/exploitation/stripe.md) ; sous-lots 3b, 4 et 5b encore ouverts (condition non remplie, décochée le 2026-10-28)
+  - [x] Lot 3a : code et tests prêts (checkout, portail, résiliation, reprise) (commit `deb4fb6`) — paiement 3D Secure, portail, résiliation en fin de période puis reprise, annulation immédiate (validé en exploitation le 27/10/2026)
+  - [~] Lot 3b : code et tests prêts (changement de formule : aperçu, montée immédiate, descente programmée) (commit `c78196b`) — déployé en production ; changement de formule et descente programmée non éprouvés en production (2026-10-28)
+  - [~] Lot 4 : code et tests prêts (retard de paiement à J+15, rappels, rappel de fin d'essai ; correction après relecture : résiliation retentée jusqu'à aboutir, message de fin séparé et unique, facture ouverte annulée) — commits `91f8b69`, `e23d14f`, `9f35659`, déployé ; reste [~] tant qu'aucun impayé réel n'a été observé en production (2026-10-28)
+  - [~] Lot 5a : code prêt (souscription, retour de paiement, portail, résiliation et reprise, bandeau d'impayé) (commit `237504b`) — parcours de souscription, portail, résiliation et reprise (validé en exploitation le 27/10/2026) ; bandeau d'impayé non éprouvé, aucun impayé réel (condition non remplie, décochée le 2026-10-28)
+    - [~] correctif : activité d'un abonné payant face aux limites réelles (commit `7a369d9`, déployé ; validation non attestée)
+  - [~] Lot 5b : code prêt (changement de formule, changement programmé, bandeaux globaux) — 2026-10-24 (commit `febeb81`, déployé) ; changement de formule non éprouvé en production (2026-10-28)
+  - [x] Changement de prix (Boutique 16 € / 160 €, Commerce+ 29 € / 290 €) (commit `e6c06f8`) : `stripe_sync_plans --allow-live` lancé en production, six prix « inchangé », identifiants enregistrés en base (validé en exploitation le 27/10/2026) ; `stripe_migrate_prices` sans objet (aucun abonné à migrer) ; ~~à appliquer en test puis en production avec stripe_sync_plans et stripe_migrate_prices~~ — migration `0014_plan_prices_boutique_commerce_plus`, procédure dans docs/exploitation/deploiement.md (« Changement de prix »)
+- [x] Webhook Stripe → mise à jour de l'abonnement local — Lot 2 : code et tests prêts (commits `48dceb0`, `afc2c61`) ; webhook de production à 6 événements, traité (200) et abonnement synchronisé (validé en exploitation le 27/10/2026)
+- [x] Page tarifs publique + flow upgrade payant (de Découverte vers une formule payante) — `components/marketing/Pricing.tsx`, page Abonnement (lot 5a) ; paiement réel de 9 € (Solo) (validé en exploitation le 27/10/2026) ; le changement entre formules payantes relève du lot 3b
 
 ### Monitoring
 
-- [~] Sentry actif sur backend + frontend — intégré, inactif tant que les DSN ne sont pas renseignés
-- [ ] UptimeRobot ou Better Stack configuré — sonde prête : `/healthz` (base + Redis, sans authentification)
+- [~] Sentry actif sur backend + frontend — intégré, inactif tant que les DSN ne sont pas renseignés ; `SENTRY_DSN` vide en production (constaté le 28/10/2026)
+- [ ] **Avant l'invitation de testeurs** : créer le projet Sentry et renseigner `SENTRY_DSN` (backend, `production.env`) et `NEXT_PUBLIC_SENTRY_DSN` (frontend, variable GitHub de build, `ci.yml`)
+- [x] UptimeRobot ou Better Stack configuré — UptimeRobot, mot-clé sur `/healthz` (base + Redis, sans authentification) et sur les pages (validé en exploitation le 27/10/2026)
 - [~] Logs structurés (JSON) en production — Django, gunicorn et Celery sur stdout, données personnelles masquées
 - [ ] Alertes mail sur erreurs critiques
 
 ### Backups
 
-- [~] Backups PostgreSQL automatiques activés — WAL-G : journal archivé en continu (perte ≤ 1 min), sauvegarde complète chaque nuit, 30 jours, chiffrée, bucket dans une autre région, surveillance par signal ; éprouvé en local avec MinIO (`deploy/backup/test-local.sh`), à activer sur le serveur (bucket, clé, URL de surveillance) — docs/exploitation/sauvegardes.md
-- [~] **Test de restauration mensuel** (un backup non testé n'est pas un backup) — automatique (service `backup`, signal RESTORE_TEST_HEARTBEAT_URL) ; restauration manuelle à un instant précis : `deploy/backup/restore.sh`
-- [~] Versioning Object Storage activé si possible — procédure documentée (bucket privé des fichiers), à activer sur OVH
-- [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging
+- [x] Backups PostgreSQL automatiques activés — WAL-G : journal archivé en continu (perte ≤ 1 min), sauvegarde complète chaque nuit, 30 jours, chiffrée, bucket dans une autre région, surveillance par signal ; éprouvé en local avec MinIO (`deploy/backup/test-local.sh`), ~~à activer sur le serveur (bucket, clé, URL de surveillance)~~ — docs/exploitation/sauvegardes.md ; en production : WAL-G vers `mizan-backups/production/` (Paris), Healthchecks : sauvegarde à 02:30 UTC et archivage WAL toutes les 5 min (validé en exploitation le 27/10/2026), sauvegarde verte le 28/10/2026
+- [~] **Test de restauration mensuel** (un backup non testé n'est pas un backup) — automatique (service `backup`, signal RESTORE_TEST_HEARTBEAT_URL) ; restauration manuelle à un instant précis : `deploy/backup/restore.sh` — contrôle Healthchecks le 1er du mois à 04:00 UTC, premier passage prévu le 01/11/2026
+- [~] Versioning Object Storage activé si possible — procédure documentée (bucket privé des fichiers), à activer sur OVH ; désactivé sur `mizan-production-private` (constaté le 28/10/2026)
+- [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging (non attesté au 28/10/2026)
 
 ### Dette technique connue
 
@@ -699,6 +701,35 @@ Décision du 2026-10-16 : pas de publications automatiques.
       ≠ none. Limite connue : processus tué entre réservation et remboursement → place
       perdue. Coût unitaire (≈ 0,03 €) à confirmer sur facture réelle.
 
+- [ ] Fonctions de shell du serveur non versionnées dans le dépôt (raccourcis
+      utilisés en exploitation, absents de `deploy/`) — 2026-10-28.
+
+- [ ] Aligner la région d'exemple des `.env.example` sur eu-west-par : les modèles
+      (`deploy/env/*.env.example`) proposent `sbg` pour les sauvegardes, alors que
+      `mizan-backups` est à Paris (constaté le 28/10/2026, docs/exploitation/sauvegardes.md).
+
+- [ ] Rédiger un court document de décisions produit pour remplacer le document
+      archivé (`docs/archive/project_instructions_saas_commercants.md`), en conservant
+      les règles métier toujours valables : WhatsApp manuel uniquement, zakat
+      indicative, cadrage du module projets halal, validation humaine de l'IA,
+      ordre de la roadmap — 2026-10-28.
+
+- [ ] Commentaires « ≈ 6,1 Go sur 12 » périmés : `deploy/env/production.env.example`
+      (limites mémoire) et `deploy/app/compose.yml` (en-tête) ; le VPS a 7,6 Go
+      (validé en exploitation le 27/10/2026).
+
+- [ ] Texte d'aide de `seed_data --reset` périmé (`seed_data.py`, `add_arguments`) :
+      il annonce « garde les users et boutiques », alors que l'option supprime les
+      boutiques des comptes de démo (`@example.*`), voir CLAUDE.md et COMMANDS.md.
+
+- [ ] Commentaire périmé de `apps/backend/apps/subscriptions/models.py`
+      (`stripe_price_id` « préparé pour la future intégration Stripe ») : la
+      facturation Stripe est branchée et les identifiants de prix sont renseignés.
+
+- [ ] Fidélité (`apps/backend/apps/loyalty/`, tables documentées dans
+      docs/schema_base_donnees.md le 2026-10-28) : aucune URS ne la couvre ; en
+      créer une ou la rattacher.
+
 ---
 
 ## Mise en production
@@ -708,15 +739,41 @@ Procédure : docs/exploitation/deploiement.md (« Premier déploiement », « Ou
 - [x] Serveur OVH (VPS Gravelines), DNS, pare-feu, Caddy, certificats
 - [x] Staging en ligne (staging.mizan-commerce.com)
 - [x] Base de production créée et migrée, rôle mizan_app, sauvegarde complète et archivage WAL vers mizan-backups/production
-- [ ] Production ouverte au public (Caddy, `EDGE_SITES=*`, certificat mizan-commerce.com)
-- [ ] reCAPTCHA v3 : clé de site dans la variable GitHub `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` et clés secrètes dans staging.env et production.env
-- [ ] Supervision : sonde de disponibilité sur `/healthz` et adresses de surveillance des sauvegardes (Healthchecks)
-- [ ] Compte administrateur de production (tunnel SSH)
+- [x] Production ouverte au public (Caddy, `EDGE_SITES=*`, certificat mizan-commerce.com) — `deploy/edge/sites/production.caddy`, inscription ouverte (validé en exploitation le 27/10/2026)
+- [~] reCAPTCHA v3 : clé de site dans la variable GitHub `NEXT_PUBLIC_RECAPTCHA_SITE_KEY` et clés secrètes dans staging.env et production.env — `.github/workflows/ci.yml` ; production (validé en exploitation le 27/10/2026) ; staging.env non attesté (condition non remplie, décochée le 2026-10-28)
+- [x] Supervision : sonde de disponibilité sur `/healthz` et adresses de surveillance des sauvegardes (Healthchecks) — UptimeRobot et 3 contrôles Healthchecks (validé en exploitation le 27/10/2026)
+- [x] Compte administrateur de production (tunnel SSH) — créé, confirmé par l'exploitant le 28/10/2026 (date de création non communiquée)
 - [ ] Recette de production sur le vrai domaine
-- [ ] Stripe en mode réel : compte activé, clé restreinte, webhook de production, réglages, stripe_sync_plans
+- [x] Stripe en mode réel : compte activé, clé restreinte, webhook de production, réglages, stripe_sync_plans — paiement réel, webhook, portail, résiliation, reprise, annulation et remboursement (validé en exploitation le 27/10/2026, docs/exploitation/stripe.md)
 - [ ] Relecture juridique des CGV (articles n, p, q, s)
 - [ ] Textes arabes à faire relire (docs/i18n/ar_a_relire_lot5.md et e-mails du lot 4)
-- [ ] Staging arrêté après la recette de production (mémoire du VPS : 7,6 Go)
+- ~~Staging arrêté après la recette de production (mémoire du VPS : 7,6 Go)~~ — scindée le 2026-10-28 : la recette de production n'est pas faite
+- [x] Staging arrêté hors validation d'une mise à jour (constaté le 27/10/2026 ; mémoire du VPS : 7,6 Go)
+- [ ] Recette de production complète
+
+---
+
+## Exploitation — À faire
+
+Procédures : docs/exploitation/ (déploiement, sauvegardes, Stripe : docs/exploitation/stripe.md).
+
+- [ ] Vérifier le préfixe et le bas de page légal sur la première vraie facture Stripe (réglages de facture faits le 27/10/2026)
+- [ ] Test de restauration automatique : premier passage le 01/11/2026 (contrôle Healthchecks)
+- [ ] Relecture juridique des CGV (dont les mentions de facture et les pénalités de retard) et des textes arabes
+- [ ] Préavis de 30 jours aux abonnés avant toute hausse de prix
+- [ ] Durcir DMARC de `p=none` vers `quarantine`
+- [ ] Ne jamais soumettre le domaine au préchargement HSTS sans avoir vérifié tous les sous-domaines
+- [ ] Ne pas fusionner la branche Dependabot `@types/node` 26 (Node 24 en service)
+- [ ] Audit des promesses de la page Tarifs avant toute annonce publique (voir « Checklist de lancement »)
+- [ ] Statut de la demande PayPal à vérifier
+
+### Avant l'invitation de testeurs
+
+Voir aussi la tâche Sentry de la section Monitoring.
+
+- [ ] Tester le changement de formule depuis l'application : montée immédiate avec prorata, descente programmée en fin de période, annulation d'un changement programmé — de préférence sur le staging en mode test (lots 3b et 5b)
+- [ ] Vérifier que support@mizan-commerce.com reçoit bien les e-mails (enregistrement MX et boîte de réception)
+- [ ] Créer une URS pour la fidélité (le code de `apps/backend/apps/loyalty/` n'en a pas), puis la rattacher au plan
 
 ---
 
@@ -736,20 +793,20 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Rôles et permissions — déjà implémentés et cochés en V1, écran Équipe livré en 7c ; confirmer la recette de lancement (gating `multi_user`, limites 1 / 1 / 4 / illimité), sans les présenter comme du code absent.
 - [ ] Journal d'activité — logs d'audit existants (`apps/backend/apps/core/models.py`), mais écran de lecture Commerce+ non livré.
 - [ ] Support prioritaire — clé `priority_support` déclarée ; aucun parcours ni engagement de support attesté dans le code ou ce suivi.
-- [ ] Souscription payante — backend codé et testé sans réseau (`apps/backend/apps/subscriptions/`) : paiement (Checkout), portail, résiliation et reprise, webhooks, changement de formule, retard de paiement (règle des 15 jours) et rappel de fin d'essai ; restent le frontend, la recette en mode test Stripe et la mise en production.
+- [~] Souscription payante — backend codé et testé sans réseau (`apps/backend/apps/subscriptions/`) : paiement (Checkout), portail, résiliation et reprise, webhooks, changement de formule, retard de paiement (règle des 15 jours) et rappel de fin d'essai ; ~~restent le frontend, la recette en mode test Stripe et la mise en production~~ (frontend : lots 5a/5b ; en production : paiement, portail, résiliation, reprise, annulation et remboursement, validé en exploitation le 27/10/2026) ; restent le changement de formule et un impayé réel, non éprouvés en production (2026-10-28).
 - [ ] Libellés des fonctions perdues lors d'un changement de formule : étendre SHIPPED_FEATURES (`apps/frontend/lib/plan-features.ts`) à chaque fonction livrée.
 - [ ] Factures fournisseurs (Boutique) — promises dans Pricing et Features ; import et lecture présents (`apps/backend/apps/ocr/`), lot 5 encore en cours, recette complète à terminer.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
-- [ ] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe
+- [~] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe — adresse saisie (commit `4472011`) ; concordance avec le registre et Stripe non vérifiable dans le dépôt (2026-10-28)
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
 ### Vérification des affirmations marketing (lot 7d)
 
 | Affirmation conservée | Appui vérifié dans le dépôt |
 | --- | --- |
-| Découverte / Solo / Boutique / Commerce+, prix mensuels 0 / 9 / 16 / 29 € et annuels 0 / 90 / 160 / 290 € ; « 2 mois offerts » à l'annuel (chaque annuel vaut 10 mensualités) | Landing `apps/frontend/components/marketing/Pricing.tsx` ; page Abonnement : prix lus dans `GET /subscriptions/plans/`, mois offerts calculés par `freeMonthsPerYear` (`apps/frontend/lib/plan-pricing.ts`) ; migrations abonnements `0004_rename_plans`, `0005_plan_yearly_price` et `0014_plan_prices_boutique_commerce_plus`, `seed_plans` ; lot 7b/7c ci-dessus. Prix Stripe à aligner par `stripe_sync_plans` (puis `stripe_migrate_prices` pour les abonnés en cours) avant d'annoncer la nouvelle grille. |
+| Découverte / Solo / Boutique / Commerce+, prix mensuels 0 / 9 / 16 / 29 € et annuels 0 / 90 / 160 / 290 € ; « 2 mois offerts » à l'annuel (chaque annuel vaut 10 mensualités) | Landing `apps/frontend/components/marketing/Pricing.tsx` ; page Abonnement : prix lus dans `GET /subscriptions/plans/`, mois offerts calculés par `freeMonthsPerYear` (`apps/frontend/lib/plan-pricing.ts`) ; migrations abonnements `0004_rename_plans`, `0005_plan_yearly_price` et `0014_plan_prices_boutique_commerce_plus`, `seed_plans` ; lot 7b/7c ci-dessus. ~~Prix Stripe à aligner par `stripe_sync_plans` (puis `stripe_migrate_prices` pour les abonnés en cours) avant d'annoncer la nouvelle grille.~~ Fait : `stripe_sync_plans` en production, six prix « inchangé », `stripe_migrate_prices` sans objet (validé en exploitation le 27/10/2026). |
 | Découverte sans limite de durée, 30 articles actifs, 15 ventes/mois, 15 clients actifs ; Solo et au-delà illimités | Migrations des plans, `apps/backend/apps/subscriptions/limits.py` ; lot 7b. La création est bloquée dès le plafond atteint, sans supprimer les données ; désactivation articles/clients et nouveau mois libèrent les places correspondantes. |
 | Stock, notes, rappels et calcul de la zakat dès Découverte | `apps/backend/apps/subscriptions/permissions.py`, modules V1 cochés ci-dessus. |
 | Essai Boutique de 14 jours pour les nouveaux comptes, sans carte, puis retour automatique sur Découverte ; résiliation immédiate, données intactes | `start_trial_or_default`, `expire_trial`, `downgrade_to_free` dans `apps/backend/apps/subscriptions/services.py`, tâche `expire_trials`, `Shop.effective_plan` ; seul l'abonnement est modifié, aucun objet métier supprimé. |
@@ -813,7 +870,8 @@ typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 
 ## Légende et bonnes pratiques d'usage
 
-- Cocher la case **uniquement** quand la tâche est testée et déployée en staging.
+- ~~Cocher la case **uniquement** quand la tâche est testée et déployée en staging.~~ (remplacée le 2026-10-28 : la production a été ouverte directement, validations datées)
+- Cocher la case quand la tâche est testée et déployée : en staging, ou directement en production avec une validation attribuée et datée.
 - Si une tâche se découpe en sous-tâches non prévues, les ajouter en sous-puces et cocher au fur et à mesure.
 - Si une tâche est annulée, la barrer avec `~~texte~~` plutôt que de la supprimer (trace de la décision).
 - Pour estimer l'avancement d'une phase, compter `[x]` / total. Une phase est validée à 100 %.

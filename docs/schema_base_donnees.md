@@ -52,23 +52,31 @@ DOMAINE                     TABLES
 ─────────────────────────────────────────────────────────────
 Identité                    users, shops, shop_members
 Catalogue                   products, product_variants, product_images,
-                            shelves, shelf_images
+                            shelves*, shelf_images*
 Stock                       stock_movements
-Clients                     customers
-Commandes                   orders, order_items, shipments
+Clients                     customers, loyalty_programs, loyalty_cards,
+                            loyalty_transactions
+Commandes                   orders, order_items, shipments*
 Facturation                 invoices, invoice_lines, invoice_sequences
-Productivité                notes, reminders
-Zakat                       zakat_profiles, zakat_calculations
+Productivité                notes, reminders, reminder_settings
+Zakat                       zakat_profiles, zakat_calculations,
+                            zakat_receivable_followups
 OCR / IA                    uploaded_documents, ocr_results, supplier_line_matches,
-                            product_scan_usages, detection_results
-Communication               prepared_messages, message_settings, telegram_accounts, telegram_publications
+                            product_scan_usages, detection_results*
+Communication               prepared_messages, message_settings,
+                            telegram_accounts†, telegram_publications†
 Page publique               public_pages, public_page_sections,
-                            public_product_visibilities, public_services, contact_buttons
-Projets halal               projects, project_funding_lines, project_documents,
-                            partner_profiles, project_interests, project_reports
-SaaS / Abonnement           subscription_plans, subscriptions
+                            public_catalog_visibilities, public_page_contact_buttons,
+                            public_services*
+Projets halal               projects*, project_funding_lines*, project_documents*,
+                            partner_profiles*, project_interests*, project_reports*
+SaaS / Abonnement           subscription_plans, subscriptions, stripe_events
 Audit                       audit_logs
 ```
+
+`*` : table prévue, non implémentée ; `†` : abandonnée (Telegram) — 2026-10-28.
+
+Tables des bibliothèques, hors de ce document : `django_*` et `auth_*` (Django), `token_blacklist_outstandingtoken` et `token_blacklist_blacklistedtoken` (djangorestframework-simplejwt, révocation des jetons), `axes_accessattempt`, `axes_accessfailurelog` et `axes_accesslog` (django-axes, blocage après échecs de connexion).
 
 ---
 
@@ -118,6 +126,8 @@ erDiagram
     partner_profiles ||--o{ project_interests : "manifeste"
 ```
 
+> Diagramme d'origine. Noms réels (2026-10-28) : `public_catalog_visibilities` (pour `public_product_visibilities`), `public_page_contact_buttons` (pour `contact_buttons`). `shelves`, `shelf_images`, `shipments`, `public_services` et le domaine projets sont prévus, non implémentés (voir §2).
+
 ---
 
 ## 4. Domaine — Identité
@@ -130,19 +140,31 @@ Compte utilisateur (commerçant ou partenaire potentiel).
 |---|---|---|---|
 | id | UUID | PK | Identifiant unique |
 | email | VARCHAR(254) | UNIQUE, NOT NULL | Email de connexion |
-| password_hash | VARCHAR(255) | NOT NULL | Géré par Django (PBKDF2 par défaut) |
+| ~~password_hash~~ | ~~VARCHAR(255)~~ | ~~NOT NULL~~ | ~~Géré par Django (PBKDF2 par défaut)~~ Nom réel : `password` (2026-10-28). |
+| password | VARCHAR(128) | NOT NULL | Empreinte gérée par Django (`AbstractBaseUser`, PBKDF2 par défaut) |
 | full_name | VARCHAR(150) | | Nom affiché |
 | phone | VARCHAR(30) | | Téléphone optionnel |
+| is_staff | BOOLEAN | NOT NULL, DEFAULT false | Accès à l'admin Django |
+| is_superuser | BOOLEAN | NOT NULL, DEFAULT false | Tous les droits Django (`PermissionsMixin`) |
+| trial_consumed_at | TIMESTAMPTZ | | URS-100 : posé une seule fois, quand le compte consomme son essai de 14 jours ; les boutiques créées ensuite démarrent sur Découverte |
+| theme_mode | VARCHAR(10) | NULL | `system`, `light`, `dark` ; nul jusqu'à la première synchronisation du thème local |
+| primary_color | VARCHAR(20) | NULL | Couleur principale (`default`, `blue`… `sage`, `custom`), voir `PRIMARY_COLOR_CHOICES` |
+| background_theme | VARCHAR(20) | NULL | Fond (`default`, `cream`… `lilac`, `custom`), voir `BACKGROUND_THEME_CHOICES` |
+| primary_color_custom_hex | VARCHAR(7) | NULL | `#rrggbb`, si `primary_color = custom` |
+| background_custom_hex | VARCHAR(7) | NULL | `#rrggbb`, si `background_theme = custom` |
 | language | VARCHAR(2) | NOT NULL, DEFAULT 'fr' | `fr`, `ar`, `en` — langue de l'interface, reprise par les textes écrits hors requête (rappels automatiques, résumé du jour) |
 | sales_period | VARCHAR(3) | NOT NULL, DEFAULT '7d' | `7d`, `12m`, `all` — période du bloc Ventes de l'accueil, gardée d'une visite à l'autre |
 | sidebar_collapsed | BOOLEAN | NOT NULL, DEFAULT false | Sidebar desktop repliée en rail, gardée d'une visite à l'autre |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | Désactivation (RGPD) |
 | email_verified_at | TIMESTAMPTZ | | Date validation email |
-| last_login_at | TIMESTAMPTZ | | Dernière connexion |
+| ~~last_login_at~~ | ~~TIMESTAMPTZ~~ | | ~~Dernière connexion~~ Nom réel : `last_login` (2026-10-28). |
+| last_login | TIMESTAMPTZ | | Dernière connexion (champ Django) |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `email` (UNIQUE).
+
+Modèle : `apps/accounts/models.py` (`AbstractBaseUser`, `PermissionsMixin`), qui ajoute aussi les tables de liaison Django des groupes et permissions.
 
 ---
 
@@ -175,7 +197,8 @@ Boutique (entité racine du multi-tenant).
 | invoice_show_order | BOOLEAN | DEFAULT true | Numéro et date de commande figés à l’émission |
 | default_payment_terms_days | SMALLINT | NOT NULL, DEFAULT 30 | Délai de paiement par défaut (jours) — utilisé pour calculer `invoices.due_date`. |
 | catalog_kind | VARCHAR(10) | NOT NULL, DEFAULT 'both' | Choix onboarding : `products`, `services`, `both`. Modifiable ensuite depuis les réglages. |
-| dashboard_mode | VARCHAR(10) | NOT NULL, DEFAULT 'complete' | Choix onboarding : `minimal` ou `complete`. |
+| ~~dashboard_mode~~ | ~~VARCHAR(10)~~ | ~~NOT NULL, DEFAULT 'complete'~~ | ~~Choix onboarding : `minimal` ou `complete`.~~ Absent du code, remplacé par `fulfillment_mode` (2026-10-28). |
+| fulfillment_mode | VARCHAR(10) | NULL | Choix onboarding : `on_site` (sur place), `delivery` (en livraison), `both`. |
 | onboarding_completed_at | TIMESTAMPTZ | | Non-null = wizard 1er login validé (ou skippé). |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -298,6 +321,8 @@ Règles (service `products.services`) : 8 photos au plus par article ; une seule
 
 ### `shelves`
 
+> **(prévue, non implémentée)** — aucune table dans le code au 2026-10-28.
+
 Emplacement physique de stockage (V6 mais utile dès V1 si on veut).
 
 | Champ | Type | Contraintes | Description |
@@ -312,6 +337,8 @@ Emplacement physique de stockage (V6 mais utile dès V1 si on veut).
 ---
 
 ### `shelf_images`
+
+> **(prévue, non implémentée)** — aucune table dans le code au 2026-10-28.
 
 Photos d'une étagère (utilisées pour la détection visuelle V6).
 
@@ -396,6 +423,60 @@ Le cache est recalculé par un agrégat SQL dans la transaction de chaque `save(
 
 ---
 
+### `loyalty_programs`
+
+Programme de fidélité d'une boutique (app `loyalty`, documentée le 2026-10-28). Modèles, services et API seulement : aucune interface commerçant (`docs/plan_avancement.md`). Aucune URS ne couvre encore la fidélité.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | BIGINT | PK (auto-incrément) | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL, UNIQUE | Un programme par boutique |
+| is_active | BOOLEAN | NOT NULL, DEFAULT false | |
+| points_per_unit | INTEGER | NOT NULL, DEFAULT 1, ≥ 0 | Points gagnés par unité de devise |
+| redemption_threshold | INTEGER | NOT NULL, DEFAULT 100, ≥ 0 | Points nécessaires pour une récompense |
+| redemption_value | DECIMAL(8,2) | NOT NULL, DEFAULT 5.00 | Valeur de la récompense |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+---
+
+### `loyalty_cards`
+
+Solde de points d'un client dans une boutique.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| customer_id | UUID | FK → customers.id, RESTRICT, NOT NULL | |
+| points_balance | INTEGER | NOT NULL, DEFAULT 0 | |
+| total_points_earned | INTEGER | NOT NULL, DEFAULT 0 | |
+| total_points_redeemed | INTEGER | NOT NULL, DEFAULT 0 | |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contrainte** : `UNIQUE (shop_id, customer_id)`. **Index** : `(shop_id, customer_id)`, `(shop_id, points_balance)`.
+
+---
+
+### `loyalty_transactions`
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| card_id | UUID | FK → loyalty_cards.id, RESTRICT, NOT NULL | |
+| transaction_type | VARCHAR(10) | NOT NULL | `earn`, `redeem`, `adjust`, `expire` |
+| points | INTEGER | NOT NULL | Signé |
+| order_id | UUID | FK → orders.id, SET_NULL | Optionnel |
+| note | VARCHAR(255) | | |
+| created_by_id | UUID | FK → users.id, SET_NULL | |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Index** : `(shop_id, card_id)`, `(shop_id, created_at)`.
+
+---
+
 ## 8. Domaine — Commandes
 
 ### `orders`
@@ -454,6 +535,8 @@ Lignes d'une commande. Chaque ligne pointe vers une **variante** (pas un produit
 ---
 
 ### `shipments`
+
+> **(prévue, non implémentée)** — aucune table dans le code au 2026-10-28.
 
 Informations d'expédition d'une commande (1-1 avec `orders`).
 
@@ -600,7 +683,8 @@ Note libre, ou liée à un client, ou liée à une commande.
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| author_user_id | UUID | FK → users.id | |
+| ~~author_user_id~~ | ~~UUID~~ | ~~FK → users.id~~ | Nom réel : `author_id` (2026-10-28). |
+| author_id | UUID | FK → users.id, ON DELETE SET NULL | Auteur de la note |
 | customer_id | UUID | FK → customers.id, RESTRICT | NULL si pas liée à un client |
 | order_id | UUID | FK → orders.id, RESTRICT | NULL si pas liée à une commande |
 | content | TEXT | NOT NULL | |
@@ -615,7 +699,8 @@ Note libre, ou liée à un client, ou liée à une commande.
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL | |
-| author_user_id | UUID | FK → users.id | |
+| ~~author_user_id~~ | ~~UUID~~ | ~~FK → users.id~~ | Nom réel : `author_id` (2026-10-28). |
+| author_id | UUID | FK → users.id, ON DELETE SET NULL | Auteur du rappel |
 | title | VARCHAR(200) | NOT NULL | |
 | description | TEXT | | |
 | due_at | TIMESTAMPTZ | NOT NULL | Date d'échéance |
@@ -624,7 +709,8 @@ Note libre, ou liée à un client, ou liée à une commande.
 | order_id | UUID | FK → orders.id | Optionnel |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | `pending`, `done`, `dismissed` (rappel automatique supprimé : gardé pour ne pas être recréé, invisible partout) |
 | done_at | TIMESTAMPTZ | | |
-| assigned_to_member_id | UUID | FK → shop_members.id, ON DELETE SET NULL | Membre chargé du rappel ; NULL = toute l'équipe |
+| ~~assigned_to_member_id~~ | ~~UUID~~ | ~~FK → shop_members.id, ON DELETE SET NULL~~ | Nom réel : `assigned_to_id` (2026-10-28). |
+| assigned_to_id | UUID | FK → shop_members.id, ON DELETE SET NULL | Membre chargé du rappel ; NULL = toute l'équipe |
 | is_automatic | BOOLEAN | NOT NULL, DEFAULT false | Créé par une tâche (relance d'impayé, commandes en attente, zakat) |
 | auto_key | VARCHAR(80) | NOT NULL, DEFAULT '' | Clé de dédoublonnage des rappels automatiques : `unpaid:{order_id}`, `pending_orders:{date locale}` |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -864,6 +950,8 @@ Compteurs mensuels des appels payants du scan d'emballage (URS-109, proposée) :
 
 ### `detection_results`
 
+> **(prévue, non implémentée)** — aucune table dans le code au 2026-10-28.
+
 Résultat de détection visuelle sur une photo d'étagère.
 
 | Champ | Type | Contraintes | Description |
@@ -923,6 +1011,8 @@ Variables permises dans un texte : `{client}`, `{commande}`, `{date}`, `{total}`
 
 ### `telegram_accounts`
 
+> **Abandonné** — fonctionnalité Telegram abandonnée, aucune table dans le code (2026-10-28, voir `docs/plan_avancement.md`).
+
 Configuration du bot Telegram d'une boutique.
 
 | Champ | Type | Contraintes | Description |
@@ -941,6 +1031,8 @@ Configuration du bot Telegram d'une boutique.
 ---
 
 ### `telegram_publications`
+
+> **Abandonné** — fonctionnalité Telegram abandonnée, aucune table dans le code (2026-10-28, voir `docs/plan_avancement.md`).
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
@@ -967,17 +1059,23 @@ Configuration du bot Telegram d'une boutique.
 |---|---|---|---|
 | id | UUID | PK | |
 | shop_id | UUID | FK → shops.id, NOT NULL, UNIQUE | Une page par boutique |
-| slug | VARCHAR(80) | NOT NULL, UNIQUE | URL: `/boutique/{slug}` |
-| is_active | BOOLEAN | NOT NULL, DEFAULT false | |
-| title | VARCHAR(150) | | |
-| subtitle | VARCHAR(200) | | |
+| slug | VARCHAR(50) | NOT NULL, UNIQUE | URL: `/boutique/{slug}` ; minuscules, chiffres et tirets, slugs réservés refusés |
+| is_active | BOOLEAN | NOT NULL, DEFAULT false | Page activée (URS-070) |
+| is_published | BOOLEAN | NOT NULL, DEFAULT false | Publiée (URS-077) ; accessible seulement si `is_active` et `is_published` |
+| ~~title~~ | ~~VARCHAR(150)~~ | | Remplacé par `display_name` (2026-10-28). |
+| ~~subtitle~~ | ~~VARCHAR(200)~~ | | Remplacé par `tagline` (2026-10-28). |
+| display_name | VARCHAR(120) | DEFAULT `''` | Nom affiché |
+| tagline | VARCHAR(200) | DEFAULT `''` | Accroche |
 | description | TEXT | | |
-| logo_object_key | VARCHAR(500) | | |
-| cover_image_object_key | VARCHAR(500) | | |
-| theme_id | VARCHAR(50) | NOT NULL, DEFAULT 'default' | Identifiant de thème |
-| primary_color | VARCHAR(7) | | Hex ex: `#00AA88` |
-| secondary_color | VARCHAR(7) | | |
-| draft_data | JSONB | | Brouillon avant publication |
+| logo_object_key | VARCHAR(500) | | Partagé avec `shops.logo_object_key` |
+| ~~cover_image_object_key~~ | ~~VARCHAR(500)~~ | | Nom réel : `cover_object_key` (2026-10-28). |
+| cover_object_key | VARCHAR(500) | DEFAULT `''` | Image de couverture |
+| ~~theme_id~~ | ~~VARCHAR(50)~~ | ~~NOT NULL, DEFAULT 'default'~~ | Remplacé par `theme` (2026-10-28). |
+| theme | VARCHAR(20) | NOT NULL, DEFAULT 'classic' | `classic`, `modern`, `minimal` |
+| primary_color | VARCHAR(7) | NOT NULL, DEFAULT '#0ea5e9' | Hex `#rrggbb` |
+| ~~secondary_color~~ | ~~VARCHAR(7)~~ | | Absent du code (2026-10-28). |
+| ~~draft_data~~ | ~~JSONB~~ | | Absent du code : le brouillon est la page non publiée (`is_published = false`) (2026-10-28). |
+| order_message_template | TEXT | NOT NULL, max 500 | URS-078 : message pré-rempli du bouton « Commander » ; variables `{shop_name}`, `{item_name}`, `{price}` |
 | published_at | TIMESTAMPTZ | | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -990,31 +1088,38 @@ Configuration du bot Telegram d'une boutique.
 |---|---|---|---|
 | id | UUID | PK | |
 | page_id | UUID | FK → public_pages.id, NOT NULL | |
-| type | VARCHAR(30) | NOT NULL | `hero`, `description`, `products`, `services`, `contact`, `gallery`, `testimonials` |
-| title | VARCHAR(150) | | |
+| type | VARCHAR(20) | NOT NULL | `header`, `description`, `products`, `services`, `contact` (~~`hero`, `gallery`, `testimonials`~~ : absents du code, 2026-10-28) |
+| title | VARCHAR(120) | | |
 | content | TEXT | | |
 | position | INTEGER | NOT NULL, DEFAULT 0 | |
 | is_visible | BOOLEAN | NOT NULL, DEFAULT true | |
-| settings_json | JSONB | | Réglages spécifiques au type |
+| ~~settings_json~~ | ~~JSONB~~ | | ~~Réglages spécifiques au type~~ Absent du code (2026-10-28). |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**Contrainte** : `UNIQUE (page_id, type)` — une section par type et par page (URS-073).
 
 ---
 
 ### `public_product_visibilities`
 
-Sélection et personnalisation des produits visibles sur la page publique.
+> Nom réel de la table : `public_catalog_visibilities` (modèle `PublicCatalogVisibility`, 2026-10-28).
+
+Sélection des produits et services visibles sur la page publique. Le catalogue interne reste la source de vérité (nom, photo, description, prix via la variante) : la table ne stocke que les choix d'affichage. Le badge rupture est dérivé du stock à la lecture.
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| page_id | UUID | FK → public_pages.id, NOT NULL | |
-| product_id | UUID | FK → products.id, NOT NULL | |
-| is_visible | BOOLEAN | NOT NULL, DEFAULT true | |
-| custom_title | VARCHAR(200) | | Surcharge optionnelle |
-| custom_description | TEXT | | |
-| custom_price | DECIMAL(12,2) | | |
-| badge | VARCHAR(20) | | `new`, `promo`, `out_of_stock`, `limited` |
+| page_id | UUID | FK → public_pages.id, CASCADE, NOT NULL | |
+| product_id | UUID | FK → products.id, CASCADE, NOT NULL | Produit ou service (`products.type`) |
+| ~~is_visible~~ | ~~BOOLEAN~~ | | Absent du code : une ligne présente = visible (2026-10-28). |
+| ~~custom_title~~ | ~~VARCHAR(200)~~ | | Absent du code (2026-10-28). |
+| ~~custom_description~~ | ~~TEXT~~ | | Absent du code (2026-10-28). |
+| ~~custom_price~~ | ~~DECIMAL(12,2)~~ | | Absent du code (2026-10-28). |
+| ~~badge~~ | ~~VARCHAR(20)~~ | | Remplacé par `badge_promo` et `badge_new` (2026-10-28). |
+| show_price | BOOLEAN | NOT NULL, DEFAULT true | Masquage du prix |
+| badge_promo | BOOLEAN | NOT NULL, DEFAULT false | |
+| badge_new | BOOLEAN | NOT NULL, DEFAULT false | |
 | position | INTEGER | NOT NULL, DEFAULT 0 | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -1024,6 +1129,8 @@ Sélection et personnalisation des produits visibles sur la page publique.
 ---
 
 ### `public_services`
+
+> **(prévue, non implémentée)** — les services sont des `products` de type service, exposés par `public_catalog_visibilities` (2026-10-28).
 
 Services proposés (pour les commerçants qui vendent du service).
 
@@ -1044,16 +1151,20 @@ Services proposés (pour les commerçants qui vendent du service).
 
 ### `contact_buttons`
 
+> Nom réel de la table : `public_page_contact_buttons` (modèle `ContactButton`, URS-076, 2026-10-28).
+
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| page_id | UUID | FK → public_pages.id, NOT NULL | |
-| type | VARCHAR(20) | NOT NULL | `whatsapp`, `telegram`, `instagram`, `phone`, `email`, `link` |
-| label | VARCHAR(50) | | Texte du bouton |
-| url | VARCHAR(500) | | Pour `link`, `instagram`, `telegram` |
-| phone_number | VARCHAR(30) | | Pour `whatsapp`, `phone` |
-| message_template | TEXT | | Pré-rempli pour WhatsApp |
-| is_primary | BOOLEAN | NOT NULL, DEFAULT false | |
+| page_id | UUID | FK → public_pages.id, CASCADE, NOT NULL | |
+| type | VARCHAR(20) | NOT NULL | `whatsapp`, `telegram`, `instagram`, `phone` (~~`email`, `link`~~ : absents du code, 2026-10-28) |
+| value | VARCHAR(200) | NOT NULL | Numéro (E.164 recommandé), identifiant Instagram sans @ ou identifiant Telegram ; normalisé côté service |
+| label | VARCHAR(60) | | Texte du bouton |
+| ~~url~~ | ~~VARCHAR(500)~~ | | Remplacé par `value` (2026-10-28). |
+| ~~phone_number~~ | ~~VARCHAR(30)~~ | | Remplacé par `value` (2026-10-28). |
+| ~~message_template~~ | ~~TEXT~~ | | Remplacé par `public_pages.order_message_template` (2026-10-28). |
+| is_primary | BOOLEAN | NOT NULL, DEFAULT false | Au plus un par page (garanti côté service) |
+| is_visible | BOOLEAN | NOT NULL, DEFAULT true | |
 | position | INTEGER | NOT NULL, DEFAULT 0 | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -1061,6 +1172,8 @@ Services proposés (pour les commerçants qui vendent du service).
 ---
 
 ## 15. Domaine — Projets et partenariats halal
+
+> **(prévu, non implémenté)** — aucune table de ce domaine dans le code au 2026-10-28 (module projets halal, phase ultérieure).
 
 ### `projects`
 
@@ -1277,17 +1390,21 @@ Journalisation des actions sensibles (URS-062 + fiche technique §14.4).
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| shop_id | UUID | FK → shops.id | NULL si action plateforme |
-| user_id | UUID | FK → users.id | Auteur |
-| action | VARCHAR(50) | NOT NULL | `stock.update`, `product.deactivate`, `order.status_change`, `data.export`, `document.access`, `telegram.publish`, `public_page.update`, `project.report`, `subscription.change` |
-| target_type | VARCHAR(50) | | `Product`, `Order`, etc. |
-| target_id | UUID | | |
-| metadata | JSONB | | Détails (ancienne valeur / nouvelle valeur) |
-| ip_address | INET | | |
-| user_agent | VARCHAR(255) | | |
+| shop_id | UUID | NOT NULL, indexé (sans FK) | Boutique concernée |
+| user_id | UUID | FK → users.id, ON DELETE SET NULL | Auteur |
+| action | VARCHAR(30) | NOT NULL | Liste fermée `AuditLog.ACTION_CHOICES` (`apps/core/models.py`) : stock (`stock_entry`, `stock_exit`, `stock_adjustment`), commandes, suppressions et désactivations, exports (`customer_activity_export`, `orders_export`, `stock_export`), `product_scan`, zakat (`zakat_*`), abonnement (`subscription_*`). ~~`stock.update`, `product.deactivate`, `order.status_change`, `data.export`, `document.access`, `telegram.publish`, `public_page.update`, `project.report`, `subscription.change`~~ : nomenclature d'origine, remplacée (2026-10-28). |
+| ~~target_type~~ | ~~VARCHAR(50)~~ | | Nom réel : `model_name` (2026-10-28). |
+| ~~target_id~~ | ~~UUID~~ | | Nom réel : `object_id` (2026-10-28). |
+| ~~metadata~~ | ~~JSONB~~ | | Nom réel : `changes` (2026-10-28). |
+| ~~ip_address~~ | ~~INET~~ | | Absent du code (2026-10-28). |
+| ~~user_agent~~ | ~~VARCHAR(255)~~ | | Absent du code (2026-10-28). |
+| model_name | VARCHAR(50) | NOT NULL | `Product`, `Order`, etc. |
+| object_id | VARCHAR(36) | NOT NULL, indexé | Identifiant de l'objet visé |
+| object_repr | VARCHAR(200) | NOT NULL | Libellé lisible, figé à l'écriture |
+| changes | JSONB | NOT NULL, DEFAULT '{}' | Détails (ancienne valeur / nouvelle valeur) ; jamais de donnée de paiement |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
-**Index** : `(shop_id, created_at DESC)`, `(user_id, created_at DESC)`, `(action, created_at DESC)`.
+**Index** : `(shop_id, created_at)`, `object_id` (code). ~~`(user_id, created_at DESC)`, `(action, created_at DESC)`~~ : non créés (2026-10-28).
 
 Scan d'emballage (URS-109, proposée) : une ligne `product_scan` par scan, cible le membre, détails = sources utilisées (`barcode`, `open_food_facts`, `ocr`, `vision`) ; jamais l'image ni le texte lu.
 

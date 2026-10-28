@@ -5,8 +5,10 @@
 #   docker compose -p mizan-production --env-file deploy/env/production.env \
 #     -f deploy/app/compose.yml up -d
 #
-# Aucun port publié : Caddy (deploy/edge) joint frontend et backend par le
-# réseau externe « edge ». Chaque service ne reçoit que ses propres variables.
+# Caddy (deploy/edge) joint frontend et backend par le réseau externe « edge ».
+# Seul port publié : celui du backend, sur la boucle locale (127.0.0.1), pour
+# l'admin Django par Tailscale Serve (docs/exploitation/deploiement.md, « Accès
+# à l'admin Django »). Chaque service ne reçoit que ses propres variables.
 #
 # Réseau « edge » partagé par staging et production : Compose y inscrit aussi le
 # NOM DU SERVICE (« backend », « frontend ») de chaque environnement. Un service
@@ -283,6 +285,12 @@ services:
       start_interval: 5s
       retries: 3
     mem_limit: ${BACKEND_MEM_LIMIT:-768m}
+    # Admin Django : boucle locale seulement (jamais joignable depuis Internet,
+    # Docker contournant UFW), relayée en HTTPS sur le tailnet par Tailscale
+    # Serve. Un port par environnement (ADMIN_LOCAL_PORT). `compose run`
+    # (migrations, createsuperuser) ne publie pas ce port.
+    ports:
+      - "127.0.0.1:${ADMIN_LOCAL_PORT:-8001}:8000"
     networks:
       default:
       edge:
