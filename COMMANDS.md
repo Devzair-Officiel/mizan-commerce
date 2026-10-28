@@ -25,8 +25,9 @@ docker compose exec backend python manage.py makemigrations
 # Insérer des données fictives pour le développement (idempotent)
 docker compose exec backend python manage.py seed_data
 
-# Vider la BDD et réinsérer les données fictives
-docker compose exec backend python manage.py seed_data --flush
+# Supprimer les boutiques des comptes de démo (@example.*) et réinsérer les données fictives
+# (développement uniquement ; les autres boutiques ne sont pas touchées)
+docker compose exec backend python manage.py seed_data --reset
 ```
 
 ## Backend (Django)
@@ -57,8 +58,9 @@ docker compose exec backend python manage.py shell
 # Lancer le serveur de développement (depuis apps/frontend)
 npm run dev
 
-# Lancer les tests Vitest
-npm run test
+# npm run test n'existe pas : aucune infra Vitest en place
+# Seul test unitaire : sécurité de session (node --test)
+npm run test:session
 
 # Vérifier le style de code
 npm run lint
