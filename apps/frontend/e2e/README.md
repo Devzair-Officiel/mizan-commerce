@@ -30,6 +30,7 @@ docker compose run --rm e2e npm run audit:activity-export     # export de l'acti
 docker compose run --rm e2e npm run audit:exports            # export des commandes : fenêtre, CSV, PDF (proxy binaire, partage), message WhatsApp (et tronqué)
 docker compose run --rm e2e npm run audit:exports-stock      # export du stock : périmètre (imposé par WhatsApp), CSV, PDF, message des réapprovisionnements
 docker compose run --rm e2e npm run audit:invoices            # factures : liste serveur, filtres, détail figé, PDF et annulation
+docker compose run --rm e2e npm run audit:invoice-editor      # facture libre : client créé depuis la facture, suggestion du catalogue, unité, enregistrement automatique, reprise, vérification avant émission, suppression du brouillon
 docker compose run --rm e2e npm run audit:scroll-lock         # fenêtres et menus enchaînés : la page défile toujours
 docker compose run --rm e2e npm run audit:header-bands        # bandes d'en-tête teintées : fond muted, contrastes ≥ 4,5:1
 docker compose run --rm e2e npm run audit:show-more           # listes longues des fiches : 5 éléments puis « Voir plus »

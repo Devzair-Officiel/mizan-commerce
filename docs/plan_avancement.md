@@ -552,7 +552,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Lot 8 — Facturation et devis professionnels (URS-110 à 117, spécification `docs/specs/spec_facturation_devis_pro.md`, maquettes `docs/maquettes/facturation/`)
   - [ ] 8.1 Facture libre (URS-110) : brouillon, lignes personnalisables, conformité, client et catalogue à la volée
     - [x] Backend : modèles, migrations, services, endpoints, tests
-    - [ ] Éditeur mobile et desktop, enregistrement automatique
+    - [x] Éditeur mobile et desktop, enregistrement automatique
     - [x] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
     - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
   - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
