@@ -19,6 +19,9 @@ from rest_framework_simplejwt.token_blacklist.models import (
 )
 from rest_framework_simplejwt.utils import aware_utcnow
 
+from apps.core.audit import NO_SHOP_ID, log_action
+from apps.shops.models import ShopMember
+
 from .models import User
 
 
@@ -39,6 +42,40 @@ def revoke_refresh_tokens(user: User) -> int:
         ignore_conflicts=True,
     )
     return len(revoked)
+
+
+@transaction.atomic
+def set_user_active(*, user: User, is_active: bool, actor: User) -> bool:
+    """Active ou désactive un compte depuis l'admin interne, tracé dans AuditLog.
+
+    Une entrée par boutique du compte (`NO_SHOP_ID` s'il n'en a aucune), sans
+    donnée personnelle : le compte n'y figure que par son identifiant. L'accès à
+    l'API est coupé dès la désactivation (simplejwt relit `is_active` à chaque
+    requête et à chaque rafraîchissement), et les jetons de rafraîchissement sont
+    révoqués : une réactivation ne rend pas vie aux anciennes sessions.
+    Retourne False si l'état était déjà celui demandé.
+    """
+    previous = User.objects.filter(pk=user.pk).values_list('is_active', flat=True).get()
+    if previous == is_active:
+        return False
+    user.is_active = is_active
+    user.save(update_fields=['is_active', 'updated_at'])
+    changes: dict[str, object] = {'is_active': [previous, is_active]}
+    if not is_active:
+        changes['revoked_refresh_tokens'] = revoke_refresh_tokens(user)
+    memberships = ShopMember.objects.filter(user=user)
+    shop_ids = list(memberships.values_list('shop_id', flat=True))
+    for shop_id in shop_ids or [NO_SHOP_ID]:
+        log_action(
+            shop_id=shop_id,
+            user=actor,
+            action='user_reactivated' if is_active else 'user_deactivated',
+            model_name='User',
+            obj_id=user.pk,
+            obj_repr='Compte utilisateur',
+            changes=changes,
+        )
+    return True
 
 
 @transaction.atomic

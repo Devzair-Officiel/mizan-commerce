@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework.exceptions import ValidationError
 
+from apps.core.audit import log_action
 from apps.core.images import IMAGE_EXTENSIONS, validate_uploaded_image
 from apps.core.storage import delete_object, upload_fileobj
 
@@ -29,6 +30,7 @@ from .models import (
 )
 
 if TYPE_CHECKING:
+    from apps.accounts.models import User
     from apps.shops.models import Shop
 
 # Limites de taille — la cover est plus large (paysage) que le logo.
@@ -153,6 +155,35 @@ def unpublish_page(page: PublicPage) -> PublicPage:
     peut vouloir garder la page activée mais retirée temporairement (404)."""
     page.is_published = False
     page.save(update_fields=['is_published', 'updated_at'])
+    return page
+
+
+@transaction.atomic
+def moderate_page(
+    *, page: PublicPage, is_active: bool, is_published: bool, actor: 'User'
+) -> PublicPage:
+    """Modération par l'équipe Mizan (admin interne) : pose les deux interrupteurs
+    et trace le changement dans AuditLog. Comme `publish_page`, une première
+    publication date `published_at`."""
+    previous = PublicPage.objects.values('is_active', 'is_published').get(pk=page.pk)
+    wanted = {'is_active': is_active, 'is_published': is_published}
+    changes = {f: [previous[f], v] for f, v in wanted.items() if previous[f] != v}
+    if not changes:
+        return page
+    page.is_active = is_active
+    page.is_published = is_published
+    if is_published and page.published_at is None:
+        page.published_at = timezone.now()
+    page.save(update_fields=['is_active', 'is_published', 'published_at', 'updated_at'])
+    log_action(
+        shop_id=page.shop_id,
+        user=actor,
+        action='public_page_moderated',
+        model_name='PublicPage',
+        obj_id=page.pk,
+        obj_repr=f'/boutique/{page.slug}',
+        changes=changes,
+    )
     return page
 
 

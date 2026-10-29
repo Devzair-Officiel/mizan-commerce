@@ -572,6 +572,11 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Endpoint export des données utilisateur
 - [ ] Endpoint suppression / anonymisation du compte
 - [ ] Consentement marketing si applicable
+- [~] Admin Django interne : navigation par domaine, accès superuser seul, modèles sensibles en lecture seule, thème Sauge/Crème (lots 1a, 1b, 2) — outil interne, aucun URS ne le couvre ; règles d'usage dans docs/exploitation/acces-admin-django.md
+  - [~] Lot 1a : site `MizanAdminSite` (superuser actif seul, connexion refusée aux autres comptes staff), navigation par domaine, lecture seule par défaut, IBAN/BIC, jetons, texte OCR, montants zakat et données de formulaire d'axes jamais affichés ; seules écritures (`User.is_active`, nom, téléphone ; `PublicPage.is_active`/`is_published`) tracées dans AuditLog (sans donnée personnelle ; `NO_SHOP_ID` pour un compte sans boutique), jetons de rafraîchissement révoqués à la désactivation — migration `core.0010` (choix d'action seulement) ; testé en local, reste à déployer et valider en staging
+  - [~] Lot 1a-bis : action « Changer la formule » sur les abonnements sans lien Stripe (superuser seul, formulaire intermédiaire, motif obligatoire ; refus si lié à Stripe, en retard de paiement ou suspendu, formule désactivée, date passée, date avec Découverte) via `subscriptions.services.set_plan_manually` (garde atomique dans l'UPDATE), date de fin facultative à la fin de la journée dans le fuseau de la boutique, retour silencieux sur Découverte par `expire_trials` ; colonne et filtre « se termine sous 7 jours » ; actions d'audit `subscription_plan_assigned` et `subscription_assignment_ended` — migration `core.0011` (choix d'action seulement) ; badge sur la formule effective ; testé en local, reste à déployer et valider en staging
+  - [ ] Lot 1b : confort du support (requêtes N+1, recherche par boutique, liens depuis la fiche boutique, `date_hierarchy`)
+  - [ ] Lot 2 : thème Sauge/Crème clair et sombre, badges de statut, tableau de bord (compteurs)
 
 ### Durcissement avant production (2026-10-25)
 
@@ -618,6 +623,16 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging (non attesté au 28/10/2026)
 
 ### Dette technique connue
+
+- [ ] Drapeau de blocage de modération sur `PublicPage`, à poser avant la mise en
+      ligne de la V3 : une page dépubliée depuis l'admin interne peut aujourd'hui être
+      republiée par le commerçant (serializer de mise à jour et `publish_page`). Le
+      drapeau, posé par l'admin seul, doit refuser la publication côté serveur.
+
+- [ ] Fin d'une formule attribuée depuis l'admin interne : le retour sur Découverte
+      est silencieux (aucun e-mail, rien dans l'app avant ni après la date de fin).
+      Prévenir le commerçant (e-mail et/ou bandeau) dans un lot séparé ; aucun URS ne
+      le couvre encore.
 
 - [ ] `seed_data.handle()` fait ~470 lignes et `_seed_new_products` 68 lignes ;
       découper en sous-commandes ou helpers dédiés hors périmètre de la refonte UX.

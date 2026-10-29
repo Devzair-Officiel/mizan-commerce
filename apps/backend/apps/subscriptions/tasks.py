@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from . import billing_notices
 from .models import Subscription
-from .services import expire_trial
+from .services import end_plan_assignment, expire_trial, expired_assignments
 from .stripe_client import billing_enabled, get_client
 from .stripe_sync import sync_subscription_from_stripe
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def expire_trials() -> dict:
-    """Bascule toutes les souscriptions en essai expiré sur le formule Découverte.
+    """Bascule sur Découverte les essais expirés et les formules attribuées échues.
 
     URS-100 — Filet de sécurité quotidien. Le check lazy de `Shop.effective_plan`
     gate déjà côté lecture, mais cette tâche réconcilie la DB pour que les
@@ -35,7 +35,14 @@ def expire_trials() -> dict:
     for sub in expired.iterator():
         expire_trial(sub)
         count += 1
-    return {'expired': count, 'ran_at': now.isoformat()}
+    # Abonnement actif sans lien Stripe : `current_period_end` y est la fin d'une
+    # formule attribuée par l'admin Mizan. Échue, retour silencieux sur
+    # Découverte (aucun message au commerçant), tracé dans AuditLog.
+    ended = sum(
+        end_plan_assignment(sub, now)
+        for sub in expired_assignments(now).select_related('plan').iterator()
+    )
+    return {'expired': count, 'assignments_ended': ended, 'ran_at': now.isoformat()}
 
 
 @shared_task

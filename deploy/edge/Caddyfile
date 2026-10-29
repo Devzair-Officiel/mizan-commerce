@@ -5,7 +5,8 @@
 # directement (les appels authentifiés passent par /app/api/*, côté serveur).
 # De Django, seules les routes /healthz et /webhooks/stripe/ (appelée par
 # Stripe, authentifiée par sa signature) sont routées. L'admin Django n'est
-# jamais exposé : accès par tunnel SSH (docs/exploitation/deploiement.md).
+# jamais exposé ici : accès par Tailscale Serve, réservé au tailnet
+# (docs/exploitation/acces-admin-django.md).
 {
 	email {$ACME_EMAIL}
 	# Vide en production. Tests locaux : « local_certs » (autorité interne de Caddy).

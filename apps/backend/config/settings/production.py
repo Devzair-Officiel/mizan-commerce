@@ -37,7 +37,10 @@ if len(SECRET_KEY) < 50 or SECRET_KEY == "change-me-in-production":
     )
 
 # Domaines publics, plus « backend » (appels du proxy Next.js sur le réseau
-# Docker) et « localhost » (admin par tunnel SSH, docs/exploitation/deploiement.md).
+# Docker) et « localhost » (requêtes locales sur le serveur, par le port publié
+# sur 127.0.0.1). L'admin par Tailscale Serve arrive avec le nom MagicDNS du
+# serveur, à inscrire dans DJANGO_ALLOWED_HOSTS
+# (docs/exploitation/acces-admin-django.md).
 ALLOWED_HOSTS = [*_required_env_list("DJANGO_ALLOWED_HOSTS"), "backend", "localhost"]
 CSRF_TRUSTED_ORIGINS = _required_env_list("CSRF_TRUSTED_ORIGINS")
 CORS_ALLOWED_ORIGINS = _required_env_list("CORS_ALLOWED_ORIGINS")
