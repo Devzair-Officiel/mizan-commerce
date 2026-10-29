@@ -454,3 +454,13 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_stock_state(self, obj):
         return self._agg(obj)['stock_state']
+
+
+class ServiceFromInvoiceLineSerializer(serializers.Serializer):
+    """Ligne de facture libre enregistrée comme service du catalogue (URS-110)."""
+
+    name = serializers.CharField(max_length=200)
+    unit_label = serializers.CharField(required=False, allow_blank=True, max_length=30)
+    unit_price_ht = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal('0'),
+    )

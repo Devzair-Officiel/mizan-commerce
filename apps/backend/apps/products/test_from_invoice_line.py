@@ -1,0 +1,86 @@
+"""Service du catalogue créé depuis une ligne de facture libre (URS-110)."""
+
+import pytest
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+from apps.accounts.models import User
+from apps.invoices.tests import _make_shop
+from apps.shops.models import ShopMember
+from apps.subscriptions.models import SubscriptionPlan
+
+from .constants import DEFAULT_VARIANT_NAME
+from .models import Product
+
+URL = "product-from-invoice-line"
+PAYLOAD = {"name": "Nuitée", "unit_label": "nuit", "unit_price_ht": "85.50"}
+
+
+@pytest.fixture
+def ctx():
+    user, shop, _, _ = _make_shop("from-line@example.com")
+    api = APIClient()
+    api.force_authenticate(user)
+    return api, shop
+
+
+@pytest.mark.django_db
+def test_creates_a_service_with_one_default_variant(ctx) -> None:
+    api, shop = ctx
+    response = api.post(reverse(URL), PAYLOAD, format="json")
+    assert response.status_code == 201, response.data
+    product = Product.objects.get(pk=response.data["id"], shop=shop)
+    assert (product.name, product.type) == ("Nuitée", "service")
+    variant = product.variants.get()
+    assert variant.packaging_name == DEFAULT_VARIANT_NAME
+    assert (variant.unit_label, str(variant.selling_price)) == ("nuit", "85.50")
+
+
+@pytest.mark.django_db
+def test_existing_name_returns_the_article_instead_of_a_duplicate(ctx) -> None:
+    api, shop = ctx
+    first = api.post(reverse(URL), PAYLOAD, format="json").data
+    response = api.post(reverse(URL), {**PAYLOAD, "name": "NUITÉE"}, format="json")
+    assert response.status_code == 409
+    assert response.data["code"] == "product_name_taken"
+    assert response.data["existing_id"] == first["id"]
+    assert Product.objects.filter(shop=shop, name__iexact="nuitée").count() == 1
+
+
+@pytest.mark.django_db
+def test_same_name_in_another_shop_is_not_a_duplicate(ctx) -> None:
+    api, _ = ctx
+    api.post(reverse(URL), PAYLOAD, format="json")
+    other, _, _, _ = _make_shop("from-line-other@example.com")
+    other_api = APIClient()
+    other_api.force_authenticate(other)
+    assert other_api.post(reverse(URL), PAYLOAD, format="json").status_code == 201
+
+
+@pytest.mark.django_db
+def test_plan_product_limit_applies(ctx) -> None:
+    api, shop = ctx
+    SubscriptionPlan.objects.filter(pk=shop.effective_plan.pk).update(max_products=1)
+    response = api.post(reverse(URL), PAYLOAD, format="json")
+    assert response.status_code == 400
+    assert not Product.objects.filter(shop=shop, name="Nuitée").exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("modules", [["invoices"], ["products"]])
+def test_requires_both_catalog_and_invoices_modules(ctx, modules) -> None:
+    _, shop = ctx
+    staff = User.objects.create_user(email=f"staff-{modules[0]}@example.com",
+                                     password="Pass123!Strong")
+    ShopMember.objects.create(shop=shop, user=staff, role="staff",
+                              permissions=modules)
+    api = APIClient()
+    api.force_authenticate(staff)
+    assert api.post(reverse(URL), PAYLOAD, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+def test_invalid_line_is_rejected(ctx) -> None:
+    api, _ = ctx
+    for payload in ({**PAYLOAD, "unit_price_ht": "-1"}, {**PAYLOAD, "name": ""}):
+        assert api.post(reverse(URL), payload, format="json").status_code == 400

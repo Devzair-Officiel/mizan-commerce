@@ -62,6 +62,8 @@ class ProductVariant(models.Model):
         max_length=8, choices=Product.UNIT_CHOICES, default='piece',
         help_text="Unité de mesure du contenu (g, kg, mL…). Descriptif uniquement, sert au prix au litre/kilo.",  # noqa: E501
     )
+    # Unité facturée, libre (« trajet », « nuit ») : facture libre (URS-110).
+    unit_label = models.CharField(max_length=30, blank=True)
     base_quantity = models.DecimalField(
         max_digits=14, decimal_places=3, default=1,
         help_text='Quantité contenue par format (ex. 250 pour "Bouteille 250 mL").',

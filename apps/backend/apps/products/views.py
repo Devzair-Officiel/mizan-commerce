@@ -9,8 +9,11 @@ from rest_framework.views import APIView
 
 from apps.core.permissions import HasModulePermission, get_shop
 from apps.core.storage import is_storage_configured
+from apps.subscriptions.permissions import HasPlanForFeature
 
 HasProductsModule = HasModulePermission.for_module('products')
+HasInvoicesModule = HasModulePermission.for_module('invoices')
+HasInvoicesPlan = HasPlanForFeature.for_feature('invoices')
 from . import services  # noqa: E402
 from .filters import ProductOrderingFilter  # noqa: E402
 from .models import Product, ProductImage, ProductVariant  # noqa: E402
@@ -18,6 +21,7 @@ from .services import PRODUCT_SEARCH_FIELDS, products_with_stats  # noqa: E402
 from .serializers import (  # noqa: E402
     ProductImagePrimarySerializer, ProductImageSerializer, ProductListSerializer,
     ProductSerializer, ProductVariantCreateSerializer, ProductVariantSerializer,
+    ServiceFromInvoiceLineSerializer,
 )
 
 
@@ -315,3 +319,40 @@ class ProductImageFileView(APIView):
             return Response({'detail': 'Champ « image » requis.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         services.replace_image_file(image, file)
         return Response(ProductImageSerializer(image).data)
+
+
+class ProductFromInvoiceLineView(APIView):
+    """POST — enregistre une ligne de facture libre comme service du catalogue.
+
+    Réservé à qui gère à la fois le catalogue et les factures. Nom déjà pris :
+    409 avec l'article existant, à proposer au lieu d'un doublon.
+    """
+
+    permission_classes = (
+        IsAuthenticated, HasProductsModule, HasInvoicesModule, HasInvoicesPlan,
+    )
+
+    def post(self, request: Request) -> Response:
+        payload = ServiceFromInvoiceLineSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+        try:
+            product = services.create_service_from_line(
+                get_shop(request.user),
+                name=data['name'],
+                unit_label=data.get('unit_label', ''),
+                unit_price_ht=data['unit_price_ht'],
+            )
+        except services.ProductNameTakenError as exc:
+            return Response(
+                {
+                    'detail': str(exc),
+                    'code': 'product_name_taken',
+                    'existing_id': str(exc.product_id),
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(
+            {'id': str(product.pk), 'name': product.name, 'type': product.type},
+            status=status.HTTP_201_CREATED,
+        )

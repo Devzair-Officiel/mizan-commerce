@@ -27,6 +27,8 @@ class CustomerSerializer(serializers.ModelSerializer):
     paid_amount = serializers.SerializerMethodField()
     phone_display = serializers.SerializerMethodField()
     display_name = serializers.CharField(read_only=True)
+    # Saisie libre (« 123 456 789 ») : normalisée par `validate_siren`.
+    siren = serializers.CharField(required=False, allow_blank=True, max_length=20)
 
     def get_phone_display(self, obj: Customer) -> str:
         return format_phone_display(obj.phone)
@@ -56,11 +58,19 @@ class CustomerSerializer(serializers.ModelSerializer):
         shop = self.context.get('shop')
         return validated_phone(value, shop.country if shop else '')
 
+    def validate_siren(self, value: str) -> str:
+        """9 chiffres, espaces de saisie retirés ; aucune clé de contrôle vérifiée."""
+        siren = ''.join(value.split())
+        if siren and not (len(siren) == 9 and siren.isascii() and siren.isdigit()):
+            raise serializers.ValidationError('Le SIREN compte 9 chiffres.')
+        return siren
+
     class Meta:
         model = Customer
         fields = (
             'id', 'name', 'first_name', 'display_name', 'phone', 'phone_display', 'email',  # noqa: E501
             'address_line', 'city', 'postal_code', 'country',
+            'customer_type', 'siren',
             'notes', 'is_active',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
             'created_at', 'updated_at',
@@ -89,7 +99,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
         model = Customer
         fields = (
             'id', 'name', 'first_name', 'display_name', 'phone', 'phone_display',
-            'email', 'city', 'is_active',
+            'email', 'city', 'customer_type', 'is_active',
             'created_at',
             'order_count', 'pending_amount', 'paid_amount', 'last_order_at',
         )

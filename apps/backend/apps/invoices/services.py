@@ -8,6 +8,7 @@ from django.db.models import Count, F, Q, QuerySet, Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.customers.models import Customer
 from apps.orders.models import Order
 from apps.orders.services import current_month_bounds
 from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
@@ -31,6 +32,10 @@ class EmptyOrderError(Exception):
     """La commande n'a pas d'items — on refuse d'émettre une facture vide."""
 
 
+class InvoiceStateError(Exception):
+    """Transition impossible depuis le statut actuel (brouillon, facture annulée)."""
+
+
 def _next_invoice_number(shop: Shop, issued_on: date) -> str:
     """Verrouille (ou crée) le compteur de la boutique, incrémente, retourne le numéro formaté.
 
@@ -52,7 +57,7 @@ def _next_invoice_number(shop: Shop, issued_on: date) -> str:
     return f'{INVOICE_PREFIX}-{date_part}-{sequence.last_number:04d}'
 
 
-def _snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
+def snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
     invoice.seller_name = shop.name
     invoice.seller_address = shop.legal_address
     invoice.seller_tax_id = shop.tax_id
@@ -60,13 +65,12 @@ def _snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
     invoice.seller_country = shop.country
 
 
-def _snapshot_buyer_from_order(invoice: Invoice, order: Order) -> None:
-    """Snapshot des coordonnées acheteur depuis la commande ou son client lié.
+def snapshot_buyer(invoice: Invoice, customer: Customer | None) -> None:
+    """Snapshot des coordonnées acheteur depuis le client.
 
-    Si l'`Order` n'a pas de `Customer`, on laisse les champs vides — le commerçant
-    pourra éditer la facture en aval si besoin.
+    Sans client, les champs restent vides. Le SIREN n'est repris que pour un
+    client professionnel.
     """
-    customer = order.customer
     if customer is None:
         return
     invoice.customer = customer
@@ -80,6 +84,7 @@ def _snapshot_buyer_from_order(invoice: Invoice, order: Order) -> None:
     invoice.buyer_country = customer.country
     invoice.buyer_email = customer.email
     invoice.buyer_phone = customer.phone
+    invoice.buyer_siren = customer.siren if customer.customer_type == 'business' else ''
 
 
 _DEFAULT_VARIANT_SUFFIX = f' ({DEFAULT_VARIANT_NAME})'
@@ -104,7 +109,7 @@ def display_line_description(description: str) -> str:
 def _build_lines_from_order(invoice: Invoice, order: Order) -> list[InvoiceLine]:
     """Snapshot des items de commande en lignes de facture HT."""
     lines: list[InvoiceLine] = []
-    for item in order.items.all():
+    for position, item in enumerate(order.items.all()):
         description = line_description(item.product_name, item.variant_name)
         unit_ht = Decimal(str(item.unit_price)).quantize(Decimal('0.01'))
         qty = Decimal(str(item.quantity))
@@ -121,12 +126,13 @@ def _build_lines_from_order(invoice: Invoice, order: Order) -> list[InvoiceLine]
                 quantity=qty,
                 unit_price_ht=unit_ht,
                 line_subtotal_ht=subtotal,
+                position=position,
             )
         )
     return lines
 
 
-def _compute_totals(
+def compute_totals(
     lines: list[InvoiceLine],
     tax_rate: Decimal,
     discount_amount: Decimal,
@@ -200,7 +206,7 @@ def issue_invoice_from_order(
         shop, order, now, issued_on, number, effective_tax_rate, effective_terms, notes
     )
     lines = _build_lines_from_order(invoice, order)
-    invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = _compute_totals(
+    invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = compute_totals(
         lines,
         invoice.tax_rate,
         invoice.discount_amount,
@@ -272,8 +278,9 @@ def _new_invoice(
         amount_paid=Decimal(str(order.amount_paid or 0)),
         notes=notes,
     )
-    _snapshot_seller_from_shop(invoice, shop)
-    _snapshot_buyer_from_order(invoice, order)
+    snapshot_seller_from_shop(invoice, shop)
+    # Sans client sur la commande, les champs acheteur restent vides.
+    snapshot_buyer(invoice, order.customer)
 
     return invoice
 
@@ -321,28 +328,47 @@ def sync_invoice_from_order(order: Order) -> None:
     invoice.save(update_fields=['status', 'amount_paid', 'paid_at', 'updated_at'])
 
 
-def mark_paid(invoice: Invoice) -> Invoice:
-    """Bascule en `paid` (idempotent : sans effet si déjà payée)."""
-    if invoice.status == Invoice.STATUS_PAID:
-        return invoice
-    invoice.status = Invoice.STATUS_PAID
-    invoice.paid_at = timezone.now()
-    invoice.amount_paid = invoice.total_ttc
-    invoice.save(update_fields=['status', 'paid_at', 'amount_paid', 'updated_at'])
+def _transition(
+    invoice: Invoice, sources: tuple[str, ...], target: str, values: dict
+) -> Invoice:
+    """Change le statut par une mise à jour conditionnelle, sans lecture préalable.
+
+    Idempotent : sans effet si la facture est déjà dans le statut visé. Depuis un
+    autre statut (brouillon, facture annulée) : `InvoiceStateError`.
+    """
+    updated = Invoice.objects.filter(pk=invoice.pk, status__in=sources).update(
+        status=target, **values
+    )
+    invoice.refresh_from_db()
+    if not updated and invoice.status != target:
+        raise InvoiceStateError()
     return invoice
+
+
+def mark_paid(invoice: Invoice) -> Invoice:
+    """Bascule une facture émise en `paid`, avec ou sans commande liée."""
+    now = timezone.now()
+    return _transition(
+        invoice,
+        (Invoice.STATUS_ISSUED,),
+        Invoice.STATUS_PAID,
+        {'paid_at': now, 'amount_paid': F('total_ttc'), 'updated_at': now},
+    )
 
 
 def cancel_invoice(invoice: Invoice) -> Invoice:
     """Bascule en `cancelled` — pas d'avoir en v1, juste un drapeau de statut.
 
     Le numéro reste attribué (ne se recycle pas) : exigence légale, la trace doit subsister.
+    Un brouillon ne s'annule pas : il se supprime (`drafts.delete_draft_invoice`).
     """  # noqa: E501
-    if invoice.status == Invoice.STATUS_CANCELLED:
-        return invoice
-    invoice.status = Invoice.STATUS_CANCELLED
-    invoice.cancelled_at = timezone.now()
-    invoice.save(update_fields=['status', 'cancelled_at', 'updated_at'])
-    return invoice
+    now = timezone.now()
+    return _transition(
+        invoice,
+        (Invoice.STATUS_ISSUED, Invoice.STATUS_PAID),
+        Invoice.STATUS_CANCELLED,
+        {'cancelled_at': now, 'updated_at': now},
+    )
 
 
 # Liste, indicateurs et facettes (URS-097 / URS-099).

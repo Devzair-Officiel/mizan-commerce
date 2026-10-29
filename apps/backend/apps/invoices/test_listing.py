@@ -101,7 +101,13 @@ def test_facets_ignore_their_own_filter_and_include_search(context) -> None:
         reverse("invoice-facets"), {"status": "issued", "payment": "partial"}
     )
     data = response.data
-    assert data["status"] == {"all": 1, "issued": 1, "paid": 0, "cancelled": 0}
+    assert data["status"] == {
+        "all": 1,
+        "draft": 0,
+        "issued": 1,
+        "paid": 0,
+        "cancelled": 0,
+    }
     assert data["payment"] == {"all": 2, "due": 2, "unpaid": 1, "partial": 1, "paid": 0}
     data = api.get(reverse("invoice-facets"), {"search": "Client Delta"}).data
     assert data["status"]["all"] == data["payment"]["unpaid"] == 1

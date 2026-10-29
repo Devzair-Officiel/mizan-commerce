@@ -1,0 +1,206 @@
+"""Émission d'une facture libre (URS-110) : numéro continu, instantanés figés."""
+
+import threading
+from datetime import timedelta
+from decimal import Decimal
+from unittest import mock
+from zoneinfo import ZoneInfo
+
+import pytest
+from django.db import connection
+from django.test import TransactionTestCase
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+from apps.core.models import AuditLog
+from apps.customers.models import Customer
+
+from . import drafts
+from .models import Invoice, InvoiceSequence
+from .tests import _make_shop
+
+LINE = {
+    "description": "Accompagnement",
+    "details": "Atelier de 3 h",
+    "unit": "séance",
+    "quantity": Decimal("2"),
+    "unit_price_ht": Decimal("150.00"),
+}
+
+
+def _draft(shop, customer, **data) -> Invoice:
+    return drafts.create_draft_invoice(
+        shop, {"customer": customer.pk, "lines": [LINE], **data}
+    )
+
+
+def _last_number(shop) -> int:
+    sequence = InvoiceSequence.objects.filter(shop=shop).first()
+    return sequence.last_number if sequence else 0
+
+
+@pytest.fixture
+def ctx():
+    user, shop, _, customer = _make_shop("issue@example.com")
+    api = APIClient()
+    api.force_authenticate(user)
+    return api, user, shop, customer
+
+
+def _issue(api, invoice: Invoice, warnings: list[str] | None = None):
+    payload = {"acknowledged_warnings": warnings} if warnings is not None else {}
+    return api.post(reverse("invoice-issue", args=[invoice.pk]), payload, format="json")  # noqa: E501
+
+
+@pytest.mark.django_db
+def test_issue_numbers_dates_and_freezes_snapshots(ctx) -> None:
+    api, user, shop, customer = ctx
+    draft = _draft(shop, customer, payment_terms_days=15)
+    response = _issue(api, draft)
+    assert response.status_code == 200, response.data
+    invoice = Invoice.objects.get(pk=draft.pk)
+    issued_on = invoice.issued_at.astimezone(ZoneInfo(shop.timezone)).date()
+    assert invoice.status == "issued"
+    assert invoice.number == f"fact-{issued_on:%d%m%y}-0001"
+    assert invoice.due_date == issued_on + timedelta(days=15)
+    assert invoice.seller_address == shop.legal_address
+    assert invoice.seller_tax_id == shop.tax_id
+    assert invoice.buyer_name == customer.display_name
+    assert invoice.presentation  # Instantané de présentation, comme une commande.
+    assert invoice.total_ttc == Decimal("360.00")
+    log = AuditLog.objects.get(action="invoice_issued")
+    assert (log.object_id, log.object_repr) == (str(invoice.pk), invoice.number)
+    assert log.changes == {"total_ttc": "360.00", "warnings": []}
+    # Émise : statut de paiement et PDF redeviennent possibles.
+    paid = api.patch(reverse("invoice-status", args=[invoice.pk]), {"status": "paid"})
+    assert paid.status_code == 200
+
+
+@pytest.mark.django_db
+def test_seller_changes_after_issue_do_not_touch_the_invoice(ctx) -> None:
+    api, _, shop, customer = ctx
+    draft = _draft(shop, customer)
+    _issue(api, draft)
+    shop.legal_address = "Nouvelle adresse"
+    shop.save()
+    customer.name = "Renommé"
+    customer.save()
+    invoice = Invoice.objects.get(pk=draft.pk)
+    assert invoice.seller_address == "10 rue de Paris\n75001 Paris"
+    assert invoice.buyer_name != customer.display_name
+
+
+@pytest.mark.django_db
+def test_business_customer_siren_is_snapshotted(ctx) -> None:
+    api, _, shop, _ = ctx
+    business = Customer.objects.create(
+        shop=shop, name="Atelier", customer_type="business", siren="123456789"
+    )
+    draft = _draft(shop, business)
+    assert _issue(api, draft).status_code == 200
+    assert Invoice.objects.get(pk=draft.pk).buyer_siren == "123456789"
+
+
+@pytest.mark.django_db
+def test_blocking_issue_refuses_and_consumes_no_number(ctx) -> None:
+    api, _, shop, _ = ctx
+    draft = drafts.create_draft_invoice(shop, {"lines": [LINE]})
+    response = _issue(api, draft, warnings=["no_customer"])
+    assert response.status_code == 400
+    assert response.data["code"] == "compliance_blocking"
+    assert [i["code"] for i in response.data["issues"]] == ["no_customer"]
+    assert Invoice.objects.get(pk=draft.pk).status == "draft"
+    assert _last_number(shop) == 0
+
+
+@pytest.mark.django_db
+def test_recommendations_must_be_acknowledged(ctx) -> None:
+    api, _, shop, customer = ctx
+    shop.legal_address = ""
+    shop.save()
+    draft = _draft(shop, customer)
+    response = _issue(api, draft)
+    assert response.status_code == 409
+    assert response.data["code"] == "compliance_warnings"
+    assert response.data["issues"] == [
+        {"code": "seller_address", "level": "recommended",
+         "target": "invoice_settings"},
+    ]
+    assert _last_number(shop) == 0
+    response = _issue(api, draft, warnings=["seller_address"])
+    assert response.status_code == 200
+    log = AuditLog.objects.get(action="invoice_issued")
+    assert log.changes["warnings"] == ["seller_address"]
+
+
+@pytest.mark.django_db
+def test_second_issue_is_refused_and_numbering_has_no_gap(ctx) -> None:
+    api, _, shop, customer = ctx
+    first, second = _draft(shop, customer), _draft(shop, customer)
+    assert _issue(api, first).status_code == 200
+    response = _issue(api, first)
+    assert (response.status_code, response.data["code"]) == (409, "not_draft")
+    # Un échec après la réservation du numéro annule l'incrément.
+    with mock.patch.object(drafts, "snapshot_presentation", side_effect=RuntimeError):
+        with pytest.raises(RuntimeError):
+            drafts.issue_invoice(second, None, acknowledged_warnings=[])
+    assert _last_number(shop) == 1
+    assert _issue(api, second).status_code == 200
+    numbers = sorted(Invoice.objects.filter(shop=shop).values_list("number", flat=True))  # noqa: E501
+    assert [n.rsplit("-", 1)[1] for n in numbers] == ["0001", "0002"]
+
+
+@pytest.mark.django_db
+def test_issued_invoice_cannot_be_deleted(ctx) -> None:
+    api, _, shop, customer = ctx
+    draft = _draft(shop, customer)
+    _issue(api, draft)
+    response = api.delete(reverse("invoice-draft", args=[draft.pk]))
+    assert response.status_code == 409
+    assert Invoice.objects.filter(pk=draft.pk).exists()
+
+
+class ConcurrentIssueTest(TransactionTestCase):
+    """Double clic ou deux onglets : une seule émission, aucun numéro perdu."""
+
+    serialized_rollback = True
+
+    def _race(self, invoices: list[Invoice]) -> list[object]:
+        barrier = threading.Barrier(len(invoices))
+        results: list[object] = []
+
+        def worker(invoice: Invoice) -> None:
+            try:
+                barrier.wait()
+                issued = drafts.issue_invoice(invoice, None, acknowledged_warnings=[])
+                results.append(issued.number)
+            except BaseException as exc:  # noqa: BLE001 — on compare les issues.
+                results.append(exc)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in invoices]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=20)
+        return results
+
+    def test_same_draft_issued_twice_at_once(self) -> None:
+        _, shop, _, customer = _make_shop("race-same@example.com")
+        draft = _draft(shop, customer)
+        results = self._race([draft, Invoice.objects.get(pk=draft.pk)])
+        errors = [r for r in results if isinstance(r, BaseException)]
+        assert len(results) == 2
+        assert [type(e) for e in errors] == [drafts.NotDraftError]
+        assert _last_number(shop) == 1
+        nxt = drafts.issue_invoice(
+            _draft(shop, customer), None, acknowledged_warnings=[]
+        )
+        assert nxt.number.endswith("-0002")
+
+    def test_two_drafts_issued_at_once_get_consecutive_numbers(self) -> None:
+        _, shop, _, customer = _make_shop("race-two@example.com")
+        results = self._race([_draft(shop, customer), _draft(shop, customer)])
+        assert sorted(str(r).rsplit("-", 1)[1] for r in results) == ["0001", "0002"]
+        assert _last_number(shop) == 2

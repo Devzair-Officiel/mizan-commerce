@@ -8,7 +8,15 @@ from .models import Invoice, InvoiceLine, InvoiceSequence
 class InvoiceLineInline(ReadOnlyAdminMixin, admin.TabularInline):
     model = InvoiceLine
     extra = 0
-    fields = ("description", "quantity", "unit_price_ht", "line_subtotal_ht")
+    fields = (
+        "position",
+        "description",
+        "details",
+        "unit",
+        "quantity",
+        "unit_price_ht",
+        "line_subtotal_ht",
+    )
 
 
 @admin.register(Invoice)
@@ -31,7 +39,9 @@ class InvoiceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "order",
                     "customer",
                     "number",
+                    "kind",
                     "status",
+                    "operation_category",
                     "currency",
                 )
             },
@@ -42,6 +52,7 @@ class InvoiceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                 "fields": (
                     "issued_at",
                     "due_date",
+                    "payment_terms_days",
                     "paid_at",
                     "cancelled_at",
                     "created_at",
@@ -72,6 +83,7 @@ class InvoiceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
                     "buyer_country",
                     "buyer_email",
                     "buyer_phone",
+                    "buyer_siren",
                 )
             },
         ),

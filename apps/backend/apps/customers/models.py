@@ -10,10 +10,18 @@ def format_display_name(first_name: str, name: str) -> str:
 
 
 class Customer(models.Model):
+    TYPE_CHOICES = (
+        ('individual', 'Particulier'),
+        ('business', 'Professionnel'),
+    )
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='customers')
     name = models.CharField(max_length=150)
     first_name = models.CharField(max_length=100, blank=True)
+    customer_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='individual')  # noqa: E501
+    # SIREN d'un professionnel : 9 chiffres, forme seule (pas de clé de Luhn).
+    siren = models.CharField(max_length=9, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(max_length=254, blank=True)
     address_line = models.CharField(max_length=255, blank=True)
