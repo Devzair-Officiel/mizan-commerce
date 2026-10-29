@@ -49,12 +49,17 @@ def test_existing_name_returns_the_article_instead_of_a_duplicate(ctx) -> None:
 
 @pytest.mark.django_db
 def test_same_name_in_another_shop_is_not_a_duplicate(ctx) -> None:
-    api, _ = ctx
-    api.post(reverse(URL), PAYLOAD, format="json")
-    other, _, _, _ = _make_shop("from-line-other@example.com")
+    api, shop = ctx
+    mine = api.post(reverse(URL), PAYLOAD, format="json").data["id"]
+    other, other_shop, _, _ = _make_shop("from-line-other@example.com")
     other_api = APIClient()
     other_api.force_authenticate(other)
-    assert other_api.post(reverse(URL), PAYLOAD, format="json").status_code == 201
+    response = other_api.post(reverse(URL), PAYLOAD, format="json")
+    # Ni 409 ni `existing_id` : l'article d'une autre boutique reste invisible.
+    assert response.status_code == 201
+    assert "existing_id" not in response.data and response.data["id"] != mine
+    assert Product.objects.get(pk=response.data["id"]).shop == other_shop
+    assert Product.objects.get(pk=mine).shop == shop
 
 
 @pytest.mark.django_db
