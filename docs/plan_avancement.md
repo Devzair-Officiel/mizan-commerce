@@ -691,6 +691,13 @@ Décision du 2026-10-16 : pas de publications automatiques.
       article, déjà sous dette `max-lines-per-function`. À ajouter au découpage de ce
       formulaire, au plus tard avec le lot 8.2.
 
+- [ ] Éditeur de facture libre (URS-110), écarts à la maquette `01_editeur_facture_libre.html`
+      : ni lien « Depuis le catalogue » (sélecteur d'articles), ni étiquette « Catalogue /
+      Nouvelle prestation » sur la ligne ; la suggestion à la saisie couvre le catalogue et
+      l'historique. À reprendre avec le lot 8.2.
+      Écart assumé : le prix unitaire porte le code de la devise (« EUR ») et non le
+      symbole, comme le formulaire article.
+
 - [ ] Limites de formule (URS-100) : plusieurs boutons de création n'ont pas de garde côté
       client à la limite (actions rapides, états vides, « Nouvelle vente » depuis une fiche
       client, accueil d'une nouvelle boutique, /orders/new). Le serveur refuse (400), mais
