@@ -12,6 +12,8 @@ const browser = await launch();
 const text = (locale, key, values) => values ? fmt(locale, `invoices.${key}`, values) : msg(locale, `invoices.${key}`);
 const visible = locator => locator.filter({ visible: true });
 const flat = value => value.replace(/\s+/g, ' ').trim();
+/** Liens des factures listées (le bouton « Nouvelle facture » mène aussi sous /invoices/). */
+const ROWS = 'main a[href^="/invoices/"]:not([href="/invoices/new"])';
 let fixtures;
 let initial;
 
@@ -92,13 +94,13 @@ async function checkDesktop(page, locale, label) {
 }
 
 async function checkMobile(page, locale, label) {
-  const before = await page.locator('main a[href^="/invoices/"]').count();
+  const before = await page.locator(ROWS).count();
   const [response] = await Promise.all([
     page.waitForResponse(r => listPageResponse(r, 2)),
     page.getByRole('button', { name: text(locale, 'list.load_more'), exact: true }).click(),
   ]);
   const added = (await response.json()).results.length;
-  await page.waitForFunction(count => document.querySelectorAll('main a[href^="/invoices/"]').length === count, before + added);
+  await page.waitForFunction(([rows, count]) => document.querySelectorAll(rows).length === count, [ROWS, before + added]);
   report.check(added === 4, `${label} : Charger plus récupère la page suivante`);
   await page.getByRole('button', { name: msg(locale, 'ui.list.filters'), exact: true }).click();
   const sheet = page.getByRole('dialog');
@@ -123,10 +125,10 @@ async function checkSearch(page, locale, label) {
   ]);
   await page.waitForURL(url => url.searchParams.get('search') === number);
   const shown = (await response.json()).results.map(i => `/invoices/${i.id}`);
-  await page.waitForFunction(want => {
-    const links = new Set([...document.querySelectorAll('main a[href^="/invoices/"]')].map(a => a.getAttribute('href')));
+  await page.waitForFunction(([rows, want]) => {
+    const links = new Set([...document.querySelectorAll(rows)].map(a => a.getAttribute('href')));
     return links.size === want.length && want.every(href => links.has(href));
-  }, shown);
+  }, [ROWS, shown]);
   const result = await api(page, `invoices/?search=${number}`);
   report.check(result.count === 1 && await page.locator(`main a[href="/invoices/${fixtures[0].id}"]`).count() === 1,
     `${label} : recherche numéro côté serveur`);
