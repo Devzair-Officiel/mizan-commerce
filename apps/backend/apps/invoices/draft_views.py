@@ -23,7 +23,7 @@ from .views import HasInvoicesModule, HasInvoicesPlan
 
 PERMISSIONS = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
 NOT_DRAFT = {
-    'detail': "Cette facture est émise : elle ne se modifie ni ne se supprime.",
+    'detail': 'Cette facture est émise : elle ne se modifie ni ne se supprime.',
     'code': 'not_draft',
 }
 STALE_DRAFT = {

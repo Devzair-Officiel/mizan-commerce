@@ -208,11 +208,11 @@ def _store_image_file(product: Product, file: InMemoryUploadedFile) -> str:
     if file.size > max_bytes:
         raise ValidationError(f"L'image ne doit pas dépasser {max_bytes // (1024 * 1024)} Mo.")  # noqa: E501
     if file.content_type not in allowed_types or file.content_type not in _IMAGE_EXTENSIONS:  # noqa: E501
-        raise ValidationError("Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP.")  # noqa: E501
+        raise ValidationError('Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP.')  # noqa: E501
     validate_uploaded_image(file)
 
     ext = _IMAGE_EXTENSIONS[file.content_type]
-    object_key = f"products/{product.shop_id}/{product.pk}/{uuid.uuid4()}.{ext}"
+    object_key = f'products/{product.shop_id}/{product.pk}/{uuid.uuid4()}.{ext}'
     upload_fileobj(file, object_key, file.content_type)
     return object_key
 
@@ -222,7 +222,7 @@ def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFi
 
     product = Product.objects.get(pk=product_id, shop=shop)
     if ProductImage.objects.filter(product=product).count() >= PRODUCT_IMAGE_MAX_COUNT:  # noqa: E501
-        raise ValidationError(f"Un article a au plus {PRODUCT_IMAGE_MAX_COUNT} photos.")  # noqa: E501
+        raise ValidationError(f'Un article a au plus {PRODUCT_IMAGE_MAX_COUNT} photos.')  # noqa: E501
     object_key = _store_image_file(product, file)
 
     # La photo envoyée devient la principale : elle remplace ce qui est affiché.

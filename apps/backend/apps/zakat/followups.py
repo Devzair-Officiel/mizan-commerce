@@ -437,13 +437,13 @@ def mark_collected(shop: Shop, user: Any, calculation_id: Any, line_id: Any, *,
     le montant de la ligne."""
     item = _find(shop, user, calculation_id, line_id)
     if item.order_id:
-        raise FollowUpActionError('L\'encaissement d\'une commande suit son reste dû.')
+        raise FollowUpActionError("L'encaissement d'une commande suit son reste dû.")
     reference_date = (
         ZakatCalculation.objects.filter(shop=shop, user=user, pk=item.calculation_id)
         .values_list('reference_date', flat=True).get()
     )
     if not reference_date <= collected_on <= shop_today(shop):
-        raise FollowUpActionError('Date entre le jour J de la fiche et aujourd\'hui.')
+        raise FollowUpActionError("Date entre le jour J de la fiche et aujourd'hui.")
     if amount > item.amount:
         raise FollowUpActionError('Le montant encaissé dépasse la créance.')
     return _write(

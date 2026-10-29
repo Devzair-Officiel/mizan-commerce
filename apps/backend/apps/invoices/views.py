@@ -69,7 +69,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
             )
         except services.EmptyOrderError:
             return Response(
-                {'detail': 'Impossible d\'émettre une facture pour une commande vide.'},
+                {'detail': "Impossible d'émettre une facture pour une commande vide."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except services.InvoiceAlreadyExistsError as exc:

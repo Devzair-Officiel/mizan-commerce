@@ -59,7 +59,7 @@ class PublicCatalogVisibilitySerializer(serializers.ModelSerializer):
         # Multi-tenant : le produit doit appartenir à la même boutique que la page.
         page: PublicPage = self.context['page']
         if product.shop_id != page.shop_id:
-            raise serializers.ValidationError('Ce produit n\'appartient pas à cette boutique.')  # noqa: E501
+            raise serializers.ValidationError("Ce produit n'appartient pas à cette boutique.")  # noqa: E501
         _ensure_unique_on_page(self, 'product', product, 'Cet article est déjà sur la page.')  # noqa: E501
         return product
 

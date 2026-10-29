@@ -33,8 +33,8 @@ Documents de référence (à consulter selon le besoin, pas à charger systémat
 docker compose exec backend pytest -n auto    # Suite complète, en parallèle (pytest-xdist : une base de test par worker) : 4 workers en local (PYTEST_XDIST_AUTO_NUM_WORKERS) ; davantage sur demande : -n 8
 docker compose exec backend pytest apps/<app>  # Tests d'une app
 docker compose exec backend pytest path/file::test_name  # Test ciblé
-docker compose exec backend ruff check .      # Lint
-docker compose exec backend ruff format .     # Format
+docker compose exec backend ruff check .      # Lint (guillemets simples imposés : règle Q)
+docker compose exec backend ruff format <fichiers créés>  # Format : fichiers nouveaux seulement, jamais `.` (reformaterait la mise en page de tout le backend)
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py seed_data           # Dev uniquement (DEBUG=True requis)

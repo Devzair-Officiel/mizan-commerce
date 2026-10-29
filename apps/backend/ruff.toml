@@ -1,8 +1,16 @@
 extend-exclude = ["*/migrations/*"]
 
 [lint]
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "Q"]
+
+# Guillemets simples, convention du code (décision du 2026-10-29). `ruff format` les suit aussi,
+# mais n'est pas appliqué à tout le backend : il en reformaterait la mise en page.
+[lint.flake8-quotes]
+inline-quotes = "single"
 
 [lint.per-file-ignores]
 "config/settings/local.py" = ["F403", "F405"]
 "config/settings/production.py" = ["F403", "F405"]
+
+[format]
+quote-style = "single"

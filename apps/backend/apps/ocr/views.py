@@ -107,8 +107,8 @@ class SupplierInvoiceUploadView(APIView):
             return Response(
                 {
                     'detail': (
-                        "Le document est bien enregistré, mais la reconnaissance "
-                        "de texte est indisponible pour le moment."
+                        'Le document est bien enregistré, mais la reconnaissance '
+                        'de texte est indisponible pour le moment.'
                     ),
                     'document_id': str(result.document.pk),
                     'ocr_result_id': str(result.ocr_result.pk),

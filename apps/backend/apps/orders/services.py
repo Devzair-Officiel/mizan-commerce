@@ -178,7 +178,7 @@ def add_item(
 
     if variant is None:
         if not product_name or unit_price is None:
-            raise ValueError("Ligne libre : nom et prix requis.")
+            raise ValueError('Ligne libre : nom et prix requis.')
         name = product_name
         v_name = ''
         price = unit_price

@@ -178,7 +178,7 @@ def set_plan_manually(
     if not updated:
         raise PlanAssignmentError(
             'Abonnement modifié entre-temps (lié à Stripe, en retard de paiement ou '
-            'suspendu) : rien n\'a été changé. Rechargez la page.',
+            "suspendu) : rien n'a été changé. Rechargez la page.",
         )
     log_action(
         shop_id=str(subscription.shop_id), user=actor,

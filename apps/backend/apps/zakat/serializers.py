@@ -319,7 +319,7 @@ class ZakatCalculationSerializer(serializers.ModelSerializer):
         """Chaque commande citée appartient à la boutique, une seule fois."""
         order_ids = [item['order_id'] for item in items if item.get('order_id')]
         if len(order_ids) != len(set(order_ids)):
-            raise serializers.ValidationError('Une commande ne peut figurer qu\'une fois.')  # noqa: E501
+            raise serializers.ValidationError("Une commande ne peut figurer qu'une fois.")  # noqa: E501
         shop = self.context['shop']
         known = set(Order.objects.filter(shop=shop, pk__in=order_ids).values_list('pk', flat=True))  # noqa: E501
         if known != set(order_ids):

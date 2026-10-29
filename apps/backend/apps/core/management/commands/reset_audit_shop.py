@@ -27,28 +27,28 @@ DEFAULT_SLOTS = 3
 
 
 class Command(BaseCommand):
-    help = "Supprime puis recrée les boutiques des audits (e2e@example.com, e2e2@…)."
+    help = 'Supprime puis recrée les boutiques des audits (e2e@example.com, e2e2@…).'
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
-            "--slots", type=int, default=DEFAULT_SLOTS,
+            '--slots', type=int, default=DEFAULT_SLOTS,
             help="Nombre de boutiques d'audit (une par audit lancé en parallèle).",
         )
 
     @transaction.atomic
     def handle(self, *args: object, **options: object) -> None:
-        if not settings.DEBUG and os.environ.get("ALLOW_SEED") != "1":
+        if not settings.DEBUG and os.environ.get('ALLOW_SEED') != '1':
             raise CommandError(
                 "reset_audit_shop ne s'exécute qu'en environnement DEBUG. "
                 "Définir ALLOW_SEED=1 pour forcer."
             )
 
-        slots = options["slots"]
+        slots = options['slots']
         if not isinstance(slots, int) or slots < 1:
-            raise CommandError("--slots : au moins 1.")
+            raise CommandError('--slots : au moins 1.')
 
         shops = Shop.objects.filter(
-            members__user__email__regex=AUDIT_EMAIL_RE, members__role="owner"
+            members__user__email__regex=AUDIT_EMAIL_RE, members__role='owner'
         )
         count = shops.count()
         shops.delete()  # CASCADE supprime toutes les données liées

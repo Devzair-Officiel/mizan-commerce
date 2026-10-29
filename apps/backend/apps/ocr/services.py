@@ -238,7 +238,7 @@ def create_supplier_invoice_upload(
 
 def _raise_invalid_transition(current: str, target: str) -> None:
     raise InvalidOcrTransitionError(
-        f"Transition OCR invalide : {current} → {target}."
+        f'Transition OCR invalide : {current} → {target}.'
     )
 
 
@@ -474,14 +474,14 @@ def _check_indices_contract(
 
     if len(provided_indices) != len(set(provided_indices)):
         raise ReviewPayloadValidationError(
-            "Le payload contient des invoice_line_index dupliqués."
+            'Le payload contient des invoice_line_index dupliqués.'
         )
     if set(provided_indices) != set(expected_indices):
         missing = sorted(set(expected_indices) - set(provided_indices))
         extra = sorted(set(provided_indices) - set(expected_indices))
         raise ReviewPayloadValidationError(
-            "Les lignes de revue ne correspondent pas à la facture "
-            f"(manquantes={missing}, en trop={extra})."
+            'Les lignes de revue ne correspondent pas à la facture '
+            f'(manquantes={missing}, en trop={extra}).'
         )
 
 
@@ -503,11 +503,11 @@ def _validate_stock_line_business(
 
     if variant_id is None:
         raise ReviewPayloadValidationError(
-            "Une ligne `stock` doit désigner une variante."
+            'Une ligne `stock` doit désigner une variante.'
         )
     if quantity is None or quantity <= 0:
         raise ReviewPayloadValidationError(
-            "Une ligne `stock` doit avoir une quantité strictement positive."
+            'Une ligne `stock` doit avoir une quantité strictement positive.'
         )
 
     variant = variants_by_id.get(str(variant_id))
@@ -515,19 +515,19 @@ def _validate_stock_line_business(
         # Volontairement identique aux autres cas d'échec de sécurité :
         # ne pas révéler l'existence dans une autre boutique.
         raise ReviewPayloadValidationError(
-            "Variante invalide ou inaccessible pour cette boutique."
+            'Variante invalide ou inaccessible pour cette boutique.'
         )
     if variant.shop_id != shop_id or variant.product.shop_id != shop_id:
         raise ReviewPayloadValidationError(
-            "Variante invalide ou inaccessible pour cette boutique."
+            'Variante invalide ou inaccessible pour cette boutique.'
         )
     if not variant.is_active or not variant.product.is_active:
         raise ReviewPayloadValidationError(
-            "Variante invalide ou inaccessible pour cette boutique."
+            'Variante invalide ou inaccessible pour cette boutique.'
         )
     if variant.product.type != 'product':
         raise ReviewPayloadValidationError(
-            "Variante invalide ou inaccessible pour cette boutique."
+            'Variante invalide ou inaccessible pour cette boutique.'
         )
 
 
@@ -535,7 +535,7 @@ def _validate_ignore_line(line: dict) -> None:
     """Une ligne `ignore` ne doit pas cibler de variante."""
     if line.get('variant_id') is not None:
         raise ReviewPayloadValidationError(
-            "Une ligne `ignore` ne doit pas désigner de variante."
+            'Une ligne `ignore` ne doit pas désigner de variante.'
         )
 
 
@@ -605,7 +605,7 @@ def validate_invoice_review(
             if existing_review == canonical_review:
                 return result, False
             raise ReviewConflictError(
-                "Cette facture a déjà été validée avec un contenu différent."
+                'Cette facture a déjà été validée avec un contenu différent.'
             )
 
         if result.status != OcrResult.STATUS_DONE:
@@ -617,12 +617,12 @@ def validate_invoice_review(
         structured = result.structured_data or {}
         if not isinstance(structured, dict):
             raise ReviewPayloadValidationError(
-                "Ce résultat OCR ne contient pas de facture structurée."
+                'Ce résultat OCR ne contient pas de facture structurée.'
             )
         invoice = structured.get('invoice')
         if not isinstance(invoice, dict) or not isinstance(invoice.get('lines'), list):
             raise ReviewPayloadValidationError(
-                "Ce résultat OCR ne contient pas de facture structurée."
+                'Ce résultat OCR ne contient pas de facture structurée.'
             )
 
         expected_indices = list(range(len(invoice['lines'])))
@@ -642,7 +642,7 @@ def validate_invoice_review(
                 _validate_ignore_line(line)
             else:  # pragma: no cover — bloqué en amont par le serializer.
                 raise ReviewPayloadValidationError(
-                    f"Décision inconnue : {decision}."
+                    f'Décision inconnue : {decision}.'
                 )
 
         # Écriture atomique : on préserve intégralement ocr / invoice / matching

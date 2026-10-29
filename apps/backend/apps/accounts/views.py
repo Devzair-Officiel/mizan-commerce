@@ -72,7 +72,7 @@ class RegisterView(generics.CreateAPIView):
         # Shop + ShopMember + Subscription liés logiquement : si l'un échoue,
         # rien n'est commité (sinon on se retrouve avec une boutique sans owner
         # ou sans souscription, ce qui casserait le gating ensuite).
-        shop_name = request.data.get('shop_name') or f"Boutique de {user.full_name or user.email}"  # noqa: E501
+        shop_name = request.data.get('shop_name') or f'Boutique de {user.full_name or user.email}'  # noqa: E501
         with transaction.atomic():
             shop = Shop.objects.create(name=shop_name)
             ShopMember.objects.create(shop=shop, user=user, role='owner')
@@ -80,10 +80,10 @@ class RegisterView(generics.CreateAPIView):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = email_verification_token.make_token(user)
-        verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
+        verify_url = f'{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}'
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable {validity_label(settings.EMAIL_VERIFICATION_TIMEOUT)}.",  # noqa: E501
+            message=f'Bienvenue sur Mizan !\n\nCliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable {validity_label(settings.EMAIL_VERIFICATION_TIMEOUT)}.',  # noqa: E501
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -148,10 +148,10 @@ class PasswordResetRequestView(APIView):
             user = User.objects.get(email=email, is_active=True)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"  # noqa: E501
+            reset_url = f'{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}'  # noqa: E501
             send_mail(
                 subject='Réinitialisation de votre mot de passe — Mizan',
-                message=f"Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n{reset_url}\n\nCe lien est valable {validity_label(settings.PASSWORD_RESET_TIMEOUT)}.",  # noqa: E501
+                message=f'Cliquez sur ce lien pour réinitialiser votre mot de passe :\n\n{reset_url}\n\nCe lien est valable {validity_label(settings.PASSWORD_RESET_TIMEOUT)}.',  # noqa: E501
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
                 fail_silently=False,
@@ -160,7 +160,7 @@ class PasswordResetRequestView(APIView):
             pass  # Ne pas révéler si l'email existe
 
         # Toujours retourner 200 pour éviter l'énumération d'emails
-        return Response({'detail': "Si un compte existe pour cet email, un lien de réinitialisation a été envoyé."})  # noqa: E501
+        return Response({'detail': 'Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.'})  # noqa: E501
 
 
 class PasswordResetConfirmView(APIView):
@@ -200,10 +200,10 @@ class ResendEmailVerificationView(APIView):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = email_verification_token.make_token(user)
-        verify_url = f"{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}"
+        verify_url = f'{settings.FRONTEND_URL}/verify-email?uid={uid}&token={token}'
         send_mail(
             subject='Confirmez votre email — Mizan',
-            message=f"Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable {validity_label(settings.EMAIL_VERIFICATION_TIMEOUT)}.",  # noqa: E501
+            message=f'Cliquez sur ce lien pour confirmer votre email :\n\n{verify_url}\n\nCe lien est valable {validity_label(settings.EMAIL_VERIFICATION_TIMEOUT)}.',  # noqa: E501
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,

@@ -25,84 +25,84 @@ from django.urls import reverse
 # Tout modèle enregistré doit y figurer (contrôlé par apps/core/test_admin.py).
 DOMAINS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
     (
-        "boutiques",
-        "Boutiques & équipe",
+        'boutiques',
+        'Boutiques & équipe',
         (
-            ("shops.Shop", "Boutiques"),
-            ("shops.ShopMember", "Membres"),
-            ("accounts.User", "Comptes utilisateurs"),
+            ('shops.Shop', 'Boutiques'),
+            ('shops.ShopMember', 'Membres'),
+            ('accounts.User', 'Comptes utilisateurs'),
         ),
     ),
     (
-        "abonnements",
-        "Abonnements",
+        'abonnements',
+        'Abonnements',
         (
-            ("subscriptions.Subscription", "Abonnements"),
-            ("subscriptions.SubscriptionPlan", "Formules"),
-            ("subscriptions.StripeEvent", "Événements Stripe"),
+            ('subscriptions.Subscription', 'Abonnements'),
+            ('subscriptions.SubscriptionPlan', 'Formules'),
+            ('subscriptions.StripeEvent', 'Événements Stripe'),
         ),
     ),
     (
-        "ventes",
-        "Ventes & clients",
+        'ventes',
+        'Ventes & clients',
         (
-            ("orders.Order", "Commandes"),
-            ("customers.Customer", "Clients"),
-            ("loyalty.LoyaltyCard", "Cartes de fidélité"),
-            ("loyalty.LoyaltyTransaction", "Mouvements de points"),
-            ("loyalty.LoyaltyProgram", "Programmes de fidélité"),
+            ('orders.Order', 'Commandes'),
+            ('customers.Customer', 'Clients'),
+            ('loyalty.LoyaltyCard', 'Cartes de fidélité'),
+            ('loyalty.LoyaltyTransaction', 'Mouvements de points'),
+            ('loyalty.LoyaltyProgram', 'Programmes de fidélité'),
         ),
     ),
     (
-        "facturation",
-        "Facturation",
+        'facturation',
+        'Facturation',
         (
-            ("invoices.Invoice", "Factures"),
-            ("invoices.InvoiceSequence", "Séquences de numérotation"),
+            ('invoices.Invoice', 'Factures'),
+            ('invoices.InvoiceSequence', 'Séquences de numérotation'),
         ),
     ),
     (
-        "catalogue",
-        "Catalogue & stock",
+        'catalogue',
+        'Catalogue & stock',
         (
-            ("products.Product", "Articles"),
-            ("products.ProductVariant", "Formats"),
-            ("stock.StockMovement", "Mouvements de stock"),
-            ("ocr.UploadedDocument", "Documents OCR"),
-            ("ocr.OcrResult", "Lectures OCR"),
-            ("ocr.ProductScanUsage", "Usage du scan"),
-            ("ocr.SupplierLineMatch", "Correspondances fournisseur"),
+            ('products.Product', 'Articles'),
+            ('products.ProductVariant', 'Formats'),
+            ('stock.StockMovement', 'Mouvements de stock'),
+            ('ocr.UploadedDocument', 'Documents OCR'),
+            ('ocr.OcrResult', 'Lectures OCR'),
+            ('ocr.ProductScanUsage', 'Usage du scan'),
+            ('ocr.SupplierLineMatch', 'Correspondances fournisseur'),
         ),
     ),
     (
-        "communication",
-        "Communication & suivi",
+        'communication',
+        'Communication & suivi',
         (
-            ("comms.PreparedMessage", "Messages préparés"),
-            ("comms.MessageSettings", "Réglages des messages"),
-            ("notes.Reminder", "Rappels"),
-            ("notes.ReminderSettings", "Réglages des rappels"),
-            ("notes.Note", "Notes"),
+            ('comms.PreparedMessage', 'Messages préparés'),
+            ('comms.MessageSettings', 'Réglages des messages'),
+            ('notes.Reminder', 'Rappels'),
+            ('notes.ReminderSettings', 'Réglages des rappels'),
+            ('notes.Note', 'Notes'),
         ),
     ),
-    ("pages", "Pages publiques", (("public_pages.PublicPage", "Pages"),)),
+    ('pages', 'Pages publiques', (('public_pages.PublicPage', 'Pages'),)),
     (
-        "zakat",
-        "Zakat",
+        'zakat',
+        'Zakat',
         (
-            ("zakat.ZakatCalculation", "Calculs"),
-            ("zakat.ZakatProfile", "Profils"),
-            ("zakat.ZakatReceivableFollowUp", "Suivis de créances"),
+            ('zakat.ZakatCalculation', 'Calculs'),
+            ('zakat.ZakatProfile', 'Profils'),
+            ('zakat.ZakatReceivableFollowUp', 'Suivis de créances'),
         ),
     ),
     (
-        "systeme",
-        "Système & audit",
+        'systeme',
+        'Système & audit',
         (
-            ("core.AuditLog", "Journal d'audit"),
-            ("axes.AccessAttempt", "Tentatives bloquées"),
-            ("axes.AccessFailureLog", "Échecs de connexion"),
-            ("axes.AccessLog", "Connexions"),
+            ('core.AuditLog', "Journal d'audit"),
+            ('axes.AccessAttempt', 'Tentatives bloquées'),
+            ('axes.AccessFailureLog', 'Échecs de connexion'),
+            ('axes.AccessLog', 'Connexions'),
         ),
     ),
 )
@@ -120,16 +120,16 @@ class MizanAdminAuthenticationForm(AdminAuthenticationForm):
         super().confirm_login_allowed(user)
         if not is_internal_admin(user):
             raise ValidationError(
-                self.error_messages["invalid_login"],
-                code="invalid_login",
-                params={"username": self.username_field.verbose_name},
+                self.error_messages['invalid_login'],
+                code='invalid_login',
+                params={'username': self.username_field.verbose_name},
             )
 
 
 class MizanAdminSite(AdminSite):
-    site_header = "Mizan — administration interne"
-    site_title = "Mizan admin"
-    index_title = "Support et modération"
+    site_header = 'Mizan — administration interne'
+    site_title = 'Mizan admin'
+    index_title = 'Support et modération'
     login_form = MizanAdminAuthenticationForm
 
     def has_permission(self, request: HttpRequest) -> bool:
@@ -142,7 +142,7 @@ class MizanAdminSite(AdminSite):
         # Page d'une app (/admin/orders/) : liste native, les groupes n'ont pas d'URL.
         if app_label is not None:
             return app_list
-        return group_by_domain(app_list, reverse("admin:index", current_app=self.name))
+        return group_by_domain(app_list, reverse('admin:index', current_app=self.name))
 
 
 def group_by_domain(
@@ -152,18 +152,18 @@ def group_by_domain(
 
     Un modèle absent de `DOMAINS` tombe dans « Autres » plutôt que de disparaître.
     """
-    by_label = {m["model"]._meta.label: m for app in app_list for m in app["models"]}
+    by_label = {m['model']._meta.label: m for app in app_list for m in app['models']}
     groups = []
     for key, title, entries in DOMAINS:
         models = [
-            {**by_label.pop(label), "name": name}
+            {**by_label.pop(label), 'name': name}
             for label, name in entries
             if label in by_label
         ]
         if models:
             groups.append(_group(key, title, models, index_url))
     if by_label:
-        groups.append(_group("autres", "Autres", list(by_label.values()), index_url))
+        groups.append(_group('autres', 'Autres', list(by_label.values()), index_url))
     return groups
 
 
@@ -173,11 +173,11 @@ def _group(
     # `app_url` non vide et sans correspondance de chemin : le gabarit natif marque
     # « current-app » tout groupe dont l'URL figure dans le chemin courant.
     return {
-        "name": title,
-        "app_label": key,
-        "app_url": f"{index_url}#{key}",
-        "has_module_perms": True,
-        "models": models,
+        'name': title,
+        'app_label': key,
+        'app_url': f'{index_url}#{key}',
+        'has_module_perms': True,
+        'models': models,
     }
 
 

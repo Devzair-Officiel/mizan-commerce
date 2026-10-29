@@ -13,7 +13,7 @@ from apps.customers.factories import CustomerFactory
 from apps.orders import services as order_services
 from apps.products.models import Product, ProductVariant
 
-_TZ_FR = zoneinfo.ZoneInfo("Europe/Paris")
+_TZ_FR = zoneinfo.ZoneInfo('Europe/Paris')
 
 
 def _make_dt(date: datetime.date, hour: int, minute: int) -> datetime.datetime:

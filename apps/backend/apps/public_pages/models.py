@@ -29,7 +29,7 @@ RESERVED_SLUGS = frozenset({
 
 slug_validator = RegexValidator(
     regex=r'^[a-z0-9]+(?:-[a-z0-9]+)*$',
-    message="Slug invalide : minuscules, chiffres et tirets uniquement (pas en début ni fin).",  # noqa: E501
+    message='Slug invalide : minuscules, chiffres et tirets uniquement (pas en début ni fin).',  # noqa: E501
 )
 
 

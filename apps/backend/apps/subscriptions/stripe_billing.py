@@ -85,7 +85,7 @@ def _stripe_call(action: str, subscription: Subscription) -> Iterator[None]:
         yield
     except stripe.StripeError as exc:
         logger.warning(
-            'Facturation (%s) de l\'abonnement %s : erreur Stripe %s, code %s.',
+            "Facturation (%s) de l'abonnement %s : erreur Stripe %s, code %s.",
             action, subscription.pk, type(exc).__name__, exc.code or '-',
         )
         raise PaymentProviderError() from exc

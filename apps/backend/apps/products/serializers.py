@@ -69,7 +69,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise serializers.ValidationError("Ce nom de conditionnement existe déjà pour ce produit.")  # noqa: E501
+            raise serializers.ValidationError('Ce nom de conditionnement existe déjà pour ce produit.')  # noqa: E501
         return value
 
     def validate_sku(self, value: str) -> str:

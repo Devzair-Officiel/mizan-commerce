@@ -25,13 +25,13 @@ class ZakatProfile(models.Model):
     STOCK_VALUATION_PURCHASE = 'purchase'
     STOCK_VALUATION_CHOICES = [
         (STOCK_VALUATION_SALE, 'Prix de vente'),
-        (STOCK_VALUATION_PURCHASE, 'Prix d\'achat'),
+        (STOCK_VALUATION_PURCHASE, "Prix d'achat"),
     ]
     RECEIVABLES_YEARLY = 'yearly'
     RECEIVABLES_ON_COLLECTION = 'on_collection'
     RECEIVABLES_MODE_CHOICES = [
         (RECEIVABLES_YEARLY, 'Comptées chaque année'),
-        (RECEIVABLES_ON_COLLECTION, 'Versées à l\'encaissement'),
+        (RECEIVABLES_ON_COLLECTION, "Versées à l'encaissement"),
     ]
     DEBTS_ALL = 'all'
     DEBTS_WITHIN_12_MONTHS = 'within_12_months'
@@ -200,7 +200,7 @@ class ZakatReceivableFollowUp(models.Model):
     DOUBTFUL_OPTION_CHOICES = [
         (OPTION_ALL_YEARS, 'Toutes les années passées'),
         (OPTION_ONE_YEAR, 'Une seule année'),
-        (OPTION_NEW_YEAR, 'Nouvelle année à partir de l\'encaissement'),
+        (OPTION_NEW_YEAR, "Nouvelle année à partir de l'encaissement"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

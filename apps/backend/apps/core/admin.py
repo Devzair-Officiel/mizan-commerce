@@ -28,16 +28,16 @@ for model in (Group, OutstandingToken, BlacklistedToken):
 @admin.register(AuditLog)
 class AuditLogAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = (
-        "created_at",
-        "action",
-        "model_name",
-        "object_repr",
-        "user",
-        "shop_id",
+        'created_at',
+        'action',
+        'model_name',
+        'object_repr',
+        'user',
+        'shop_id',
     )
-    list_filter = ("action", "model_name")
-    search_fields = ("object_id", "object_repr", "shop_id")
-    readonly_fields = ("id", "created_at")
+    list_filter = ('action', 'model_name')
+    search_fields = ('object_id', 'object_repr', 'shop_id')
+    readonly_fields = ('id', 'created_at')
 
 
 class AccessAttemptAdmin(ReadOnlyAdminMixin, axes_admin.AccessAttemptAdmin):
@@ -48,17 +48,17 @@ class AccessAttemptAdmin(ReadOnlyAdminMixin, axes_admin.AccessAttemptAdmin):
         (
             None,
             {
-                "fields": (
-                    "username",
-                    "path_info",
-                    "failures_since_start",
-                    "attempt_time",
+                'fields': (
+                    'username',
+                    'path_info',
+                    'failures_since_start',
+                    'attempt_time',
                 )
             },
         ),
-        ("Métadonnées", {"fields": ("user_agent", "ip_address", "http_accept")}),
+        ('Métadonnées', {'fields': ('user_agent', 'ip_address', 'http_accept')}),
     )
-    readonly_fields = ("attempt_time",)
+    readonly_fields = ('attempt_time',)
 
     def has_delete_permission(
         self, request: HttpRequest, obj: AccessAttempt | None = None
@@ -67,11 +67,11 @@ class AccessAttemptAdmin(ReadOnlyAdminMixin, axes_admin.AccessAttemptAdmin):
 
 
 class AccessLogAdmin(ReadOnlyAdminMixin, axes_admin.AccessLogAdmin):
-    readonly_fields = ("attempt_time",)
+    readonly_fields = ('attempt_time',)
 
 
 class AccessFailureLogAdmin(ReadOnlyAdminMixin, axes_admin.AccessFailureLogAdmin):
-    readonly_fields = ("attempt_time",)
+    readonly_fields = ('attempt_time',)
 
 
 for model, model_admin in (

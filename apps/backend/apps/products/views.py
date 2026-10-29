@@ -239,7 +239,7 @@ class ProductVariantDetailView(generics.RetrieveUpdateDestroyAPIView):
         # Garde-fou : on refuse de supprimer la dernière variante d'un produit.
         if variant.product.variants.count() <= 1:
             return Response(
-                {'detail': "Un produit doit conserver au moins une variante."},
+                {'detail': 'Un produit doit conserver au moins une variante.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if services.is_last_active_variant(variant):

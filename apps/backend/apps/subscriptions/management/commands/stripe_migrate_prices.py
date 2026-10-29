@@ -27,12 +27,12 @@ from apps.subscriptions.stripe_price_migration import (
 
 
 class Command(BaseCommand):
-    help = "Applique les baisses de prix du catalogue aux abonnements Stripe en cours."
+    help = 'Applique les baisses de prix du catalogue aux abonnements Stripe en cours.'
 
     def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             '--dry-run', action='store_true',
-            help="Affiche ce qui serait fait, sans rien écrire chez Stripe ni en base.",
+            help='Affiche ce qui serait fait, sans rien écrire chez Stripe ni en base.',
         )
         parser.add_argument(
             '--allow-live', action='store_true',

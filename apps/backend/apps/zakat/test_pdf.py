@@ -78,7 +78,7 @@ class ZakatPdfTest(TestCase):
             'Zakat estimée', '275,00 €',
             'HORS BASE', 'Créance douteuse, Client parti', '250,00 €',
             'Bijoux portés', '700,00 €', "Biens d'usage",
-            "VOS CHOIX D'AVIS", "Or, 85 g", "Ceux qui jugent que l'argent ne reflète plus la richesse",  # noqa: E501
+            "VOS CHOIX D'AVIS", 'Or, 85 g', "Ceux qui jugent que l'argent ne reflète plus la richesse",  # noqa: E501
             'Chaféites ; Malikites pour les ventes du commerçant régulier',
             "ancien avis d'al-Shâfi'î", 'LIMITES', 'Associés : chacun verse sur sa part.',  # noqa: E501
             "Estimation. Les choix d'avis sont les vôtres.",

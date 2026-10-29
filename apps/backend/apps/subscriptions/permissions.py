@@ -96,7 +96,7 @@ class HasPlanForFeature(BasePermission):
     """
 
     feature: str = ''
-    message = "Cette fonctionnalité nécessite une formule supérieure."
+    message = 'Cette fonctionnalité nécessite une formule supérieure.'
 
     def has_permission(self, request, view) -> bool:
         if not request.user or not request.user.is_authenticated:
