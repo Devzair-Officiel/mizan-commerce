@@ -27,11 +27,11 @@ class OrderItemCreateSerializer(serializers.Serializer):
         if not attrs.get('variant'):
             if not attrs.get('product_name'):
                 raise serializers.ValidationError({
-                    'product_name': "Le nom est requis pour une ligne libre.",
+                    'product_name': 'Le nom est requis pour une ligne libre.',
                 })
             if attrs.get('unit_price') is None:
                 raise serializers.ValidationError({
-                    'unit_price': "Le prix est requis pour une ligne libre.",
+                    'unit_price': 'Le prix est requis pour une ligne libre.',
                 })
         return attrs
 

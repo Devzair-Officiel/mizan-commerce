@@ -84,7 +84,7 @@ def validate_slug(slug: str, *, exclude_page: PublicPage | None = None) -> str:
     if not normalized:
         raise ValidationError({'slug': 'Slug requis.'})
     if normalized in RESERVED_SLUGS:
-        raise ValidationError({'slug': f"Le slug « {normalized} » est réservé."})
+        raise ValidationError({'slug': f'Le slug « {normalized} » est réservé.'})
     qs = PublicPage.objects.filter(slug=normalized)
     if exclude_page is not None:
         qs = qs.exclude(pk=exclude_page.pk)
@@ -218,7 +218,7 @@ def _upload_page_image(
         raise ValidationError(f"L'image ne doit pas dépasser {max_size_mb} Mo.")
     if file.content_type not in PUBLIC_PAGE_IMAGE_ALLOWED_TYPES:
         raise ValidationError(
-            f"Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.",  # noqa: E501
+            f'Type de fichier non autorisé : {file.content_type}. Formats acceptés : JPEG, PNG, WebP.',  # noqa: E501
         )
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
         raise ValidationError("L'upload vers Object Storage n'est pas configuré sur cet environnement.")  # noqa: E501
@@ -226,7 +226,7 @@ def _upload_page_image(
 
     field = f'{kind}_object_key'
     ext = IMAGE_EXTENSIONS[file.content_type]
-    new_key = f"public_pages/{page.pk}/{kind}-{uuid.uuid4()}.{ext}"
+    new_key = f'public_pages/{page.pk}/{kind}-{uuid.uuid4()}.{ext}'
 
     upload_fileobj(file, new_key, file.content_type)
 

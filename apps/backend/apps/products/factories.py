@@ -10,8 +10,8 @@ class ProductFactory(DjangoModelFactory):
         model = Product
 
     shop = factory.SubFactory(ShopFactory)
-    name = factory.Sequence(lambda n: f"Produit {n}")
-    description = factory.Faker("sentence", nb_words=12, locale="fr_FR")
+    name = factory.Sequence(lambda n: f'Produit {n}')
+    description = factory.Faker('sentence', nb_words=12, locale='fr_FR')
     is_active = True
 
     @factory.post_generation
@@ -26,13 +26,13 @@ class ProductFactory(DjangoModelFactory):
         ProductVariant.objects.create(
             shop=self.shop,
             product=self,
-            packaging_name="Par défaut",
-            unit="piece",
+            packaging_name='Par défaut',
+            unit='piece',
             base_quantity=1,
             selling_price=20,
             purchase_price=10,
             low_stock_threshold=5,
-            sku="",
+            sku='',
             position=0,
             is_active=True,
         )
@@ -42,13 +42,13 @@ class ProductVariantFactory(DjangoModelFactory):
     class Meta:
         model = ProductVariant
 
-    shop = factory.SelfAttribute("product.shop")
+    shop = factory.SelfAttribute('product.shop')
     product = factory.SubFactory(ProductFactory, with_default_variant=False)
-    packaging_name = factory.Sequence(lambda n: f"Conditionnement {n}")
-    unit = "piece"
+    packaging_name = factory.Sequence(lambda n: f'Conditionnement {n}')
+    unit = 'piece'
     base_quantity = 1
-    selling_price = factory.Faker("pydecimal", left_digits=3, right_digits=2, positive=True, min_value=10, max_value=150)  # noqa: E501
-    purchase_price = factory.Faker("pydecimal", left_digits=2, right_digits=2, positive=True, min_value=5, max_value=50)  # noqa: E501
+    selling_price = factory.Faker('pydecimal', left_digits=3, right_digits=2, positive=True, min_value=10, max_value=150)  # noqa: E501
+    purchase_price = factory.Faker('pydecimal', left_digits=2, right_digits=2, positive=True, min_value=5, max_value=50)  # noqa: E501
     low_stock_threshold = 5
     position = 0
     is_active = True
@@ -58,8 +58,8 @@ class ProductImageFactory(DjangoModelFactory):
     class Meta:
         model = ProductImage
 
-    shop = factory.SelfAttribute("product.shop")
+    shop = factory.SelfAttribute('product.shop')
     product = factory.SubFactory(ProductFactory)
-    object_key = factory.Sequence(lambda n: f"products/images/product_{n}.jpg")
+    object_key = factory.Sequence(lambda n: f'products/images/product_{n}.jpg')
     is_primary = False
     position = factory.Sequence(lambda n: n)

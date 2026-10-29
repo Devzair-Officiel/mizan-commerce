@@ -10,6 +10,8 @@ interface PaginatedResponse<T> {
   results: T[];
 }
 
+export type CustomerType = 'individual' | 'business';
+
 export interface CustomerSummary {
   id: string;
   name: string;
@@ -21,6 +23,8 @@ export interface CustomerSummary {
   phone_display: string;
   email: string;
   city: string;
+  /** Professionnel : SIREN recommandé sur une facture française. */
+  customer_type: CustomerType;
   is_active: boolean;
   created_at: string;
   /** Commandes annulées exclues des quatre chiffres suivants. */
@@ -35,6 +39,8 @@ export interface Customer extends CustomerSummary {
   postal_code: string;
   country: string;
   notes: string;
+  /** 9 chiffres, ou vide. */
+  siren: string;
   updated_at: string;
 }
 
@@ -60,6 +66,8 @@ export interface CustomerFormData {
   postal_code?: string;
   country?: string;
   notes?: string;
+  customer_type?: CustomerType;
+  siren?: string;
 }
 
 function listParams(filters: CustomersListFilters): URLSearchParams {

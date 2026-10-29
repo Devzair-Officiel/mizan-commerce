@@ -10,6 +10,7 @@ from .formatting import format_siret
 from .pdf_blocks import (
     header,
     lines_table,
+    operation,
     parties,
     payment_and_mentions,
     summary,
@@ -54,7 +55,7 @@ def build_invoice_pdf(invoice: Invoice) -> bytes:
         author=invoice.seller_name,
         invariant=1,
     )
-    story = [header(style), Spacer(1, 22.5), parties(style)]
+    story = [header(style), Spacer(1, 22.5), parties(style), *operation(style)]
     if style.snapshot.get('order_number'):
         order_date = style.snapshot.get('order_date', '')
         from datetime import date

@@ -10,9 +10,9 @@ class StockMovementFactory(DjangoModelFactory):
     class Meta:
         model = StockMovement
 
-    shop = factory.SelfAttribute("variant.shop")
+    shop = factory.SelfAttribute('variant.shop')
     variant = factory.SubFactory(ProductVariantFactory)
-    movement_type = "in"
-    quantity = factory.Faker("random_int", min=1, max=50)
-    reason = factory.Faker("sentence", nb_words=6, locale="fr_FR")
+    movement_type = 'in'
+    quantity = factory.Faker('random_int', min=1, max=50)
+    reason = factory.Faker('sentence', nb_words=6, locale='fr_FR')
     created_by = factory.SubFactory(UserFactory)

@@ -46,6 +46,9 @@ class AuditLog(models.Model):
         ('subscription_plan_assigned', 'Formule attribuée (admin Mizan)'),
         # Retour automatique sur Découverte à la date de fin (tâche, sans auteur).
         ('subscription_assignment_ended', 'Fin de la formule attribuée'),
+        # Facture libre (URS-110) : avertissements acceptés à l'émission inclus.
+        ('invoice_issued', 'Émission facture'),
+        ('invoice_draft_deleted', 'Suppression brouillon de facture'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

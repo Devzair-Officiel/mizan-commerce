@@ -549,6 +549,24 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [~] Pages marketing (7d-5) : section Zakat crème, transition SVG dorée et exemple statique explicite, liens vers `/zakat` et la FAQ, calculateur inchangé ; recette en production à 320 / 375 / 390 / 768 / 1024 / 1440 px, trois étapes identiques au pixel près, staging non validé
   - [x] Formules, données et gating (7b-1) : Découverte 0 € (`free`), Solo 9 € (ex-`pro`), Boutique 19 € (ex-`boutique_plus`, essai 14 j), Commerce+ 39 € (revus en 16 € et 29 € par la migration 0014) ; codes renommés en place (migrations 0003, 0004) ; limites Découverte 30 articles, 15 ventes/mois, 15 clients ; membres 1/1/4/∞ ; limites atomiques (verrou boutique) ; commandes et zakat dès Découverte, exports en Boutique, logo et couleur des factures en Boutique ; endpoint `GET /subscriptions/plans/` ; textes de la page Abonnement fr/en/ar
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
+- [ ] Lot 8 — Facturation et devis professionnels (URS-110 à 117, spécification `docs/specs/spec_facturation_devis_pro.md`, maquettes `docs/maquettes/facturation/`)
+  - [ ] 8.1 Facture libre (URS-110) : brouillon, lignes personnalisables, conformité, client et catalogue à la volée
+    - [x] Backend : modèles, migrations, services, endpoints, tests
+    - [x] Éditeur mobile et desktop, enregistrement automatique
+    - [x] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
+    - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
+  - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
+    - [ ] Compteurs par type de document (`DocumentSequence`)
+    - [ ] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
+    - [ ] Avoirs total et partiel, `credited_total` atomique
+    - [ ] PDF devis et avoir
+  - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
+    - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
+  - [ ] 8.4a Lien en ligne et acceptation du devis (Boutique, URS-114)
+  - [ ] 8.4b Acomptes et facture de solde (Boutique, URS-115), sous-spécification d'abord
+  - [ ] 8.4c Factures récurrentes (Boutique, URS-116)
+  - [ ] 8.4d Remise et TVA par ligne (Boutique, URS-117), sous-spécification d'abord
+  - [ ] 8.5 Facturation électronique : cadrage
 
 ### Tests
 
@@ -667,6 +685,25 @@ Décision du 2026-10-16 : pas de publications automatiques.
       par fonction (règle ESLint ajoutée à l'étape 5b). Ces fichiers sont listés dans la
       surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de
       cette liste au fur et à mesure qu'il est découpé.
+
+- [ ] Unité facturée d'un format (`ProductVariant.unit_label`, URS-110) : modifiable par
+      l'API (`PATCH /api/products/<id>/variants/<variant_id>/`), absente du formulaire
+      article, déjà sous dette `max-lines-per-function`. À ajouter au découpage de ce
+      formulaire, au plus tard avec le lot 8.2.
+
+- [ ] Éditeur de facture libre (URS-110), écarts à la maquette `01_editeur_facture_libre.html`
+      : ni lien « Depuis le catalogue » (sélecteur d'articles), ni étiquette « Catalogue /
+      Nouvelle prestation » sur la ligne ; la suggestion à la saisie couvre le catalogue et
+      l'historique. À reprendre avec le lot 8.2.
+      Écart assumé : le prix unitaire porte le code de la devise (« EUR ») et non le
+      symbole, comme le formulaire article.
+      Mobile (360 px, arabe) : le libellé du prix unitaire est tronqué (« سعر الو… ») dans
+      sa demi-colonne, à côté du suffixe « EUR » (`EditorLine.tsx`).
+
+- [ ] Facture issue d'une commande : imprimer aussi la nature de l'opération ? Décision à
+      prendre à part. Aujourd'hui, seule la facture libre la fige dans son instantané
+      (`drafts._freeze`) et l'imprime ; une facture de commande n'en porte pas, pour ne pas
+      y écrire « prestation de services » par défaut.
 
 - [ ] Limites de formule (URS-100) : plusieurs boutons de création n'ont pas de garde côté
       client à la limite (actions rapides, états vides, « Nouvelle vente » depuis une fiche

@@ -21,6 +21,15 @@ from .serializers import (  # noqa: E402
     InvoiceStatusUpdateSerializer,
 )
 
+DRAFT_STATUS_ERROR = {
+    'detail': "Un brouillon n'a pas de statut de paiement : émettez la facture.",
+    'code': 'draft_not_issued',
+}
+DRAFT_PDF_ERROR = {
+    'detail': "Un brouillon n'a pas encore de PDF : émettez la facture.",
+    'code': 'draft_no_pdf',
+}
+
 
 class InvoiceListCreateView(generics.ListCreateAPIView):
     """GET — liste les factures de la boutique. POST — émet une facture depuis une commande."""  # noqa: E501
@@ -60,7 +69,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
             )
         except services.EmptyOrderError:
             return Response(
-                {'detail': 'Impossible d\'émettre une facture pour une commande vide.'},
+                {'detail': "Impossible d'émettre une facture pour une commande vide."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except services.InvoiceAlreadyExistsError as exc:
@@ -124,15 +133,24 @@ class InvoiceStatusView(APIView):
                 {'detail': 'Une facture annulée ne peut plus changer de statut.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if invoice.status == Invoice.STATUS_DRAFT:
+            return Response(DRAFT_STATUS_ERROR, status=status.HTTP_409_CONFLICT)
 
         serializer = InvoiceStatusUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_status = serializer.validated_data['status']
 
-        if new_status == Invoice.STATUS_PAID:
-            services.mark_paid(invoice)
-        else:
-            services.cancel_invoice(invoice)
+        try:
+            if new_status == Invoice.STATUS_PAID:
+                services.mark_paid(invoice)
+            else:
+                services.cancel_invoice(invoice)
+        except services.InvoiceStateError:
+            # Le statut a changé entre la lecture et l'écriture (autre onglet).
+            return Response(
+                {'detail': 'Le statut de cette facture a changé : rechargez-la.'},
+                status=status.HTTP_409_CONFLICT,
+            )
 
         return Response(InvoiceSerializer(invoice).data)
 
@@ -154,6 +172,8 @@ class InvoicePdfView(APIView):
             )
         except Invoice.DoesNotExist:
             return Response({'detail': 'Facture introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
+        if invoice.status == Invoice.STATUS_DRAFT:
+            return Response(DRAFT_PDF_ERROR, status=status.HTTP_409_CONFLICT)
 
         try:
             from .pdf import build_invoice_pdf

@@ -92,7 +92,7 @@ def send_trial_ending_notices() -> dict:
             outcome = billing_notices.send_trial_ending_notice(subscription, now)
         except Exception:
             outcome = billing_notices.FAILED
-            logger.exception('Rappel de fin d\'essai en échec pour la souscription %s.', subscription.pk)  # noqa: E501
+            logger.exception("Rappel de fin d'essai en échec pour la souscription %s.", subscription.pk)  # noqa: E501
         _count(stats, outcome)
     return stats
 
@@ -121,7 +121,7 @@ def process_past_due_subscriptions() -> dict:
             outcome = billing_notices.send_past_due_end_notice(subscription, now)
         except Exception:
             outcome = billing_notices.FAILED
-            logger.exception('Message de fin d\'abonnement en échec pour la souscription %s.', subscription.pk)  # noqa: E501
+            logger.exception("Message de fin d'abonnement en échec pour la souscription %s.", subscription.pk)  # noqa: E501
         _count(stats, outcome)
     return stats
 

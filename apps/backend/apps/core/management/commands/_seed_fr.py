@@ -25,7 +25,7 @@ from apps.stock.models import StockMovement
 from apps.stock.services import EntryLine, EntryReference, create_entry
 
 _RNG = random.Random(42)
-_TZ_FR = zoneinfo.ZoneInfo("Europe/Paris")
+_TZ_FR = zoneinfo.ZoneInfo('Europe/Paris')
 
 
 # ── Helpers bas niveau ─────────────────────────────────────────────────────────
@@ -58,17 +58,17 @@ def _seed_variant(
         product=product,
         packaging_name=packaging_name,
         defaults={
-            "shop": shop,
-            "unit": "piece",
-            "base_quantity": 1,
-            "selling_price": Decimal(str(selling_price)),
-            "purchase_price": Decimal(str(purchase_price)) if purchase_price else None,
-            "low_stock_threshold": (
+            'shop': shop,
+            'unit': 'piece',
+            'base_quantity': 1,
+            'selling_price': Decimal(str(selling_price)),
+            'purchase_price': Decimal(str(purchase_price)) if purchase_price else None,
+            'low_stock_threshold': (
                 Decimal(str(threshold)) if threshold is not None else None
             ),
-            "sku": sku,
-            "position": position,
-            "is_active": True,
+            'sku': sku,
+            'position': position,
+            'is_active': True,
         },
     )
     return variant
@@ -81,9 +81,9 @@ def _initial_stock(shop, variant, qty, user) -> None:
     mv = StockMovementFactory(
         shop=shop,
         variant=variant,
-        movement_type="in",
+        movement_type='in',
         quantity=qty,
-        reason="Stock initial — seeding",
+        reason='Stock initial — seeding',
         created_by=user,
         is_initial=True,
     )
@@ -103,7 +103,7 @@ def _make_order(
 
     order_services.advance_order_to(order, final_status, user)
 
-    if pay == "full":
+    if pay == 'full':
         order.refresh_from_db()
         order_services.update_payment(order, order.total_amount)
     elif isinstance(pay, Decimal):
@@ -124,18 +124,18 @@ def _seed_existing_products(shop, user) -> list[ProductVariant]:
         return p
 
     def vs(product, sku, price, cost, threshold, qty) -> ProductVariant:
-        v = _seed_variant(shop, product, "Par défaut", sku, price, cost, threshold)
+        v = _seed_variant(shop, product, 'Par défaut', sku, price, cost, threshold)
         _initial_stock(shop, v, qty, user)
         return v
 
-    chemise = vs(prod("Chemise en lin blanc"), "CHE-LIN-001", "29.99", "12.50", 3, 30)
-    pantalon = vs(prod("Pantalon chino beige"), "PAN-CHI-002", "44.99", "18.00", 2, 20)
-    sandales = vs(prod("Sandales cuir naturel"), "SAN-CUI-003", "59.90", "22.00", 2, 6)
+    chemise = vs(prod('Chemise en lin blanc'), 'CHE-LIN-001', '29.99', '12.50', 3, 30)
+    pantalon = vs(prod('Pantalon chino beige'), 'PAN-CHI-002', '44.99', '18.00', 2, 20)
+    sandales = vs(prod('Sandales cuir naturel'), 'SAN-CUI-003', '59.90', '22.00', 2, 6)
     ceinture = vs(
-        prod("Ceinture tressée marron"), "CEI-TRE-004", "19.99", "8.00", 5, 25
+        prod('Ceinture tressée marron'), 'CEI-TRE-004', '19.99', '8.00', 5, 25
     )
     # Sac volontairement sous seuil : stock 2 < threshold 3 → démo état bas
-    vs(prod("Sac en toile naturelle"), "SAC-TOI-005", "35.00", "14.00", 3, 2)
+    vs(prod('Sac en toile naturelle'), 'SAC-TOI-005', '35.00', '14.00', 3, 2)
 
     return [chemise, pantalon, sandales, ceinture]  # sac exclu du pool commandes
 
@@ -148,9 +148,9 @@ def _seed_new_products(
     safe: list[ProductVariant] = []
     services: list[ProductVariant] = []
 
-    def prod(name, ptype="product"):
+    def prod(name, ptype='product'):
         p, _ = Product.objects.get_or_create(
-            shop=shop, name=name, defaults={"type": ptype}
+            shop=shop, name=name, defaults={'type': ptype}
         )
         return p
 
@@ -160,52 +160,52 @@ def _seed_new_products(
         return v
 
     # 6. Veste en lin kaki — S/M/L
-    veste = prod("Veste en lin kaki")
-    sv(veste, "S", "VES-LIN-006-S", "79.90", "30.00", threshold=2, pos=0, qty=6)
+    veste = prod('Veste en lin kaki')
+    sv(veste, 'S', 'VES-LIN-006-S', '79.90', '30.00', threshold=2, pos=0, qty=6)
     safe.append(
-        sv(veste, "M", "VES-LIN-006-M", "79.90", "30.00", threshold=2, pos=1, qty=15)
+        sv(veste, 'M', 'VES-LIN-006-M', '79.90', '30.00', threshold=2, pos=1, qty=15)
     )
-    sv(veste, "L", "VES-LIN-006-L", "79.90", "30.00", threshold=2, pos=2, qty=10)
+    sv(veste, 'L', 'VES-LIN-006-L', '79.90', '30.00', threshold=2, pos=2, qty=10)
 
     # 7. Espadrilles toile beige — 40-43 (41 sous seuil, 43 rupture)
-    esp = prod("Espadrilles toile beige")
-    sv(esp, "40", "ESP-TOI-007-40", "49.90", "19.00", threshold=2, pos=0, qty=4)
-    sv(esp, "41", "ESP-TOI-007-41", "49.90", "19.00", threshold=2, pos=1, qty=1)
-    sv(esp, "42", "ESP-TOI-007-42", "49.90", "19.00", threshold=2, pos=2, qty=3)
-    sv(esp, "43", "ESP-TOI-007-43", "49.90", "19.00", threshold=2, pos=3, qty=0)
+    esp = prod('Espadrilles toile beige')
+    sv(esp, '40', 'ESP-TOI-007-40', '49.90', '19.00', threshold=2, pos=0, qty=4)
+    sv(esp, '41', 'ESP-TOI-007-41', '49.90', '19.00', threshold=2, pos=1, qty=1)
+    sv(esp, '42', 'ESP-TOI-007-42', '49.90', '19.00', threshold=2, pos=2, qty=3)
+    sv(esp, '43', 'ESP-TOI-007-43', '49.90', '19.00', threshold=2, pos=3, qty=0)
 
     # 8. Écharpe en lin naturel
-    echarpe = prod("Écharpe en lin naturel")
+    echarpe = prod('Écharpe en lin naturel')
     safe.append(
-        sv(echarpe, "Par défaut", "ECH-LIN-008", "24.90", "9.00", threshold=3, qty=20)
+        sv(echarpe, 'Par défaut', 'ECH-LIN-008', '24.90', '9.00', threshold=3, qty=20)
     )
 
     # 9. Pochette en cuir naturel
-    pochette = prod("Pochette en cuir naturel")
+    pochette = prod('Pochette en cuir naturel')
     safe.append(
-        sv(pochette, "Par défaut", "POC-CUI-009", "45.00", "18.00", threshold=2, qty=12)
+        sv(pochette, 'Par défaut', 'POC-CUI-009', '45.00', '18.00', threshold=2, qty=12)
     )
 
     # 10. Short en toile beige — S/M et L/XL
-    short = prod("Short en toile beige")
+    short = prod('Short en toile beige')
     safe.append(
-        sv(short, "S/M", "SHO-TOI-010-SM", "32.00", "13.00", threshold=2, pos=0, qty=10)
+        sv(short, 'S/M', 'SHO-TOI-010-SM', '32.00', '13.00', threshold=2, pos=0, qty=10)
     )
-    sv(short, "L/XL", "SHO-TOI-010-LXL", "32.00", "13.00", threshold=2, pos=1, qty=8)
+    sv(short, 'L/XL', 'SHO-TOI-010-LXL', '32.00', '13.00', threshold=2, pos=1, qty=8)
 
     # 11. Casquette en toile
-    casquette = prod("Casquette en toile")
+    casquette = prod('Casquette en toile')
     safe.append(
-        sv(casquette, "Par défaut", "CAS-TOI-011", "18.00", "7.00", threshold=4, qty=15)
+        sv(casquette, 'Par défaut', 'CAS-TOI-011', '18.00', '7.00', threshold=4, qty=15)
     )
 
     # 12. Retouche ourlet (service)
-    retouche = prod("Retouche ourlet", "service")
-    services.append(sv(retouche, "Par défaut", "SVC-RET-012", "12.00", qty=0))
+    retouche = prod('Retouche ourlet', 'service')
+    services.append(sv(retouche, 'Par défaut', 'SVC-RET-012', '12.00', qty=0))
 
     # 13. Emballage cadeau (service)
-    emballage = prod("Emballage cadeau", "service")
-    services.append(sv(emballage, "Par défaut", "SVC-EMB-013", "5.00", qty=0))
+    emballage = prod('Emballage cadeau', 'service')
+    services.append(sv(emballage, 'Par défaut', 'SVC-EMB-013', '5.00', qty=0))
 
     return safe, services
 
@@ -230,35 +230,35 @@ def seed_products_fr(
 
 
 _CUSTOMERS_FR = [
-    ("Karima Bensouda", "+33612345678", "Lyon", "Cliente fidèle depuis 2 ans."),
-    ("Hamza Tazi", "+33698765432", "Paris", ""),
+    ('Karima Bensouda', '+33612345678', 'Lyon', 'Cliente fidèle depuis 2 ans.'),
+    ('Hamza Tazi', '+33698765432', 'Paris', ''),
     (
-        "Nadia El Fassi",
-        "+33655443322",
-        "Marseille",
-        "Préfère la livraison en point relais.",
+        'Nadia El Fassi',
+        '+33655443322',
+        'Marseille',
+        'Préfère la livraison en point relais.',
     ),
     (
-        "Fatima Zahra Idrissi",
-        "+33623456789",
-        "Toulouse",
-        "Commande souvent en début de saison.",
+        'Fatima Zahra Idrissi',
+        '+33623456789',
+        'Toulouse',
+        'Commande souvent en début de saison.',
     ),
-    ("Mehdi Ouali", "+33634567890", "Paris", ""),
-    ("Leila Benomar", "+33645678901", "Bordeaux", "Préfère les livraisons en semaine."),
-    ("Yassine Chafai", "+33656789012", "Nice", ""),
-    ("Samira Harrach", "+33667890123", "Strasbourg", "Régulière depuis le printemps."),
-    ("Omar Berrada", "+33678901234", "Montpellier", ""),
-    ("Dounia Tazi", "+33689012345", "Nantes", "Grande taille — préfère L et XL."),
-    ("Amine Benchekroun", "+33680123456", "Grenoble", ""),
-    ("Rania Saadi", "+33601234567", "Lille", "Achète souvent pour offrir."),
+    ('Mehdi Ouali', '+33634567890', 'Paris', ''),
+    ('Leila Benomar', '+33645678901', 'Bordeaux', 'Préfère les livraisons en semaine.'),
+    ('Yassine Chafai', '+33656789012', 'Nice', ''),
+    ('Samira Harrach', '+33667890123', 'Strasbourg', 'Régulière depuis le printemps.'),
+    ('Omar Berrada', '+33678901234', 'Montpellier', ''),
+    ('Dounia Tazi', '+33689012345', 'Nantes', 'Grande taille — préfère L et XL.'),
+    ('Amine Benchekroun', '+33680123456', 'Grenoble', ''),
+    ('Rania Saadi', '+33601234567', 'Lille', 'Achète souvent pour offrir.'),
 ]
 
 
 def seed_customers_fr(shop) -> list[Customer]:
     return [
         CustomerFactory(
-            shop=shop, name=name, phone=phone, city=city, country="FR", notes=notes
+            shop=shop, name=name, phone=phone, city=city, country='FR', notes=notes
         )
         for name, phone, city, notes in _CUSTOMERS_FR
     ]
@@ -280,11 +280,11 @@ def _seed_today_orders(shop, user, sv, svc_v, by_name, now, today) -> list[Order
 
     # (cust_name | None, items, final_status, pay)
     specs = [
-        ("Karima Bensouda", [(sv[0], 2)], "to_prepare", None),
-        (None, [(sv[1], 1)], "to_prepare", None),
-        ("Hamza Tazi", [(sv[3], 2), (sv[5], 1)], "shipped", "full"),
-        ("Fatima Zahra Idrissi", [(sv[4], 1)], "to_prepare", None),
-        ("Mehdi Ouali", [(sv[6], 1), (sv[8], 1)], "shipped", "full"),
+        ('Karima Bensouda', [(sv[0], 2)], 'to_prepare', None),
+        (None, [(sv[1], 1)], 'to_prepare', None),
+        ('Hamza Tazi', [(sv[3], 2), (sv[5], 1)], 'shipped', 'full'),
+        ('Fatima Zahra Idrissi', [(sv[4], 1)], 'to_prepare', None),
+        ('Mehdi Ouali', [(sv[6], 1), (sv[8], 1)], 'shipped', 'full'),
     ]
     orders = []
     for i, (cname, items, status, pay) in enumerate(specs):
@@ -306,27 +306,27 @@ def _seed_special_past_orders(shop, user, sv, svc_v, by_name, today) -> list[Ord
 
     return [
         # J-1 : 3 to_prepare (dont 2 impayées)
-        o(1, 10, 0, "Leila Benomar", [(sv[0], 1)], "to_prepare", Decimal("15.00")),
-        o(1, 14, 30, "Yassine Chafai", [(sv[7], 1)], "to_prepare"),
-        o(1, 16, 0, "Samira Harrach", [(sv[8], 2)], "to_prepare", "full"),
+        o(1, 10, 0, 'Leila Benomar', [(sv[0], 1)], 'to_prepare', Decimal('15.00')),
+        o(1, 14, 30, 'Yassine Chafai', [(sv[7], 1)], 'to_prepare'),
+        o(1, 16, 0, 'Samira Harrach', [(sv[8], 2)], 'to_prepare', 'full'),
         # J-2
-        o(2, 9, 30, "Dounia Tazi", [(sv[5], 1)], "to_prepare"),
-        o(2, 15, 0, "Omar Berrada", [(sv[1], 1), (sv[2], 1)], "shipped", "full"),
+        o(2, 9, 30, 'Dounia Tazi', [(sv[5], 1)], 'to_prepare'),
+        o(2, 15, 0, 'Omar Berrada', [(sv[1], 1), (sv[2], 1)], 'shipped', 'full'),
         # J-3
         o(
             3,
             10,
             15,
-            "Nadia El Fassi",
+            'Nadia El Fassi',
             [(sv[3], 2), (sv[5], 1)],
-            "shipped",
-            Decimal("80.00"),
+            'shipped',
+            Decimal('80.00'),
         ),
-        o(3, 14, 0, "Amine Benchekroun", [(sv[0], 1)], "cancelled"),
+        o(3, 14, 0, 'Amine Benchekroun', [(sv[0], 1)], 'cancelled'),
         # J-6 : impayée ancienne (ancienneté variée)
-        o(6, 11, 0, "Rania Saadi", [(sv[4], 1), (svc_v[0], 1)], "shipped"),
+        o(6, 11, 0, 'Rania Saadi', [(sv[4], 1), (svc_v[0], 1)], 'shipped'),
         # J-10 : annulée ancienne
-        o(10, 9, 45, "Karima Bensouda", [(sv[5], 1)], "cancelled"),
+        o(10, 9, 45, 'Karima Bensouda', [(sv[5], 1)], 'cancelled'),
     ]
 
 
@@ -348,7 +348,7 @@ def _seed_bulk_historical(shop, user, sv, by_name, today) -> list[Order]:
             items = [(v, _RNG.randint(1, 2)) for v in picked]
             orders.append(
                 _make_order(
-                    shop, user, _make_dt(day, h, m), customer, items, "shipped", "full"
+                    shop, user, _make_dt(day, h, m), customer, items, 'shipped', 'full'
                 )
             )
     return orders
@@ -367,20 +367,20 @@ def seed_orders_fr(shop, user, safe_v, svc_v, customers, stdout) -> list[Order]:
 
     statuses = Counter(
         Order.objects.filter(pk__in=[o.pk for o in all_orders]).values_list(
-            "status", flat=True
+            'status', flat=True
         )
     )
     pay_cnt = (
         Order.objects.filter(
             pk__in=[o.pk for o in all_orders],
-            payment_status__in=("unpaid", "partial"),
+            payment_status__in=('unpaid', 'partial'),
         )
-        .exclude(status="cancelled")
+        .exclude(status='cancelled')
         .count()
     )
     today_ca = Order.objects.filter(shop=shop, created_at__date=today).exclude(
-        status="cancelled"
-    ).aggregate(t=Sum("total_amount"))["t"] or Decimal("0")
+        status='cancelled'
+    ).aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
     stdout.write(
         f"    → {len(all_orders)} commandes : {dict(statuses)}"
         f" | {pay_cnt} impayées/partielles | CA aujourd'hui : {today_ca:.2f} EUR"
@@ -399,36 +399,36 @@ def seed_reminders_fr(shop, user, customers, sara_member=None) -> None:
     today = now_local.date()
     reminders = [
         dict(
-            title="Rappel paiement — Karima Bensouda",
-            category="unpaid",
+            title='Rappel paiement — Karima Bensouda',
+            category='unpaid',
             due_at=_make_dt(today, 10, 0),
-            customer=by_name.get("Karima Bensouda"),
+            customer=by_name.get('Karima Bensouda'),
         ),
         dict(
-            title="Préparer les commandes du samedi",
-            category="order_prep",
+            title='Préparer les commandes du samedi',
+            category='order_prep',
             due_at=_make_dt(today, 15, 30),
             assigned_to=sara_member,
         ),
         dict(
-            title="Relance — Nadia El Fassi impayée",
-            category="customer_followup",
+            title='Relance — Nadia El Fassi impayée',
+            category='customer_followup',
             due_at=_make_dt(today - datetime.timedelta(days=1), 11, 0),
-            customer=by_name.get("Nadia El Fassi"),
+            customer=by_name.get('Nadia El Fassi'),
         ),
         dict(
-            title="Inventaire mensuel",
-            category="free",
+            title='Inventaire mensuel',
+            category='free',
             due_at=_make_dt(today + datetime.timedelta(days=1), 9, 0),
         ),
     ]
     for r in reminders:
-        Reminder.objects.create(shop=shop, author=user, status="pending", **r)
+        Reminder.objects.create(shop=shop, author=user, status='pending', **r)
 
 
 # ── Stock : facture fournisseur, association mémorisée, format négatif ─────────
 
-_SUPPLIER = "Lin & Co"
+_SUPPLIER = 'Lin & Co'
 
 
 def seed_stock_fr(shop, user, customers) -> None:
@@ -441,27 +441,27 @@ def seed_stock_fr(shop, user, customers) -> None:
     """
     by_sku = {
         v.sku: v for v in ProductVariant.objects.filter(
-            shop=shop, sku__in=("VES-LIN-006-S", "ECH-LIN-008", "ESP-TOI-007-43"),
-        ).select_related("product")
+            shop=shop, sku__in=('VES-LIN-006-S', 'ECH-LIN-008', 'ESP-TOI-007-43'),
+        ).select_related('product')
     }
     if not StockMovement.objects.filter(shop=shop, supplier_name=_SUPPLIER).exists():
         received = datetime.date.today() - datetime.timedelta(days=8)
         movements = create_entry(shop, user, [
-            EntryLine(by_sku["VES-LIN-006-S"], Decimal("5"), Decimal("30.00")),
-            EntryLine(by_sku["ECH-LIN-008"], Decimal("10"), Decimal("9.00")),
-        ], EntryReference(_SUPPLIER, "F-2026-118", received))
+            EntryLine(by_sku['VES-LIN-006-S'], Decimal('5'), Decimal('30.00')),
+            EntryLine(by_sku['ECH-LIN-008'], Decimal('10'), Decimal('9.00')),
+        ], EntryReference(_SUPPLIER, 'F-2026-118', received))
         StockMovement.objects.filter(pk__in=[m.pk for m in movements]).update(
             created_at=_make_dt(received, 10, 30),
         )
     SupplierLineMatch.objects.get_or_create(
-        shop=shop, supplier_key="lin co", label_key="echarpe lin nat",
-        defaults={"variant": by_sku["ECH-LIN-008"], "created_by": user},
+        shop=shop, supplier_key='lin co', label_key='echarpe lin nat',
+        defaults={'variant': by_sku['ECH-LIN-008'], 'created_by': user},
     )
     SupplierLineMatch.objects.get_or_create(
-        shop=shop, supplier_key="lin co", label_key="frais de port",
-        defaults={"variant": None, "is_ignored": True, "created_by": user},
+        shop=shop, supplier_key='lin co', label_key='frais de port',
+        defaults={'variant': None, 'is_ignored': True, 'created_by': user},
     )
-    negative = by_sku["ESP-TOI-007-43"]
+    negative = by_sku['ESP-TOI-007-43']
     if not OrderItem.objects.filter(variant=negative).exists():
         order = order_services.create_order(shop, user, customer=customers[0])
         order_services.add_item(order, negative, 1, user=user)
@@ -476,12 +476,12 @@ def run_seed_fr(shop, youssef, sara, stdout) -> None:
     safe_v, svc_v = seed_products_fr(shop, youssef)
     customers = seed_customers_fr(shop)
     v_count = ProductVariant.objects.filter(shop=shop).count()
-    stdout.write(f"    → {v_count} variantes, {len(customers)} clients")
+    stdout.write(f'    → {v_count} variantes, {len(customers)} clients')
 
     if not Order.objects.filter(shop=shop).exists():
         seed_orders_fr(shop, youssef, safe_v, svc_v, customers, stdout)
     else:
-        stdout.write("    · Commandes existantes — skip")
+        stdout.write('    · Commandes existantes — skip')
 
     seed_reminders_fr(shop, youssef, customers, shop.members.filter(user=sara).first())
     seed_stock_fr(shop, youssef, customers)

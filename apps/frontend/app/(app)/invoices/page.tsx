@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileText } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
+import { ListCreateButton } from '@/components/list/ListCreateButton';
 import { useInvoices, useInvoicesInfinite } from '@/lib/hooks/useInvoices';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
@@ -26,7 +27,8 @@ function InvoicesContent() {
   const error = desktop ? page.isError : mobile.isError;
   const total = data?.count ?? 0;
   return <>
-    <TopBar title={t('title')} subtitle={data ? t('count', { count: total }) : undefined} hideSearch />
+    <TopBar title={t('title')} subtitle={data ? t('count', { count: total }) : undefined} hideSearch
+      action={<ListCreateButton href="/invoices/new" label={t('create')} />} />
     <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
       <InvoicesStatCards state={state} currency={shop?.currency ?? 'EUR'} />
       {desktop === true && <InvoicesToolbar state={state} />}

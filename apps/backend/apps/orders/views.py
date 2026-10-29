@@ -205,7 +205,7 @@ class OrderPaymentView(APIView):
             return Response({'detail': 'Commande introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
 
         if order.status == 'cancelled':
-            return Response({'detail': 'Impossible de modifier le paiement d\'une commande annulée.'}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
+            return Response({'detail': "Impossible de modifier le paiement d'une commande annulée."}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
 
         serializer = PaymentUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

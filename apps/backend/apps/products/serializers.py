@@ -40,7 +40,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductVariant
         fields = (
-            'id', 'packaging_name', 'unit', 'base_quantity',
+            'id', 'packaging_name', 'unit', 'unit_label', 'base_quantity',
             'selling_price', 'purchase_price',
             'stock_quantity', 'low_stock_threshold',
             'sku', 'barcode', 'position', 'is_active',
@@ -69,7 +69,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise serializers.ValidationError("Ce nom de conditionnement existe déjà pour ce produit.")  # noqa: E501
+            raise serializers.ValidationError('Ce nom de conditionnement existe déjà pour ce produit.')  # noqa: E501
         return value
 
     def validate_sku(self, value: str) -> str:
@@ -454,3 +454,13 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_stock_state(self, obj):
         return self._agg(obj)['stock_state']
+
+
+class ServiceFromInvoiceLineSerializer(serializers.Serializer):
+    """Ligne de facture libre enregistrée comme service du catalogue (URS-110)."""
+
+    name = serializers.CharField(max_length=200)
+    unit_label = serializers.CharField(required=False, allow_blank=True, max_length=30)
+    unit_price_ht = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal('0'),
+    )

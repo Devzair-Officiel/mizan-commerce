@@ -3,9 +3,9 @@ from django.contrib.admin import apps as admin_apps
 
 
 class CoreConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.core"
-    label = "core"
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'apps.core'
+    label = 'core'
 
     def ready(self) -> None:
         import apps.core.images  # noqa: F401  (plafond de pixels de Pillow)
@@ -17,4 +17,4 @@ class MizanAdminConfig(admin_apps.AdminConfig):
 
     # Hors détection automatique : `apps.core` reste chargé par CoreConfig.
     default = False
-    default_site = "apps.core.admin_site.MizanAdminSite"
+    default_site = 'apps.core.admin_site.MizanAdminSite'

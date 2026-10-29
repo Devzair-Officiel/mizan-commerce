@@ -303,7 +303,7 @@ def _payment_errors(
         if error is None:
             raise
         logger.warning(
-            'Changement de formule de l\'abonnement %s : paiement non abouti (%s, code %s).',  # noqa: E501
+            "Changement de formule de l'abonnement %s : paiement non abouti (%s, code %s).",  # noqa: E501
             subscription.pk, type(exc).__name__, exc.code or '-',
         )
         # `error_if_incomplete` : Stripe n'applique pas la mise à jour ; on relit.

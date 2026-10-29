@@ -16,29 +16,29 @@ from django.db import transaction
 # Emails des comptes de démo — seules les boutiques appartenant à ces comptes
 # sont supprimées par --reset.
 SEED_DEMO_EMAILS: frozenset[str] = frozenset({
-    "youssef@example.com",
-    "sara@example.com",
-    "amira@example.ma",
-    "vide@example.com",
-    "services@example.com",
-    "e2e@example.com",
-    "e2e-staff@example.com",
+    'youssef@example.com',
+    'sara@example.com',
+    'amira@example.ma',
+    'vide@example.com',
+    'services@example.com',
+    'e2e@example.com',
+    'e2e-staff@example.com',
 })
 
 
 class Command(BaseCommand):
-    help = "Seed la base avec des données de développement via factory_boy."
+    help = 'Seed la base avec des données de développement via factory_boy.'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--reset",
-            action="store_true",
-            help="Vide les tables métier avant de seeder (garde les users et boutiques).",  # noqa: E501
+            '--reset',
+            action='store_true',
+            help='Vide les tables métier avant de seeder (garde les users et boutiques).',  # noqa: E501
         )
 
     @transaction.atomic
     def handle(self, *args, **options):
-        if not settings.DEBUG and os.environ.get("ALLOW_SEED") != "1":
+        if not settings.DEBUG and os.environ.get('ALLOW_SEED') != '1':
             raise CommandError(
                 "seed_data ne s'exécute qu'en environnement DEBUG. "
                 "Définir ALLOW_SEED=1 pour forcer."
@@ -58,6 +58,7 @@ class Command(BaseCommand):
         from ._seed_fr import run_seed_fr
         from ._seed_services import run_seed_services
         from ._seed_e2e import seed_audit_shop
+        from ._seed_invoices import seed_invoice_drafts
         from ._seed_zakat import seed_zakat
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
@@ -67,10 +68,10 @@ class Command(BaseCommand):
             Subscription.objects.update_or_create(
                 shop=shop,
                 defaults={
-                    "plan": plan,
-                    "status": status,
-                    "current_period_start": now,
-                    "current_period_end": period_end,
+                    'plan': plan,
+                    'status': status,
+                    'current_period_start': now,
+                    'current_period_end': period_end,
                 },
             )
 
@@ -85,51 +86,51 @@ class Command(BaseCommand):
             PublicPageSection,
         )
 
-        if options["reset"]:
+        if options['reset']:
             from apps.shops.models import Shop
 
             # Supprime uniquement les boutiques dont le propriétaire est un
             # compte de démo — les autres boutiques ne sont pas touchées.
             demo_shops = Shop.objects.filter(
                 members__user__email__in=SEED_DEMO_EMAILS,
-                members__role="owner",
+                members__role='owner',
             )
             count = demo_shops.count()
             demo_shops.delete()  # CASCADE supprime toutes les données liées
-            msg = f"  {count} boutiques de démo supprimées (cascade)."
+            msg = f'  {count} boutiques de démo supprimées (cascade).'
             self.stdout.write(self.style.WARNING(msg))
 
         self.stdout.write(
-            self.style.MIGRATE_HEADING("=== Seeding données de développement ===\n")
+            self.style.MIGRATE_HEADING('=== Seeding données de développement ===\n')
         )
 
         # ── Superadmin ──────────────────────────────────────────────
         admin, created = User.objects.get_or_create(
-            email="admin@mizan.dev",
+            email='admin@mizan.dev',
             defaults={
-                "is_staff": True,
-                "is_superuser": True,
-                "full_name": "Admin Mizan",
+                'is_staff': True,
+                'is_superuser': True,
+                'full_name': 'Admin Mizan',
             },
         )
         if created:
-            admin.set_password("Admin1234!")
+            admin.set_password('Admin1234!')
             admin.save()
-            self.stdout.write("  ✓ Superadmin : admin@mizan.dev / Admin1234!")
+            self.stdout.write('  ✓ Superadmin : admin@mizan.dev / Admin1234!')
         else:
-            self.stdout.write("  · Superadmin existant : admin@mizan.dev")
+            self.stdout.write('  · Superadmin existant : admin@mizan.dev')
 
         # ── Boutique 1 — Youssef (France / EUR) ─────────────────────
         youssef = UserFactory(
-            email="youssef@example.com",
-            full_name="Youssef Benali",
-            phone="+33601020304",
-            password="Mizan1234!",
+            email='youssef@example.com',
+            full_name='Youssef Benali',
+            phone='+33601020304',
+            password='Mizan1234!',
         )
         shop_fr = ShopFactory(
-            name="La Boutique de Youssef", currency="EUR", country="FR"
+            name='La Boutique de Youssef', currency='EUR', country='FR'
         )
-        ShopMemberFactory(shop=shop_fr, user=youssef, role="owner")
+        ShopMemberFactory(shop=shop_fr, user=youssef, role='owner')
         # Boutique : la boutique a une employée (multi_user) et une page publique.
         seed_subscription(
             shop=shop_fr,
@@ -138,22 +139,22 @@ class Command(BaseCommand):
         )
         if youssef.trial_consumed_at is None:
             youssef.trial_consumed_at = timezone.now()
-            youssef.save(update_fields=["trial_consumed_at", "updated_at"])
-        self.stdout.write(f"  ✓ Boutique FR : {shop_fr.name} (formule Boutique)")
+            youssef.save(update_fields=['trial_consumed_at', 'updated_at'])
+        self.stdout.write(f'  ✓ Boutique FR : {shop_fr.name} (formule Boutique)')
 
         sara = UserFactory(
-            email="sara@example.com",
-            full_name="Sara Naji",
-            phone="+33611223344",
-            password="Mizan1234!",
+            email='sara@example.com',
+            full_name='Sara Naji',
+            phone='+33611223344',
+            password='Mizan1234!',
         )
         ShopMemberFactory(
             shop=shop_fr,
             user=sara,
-            role="staff",
-            permissions=["products", "orders", "customers", "stock", "reminders"],
+            role='staff',
+            permissions=['products', 'orders', 'customers', 'stock', 'reminders'],
         )
-        self.stdout.write(f"    + Staff : {sara.email} (5 modules)")
+        self.stdout.write(f'    + Staff : {sara.email} (5 modules)')
 
         shop_fr.catalog_kind = 'both'
         shop_fr.fulfillment_mode = 'on_site'
@@ -165,8 +166,8 @@ class Command(BaseCommand):
 
         # ── Messages WhatsApp boutique FR ────────────────────────────
         if not PreparedMessage.objects.filter(shop=shop_fr).exists():
-            karima = Customer.objects.get(shop=shop_fr, name="Karima Bensouda")
-            hamza = Customer.objects.get(shop=shop_fr, name="Hamza Tazi")
+            karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
+            hamza = Customer.objects.get(shop=shop_fr, name='Hamza Tazi')
             PreparedMessage.objects.create(
                 shop=shop_fr,
                 customer=karima,
@@ -191,24 +192,24 @@ class Command(BaseCommand):
                 recipient_name=hamza.name,
                 recipient_phone=hamza.phone,
                 message=(
-                    f"Bonjour {hamza.name}, nous venons de recevoir une nouvelle collection "  # noqa: E501
-                    "qui pourrait vous plaire. Passez quand vous voulez !"
+                    f'Bonjour {hamza.name}, nous venons de recevoir une nouvelle collection '  # noqa: E501
+                    'qui pourrait vous plaire. Passez quand vous voulez !'
                 ),
                 status=PreparedMessage.Status.PREPARED,
             )
-            self.stdout.write("    → 2 messages WhatsApp préparés")
+            self.stdout.write('    → 2 messages WhatsApp préparés')
 
         # Ton chaleureux, remerciement personnalisé (« Personnalisé » dans la démo).
         MessageSettings.objects.get_or_create(
             shop=shop_fr,
             defaults={
-                "tone": MessageSettings.Tone.WARM,
-                "custom_texts": {
-                    "thank_you": (
-                        "Merci {client} 🙏\n"
-                        "Votre commande {commande} vous attend, emballée avec soin. "
-                        "Pensez à nous suivre sur Instagram pour les nouveautés !\n"
-                        "{boutique}"
+                'tone': MessageSettings.Tone.WARM,
+                'custom_texts': {
+                    'thank_you': (
+                        'Merci {client} 🙏\n'
+                        'Votre commande {commande} vous attend, emballée avec soin. '
+                        'Pensez à nous suivre sur Instagram pour les nouveautés !\n'
+                        '{boutique}'
                     ),
                 },
             },
@@ -216,15 +217,15 @@ class Command(BaseCommand):
 
         # ── Boutique 2 — Amira (Maroc / MAD) ────────────────────────
         amira = UserFactory(
-            email="amira@example.ma",
-            full_name="Amira Chraibi",
-            phone="+212661234567",
-            password="Mizan1234!",
+            email='amira@example.ma',
+            full_name='Amira Chraibi',
+            phone='+212661234567',
+            password='Mizan1234!',
         )
         shop_ma = ShopFactory(
-            name="Boutique Chraibi — Casablanca", currency="MAD", country="MA"
+            name='Boutique Chraibi — Casablanca', currency='MAD', country='MA'
         )
-        ShopMemberFactory(shop=shop_ma, user=amira, role="owner")
+        ShopMemberFactory(shop=shop_ma, user=amira, role='owner')
         seed_subscription(
             shop=shop_ma,
             plan_code=SubscriptionPlan.CODE_BOUTIQUE,
@@ -233,8 +234,8 @@ class Command(BaseCommand):
         )
         if amira.trial_consumed_at is None:
             amira.trial_consumed_at = timezone.now()
-            amira.save(update_fields=["trial_consumed_at", "updated_at"])
-        self.stdout.write(f"  ✓ Boutique MA : {shop_ma.name} (essai Boutique 14j)")
+            amira.save(update_fields=['trial_consumed_at', 'updated_at'])
+        self.stdout.write(f'  ✓ Boutique MA : {shop_ma.name} (essai Boutique 14j)')
 
         def seed_product_ma(
             *, name, selling_price, purchase_price, low_stock_threshold, sku
@@ -242,42 +243,42 @@ class Command(BaseCommand):
             product, _ = Product.objects.get_or_create(shop=shop_ma, name=name)
             ProductVariant.objects.get_or_create(
                 product=product,
-                packaging_name="Par défaut",
+                packaging_name='Par défaut',
                 defaults={
-                    "shop": shop_ma,
-                    "unit": "piece",
-                    "base_quantity": 1,
-                    "selling_price": Decimal(str(selling_price)),
-                    "purchase_price": Decimal(str(purchase_price)),
-                    "low_stock_threshold": Decimal(str(low_stock_threshold)),
-                    "sku": sku,
-                    "position": 0,
-                    "is_active": True,
+                    'shop': shop_ma,
+                    'unit': 'piece',
+                    'base_quantity': 1,
+                    'selling_price': Decimal(str(selling_price)),
+                    'purchase_price': Decimal(str(purchase_price)),
+                    'low_stock_threshold': Decimal(str(low_stock_threshold)),
+                    'sku': sku,
+                    'position': 0,
+                    'is_active': True,
                 },
             )
             return product
 
         products_ma = [
             seed_product_ma(
-                name="Caftan brodé bleu nuit",
-                selling_price="450.00",
-                purchase_price="180.00",
+                name='Caftan brodé bleu nuit',
+                selling_price='450.00',
+                purchase_price='180.00',
                 low_stock_threshold=1,
-                sku="CAF-BRO-001",
+                sku='CAF-BRO-001',
             ),
             seed_product_ma(
-                name="Djellaba femme ivoire",
-                selling_price="220.00",
-                purchase_price="90.00",
+                name='Djellaba femme ivoire',
+                selling_price='220.00',
+                purchase_price='90.00',
                 low_stock_threshold=2,
-                sku="DJE-FEM-002",
+                sku='DJE-FEM-002',
             ),
             seed_product_ma(
-                name="Babouche artisanale dorée",
-                selling_price="95.00",
-                purchase_price="40.00",
+                name='Babouche artisanale dorée',
+                selling_price='95.00',
+                purchase_price='40.00',
                 low_stock_threshold=3,
-                sku="BAB-ART-003",
+                sku='BAB-ART-003',
             ),
         ]
         stock_qtys_ma = [3, 5, 12]
@@ -287,20 +288,20 @@ class Command(BaseCommand):
                 StockMovementFactory(
                     shop=shop_ma,
                     variant=variant,
-                    movement_type="in",
+                    movement_type='in',
                     quantity=qty,
-                    reason="Stock initial — seeding",
+                    reason='Stock initial — seeding',
                     created_by=amira,
                     is_initial=True,
                 )
 
         customers_ma = [
-            ("Zineb Alaoui", "+212662345678", "Rabat", ""),
+            ('Zineb Alaoui', '+212662345678', 'Rabat', ''),
             (
-                "Sofia Benali",
-                "+212673456789",
-                "Marrakech",
-                "Commande souvent pour des occasions spéciales.",
+                'Sofia Benali',
+                '+212673456789',
+                'Marrakech',
+                'Commande souvent pour des occasions spéciales.',
             ),
         ]
         for name, phone, city, notes in customers_ma:
@@ -309,25 +310,25 @@ class Command(BaseCommand):
                 name=name,
                 phone=phone,
                 city=city,
-                country="MA",
+                country='MA',
                 notes=notes,
             )
         self.stdout.write(
-            f"    → {len(products_ma)} produits, {len(customers_ma)} clients"
+            f'    → {len(products_ma)} produits, {len(customers_ma)} clients'
         )
 
         from apps.orders import services as order_services
 
         if not Order.objects.filter(shop=shop_ma).exists():
-            zineb = Customer.objects.get(shop=shop_ma, name="Zineb Alaoui")
+            zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
             o4 = order_services.create_order(shop_ma, amira, customer=zineb)
             order_services.add_item(o4, products_ma[0].variants.first(), 1)
-            order_services.advance_order_to(o4, "to_prepare", amira)
-            order_services.update_payment(o4, Decimal("200.00"))
-            self.stdout.write("    → 1 commande créée")
+            order_services.advance_order_to(o4, 'to_prepare', amira)
+            order_services.update_payment(o4, Decimal('200.00'))
+            self.stdout.write('    → 1 commande créée')
 
         if not PreparedMessage.objects.filter(shop=shop_ma).exists():
-            sofia = Customer.objects.get(shop=shop_ma, name="Sofia Benali")
+            sofia = Customer.objects.get(shop=shop_ma, name='Sofia Benali')
             PreparedMessage.objects.create(
                 shop=shop_ma,
                 customer=sofia,
@@ -337,21 +338,21 @@ class Command(BaseCommand):
                 recipient_name=sofia.name,
                 recipient_phone=sofia.phone,
                 message=(
-                    f"Bonjour {sofia.name}, un petit rappel concernant le solde restant "  # noqa: E501
-                    "sur votre dernière commande. Merci de nous tenir informés."
+                    f'Bonjour {sofia.name}, un petit rappel concernant le solde restant '  # noqa: E501
+                    'sur votre dernière commande. Merci de nous tenir informés.'
                 ),
                 status=PreparedMessage.Status.PREPARED,
             )
-            self.stdout.write("    → 1 message WhatsApp préparé")
+            self.stdout.write('    → 1 message WhatsApp préparé')
 
         # ── Boutique 3 — Vide (démo état initial) ───────────────────
         vide = UserFactory(
-            email="vide@example.com",
-            full_name="Boutique Neuve",
-            password="Mizan1234!",
+            email='vide@example.com',
+            full_name='Boutique Neuve',
+            password='Mizan1234!',
         )
-        shop_vide = ShopFactory(name="Boutique Neuve", currency="EUR", country="FR")
-        ShopMemberFactory(shop=shop_vide, user=vide, role="owner")
+        shop_vide = ShopFactory(name='Boutique Neuve', currency='EUR', country='FR')
+        ShopMemberFactory(shop=shop_vide, user=vide, role='owner')
         seed_subscription(
             shop=shop_vide,
             plan_code=SubscriptionPlan.CODE_BOUTIQUE,
@@ -360,14 +361,14 @@ class Command(BaseCommand):
         )
         if vide.trial_consumed_at is None:
             vide.trial_consumed_at = timezone.now()
-            vide.save(update_fields=["trial_consumed_at", "updated_at"])
+            vide.save(update_fields=['trial_consumed_at', 'updated_at'])
         # Onboarding terminé → atterrit sur l'accueil vide (pas le wizard)
         if shop_vide.onboarding_completed_at is None:
             shop_vide.onboarding_completed_at = timezone.now()
-            shop_vide.save(update_fields=["onboarding_completed_at", "updated_at"])
+            shop_vide.save(update_fields=['onboarding_completed_at', 'updated_at'])
         # Email non vérifié : email_verified_at reste None → bandeau de confirmation
         self.stdout.write(
-            f"  ✓ Boutique VIDE : {shop_vide.name} (essai Boutique 14j, email non vérifié)"  # noqa: E501
+            f'  ✓ Boutique VIDE : {shop_vide.name} (essai Boutique 14j, email non vérifié)'  # noqa: E501
         )
 
         # ── Boutique 4 — Samira (Services, EUR) ─────────────────────
@@ -402,27 +403,27 @@ class Command(BaseCommand):
         page_fr, fr_created = PublicPage.objects.get_or_create(
             shop=shop_fr,
             defaults={
-                "slug": "boutique-youssef",
-                "is_active": True,
-                "is_published": True,
-                "display_name": shop_fr.name,
-                "tagline": "Mode artisanale, élégance simple.",
-                "description": (
-                    "Bienvenue dans la boutique de Youssef. Chemises en lin, "
-                    "pantalons chino, accessoires en cuir : des pièces choisies "
-                    "pour durer et bien tomber."
+                'slug': 'boutique-youssef',
+                'is_active': True,
+                'is_published': True,
+                'display_name': shop_fr.name,
+                'tagline': 'Mode artisanale, élégance simple.',
+                'description': (
+                    'Bienvenue dans la boutique de Youssef. Chemises en lin, '
+                    'pantalons chino, accessoires en cuir : des pièces choisies '
+                    'pour durer et bien tomber.'
                 ),
-                "theme": PublicPage.THEME_CLASSIC,
-                "primary_color": "#0ea5e9",
+                'theme': PublicPage.THEME_CLASSIC,
+                'primary_color': '#0ea5e9',
             },
         )
         if fr_created:
             sections_fr = [
-                (PublicPageSection.Type.HEADER, 0, ""),
-                (PublicPageSection.Type.DESCRIPTION, 1, ""),
-                (PublicPageSection.Type.PRODUCTS, 2, ""),
-                (PublicPageSection.Type.SERVICES, 3, ""),
-                (PublicPageSection.Type.CONTACT, 4, ""),
+                (PublicPageSection.Type.HEADER, 0, ''),
+                (PublicPageSection.Type.DESCRIPTION, 1, ''),
+                (PublicPageSection.Type.PRODUCTS, 2, ''),
+                (PublicPageSection.Type.SERVICES, 3, ''),
+                (PublicPageSection.Type.CONTACT, 4, ''),
             ]
             for section_type, position, content in sections_fr:
                 PublicPageSection.objects.create(
@@ -432,7 +433,7 @@ class Command(BaseCommand):
                     content=content,
                 )
             products_fr_first4 = list(
-                Product.objects.filter(shop=shop_fr).order_by("created_at")[:4]
+                Product.objects.filter(shop=shop_fr).order_by('created_at')[:4]
             )
             for position, product in enumerate(products_fr_first4):
                 PublicCatalogVisibility.objects.create(
@@ -454,7 +455,7 @@ class Command(BaseCommand):
                 value=youssef.phone,
                 position=1,
             )
-            self.stdout.write(f"  ✓ Page publique : /boutique/{page_fr.slug}")
+            self.stdout.write(f'  ✓ Page publique : /boutique/{page_fr.slug}')
 
         from ._seed_logo import seed_demo_logo
         seed_demo_logo(shop_fr, self.stdout)
@@ -462,13 +463,13 @@ class Command(BaseCommand):
         page_ma, ma_created = PublicPage.objects.get_or_create(
             shop=shop_ma,
             defaults={
-                "slug": "boutique-chraibi",
-                "is_active": True,
-                "is_published": False,
-                "display_name": shop_ma.name,
-                "tagline": "L'élégance marocaine, brodée main.",
-                "theme": PublicPage.THEME_MODERN,
-                "primary_color": "#b45309",
+                'slug': 'boutique-chraibi',
+                'is_active': True,
+                'is_published': False,
+                'display_name': shop_ma.name,
+                'tagline': "L'élégance marocaine, brodée main.",
+                'theme': PublicPage.THEME_MODERN,
+                'primary_color': '#b45309',
             },
         )
         if ma_created:
@@ -478,7 +479,7 @@ class Command(BaseCommand):
                 position=0,
             )
             self.stdout.write(
-                f"  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}"
+                f'  ✓ Page publique (brouillon) : /boutique/{page_ma.slug}'
             )
 
         # ── OCR ─────────────────────────────────────────────────────
@@ -487,9 +488,9 @@ class Command(BaseCommand):
                 shop=shop_fr,
                 uploaded_by_user=youssef,
                 document_type=UploadedDocument.DOCUMENT_TYPE_SUPPLIER_INVOICE,
-                object_key=f"ocr/{shop_fr.pk}/supplier-invoices/seed-demo.jpg",
-                original_filename="facture-fournisseur-demo.jpg",
-                mime_type="image/jpeg",
+                object_key=f'ocr/{shop_fr.pk}/supplier-invoices/seed-demo.jpg',
+                original_filename='facture-fournisseur-demo.jpg',
+                mime_type='image/jpeg',
                 size_bytes=245_678,
             )
             OcrResult.objects.create(
@@ -497,11 +498,11 @@ class Command(BaseCommand):
                 uploaded_document=demo_doc,
                 status=OcrResult.STATUS_PENDING,
             )
-            self.stdout.write("    → 1 document OCR (pending)")
+            self.stdout.write('    → 1 document OCR (pending)')
         # Scan d'emballage : 8 lectures avancées et 2 secours vision ce mois-ci.
         ProductScanUsage.objects.update_or_create(
             shop=shop_fr, month=scan_quota_month(shop_fr),
-            defaults={"text_count": 8, "vision_count": 2},
+            defaults={'text_count': 8, 'vision_count': 2},
         )
         self.stdout.write(
             "    → Scan d'emballage : 8 lectures avancées, 2 secours vision ce mois-ci"
@@ -518,26 +519,29 @@ class Command(BaseCommand):
             shop=shop_ma, is_active=True, points_per_unit=2, redemption_threshold=150
         )
 
-        karima = Customer.objects.get(shop=shop_fr, name="Karima Bensouda")
+        karima = Customer.objects.get(shop=shop_fr, name='Karima Bensouda')
         card_karima = loyalty_services.get_or_create_card(shop_fr, karima)
         if card_karima.total_points_earned == 0:
             loyalty_services.earn_points(
-                card_karima, 80, created_by=youssef, note="Achat chemise et ceinture"
+                card_karima, 80, created_by=youssef, note='Achat chemise et ceinture'
             )
             loyalty_services.earn_points(
-                card_karima, 35, created_by=youssef, note="Achat sac × 3"
+                card_karima, 35, created_by=youssef, note='Achat sac × 3'
             )
 
-        zineb = Customer.objects.get(shop=shop_ma, name="Zineb Alaoui")
+        zineb = Customer.objects.get(shop=shop_ma, name='Zineb Alaoui')
         card_zineb = loyalty_services.get_or_create_card(shop_ma, zineb)
         if card_zineb.total_points_earned == 0:
             loyalty_services.earn_points(
-                card_zineb, 100, created_by=amira, note="Achat caftan brodé"
+                card_zineb, 100, created_by=amira, note='Achat caftan brodé'
             )
 
         self.stdout.write(
-            "  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)"
+            '  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)'
         )
+
+        # ── Factures libres (brouillons) ────────────────────────────
+        seed_invoice_drafts(shop_fr, karima, 'Retouche ourlet', stdout=self.stdout)
 
         # ── Zakat (fiches personnelles) ─────────────────────────────
         seed_zakat(shop_fr, youssef, shop_ma, amira, stdout=self.stdout)
@@ -548,25 +552,25 @@ class Command(BaseCommand):
         fr_orders = Ord.objects.filter(shop=shop_fr)
         fr_status = {
             s: fr_orders.filter(status=s).count()
-            for s in ("to_prepare", "prepared", "shipped", "cancelled")
+            for s in ('to_prepare', 'prepared', 'shipped', 'cancelled')
         }
         fr_unpaid = (
-            fr_orders.filter(payment_status__in=("unpaid", "partial"))
-            .exclude(status="cancelled")
+            fr_orders.filter(payment_status__in=('unpaid', 'partial'))
+            .exclude(status='cancelled')
             .count()
         )
 
-        self.stdout.write(self.style.SUCCESS("\n=== Seeding terminé ==="))
-        self.stdout.write("  Comptes :")
-        self.stdout.write("    youssef@example.com / Mizan1234!  (Boutique actif)")
-        self.stdout.write("    sara@example.com    / Mizan1234!  (Staff FR)")
-        self.stdout.write("    amira@example.ma    / Mizan1234!  (essai Boutique MA)")
+        self.stdout.write(self.style.SUCCESS('\n=== Seeding terminé ==='))
+        self.stdout.write('  Comptes :')
+        self.stdout.write('    youssef@example.com / Mizan1234!  (Boutique actif)')
+        self.stdout.write('    sara@example.com    / Mizan1234!  (Staff FR)')
+        self.stdout.write('    amira@example.ma    / Mizan1234!  (essai Boutique MA)')
         self.stdout.write(
-            "    vide@example.com    / Mizan1234!  (essai Boutique, accueil vide)"
+            '    vide@example.com    / Mizan1234!  (essai Boutique, accueil vide)'
         )
-        self.stdout.write("    services@example.com / Mizan1234!  (Solo actif, services)")  # noqa: E501
-        self.stdout.write("    e2e@example.com     / Mizan1234!  (Boutique, audits Playwright)")  # noqa: E501
-        self.stdout.write("    e2e-staff@example.com / Mizan1234!  (Staff audits)")
-        self.stdout.write("    admin@mizan.dev     / Admin1234!  (superadmin)")
-        self.stdout.write(f"  Boutique FR — commandes : {fr_status}")
-        self.stdout.write(f"  Boutique FR — impayées/partielles actives : {fr_unpaid}")
+        self.stdout.write('    services@example.com / Mizan1234!  (Solo actif, services)')  # noqa: E501
+        self.stdout.write('    e2e@example.com     / Mizan1234!  (Boutique, audits Playwright)')  # noqa: E501
+        self.stdout.write('    e2e-staff@example.com / Mizan1234!  (Staff audits)')
+        self.stdout.write('    admin@mizan.dev     / Admin1234!  (superadmin)')
+        self.stdout.write(f'  Boutique FR — commandes : {fr_status}')
+        self.stdout.write(f'  Boutique FR — impayées/partielles actives : {fr_unpaid}')

@@ -23,6 +23,7 @@ from .services import display_line_description
 from .formatting import (
     format_iban,
     format_invoice_phone,
+    format_siren,
     format_siret,
     format_tax_id,
     format_vat_number,
@@ -174,6 +175,7 @@ def parties(style: InvoiceStyle) -> Table:
         invoice.buyer_name,
         [
             invoice.buyer_address,
+            'SIREN ' + format_siren(invoice.buyer_siren) if invoice.buyer_siren else '',
             invoice.buyer_email,
             format_invoice_phone(invoice.buyer_phone, invoice.buyer_country),
         ],
@@ -191,6 +193,15 @@ def parties(style: InvoiceStyle) -> Table:
         )
 
     return table([[block(seller), '', block(buyer)]], [width, 12, width], splitInRow=1)
+
+
+def operation(style: InvoiceStyle) -> list:
+    """Nature de l'opération, figée à l'émission d'une facture libre seulement."""
+    category = style.snapshot.get('operation_category')
+    if not category:
+        return []
+    text = style.text('operation') + ' : ' + style.text('operation_' + category)
+    return [Spacer(1, 10.5), style.paragraph(xml(text), size=9, color=MUTED)]
 
 
 def lines_table(style: InvoiceStyle) -> Table:
@@ -213,11 +224,22 @@ def lines_table(style: InvoiceStyle) -> Table:
         variant = line.variant_name
         if variant and not is_default_variant(variant):
             description += f'<br/><font size="9" color="#6b716d">{xml(variant)}</font>'
+        cell = [style.paragraph(description)]
+        if line.details:
+            # Description multiligne d'une ligne libre : un paragraphe par ligne, pour
+            # que le tableau puisse couper une ligne plus haute que la page.
+            cell += [
+                style.paragraph(xml(text) or '&nbsp;', size=9, color=MUTED)
+                for text in line.details.split('\n')
+            ]
+        price = style.money(line.unit_price_ht)
         rows.append(
             [
-                style.paragraph(description),
+                cell,
                 style.paragraph(f'{Decimal(line.quantity).normalize():f}', align=1),
-                style.paragraph(xml(style.money(line.unit_price_ht)), align=2),
+                style.paragraph(
+                    xml(f'{price} / {line.unit}' if line.unit else price), align=2
+                ),
                 style.paragraph(
                     xml(style.money(line.line_subtotal_ht)), bold=True, align=2
                 ),
@@ -229,7 +251,9 @@ def lines_table(style: InvoiceStyle) -> Table:
         padding=8.25,
         repeatRows=1,
         cornerRadii=[7.5, 7.5, 0, 0],
-        splitInRow=0,
+        # Coupe entre deux lignes d'abord ; dans une ligne seulement si elle ne
+        # tient pas sur la page (description longue).
+        splitInRow=1,
         commands=[
             ('BACKGROUND', (0, 0), (-1, 0), style.accent),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, STRIPE]),

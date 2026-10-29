@@ -108,11 +108,11 @@ def create_movement(
     stock peut devenir négatif (réservation d'une commande).
     """
     if movement_type not in VALID_TYPES:
-        raise ValueError(f"Type de mouvement invalide : {movement_type!r}.")
+        raise ValueError(f'Type de mouvement invalide : {movement_type!r}.')
 
     qty = Decimal(str(quantity))
     if movement_type != 'adjustment' and qty <= 0:
-        raise ValueError("La quantité doit être strictement positive.")
+        raise ValueError('La quantité doit être strictement positive.')
 
     if str(variant.shop_id) != str(shop.id):
         raise ValueError("La variante n'appartient pas à cette boutique.")

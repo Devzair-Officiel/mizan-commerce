@@ -26,121 +26,121 @@ from apps.customers.models import Customer
 from apps.core.services import build_dashboard_today, build_nav_badges, build_sales
 
 
-def setup(email: str, shop_timezone: str = "Europe/Paris"):
-    user = User.objects.create_user(email=email, password="Pass123!Strong")
+def setup(email: str, shop_timezone: str = 'Europe/Paris'):
+    user = User.objects.create_user(email=email, password='Pass123!Strong')
     shop = Shop.objects.create(
-        name=f"Shop {email}", currency="EUR", timezone=shop_timezone
+        name=f'Shop {email}', currency='EUR', timezone=shop_timezone
     )  # noqa: E501
-    ShopMember.objects.create(shop=shop, user=user, role="owner")
+    ShopMember.objects.create(shop=shop, user=user, role='owner')
     return user, shop
 
 
 class DashboardTodayTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user, self.shop = setup("dashboard@example.com")
+        self.user, self.shop = setup('dashboard@example.com')
         self.client.force_authenticate(user=self.user)
 
     def _url(self):
-        return reverse("dashboard-today")
+        return reverse('dashboard-today')
 
     def test_empty_dashboard(self):
         response = self.client.get(self._url())
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["orders_to_prepare"]["count"], 0)
-        self.assertEqual(response.data["unpaid_orders"]["count"], 0)
-        self.assertEqual(response.data["low_stock_products"]["count"], 0)
-        self.assertEqual(response.data["today_reminders"]["count"], 0)
+        self.assertEqual(response.data['orders_to_prepare']['count'], 0)
+        self.assertEqual(response.data['unpaid_orders']['count'], 0)
+        self.assertEqual(response.data['low_stock_products']['count'], 0)
+        self.assertEqual(response.data['today_reminders']['count'], 0)
 
     def test_orders_to_prepare_count(self):
         order_services.create_order(self.shop, self.user)
         response = self.client.get(self._url())
-        self.assertEqual(response.data["orders_to_prepare"]["count"], 1)
+        self.assertEqual(response.data['orders_to_prepare']['count'], 1)
 
     def test_unpaid_orders_count(self):
         order_services.create_order(self.shop, self.user)
         response = self.client.get(self._url())
-        self.assertEqual(response.data["unpaid_orders"]["count"], 1)
+        self.assertEqual(response.data['unpaid_orders']['count'], 1)
 
     def test_low_stock_products_count(self):
-        p = Product.objects.create(shop=self.shop, name="P")
+        p = Product.objects.create(shop=self.shop, name='P')
         v = ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Par défaut",
-            unit="piece",
+            packaging_name='Par défaut',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
-            purchase_price=Decimal("5"),
+            selling_price=Decimal('10'),
+            purchase_price=Decimal('5'),
             low_stock_threshold=5,
         )
         StockMovement.objects.create(
-            shop=self.shop, variant=v, movement_type="in", quantity=3
+            shop=self.shop, variant=v, movement_type='in', quantity=3
         )  # noqa: E501
         response = self.client.get(self._url())
-        self.assertEqual(response.data["low_stock_products"]["count"], 1)
+        self.assertEqual(response.data['low_stock_products']['count'], 1)
 
     def test_out_of_stock_included(self):
-        p = Product.objects.create(shop=self.shop, name="Rupture")
+        p = Product.objects.create(shop=self.shop, name='Rupture')
         ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Par défaut",
-            unit="piece",
+            packaging_name='Par défaut',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
+            selling_price=Decimal('10'),
         )
         response = self.client.get(self._url())
-        self.assertEqual(response.data["low_stock_products"]["count"], 1)
+        self.assertEqual(response.data['low_stock_products']['count'], 1)
 
     def test_today_reminders_count(self):
         Reminder.objects.create(
             shop=self.shop,
             author=self.user,
-            title="Relance",
+            title='Relance',
             due_at=timezone.now(),
         )
         Reminder.objects.create(
             shop=self.shop,
             author=self.user,
-            title="Demain",
+            title='Demain',
             due_at=timezone.now() + timedelta(days=1),
         )
         response = self.client.get(self._url())
-        self.assertEqual(response.data["today_reminders"]["count"], 1)
+        self.assertEqual(response.data['today_reminders']['count'], 1)
 
     def test_multitenant_isolation(self):
-        user_b, shop_b = setup("b@example.com")
+        user_b, shop_b = setup('b@example.com')
         order_services.create_order(shop_b, user_b)
         response = self.client.get(self._url())
-        self.assertEqual(response.data["orders_to_prepare"]["count"], 0)
+        self.assertEqual(response.data['orders_to_prepare']['count'], 0)
 
     # ── Timezone ──────────────────────────────────────────────────────────────
 
     def test_order_at_2330_paris_counts_today(self):
         """Une commande à 23:30 heure de Paris doit compter aujourd'hui."""
         # now = 15 janvier 2025 à 12:00 UTC (= 13:00 Paris)
-        now = datetime(2025, 1, 15, 12, 0, tzinfo=ZoneInfo("UTC"))
+        now = datetime(2025, 1, 15, 12, 0, tzinfo=ZoneInfo('UTC'))
         # Commande à 22:30 UTC = 23:30 Paris Jan 15 → aujourd'hui ✓
         order = order_services.create_order(self.shop, self.user)
         Order.objects.filter(pk=order.pk).update(
-            created_at=datetime(2025, 1, 15, 22, 30, tzinfo=ZoneInfo("UTC")),
+            created_at=datetime(2025, 1, 15, 22, 30, tzinfo=ZoneInfo('UTC')),
         )
         data = build_dashboard_today(self.shop, now=now)
         # to_prepare n'est pas exclu → la commande compte dans orders_count aujourd'hui
-        self.assertEqual(data["today"]["orders_count"], 1)
-        self.assertEqual(data["orders_to_prepare"]["count"], 1)
+        self.assertEqual(data['today']['orders_count'], 1)
+        self.assertEqual(data['orders_to_prepare']['count'], 1)
 
     def test_order_at_0030_paris_doesnt_count_today(self):
         """00:30 heure de Paris le lendemain ne compte pas aujourd'hui."""  # noqa: E501
-        now = datetime(2025, 1, 15, 12, 0, tzinfo=ZoneInfo("UTC"))
+        now = datetime(2025, 1, 15, 12, 0, tzinfo=ZoneInfo('UTC'))
         # 23:30 UTC = 00:30 Paris Jan 16 → demain ✗
         order = order_services.create_order(self.shop, self.user)
         Order.objects.filter(pk=order.pk).update(
-            created_at=datetime(2025, 1, 15, 23, 30, tzinfo=ZoneInfo("UTC")),
+            created_at=datetime(2025, 1, 15, 23, 30, tzinfo=ZoneInfo('UTC')),
         )
         data = build_dashboard_today(self.shop, now=now)
-        self.assertEqual(data["today"]["orders_count"], 0)
+        self.assertEqual(data['today']['orders_count'], 0)
 
     # ── amount_due & total_due ─────────────────────────────────────────────────
 
@@ -148,77 +148,77 @@ class DashboardTodayTest(TestCase):
         """amount_due = total_amount - amount_paid pour chaque commande impayée."""
         order = order_services.create_order(self.shop, self.user)
         Order.objects.filter(pk=order.pk).update(
-            total_amount=Decimal("100.00"),
-            amount_paid=Decimal("30.00"),
-            payment_status="partial",
+            total_amount=Decimal('100.00'),
+            amount_paid=Decimal('30.00'),
+            payment_status='partial',
         )
         data = build_dashboard_today(self.shop)
-        item = data["unpaid_orders"]["items"][0]
-        self.assertEqual(Decimal(item["amount_due"]), Decimal("70.00"))
+        item = data['unpaid_orders']['items'][0]
+        self.assertEqual(Decimal(item['amount_due']), Decimal('70.00'))
 
     def test_total_due_across_orders(self):
         """total_due = somme de tous les amount_due."""
         for total, paid in [
-            (Decimal("100.00"), Decimal("30.00")),
-            (Decimal("50.00"), Decimal("0.00")),
+            (Decimal('100.00'), Decimal('30.00')),
+            (Decimal('50.00'), Decimal('0.00')),
         ]:  # noqa: E501
             order = order_services.create_order(self.shop, self.user)
             Order.objects.filter(pk=order.pk).update(
                 total_amount=total,
                 amount_paid=paid,
-                payment_status="partial" if paid > 0 else "unpaid",
+                payment_status='partial' if paid > 0 else 'unpaid',
             )
         data = build_dashboard_today(self.shop)
-        self.assertEqual(Decimal(data["unpaid_orders"]["total_due"]), Decimal("120.00"))
+        self.assertEqual(Decimal(data['unpaid_orders']['total_due']), Decimal('120.00'))
 
     # ── out_of_stock_count ────────────────────────────────────────────────────
 
     def test_out_of_stock_count_field(self):
         """out_of_stock_count compte uniquement les variantes à stock ≤ 0."""
-        p = Product.objects.create(shop=self.shop, name="Multi")
+        p = Product.objects.create(shop=self.shop, name='Multi')
         # Variante en rupture
         ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Rupture",
-            unit="piece",
+            packaging_name='Rupture',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
+            selling_price=Decimal('10'),
         )
         # Variante sous seuil mais pas en rupture
         v2 = ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Faible",
-            unit="piece",
+            packaging_name='Faible',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
+            selling_price=Decimal('10'),
             low_stock_threshold=5,
         )
         StockMovement.objects.create(
-            shop=self.shop, variant=v2, movement_type="in", quantity=3
+            shop=self.shop, variant=v2, movement_type='in', quantity=3
         )  # noqa: E501
         data = build_dashboard_today(self.shop)
-        self.assertEqual(data["low_stock_products"]["count"], 2)
-        self.assertEqual(data["low_stock_products"]["out_of_stock_count"], 1)
+        self.assertEqual(data['low_stock_products']['count'], 2)
+        self.assertEqual(data['low_stock_products']['out_of_stock_count'], 1)
 
     def test_negative_stock_counted_apart_from_out_of_stock(self):
         """Un format vendu au-delà de son stock est négatif, pas en rupture."""
-        p = Product.objects.create(shop=self.shop, name="Vendu")
+        p = Product.objects.create(shop=self.shop, name='Vendu')
         v = ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Unité",
-            unit="piece",
+            packaging_name='Unité',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
+            selling_price=Decimal('10'),
         )
         StockMovement.objects.create(
-            shop=self.shop, variant=v, movement_type="reservation", quantity=2
+            shop=self.shop, variant=v, movement_type='reservation', quantity=2
         )
-        block = build_dashboard_today(self.shop)["low_stock_products"]
+        block = build_dashboard_today(self.shop)['low_stock_products']
         self.assertEqual(
-            (block["count"], block["negative_count"], block["out_of_stock_count"]),
+            (block['count'], block['negative_count'], block['out_of_stock_count']),
             (1, 1, 0),
         )
 
@@ -229,12 +229,12 @@ class DashboardTodayTest(TestCase):
         Reminder.objects.create(
             shop=self.shop,
             author=self.user,
-            title="En retard",
+            title='En retard',
             due_at=timezone.now() - timedelta(days=1),
         )
         data = build_dashboard_today(self.shop)
-        self.assertEqual(data["today_reminders"]["count"], 1)
-        self.assertTrue(data["today_reminders"]["items"][0]["is_overdue"])
+        self.assertEqual(data['today_reminders']['count'], 1)
+        self.assertTrue(data['today_reminders']['items'][0]['is_overdue'])
 
     def test_overdue_comes_before_today(self):
         """Les rappels en retard apparaissent avant les rappels du jour."""
@@ -247,46 +247,46 @@ class DashboardTodayTest(TestCase):
         Reminder.objects.create(
             shop=self.shop,
             author=self.user,
-            title="Hier",
+            title='Hier',
             due_at=timezone.now() - timedelta(days=1),
         )
         data = build_dashboard_today(self.shop)
-        self.assertEqual(data["today_reminders"]["count"], 2)
-        self.assertTrue(data["today_reminders"]["items"][0]["is_overdue"])
+        self.assertEqual(data['today_reminders']['count'], 2)
+        self.assertTrue(data['today_reminders']['items'][0]['is_overdue'])
 
     # ── setup block ───────────────────────────────────────────────────────────
 
     def test_setup_empty_shop(self):
         """Boutique neuve : has_orders=False, counts à 0."""
         data = build_dashboard_today(self.shop)
-        self.assertFalse(data["setup"]["has_orders"])
-        self.assertEqual(data["setup"]["products_count"], 0)
-        self.assertEqual(data["setup"]["customers_count"], 0)
+        self.assertFalse(data['setup']['has_orders'])
+        self.assertEqual(data['setup']['products_count'], 0)
+        self.assertEqual(data['setup']['customers_count'], 0)
 
     def test_setup_has_orders(self):
         """has_orders est True dès qu'une commande existe."""
         order_services.create_order(self.shop, self.user)
         data = build_dashboard_today(self.shop)
-        self.assertTrue(data["setup"]["has_orders"])
+        self.assertTrue(data['setup']['has_orders'])
 
     # ── multitenant (setup) ───────────────────────────────────────────────────
 
     def test_setup_multitenant_isolation(self):
         """setup ne compte pas les données d'une autre boutique."""
-        user_b, shop_b = setup("setup_b@example.com")
+        user_b, shop_b = setup('setup_b@example.com')
         order_services.create_order(shop_b, user_b)
         data = build_dashboard_today(self.shop)
-        self.assertFalse(data["setup"]["has_orders"])
+        self.assertFalse(data['setup']['has_orders'])
 
 
 class DashboardSalesTest(TestCase):
     """Bloc Ventes de l'accueil : 7 jours, 12 mois, depuis l'ouverture (fuseau Paris)."""  # noqa: E501
 
-    UTC = ZoneInfo("UTC")
+    UTC = ZoneInfo('UTC')
 
     def setUp(self):
         self.client = APIClient()
-        self.user, self.shop = setup("sales@example.com")
+        self.user, self.shop = setup('sales@example.com')
         self.client.force_authenticate(user=self.user)
         # Ouverture ancienne : seules les commandes fixent l'historique de « all ».
         Shop.objects.filter(pk=self.shop.pk).update(
@@ -297,77 +297,77 @@ class DashboardSalesTest(TestCase):
     def _order(self, amount: str, when: datetime, status: str | None = None, shop=None):
         order = order_services.create_order(shop or self.shop, self.user)
         Order.objects.filter(pk=order.pk).update(
-            total_amount=Decimal(amount), created_at=when, **({"status": status} if status else {}),  # noqa: E501
+            total_amount=Decimal(amount), created_at=when, **({'status': status} if status else {}),  # noqa: E501
         )
         return order
 
     def _points(self, data: dict) -> dict[str, tuple[str, int]]:
-        return {p["date"]: (p["revenue"], p["orders_count"]) for p in data["points"]}
+        return {p['date']: (p['revenue'], p['orders_count']) for p in data['points']}
 
     # ── 7 jours ───────────────────────────────────────────────────────────────
 
     def test_seven_days_day_boundary_in_shop_timezone(self):
         """23:30 à Paris compte ce jour-là ; 00:30 à Paris compte le lendemain."""
         now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
-        self._order("10.00", datetime(2025, 1, 15, 22, 30, tzinfo=self.UTC))  # 23:30 le 15  # noqa: E501
-        self._order("20.00", datetime(2025, 1, 15, 23, 30, tzinfo=self.UTC))  # 00:30 le 16  # noqa: E501
-        data = build_sales(self.shop, "7d", now=now)
+        self._order('10.00', datetime(2025, 1, 15, 22, 30, tzinfo=self.UTC))  # 23:30 le 15  # noqa: E501
+        self._order('20.00', datetime(2025, 1, 15, 23, 30, tzinfo=self.UTC))  # 00:30 le 16  # noqa: E501
+        data = build_sales(self.shop, '7d', now=now)
         points = self._points(data)
-        self.assertEqual(data["granularity"], "day")
-        self.assertEqual(list(points), [f"2025-01-{d:02d}" for d in range(10, 17)])
-        self.assertEqual(points["2025-01-15"], ("10.00", 1))
-        self.assertEqual(points["2025-01-16"], ("20.00", 1))
-        self.assertEqual(Decimal(data["total"]), Decimal("30.00"))
-        self.assertEqual(data["orders_count"], 2)
-        self.assertIsNone(data["best_month"])
-        self.assertIsNone(data["monthly_average"])
+        self.assertEqual(data['granularity'], 'day')
+        self.assertEqual(list(points), [f'2025-01-{d:02d}' for d in range(10, 17)])
+        self.assertEqual(points['2025-01-15'], ('10.00', 1))
+        self.assertEqual(points['2025-01-16'], ('20.00', 1))
+        self.assertEqual(Decimal(data['total']), Decimal('30.00'))
+        self.assertEqual(data['orders_count'], 2)
+        self.assertIsNone(data['best_month'])
+        self.assertIsNone(data['monthly_average'])
 
     def test_seven_days_window_excludes_eighth_day_and_cancelled(self):
         now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
-        self._order("50.00", datetime(2025, 1, 9, 22, 59, tzinfo=self.UTC))  # 23:59 le 9  # noqa: E501
-        self._order("70.00", datetime(2025, 1, 12, 10, 0, tzinfo=self.UTC), status="cancelled")  # noqa: E501
-        data = build_sales(self.shop, "7d", now=now)
-        self.assertEqual(Decimal(data["total"]), Decimal("0"))
-        self.assertEqual(data["orders_count"], 0)
+        self._order('50.00', datetime(2025, 1, 9, 22, 59, tzinfo=self.UTC))  # 23:59 le 9  # noqa: E501
+        self._order('70.00', datetime(2025, 1, 12, 10, 0, tzinfo=self.UTC), status='cancelled')  # noqa: E501
+        data = build_sales(self.shop, '7d', now=now)
+        self.assertEqual(Decimal(data['total']), Decimal('0'))
+        self.assertEqual(data['orders_count'], 0)
 
     def test_seven_days_comparison_with_previous_seven_days(self):
         now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
-        self._order("100.00", datetime(2025, 1, 5, 10, 0, tzinfo=self.UTC))  # période précédente  # noqa: E501
-        self._order("150.00", datetime(2025, 1, 14, 10, 0, tzinfo=self.UTC))
-        data = build_sales(self.shop, "7d", now=now)
-        self.assertEqual(data["comparison"], {"previous_total": "100.00", "change_pct": 50})  # noqa: E501
+        self._order('100.00', datetime(2025, 1, 5, 10, 0, tzinfo=self.UTC))  # période précédente  # noqa: E501
+        self._order('150.00', datetime(2025, 1, 14, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, '7d', now=now)
+        self.assertEqual(data['comparison'], {'previous_total': '100.00', 'change_pct': 50})  # noqa: E501
 
     def test_comparison_without_previous_sales_has_no_percentage(self):
         now = datetime(2025, 1, 16, 12, 0, tzinfo=self.UTC)
-        self._order("150.00", datetime(2025, 1, 14, 10, 0, tzinfo=self.UTC))
-        data = build_sales(self.shop, "7d", now=now)
-        self.assertEqual(data["comparison"], {"previous_total": "0", "change_pct": None})  # noqa: E501
+        self._order('150.00', datetime(2025, 1, 14, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, '7d', now=now)
+        self.assertEqual(data['comparison'], {'previous_total': '0', 'change_pct': None})  # noqa: E501
 
     # ── 12 mois ───────────────────────────────────────────────────────────────
 
     def test_twelve_months_month_boundary_in_shop_timezone(self):
         """31 janvier 23:30 UTC = 1er février 00:30 à Paris → février."""
         now = datetime(2025, 3, 10, 12, 0, tzinfo=self.UTC)
-        self._order("40.00", datetime(2025, 1, 31, 22, 30, tzinfo=self.UTC))  # 23:30 le 31 janv.  # noqa: E501
-        self._order("60.00", datetime(2025, 1, 31, 23, 30, tzinfo=self.UTC))  # 00:30 le 1er févr.  # noqa: E501
-        data = build_sales(self.shop, "12m", now=now)
+        self._order('40.00', datetime(2025, 1, 31, 22, 30, tzinfo=self.UTC))  # 23:30 le 31 janv.  # noqa: E501
+        self._order('60.00', datetime(2025, 1, 31, 23, 30, tzinfo=self.UTC))  # 00:30 le 1er févr.  # noqa: E501
+        data = build_sales(self.shop, '12m', now=now)
         points = self._points(data)
-        self.assertEqual(data["granularity"], "month")
+        self.assertEqual(data['granularity'], 'month')
         self.assertEqual(len(points), 12)
-        self.assertEqual(data["points"][0]["date"], "2024-04-01")
-        self.assertEqual(data["points"][-1]["date"], "2025-03-01")
-        self.assertEqual(points["2025-01-01"], ("40.00", 1))
-        self.assertEqual(points["2025-02-01"], ("60.00", 1))
+        self.assertEqual(data['points'][0]['date'], '2024-04-01')
+        self.assertEqual(data['points'][-1]['date'], '2025-03-01')
+        self.assertEqual(points['2025-01-01'], ('40.00', 1))
+        self.assertEqual(points['2025-02-01'], ('60.00', 1))
 
     def test_twelve_months_comparison_best_month_and_average(self):
         now = datetime(2025, 3, 10, 12, 0, tzinfo=self.UTC)
-        self._order("120.00", datetime(2023, 6, 1, 10, 0, tzinfo=self.UTC))  # période précédente  # noqa: E501
-        self._order("100.00", datetime(2024, 6, 1, 10, 0, tzinfo=self.UTC))
-        self._order("140.00", datetime(2025, 2, 1, 10, 0, tzinfo=self.UTC))
-        data = build_sales(self.shop, "12m", now=now)
-        self.assertEqual(data["comparison"], {"previous_total": "120.00", "change_pct": 100})  # noqa: E501
-        self.assertEqual(data["best_month"], {"month": "2025-02-01", "revenue": "140.00"})  # noqa: E501
-        self.assertEqual(data["monthly_average"], "20.00")
+        self._order('120.00', datetime(2023, 6, 1, 10, 0, tzinfo=self.UTC))  # période précédente  # noqa: E501
+        self._order('100.00', datetime(2024, 6, 1, 10, 0, tzinfo=self.UTC))
+        self._order('140.00', datetime(2025, 2, 1, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, '12m', now=now)
+        self.assertEqual(data['comparison'], {'previous_total': '120.00', 'change_pct': 100})  # noqa: E501
+        self.assertEqual(data['best_month'], {'month': '2025-02-01', 'revenue': '140.00'})  # noqa: E501
+        self.assertEqual(data['monthly_average'], '20.00')
 
     # ── Depuis le début ───────────────────────────────────────────────────────
 
@@ -378,16 +378,16 @@ class DashboardSalesTest(TestCase):
         )
         self.shop.refresh_from_db()
         now = datetime(2025, 3, 10, 12, 0, tzinfo=self.UTC)
-        self._order("30.00", datetime(2024, 11, 20, 10, 0, tzinfo=self.UTC))
-        self._order("90.00", datetime(2025, 1, 5, 10, 0, tzinfo=self.UTC))
-        data = build_sales(self.shop, "all", now=now)
-        self.assertEqual(data["granularity"], "month")
-        self.assertEqual(data["start"], "2024-11-20")
-        self.assertEqual([p["date"] for p in data["points"]],
-                         ["2024-11-01", "2024-12-01", "2025-01-01", "2025-02-01", "2025-03-01"])  # noqa: E501
-        self.assertIsNone(data["comparison"])
-        self.assertEqual(data["best_month"], {"month": "2025-01-01", "revenue": "90.00"})  # noqa: E501
-        self.assertEqual(data["monthly_average"], "24.00")
+        self._order('30.00', datetime(2024, 11, 20, 10, 0, tzinfo=self.UTC))
+        self._order('90.00', datetime(2025, 1, 5, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, 'all', now=now)
+        self.assertEqual(data['granularity'], 'month')
+        self.assertEqual(data['start'], '2024-11-20')
+        self.assertEqual([p['date'] for p in data['points']],
+                         ['2024-11-01', '2024-12-01', '2025-01-01', '2025-02-01', '2025-03-01'])  # noqa: E501
+        self.assertIsNone(data['comparison'])
+        self.assertEqual(data['best_month'], {'month': '2025-01-01', 'revenue': '90.00'})  # noqa: E501
+        self.assertEqual(data['monthly_average'], '24.00')
 
     def test_all_new_shop_one_point_per_week(self):
         """Boutique neuve, sans commande : un point par semaine depuis son ouverture."""
@@ -396,13 +396,13 @@ class DashboardSalesTest(TestCase):
         )
         self.shop.refresh_from_db()
         now = datetime(2025, 3, 18, 12, 0, tzinfo=self.UTC)  # mardi
-        data = build_sales(self.shop, "all", now=now)
-        self.assertEqual(data["granularity"], "week")
-        self.assertEqual(data["start"], "2025-03-05")
-        self.assertEqual([p["date"] for p in data["points"]], ["2025-03-03", "2025-03-10", "2025-03-17"])  # noqa: E501
-        self.assertEqual(data["total"], "0")
-        self.assertIsNone(data["best_month"])
-        self.assertEqual(data["monthly_average"], "0.00")
+        data = build_sales(self.shop, 'all', now=now)
+        self.assertEqual(data['granularity'], 'week')
+        self.assertEqual(data['start'], '2025-03-05')
+        self.assertEqual([p['date'] for p in data['points']], ['2025-03-03', '2025-03-10', '2025-03-17'])  # noqa: E501
+        self.assertEqual(data['total'], '0')
+        self.assertIsNone(data['best_month'])
+        self.assertEqual(data['monthly_average'], '0.00')
 
     def test_all_week_points_keep_month_summary(self):
         Shop.objects.filter(pk=self.shop.pk).update(
@@ -410,112 +410,112 @@ class DashboardSalesTest(TestCase):
         )
         self.shop.refresh_from_db()
         now = datetime(2025, 3, 18, 12, 0, tzinfo=self.UTC)
-        self._order("25.00", datetime(2025, 2, 24, 10, 0, tzinfo=self.UTC))
-        self._order("75.00", datetime(2025, 3, 17, 10, 0, tzinfo=self.UTC))
-        data = build_sales(self.shop, "all", now=now)
-        self.assertEqual(data["granularity"], "week")
-        self.assertEqual(data["best_month"], {"month": "2025-03-01", "revenue": "75.00"})  # noqa: E501
-        self.assertEqual(data["monthly_average"], "50.00")  # février et mars
+        self._order('25.00', datetime(2025, 2, 24, 10, 0, tzinfo=self.UTC))
+        self._order('75.00', datetime(2025, 3, 17, 10, 0, tzinfo=self.UTC))
+        data = build_sales(self.shop, 'all', now=now)
+        self.assertEqual(data['granularity'], 'week')
+        self.assertEqual(data['best_month'], {'month': '2025-03-01', 'revenue': '75.00'})  # noqa: E501
+        self.assertEqual(data['monthly_average'], '50.00')  # février et mars
 
     # ── API ───────────────────────────────────────────────────────────────────
 
     def test_api_default_period_and_multitenant_isolation(self):
-        user_b, shop_b = setup("sales_b@example.com")
-        self._order("80.00", timezone.now(), shop=shop_b)
-        self._order("15.00", timezone.now())
-        for period in ("", "?period=7d", "?period=12m", "?period=all"):
-            response = self.client.get(reverse("dashboard-sales") + period)
+        user_b, shop_b = setup('sales_b@example.com')
+        self._order('80.00', timezone.now(), shop=shop_b)
+        self._order('15.00', timezone.now())
+        for period in ('', '?period=7d', '?period=12m', '?period=all'):
+            response = self.client.get(reverse('dashboard-sales') + period)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertEqual(Decimal(response.data["total"]), Decimal("15.00"), period)
-        self.assertEqual(self.client.get(reverse("dashboard-sales")).data["period"], "7d")  # noqa: E501
+            self.assertEqual(Decimal(response.data['total']), Decimal('15.00'), period)
+        self.assertEqual(self.client.get(reverse('dashboard-sales')).data['period'], '7d')  # noqa: E501
 
     def test_api_unknown_period(self):
-        response = self.client.get(reverse("dashboard-sales") + "?period=30d")
+        response = self.client.get(reverse('dashboard-sales') + '?period=30d')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_api_requires_dashboard_module(self):
-        staff = User.objects.create_user(email="sales_staff@example.com", password="Pass123!Strong")  # noqa: E501
-        ShopMember.objects.create(shop=self.shop, user=staff, role="staff", permissions=["orders"])  # noqa: E501
+        staff = User.objects.create_user(email='sales_staff@example.com', password='Pass123!Strong')  # noqa: E501
+        ShopMember.objects.create(shop=self.shop, user=staff, role='staff', permissions=['orders'])  # noqa: E501
         self.client.force_authenticate(user=staff)
-        response = self.client.get(reverse("dashboard-sales"))
+        response = self.client.get(reverse('dashboard-sales'))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_period_remembered_for_user(self):
-        self.assertEqual(self.client.get(reverse("auth-me")).data["sales_period"], "7d")
-        response = self.client.patch(reverse("auth-me"), {"sales_period": "12m"}, format="json")  # noqa: E501
+        self.assertEqual(self.client.get(reverse('auth-me')).data['sales_period'], '7d')
+        response = self.client.patch(reverse('auth-me'), {'sales_period': '12m'}, format='json')  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
-        self.assertEqual(self.user.sales_period, "12m")
-        response = self.client.patch(reverse("auth-me"), {"sales_period": "30d"}, format="json")  # noqa: E501
+        self.assertEqual(self.user.sales_period, '12m')
+        response = self.client.patch(reverse('auth-me'), {'sales_period': '30d'}, format='json')  # noqa: E501
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class DashboardBadgesTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user, self.shop = setup("badges@example.com")
+        self.user, self.shop = setup('badges@example.com')
         self.client.force_authenticate(user=self.user)
 
     def _url(self):
-        return reverse("dashboard-badges")
+        return reverse('dashboard-badges')
 
     def test_empty_badges(self):
         response = self.client.get(self._url())
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertNotIn("orders_to_prepare", response.data)
-        self.assertNotIn("low_stock", response.data)
-        self.assertNotIn("reminders_due", response.data)
+        self.assertNotIn('orders_to_prepare', response.data)
+        self.assertNotIn('low_stock', response.data)
+        self.assertNotIn('reminders_due', response.data)
 
     def test_orders_to_prepare_badge(self):
         order_services.create_order(self.shop, self.user)
         response = self.client.get(self._url())
-        self.assertEqual(response.data.get("orders_to_prepare"), 1)
+        self.assertEqual(response.data.get('orders_to_prepare'), 1)
 
     def test_low_stock_badge(self):
-        p = Product.objects.create(shop=self.shop, name="Low stock test")
+        p = Product.objects.create(shop=self.shop, name='Low stock test')
         v = ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Par défaut",
-            unit="piece",
+            packaging_name='Par défaut',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
+            selling_price=Decimal('10'),
             low_stock_threshold=5,
         )
         StockMovement.objects.create(
-            shop=self.shop, variant=v, movement_type="in", quantity=3
+            shop=self.shop, variant=v, movement_type='in', quantity=3
         )  # noqa: E501
         response = self.client.get(self._url())
-        self.assertEqual(response.data.get("low_stock"), 1)
+        self.assertEqual(response.data.get('low_stock'), 1)
 
     def test_out_of_stock_badge(self):
-        p = Product.objects.create(shop=self.shop, name="Rupture test")
+        p = Product.objects.create(shop=self.shop, name='Rupture test')
         ProductVariant.objects.create(
             shop=self.shop,
             product=p,
-            packaging_name="Par défaut",
-            unit="piece",
+            packaging_name='Par défaut',
+            unit='piece',
             base_quantity=1,
-            selling_price=Decimal("10"),
+            selling_price=Decimal('10'),
         )
         response = self.client.get(self._url())
-        self.assertEqual(response.data.get("low_stock"), 1)
+        self.assertEqual(response.data.get('low_stock'), 1)
 
     def test_reminders_due_badge(self):
         Reminder.objects.create(
             shop=self.shop,
             author=self.user,
-            title="Relance",
+            title='Relance',
             due_at=timezone.now() - timedelta(hours=2),
         )
         response = self.client.get(self._url())
-        self.assertEqual(response.data.get("reminders_due"), 1)
+        self.assertEqual(response.data.get('reminders_due'), 1)
 
     def test_multitenant_isolation(self):
-        user_b, shop_b = setup("badges_b@example.com")
+        user_b, shop_b = setup('badges_b@example.com')
         order_services.create_order(shop_b, user_b)
         response = self.client.get(self._url())
-        self.assertNotIn("orders_to_prepare", response.data)
+        self.assertNotIn('orders_to_prepare', response.data)
 
     def test_unauthenticated(self):
         self.client.force_authenticate(user=None)
@@ -528,10 +528,10 @@ class DashboardBadgesTest(TestCase):
         order_services.create_order(self.shop, self.user)
         member = ShopMember.objects.get(shop=self.shop, user=self.user)
         badges = build_nav_badges(self.shop, member)
-        self.assertEqual(badges.get("orders_to_prepare"), 1)
+        self.assertEqual(badges.get('orders_to_prepare'), 1)
 
 
-@override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
+@override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
 class SeedDataTest(TestCase):
     """Vérifie que seed_data --reset produit le jeu de données attendu."""
 
@@ -540,7 +540,7 @@ class SeedDataTest(TestCase):
         super().setUpClass()
         with override_settings(DEBUG=True):
             call_command(
-                "seed_data", reset=True,
+                'seed_data', reset=True,
                 stdout=io.StringIO(), stderr=io.StringIO(),
             )
 
@@ -548,52 +548,52 @@ class SeedDataTest(TestCase):
         return Shop.objects.get(name=name)
 
     def test_empty_shop_has_no_products(self):
-        shop = self._shop("Boutique Neuve")
+        shop = self._shop('Boutique Neuve')
         self.assertEqual(Product.objects.filter(shop=shop).count(), 0)
 
     def test_empty_shop_has_no_customers(self):
         from apps.customers.models import Customer
 
-        shop = self._shop("Boutique Neuve")
+        shop = self._shop('Boutique Neuve')
         self.assertEqual(Customer.objects.filter(shop=shop).count(), 0)
 
     def test_empty_shop_has_no_orders(self):
-        shop = self._shop("Boutique Neuve")
+        shop = self._shop('Boutique Neuve')
         self.assertEqual(Order.objects.filter(shop=shop).count(), 0)
 
     def test_fr_shop_has_order_today_not_cancelled(self):
-        shop = self._shop("La Boutique de Youssef")
+        shop = self._shop('La Boutique de Youssef')
         today = timezone.now().date()
         count = (
             Order.objects.filter(shop=shop, created_at__date=today)
-            .exclude(status="cancelled")
+            .exclude(status='cancelled')
             .count()
         )
         self.assertGreater(count, 0)
 
     def test_fr_shop_has_to_prepare_order(self):
-        shop = self._shop("La Boutique de Youssef")
-        self.assertTrue(Order.objects.filter(shop=shop, status="to_prepare").exists())
+        shop = self._shop('La Boutique de Youssef')
+        self.assertTrue(Order.objects.filter(shop=shop, status='to_prepare').exists())
 
     def test_fr_shop_has_unpaid_order_with_customer(self):
-        shop = self._shop("La Boutique de Youssef")
+        shop = self._shop('La Boutique de Youssef')
         exists = (
             Order.objects.filter(
                 shop=shop,
-                payment_status__in=("unpaid", "partial"),
+                payment_status__in=('unpaid', 'partial'),
                 customer__isnull=False,
             )
-            .exclude(status="cancelled")
+            .exclude(status='cancelled')
             .exists()
         )
         self.assertTrue(exists)
 
     def test_fr_shop_has_order_without_customer(self):
-        shop = self._shop("La Boutique de Youssef")
+        shop = self._shop('La Boutique de Youssef')
         self.assertTrue(Order.objects.filter(shop=shop, customer__isnull=True).exists())
 
     def test_fr_shop_has_variant_below_threshold(self):
-        shop = self._shop("La Boutique de Youssef")
+        shop = self._shop('La Boutique de Youssef')
         low = ProductVariant.objects.filter(
             shop=shop,
             is_active=True,
@@ -602,34 +602,34 @@ class SeedDataTest(TestCase):
             Q(stock_quantity__lte=0)
             | Q(
                 low_stock_threshold__isnull=False,
-                stock_quantity__lte=F("low_stock_threshold"),
+                stock_quantity__lte=F('low_stock_threshold'),
             )  # noqa: E501
         )
         self.assertTrue(low.exists())
 
     def test_fr_shop_is_both_on_site(self):
         """La boutique FR est catalog_kind='both' et fulfillment_mode='on_site'."""
-        shop = self._shop("La Boutique de Youssef")
-        self.assertEqual(shop.catalog_kind, "both")
-        self.assertEqual(shop.fulfillment_mode, "on_site")
+        shop = self._shop('La Boutique de Youssef')
+        self.assertEqual(shop.catalog_kind, 'both')
+        self.assertEqual(shop.fulfillment_mode, 'on_site')
 
     def test_fr_shop_has_no_prepared_order(self):
         """Boutique on_site : aucune commande 'prepared' (statut absent du parcours)."""
-        shop = self._shop("La Boutique de Youssef")
-        self.assertFalse(Order.objects.filter(shop=shop, status="prepared").exists())
+        shop = self._shop('La Boutique de Youssef')
+        self.assertFalse(Order.objects.filter(shop=shop, status='prepared').exists())
 
     def test_fr_shop_has_service_product(self):
         """La boutique FR a au moins un produit de type service actif."""
-        shop = self._shop("La Boutique de Youssef")
+        shop = self._shop('La Boutique de Youssef')
         self.assertTrue(
-            Product.objects.filter(shop=shop, type="service", is_active=True).exists()
+            Product.objects.filter(shop=shop, type='service', is_active=True).exists()
         )
 
     def test_fr_shop_is_boutique(self):
         """La boutique FR (employée + page publique) est en formule Boutique."""
         from apps.subscriptions.models import SubscriptionPlan
 
-        shop = self._shop("La Boutique de Youssef")
+        shop = self._shop('La Boutique de Youssef')
         self.assertEqual(shop.effective_plan.code, SubscriptionPlan.CODE_BOUTIQUE)
 
     def test_seeded_shops_have_plan_for_their_features(self):
@@ -643,65 +643,80 @@ class SeedDataTest(TestCase):
 
         demo_shops = Shop.objects.filter(members__user__email__in=SEED_DEMO_EMAILS)
         for shop in demo_shops.distinct():
-            if ShopMember.objects.filter(shop=shop).exclude(role="owner").exists():
-                self.assertTrue(allows(shop, "multi_user"), shop.name)
+            if ShopMember.objects.filter(shop=shop).exclude(role='owner').exists():
+                self.assertTrue(allows(shop, 'multi_user'), shop.name)
             if PublicPage.objects.filter(shop=shop).exists():
-                self.assertTrue(allows(shop, "public_pages"), shop.name)
+                self.assertTrue(allows(shop, 'public_pages'), shop.name)
 
     def test_zakat_youssef_complete_profile_and_previous_hijri_year(self):
         from apps.zakat import hawl, services as zakat_services
         from apps.zakat.models import ZakatCalculation, ZakatProfile
 
-        shop = self._shop("La Boutique de Youssef")
-        profile = ZakatProfile.objects.get(shop=shop, user__email="youssef@example.com")
+        shop = self._shop('La Boutique de Youssef')
+        profile = ZakatProfile.objects.get(shop=shop, user__email='youssef@example.com')
         for name in zakat_services.CHOICE_FIELDS:
             self.assertIsNotNone(getattr(profile, name), name)
-        calc = ZakatCalculation.objects.get(shop=shop, user__email="youssef@example.com")  # noqa: E501
+        calc = ZakatCalculation.objects.get(shop=shop, user__email='youssef@example.com')  # noqa: E501
         current_year = hawl.to_hijri(zakat_services.shop_today(shop))[0]
-        self.assertEqual((calc.hawl_calendar, calc.hawl_year), ("hijri", current_year - 1))  # noqa: E501
+        self.assertEqual((calc.hawl_calendar, calc.hawl_year), ('hijri', current_year - 1))  # noqa: E501
         self.assertTrue(calc.receivable_items and calc.other_assets and calc.debt_items)
-        self.assertEqual(zakat_services.compute_totals(calc).status, "above_nisab")
+        self.assertEqual(zakat_services.compute_totals(calc).status, 'above_nisab')
 
     def test_zakat_amira_profile_without_choices(self):
         from apps.zakat.models import ZakatCalculation, ZakatProfile
 
-        profile = ZakatProfile.objects.get(user__email="amira@example.ma")
+        profile = ZakatProfile.objects.get(user__email='amira@example.ma')
         self.assertIsNone(profile.calendar)
         self.assertIsNone(profile.stock_valuation)
-        self.assertFalse(ZakatCalculation.objects.filter(user__email="amira@example.ma").exists())  # noqa: E501
+        self.assertFalse(ZakatCalculation.objects.filter(user__email='amira@example.ma').exists())  # noqa: E501
 
     def test_zakat_empty_shop_has_nothing(self):
         from apps.zakat.models import ZakatCalculation, ZakatProfile
 
-        shop = self._shop("Boutique Neuve")
+        shop = self._shop('Boutique Neuve')
         self.assertFalse(ZakatProfile.objects.filter(shop=shop).exists())
         self.assertFalse(ZakatCalculation.objects.filter(shop=shop).exists())
 
+    def test_fr_shop_has_complete_and_empty_invoice_drafts(self):
+        from apps.invoices.models import Invoice
 
-@override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
+        drafts = Invoice.objects.filter(
+            shop=self._shop('La Boutique de Youssef'), status='draft'
+        ).order_by('created_at')
+        complete, empty = drafts
+        self.assertEqual((complete.number, complete.buyer_name), ('', 'Karima Bensouda'))  # noqa: E501
+        free = complete.lines.get(position=1)
+        self.assertEqual(free.unit, 'heure')
+        self.assertIn('\n', free.details)
+        self.assertGreater(complete.total_ttc, 0)
+        self.assertIsNone(empty.customer)
+        self.assertFalse(empty.lines.exists())
+
+
+@override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
 class SeedDataSecurityTest(TestCase):
     """Garde DEBUG, isolation des boutiques externes, idempotence du --reset."""
 
     def test_refused_when_debug_false(self):
         """seed_data lève CommandError si DEBUG=False et ALLOW_SEED non défini."""
-        with mock.patch.dict(os.environ, {"ALLOW_SEED": ""}):
+        with mock.patch.dict(os.environ, {'ALLOW_SEED': ''}):
             with override_settings(DEBUG=False):
                 with self.assertRaises(CommandError):
                     call_command(
-                        "seed_data",
+                        'seed_data',
                         stdout=io.StringIO(), stderr=io.StringIO(),
                     )
 
     def test_non_demo_shop_survives_reset(self):
         """Une boutique créée hors seed n'est pas touchée par --reset."""
         user = User.objects.create_user(
-            email="ext@test.local", password="Pass123!Strong"
+            email='ext@test.local', password='Pass123!Strong'
         )
-        shop = Shop.objects.create(name="Boutique Externe", currency="EUR")
-        ShopMember.objects.create(shop=shop, user=user, role="owner")
+        shop = Shop.objects.create(name='Boutique Externe', currency='EUR')
+        ShopMember.objects.create(shop=shop, user=user, role='owner')
         with override_settings(DEBUG=True):
             call_command(
-                "seed_data", reset=True,
+                'seed_data', reset=True,
                 stdout=io.StringIO(), stderr=io.StringIO(),
             )
         self.assertTrue(Shop.objects.filter(pk=shop.pk).exists())
@@ -711,9 +726,9 @@ class SeedDataSecurityTest(TestCase):
         """Deux seed_data --reset successifs ne lèvent pas d'exception."""
         out = io.StringIO()
         with override_settings(DEBUG=True):
-            call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
-            call_command("seed_data", reset=True, stdout=out, stderr=io.StringIO())
-        self.assertTrue(Shop.objects.filter(name="La Boutique de Youssef").exists())
+            call_command('seed_data', reset=True, stdout=out, stderr=io.StringIO())
+            call_command('seed_data', reset=True, stdout=out, stderr=io.StringIO())
+        self.assertTrue(Shop.objects.filter(name='La Boutique de Youssef').exists())
 
     def test_rerun_without_reset_creates_no_duplicates(self):
         """Relancer seed_data sans --reset ne duplique rien, dans aucune boutique."""
@@ -726,52 +741,52 @@ class SeedDataSecurityTest(TestCase):
                     StockMovement.objects.filter(shop=shop).count(),
                     Reminder.objects.filter(shop=shop).count(),
                 )
-                for shop in Shop.objects.order_by("name")
+                for shop in Shop.objects.order_by('name')
             }
 
-        quiet = {"stdout": io.StringIO(), "stderr": io.StringIO()}
+        quiet = {'stdout': io.StringIO(), 'stderr': io.StringIO()}
         with override_settings(DEBUG=True):
-            call_command("seed_data", reset=True, **quiet)
+            call_command('seed_data', reset=True, **quiet)
             before = snapshot()
-            call_command("seed_data", **quiet)
+            call_command('seed_data', **quiet)
         self.assertEqual(snapshot(), before)
 
 
-@override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
+@override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
 class ResetAuditShopTest(TestCase):
     """reset_audit_shop : boutique d'audit remise à neuf, les autres intactes."""
 
-    quiet = {"stdout": io.StringIO(), "stderr": io.StringIO()}
+    quiet = {'stdout': io.StringIO(), 'stderr': io.StringIO()}
 
     def _audit_shop(self) -> Shop:
         return Shop.objects.get(
-            members__user__email="e2e@example.com", members__role="owner"
+            members__user__email='e2e@example.com', members__role='owner'
         )
 
     def test_refused_when_debug_false(self) -> None:
-        with mock.patch.dict(os.environ, {"ALLOW_SEED": ""}):
+        with mock.patch.dict(os.environ, {'ALLOW_SEED': ''}):
             with override_settings(DEBUG=False):
                 with self.assertRaises(CommandError):
-                    call_command("reset_audit_shop", **self.quiet)
+                    call_command('reset_audit_shop', **self.quiet)
 
     def test_allowed_with_allow_seed(self) -> None:
-        with mock.patch.dict(os.environ, {"ALLOW_SEED": "1"}):
+        with mock.patch.dict(os.environ, {'ALLOW_SEED': '1'}):
             with override_settings(DEBUG=False):
-                call_command("reset_audit_shop", **self.quiet)
-        self.assertEqual(self._audit_shop().name, "Boutique Audit")
+                call_command('reset_audit_shop', **self.quiet)
+        self.assertEqual(self._audit_shop().name, 'Boutique Audit')
 
     def test_restores_starting_data(self) -> None:
         with override_settings(DEBUG=True):
-            call_command("reset_audit_shop", **self.quiet)
+            call_command('reset_audit_shop', **self.quiet)
             shop = self._audit_shop()
             start = (
                 Product.objects.filter(shop=shop).count(),
                 Customer.objects.filter(shop=shop).count(),
                 Order.objects.filter(shop=shop).count(),
             )
-            Product.objects.create(shop=shop, name="Audit lot 01")
+            Product.objects.create(shop=shop, name='Audit lot 01')
             Customer.objects.create(shop=shop, name="Client d'audit")
-            call_command("reset_audit_shop", **self.quiet)
+            call_command('reset_audit_shop', **self.quiet)
         shop = self._audit_shop()
         self.assertEqual(
             (
@@ -782,57 +797,65 @@ class ResetAuditShopTest(TestCase):
             start,
         )
         self.assertEqual(start, (3, 2, 2))
-        self.assertFalse(Product.objects.filter(name="Audit lot 01").exists())
-        user = User.objects.get(email="e2e@example.com")
-        self.assertTrue(user.check_password("Mizan1234!"))
+        self.assertFalse(Product.objects.filter(name='Audit lot 01').exists())
+        user = User.objects.get(email='e2e@example.com')
+        self.assertTrue(user.check_password('Mizan1234!'))
 
     def test_one_shop_per_slot(self) -> None:
         with override_settings(DEBUG=True):
-            call_command("reset_audit_shop", slots=3, **self.quiet)
-            call_command("reset_audit_shop", slots=2, **self.quiet)
+            call_command('reset_audit_shop', slots=3, **self.quiet)
+            call_command('reset_audit_shop', slots=2, **self.quiet)
         owners = Shop.objects.filter(
-            members__user__email__startswith="e2e", members__role="owner"
+            members__user__email__startswith='e2e', members__role='owner'
         )
         self.assertEqual(
-            sorted(owners.values_list("name", flat=True)),
-            ["Boutique Audit", "Boutique Audit 2", "Boutique Audit Factures"],
+            sorted(owners.values_list('name', flat=True)),
+            ['Boutique Audit', 'Boutique Audit 2', 'Boutique Audit Factures',
+             'Boutique Audit Éditeur'],
         )
-        invoices = Shop.objects.get(name="Boutique Audit Factures")
+        invoices = Shop.objects.get(name='Boutique Audit Factures')
         self.assertEqual(
-            set(invoices.members.values_list("user__email", flat=True)),
-            {"e2e-invoices@example.com", "e2e-invoices-staff@example.com"},
+            set(invoices.members.values_list('user__email', flat=True)),
+            {'e2e-invoices@example.com', 'e2e-invoices-staff@example.com'},
         )
-        shop = Shop.objects.get(name="Boutique Audit 2")
+        self.assertFalse(invoices.invoices.exists())
+        # Brouillons de départ de l'éditeur : dans sa boutique seulement.
+        editor = Shop.objects.get(name='Boutique Audit Éditeur')
         self.assertEqual(
-            set(shop.members.values_list("user__email", flat=True)),
-            {"e2e2@example.com", "e2e2-staff@example.com"},
+            sorted((i.status, i.lines.count()) for i in editor.invoices.all()),
+            [('draft', 0), ('draft', 2)],
+        )
+        shop = Shop.objects.get(name='Boutique Audit 2')
+        self.assertEqual(
+            set(shop.members.values_list('user__email', flat=True)),
+            {'e2e2@example.com', 'e2e2-staff@example.com'},
         )
         self.assertEqual(Customer.objects.filter(shop=shop).count(), 2)
         self.assertTrue(
-            User.objects.get(email="e2e2@example.com").check_password("Mizan1234!")
+            User.objects.get(email='e2e2@example.com').check_password('Mizan1234!')
         )
 
     def test_other_shops_untouched(self) -> None:
         user = User.objects.create_user(
-            email="ext@test.local", password="Pass123!Strong"
+            email='ext@test.local', password='Pass123!Strong'
         )
-        shop = Shop.objects.create(name="Boutique Externe", currency="EUR")
-        ShopMember.objects.create(shop=shop, user=user, role="owner")
-        product = Product.objects.create(shop=shop, name="Article externe")
+        shop = Shop.objects.create(name='Boutique Externe', currency='EUR')
+        ShopMember.objects.create(shop=shop, user=user, role='owner')
+        product = Product.objects.create(shop=shop, name='Article externe')
         with override_settings(DEBUG=True):
-            call_command("seed_data", **self.quiet)
-            youssef = Shop.objects.get(name="La Boutique de Youssef")
+            call_command('seed_data', **self.quiet)
+            youssef = Shop.objects.get(name='La Boutique de Youssef')
             youssef_products = Product.objects.filter(shop=youssef).count()
-            call_command("reset_audit_shop", **self.quiet)
+            call_command('reset_audit_shop', **self.quiet)
         self.assertTrue(Product.objects.filter(pk=product.pk).exists())
         self.assertEqual(Product.objects.filter(shop=youssef).count(), youssef_products)  # noqa: E501
 
 
-def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Decimal = Decimal("10")) -> Product:  # noqa: E501
+def _make_product(shop, name: str, sku: str = '', barcode: str = '', price: Decimal = Decimal('10')) -> Product:  # noqa: E501
     p = Product.objects.create(shop=shop, name=name)
     ProductVariant.objects.create(
-        shop=shop, product=p, packaging_name="U",
-        unit="piece", base_quantity=1, selling_price=price, sku=sku, barcode=barcode,
+        shop=shop, product=p, packaging_name='U',
+        unit='piece', base_quantity=1, selling_price=price, sku=sku, barcode=barcode,
     )
     return p
 
@@ -840,102 +863,102 @@ def _make_product(shop, name: str, sku: str = "", barcode: str = "", price: Deci
 class GlobalSearchTest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user, self.shop = setup("search@example.com")
+        self.user, self.shop = setup('search@example.com')
         self.member = ShopMember.objects.get(shop=self.shop, user=self.user)
         self.client.force_authenticate(user=self.user)
 
     def _url(self, q: str) -> str:
-        return reverse("global-search") + f"?q={q}"
+        return reverse('global-search') + f'?q={q}'
 
     # ── module filtering ──────────────────────────────────────────────────────
 
     def test_staff_without_customers_sees_no_customers(self):
         """Staff sans module customers ne voit aucun client dans la recherche."""
-        Customer.objects.create(shop=self.shop, name="Karima Bensaid")
-        staff_user = User.objects.create_user(email="staff_s@example.com", password="Pass123!Strong")  # noqa: E501
+        Customer.objects.create(shop=self.shop, name='Karima Bensaid')
+        staff_user = User.objects.create_user(email='staff_s@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(
-            shop=self.shop, user=staff_user, role="staff", permissions=["orders", "products"],  # noqa: E501
+            shop=self.shop, user=staff_user, role='staff', permissions=['orders', 'products'],  # noqa: E501
         )
         self.client.force_authenticate(user=staff_user)
-        resp = self.client.get(self._url("Karima"))
+        resp = self.client.get(self._url('Karima'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["customers"]["total"], 0)
-        self.assertEqual(resp.data["customers"]["items"], [])
+        self.assertEqual(resp.data['customers']['total'], 0)
+        self.assertEqual(resp.data['customers']['items'], [])
 
     def test_staff_without_orders_sees_no_orders(self):
         """Staff sans module orders ne voit aucune commande."""
         order = order_services.create_order(self.shop, self.user)
-        staff_user = User.objects.create_user(email="staff_o@example.com", password="Pass123!Strong")  # noqa: E501
+        staff_user = User.objects.create_user(email='staff_o@example.com', password='Pass123!Strong')  # noqa: E501
         ShopMember.objects.create(
-            shop=self.shop, user=staff_user, role="staff", permissions=["products", "customers"],  # noqa: E501
+            shop=self.shop, user=staff_user, role='staff', permissions=['products', 'customers'],  # noqa: E501
         )
         self.client.force_authenticate(user=staff_user)
         resp = self.client.get(self._url(order.order_number))
-        self.assertEqual(resp.data["orders"]["total"], 0)
+        self.assertEqual(resp.data['orders']['total'], 0)
 
     # ── multi-tenant isolation ────────────────────────────────────────────────
 
     def test_multitenant_isolation(self):
         """La recherche ne renvoie pas de données d'une autre boutique."""
-        other_user, other_shop = setup("other_search@example.com")
-        Customer.objects.create(shop=other_shop, name="ClientAutreBoutique")
-        _make_product(other_shop, "ProduitAutreBoutique")
-        resp = self.client.get(self._url("AutreBoutique"))
+        other_user, other_shop = setup('other_search@example.com')
+        Customer.objects.create(shop=other_shop, name='ClientAutreBoutique')
+        _make_product(other_shop, 'ProduitAutreBoutique')
+        resp = self.client.get(self._url('AutreBoutique'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["customers"]["total"], 0)
-        self.assertEqual(resp.data["products"]["total"], 0)
+        self.assertEqual(resp.data['customers']['total'], 0)
+        self.assertEqual(resp.data['products']['total'], 0)
 
     # ── barcode search ────────────────────────────────────────────────────────
 
     def test_search_by_barcode(self):
         """La recherche fonctionne sur le code-barres d'une variante."""
-        _make_product(self.shop, "Produit Code-Barres", barcode="8901234567890")
-        resp = self.client.get(self._url("8901234"))
+        _make_product(self.shop, 'Produit Code-Barres', barcode='8901234567890')
+        resp = self.client.get(self._url('8901234'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["products"]["total"], 1)
-        self.assertEqual(resp.data["products"]["items"][0]["name"], "Produit Code-Barres")  # noqa: E501
+        self.assertEqual(resp.data['products']['total'], 1)
+        self.assertEqual(resp.data['products']['items'][0]['name'], 'Produit Code-Barres')  # noqa: E501
 
     def test_search_by_sku(self):
         """La recherche fonctionne sur le SKU d'une variante."""
-        _make_product(self.shop, "Produit SKU", sku="SKU-ABC-001")
-        resp = self.client.get(self._url("SKU-ABC"))
-        self.assertEqual(resp.data["products"]["total"], 1)
+        _make_product(self.shop, 'Produit SKU', sku='SKU-ABC-001')
+        resp = self.client.get(self._url('SKU-ABC'))
+        self.assertEqual(resp.data['products']['total'], 1)
 
     # ── totals ────────────────────────────────────────────────────────────────
 
     def test_totals_exceed_limit(self):
         """total reflète le nombre total même si items est limité à 5."""
         for i in range(8):
-            Customer.objects.create(shop=self.shop, name=f"TestClient {i}")
-        resp = self.client.get(self._url("TestClient"))
-        self.assertEqual(resp.data["customers"]["total"], 8)
-        self.assertEqual(len(resp.data["customers"]["items"]), 5)
+            Customer.objects.create(shop=self.shop, name=f'TestClient {i}')
+        resp = self.client.get(self._url('TestClient'))
+        self.assertEqual(resp.data['customers']['total'], 8)
+        self.assertEqual(len(resp.data['customers']['items']), 5)
 
     def test_enriched_product_fields(self):
         """La section produits expose min_price, type et is_out_of_stock."""
-        _make_product(self.shop, "Café Arabica", price=Decimal("12.50"))
-        resp = self.client.get(self._url("Café"))
-        item = resp.data["products"]["items"][0]
-        self.assertIn("min_price", item)
-        self.assertEqual(item["min_price"], "12.50")
-        self.assertIn("type", item)
-        self.assertIn("is_out_of_stock", item)
+        _make_product(self.shop, 'Café Arabica', price=Decimal('12.50'))
+        resp = self.client.get(self._url('Café'))
+        item = resp.data['products']['items'][0]
+        self.assertIn('min_price', item)
+        self.assertEqual(item['min_price'], '12.50')
+        self.assertIn('type', item)
+        self.assertIn('is_out_of_stock', item)
 
     def test_enriched_order_fields(self):
         """La section commandes expose payment_status et created_at."""
         order = order_services.create_order(self.shop, self.user)
         resp = self.client.get(self._url(order.order_number))
-        item = resp.data["orders"]["items"][0]
-        self.assertIn("payment_status", item)
-        self.assertIn("created_at", item)
+        item = resp.data['orders']['items'][0]
+        self.assertIn('payment_status', item)
+        self.assertIn('created_at', item)
 
     def test_short_query_returns_empty(self):
         """Une requête d'1 caractère renvoie des sections vides."""
-        resp = self.client.get(self._url("a"))
+        resp = self.client.get(self._url('a'))
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.assertEqual(resp.data["products"]["total"], 0)
-        self.assertEqual(resp.data["customers"]["total"], 0)
-        self.assertEqual(resp.data["orders"]["total"], 0)
+        self.assertEqual(resp.data['products']['total'], 0)
+        self.assertEqual(resp.data['customers']['total'], 0)
+        self.assertEqual(resp.data['orders']['total'], 0)
 
 
 class HistoryProtectionTest(TestCase):
@@ -946,15 +969,15 @@ class HistoryProtectionTest(TestCase):
     """
 
     RESTRICTED = (
-        ("stock", "StockMovement", "variant"),
-        ("orders", "Order", "customer"),
-        ("orders", "OrderItem", "order"),
-        ("invoices", "InvoiceLine", "invoice"),
-        ("notes", "Note", "customer"),
-        ("notes", "Note", "order"),
-        ("ocr", "OcrResult", "uploaded_document"),
-        ("loyalty", "LoyaltyCard", "customer"),
-        ("loyalty", "LoyaltyTransaction", "card"),
+        ('stock', 'StockMovement', 'variant'),
+        ('orders', 'Order', 'customer'),
+        ('orders', 'OrderItem', 'order'),
+        ('invoices', 'InvoiceLine', 'invoice'),
+        ('notes', 'Note', 'customer'),
+        ('notes', 'Note', 'order'),
+        ('ocr', 'OcrResult', 'uploaded_document'),
+        ('loyalty', 'LoyaltyCard', 'customer'),
+        ('loyalty', 'LoyaltyTransaction', 'card'),
     )
 
     def setUp(self):
@@ -965,13 +988,13 @@ class HistoryProtectionTest(TestCase):
         from apps.ocr.factories import OcrResultFactory
         from apps.stock.services import create_movement
 
-        self.user, self.shop = setup("history@example.com")
-        product = Product.objects.create(shop=self.shop, name="Huile")
+        self.user, self.shop = setup('history@example.com')
+        product = Product.objects.create(shop=self.shop, name='Huile')
         self.variant = ProductVariant.objects.create(
-            shop=self.shop, product=product, packaging_name="1 L",
-            selling_price="10.00",
+            shop=self.shop, product=product, packaging_name='1 L',
+            selling_price='10.00',
         )
-        create_movement(self.shop, self.variant, "in", 5, "Réassort", created_by=self.user)  # noqa: E501
+        create_movement(self.shop, self.variant, 'in', 5, 'Réassort', created_by=self.user)  # noqa: E501
         self.customer = CustomerFactory(shop=self.shop)
         self.order = order_services.create_order(self.shop, self.user, customer=self.customer)  # noqa: E501
         order_services.add_item(self.order, self.variant, 1)
@@ -986,7 +1009,7 @@ class HistoryProtectionTest(TestCase):
 
         for app, model, field in self.RESTRICTED:
             on_delete = apps.get_model(app, model)._meta.get_field(field).remote_field.on_delete  # noqa: E501
-            self.assertIs(on_delete, RESTRICT, f"{model}.{field}")
+            self.assertIs(on_delete, RESTRICT, f'{model}.{field}')
 
     def test_direct_deletion_of_a_business_object_is_refused(self):
         from django.db.models import RestrictedError
@@ -1015,23 +1038,23 @@ class UniqueViolationHandlerTest(TestCase):
 
         from apps.core.exceptions import api_exception_handler
 
-        _, shop = setup("unique-409@example.com")
-        Customer.objects.create(shop=shop, name="Awa")
+        _, shop = setup('unique-409@example.com')
+        Customer.objects.create(shop=shop, name='Awa')
         try:
             with transaction.atomic():
-                Customer.objects.create(shop=shop, name="awa")
+                Customer.objects.create(shop=shop, name='awa')
         except IntegrityError as exc:
             response = api_exception_handler(exc, {})
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(response.data, {"detail": "Cette ressource existe déjà."})
+        self.assertEqual(response.data, {'detail': 'Cette ressource existe déjà.'})
 
     def test_other_integrity_error_stays_500(self):
         from django.db import IntegrityError
 
         from apps.core.exceptions import api_exception_handler
 
-        with self.assertLogs("apps.core.exceptions", level="ERROR"):
-            response = api_exception_handler(IntegrityError("not null"), {})
+        with self.assertLogs('apps.core.exceptions', level='ERROR'):
+            response = api_exception_handler(IntegrityError('not null'), {})
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -1039,17 +1062,17 @@ class ProductionStorageSettingsTest(TestCase):
     """Production sans variable de stockage OVH : refus de démarrer."""
 
     ENV = {
-        "SECRET_KEY": "x" * 50,
-        "DJANGO_ALLOWED_HOSTS": "mizan.example.com",
-        "CSRF_TRUSTED_ORIGINS": "https://mizan.example.com",
-        "CORS_ALLOWED_ORIGINS": "https://mizan.example.com",
-        "FRONTEND_URL": "https://mizan.example.com",
-        "POSTGRES_PASSWORD": "test-password",
-        "REDIS_URL": "redis://:test@redis:6379/0",
-        "OVH_S3_BUCKET_PRIVATE": "mizan-prod-private",
-        "OVH_S3_ENDPOINT_URL": "https://s3.example.com",
-        "OVH_S3_ACCESS_KEY": "test-access",
-        "OVH_S3_SECRET_KEY": "test-secret",
+        'SECRET_KEY': 'x' * 50,
+        'DJANGO_ALLOWED_HOSTS': 'mizan.example.com',
+        'CSRF_TRUSTED_ORIGINS': 'https://mizan.example.com',
+        'CORS_ALLOWED_ORIGINS': 'https://mizan.example.com',
+        'FRONTEND_URL': 'https://mizan.example.com',
+        'POSTGRES_PASSWORD': 'test-password',
+        'REDIS_URL': 'redis://:test@redis:6379/0',
+        'OVH_S3_BUCKET_PRIVATE': 'mizan-prod-private',
+        'OVH_S3_ENDPOINT_URL': 'https://s3.example.com',
+        'OVH_S3_ACCESS_KEY': 'test-access',
+        'OVH_S3_SECRET_KEY': 'test-secret',
     }
 
     def load_production(self, **missing_or_blank):
@@ -1059,18 +1082,18 @@ class ProductionStorageSettingsTest(TestCase):
         with mock.patch.dict(os.environ, {k: v for k, v in env.items() if v is not None}):  # noqa: E501
             for name in (k for k, v in env.items() if v is None):
                 os.environ.pop(name, None)
-            return runpy.run_module("config.settings.production")
+            return runpy.run_module('config.settings.production')
 
     def test_complete_environment_loads(self):
         settings = self.load_production()
-        self.assertEqual(settings["AWS_STORAGE_BUCKET_NAME"], "mizan-prod-private")
+        self.assertEqual(settings['AWS_STORAGE_BUCKET_NAME'], 'mizan-prod-private')
 
     def test_missing_storage_variable_is_refused(self):
         from django.core.exceptions import ImproperlyConfigured
 
-        for name in ("OVH_S3_BUCKET_PRIVATE", "OVH_S3_ENDPOINT_URL",
-                     "OVH_S3_ACCESS_KEY", "OVH_S3_SECRET_KEY"):
-            for value in (None, "  "):
+        for name in ('OVH_S3_BUCKET_PRIVATE', 'OVH_S3_ENDPOINT_URL',
+                     'OVH_S3_ACCESS_KEY', 'OVH_S3_SECRET_KEY'):
+            for value in (None, '  '):
                 with self.subTest(name=name, value=value):
                     with self.assertRaisesMessage(ImproperlyConfigured, name):
                         self.load_production(**{name: value})
@@ -1078,10 +1101,10 @@ class ProductionStorageSettingsTest(TestCase):
     def test_missing_required_variable_is_refused(self):
         from django.core.exceptions import ImproperlyConfigured
 
-        for name in ("SECRET_KEY", "DJANGO_ALLOWED_HOSTS", "CSRF_TRUSTED_ORIGINS",
-                     "CORS_ALLOWED_ORIGINS", "FRONTEND_URL", "POSTGRES_PASSWORD",
-                     "REDIS_URL"):
-            for value in (None, "  "):
+        for name in ('SECRET_KEY', 'DJANGO_ALLOWED_HOSTS', 'CSRF_TRUSTED_ORIGINS',
+                     'CORS_ALLOWED_ORIGINS', 'FRONTEND_URL', 'POSTGRES_PASSWORD',
+                     'REDIS_URL'):
+            for value in (None, '  '):
                 with self.subTest(name=name, value=value):
                     with self.assertRaisesMessage(ImproperlyConfigured, name):
                         self.load_production(**{name: value})
@@ -1089,21 +1112,21 @@ class ProductionStorageSettingsTest(TestCase):
     def test_short_or_default_secret_key_is_refused(self):
         from django.core.exceptions import ImproperlyConfigured
 
-        for value in ("x" * 49, "change-me-in-production"):
+        for value in ('x' * 49, 'change-me-in-production'):
             with self.subTest(value=value):
-                with self.assertRaisesMessage(ImproperlyConfigured, "SECRET_KEY"):
+                with self.assertRaisesMessage(ImproperlyConfigured, 'SECRET_KEY'):
                     self.load_production(SECRET_KEY=value)
 
     def test_internal_hosts_and_redis_url(self):
         settings = self.load_production()
         self.assertEqual(
-            settings["ALLOWED_HOSTS"], ["mizan.example.com", "backend", "localhost"],
+            settings['ALLOWED_HOSTS'], ['mizan.example.com', 'backend', 'localhost'],
         )
-        self.assertEqual(settings["CELERY_BROKER_URL"], "redis://:test@redis:6379/0")
-        self.assertEqual(settings["DATABASES"]["default"]["PASSWORD"], "test-password")
+        self.assertEqual(settings['CELERY_BROKER_URL'], 'redis://:test@redis:6379/0')
+        self.assertEqual(settings['DATABASES']['default']['PASSWORD'], 'test-password')
         self.assertIn(
-            "whitenoise.middleware.WhiteNoiseMiddleware", settings["MIDDLEWARE"],
+            'whitenoise.middleware.WhiteNoiseMiddleware', settings['MIDDLEWARE'],
         )
         self.assertEqual(
-            settings["MIDDLEWARE"][0], "apps.core.health.HealthCheckMiddleware",
+            settings['MIDDLEWARE'][0], 'apps.core.health.HealthCheckMiddleware',
         )

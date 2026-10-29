@@ -19,12 +19,18 @@ from apps.shops.models import Shop
 from apps.stock.services import create_movement
 from apps.subscriptions.models import Subscription, SubscriptionPlan
 
+from ._seed_invoices import seed_invoice_drafts
+
 # Comptes des boutiques d'audit : un par emplacement, les audits lancés en parallèle
 # (apps/frontend/e2e/run-audits.mjs) travaillent chacun sur leurs propres données.
-# S'y ajoute la boutique réservée à audit-invoices, qui compte ses factures au plus
-# près : celles d'invoice-settings et d'order-numbers ne doivent pas s'y mêler.
+# S'y ajoutent deux boutiques réservées, hors emplacements : celle d'audit-invoices,
+# qui compte ses factures au plus près (celles d'invoice-settings et d'order-numbers
+# ne doivent pas s'y mêler), et celle d'audit-invoice-editor, dont les brouillons
+# de départ ne doivent pas entrer dans ce compte.
 INVOICES_AUDIT = 'invoices'
-AUDIT_EMAIL_RE = r'^e2e([0-9]*|-invoices)@example\.com$'
+INVOICE_EDITOR_AUDIT = 'invoice-editor'
+RESERVED_AUDITS = (INVOICES_AUDIT, INVOICE_EDITOR_AUDIT)
+AUDIT_EMAIL_RE = r'^e2e([0-9]*|-invoices|-invoice-editor)@example\.com$'
 
 
 def audit_emails(slot: int | str) -> tuple[str, str]:
@@ -32,7 +38,8 @@ def audit_emails(slot: int | str) -> tuple[str, str]:
 
     1 → e2e@example.com / e2e-staff@example.com,
     2 → e2e2@example.com / e2e2-staff@example.com…,
-    'invoices' → e2e-invoices@example.com / e2e-invoices-staff@example.com.
+    'invoices' → e2e-invoices@example.com / e2e-invoices-staff@example.com,
+    'invoice-editor' → e2e-invoice-editor@example.com / e2e-invoice-editor-staff@….
     """
     if isinstance(slot, str):
         prefix = f'e2e-{slot}'
@@ -44,6 +51,8 @@ def audit_emails(slot: int | str) -> tuple[str, str]:
 def _shop_name(slot: int | str) -> str:
     if slot == INVOICES_AUDIT:
         return 'Boutique Audit Factures'
+    if slot == INVOICE_EDITOR_AUDIT:
+        return 'Boutique Audit Éditeur'
     return 'Boutique Audit' if slot == 1 else f'Boutique Audit {slot}'
 
 # Client avec une commande impayée : l'audit y teste « Relancer » (WhatsApp).
@@ -120,7 +129,7 @@ def run_seed_e2e(shop, owner, *, stdout=None) -> None:
 def seed_audit_shop(*, slot: int | str = 1, stdout=None) -> Shop:
     """Compte d'audit de l'emplacement `slot` et sa boutique (Boutique). Idempotent.
 
-    `slot` est un numéro d'emplacement, ou `INVOICES_AUDIT` pour la boutique réservée.
+    `slot` est un numéro d'emplacement, ou l'une des boutiques `RESERVED_AUDITS`.
     """
     email, staff_email = audit_emails(slot)
     e2e = UserFactory(
@@ -161,4 +170,7 @@ def seed_audit_shop(*, slot: int | str = 1, stdout=None) -> Shop:
     if stdout:
         stdout.write(f'  ✓ Boutique audits : {shop.name}')
     run_seed_e2e(shop, e2e, stdout=stdout)
+    if slot == INVOICE_EDITOR_AUDIT:
+        marc = shop.customers.get(name='Marc Dupuis')
+        seed_invoice_drafts(shop, marc, 'Retouche ourlet', stdout=stdout)
     return shop

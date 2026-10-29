@@ -56,7 +56,7 @@ def _get_subscription(user) -> Subscription:
     except Subscription.DoesNotExist as exc:
         # Devrait être impossible : la souscription est créée à l'inscription
         # (start_trial_or_default). Un 404 ici signale un bug d'orchestration.
-        raise NotFound("Aucun abonnement associé à votre boutique.") from exc
+        raise NotFound('Aucun abonnement associé à votre boutique.') from exc
 
 
 def _subscription_response(subscription: Subscription, request) -> Response:

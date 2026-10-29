@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import (
     Case, DecimalField, Exists, F, Max, Min, OuterRef, Q, QuerySet, Subquery, Sum,
@@ -22,6 +22,7 @@ from apps.core.storage import (
     delete_object, download_bytes, get_signed_url, upload_fileobj,
 )
 
+from .constants import DEFAULT_VARIANT_NAME
 from .models import Product, ProductVariant
 
 if TYPE_CHECKING:
@@ -40,6 +41,7 @@ __all__ = (
     'delete_unused_product', 'ProductInUseError', 'INITIAL_STOCK_REASON',
     'delete_unused_variant', 'VariantInUseError', 'update_product', 'sync_variants',
     'product_stock_totals', 'product_sales', 'SALES_DAYS',
+    'create_service_from_line', 'ProductNameTakenError',
 )
 
 PRODUCT_SEARCH_FIELDS = ('name', 'variants__sku', 'variants__barcode')
@@ -206,11 +208,11 @@ def _store_image_file(product: Product, file: InMemoryUploadedFile) -> str:
     if file.size > max_bytes:
         raise ValidationError(f"L'image ne doit pas dépasser {max_bytes // (1024 * 1024)} Mo.")  # noqa: E501
     if file.content_type not in allowed_types or file.content_type not in _IMAGE_EXTENSIONS:  # noqa: E501
-        raise ValidationError("Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP.")  # noqa: E501
+        raise ValidationError('Type de fichier non autorisé. Formats acceptés : JPEG, PNG, WebP.')  # noqa: E501
     validate_uploaded_image(file)
 
     ext = _IMAGE_EXTENSIONS[file.content_type]
-    object_key = f"products/{product.shop_id}/{product.pk}/{uuid.uuid4()}.{ext}"
+    object_key = f'products/{product.shop_id}/{product.pk}/{uuid.uuid4()}.{ext}'
     upload_fileobj(file, object_key, file.content_type)
     return object_key
 
@@ -220,7 +222,7 @@ def upload_product_image(shop: 'Shop', product_id: str, file: InMemoryUploadedFi
 
     product = Product.objects.get(pk=product_id, shop=shop)
     if ProductImage.objects.filter(product=product).count() >= PRODUCT_IMAGE_MAX_COUNT:  # noqa: E501
-        raise ValidationError(f"Un article a au plus {PRODUCT_IMAGE_MAX_COUNT} photos.")  # noqa: E501
+        raise ValidationError(f'Un article a au plus {PRODUCT_IMAGE_MAX_COUNT} photos.')  # noqa: E501
     object_key = _store_image_file(product, file)
 
     # La photo envoyée devient la principale : elle remplace ce qui est affiché.
@@ -322,6 +324,50 @@ def create_product(
             _check_variant_rows(product, variants, current={})
         for position, row in enumerate(variants):
             _create_variant_row(product, user, row, position)
+    return product
+
+
+class ProductNameTakenError(Exception):
+    """Un article de ce nom existe déjà : le proposer plutôt qu'un doublon."""
+
+    def __init__(self, product_id: uuid.UUID) -> None:
+        self.product_id = product_id
+        super().__init__('Un article de ce nom existe déjà.')
+
+
+def create_service_from_line(
+    shop: Shop,
+    *,
+    name: str,
+    unit_label: str,
+    unit_price_ht: Decimal,
+) -> Product:
+    """Service du catalogue créé depuis une ligne de facture libre (URS-110).
+
+    Un seul format, au nom par défaut, au prix HT de la ligne. Le nom déjà pris
+    (sans tenir compte de la casse) renvoie l'article existant, jamais un doublon,
+    y compris en cas de création concurrente (contrainte `unique_product_name_per_shop`).
+    """  # noqa: E501
+    from apps.subscriptions.limits import enforce_product_limit
+
+    def existing() -> ProductNameTakenError:
+        found = Product.objects.filter(shop=shop, name__iexact=name).values_list('pk', flat=True).first()  # noqa: E501
+        return ProductNameTakenError(found)
+
+    with transaction.atomic():
+        enforce_product_limit(shop)
+        if Product.objects.filter(shop=shop, name__iexact=name).exists():
+            raise existing()
+        try:
+            with transaction.atomic():
+                product = Product.objects.create(shop=shop, name=name, type='service')
+        except IntegrityError:
+            raise existing() from None
+        ProductVariant.objects.create(
+            shop=shop, product=product, packaging_name=DEFAULT_VARIANT_NAME,
+            unit='piece', base_quantity=Decimal('1'), unit_label=unit_label,
+            selling_price=unit_price_ht, position=0,
+        )
     return product
 
 

@@ -33,8 +33,8 @@ Documents de référence (à consulter selon le besoin, pas à charger systémat
 docker compose exec backend pytest -n auto    # Suite complète, en parallèle (pytest-xdist : une base de test par worker) : 4 workers en local (PYTEST_XDIST_AUTO_NUM_WORKERS) ; davantage sur demande : -n 8
 docker compose exec backend pytest apps/<app>  # Tests d'une app
 docker compose exec backend pytest path/file::test_name  # Test ciblé
-docker compose exec backend ruff check .      # Lint
-docker compose exec backend ruff format .     # Format
+docker compose exec backend ruff check .      # Lint (guillemets simples imposés : règle Q)
+docker compose exec backend ruff format <fichiers créés>  # Format : fichiers nouveaux seulement, jamais `.` (reformaterait la mise en page de tout le backend)
 docker compose exec backend python manage.py makemigrations
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py seed_data           # Dev uniquement (DEBUG=True requis)
@@ -62,7 +62,7 @@ AUDIT_MATRIX=full docker compose run --rm e2e            # les 8 configurations 
 # Garde-fou mémoire des phases lourdes (voir « Vérifications ») — journal : ~/.local/state/mizan-commerce/mem.log
 infra/scripts/mem-check.sh                               # état : 0 rien à signaler, 1 pression mémoire, 2 phase lourde déjà en cours
 MEM_LABEL="audit sales" infra/scripts/mem-check.sh run docker compose run --rm e2e npm run audit -- sales  # lance si l'état est 0, relève la mémoire, pics en fin
-docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@, e2e-invoices@example.com)
+docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@, e2e-invoices@, e2e-invoice-editor@example.com)
 ```
 
 ## Code rules — Backend (Python / Django)

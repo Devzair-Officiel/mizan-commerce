@@ -19,6 +19,8 @@ export const STAFF_EMAIL = `${PREFIX}-staff@example.com`;
  * qu'invoice-settings ou order-numbers émettent sur leur emplacement ne s'y mêlent pas.
  */
 export const INVOICES_EMAIL = 'e2e-invoices@example.com';
+/** Boutique réservée à audit-invoice-editor : ses brouillons et factures libres restent hors des comptes d'audit-invoices. */
+export const INVOICE_EDITOR_EMAIL = 'e2e-invoice-editor@example.com';
 export const PASSWORD = process.env.AUDIT_PASSWORD ?? 'Mizan1234!';
 
 const ALL_VIEWPORTS = [

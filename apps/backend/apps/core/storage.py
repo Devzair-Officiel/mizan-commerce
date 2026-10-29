@@ -79,4 +79,4 @@ def delete_object(object_key: str) -> None:
         s3 = _get_s3_client()
         s3.delete_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=object_key)
     except Exception:
-        logger.exception("Échec de la suppression S3 pour la clé %s", object_key)
+        logger.exception('Échec de la suppression S3 pour la clé %s', object_key)

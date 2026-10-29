@@ -28,16 +28,16 @@ if TYPE_CHECKING:
 # Modules toggleable par un admin pour un staff.
 # Les modules absents de cette liste sont *toujours* admin-only
 # (settings, zakat, team) et ne sont pas accordables à un staff.
-MODULE_PRODUCTS = "products"
-MODULE_ORDERS = "orders"
-MODULE_CUSTOMERS = "customers"
-MODULE_PAYMENTS = "payments"
-MODULE_INVOICES = "invoices"
-MODULE_STOCK = "stock"
-MODULE_MESSAGES = "messages"
-MODULE_DASHBOARD = "dashboard"
-MODULE_LOYALTY = "loyalty"
-MODULE_REMINDERS = "reminders"
+MODULE_PRODUCTS = 'products'
+MODULE_ORDERS = 'orders'
+MODULE_CUSTOMERS = 'customers'
+MODULE_PAYMENTS = 'payments'
+MODULE_INVOICES = 'invoices'
+MODULE_STOCK = 'stock'
+MODULE_MESSAGES = 'messages'
+MODULE_DASHBOARD = 'dashboard'
+MODULE_LOYALTY = 'loyalty'
+MODULE_REMINDERS = 'reminders'
 
 TOGGLEABLE_MODULES: tuple[str, ...] = (
     MODULE_PRODUCTS,
@@ -61,10 +61,10 @@ def get_member(user: "User") -> "ShopMember":
     from apps.shops.models import ShopMember
 
     membership = (
-        ShopMember.objects.filter(user=user).select_related("shop").first()
+        ShopMember.objects.filter(user=user).select_related('shop').first()
     )
     if not membership:
-        raise PermissionDenied("Aucune boutique associée.")
+        raise PermissionDenied('Aucune boutique associée.')
     return membership
 
 
@@ -81,7 +81,7 @@ def get_shop_from_request(request: Any) -> "Shop":
 class IsShopAdmin(BasePermission):
     """Autorise uniquement les membres `owner` ou `admin` de la boutique."""
 
-    message = "Accès réservé aux administrateurs de la boutique."
+    message = 'Accès réservé aux administrateurs de la boutique.'
 
     def has_permission(self, request, view) -> bool:
         if not request.user or not request.user.is_authenticated:
@@ -95,7 +95,7 @@ class IsShopAdmin(BasePermission):
 class IsShopOwner(BasePermission):
     """Autorise uniquement le membre `owner` (abonnement : souscrire, changer, résilier)."""  # noqa: E501
 
-    message = "Accès réservé au propriétaire de la boutique."
+    message = 'Accès réservé au propriétaire de la boutique.'
 
     def has_permission(self, request, view) -> bool:
         from apps.shops.models import ShopMember
@@ -116,8 +116,8 @@ class HasModulePermission(BasePermission):
         permission_classes = (IsAuthenticated, HasModulePermission.for_module('products'))
     """  # noqa: E501
 
-    module: str = ""
-    message = "Module non accordé à votre compte."
+    module: str = ''
+    message = 'Module non accordé à votre compte.'
 
     def has_permission(self, request, view) -> bool:
         if not request.user or not request.user.is_authenticated:
@@ -129,11 +129,11 @@ class HasModulePermission(BasePermission):
         return member.has_module(self.module)
 
     @classmethod
-    def for_module(cls, module: str) -> type["HasModulePermission"]:
+    def for_module(cls, module: str) -> type['HasModulePermission']:
         return type(
-            f"HasModule_{module}",
+            f'HasModule_{module}',
             (cls,),
-            {"module": module},
+            {'module': module},
         )
 
 
@@ -151,7 +151,7 @@ class ShopScopedQuerysetMixin:
             serializer_class = ProductSerializer
     """  # noqa: E501
 
-    shop_lookup: str = "shop"
+    shop_lookup: str = 'shop'
 
     def get_shop(self) -> "Shop":
         return get_shop(self.request.user)  # type: ignore[attr-defined]
@@ -162,7 +162,7 @@ class ShopScopedQuerysetMixin:
 
     def get_serializer_context(self) -> dict[str, Any]:
         ctx = super().get_serializer_context()  # type: ignore[misc]
-        ctx.setdefault("shop", self.get_shop())
+        ctx.setdefault('shop', self.get_shop())
         return ctx
 
     def perform_create(self, serializer: Any) -> None:

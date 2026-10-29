@@ -274,6 +274,7 @@ Variante (packaging concret) d'un produit — ex. « Pot 250 g », « Seau 5 kg 
 | product_id | UUID | FK → products.id, CASCADE, NOT NULL | |
 | packaging_name | VARCHAR(120) | NOT NULL | Étiquette lisible du format (ex: « Pot 250 g ») |
 | unit | VARCHAR(8) | NOT NULL, DEFAULT `'piece'` | `piece`, `g`, `kg`, `mL`, `L`, `m`. Descriptif : sert au calcul « prix au kg/L ». |
+| unit_label | VARCHAR(30) | DEFAULT `''` | Unité facturée, libre (« nuit », « trajet ») : reprise dans une ligne de facture libre (URS-110) |
 | base_quantity | DECIMAL(14,3) | NOT NULL, DEFAULT 1 | Quantité contenue par format (ex. `250` pour « Bouteille 250 mL »). |
 | selling_price | DECIMAL(12,2) | NOT NULL | Prix de vente du format |
 | purchase_price | DECIMAL(12,2) | | Prix d'achat HT (optionnel) |
@@ -412,6 +413,8 @@ Le cache est recalculé par un agrégat SQL dans la transaction de chaque `save(
 | city | VARCHAR(100) | | |
 | postal_code | VARCHAR(20) | | |
 | country | VARCHAR(2) | | Code ISO |
+| customer_type | VARCHAR(10) | NOT NULL, DEFAULT `'individual'` | `individual` (particulier), `business` (professionnel) — URS-110 |
+| siren | VARCHAR(9) | DEFAULT `''` | SIREN d'un client professionnel : 9 chiffres, espaces de saisie retirés, sans contrôle de clé |
 | notes | TEXT | | Texte libre |
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -565,7 +568,7 @@ Informations d'expédition d'une commande (1-1 avec `orders`).
 
 ## 9. Domaine — Facturation
 
-Émission de factures client à partir d'une commande. Implémenté en Phase MVP (URS-094 à URS-099, plan §Facturation client).
+Émission de factures client à partir d'une commande. Implémenté en Phase MVP (URS-094 à URS-099, plan §Facturation client). Facture libre, sans commande, rédigée en brouillon puis émise (URS-110, `invoices/drafts.py`).
 
 Contexte légal (FR/UE) : une facture émise est **immuable** sur son numéro, ses montants, et ses snapshots vendeur/acheteur. La numérotation doit être **continue et sans trou** par entité émettrice. On modélise ces règles avec :
 - un compteur atomique par boutique (`invoice_sequences`) verrouillé via `SELECT … FOR UPDATE` au moment de l'émission ;
@@ -576,7 +579,7 @@ Champs Shop nécessaires (existants dans le modèle `Shop`) : `legal_address`, `
 
 ### `invoices`
 
-Facture émise depuis une commande. Une commande a **au plus une** facture (`OneToOneField`).
+Facture émise depuis une commande, ou facture libre (`order_id` NULL) rédigée en brouillon. Une commande a **au plus une** facture (`OneToOneField`).
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
@@ -584,10 +587,13 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 | shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
 | order_id | UUID | FK → orders.id, SET_NULL, UNIQUE (OneToOne) | Commande source ; la suppression de la commande n'efface pas la facture. |
 | customer_id | UUID | FK → customers.id, SET_NULL | Client au moment de l'émission (informatif ; les coordonnées sont snapshottées ci-dessous). |
-| number | VARCHAR(40) | NOT NULL | Numéro humain stable — format `fact-DDMMYY-NNNN`. |
-| status | VARCHAR(12) | NOT NULL, DEFAULT `'issued'` | `issued`, `paid`, `cancelled`. Seul champ modifiable après émission. |
-| issued_at | TIMESTAMPTZ | NOT NULL | Date/heure d'émission (sert au marqueur `DDMMYY` du numéro). |
-| due_date | DATE | NOT NULL | `issued_at + shop.default_payment_terms_days` (surchargeable par appel). |
+| number | VARCHAR(40) | DEFAULT `''` | Numéro humain stable — format `fact-DDMMYY-NNNN`. Vide pour un brouillon. |
+| kind | VARCHAR(12) | NOT NULL, DEFAULT `'invoice'` | `invoice` (devis et avoirs : lot 8.2) |
+| status | VARCHAR(12) | NOT NULL, DEFAULT `'issued'` | `draft`, `issued`, `paid`, `cancelled`. Après émission, seul champ modifiable. |
+| operation_category | VARCHAR(8) | NOT NULL, DEFAULT `'services'` | Nature de l'opération : `goods`, `services`, `mixed` ; proposée selon `shop.catalog_kind` |
+| issued_at | TIMESTAMPTZ | NULL | Date/heure d'émission (sert au marqueur `DDMMYY` du numéro). NULL pour un brouillon. |
+| payment_terms_days | SMALLINT | NULL | Délai choisi sur la facture (0–365) ; NULL = délai de la boutique à l'émission |
+| due_date | DATE | NULL | Jour d'émission + délai. NULL pour un brouillon. |
 | paid_at | TIMESTAMPTZ | | Rempli quand `status = paid`. |
 | cancelled_at | TIMESTAMPTZ | | Rempli quand `status = cancelled`. |
 | seller_name | VARCHAR(120) | NOT NULL | Snapshot `shop.name` |
@@ -603,6 +609,7 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 | buyer_country | VARCHAR(2) | DEFAULT `''` | Snapshot |
 | buyer_email | VARCHAR(254) | DEFAULT `''` | Snapshot |
 | buyer_phone | VARCHAR(30) | DEFAULT `''` | Snapshot |
+| buyer_siren | VARCHAR(9) | DEFAULT `''` | Snapshot du SIREN, client professionnel seulement |
 | currency | VARCHAR(3) | NOT NULL | Devise figée à l'émission (`shop.currency`) |
 | tax_rate | DECIMAL(5,2) | NOT NULL, DEFAULT 0 | Taux TVA en % appliqué uniformément à toutes les lignes (v1 : par-ligne non supporté). |
 | subtotal_ht | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Somme `line_subtotal_ht` |
@@ -620,7 +627,7 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 
 `account_summary` contient `previous_invoices` (numéro, dû net), `previous_balance`, `payments_received`, `current_invoice`, `total_balance`, tous les montants en chaînes décimales. Sont retenues seulement les autres factures du même client et de la même boutique, émises strictement avant, non annulées et non soldées. Le solde précédent est déjà net de leurs règlements ; `payments_received` désigne les règlements de la présente facture à l’émission, déduits une seule fois. `total_balance = previous_balance + current_invoice − payments_received`. Sans client identifié : solde précédent nul. Ce récapitulatif reste figé même après paiement des anciennes factures.
 
-**Contrainte** : `UNIQUE (shop_id, number)` — le numéro est strictement unique dans la boutique.
+**Contrainte** : `UNIQUE (shop_id, number) WHERE number <> ''` — le numéro est strictement unique dans la boutique ; les brouillons, sans numéro, n'y entrent pas.
 **Index** : `(shop_id, -issued_at)`, `(shop_id, status)`.
 **Ordering** : `-issued_at, -created_at`.
 
@@ -630,12 +637,14 @@ Facture émise depuis une commande. Une commande a **au plus une** facture (`One
 - **Synchronisation Order → Invoice** : `orders.services.update_payment` et `transition_status('cancelled')` appellent `invoices.services.sync_invoice_from_order`. Règle : commande annulée → facture annulée (terminal) ; commande payée → facture payée ; commande partiel/unpaid → facture émise. Une facture déjà `cancelled` reste `cancelled` (état terminal légal).
 - **Marquer comme payée** : l'UI cache le bouton si la facture est liée à une commande (la synchro fait foi) ; conservé pour les factures orphelines (`order = NULL` après suppression de la commande).
 - **PDF** : régénérable à la demande depuis les données figées — le PDF n'est donc jamais la source de vérité, seulement une projection.
+- **Brouillon (URS-110)** : sans numéro, date ni échéance ; modifiable (`PATCH /api/invoices/<id>/draft/`, refusé en 409 si `updated_at` envoyé n'est plus celui en base) et supprimable. Pas de PDF ni de statut de paiement (409). Exclu des indicateurs ; en tête de la liste par défaut, le dernier modifié d'abord.
+- **Émission d'un brouillon** (`POST /api/invoices/<id>/issue/`) : verrou de la boutique, vérification (`compliance.check_invoice` : bloquant partout, recommandé pour une boutique française, à accepter explicitement), numéro, dates, instantanés vendeur/acheteur et `presentation`, puis passage à `issued` par mise à jour conditionnelle sur `draft`. Tout dans une transaction : une émission refusée ne consomme aucun numéro. Journalisée (`invoice_issued`, suppression : `invoice_draft_deleted`).
 
 ---
 
 ### `invoice_lines`
 
-Ligne de facture — snapshot d'un item de commande au moment de l'émission. Découplée de `order_items` : la modification ou suppression d'une ligne de commande n'altère jamais la facture. Tous les montants en HT.
+Ligne de facture — snapshot d'un item de commande au moment de l'émission, ou ligne libre d'un brouillon. Découplée de `order_items` : la modification ou suppression d'une ligne de commande n'altère jamais la facture. Tous les montants en HT.
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
@@ -644,14 +653,17 @@ Ligne de facture — snapshot d'un item de commande au moment de l'émission. D�
 | invoice_id | UUID | FK → invoices.id, RESTRICT, NOT NULL | |
 | product_name | VARCHAR(200) | DEFAULT `''` | Nom figé, affiché au-dessus du format |
 | variant_name | VARCHAR(120) | DEFAULT `''` | Format figé, vide pour le format par défaut ; anciennes lignes gardées telles quelles |
-| description | VARCHAR(300) | NOT NULL | Concaténation `product_name (variant_name)` snapshottée depuis `order_items` |
+| description | VARCHAR(300) | NOT NULL | Concaténation `product_name (variant_name)` snapshottée depuis `order_items`, ou saisie libre |
+| details | TEXT | DEFAULT `''` | Description sur plusieurs lignes (ligne libre) |
+| unit | VARCHAR(30) | DEFAULT `''` | Unité saisie (« nuit », « trajet ») |
+| position | INTEGER | NOT NULL, DEFAULT 0 | Rang dans la facture ; lignes existantes numérotées dans l'ordre de création (migration `invoices.0008`) |
 | quantity | DECIMAL(12,3) | NOT NULL | Quantité facturée |
 | unit_price_ht | DECIMAL(12,2) | NOT NULL | Prix unitaire HT snapshotté |
 | line_subtotal_ht | DECIMAL(14,2) | NOT NULL | `unit_price_ht × quantity`, arrondi centime |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
 **Index** : `(invoice_id)`.
-**Ordering** : `created_at`.
+**Ordering** : `position, created_at`.
 
 ---
 

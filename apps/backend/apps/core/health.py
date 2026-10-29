@@ -19,13 +19,13 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 
 logger = logging.getLogger(__name__)
 
-HEALTH_PATH = "/healthz"
+HEALTH_PATH = '/healthz'
 _TIMEOUT_SECONDS = 2
 
 
 def _check_database() -> None:
     with connection.cursor() as cursor:
-        cursor.execute("SELECT 1")
+        cursor.execute('SELECT 1')
 
 
 def _check_redis() -> None:
@@ -41,8 +41,8 @@ def _check_redis() -> None:
 
 
 _CHECKS: dict[str, Callable[[], None]] = {
-    "database": _check_database,
-    "redis": _check_redis,
+    'database': _check_database,
+    'redis': _check_redis,
 }
 
 
@@ -57,7 +57,7 @@ def dependencies_healthy() -> bool:
             check()
         except Exception as exc:  # toute erreur rend la route indisponible
             # Le type seul : un message d'erreur peut contenir un hôte, un utilisateur.
-            logger.error("healthz : %s indisponible (%s)", name, type(exc).__name__)
+            logger.error('healthz : %s indisponible (%s)', name, type(exc).__name__)
             healthy = False
     return healthy
 
@@ -69,8 +69,8 @@ class HealthCheckMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         if request.path != HEALTH_PATH:
             return self.get_response(request)
-        if request.method not in ("GET", "HEAD"):
-            return JsonResponse({"status": "error"}, status=405)
+        if request.method not in ('GET', 'HEAD'):
+            return JsonResponse({'status': 'error'}, status=405)
         if dependencies_healthy():
-            return JsonResponse({"status": "ok"})
-        return JsonResponse({"status": "error"}, status=503)
+            return JsonResponse({'status': 'ok'})
+        return JsonResponse({'status': 'error'}, status=503)

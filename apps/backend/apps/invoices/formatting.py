@@ -13,6 +13,13 @@ def compact_identifier(value: str) -> str:
     return re.sub(r'\s', '', value)
 
 
+def format_siren(value: str) -> str:
+    compact = compact_identifier(value)
+    if not re.fullmatch(r'[0-9]{9}', compact):
+        return value
+    return ' '.join((compact[:3], compact[3:6], compact[6:]))
+
+
 def format_siret(value: str) -> str:
     compact = compact_identifier(value)
     if not re.fullmatch(r'[0-9]{14}', compact):

@@ -21,7 +21,7 @@ const AUDITS = [
   'pages', 'customer-form', 'customer-name', 'zakat', 'products-list', 'product-form', 'product-formats',
   'product-photos', 'product-scan', 'stock', 'product-sheet', 'loading', 'reminders', 'reminder-form', 'reminders-staff',
   'reminder-timezone', 'order-numbers', 'whatsapp', 'message-templates', 'sales', 'activity-export', 'exports', 'exports-stock',
-  'invoice-settings', 'invoices', 'scroll-lock', 'header-bands', 'show-more', 'stock-entry-plan', 'account-menu',
+  'invoice-settings', 'invoices', 'invoice-editor', 'scroll-lock', 'header-bands', 'show-more', 'stock-entry-plan', 'account-menu',
   'sidebar', 'usage', 'subscription', 'settings', 'team', 'profile', 'verify-email', 'legal',
   'session-refresh', 'session-race',
 ];

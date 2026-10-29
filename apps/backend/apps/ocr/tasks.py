@@ -181,7 +181,7 @@ def process_invoice_ocr(ocr_result_id: str) -> str:
         return 'failed_ai_service'
     except Exception:
         # Filet de sécurité — toute erreur non prévue reste captée.
-        logger.exception('Erreur inattendue pendant l\'OCR %s.', ocr_result_id)
+        logger.exception("Erreur inattendue pendant l'OCR %s.", ocr_result_id)
         mark_ocr_failed(ocr_result_id, error_message=_GENERIC_FAILURE_MESSAGE)
         return 'failed_unexpected'
 

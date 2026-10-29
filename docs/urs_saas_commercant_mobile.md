@@ -1479,6 +1479,26 @@ Un produit du catalogue est en fait un **article** (produit physique ou service)
 
 ---
 
+## URS-110 — Créer une facture libre, sans commande (proposée)
+
+**En tant que** commerçant ou prestataire,
+**je veux** rédiger une facture sans passer par une commande, en brouillon, puis l'émettre,
+**afin de** facturer une prestation, un séjour ou un forfait qui n'est pas une vente du catalogue.
+
+### Critères d'acceptation
+
+- « Nouvelle facture » (liste des factures) ouvre directement l'éditeur ; la facture reste un **brouillon** sans numéro tant qu'elle n'est pas émise, modifiable et supprimable.
+- Le brouillon s'enregistre automatiquement pendant la saisie (« Enregistré à HH:MM ») ; si un autre appareil l'a modifié entre-temps, l'enregistrement est refusé et le brouillon est rechargé, sans écraser l'autre saisie.
+- Chaque ligne porte une désignation, une description multiligne facultative, une quantité (décimale possible), une unité libre avec suggestions (nuit, heure, jour, semaine, trajet, personne, forfait, pièce) et un prix unitaire HT. Les lignes sont proposées depuis le catalogue et les lignes déjà facturées ; une ligne libre peut être enregistrée comme service du catalogue.
+- Le client se choisit ou se crée depuis la facture (particulier ou professionnel, SIREN facultatif) ; il rejoint les clients de la boutique, dans la limite de la formule.
+- Remise, frais de port, notes, délai de paiement et nature de l'opération (biens, services, mixte) sont réglables ; les totaux sont calculés par le serveur.
+- À l'émission, une vérification signale ce qui manque : bloquant (aucune ligne, total nul, pas de client) ou recommandé pour une boutique en France (identité et adresse du vendeur, SIRET, n° de TVA, SIREN d'un client professionnel, mentions de pénalités). Une recommandation n'empêche pas d'émettre ; le texte ne promet jamais la conformité légale (« figure normalement sur une facture officielle en France »).
+- L'émission attribue le numéro suivant de la séquence (`fact-DDMMYY-NNNN`), sans trou ni doublon même en cas de double clic ; elle fige les instantanés vendeur et acheteur et elle est consignée dans le journal d'audit, avec les recommandations ignorées.
+- Une facture émise ne se supprime jamais (URS-099) ; une facture libre peut être marquée payée. Elle ne touche jamais au stock.
+- Fonctionnalité de la formule Solo et au-delà (clé `invoices`), réservée aux membres qui ont le module Factures.
+
+---
+
 # 21. URS — Messages WhatsApp préparés
 
 ## Règle générale
@@ -2293,6 +2313,7 @@ URS-061 à URS-063
 URS-089 à URS-099
 URS-101 à URS-103
 URS-105 à URS-108 (proposées)
+URS-110 (proposée)
 ```
 
 ---

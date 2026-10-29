@@ -18,13 +18,13 @@ from apps.core.redaction import mask_text
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         entry = {
-            "time": datetime.fromtimestamp(record.created, UTC).isoformat(
-                timespec="milliseconds"
+            'time': datetime.fromtimestamp(record.created, UTC).isoformat(
+                timespec='milliseconds'
             ),
-            "level": record.levelname,
-            "logger": record.name,
-            "message": mask_text(record.getMessage()),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': mask_text(record.getMessage()),
         }
         if record.exc_info:
-            entry["exc"] = mask_text(self.formatException(record.exc_info))
+            entry['exc'] = mask_text(self.formatException(record.exc_info))
         return json.dumps(entry, ensure_ascii=False)

@@ -25,7 +25,7 @@ export function InvoiceDetailHeader({ invoice, menu }: { invoice: Invoice; menu:
         <h1 className="text-[28px] font-semibold leading-snug tracking-tight">{t('detail.title')} <OrderNumber>{invoice.number}</OrderNumber></h1>
         <InvoiceStatusBadge status={invoice.status} />
       </div>
-      <p className="mt-1.5 text-sm text-muted-foreground">{t('detail.issued_on', { date: date(invoice.issued_at, { dateStyle: 'long', timeStyle: 'short' }) })}</p>
+      {invoice.issued_at && <p className="mt-1.5 text-sm text-muted-foreground">{t('detail.issued_on', { date: date(invoice.issued_at, { dateStyle: 'long', timeStyle: 'short' }) })}</p>}
     </div>
     <div className="flex items-center gap-2"><DetailActionsMenu actions={menu} variant="menu" /><InvoicePdfButton id={invoice.id} /></div>
   </header>;

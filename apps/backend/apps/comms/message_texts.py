@@ -20,7 +20,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
                 'Bonjour {client} 😊\n'
                 'Merci pour votre commande {commande} ! '
                 'Nous avons bien noté : {articles}.\n'
-                'Total : {total}. Nous vous prévenons dès qu\'elle est prête.\n'
+                "Total : {total}. Nous vous prévenons dès qu'elle est prête.\n"
                 '{boutique}'
             ),
             'tracking': (
@@ -32,7 +32,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
             ),
             'tracking_delivery': (
                 'Bonne nouvelle {client} 🎉\n'
-                'Votre commande {commande} vient d\'être remise au livreur, '
+                "Votre commande {commande} vient d'être remise au livreur, "
                 'elle arrive très bientôt !\n'
                 'À très vite !\n'
                 '{boutique}'
@@ -48,7 +48,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
             ),
             'thank_you': (
                 'Merci {client} 🙏\n'
-                'C\'était un plaisir de préparer votre commande {commande}. '
+                "C'était un plaisir de préparer votre commande {commande}. "
                 'Au plaisir de vous revoir très vite !\n'
                 '{boutique}'
             ),
@@ -67,14 +67,14 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
                 'Nous vous confirmons la bonne réception de votre commande '
                 '{commande} : {articles}.\n'
                 'Montant total : {total}. '
-                'Nous vous informerons dès qu\'elle sera prête.\n'
+                "Nous vous informerons dès qu'elle sera prête.\n"
                 'Cordialement,\n'
                 '{boutique}'
             ),
             'tracking': (
                 'Bonjour {client},\n'
                 'Votre commande {commande} est prête. Vous pouvez venir la retirer '
-                'aux heures d\'ouverture de la boutique.\n'
+                "aux heures d'ouverture de la boutique.\n"
                 'Cordialement,\n'
                 '{boutique}'
             ),
@@ -104,7 +104,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
             'promo': (
                 'Bonjour {client},\n'
                 'Nous avons le plaisir de vous présenter une nouvelle offre '
-                'susceptible de vous intéresser. N\'hésitez pas à nous contacter '
+                "susceptible de vous intéresser. N'hésitez pas à nous contacter "
                 'pour en savoir plus.\n'
                 'Cordialement,\n'
                 '{boutique}'
@@ -117,7 +117,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
             'order_confirmation': (
                 'Hi {client} 😊\n'
                 'Thanks for your order {commande}! We have noted: {articles}.\n'
-                'Total: {total}. We\'ll let you know as soon as it\'s ready.\n'
+                "Total: {total}. We'll let you know as soon as it's ready.\n"
                 '{boutique}'
             ),
             'tracking': (
@@ -168,7 +168,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
             'tracking': (
                 'Dear {client},\n'
                 'Your order {commande} is ready. You may collect it during '
-                'the shop\'s opening hours.\n'
+                "the shop's opening hours.\n"
                 'Kind regards,\n'
                 '{boutique}'
             ),
@@ -294,7 +294,7 @@ DEFAULT_TEXTS: dict[str, dict[str, dict[str, str]]] = {
 SAMPLE: dict[str, dict[str, object]] = {
     'fr': {
         'customer': 'Karima Bensouda',
-        'items': ['2 × Savon à l\'huile d\'olive', '1 × Huile d\'argan'],
+        'items': ["2 × Savon à l'huile d'olive", "1 × Huile d'argan"],
     },
     'en': {
         'customer': 'Karima Bensouda',

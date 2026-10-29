@@ -28,21 +28,33 @@ class InvoiceSequence(models.Model):
 
 
 class Invoice(models.Model):
-    """Facture client émise depuis une commande.
+    """Facture client, émise depuis une commande ou rédigée librement (URS-110).
 
-    Une fois émise, la facture est immuable sur ses montants et son numéro (exigence
-    légale). On accepte uniquement un changement de statut (`issued` → `paid`/`cancelled`).
-    Toutes les infos vendeur/acheteur sont **snapshottées** : si le commerçant change
-    son adresse ou si le client est renommé, l'historique de facturation reste figé.
+    Un brouillon (`draft`) n'a ni numéro, ni date d'émission, ni échéance : il se
+    modifie et se supprime (`invoices.drafts`). Une fois émise, la facture est immuable
+    sur ses montants et son numéro (exigence légale). On accepte uniquement un changement
+    de statut (`issued` → `paid`/`cancelled`). Toutes les infos vendeur/acheteur sont
+    **snapshottées** à l'émission : si le commerçant change son adresse ou si le client
+    est renommé, l'historique de facturation reste figé.
     """  # noqa: E501
 
+    STATUS_DRAFT = 'draft'
     STATUS_ISSUED = 'issued'
     STATUS_PAID = 'paid'
     STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = [
+        (STATUS_DRAFT, 'Brouillon'),
         (STATUS_ISSUED, 'Émise'),
         (STATUS_PAID, 'Payée'),
         (STATUS_CANCELLED, 'Annulée'),
+    ]
+    # Préparé pour les avoirs (lot 2) : seules les factures existent au lot 1.
+    KIND_INVOICE = 'invoice'
+    KIND_CHOICES = [(KIND_INVOICE, 'Facture')]
+    OPERATION_CHOICES = [
+        ('goods', 'Livraison de biens'),
+        ('services', 'Prestation de services'),
+        ('mixed', 'Biens et services'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -56,12 +68,19 @@ class Invoice(models.Model):
     )
 
     # Numéro humain stable, ex: "fact-040626-0001" — préfixe fixe, date d'émission,
-    # compteur continu par boutique (jamais reset).
-    number = models.CharField(max_length=40)
+    # compteur continu par boutique (jamais reset). Vide tant que brouillon.
+    number = models.CharField(max_length=40, blank=True)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ISSUED)  # noqa: E501
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default=KIND_INVOICE)
+    operation_category = models.CharField(
+        max_length=8, choices=OPERATION_CHOICES, default='services',
+    )
 
-    issued_at = models.DateTimeField()
-    due_date = models.DateField()
+    # Nuls tant que brouillon : fixés à l'émission.
+    issued_at = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    # Délai choisi sur le brouillon ; `due_date` = date d'émission + ce délai.
+    payment_terms_days = models.PositiveSmallIntegerField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
 
@@ -83,6 +102,7 @@ class Invoice(models.Model):
     buyer_country = models.CharField(max_length=2, blank=True)
     buyer_email = models.EmailField(max_length=254, blank=True)
     buyer_phone = models.CharField(max_length=30, blank=True)
+    buyer_siren = models.CharField(max_length=9, blank=True)
 
     # ── Totaux figés à l'émission ──────────────────────────────────────────
     currency = models.CharField(max_length=3)
@@ -109,8 +129,13 @@ class Invoice(models.Model):
     class Meta:
         db_table = 'invoices'
         constraints = [
-            # Le numéro doit être strictement unique au sein d'une boutique.
-            models.UniqueConstraint(fields=['shop', 'number'], name='unique_invoice_number_per_shop'),  # noqa: E501
+            # Le numéro doit être strictement unique au sein d'une boutique ; les
+            # brouillons, sans numéro, n'y entrent pas.
+            models.UniqueConstraint(
+                fields=['shop', 'number'],
+                condition=~models.Q(number=''),
+                name='unique_invoice_number_per_shop',
+            ),
         ]
         indexes = [
             models.Index(fields=['shop', '-issued_at']),
@@ -123,7 +148,7 @@ class Invoice(models.Model):
 
 
 class InvoiceLine(models.Model):
-    """Ligne de facture — snapshot d'un item de commande au moment de l'émission.
+    """Ligne de facture — snapshot d'un item de commande, ou ligne libre d'un brouillon.
 
     Découplée du `OrderItem` : si la commande est modifiée ou supprimée, les lignes
     restent inchangées. Tous les montants en € HT.
@@ -134,6 +159,10 @@ class InvoiceLine(models.Model):
     invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='lines')  # noqa: E501
 
     description = models.CharField(max_length=300)
+    # Ligne libre : description multiligne, unité saisie (« nuit », « trajet »).
+    details = models.TextField(blank=True)
+    unit = models.CharField(max_length=30, blank=True)
+    position = models.PositiveIntegerField(default=0)
     product_name = models.CharField(max_length=200, blank=True)
     variant_name = models.CharField(max_length=120, blank=True)
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
@@ -145,7 +174,7 @@ class InvoiceLine(models.Model):
     class Meta:
         db_table = 'invoice_lines'
         indexes = [models.Index(fields=['invoice'])]
-        ordering = ['created_at']
+        ordering = ['position', 'created_at']
 
     def __str__(self):
         return f'{self.quantity} × {self.description}'

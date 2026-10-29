@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mizan — Maquette : hub Documents, devis et page client</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{color-scheme:light dark;--font-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+html,body{margin:0}
+body{padding:24px 16px 48px;font-family:var(--font-sans);background:Canvas;color:CanvasText}
+.wrap{max-width:720px;margin:0 auto}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h2 class="sr-only">Maquette du hub Documents, du détail d'un devis avec son suivi et de la page client d'acceptation, en version mobile et desktop, au design de Mizan.</h2>
+<style>
+.ap{--bg:oklch(0.975 0.010 85);--card:oklch(0.995 0.005 85);--fg:oklch(0.27 0.02 170);--mf:oklch(0.53 0.012 170);--pri:oklch(0.52 0.075 170);--pf:#fff;--sec:oklch(0.93 0.0225 170);--sf:oklch(0.30 0.045 170);--mut:oklch(0.945 0.012 90);--bor:oklch(0.90 0.014 90);--amb:oklch(0.50 0.12 70);--ambbg:oklch(0.95 0.05 85);--gn:oklch(0.42 0.12 150);--gnb:oklch(0.94 0.06 150);--rd:oklch(0.48 0.17 27);--rdb:oklch(0.95 0.04 27);--h1:oklch(0.82 0.06 165/.40);--h2:oklch(0.90 0.085 85/.45);font-family:var(--font-sans);color:var(--fg)}
+.ap.dk{--bg:oklch(0.22 0.012 170);--card:oklch(0.27 0.012 170);--fg:oklch(0.95 0.01 85);--mf:oklch(0.72 0.012 170);--pri:oklch(0.66 0.09 170);--pf:oklch(0.2 0.02 170);--sec:oklch(0.35 0.035 170);--sf:oklch(0.92 0.03 170);--mut:oklch(0.31 0.012 170);--bor:oklch(0.38 0.012 170);--amb:oklch(0.82 0.13 80);--ambbg:oklch(0.35 0.06 75);--gn:oklch(0.82 0.13 150);--gnb:oklch(0.34 0.07 150);--rd:oklch(0.80 0.12 25);--rdb:oklch(0.35 0.07 25);--h1:oklch(0.48 0.07 170/.30);--h2:oklch(0.55 0.08 75/.16)}
+.ap *{box-sizing:border-box}
+.ap [role=button]{cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.ap input{all:unset!important;display:block!important;box-sizing:border-box!important;width:100%!important;font:inherit!important;font-size:15px!important;line-height:1.35!important;color:inherit!important;cursor:text}
+.ap .ctl{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 0 14px}
+.ap .seg{display:inline-flex;background:var(--mut);border-radius:999px;padding:4px}
+.ap .seg span{border-radius:999px;height:34px;padding:0 18px;font-size:13px;font-weight:600;color:var(--mf);display:inline-flex;align-items:center}
+.ap .seg span.on{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
+.ap .tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.ap .tabs span{border-radius:999px;font-size:12px;padding:5px 12px;border:1px solid var(--bor);color:var(--fg)}
+.ap .tabs span.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.ap .stage{display:flex;justify-content:center}
+.ap .halo{background:radial-gradient(70% 40% at 0% 0%,var(--h1),transparent 70%),radial-gradient(60% 40% at 100% 100%,var(--h2),transparent 70%),var(--bg)}
+.ap .card{background:var(--card);border:1px solid var(--bor);border-radius:16px;overflow:hidden}
+.ap .card>*+*{border-top:1px solid var(--bor)}
+.ap .band{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--mut)}
+.ap .tile{width:36px;height:36px;border-radius:10px;background:var(--card);color:var(--pri);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 1px 2px rgb(0 0 0/.08);flex:none}
+.ap .bt{flex:1;min-width:0}
+.ap .bt .r{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ap .bt .tx{font-size:17px;font-weight:600}
+.ap .bt p{font-size:13px;color:var(--mf);margin:3px 0 0;line-height:1.4}
+.ap .chip{height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;background:var(--card);border:1px solid var(--bor);color:var(--mf);white-space:nowrap}
+.ap .chip.s{background:var(--sec);color:var(--sf);border-color:transparent}
+.ap .hl{font-size:13px;font-weight:600;color:var(--pri);height:32px;display:inline-flex;gap:4px;align-items:center}
+.ap .hl:hover{text-decoration:underline;text-underline-offset:4px}
+.ap .b{height:40px;border-radius:999px;padding:0 20px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;color:var(--fg);white-space:nowrap}
+.ap .b.p{background:var(--pri);color:var(--pf);border-color:var(--pri)}
+.ap .b.p:hover{background:color-mix(in oklch,var(--pri) 88%,black)}
+.ap .b.g:hover{background:var(--mut)}
+.ap .b.o{border-color:var(--bor);background:var(--card)}
+.ap .b.o:hover{background:var(--mut)}
+.ap .b.l{height:48px;width:100%}
+.ap .ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--mf);font-size:20px;flex:none}
+.ap .ic:hover{background:var(--mut)}
+.ap .item{display:flex;align-items:center;gap:12px;padding:13px 16px;font-size:14px}
+.ap .item .tx{flex:1;min-width:0;font-weight:600}
+.ap .item .tx small{display:block;font-weight:400;font-size:13px;color:var(--mf)}
+.ap .av{width:40px;height:40px;border-radius:50%;background:var(--sec);color:var(--sf);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex:none}
+.ap .ty{width:36px;height:36px;border-radius:10px;background:var(--mut);color:var(--pri);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.ap .amt{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.ap .st{height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.ap .st:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.ap .st.mu{background:var(--mut);color:var(--mf)}
+.ap .st.am{background:var(--ambbg);color:var(--amb)}
+.ap .st.gn{background:var(--gnb);color:var(--gn)}
+.ap .st.rd{background:var(--rdb);color:var(--rd)}
+.ap .st.pr{background:var(--sec);color:var(--sf)}
+.ap .tr{display:flex;justify-content:space-between;font-size:14px;color:var(--mf);font-variant-numeric:tabular-nums}
+.ap .tr b{font-weight:400;color:var(--fg)}
+.ap .tr.t{font-size:17px;color:var(--fg);font-weight:600;padding-top:10px;border-top:1px solid var(--bor)}
+.ap .tr.t b{font-weight:700}
+.ap .rec{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.ap .phone{position:relative;width:360px;min-height:900px;border:1px solid var(--bor);border-radius:32px;overflow:hidden}
+.ap .tb{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 6px;min-height:60px;border-bottom:1px solid var(--bor);background:color-mix(in oklch,var(--card) 85%,transparent)}
+.ap .tt{flex:1;min-width:0;padding-left:10px}
+.ap .tt .h{display:block;font-size:20px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap .tt small{font-size:13px;color:var(--mf);display:block;margin-top:1px}
+.ap .bd{padding:16px 16px 170px;display:flex;flex-direction:column;gap:16px}
+.ap .bn{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bor);display:flex;align-items:flex-end;justify-content:space-around;padding-bottom:12px;z-index:2}
+.ap .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;min-height:56px;font-size:11px;color:var(--mf)}
+.ap .ni .pl{height:30px;width:52px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.ap .fab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding-bottom:8px;font-size:11px;font-weight:600;color:var(--fg)}
+.ap .fab .c{height:56px;width:56px;border-radius:50%;background:var(--pri);color:var(--pf);display:flex;align-items:center;justify-content:center;font-size:24px;margin-top:-28px;box-shadow:0 0 0 4px var(--card),0 4px 10px rgb(0 0 0/.18)}
+.ap .flb{position:absolute;left:16px;right:16px;bottom:84px;z-index:2}
+.ap .flb .b{box-shadow:0 8px 20px rgb(0 0 0/.2)}
+.ap .ov{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;z-index:5;align-items:flex-end}
+.ap .ov.show{display:flex}
+.ap .sh{width:100%;background:var(--card);border-radius:24px 24px 0 0;padding:8px 20px 22px}
+.ap .gr{width:36px;height:4px;border-radius:2px;background:var(--bor);margin:4px auto 14px}
+.ap .sht{font-size:17px;font-weight:600}
+.ap .shs{font-size:13px;color:var(--mf);margin:2px 0 12px;line-height:1.45}
+.ap .rw{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--bor);font-size:14px}
+.ap .rw .tx{flex:1;min-width:0;font-weight:600}
+.ap .rw .tx small{display:block;font-weight:400;font-size:13px;color:var(--mf)}
+.ap .pick{display:flex;background:var(--mut);border-radius:999px;padding:4px}
+.ap .pick span{flex:1;border-radius:999px;height:34px;font-size:12px;font-weight:600;color:var(--mf);display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap}
+.ap .pick span.on{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
+.ap .stats{display:grid;gap:12px}
+.ap .stat{background:var(--card);border:1px solid var(--bor);border-radius:16px;padding:14px;transition:transform .1s}
+.ap .stat:active{transform:scale(.98)}
+.ap .stat.on{border-color:var(--pri);box-shadow:0 0 0 3px color-mix(in oklch,var(--pri) 16%,transparent)}
+.ap .stat .k{font-size:13px;color:var(--mf);display:flex;align-items:center;gap:6px}
+.ap .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:6px;letter-spacing:-0.01em}
+.ap .stat .s{font-size:12px;color:var(--mf);margin-top:2px}
+.ap .stat.warn .v{color:var(--rd)}
+.ap .tl2{padding:14px 16px}
+.ap .tli{position:relative;display:flex;gap:12px;padding-bottom:16px}
+.ap .tli:last-child{padding-bottom:0}
+.ap .tli:not(:last-child):before{content:"";position:absolute;left:10px;top:22px;bottom:0;width:2px;background:var(--bor)}
+.ap .tli.done:not(:last-child):before{background:var(--pri)}
+.ap .dot{width:22px;height:22px;border-radius:50%;border:2px dashed var(--bor);display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;background:var(--card)}
+.ap .tli.done .dot{background:var(--pri);border:2px solid var(--pri);color:var(--pf)}
+.ap .tli .w{font-size:14px;font-weight:600;line-height:1.3}
+.ap .tli .w small{display:block;font-weight:400;font-size:13px;color:var(--mf)}
+.ap .tli:not(.done) .w{color:var(--mf);font-weight:500}
+.ap .banner{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--sec);color:var(--sf)}
+.ap .banner .tx{flex:1;font-size:14px;font-weight:600}
+.ap .banner small{display:block;font-weight:400;font-size:13px;opacity:.8}
+.ap .hero{padding:16px}
+.ap .hero .big{font-size:30px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.ap .ln2{display:flex;gap:12px;padding:14px 16px}
+.ap .ln2 .tx{flex:1;min-width:0;font-size:14px;font-weight:600}
+.ap .ln2 .tx small{display:block;font-weight:400;font-size:13px;color:var(--mf);margin-top:2px;line-height:1.4}
+.ap .dskw{width:100%;overflow:hidden;position:relative}
+.ap .di{width:860px;transform-origin:top left}
+.ap .win{position:relative;display:grid;grid-template-columns:64px 1fr;min-height:760px;border:1px solid var(--bor);border-radius:16px;overflow:hidden}
+.ap .rail{background:color-mix(in oklch,var(--card) 70%,transparent);border-right:1px solid var(--bor);display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 0}
+.ap .rail .lg{width:36px;height:36px;border-radius:50%;background:var(--pri);color:var(--pf);display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:14px}
+.ap .rail .ri{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--mf)}
+.ap .rail .ri.on{background:var(--sec);color:var(--pri)}
+.ap .mn{padding:12px 24px 28px}
+.ap .bl{font-size:14px;font-weight:500;color:var(--mf);display:inline-flex;align-items:center;gap:2px}
+.ap .th{display:flex;align-items:flex-end;gap:12px;padding:6px 0 20px}
+.ap .th .t1{flex:1}
+.ap .th .h1{font-size:28px;font-weight:600;letter-spacing:-0.02em;line-height:1.2;display:flex;align-items:center;gap:12px}
+.ap .th small{font-size:13px;color:var(--mf)}
+.ap .sp{height:44px;width:230px;border-radius:999px;background:var(--card);border:1px solid var(--bor);display:flex;align-items:center;gap:10px;padding:0 16px;font-size:14px;color:var(--mf)}
+.ap .tbl .r{display:grid;grid-template-columns:1.5fr 1.3fr 70px 90px 110px 96px;gap:12px;align-items:center;padding:12px 20px;font-size:14px}
+.ap .tbl .r.hd{background:var(--mut);font-size:12px;font-weight:600;color:var(--mf);padding-top:10px;padding-bottom:10px}
+.ap .tbl .r .n{font-weight:600}
+.ap .tbl .r .n small{display:block;font-weight:400;font-size:12px;color:var(--mf)}
+.ap .tbl .r .e{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.ap .tbl .r.row:hover{background:var(--mut)}
+.ap .cl{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:20px;align-items:start}
+.ap .col{display:flex;flex-direction:column;gap:20px}
+.ap .link{display:flex;align-items:center;gap:8px;border:1px solid var(--bor);border-radius:12px;padding:0 6px 0 12px;height:44px;font-size:13px;color:var(--mf);background:var(--card)}
+.ap .link span.u{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap .pub{--bg:#fff;--card:#fff;--fg:#18181b;--mf:#71717a;--bor:#e4e4e7;--pri:#8a5a2b;--pf:#fff;--mut:#f4f4f5;--sec:#f6efe6;--sf:#5b3b17;--amb:#92400e;--ambbg:#fef3c7;background:#fff;color:#18181b}
+.ap .pub .bd{padding:20px 20px 150px;gap:18px}
+.ap .logo{width:44px;height:44px;border-radius:12px;background:var(--pri);color:var(--pf);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex:none}
+.ap .pl2{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--bor);font-size:14px}
+.ap .pl2 .tx{flex:1;font-weight:600}
+.ap .pl2 .tx small{display:block;font-weight:400;font-size:13px;color:var(--mf);margin-top:2px}
+.ap .pl2 b{font-variant-numeric:tabular-nums}
+.ap .pbar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--bor);padding:14px 20px 22px;z-index:2;display:flex;flex-direction:column;gap:10px;align-items:center}
+.ap .fx{position:relative;border:1px solid var(--bor);border-radius:18px;background:var(--card);padding:24px 16px 9px;min-height:58px}
+.ap .fx .lab{position:absolute;left:16px;top:8px;font-size:11px;line-height:1;color:var(--mf)}
+.ap .chk{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--pri);background:var(--sec);border-radius:16px;font-size:14px;line-height:1.45}
+.ap .chk .bx{width:22px;height:22px;border-radius:6px;background:var(--pri);color:var(--pf);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none;margin-top:1px}
+</style>
+
+<div class="ap" id="ap">
+  <div class="ctl">
+    <div class="seg" id="views"><span role="button" tabindex="0" data-v="hub" class="on">Hub Documents</span><span role="button" tabindex="0" data-v="dv">Détail d'un devis</span><span role="button" tabindex="0" data-v="pub">Page client</span></div>
+    <div class="seg" id="dev"><span role="button" tabindex="0" data-d="mob" class="on">Mobile</span><span role="button" tabindex="0" data-d="dsk">Desktop</span></div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+
+  <!-- HUB MOBILE -->
+  <div class="stage" id="hub-m">
+    <div class="phone halo">
+      <div class="tb"><div class="tt" style="padding-left:12px"><span class="h">Documents</span><small>Devis, factures et avoirs</small></div><span role="button" tabindex="0" class="ic" aria-label="Rechercher"><i class="ti ti-search"></i></span></div>
+      <div class="bd">
+        <div class="stats js-stats" style="grid-template-columns:1fr 1fr"></div>
+        <div class="pick js-types"></div>
+        <div class="card js-rows"></div>
+      </div>
+      <div class="flb"><span role="button" tabindex="0" class="b p l" data-sub="new"><i class="ti ti-plus"></i>Nouveau document</span></div>
+      <div class="ov" id="hubnew"><div class="sh">
+        <div class="gr"></div><div class="sht">Nouveau document</div><div class="shs">Que voulez-vous créer ?</div>
+        <div class="rw" role="button" tabindex="0" data-sub="list"><span class="ty"><i class="ti ti-file-description"></i></span><div class="tx">Devis<small>Proposez un prix, le client l'accepte en ligne</small></div></div>
+        <div class="rw" role="button" tabindex="0" data-sub="list"><span class="ty"><i class="ti ti-file-text"></i></span><div class="tx">Facture<small>Libre, ou depuis un devis accepté</small></div></div>
+        <div class="rw" role="button" tabindex="0" data-sub="list"><span class="ty"><i class="ti ti-bookmark"></i></span><div class="tx">À partir d'un modèle<small>Vos modèles et factures récentes</small></div></div>
+      </div></div>
+      <div class="bn"></div>
+    </div>
+  </div>
+
+  <!-- HUB DESKTOP -->
+  <div class="dskw" id="hub-d" style="display:none"><div class="di"><div class="win halo">
+    <div class="rail js-rail"></div>
+    <div class="mn">
+      <div class="th"><div class="t1"><div class="h1">Documents</div><small>Devis, factures et avoirs de votre boutique</small></div><span role="button" tabindex="0" class="b o"><i class="ti ti-file-description"></i>Nouveau devis</span><span role="button" tabindex="0" class="b p"><i class="ti ti-plus"></i>Nouvelle facture</span></div>
+      <div class="stats js-stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px"></div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px"><div class="pick js-types" style="width:360px"></div><span style="flex:1"></span><div class="sp"><i class="ti ti-search"></i>Rechercher un document</div></div>
+      <div class="card tbl"><div class="r hd"><span>Numéro</span><span>Client</span><span>Date</span><span>Échéance</span><span>Statut</span><span style="text-align:right">Total</span></div><div class="js-trows" style="border-top:0"></div></div>
+    </div>
+  </div></div></div>
+
+  <!-- DEVIS MOBILE -->
+  <div class="stage" id="dv-m" style="display:none">
+    <div class="phone halo">
+      <div class="tb"><span role="button" tabindex="0" class="ic" style="color:var(--fg)" aria-label="Retour"><i class="ti ti-chevron-left" style="font-size:22px"></i></span><div class="tt" style="padding-left:2px"><span class="h">Devis</span><small>devis-281026-0004</small></div><span class="st js-badge"></span><span role="button" tabindex="0" class="ic" aria-label="Plus d'actions"><i class="ti ti-dots"></i></span></div>
+      <div class="bd">
+        <div class="card js-banner" style="display:none"></div>
+        <div class="card"><div class="hero">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><span class="av">HA</span><div style="flex:1"><div style="font-size:15px;font-weight:600">Hôtel Atlas SARL</div><div style="font-size:13px;color:var(--mf)">Professionnel · émis le 28 oct. 2026</div></div></div>
+          <div class="big">582,00 €</div><div style="font-size:13px;color:var(--mf);margin-top:4px">TTC · 485,00 € HT</div>
+          <div class="js-valid" style="font-size:13px;margin-top:12px;display:flex;gap:6px;align-items:center"></div>
+        </div></div>
+        <div class="card"><div class="band"><span class="tile"><i class="ti ti-history"></i></span><div class="bt"><span class="tx">Suivi</span></div></div><div class="tl2 js-tl"></div></div>
+        <div class="card"><div class="band"><span class="tile"><i class="ti ti-list-details"></i></span><div class="bt"><span class="tx">Prestations</span></div></div>
+          <div class="js-lines"></div>
+          <div class="rec"><div class="tr"><span>Total HT</span><b>485,00 €</b></div><div class="tr"><span>TVA 20 %</span><b>97,00 €</b></div><div class="tr t"><span>Total TTC</span><b>582,00 €</b></div></div></div>
+        <div class="card"><div class="band"><span class="tile"><i class="ti ti-file-check"></i></span><div class="bt"><span class="tx">Conditions</span></div></div>
+          <div class="rec"><div class="tr"><span>Validité</span><b>30 jours</b></div><div class="tr"><span>Acompte à la signature</span><b>30 % · 174,60 €</b></div><div class="tr"><span>Paiement du solde</span><b>30 jours</b></div></div></div>
+      </div>
+      <div class="flb"><span role="button" tabindex="0" class="b p l js-primary"></span></div>
+      <div class="bn"></div>
+    </div>
+  </div>
+
+  <!-- DEVIS DESKTOP -->
+  <div class="dskw" id="dv-d" style="display:none"><div class="di"><div class="win halo">
+    <div class="rail js-rail"></div>
+    <div class="mn">
+      <div class="bl"><i class="ti ti-chevron-left"></i>Documents</div>
+      <div class="th"><div class="t1"><div class="h1">devis-281026-0004<span class="st js-badge"></span></div><small>Hôtel Atlas SARL · émis le 28 octobre 2026</small></div><span role="button" tabindex="0" class="b g"><i class="ti ti-eye"></i>Aperçu PDF</span><span role="button" tabindex="0" class="b o js-secb"><i class="ti ti-pencil"></i>Modifier</span><span role="button" tabindex="0" class="b p js-primary"></span></div>
+      <div class="cl">
+        <div class="col">
+          <div class="card js-banner" style="display:none"></div>
+          <div class="card"><div class="band" style="padding:14px 24px"><span class="tile"><i class="ti ti-list-details"></i></span><div class="bt"><span class="tx">Prestations</span></div></div>
+            <div class="js-lines"></div>
+            <div class="rec" style="padding:16px 24px;margin-left:auto;width:320px"><div class="tr"><span>Total HT</span><b>485,00 €</b></div><div class="tr"><span>TVA 20 %</span><b>97,00 €</b></div><div class="tr t"><span>Total TTC</span><b>582,00 €</b></div></div></div>
+          <div class="card"><div class="band" style="padding:14px 24px"><span class="tile"><i class="ti ti-file-check"></i></span><div class="bt"><span class="tx">Conditions</span></div></div>
+            <div class="rec" style="padding:16px 24px"><div class="tr"><span>Validité</span><b>30 jours</b></div><div class="tr"><span>Acompte à la signature</span><b>30 % · 174,60 €</b></div><div class="tr"><span>Paiement du solde</span><b>30 jours</b></div></div></div>
+        </div>
+        <div class="col">
+          <div class="card"><div class="band"><span class="tile"><i class="ti ti-history"></i></span><div class="bt"><span class="tx">Suivi</span></div></div><div class="tl2 js-tl"></div></div>
+          <div class="card"><div class="band"><span class="tile"><i class="ti ti-link"></i></span><div class="bt"><div class="r"><span class="tx">Lien en ligne</span><span class="chip s">Boutique</span></div></div></div>
+            <div class="rec"><div class="link"><span class="u">mizan.app/d/k7Qx2m</span><span role="button" tabindex="0" class="hl" style="padding:0 10px"><i class="ti ti-copy"></i>Copier</span></div><div style="font-size:13px;color:var(--mf)">Consulté 2 fois · dernière vue aujourd'hui à 09:12</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div></div></div>
+
+  <!-- PAGE CLIENT -->
+  <div class="stage" id="pub-m" style="display:none">
+    <div class="phone pub">
+      <div class="bd" style="min-height:900px">
+        <div style="display:flex;align-items:center;gap:12px"><span class="logo">CA</span><div><div style="font-size:16px;font-weight:600">Conciergerie Atlas</div><div style="font-size:13px;color:var(--mf)">Devis n° devis-281026-0004</div></div></div>
+        <div class="js-pubdone" style="display:none;text-align:center;padding:40px 8px 0">
+          <div style="width:72px;height:72px;border-radius:50%;background:var(--sec);color:var(--pri);display:inline-flex;align-items:center;justify-content:center;font-size:34px"><i class="ti ti-check"></i></div>
+          <div style="font-size:22px;font-weight:600;margin-top:16px">Devis accepté</div>
+          <div style="font-size:14px;color:var(--mf);margin:8px 0 22px;line-height:1.5">Merci Karim. Conciergerie Atlas a été prévenue et vous recontacte pour la suite.</div>
+          <span role="button" tabindex="0" class="b o l"><i class="ti ti-download"></i>Télécharger le devis signé</span>
+          <div style="font-size:12px;color:var(--mf);margin-top:14px">Accepté le 29 octobre 2026 à 10:03</div>
+        </div>
+        <div class="js-pubmain" style="display:flex;flex-direction:column;gap:18px">
+          <div><div style="font-size:22px;font-weight:600;letter-spacing:-0.01em;line-height:1.25">Devis pour Hôtel Atlas SARL</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><span class="chip">Émis le 28 octobre 2026</span><span class="st am">Valable jusqu'au 27 novembre</span></div></div>
+          <div>
+            <div class="pl2" style="border-top:none"><div class="tx">Séjour hôtel, chambre double<small>Vue mer, petit-déjeuner inclus. Du 12 au 15 novembre. · 3 nuits × 140,00 €</small></div><b>420,00 €</b></div>
+            <div class="pl2"><div class="tx">Transfert privé aéroport → hôtel<small>1 trajet × 65,00 €</small></div><b>65,00 €</b></div>
+            <div class="pl2" style="color:var(--mf)"><span>Total HT</span><b style="font-weight:400;color:var(--fg)">485,00 €</b></div>
+            <div class="pl2" style="color:var(--mf);border-top:none;padding-top:0"><span>TVA 20 %</span><b style="font-weight:400;color:var(--fg)">97,00 €</b></div>
+            <div class="pl2" style="font-size:18px;font-weight:700"><span>Total TTC</span><b>582,00 €</b></div>
+          </div>
+          <div class="chk" style="background:var(--mut);border-color:var(--bor)"><i class="ti ti-cash" style="font-size:20px;color:var(--pri)"></i><div><b style="font-weight:600">Acompte à la signature : 174,60 €</b><div style="font-size:13px;color:var(--mf)">30 % du total, solde à 30 jours.</div></div></div>
+          <span role="button" tabindex="0" class="hl" style="align-self:flex-start"><i class="ti ti-download"></i>Télécharger le PDF</span>
+        </div>
+      </div>
+      <div class="pbar js-pubbar"><span role="button" tabindex="0" class="b p l" data-sub="accept">Accepter le devis</span><span role="button" tabindex="0" class="hl">Refuser</span></div>
+      <div class="ov" id="pubacc"><div class="sh">
+        <div class="gr"></div><div class="sht">Accepter le devis</div><div class="shs">Votre acceptation est enregistrée avec la date et l'heure.</div>
+        <div class="fx"><span class="lab">Votre nom</span><input type="text" value="Karim Alaoui" /></div>
+        <div class="chk" style="margin:14px 0"><span class="bx"><i class="ti ti-check"></i></span><div><b style="font-weight:600">« Bon pour accord »</b><div style="font-size:13px;opacity:.85">J'ai lu ce devis et je l'accepte au prix de 582,00 € TTC.</div></div></div>
+        <span role="button" tabindex="0" class="b p l" data-sub="done">Confirmer l'acceptation</span>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var R=document.getElementById('ap');
+  function all(s){return R.querySelectorAll(s);}
+  function eur(n){var s=Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';return n<0?'−'+s:s;}
+  var ST={draft:['Brouillon','mu'],sent:['Envoyé','am'],accepted:['Accepté','gn'],expired:['Expiré','rd'],paid:['Payée','gn'],late:['En retard','rd'],partial:['Partielle','am'],issued:['Émis','mu'],conv:['Facturé','pr']};
+  var ICON={devis:'file-description',facture:'file-text',avoir:'receipt-refund'};
+  var DOCS=[
+    {n:'devis-281026-0004',c:'Hôtel Atlas SARL',t:'devis',s:'sent',a:582,d:'28 oct.',e:'27 nov.',f:['pending'],open:1},
+    {n:'fact-281026-0013',c:'Hôtel Atlas SARL',t:'facture',s:'paid',a:582,d:'28 oct.',e:'—',f:[]},
+    {n:'devis-271026-0003',c:'Sarah Martin',t:'devis',s:'accepted',a:340,d:'27 oct.',e:'26 nov.',f:['toinvoice']},
+    {n:'fact-201026-0012',c:'Café Lumière',t:'facture',s:'late',a:412,d:'20 oct.',e:'27 oct.',f:['due','late']},
+    {n:'fact-151026-0011',c:'Sarah Martin',t:'facture',s:'partial',a:130,d:'15 oct.',e:'14 nov.',f:['due'],x:'Reste 50,00 €'},
+    {n:'avoir-191026-0001',c:'Marc Dubois',t:'avoir',s:'issued',a:-48,d:'19 oct.',e:'—',f:[]},
+    {n:'devis-151026-0002',c:'Café Lumière',t:'devis',s:'expired',a:1240,d:'15 oct.',e:'22 oct.',f:[]}
+  ];
+  var STATS=[['due','À encaisser','462,00 €','2 factures','coins',0],['late','En retard','412,00 €','1 facture','alert-triangle',1],['pending','Devis en attente','582,00 €','1 devis envoyé','clock',0],['toinvoice','À facturer','340,00 €','1 devis accepté','file-check',0]];
+  var TYPES=[['all','Tous'],['devis','Devis'],['facture','Factures'],['avoir','Avoirs']];
+  var NAV='<div class="ni"><span class="pl"><i class="ti ti-home"></i></span>Accueil</div><div class="ni"><span class="pl"><i class="ti ti-users"></i></span>Clients</div><div class="fab"><span class="c"><i class="ti ti-plus"></i></span>Vendre</div><div class="ni"><span class="pl"><i class="ti ti-shopping-bag"></i></span>Commandes</div><div class="ni"><span class="pl"><i class="ti ti-sparkles"></i></span>Services</div>';
+  var RAIL='<div class="lg">M</div><div class="ri"><i class="ti ti-home"></i></div><div class="ri"><i class="ti ti-users"></i></div><div class="ri"><i class="ti ti-shopping-bag"></i></div><div class="ri"><i class="ti ti-package"></i></div><div class="ri on"><i class="ti ti-file-text"></i></div><div class="ri"><i class="ti ti-calculator"></i></div>';
+  var LINES='<div class="ln2"><div class="tx">Séjour hôtel, chambre double<small>Vue mer, petit-déjeuner inclus. Du 12 au 15 novembre.<br>3 nuits × 140,00 €</small></div><b style="font-variant-numeric:tabular-nums">420,00 €</b></div><div class="ln2"><div class="tx">Transfert privé aéroport → hôtel<small>1 trajet × 65,00 €</small></div><b style="font-variant-numeric:tabular-nums">65,00 €</b></div>';
+  var STEPS=[['Créé','28 oct. à 14:32'],['Envoyé par WhatsApp','28 oct. à 14:40'],['Consulté par le client','29 oct. à 09:12'],['Accepté en ligne','29 oct. à 10:03 · Karim Alaoui, « bon pour accord »'],['Facture créée','fact-291026-0014']];
+  var PEND={draft:'À envoyer',sent:'En attente de réponse',accepted:'À facturer'};
+  var DONE={draft:1,sent:3,accepted:4,conv:5};
+  var view='hub',dev='mob',sub={hub:'list',dv:'sent',pub:'view'},typeF='all',statF=null;
+  var TABS={hub:{mob:[['list','Liste'],['new','Nouveau document']],dsk:[['list','Liste']]},dv:{mob:[['draft','Brouillon'],['sent','Envoyé'],['accepted','Accepté'],['conv','Facturé']],dsk:[['draft','Brouillon'],['sent','Envoyé'],['accepted','Accepté'],['conv','Facturé']]},pub:{mob:[['view','Consultation'],['accept','Acceptation'],['done','Confirmé']],dsk:[['view','Consultation'],['accept','Acceptation'],['done','Confirmé']]}};
+  function badge(s){var b=ST[s];return '<span class="st '+b[1]+'">'+b[0]+'</span>';}
+  function visible(d){if(statF)return d.f.indexOf(statF)>-1;return typeF==='all'||d.t===typeF;}
+  function build(){
+    all('.js-rail').forEach(function(e){e.innerHTML=RAIL;});
+    all('.bn').forEach(function(e){e.innerHTML=NAV;});
+    all('.js-lines').forEach(function(e){e.innerHTML=LINES;});
+    all('.js-stats').forEach(function(c){c.innerHTML=STATS.map(function(s){return '<div class="stat'+(statF===s[0]?' on':'')+(s[5]?' warn':'')+'" role="button" tabindex="0" data-stat="'+s[0]+'"><div class="k"><i class="ti ti-'+s[4]+'"></i>'+s[1]+'</div><div class="v">'+s[2]+'</div><div class="s">'+s[3]+'</div></div>';}).join('');});
+    all('.js-types').forEach(function(c){c.innerHTML=TYPES.map(function(t){return '<span role="button" tabindex="0" data-type="'+t[0]+'" class="'+(!statF&&typeF===t[0]?'on':'')+'">'+t[1]+'</span>';}).join('');});
+    var rows=DOCS.filter(visible);
+    all('.js-rows').forEach(function(c){c.innerHTML=rows.length?rows.map(function(d){return '<div class="item" role="button" tabindex="0"'+(d.open?' data-open="1"':'')+'><span class="ty"><i class="ti ti-'+ICON[d.t]+'"></i></span><div class="tx">'+d.c+'<small>'+d.n+'</small></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px"><span class="amt">'+eur(d.a)+'</span>'+badge(d.s)+(d.x?'<span style="font-size:12px;color:var(--mf)">'+d.x+'</span>':'')+'</div></div>';}).join(''):'<div class="item" style="justify-content:center;color:var(--mf)">Aucun document</div>';});
+    all('.js-trows').forEach(function(c){c.innerHTML=rows.map(function(d){return '<div class="r row" role="button" tabindex="0"'+(d.open?' data-open="1"':'')+' style="border-top:1px solid var(--bor)"><span class="n">'+d.n+'<small>'+({devis:'Devis',facture:'Facture',avoir:'Avoir'})[d.t]+'</small></span><span>'+d.c+'</span><span style="color:var(--mf)">'+d.d+'</span><span style="color:var(--mf)">'+d.e+'</span><span>'+badge(d.s)+'</span><span class="e">'+eur(d.a)+'</span></div>';}).join('');});
+  }
+  function renderDetail(){
+    var s=sub.dv,b=ST[s==='conv'?'conv':s];
+    all('.js-badge').forEach(function(e){e.className='st js-badge '+b[1];e.textContent=b[0];});
+    var P={draft:['send','Envoyer le devis'],sent:['brand-whatsapp','Relancer sur WhatsApp'],accepted:['file-check','Transformer en facture'],conv:['external-link','Voir la facture fact-291026-0014']}[s];
+    all('.js-primary').forEach(function(e){e.innerHTML='<i class="ti ti-'+P[0]+'"></i>'+P[1];});
+    all('.js-secb').forEach(function(e){e.style.display=s==='draft'||s==='sent'?'inline-flex':'none';e.innerHTML=s==='sent'?'<i class="ti ti-check"></i>Marquer accepté':'<i class="ti ti-pencil"></i>Modifier';});
+    var V={draft:'<i class="ti ti-clock" style="color:var(--mf)"></i>Valable 30 jours à partir de l\'envoi',sent:'<i class="ti ti-clock" style="color:var(--amb)"></i>Valable jusqu\'au 27 nov. · 29 jours restants',accepted:'<i class="ti ti-circle-check" style="color:var(--gn)"></i>Accepté le 29 oct. à 10:03',conv:'<i class="ti ti-circle-check" style="color:var(--gn)"></i>Accepté, puis facturé le 29 oct.'}[s];
+    all('.js-valid').forEach(function(e){e.innerHTML=V;});
+    all('.js-banner').forEach(function(e){e.style.display=s==='conv'?'block':'none';e.innerHTML='<div class="banner"><i class="ti ti-file-check" style="font-size:22px"></i><div class="tx">Facture fact-291026-0014 créée<small>Lignes, client et acompte repris du devis (brouillon à émettre)</small></div><span role="button" tabindex="0" class="hl" style="color:var(--sf)">Ouvrir</span></div>';});
+    var n=DONE[s];
+    all('.js-tl').forEach(function(e){e.innerHTML=STEPS.map(function(st,i){var done=i<n,pend=i===n;return '<div class="tli'+(done?' done':'')+'"><span class="dot">'+(done?'<i class="ti ti-check"></i>':'')+'</span><div class="w">'+(pend?PEND[s]:st[0])+(done?'<small>'+st[1]+'</small>':'')+'</div></div>';}).join('');});
+  }
+  function fit(){
+    all('.dskw').forEach(function(w){
+      if(w.style.display==='none')return;
+      var i=w.firstElementChild,s=Math.min(1,w.clientWidth/860);
+      i.style.transform='scale('+s+')';w.style.height=Math.round(i.offsetHeight*s)+'px';
+    });
+  }
+  function render(){
+    var d=view==='pub'?'mob':dev;
+    all('#dev').forEach(function(e){e.style.display=view==='pub'?'none':'inline-flex';});
+    all('#dev span').forEach(function(b){b.classList.toggle('on',b.dataset.d===dev);});
+    all('#views span').forEach(function(b){b.classList.toggle('on',b.dataset.v===view);});
+    var show={'hub-m':view==='hub'&&d==='mob','hub-d':view==='hub'&&d==='dsk','dv-m':view==='dv'&&d==='mob','dv-d':view==='dv'&&d==='dsk','pub-m':view==='pub'};
+    Object.keys(show).forEach(function(k){var e=document.getElementById(k);e.style.display=show[k]?(k.slice(-1)==='m'?'flex':'block'):'none';});
+    var list=TABS[view][d],tabs=document.getElementById('tabs');tabs.innerHTML='';
+    if(!list.some(function(t){return t[0]===sub[view];}))sub[view]=list[0][0];
+    list.forEach(function(t){var b=document.createElement('span');b.setAttribute('role','button');b.setAttribute('tabindex','0');b.textContent=t[1];if(t[0]===sub[view])b.className='on';b.addEventListener('click',function(){sub[view]=t[0];render();});tabs.appendChild(b);});
+    document.getElementById('hubnew').classList.toggle('show',view==='hub'&&sub.hub==='new');
+    document.getElementById('pubacc').classList.toggle('show',view==='pub'&&sub.pub==='accept');
+    var done=view==='pub'&&sub.pub==='done';
+    R.querySelector('.js-pubdone').style.display=done?'block':'none';
+    R.querySelector('.js-pubmain').style.display=done?'none':'flex';
+    R.querySelector('.js-pubbar').style.display=done?'none':'flex';
+    build();renderDetail();fit();
+  }
+  function detectDark(){var m=(getComputedStyle(document.body).color||'').match(/[\d.]+/g);if(m&&m.length>=3)R.classList.toggle('dk',(0.299*m[0]+0.587*m[1]+0.114*m[2])>140);}
+  R.addEventListener('click',function(e){
+    var v=e.target.closest('#views [data-v]');if(v){view=v.dataset.v;render();return;}
+    var d=e.target.closest('#dev [data-d]');if(d){dev=d.dataset.d;render();return;}
+    var st=e.target.closest('[data-stat]');if(st){statF=statF===st.dataset.stat?null:st.dataset.stat;if(statF)typeF='all';render();return;}
+    var ty=e.target.closest('[data-type]');if(ty){typeF=ty.dataset.type;statF=null;render();return;}
+    var op=e.target.closest('[data-open]');if(op){view='dv';sub.dv='sent';render();return;}
+    var sb=e.target.closest('[data-sub]');if(sb){sub[view]=sb.dataset.sub;render();return;}
+    if(e.target.classList&&e.target.classList.contains('ov')){sub[view]=view==='hub'?'list':'view';render();return;}
+    var p=e.target.closest('.js-primary');
+    if(p&&view==='dv'){var nx={draft:'sent',sent:'sent',accepted:'conv',conv:'conv'};sub.dv=nx[sub.dv];render();return;}
+    var sc=e.target.closest('.js-secb');if(sc&&view==='dv'&&sub.dv==='sent'){sub.dv='accepted';render();}
+  });
+  detectDark();render();
+  if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',detectDark);}
+  if(window.ResizeObserver){new ResizeObserver(function(){fit();}).observe(R);}
+})();
+</script>
+</div>
+</body>
+</html>

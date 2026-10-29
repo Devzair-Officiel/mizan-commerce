@@ -138,14 +138,14 @@ LABELS: dict[str, dict[str, str]] = {
         'followup.sure': 'Créance sûre, {label}',
         'followup.doubtful': 'Créance douteuse, {label}',
         'followup.collected': 'Encaissé {collected} sur {amount}',
-        'followup.part': 'part de la zakat à l\'encaissement {part}',
+        'followup.part': "part de la zakat à l'encaissement {part}",
         'followup.paid': 'versé {paid}',
-        'followup_state.cancelled': 'Commande annulée : rien d\'encaissé.',
+        'followup_state.cancelled': "Commande annulée : rien d'encaissé.",
         'followup_state.ignored': 'Ignorée.',
         'followup_state.pending': 'Pas encore encaissée.',
         'followup_state.choice_needed': (
             'Option à choisir : toutes les années passées {all}, une seule année '
-            '{one}, nouvelle année à partir de l\'encaissement 0.'
+            "{one}, nouvelle année à partir de l'encaissement 0."
         ),
         'followup_state.to_pay': 'À verser.',
         'followup_state.paid': 'Versée.',
