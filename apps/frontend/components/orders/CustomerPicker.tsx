@@ -11,8 +11,10 @@ interface CustomerPickerProps {
   value: string;
   selectedCustomer?: Customer | null;
   onChange: (id: string) => void;
-  /** Absent : pas de création de client depuis la liste (formulaire de rappel). */
-  onRequestCreate?: () => void;
+  /** Absent : pas de création de client depuis la liste (formulaire de rappel). Reçoit la recherche en cours. */
+  onRequestCreate?: (search: string) => void;
+  /** « Créer « X » » avec la recherche, masqué si un client porte déjà ce nom (facture libre). */
+  createFromSearch?: boolean;
   hideTrigger?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -23,6 +25,7 @@ export function CustomerPicker({
   selectedCustomer,
   onChange,
   onRequestCreate,
+  createFromSearch,
   hideTrigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -35,6 +38,10 @@ export function CustomerPicker({
   const { data } = useCustomers(search);
 
   const customers = data?.results ?? [];
+  const query = search.trim();
+  // Même règle que le serveur (nom unique, insensible à la casse) : inutile de proposer un doublon.
+  const nameTaken = customers.some((c) => c.name.toLowerCase() === query.toLowerCase() || c.display_name.toLowerCase() === query.toLowerCase());
+  const showCreate = !!onRequestCreate && !(createFromSearch && query && nameTaken);
 
   function close() {
     setOpen(false);
@@ -48,7 +55,7 @@ export function CustomerPicker({
 
   function handleCreate() {
     close();
-    onRequestCreate?.();
+    onRequestCreate?.(createFromSearch ? query : '');
   }
 
   function handleRemove(e: React.MouseEvent) {
@@ -148,7 +155,7 @@ export function CustomerPicker({
           )}
         </div>
 
-        {onRequestCreate && (
+        {showCreate && (
           <div className="flex flex-col gap-2 mb-3">
             <button
               type="button"
@@ -158,7 +165,7 @@ export function CustomerPicker({
               <span className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
                 <UserPlus size={16} />
               </span>
-              <span>{t('create_cta')}</span>
+              <span dir="auto" className="min-w-0 truncate">{createFromSearch && query ? t('create_named', { name: query }) : t('create_cta')}</span>
             </button>
           </div>
         )}

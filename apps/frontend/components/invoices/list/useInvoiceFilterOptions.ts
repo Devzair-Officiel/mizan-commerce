@@ -11,7 +11,7 @@ export const SORT_FIELDS = ['number', 'buyer_name', 'issued_at', 'due_date', 'to
 
 export function useInvoiceFilterOptions(facets?: InvoicesFacets) {
   const t = useTranslations('invoices.list');
-  const statusOptions: FilterOption<InvoiceSelection['status']>[] = (['', 'issued', 'paid', 'cancelled'] as const).map(value => ({
+  const statusOptions: FilterOption<InvoiceSelection['status']>[] = (['', 'draft', 'issued', 'paid', 'cancelled'] as const).map(value => ({
     value, label: t('filter', { value: value || 'all' }), dotClassName: value ? STATUS_DOT[value] : undefined,
     count: facets?.status[value || 'all'],
   }));

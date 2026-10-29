@@ -102,7 +102,7 @@ export interface ReminderFilters {
 }
 
 export interface InvoicesListFilters {
-  status?: 'issued' | 'paid' | 'cancelled';
+  status?: 'draft' | 'issued' | 'paid' | 'cancelled';
   payment?: 'due' | 'unpaid' | 'partial' | 'paid';
   period?: 'issued_month' | 'paid_month';
   search?: string;
@@ -233,6 +233,9 @@ export const qk = {
     summary: ['invoices', 'summary'] as const,
     facets: (filters: InvoicesListFilters) => ['invoices', 'facets', filters] as const,
     detail: (id: string) => ['invoices', id] as const,
+    /** Vérification avant émission d'un brouillon : relue après chaque enregistrement. */
+    compliance: (id: string) => ['invoices', id, 'compliance'] as const,
+    lineSuggestions: (q: string) => ['invoices', 'line-suggestions', q] as const,
   },
 
   me: {

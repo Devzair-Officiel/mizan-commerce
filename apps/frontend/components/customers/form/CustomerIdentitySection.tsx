@@ -7,6 +7,7 @@ import { FormField } from '@/components/form/FormField';
 import { FormSection } from '@/components/form/FormSection';
 import { FIELD_CONTROL, FIELD_ROW } from '@/components/form/fieldStyles';
 import { customerInitials } from '@/components/customers/detail/constants';
+import { SegmentedField } from '@/components/export/SegmentedField';
 import type { CustomerFormValues } from './useCustomerForm';
 
 interface CustomerIdentitySectionProps {
@@ -16,10 +17,11 @@ interface CustomerIdentitySectionProps {
   order: string;
 }
 
-/** Identité (obligatoire) : aperçu du client tel qu'il apparaîtra (initiales et nom, mis à jour pendant la saisie), prénom et nom. */
+/** Identité (obligatoire) : aperçu du client tel qu'il apparaîtra (initiales et nom, mis à jour pendant la saisie), prénom et nom,
+ * particulier ou professionnel (SIREN facultatif, repris sur ses factures). */
 export function CustomerIdentitySection({ control, register, errors, order }: CustomerIdentitySectionProps) {
   const t = useTranslations('customers.form');
-  const [firstName, name] = useWatch({ control, name: ['first_name', 'name'] });
+  const [firstName, name, type] = useWatch({ control, name: ['first_name', 'name', 'customer_type'] });
   const initials = customerInitials(firstName, name);
   const fullName = `${firstName.trim()} ${name.trim()}`.trim();
 
@@ -44,6 +46,11 @@ export function CustomerIdentitySection({ control, register, errors, order }: Cu
           {(c) => <input {...c} {...register('name')} dir="auto" autoComplete="off" className={FIELD_CONTROL} />}
         </FormField>
       </div>
+      <SegmentedField label={t('customer_type')} register={register('customer_type')} columns="grid-cols-2"
+        options={(['individual', 'business'] as const).map((value) => ({ value, label: t('customer_type_option', { value }) }))} />
+      {type === 'business' && <FormField label={t('siren')} help={t('siren_help')} error={errors.siren?.message}>
+        {(c) => <input {...c} {...register('siren')} inputMode="numeric" autoComplete="off" className={FIELD_CONTROL} />}
+      </FormField>}
     </FormSection>
   );
 }

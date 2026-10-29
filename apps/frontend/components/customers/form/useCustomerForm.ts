@@ -13,7 +13,7 @@ import { notify } from '@/lib/notify';
 import { joinPhone, phoneCountry, splitPhone } from '@/lib/phone';
 
 /** Ordre d'affichage : la première erreur dans cet ordre reçoit le focus. */
-const FIELDS = ['first_name', 'name', 'phone', 'email', 'country', 'address_line', 'city', 'postal_code', 'notes'] as const;
+const FIELDS = ['first_name', 'name', 'customer_type', 'siren', 'phone', 'email', 'country', 'address_line', 'city', 'postal_code', 'notes'] as const;
 type CustomerField = (typeof FIELDS)[number];
 export type CustomerSection = 'contact' | 'address' | 'notes';
 
@@ -30,6 +30,9 @@ function customerSchema(t: (key: string, values?: { max: number }) => string) {
   return z.object({
     first_name: text(100),
     name: text(150).min(1, t('name_required')),
+    customer_type: z.enum(['individual', 'business']),
+    /** Forme seulement (9 chiffres, espaces ignorés) : le serveur normalise. */
+    siren: z.string().trim().refine((v) => v === '' || /^\d{9}$/.test(v.replace(/\s/g, '')), t('siren_invalid')),
     phone: text(30),
     /** Indicatif choisi (code ISO) ; vide : celui du pays de la boutique. */
     phone_country: z.string(),
@@ -52,7 +55,7 @@ function serverFieldErrors(err: unknown): CustomerField[] {
 }
 
 /** Message d'une erreur serveur : unicité du nom, numéro invalide, sinon générique. */
-const SERVER_MESSAGE: Partial<Record<CustomerField, string>> = { name: 'name_taken', phone: 'phone_invalid' };
+const SERVER_MESSAGE: Partial<Record<CustomerField, string>> = { name: 'name_taken', phone: 'phone_invalid', siren: 'siren_invalid' };
 
 /**
  * Valeurs, sections et soumission du formulaire client. Une erreur (schéma ou serveur) ouvre la
@@ -70,6 +73,7 @@ export function useCustomerForm(mode: 'create' | 'edit', defaults: Partial<Custo
     shouldFocusError: false,
     defaultValues: {
       ...Object.fromEntries(FIELDS.map((f) => [f, (f === 'phone' ? stored.national : defaults?.[f]) || ''])),
+      customer_type: defaults?.customer_type ?? 'individual',
       phone_country: stored.country ?? '',
     } as CustomerFormValues,
   });
@@ -80,7 +84,9 @@ export function useCustomerForm(mode: 'create' | 'edit', defaults: Partial<Custo
     if (first) sections.reveal(first);
   };
 
-  const submit = form.handleSubmit(async ({ phone_country, ...values }) => {
+  const submit = form.handleSubmit(async ({ phone_country, ...data }) => {
+    // Le SIREN ne concerne qu'un professionnel : effacé si le client redevient particulier.
+    const values = { ...data, siren: data.customer_type === 'business' ? data.siren : '' };
     try {
       // Numéro complet (indicatif + numéro national) : le serveur le normalise en E.164.
       await onSubmit({ ...values, phone: joinPhone(phoneCountry(phone_country || shop?.country), values.phone) });

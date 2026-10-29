@@ -449,7 +449,12 @@
       "preview_empty": "Nom du client",
       "preview_help": "Aperçu tel qu'il apparaîtra dans vos commandes",
       "email_placeholder": "nom@exemple.fr",
-      "notes_placeholder": "Préférences, tailles habituelles, horaires de passage…"
+      "notes_placeholder": "Préférences, tailles habituelles, horaires de passage…",
+      "customer_type": "Type de client",
+      "customer_type_option": "{value, select, business {Professionnel} other {Particulier}}",
+      "siren": "SIREN (facultatif)",
+      "siren_help": "9 chiffres, repris sur ses factures.",
+      "siren_invalid": "Le SIREN compte 9 chiffres."
     },
     "detail": {
       "topbar_short": "Client",
@@ -843,7 +848,8 @@
       "search_clear_aria": "Effacer la recherche",
       "create_cta": "Nouveau client",
       "no_results": "Aucun client trouvé.",
-      "no_customers": "Aucun client enregistré."
+      "no_customers": "Aucun client enregistré.",
+      "create_named": "Créer « {name} »"
     },
     "quickAdd": {
       "customer_title": "Nouveau client",
@@ -3236,9 +3242,9 @@
     "due": "Échéance : {date}",
     "list": {
       "title": "Factures",
-      "filter": "{value, select, issued {Émises} paid {Payées} cancelled {Annulées} other {Toutes}}",
+      "filter": "{value, select, draft {Brouillons} issued {Émises} paid {Payées} cancelled {Annulées} other {Toutes}}",
       "empty_title": "Aucune facture",
-      "empty_body": "Les factures se créent depuis une commande.",
+      "empty_body": "Créez une facture libre, ou émettez-la depuis une commande.",
       "no_customer": "Sans client",
       "count": "{count, plural, one {# facture} other {# factures}}",
       "stats": {
@@ -3268,7 +3274,10 @@
         "total_ttc": "Montant",
         "status": "Statut"
       },
-      "sort_label": "Trié par {field}, {dir, select, asc {ordre croissant} other {ordre décroissant}}"
+      "sort_label": "Trié par {field}, {dir, select, asc {ordre croissant} other {ordre décroissant}}",
+      "no_number": "Sans numéro",
+      "drafts_group": "Brouillons",
+      "create": "Nouvelle facture"
     },
     "detail": {
       "title": "Facture",
@@ -3298,7 +3307,10 @@
       "preview": "Aperçu de la facture",
       "status_saved": "Statut de la facture enregistré.",
       "status_error": "Impossible de modifier le statut. Réessayez.",
-      "keep_invoice": "Conserver la facture"
+      "keep_invoice": "Conserver la facture",
+      "draft_title": "Brouillon de facture",
+      "draft_body": "Cette facture n'est pas encore émise : reprenez-la dans l'éditeur.",
+      "resume_draft": "Reprendre le brouillon"
     },
     "totals": {
       "subtotal": "Sous-total HT",
@@ -3313,7 +3325,7 @@
       "title": "Totaux et règlement",
       "due_date": "Échéance"
     },
-    "status": "{value, select, issued {Émise} paid {Payée} other {Annulée}}",
+    "status": "{value, select, draft {Brouillon} issued {Émise} paid {Payée} other {Annulée}}",
     "remaining": "{amount} dus",
     "account": {
       "title": "Récapitulatif du compte",
@@ -3321,6 +3333,116 @@
       "payments": "Règlements reçus sur cette facture",
       "current": "Présente facture",
       "balance": "Solde total du compte"
+    },
+    "editor": {
+      "title": "Nouvelle facture",
+      "back": "Factures",
+      "save_status": "Brouillon · {value, select, saving {enregistrement…} error {non enregistré} conflict {modifié ailleurs} saved {{auto, select, yes {enregistré automatiquement à {time}} other {enregistré à {time}}}} other {pas encore enregistré}}",
+      "deleted": "Brouillon supprimé.",
+      "delete_error": "Impossible de supprimer le brouillon. Réessayez.",
+      "delete": "Supprimer le brouillon",
+      "delete_title": "Supprimer ce brouillon ?",
+      "delete_body": "Le brouillon et ses lignes seront définitivement supprimés.",
+      "keep": "Conserver",
+      "conflict": "Ce brouillon a été modifié ailleurs (autre onglet ou appareil). Rechargez-le pour continuer : vos dernières saisies ici ne seront pas gardées.",
+      "reload": "Recharger",
+      "not_draft": "Cette facture est émise : elle ne peut plus être modifiée.",
+      "open_invoice": "Voir la facture",
+      "not_found": "Facture introuvable.",
+      "save_error": "Le brouillon n'a pas pu être enregistré. Vérifiez votre connexion.",
+      "issue_error": "La facture n'a pas pu être émise. Réessayez.",
+      "issued": "Facture {number} émise.",
+      "amount_invalid": "Montant invalide (2 décimales au plus).",
+      "quantity_invalid": "Quantité invalide (3 décimales au plus).",
+      "days_invalid": "Délai entre 0 et 365 jours.",
+      "summary": {
+        "title": "Récapitulatif",
+        "terms": "Échéance",
+        "terms_value": "{terms, select, none {Aucune} receipt {À réception} other {{days, plural, one {# jour} other {# jours}}}}",
+        "recommended": "{count, plural, one {# info recommandée (pour une facture officielle)} other {# infos recommandées (pour une facture officielle)}}",
+        "issue": "Émettre la facture",
+        "estimate": "Montants estimés : les totaux définitifs sont calculés à l'émission.",
+        "total": "Total TTC"
+      },
+      "extras": {
+        "title": "Remise, conditions et notes",
+        "description": "Remise, frais de port, nature de l'opération, échéance et notes imprimées.",
+        "summary": "{hasDiscount, select, yes {Remise de {discount}} other {Aucune remise}} · {terms, select, none {sans échéance} receipt {paiement à réception} other {échéance à {days, plural, one {# jour} other {# jours}}}}",
+        "discount": "Remise HT",
+        "shipping": "Frais de port HT",
+        "operation": "Nature de l'opération",
+        "operation_option": "{value, select, goods {Livraison de biens} services {Prestation de services} other {Biens et services}}",
+        "terms": "Délai de paiement",
+        "days_suffix": "jours",
+        "notes": "Notes (imprimées sur la facture)"
+      },
+      "customer": {
+        "title": "Client",
+        "sheet_title": "Nouveau client",
+        "change": "Changer",
+        "type": "{value, select, business {Professionnel} other {Particulier}}",
+        "loading": "Chargement du client…",
+        "choose": "Choisir ou créer un client",
+        "siren": "SIREN (facultatif)",
+        "also_saved": "Ce client sera aussi ajouté à vos clients.",
+        "cancel": "Annuler",
+        "create": "Ajouter et utiliser",
+        "creating": "Ajout…",
+        "create_error": "Impossible d'ajouter ce client. Réessayez."
+      },
+      "lines": {
+        "title": "Lignes",
+        "description": "Une ligne par prestation ou article.",
+        "empty": "Aucune ligne pour le moment.",
+        "add": "Ajouter une ligne",
+        "add_shortcut": "Ctrl + Entrée",
+        "removed": "Ligne supprimée.",
+        "undo": "Annuler"
+      },
+      "line": {
+        "title": "Ligne {number}",
+        "more": "Actions de la ligne {number}",
+        "description": "Désignation",
+        "suggestions": "Suggestions",
+        "suggestion_meta": "{source, select, catalog {Catalogue} other {Facture {number}}} · {price} HT{unit, select, none {} other { / {unit}}}",
+        "use_as_is": "Utiliser « {text} » tel quel",
+        "free_line": "Ligne libre",
+        "quantity": "Quantité",
+        "decrease": "Diminuer la quantité",
+        "increase": "Augmenter la quantité",
+        "unit": "Unité",
+        "unit_price": "Prix unitaire HT",
+        "total": "Total ligne",
+        "details": "Description",
+        "add_details": "Description",
+        "duplicate": "Dupliquer la ligne",
+        "move_up": "Monter",
+        "remove": "Supprimer la ligne",
+        "save_to_catalog": "Enregistrer au catalogue",
+        "catalog_saved": "« {name} » ajouté au catalogue.",
+        "catalog_taken": "« {name} » existe déjà dans votre catalogue.",
+        "catalog_error": "Impossible d'ajouter « {name} » au catalogue. Réessayez."
+      },
+      "unit": {
+        "title": "Unité",
+        "description": "Imprimée telle quelle sur la facture.",
+        "presets": "Unités courantes",
+        "preset": "{value, select, night {nuit} hour {heure} day {jour} week {semaine} trip {trajet} person {personne} flat {forfait} other {pièce}}",
+        "custom": "Autre unité",
+        "confirm": "Valider"
+      },
+      "check": {
+        "title": "Vérification avant émission",
+        "intro_blocking": "Complétez ces points pour émettre la facture.",
+        "intro_recommended": "Ces infos figurent normalement sur une facture officielle en France. Une fois émise, la facture ne peut plus être modifiée.",
+        "intro_ready": "Tout est prêt. Une fois émise, la facture reçoit son numéro et ne peut plus être modifiée.",
+        "cancel": "Annuler",
+        "issue_anyway": "Émettre quand même",
+        "complete": "Compléter",
+        "issue": "Émettre",
+        "issue_title": "{code, select, no_lines {Aucune ligne} zero_total {Total nul} no_customer {Aucun client} seller_address {Adresse de votre boutique} seller_identifier {SIRET de votre boutique} vat_number {Numéro de TVA} customer_siren {SIREN du client} late_penalties {Pénalités de retard} other {Point à vérifier}}",
+        "issue_hint": "{code, select, no_lines {Ajoutez au moins une ligne} zero_total {Le total doit être positif} no_customer {Choisissez ou créez un client} customer_siren {Client professionnel} late_penalties {Mentions légales, Paramètres, Factures} other {Paramètres, Factures}}"
+      }
     }
   },
   "reminders": {

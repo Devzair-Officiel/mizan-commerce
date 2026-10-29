@@ -2,7 +2,9 @@ import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClie
 import { apiFetch } from '@/lib/api-client';
 import { qk, type InvoicesListFilters } from '@/lib/query-keys';
 
-export type InvoiceStatus = 'issued' | 'paid' | 'cancelled';
+export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
+/** Nature de l'opération, imprimée sur la facture (URS-110). */
+export type OperationCategory = 'goods' | 'services' | 'mixed';
 
 interface PaginatedResponse<T> {
   count: number;
@@ -14,6 +16,11 @@ interface PaginatedResponse<T> {
 export interface InvoiceLine {
   id: string;
   description: string;
+  /** Détails sur plusieurs lignes, sous la désignation. */
+  details: string;
+  /** Unité facturée (« heure », « nuit ») ; vide : aucune. */
+  unit: string;
+  position: number;
   quantity: string;
   unit_price_ht: string;
   line_subtotal_ht: string;
@@ -23,10 +30,15 @@ export interface Invoice {
   id: string;
   order: string | null;
   customer: string | null;
+  /** Vide pour un brouillon. */
   number: string;
+  kind: 'invoice';
   status: InvoiceStatus;
-  issued_at: string;
-  due_date: string;
+  operation_category: OperationCategory;
+  payment_terms_days: number | null;
+  /** Brouillon : ni date d'émission ni échéance. */
+  issued_at: string | null;
+  due_date: string | null;
   paid_at: string | null;
   cancelled_at: string | null;
   seller_name: string;
@@ -41,6 +53,7 @@ export interface Invoice {
   buyer_country: string;
   buyer_email: string;
   buyer_phone: string;
+  buyer_siren: string;
   currency: string;
   tax_rate: string;
   subtotal_ht: string;

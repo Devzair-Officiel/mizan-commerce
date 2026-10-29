@@ -9,6 +9,7 @@ export function InvoicePaymentBadge({ invoice }: { invoice: Invoice }) {
   const t = useTranslations('invoices');
   const money = useFormatMoney();
   const payment = getPaymentDisplay(invoice);
+  if (invoice.status === 'draft') return null;
   return <div className="flex flex-col items-start gap-1">
     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${PAYMENT_BADGE[payment.state]}`}>
       {t('payment', { state: payment.state, amount: money(payment.amountPaid, invoice.currency) })}

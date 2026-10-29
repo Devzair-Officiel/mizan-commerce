@@ -449,7 +449,12 @@
       "preview_empty": "Customer name",
       "preview_help": "Preview as it will appear in your orders",
       "email_placeholder": "name@example.com",
-      "notes_placeholder": "Preferences, usual sizes, visiting hours…"
+      "notes_placeholder": "Preferences, usual sizes, visiting hours…",
+      "customer_type": "Customer type",
+      "customer_type_option": "{value, select, business {Business} other {Individual}}",
+      "siren": "SIREN (optional)",
+      "siren_help": "9 digits, shown on their invoices.",
+      "siren_invalid": "A SIREN has 9 digits."
     },
     "detail": {
       "topbar_short": "Customer",
@@ -843,7 +848,8 @@
       "search_clear_aria": "Clear search",
       "create_cta": "New customer",
       "no_results": "No customer found.",
-      "no_customers": "No customers saved."
+      "no_customers": "No customers saved.",
+      "create_named": "Create “{name}”"
     },
     "quickAdd": {
       "customer_title": "New customer",
@@ -3236,9 +3242,9 @@
     "due": "Due: {date}",
     "list": {
       "title": "Invoices",
-      "filter": "{value, select, issued {Issued} paid {Paid} cancelled {Cancelled} other {All}}",
+      "filter": "{value, select, draft {Drafts} issued {Issued} paid {Paid} cancelled {Cancelled} other {All}}",
       "empty_title": "No invoices",
-      "empty_body": "Invoices are created from an order.",
+      "empty_body": "Create a standalone invoice, or issue one from an order.",
       "no_customer": "No customer",
       "count": "{count, plural, one {# invoice} other {# invoices}}",
       "stats": {
@@ -3268,7 +3274,10 @@
         "total_ttc": "Amount",
         "status": "Status"
       },
-      "sort_label": "Sorted by {field}, {dir, select, asc {ascending} other {descending}}"
+      "sort_label": "Sorted by {field}, {dir, select, asc {ascending} other {descending}}",
+      "no_number": "No number",
+      "drafts_group": "Drafts",
+      "create": "New invoice"
     },
     "detail": {
       "title": "Invoice",
@@ -3298,7 +3307,10 @@
       "preview": "Invoice preview",
       "status_saved": "Invoice status saved.",
       "status_error": "Unable to change the status. Try again.",
-      "keep_invoice": "Keep invoice"
+      "keep_invoice": "Keep invoice",
+      "draft_title": "Draft invoice",
+      "draft_body": "This invoice has not been issued yet: resume it in the editor.",
+      "resume_draft": "Resume draft"
     },
     "totals": {
       "subtotal": "Subtotal (excl. tax)",
@@ -3313,7 +3325,7 @@
       "title": "Totals and payment",
       "due_date": "Due date"
     },
-    "status": "{value, select, issued {Issued} paid {Paid} other {Cancelled}}",
+    "status": "{value, select, draft {Draft} issued {Issued} paid {Paid} other {Cancelled}}",
     "remaining": "{amount} due",
     "account": {
       "title": "Account summary",
@@ -3321,6 +3333,116 @@
       "payments": "Payments received on this invoice",
       "current": "This invoice",
       "balance": "Total account balance"
+    },
+    "editor": {
+      "title": "New invoice",
+      "back": "Invoices",
+      "save_status": "Draft · {value, select, saving {saving…} error {not saved} conflict {changed elsewhere} saved {{auto, select, yes {saved automatically at {time}} other {saved at {time}}}} other {not saved yet}}",
+      "deleted": "Draft deleted.",
+      "delete_error": "The draft could not be deleted. Try again.",
+      "delete": "Delete draft",
+      "delete_title": "Delete this draft?",
+      "delete_body": "The draft and its lines will be permanently deleted.",
+      "keep": "Keep",
+      "conflict": "This draft was changed elsewhere (another tab or device). Reload it to continue: your latest edits here will not be kept.",
+      "reload": "Reload",
+      "not_draft": "This invoice has been issued: it can no longer be edited.",
+      "open_invoice": "View invoice",
+      "not_found": "Invoice not found.",
+      "save_error": "The draft could not be saved. Check your connection.",
+      "issue_error": "The invoice could not be issued. Try again.",
+      "issued": "Invoice {number} issued.",
+      "amount_invalid": "Invalid amount (2 decimals at most).",
+      "quantity_invalid": "Invalid quantity (3 decimals at most).",
+      "days_invalid": "Between 0 and 365 days.",
+      "summary": {
+        "title": "Summary",
+        "terms": "Due",
+        "terms_value": "{terms, select, none {None} receipt {On receipt} other {{days, plural, one {# day} other {# days}}}}",
+        "recommended": "{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}",
+        "issue": "Issue invoice",
+        "estimate": "Estimated amounts: final totals are calculated when the invoice is issued.",
+        "total": "Total incl. tax"
+      },
+      "extras": {
+        "title": "Discount, terms and notes",
+        "description": "Discount, shipping, type of transaction, due date and printed notes.",
+        "summary": "{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}",
+        "discount": "Discount excl. tax",
+        "shipping": "Shipping excl. tax",
+        "operation": "Type of transaction",
+        "operation_option": "{value, select, goods {Sale of goods} services {Provision of services} other {Goods and services}}",
+        "terms": "Payment terms",
+        "days_suffix": "days",
+        "notes": "Notes (printed on the invoice)"
+      },
+      "customer": {
+        "title": "Customer",
+        "sheet_title": "New customer",
+        "change": "Change",
+        "type": "{value, select, business {Business} other {Individual}}",
+        "loading": "Loading customer…",
+        "choose": "Choose or create a customer",
+        "siren": "SIREN (optional)",
+        "also_saved": "This customer will also be added to your customers.",
+        "cancel": "Cancel",
+        "create": "Add and use",
+        "creating": "Adding…",
+        "create_error": "This customer could not be added. Try again."
+      },
+      "lines": {
+        "title": "Lines",
+        "description": "One line per service or item.",
+        "empty": "No lines yet.",
+        "add": "Add a line",
+        "add_shortcut": "Ctrl + Enter",
+        "removed": "Line deleted.",
+        "undo": "Undo"
+      },
+      "line": {
+        "title": "Line {number}",
+        "more": "Actions for line {number}",
+        "description": "Item",
+        "suggestions": "Suggestions",
+        "suggestion_meta": "{source, select, catalog {Catalogue} other {Invoice {number}}} · {price} excl. tax{unit, select, none {} other { / {unit}}}",
+        "use_as_is": "Use “{text}” as is",
+        "free_line": "Custom line",
+        "quantity": "Quantity",
+        "decrease": "Decrease quantity",
+        "increase": "Increase quantity",
+        "unit": "Unit",
+        "unit_price": "Unit price excl. tax",
+        "total": "Line total",
+        "details": "Description",
+        "add_details": "Description",
+        "duplicate": "Duplicate line",
+        "move_up": "Move up",
+        "remove": "Delete line",
+        "save_to_catalog": "Save to catalogue",
+        "catalog_saved": "“{name}” added to the catalogue.",
+        "catalog_taken": "“{name}” is already in your catalogue.",
+        "catalog_error": "“{name}” could not be added to the catalogue. Try again."
+      },
+      "unit": {
+        "title": "Unit",
+        "description": "Printed as is on the invoice.",
+        "presets": "Common units",
+        "preset": "{value, select, night {night} hour {hour} day {day} week {week} trip {trip} person {person} flat {flat rate} other {piece}}",
+        "custom": "Other unit",
+        "confirm": "Confirm"
+      },
+      "check": {
+        "title": "Check before issuing",
+        "intro_blocking": "Complete these points to issue the invoice.",
+        "intro_recommended": "These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.",
+        "intro_ready": "All set. Once issued, the invoice gets its number and can no longer be edited.",
+        "cancel": "Cancel",
+        "issue_anyway": "Issue anyway",
+        "complete": "Complete",
+        "issue": "Issue",
+        "issue_title": "{code, select, no_lines {No lines} zero_total {Zero total} no_customer {No customer} seller_address {Your shop address} seller_identifier {Your shop SIRET} vat_number {VAT number} customer_siren {Customer SIREN} late_penalties {Late payment penalties} other {Point to check}}",
+        "issue_hint": "{code, select, no_lines {Add at least one line} zero_total {The total must be positive} no_customer {Choose or create a customer} customer_siren {Business customer} late_penalties {Legal notices, Settings, Invoices} other {Settings, Invoices}}"
+      }
     }
   },
   "reminders": {

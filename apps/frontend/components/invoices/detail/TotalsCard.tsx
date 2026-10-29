@@ -24,7 +24,7 @@ export function TotalsCard({ invoice: i }: { invoice: Invoice }) {
       <DetailRow label={t('total')} className="text-base">{m(i.total_ttc)}</DetailRow>
       <DetailRow label={t('paid')} className="text-green-700 dark:text-green-400">{m(payment.amountPaid)}</DetailRow>
       <DetailRow label={t('remaining')} className={payment.remaining > 0 ? 'text-amber-700 dark:text-amber-400' : undefined}>{m(payment.remaining)}</DetailRow>
-      <DetailRow label={t('due_date')}>{date(i.due_date, { dateStyle: 'long', timeZone: 'UTC' })}</DetailRow>
+      <DetailRow label={t('due_date')}>{i.due_date ? date(i.due_date, { dateStyle: 'long', timeZone: 'UTC' }) : '—'}</DetailRow>
     </dl>
   </SectionCard>;
 }

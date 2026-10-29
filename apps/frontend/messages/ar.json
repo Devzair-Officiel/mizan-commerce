@@ -449,7 +449,12 @@
       "preview_empty": "اسم العميل",
       "preview_help": "معاينة كما سيظهر في طلباتك",
       "email_placeholder": "name@example.com",
-      "notes_placeholder": "التفضيلات، المقاسات المعتادة، أوقات الزيارة…"
+      "notes_placeholder": "التفضيلات، المقاسات المعتادة، أوقات الزيارة…",
+      "customer_type": "نوع الزبون",
+      "customer_type_option": "{value, select, business {مهني} other {فرد}}",
+      "siren": "رقم SIREN (اختياري)",
+      "siren_help": "9 أرقام، يظهر على فواتيره.",
+      "siren_invalid": "يتكون رقم SIREN من 9 أرقام."
     },
     "detail": {
       "topbar_short": "عميل",
@@ -843,7 +848,8 @@
       "search_clear_aria": "مسح البحث",
       "create_cta": "زبون جديد",
       "no_results": "لم يُعثر على زبون.",
-      "no_customers": "لا يوجد زبائن مسجّلون."
+      "no_customers": "لا يوجد زبائن مسجّلون.",
+      "create_named": "إنشاء «{name}»"
     },
     "quickAdd": {
       "customer_title": "زبون جديد",
@@ -3236,9 +3242,9 @@
     "due": "الاستحقاق: {date}",
     "list": {
       "title": "الفواتير",
-      "filter": "{value, select, issued {الصادرة} paid {المدفوعة} cancelled {الملغاة} other {الكل}}",
+      "filter": "{value, select, draft {المسودات} issued {الصادرة} paid {المدفوعة} cancelled {الملغاة} other {الكل}}",
       "empty_title": "لا توجد فواتير",
-      "empty_body": "تُنشأ الفواتير من الطلبات.",
+      "empty_body": "أنشئ فاتورة حرة، أو أصدرها من طلب.",
       "no_customer": "بدون عميل",
       "count": "{count, plural, one {# فاتورة} other {# فواتير}}",
       "stats": {
@@ -3268,7 +3274,10 @@
         "total_ttc": "المبلغ",
         "status": "الحالة"
       },
-      "sort_label": "مرتبة حسب {field}، {dir, select, asc {تصاعديًا} other {تنازليًا}}"
+      "sort_label": "مرتبة حسب {field}، {dir, select, asc {تصاعديًا} other {تنازليًا}}",
+      "no_number": "بدون رقم",
+      "drafts_group": "المسودات",
+      "create": "فاتورة جديدة"
     },
     "detail": {
       "title": "فاتورة",
@@ -3298,7 +3307,10 @@
       "preview": "معاينة الفاتورة",
       "status_saved": "تم حفظ حالة الفاتورة.",
       "status_error": "تعذر تغيير الحالة. يرجى المحاولة مجددًا.",
-      "keep_invoice": "الاحتفاظ بالفاتورة"
+      "keep_invoice": "الاحتفاظ بالفاتورة",
+      "draft_title": "مسودة فاتورة",
+      "draft_body": "لم تصدر هذه الفاتورة بعد: تابعها في المحرر.",
+      "resume_draft": "متابعة المسودة"
     },
     "totals": {
       "subtotal": "المجموع الفرعي دون ضريبة",
@@ -3313,7 +3325,7 @@
       "title": "الإجماليات والدفع",
       "due_date": "تاريخ الاستحقاق"
     },
-    "status": "{value, select, issued {صادرة} paid {مدفوعة} other {ملغاة}}",
+    "status": "{value, select, draft {مسودة} issued {صادرة} paid {مدفوعة} other {ملغاة}}",
     "remaining": "{amount} مستحق",
     "account": {
       "title": "ملخص الحساب",
@@ -3321,6 +3333,116 @@
       "payments": "الدفعات المستلمة لهذه الفاتورة",
       "current": "الفاتورة الحالية",
       "balance": "إجمالي رصيد الحساب"
+    },
+    "editor": {
+      "title": "فاتورة جديدة",
+      "back": "الفواتير",
+      "save_status": "مسودة · {value, select, saving {جارٍ الحفظ…} error {لم تُحفظ} conflict {عُدّلت في مكان آخر} saved {{auto, select, yes {حُفظت تلقائيًا في {time}} other {حُفظت في {time}}}} other {لم تُحفظ بعد}}",
+      "deleted": "حُذفت المسودة.",
+      "delete_error": "تعذر حذف المسودة. حاول مجددًا.",
+      "delete": "حذف المسودة",
+      "delete_title": "حذف هذه المسودة؟",
+      "delete_body": "ستُحذف المسودة وبنودها نهائيًا.",
+      "keep": "الإبقاء",
+      "conflict": "عُدّلت هذه المسودة في مكان آخر (تبويب أو جهاز آخر). أعد تحميلها للمتابعة: لن تُحفظ آخر تعديلاتك هنا.",
+      "reload": "إعادة التحميل",
+      "not_draft": "صدرت هذه الفاتورة: لم يعد بالإمكان تعديلها.",
+      "open_invoice": "عرض الفاتورة",
+      "not_found": "الفاتورة غير موجودة.",
+      "save_error": "تعذر حفظ المسودة. تحقق من اتصالك.",
+      "issue_error": "تعذر إصدار الفاتورة. حاول مجددًا.",
+      "issued": "صدرت الفاتورة {number}.",
+      "amount_invalid": "مبلغ غير صالح (منزلتان عشريتان على الأكثر).",
+      "quantity_invalid": "كمية غير صالحة (3 منازل عشرية على الأكثر).",
+      "days_invalid": "مدة بين 0 و365 يومًا.",
+      "summary": {
+        "title": "الملخص",
+        "terms": "الاستحقاق",
+        "terms_value": "{terms, select, none {بدون} receipt {عند الاستلام} other {{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}}}",
+        "recommended": "{count, plural, one {معلومة موصى بها (لفاتورة رسمية)} two {معلومتان موصى بهما (لفاتورة رسمية)} few {# معلومات موصى بها (لفاتورة رسمية)} other {# معلومة موصى بها (لفاتورة رسمية)}}",
+        "issue": "إصدار الفاتورة",
+        "estimate": "مبالغ تقديرية: تُحسب الإجماليات النهائية عند الإصدار.",
+        "total": "الإجمالي شامل الضريبة"
+      },
+      "extras": {
+        "title": "الخصم والشروط والملاحظات",
+        "description": "الخصم ومصاريف الشحن وطبيعة العملية والاستحقاق والملاحظات المطبوعة.",
+        "summary": "{hasDiscount, select, yes {خصم {discount}} other {بدون خصم}} · {terms, select, none {بدون استحقاق} receipt {الدفع عند الاستلام} other {الاستحقاق بعد {days, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}}}",
+        "discount": "الخصم دون ضريبة",
+        "shipping": "مصاريف الشحن دون ضريبة",
+        "operation": "طبيعة العملية",
+        "operation_option": "{value, select, goods {بيع سلع} services {تقديم خدمات} other {سلع وخدمات}}",
+        "terms": "مهلة الدفع",
+        "days_suffix": "يوم",
+        "notes": "ملاحظات (تُطبع على الفاتورة)"
+      },
+      "customer": {
+        "title": "الزبون",
+        "sheet_title": "زبون جديد",
+        "change": "تغيير",
+        "type": "{value, select, business {مهني} other {فرد}}",
+        "loading": "جارٍ تحميل الزبون…",
+        "choose": "اختر زبونًا أو أنشئه",
+        "siren": "رقم SIREN (اختياري)",
+        "also_saved": "سيُضاف هذا الزبون أيضًا إلى زبائنك.",
+        "cancel": "إلغاء",
+        "create": "إضافة واستخدام",
+        "creating": "جارٍ الإضافة…",
+        "create_error": "تعذرت إضافة هذا الزبون. حاول مجددًا."
+      },
+      "lines": {
+        "title": "البنود",
+        "description": "بند لكل خدمة أو منتج.",
+        "empty": "لا توجد بنود بعد.",
+        "add": "إضافة بند",
+        "add_shortcut": "Ctrl + Enter",
+        "removed": "حُذف البند.",
+        "undo": "تراجع"
+      },
+      "line": {
+        "title": "البند {number}",
+        "more": "إجراءات البند {number}",
+        "description": "التسمية",
+        "suggestions": "اقتراحات",
+        "suggestion_meta": "{source, select, catalog {الكتالوج} other {الفاتورة {number}}} · {price} دون ضريبة{unit, select, none {} other { / {unit}}}",
+        "use_as_is": "استخدام «{text}» كما هو",
+        "free_line": "بند حر",
+        "quantity": "الكمية",
+        "decrease": "إنقاص الكمية",
+        "increase": "زيادة الكمية",
+        "unit": "الوحدة",
+        "unit_price": "سعر الوحدة دون ضريبة",
+        "total": "إجمالي البند",
+        "details": "الوصف",
+        "add_details": "الوصف",
+        "duplicate": "تكرار البند",
+        "move_up": "نقل للأعلى",
+        "remove": "حذف البند",
+        "save_to_catalog": "حفظ في الكتالوج",
+        "catalog_saved": "أُضيف «{name}» إلى الكتالوج.",
+        "catalog_taken": "«{name}» موجود في كتالوجك.",
+        "catalog_error": "تعذرت إضافة «{name}» إلى الكتالوج. حاول مجددًا."
+      },
+      "unit": {
+        "title": "الوحدة",
+        "description": "تُطبع كما هي على الفاتورة.",
+        "presets": "وحدات شائعة",
+        "preset": "{value, select, night {ليلة} hour {ساعة} day {يوم} week {أسبوع} trip {رحلة} person {شخص} flat {مبلغ جزافي} other {قطعة}}",
+        "custom": "وحدة أخرى",
+        "confirm": "تأكيد"
+      },
+      "check": {
+        "title": "التحقق قبل الإصدار",
+        "intro_blocking": "أكمل هذه النقاط لإصدار الفاتورة.",
+        "intro_recommended": "تظهر هذه المعلومات عادةً على الفاتورة الرسمية في فرنسا. بعد الإصدار، لا يمكن تعديل الفاتورة.",
+        "intro_ready": "كل شيء جاهز. بعد الإصدار، تحصل الفاتورة على رقمها ولا يمكن تعديلها.",
+        "cancel": "إلغاء",
+        "issue_anyway": "الإصدار رغم ذلك",
+        "complete": "إكمال",
+        "issue": "إصدار",
+        "issue_title": "{code, select, no_lines {لا توجد بنود} zero_total {الإجمالي صفر} no_customer {لا يوجد زبون} seller_address {عنوان متجرك} seller_identifier {رقم SIRET لمتجرك} vat_number {رقم ض.ق.م} customer_siren {رقم SIREN للزبون} late_penalties {غرامات التأخير} other {نقطة للتحقق}}",
+        "issue_hint": "{code, select, no_lines {أضف بندًا واحدًا على الأقل} zero_total {يجب أن يكون الإجمالي موجبًا} no_customer {اختر زبونًا أو أنشئه} customer_siren {زبون مهني} late_penalties {الإشعارات القانونية، الإعدادات، الفواتير} other {الإعدادات، الفواتير}}"
+      }
     }
   },
   "reminders": {

@@ -6,7 +6,7 @@ import type { InvoicesListFilters } from '@/lib/query-keys';
 export const DEFAULT_ORDERING = '-issued_at';
 export type InvoiceCardKey = 'due' | 'issued_month' | 'paid_month';
 export interface InvoiceSelection {
-  status: '' | 'issued' | 'paid' | 'cancelled';
+  status: '' | 'draft' | 'issued' | 'paid' | 'cancelled';
   payment: 'all' | 'due' | 'unpaid' | 'partial' | 'paid';
   period: '' | 'issued_month' | 'paid_month';
   ordering: string;
@@ -25,7 +25,7 @@ export function useInvoicesPageState() {
   const payment = list.param('payment');
   const period = list.param('period');
   const selection: InvoiceSelection = {
-    status: status === 'issued' || status === 'paid' || status === 'cancelled' ? status : '',
+    status: status === 'draft' || status === 'issued' || status === 'paid' || status === 'cancelled' ? status : '',
     payment: payment === 'due' || payment === 'paid' || payment === 'partial' || payment === 'unpaid' ? payment : 'all',
     period: period === 'issued_month' || period === 'paid_month' ? period : '',
     ordering: list.ordering,

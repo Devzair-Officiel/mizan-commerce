@@ -16,7 +16,7 @@ export function InvoicesMobileList({ invoices, ordering, loading, hasNextPage, f
   const byDate = ordering === '-issued_at' || ordering === 'issued_at';
   const groups = new Map<string, Invoice[]>();
   for (const i of invoices) {
-    const key = byDate ? date(i.issued_at, { dateStyle: 'long' }) : '';
+    const key = !byDate ? '' : i.issued_at ? date(i.issued_at, { dateStyle: 'long' }) : t('drafts_group');
     groups.set(key, [...(groups.get(key) ?? []), i]);
   }
   return <div className="flex flex-col gap-5">
