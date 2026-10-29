@@ -8,7 +8,9 @@
  * - console propre.
  * Connexion propre à l'audit (contexte neuf, hors sessions partagées) : sa déconnexion ne ferme
  * que sa session. Une seule configuration (1440, français clair) : aucun rendu n'est vérifié.
+ * Fin de ses 5 appels limités ('auth') notée dans `AUDIT_STATE_DIR` : audit-session-race attend 60 s après.
  */
+import { writeFile } from 'node:fs/promises';
 import { BASE, EMAIL, PASSWORD, createReport, launch } from './lib/session.mjs';
 import { watchConsole } from './lib/watch.mjs';
 
@@ -87,5 +89,6 @@ try {
   }
 } finally {
   await browser.close();
+  if (process.env.AUDIT_STATE_DIR) await writeFile(`${process.env.AUDIT_STATE_DIR}/session-refresh.done`, String(Date.now()));
 }
 report.finish();

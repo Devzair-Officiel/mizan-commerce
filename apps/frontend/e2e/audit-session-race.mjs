@@ -11,14 +11,18 @@
  * - fenêtre expirée (31 s) : l'ancien jeton est refusé, cookies effacés.
  * Connexions propres à l'audit (contextes neufs). Une seule configuration (1440, français clair).
  * Dans les deux scénarios d'échec définitif, seuls les 401 des appels à l'API sont tolérés en console.
+ * Ses 8 appels limités ('auth', 10/min par IP, fenêtre glissante) et les 5 d'audit-session-refresh dépassent
+ * ensemble la limite : lancé après lui (même `AUDIT_STATE_DIR`), il attend 60 s depuis sa fin.
  */
 import { request } from 'playwright';
+import { readFile } from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { BASE, EMAIL, PASSWORD, createReport, launch } from './lib/session.mjs';
 import { watchConsole } from './lib/watch.mjs';
 
 const OFFSETS = [0, 20, 100, 400, 1500];
 const GRACE_MS = 30_000;
+const AUTH_WINDOW_MS = 61_000;
 const SESSION_401 = /Failed to load resource: the server responded with a status of 401/;
 
 const report = createReport();
@@ -110,7 +114,18 @@ function checkLanding(label, result) {
   report.check(result.afterBack !== '/dashboard', `${label} : retour arrière sans tableau de bord (${result.afterBack})`);
 }
 
+/** Appels d'audit-session-refresh sortis de la fenêtre de la limite 'auth' (rien à attendre s'il n'a pas tourné). */
+async function afterSessionRefresh() {
+  const dir = process.env.AUDIT_STATE_DIR;
+  const done = dir ? Number(await readFile(`${dir}/session-refresh.done`, 'utf8').catch(() => 0)) : 0;
+  const wait = done + AUTH_WINDOW_MS - Date.now();
+  if (!done || wait <= 0) return;
+  console.log(`  … ${Math.ceil(wait / 1000)} s d'attente : limite 'auth', après audit-session-refresh`);
+  await sleep(wait);
+}
+
 try {
+  await afterSessionRefresh();
   const a = await login();
   const b = await login();
   report.check(Boolean(a.refresh && b.refresh && a.refresh !== b.refresh), 'deux connexions : deux jetons de rafraîchissement distincts');
