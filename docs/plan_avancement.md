@@ -551,7 +551,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [x] Formules, jauges et cartes de mise à niveau (7b-2) : compteurs d'usage dans `GET /subscriptions/current/` (articles actifs, ventes du mois, clients actifs, membres) ; `UsageGauge` (ambre dès 80 %, rouge à la limite) dans Paramètres → Abonnement et en bandeau des listes Commandes, Clients, Articles ; limite atteinte : le bouton de création (et « Vendre ») ouvre `UpgradeSheet` au lieu du 400 ; `UpgradeCard` au bénéfice sur Facture PDF, WhatsApp, membres, exports, OCR, logo et couleur des factures (contrôles figés sous Boutique) ; limites articles et clients aussi à la réactivation (verrou atomique, test de concurrence) ; résumé quotidien réservé à `daily_digest` ; pastille de formule traduite par code ; audit `usage`, audit `sidebar` stabilisé
 - [ ] Lot 8 — Facturation et devis professionnels (URS-110 à 117, spécification `docs/specs/spec_facturation_devis_pro.md`, maquettes `docs/maquettes/facturation/`)
   - [ ] 8.1 Facture libre (URS-110) : brouillon, lignes personnalisables, conformité, client et catalogue à la volée
-    - [ ] Backend : modèles, migrations, services, endpoints, tests
+    - [x] Backend : modèles, migrations, services, endpoints, tests
     - [ ] Éditeur mobile et desktop, enregistrement automatique
     - [ ] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
     - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
