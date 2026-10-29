@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type Query } from '@tanstack/react-query';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 import type { Invoice, OperationCategory } from './useInvoices';
@@ -50,6 +50,12 @@ export function draftError(err: unknown): { code: string | null; issues: Complia
   return { code: typeof data.code === 'string' ? data.code : null, issues: Array.isArray(data.issues) ? data.issues as ComplianceIssue[] : [] };
 }
 
+/**
+ * Listes et détails, sans la vérification de conformité : le brouillon émis ou supprimé est encore
+ * affiché par l'éditeur, la relire répondrait 409 (`not_draft`) ou 404.
+ */
+const OUTSIDE_COMPLIANCE = { queryKey: qk.invoices.all, predicate: (q: Query) => q.queryKey[2] !== 'compliance' };
+
 /** Création (sans identifiant) ou enregistrement concurrentiel (`updated_at` lu). */
 export function useSaveDraftInvoice() {
   const qc = useQueryClient();
@@ -70,7 +76,7 @@ export function useDeleteDraftInvoice() {
     mutationFn: (id: string) => apiFetch<void>(`/invoices/${id}/draft/`, { method: 'DELETE' }),
     onSuccess: (_, id) => {
       qc.removeQueries({ queryKey: qk.invoices.detail(id) });
-      qc.invalidateQueries({ queryKey: qk.invoices.all });
+      qc.invalidateQueries(OUTSIDE_COMPLIANCE);
     },
   });
 }
@@ -95,7 +101,7 @@ export function useIssueDraftInvoice() {
       apiFetch<Invoice>(`/invoices/${id}/issue/`, { method: 'POST', body: json({ acknowledged_warnings: acknowledged }) }),
     onSuccess: (invoice) => {
       qc.setQueryData(qk.invoices.detail(invoice.id), invoice);
-      qc.invalidateQueries({ queryKey: qk.invoices.all });
+      qc.invalidateQueries(OUTSIDE_COMPLIANCE);
     },
   });
 }
