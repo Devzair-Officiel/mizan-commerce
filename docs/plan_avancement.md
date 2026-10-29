@@ -782,6 +782,10 @@ Décision du 2026-10-16 : pas de publications automatiques.
       docs/schema_base_donnees.md le 2026-10-28) : aucune URS ne la couvre ; en
       créer une ou la rattacher.
 
+- [ ] Le proxy /app/api/* traduit un 429 du backend en 503. Il devrait relayer le 429
+      avec l'en-tête Retry-After. Un utilisateur multi-onglets peut atteindre 10
+      refresh/min et voir une panne.
+
 ---
 
 ## Mise en production
