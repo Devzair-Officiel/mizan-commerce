@@ -43,6 +43,9 @@ class AuditLog(models.Model):
         ('user_deactivated', 'Compte désactivé (admin Mizan)'),
         ('user_reactivated', 'Compte réactivé (admin Mizan)'),
         ('public_page_moderated', 'Page publique modérée (admin Mizan)'),
+        ('subscription_plan_assigned', 'Formule attribuée (admin Mizan)'),
+        # Retour automatique sur Découverte à la date de fin (tâche, sans auteur).
+        ('subscription_assignment_ended', 'Fin de la formule attribuée'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

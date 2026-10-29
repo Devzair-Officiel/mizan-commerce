@@ -118,7 +118,10 @@ class Shop(models.Model):
         from apps.subscriptions.models import Subscription, SubscriptionPlan
 
         sub = getattr(self, 'subscription', None)
-        if sub is None or sub.is_trial_expired:
+        # Abonnement actif sans lien Stripe : `current_period_end` y est la fin
+        # d'une formule attribuée par l'admin Mizan (vide = sans fin). Dépassée,
+        # la boutique retombe sur Découverte avant même le passage d'`expire_trials`.
+        if sub is None or sub.is_trial_expired or sub.is_assignment_expired:
             return SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)
         if sub.status in (Subscription.STATUS_CANCELLED, Subscription.STATUS_PAUSED):
             return SubscriptionPlan.objects.get(code=SubscriptionPlan.CODE_FREE)

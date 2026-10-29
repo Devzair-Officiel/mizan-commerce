@@ -1,0 +1,39 @@
+{% extends "admin/base_site.html" %}
+{% load i18n l10n admin_urls static %}
+{% comment %}
+Étape intermédiaire de l'action « Changer la formule » (SubscriptionAdmin.change_plan).
+Le formulaire repart vers la liste avec l'action et l'abonnement choisis ; `apply`
+déclenche l'attribution (subscriptions.services.set_plan_manually).
+{% endcomment %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script src="{% static 'admin/js/cancel.js' %}" async></script>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+&rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<p>
+  Boutique : <strong>{{ subscription.shop }}</strong>.
+  Formule actuelle : <strong>{{ subscription.plan.name }}</strong> ({{ subscription.get_status_display }}){% if subscription.assignment_ends_at %}, attribuée jusqu'au {{ subscription.assignment_ends_at }}{% endif %}.
+</p>
+<p>Abonnement sans lien Stripe : l'attribution prend effet tout de suite, et elle est tracée dans le journal d'audit.</p>
+<form method="post">{% csrf_token %}
+  {{ form.as_div }}
+  <input type="hidden" name="{{ action_checkbox_name }}" value="{{ subscription.pk|unlocalize }}">
+  <input type="hidden" name="action" value="change_plan">
+  <div class="submit-row">
+    <input type="submit" name="apply" value="Changer la formule" class="default">
+    <a role="button" href="#" class="button cancel-link">Annuler</a>
+  </div>
+</form>
+{% endblock %}

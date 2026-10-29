@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
@@ -159,6 +160,26 @@ class Subscription(models.Model):
         if not self.current_period_end:
             return False
         return self.current_period_end <= timezone.now()
+
+    @property
+    def assignment_ends_at(self) -> datetime | None:
+        """Fin de la formule attribuée par l'admin Mizan, ou None.
+
+        Sur un abonnement actif sans lien Stripe, `current_period_end` est la fin
+        d'une formule attribuée (`services.set_plan_manually`) ; vide, la formule
+        n'a pas de fin. Aucune autre écriture ne le pose sur un tel abonnement
+        (test de non-régression dans test_manual_plan.py).
+        """
+        if self.status != self.STATUS_ACTIVE or self.stripe_subscription_id:
+            return None
+        return self.current_period_end
+
+    @property
+    def is_assignment_expired(self) -> bool:
+        """True si la formule attribuée a dépassé sa date de fin (lu par
+        `Shop.effective_plan`, comme `is_trial_expired`)."""
+        end = self.assignment_ends_at
+        return end is not None and end <= timezone.now()
 
 
 class StripeEvent(models.Model):
