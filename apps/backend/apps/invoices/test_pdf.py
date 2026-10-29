@@ -154,3 +154,41 @@ def test_rows_and_financial_blocks_stay_whole_across_page_breaks(count: int) -> 
     for i, page in enumerate(joined, 1):
         assert f'Page {i} sur {len(pages)}' in page
         assert 'Merci de votre confiance.' in page
+
+
+@pytest.mark.django_db
+def test_free_line_details_unit_operation_and_buyer_siren() -> None:
+    invoice = reference_invoice()
+    line = list(invoice.lines.all())[0]
+    line.details = 'Atelier de 3 h\n\nSupport remis en fin de séance'
+    line.unit = 'séance'
+    invoice.buyer_siren = '123456789'
+    invoice.presentation['operation_category'] = 'services'
+    text = ' '.join(text_pages(build_invoice_pdf(invoice))[0].split())
+    assert 'Atelier de 3 h' in text and 'Support remis en fin de séance' in text
+    assert '/ séance' in text
+    assert "Nature de l'opération : prestation de services" in text
+    assert 'SIREN 123 456 789' in text
+
+
+@pytest.mark.django_db
+def test_order_invoice_prints_no_operation_category() -> None:
+    # Facture de commande : la nature n'est pas choisie, rien n'est imprimé.
+    text = text_pages(build_invoice_pdf(reference_invoice()))[0]
+    assert "Nature de l'opération" not in text
+    assert 'SIREN' not in text
+
+
+@pytest.mark.django_db
+def test_description_taller_than_a_page_splits_across_pages() -> None:
+    invoice = reference_invoice()
+    line = list(invoice.lines.all())[0]
+    line.details = '\n'.join(f'Étape {i:03d} du programme' for i in range(1, 121))
+    pages = [' '.join(page.split()) for page in text_pages(build_invoice_pdf(invoice))]
+    assert len(pages) > 2
+    joined = ' '.join(pages)
+    assert 'Étape 001 du programme' in pages[0]
+    assert 'Étape 120 du programme' in joined
+    assert all('DÉSIGNATION' in page for page in pages if 'Étape' in page)
+    for i, page in enumerate(pages, 1):
+        assert f'Page {i} sur {len(pages)}' in page

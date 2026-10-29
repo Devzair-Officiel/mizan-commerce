@@ -553,7 +553,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [ ] 8.1 Facture libre (URS-110) : brouillon, lignes personnalisables, conformité, client et catalogue à la volée
     - [x] Backend : modèles, migrations, services, endpoints, tests
     - [ ] Éditeur mobile et desktop, enregistrement automatique
-    - [ ] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
+    - [x] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
     - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
   - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
     - [ ] Compteurs par type de document (`DocumentSequence`)

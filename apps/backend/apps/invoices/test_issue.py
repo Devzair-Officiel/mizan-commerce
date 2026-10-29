@@ -67,6 +67,7 @@ def test_issue_numbers_dates_and_freezes_snapshots(ctx) -> None:
     assert invoice.seller_tax_id == shop.tax_id
     assert invoice.buyer_name == customer.display_name
     assert invoice.presentation  # Instantané de présentation, comme une commande.
+    assert invoice.presentation["operation_category"] == invoice.operation_category
     assert invoice.total_ttc == Decimal("360.00")
     log = AuditLog.objects.get(action="invoice_issued")
     assert (log.object_id, log.object_repr) == (str(invoice.pk), invoice.number)

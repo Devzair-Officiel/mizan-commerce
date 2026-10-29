@@ -263,6 +263,8 @@ def _freeze(invoice: Invoice, shop: Shop, language: str | None) -> None:
     invoice.presentation = snapshot_presentation(
         invoice, shop, language=language, terms=terms
     )
+    # Choisie sur l'éditeur ; une facture de commande n'en imprime pas.
+    invoice.presentation['operation_category'] = invoice.operation_category
 
 
 @transaction.atomic
