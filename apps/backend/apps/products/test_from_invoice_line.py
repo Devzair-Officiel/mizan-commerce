@@ -84,3 +84,27 @@ def test_invalid_line_is_rejected(ctx) -> None:
     api, _ = ctx
     for payload in ({**PAYLOAD, "unit_price_ht": "-1"}, {**PAYLOAD, "name": ""}):
         assert api.post(reverse(URL), payload, format="json").status_code == 400
+
+
+@pytest.mark.django_db
+def test_unit_label_can_be_corrected_and_survives_the_article_form(ctx) -> None:
+    api, _ = ctx
+    product = Product.objects.get(
+        pk=api.post(reverse(URL), PAYLOAD, format="json").data["id"]
+    )
+    variant = product.variants.get()
+    url = reverse("product-variant-detail", args=[product.pk, variant.pk])
+    response = api.patch(url, {"unit_label": "nuitée"}, format="json")
+    assert (response.status_code, response.data["unit_label"]) == (200, "nuitée")
+    assert api.patch(url, {"unit_label": "u" * 31}, format="json").status_code == 400
+    # Le tableau des formats de la fiche article n'envoie pas l'unité facturée.
+    row = {"id": str(variant.pk), "packaging_name": variant.packaging_name,
+           "selling_price": "90.00"}
+    response = api.patch(
+        reverse("product-detail", args=[product.pk]), {"variants": [row]},
+        format="json",
+    )
+    assert response.status_code == 200, response.data
+    assert response.data["variants"][0]["unit_label"] == "nuitée"
+    variant.refresh_from_db()
+    assert (variant.unit_label, str(variant.selling_price)) == ("nuitée", "90.00")

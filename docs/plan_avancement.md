@@ -686,6 +686,11 @@ Décision du 2026-10-16 : pas de publications automatiques.
       surcharge `eslint.config.mjs` (bloc commenté "Dette"). Retirer chaque fichier de
       cette liste au fur et à mesure qu'il est découpé.
 
+- [ ] Unité facturée d'un format (`ProductVariant.unit_label`, URS-110) : modifiable par
+      l'API (`PATCH /api/products/<id>/variants/<variant_id>/`), absente du formulaire
+      article, déjà sous dette `max-lines-per-function`. À ajouter au découpage de ce
+      formulaire, au plus tard avec le lot 8.2.
+
 - [ ] Limites de formule (URS-100) : plusieurs boutons de création n'ont pas de garde côté
       client à la limite (actions rapides, états vides, « Nouvelle vente » depuis une fiche
       client, accueil d'une nouvelle boutique, /orders/new). Le serveur refuse (400), mais
