@@ -697,6 +697,13 @@ Décision du 2026-10-16 : pas de publications automatiques.
       l'historique. À reprendre avec le lot 8.2.
       Écart assumé : le prix unitaire porte le code de la devise (« EUR ») et non le
       symbole, comme le formulaire article.
+      Mobile (360 px, arabe) : le libellé du prix unitaire est tronqué (« سعر الو… ») dans
+      sa demi-colonne, à côté du suffixe « EUR » (`EditorLine.tsx`).
+
+- [ ] Facture issue d'une commande : imprimer aussi la nature de l'opération ? Décision à
+      prendre à part. Aujourd'hui, seule la facture libre la fige dans son instantané
+      (`drafts._freeze`) et l'imprime ; une facture de commande n'en porte pas, pour ne pas
+      y écrire « prestation de services » par défaut.
 
 - [ ] Limites de formule (URS-100) : plusieurs boutons de création n'ont pas de garde côté
       client à la limite (actions rapides, états vides, « Nouvelle vente » depuis une fiche
