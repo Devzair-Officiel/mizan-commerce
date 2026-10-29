@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mizan — Maquette : éditeur de facture libre</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root{color-scheme:light dark;--font-sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+html,body{margin:0}
+body{padding:24px 16px 48px;font-family:var(--font-sans);background:Canvas;color:CanvasText}
+.wrap{max-width:720px;margin:0 auto}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h2 class="sr-only">Maquette mobile et desktop de la facture libre avec champs à étiquette flottante, stepper de quantité, sélecteur d'unité, total de ligne et écrans de client et de vérification.</h2>
+<style>
+.ap{--bg:oklch(0.975 0.010 85);--card:oklch(0.995 0.005 85);--fg:oklch(0.27 0.02 170);--mf:oklch(0.53 0.012 170);--pri:oklch(0.52 0.075 170);--pf:#fff;--sec:oklch(0.93 0.0225 170);--sf:oklch(0.30 0.045 170);--mut:oklch(0.945 0.012 90);--bor:oklch(0.90 0.014 90);--amb:oklch(0.50 0.12 70);--ambbg:oklch(0.95 0.05 85);--des:oklch(0.505 0.213 27.5);--h1:oklch(0.82 0.06 165/.40);--h2:oklch(0.90 0.085 85/.45);font-family:var(--font-sans);color:var(--fg)}
+.ap.dk{--bg:oklch(0.22 0.012 170);--card:oklch(0.27 0.012 170);--fg:oklch(0.95 0.01 85);--mf:oklch(0.72 0.012 170);--pri:oklch(0.66 0.09 170);--pf:oklch(0.2 0.02 170);--sec:oklch(0.35 0.035 170);--sf:oklch(0.92 0.03 170);--mut:oklch(0.31 0.012 170);--bor:oklch(0.38 0.012 170);--amb:oklch(0.82 0.13 80);--ambbg:oklch(0.35 0.06 75);--des:oklch(0.75 0.16 21);--h1:oklch(0.48 0.07 170/.30);--h2:oklch(0.55 0.08 75/.16)}
+.ap *{box-sizing:border-box}
+.ap [role=button]{cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.ap input,.ap textarea{all:unset!important;display:block!important;box-sizing:border-box!important;width:100%!important;font:inherit!important;font-size:15px!important;line-height:1.35!important;color:inherit!important;font-variant-numeric:tabular-nums!important;cursor:text}
+.ap textarea{resize:none!important;min-height:44px!important;white-space:pre-wrap!important}
+.ap ::placeholder{color:var(--mf)!important;opacity:.7}
+.ap .ctl{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0 0 14px}
+.ap .seg{display:inline-flex;background:var(--mut);border-radius:999px;padding:4px}
+.ap .seg span{border-radius:999px;height:34px;padding:0 18px;font-size:13px;font-weight:600;color:var(--mf);display:inline-flex;align-items:center}
+.ap .seg span.on{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
+.ap .tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.ap .tabs span{border-radius:999px;font-size:12px;padding:5px 12px;border:1px solid var(--bor);color:var(--fg)}
+.ap .tabs span.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.ap .stage{display:flex;justify-content:center}
+.ap .halo{background:radial-gradient(70% 40% at 0% 0%,var(--h1),transparent 70%),radial-gradient(60% 40% at 100% 100%,var(--h2),transparent 70%),var(--bg)}
+.ap .card{background:var(--card);border:1px solid var(--bor);border-radius:16px;overflow:hidden}
+.ap .card>*+*{border-top:1px solid var(--bor)}
+.ap .band{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--mut)}
+.ap .tile{width:36px;height:36px;border-radius:10px;background:var(--card);color:var(--pri);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 1px 2px rgb(0 0 0/.08);flex:none}
+.ap .bt{flex:1;min-width:0}
+.ap .bt .r{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ap .bt .tx{font-size:17px;font-weight:600}
+.ap .bt p{font-size:13px;color:var(--mf);margin:3px 0 0;line-height:1.4}
+.ap .bt p.sm{color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap .chip{height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;background:var(--sec);color:var(--sf);white-space:nowrap}
+.ap .chip.o{height:22px;padding:0 8px;font-size:11px;background:var(--card);border:1px solid var(--bor);color:var(--mf)}
+.ap .hl{font-size:13px;font-weight:600;color:var(--pri);height:32px;display:inline-flex;gap:4px;align-items:center}
+.ap .hl:hover{text-decoration:underline;text-underline-offset:4px}
+.ap .ln{padding:16px}
+.ap .lh{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ap .lh .n{font-size:13px;font-weight:600;color:var(--mf)}
+.ap .lh .sp1{flex:1}
+.ap .lh .lt{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.ap .tg{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--sec);color:var(--sf);display:inline-flex;gap:4px;align-items:center}
+.ap .tg.n{background:var(--mut);color:var(--mf)}
+.ap .fx{position:relative;border:1px solid var(--bor);border-radius:18px;background:var(--card);padding:24px 16px 9px;min-height:58px;transition:border-color .2s,box-shadow .2s}
+.ap .fx:focus-within{border-color:var(--pri);box-shadow:0 0 0 3px color-mix(in oklch,var(--pri) 16%,transparent)}
+.ap .fx .lab{position:absolute;left:16px;top:8px;font-size:11px;line-height:1;color:var(--mf);pointer-events:none}
+.ap .fx:focus-within .lab{color:var(--pri)}
+.ap .fx .sfx{position:absolute;right:16px;bottom:10px;font-size:15px;color:var(--mf);pointer-events:none}
+.ap .fx.pr input{padding-right:22px!important}
+.ap .fx.cat input{padding-right:44px!important}
+.ap .fx .cb{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:var(--sec);color:var(--pri);display:flex;align-items:center;justify-content:center;font-size:18px}
+.ap .fx.stp input{width:46px!important;font-weight:600!important}
+.ap .fx.stp .sb{position:absolute;right:10px;bottom:10px;display:flex;gap:6px}
+.ap .fx.stp .sb span{width:32px;height:32px;border-radius:50%;background:var(--mut);color:var(--fg);display:flex;align-items:center;justify-content:center;font-size:16px}
+.ap .fx.stp .sb span:hover{background:var(--sec);color:var(--pri)}
+.ap .fx.sel{cursor:pointer}
+.ap .fx.sel .val{font-size:15px;line-height:1.35}
+.ap .fx.sel .chv{position:absolute;right:16px;bottom:12px;font-size:16px;color:var(--mf)}
+.ap .fx.res{background:var(--sec);border-color:transparent}
+.ap .fx.res .lab{color:var(--sf);opacity:.75}
+.ap .fx.res .val{font-size:17px;font-weight:700;color:var(--sf);font-variant-numeric:tabular-nums;line-height:1.35}
+.ap .fx.ta{padding-top:26px}
+.ap .fx.ta textarea{min-height:44px!important}
+.ap .fx.on{border-color:var(--pri);box-shadow:0 0 0 3px color-mix(in oklch,var(--pri) 16%,transparent)}
+.ap .g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
+.ap .g3{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);gap:12px;margin-top:12px}
+.ap .b{height:40px;border-radius:999px;padding:0 20px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid transparent;color:var(--fg)}
+.ap .b.p{background:var(--pri);color:var(--pf);border-color:var(--pri)}
+.ap .b.p:hover{background:color-mix(in oklch,var(--pri) 88%,black)}
+.ap .b.g:hover{background:var(--mut)}
+.ap .b.o{border-color:var(--bor);background:var(--card)}
+.ap .b.o:hover{background:var(--mut)}
+.ap .b.l{height:48px;width:100%}
+.ap .ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--mf);font-size:20px;flex:none}
+.ap .ic:hover{background:var(--mut)}
+.ap .ic.s{width:32px;height:32px;font-size:18px}
+.ap .item{display:flex;align-items:center;gap:12px;padding:13px 18px;font-size:14px}
+.ap .item .tx{flex:1;min-width:0;font-weight:600}
+.ap .item .tx small{display:block;font-weight:400;font-size:13px;color:var(--mf)}
+.ap .item>i{color:var(--mf);font-size:18px}
+.ap .av{width:40px;height:40px;border-radius:50%;background:var(--sec);color:var(--sf);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex:none}
+.ap .tr{display:flex;justify-content:space-between;font-size:14px;color:var(--mf);font-variant-numeric:tabular-nums}
+.ap .tr b{font-weight:400;color:var(--fg)}
+.ap .tr.t{font-size:17px;color:var(--fg);font-weight:600;padding-top:10px;border-top:1px solid var(--bor)}
+.ap .tr.t b{font-weight:700}
+.ap .am{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--amb)}
+.ap .am:before{content:"";width:8px;height:8px;border-radius:50%;background:oklch(0.77 0.16 70);flex:none}
+.ap .rec{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.ap .phone{position:relative;width:360px;min-height:900px;border:1px solid var(--bor);border-radius:32px;overflow:hidden}
+.ap .scr{display:none}
+.ap .scr.on{display:block}
+.ap .tb{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 6px;min-height:60px;border-bottom:1px solid var(--bor);background:color-mix(in oklch,var(--card) 85%,transparent)}
+.ap .tt{flex:1;min-width:0;padding-left:2px}
+.ap .tt .h{display:block;font-size:20px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap .tt small{font-size:13px;color:var(--mf);display:block;margin-top:1px}
+.ap .bd{padding:16px 16px 170px;display:flex;flex-direction:column;gap:16px}
+.ap .bn{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bor);display:flex;align-items:flex-end;justify-content:space-around;padding-bottom:12px;z-index:2}
+.ap .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0;min-height:56px;font-size:11px;color:var(--mf)}
+.ap .ni .pl{height:30px;width:52px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.ap .fab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding-bottom:8px;font-size:11px;font-weight:600;color:var(--fg)}
+.ap .fab .c{height:56px;width:56px;border-radius:50%;background:var(--pri);color:var(--pf);display:flex;align-items:center;justify-content:center;font-size:24px;margin-top:-28px;box-shadow:0 0 0 4px var(--card),0 4px 10px rgb(0 0 0/.18)}
+.ap .fl{position:absolute;left:12px;right:12px;bottom:84px;border-radius:16px;border:1px solid var(--bor);background:var(--card);box-shadow:0 8px 20px rgb(0 0 0/.14);display:flex;align-items:center;gap:12px;padding:8px 8px 8px 16px;z-index:2}
+.ap .fl .l{flex:1;font-size:12px;color:var(--mf);line-height:1.2}
+.ap .fl .l b{display:block;font-size:18px;color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+.ap .ov{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;z-index:5}
+.ap .ov.show{display:flex}
+.ap .phone .ov{align-items:flex-end}
+.ap .sh{width:100%;background:var(--card);border-radius:24px 24px 0 0;padding:8px 20px 22px}
+.ap .gr{width:36px;height:4px;border-radius:2px;background:var(--bor);margin:4px auto 14px}
+.ap .sht{font-size:17px;font-weight:600}
+.ap .shs{font-size:13px;color:var(--mf);margin:2px 0 12px;line-height:1.45}
+.ap .rw{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--bor);font-size:14px}
+.ap .rw .tl{width:36px;height:36px;border-radius:10px;background:var(--mut);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--pri);flex:none}
+.ap .rw .tl.w{background:var(--ambbg);color:var(--amb)}
+.ap .rw .tx{flex:1;min-width:0;font-weight:600}
+.ap .rw .tx small{display:block;font-weight:400;font-size:13px;color:var(--mf)}
+.ap .rw.d .tl,.ap .rw.d .tx{color:var(--des)}
+.ap .pick{display:flex;background:var(--mut);border-radius:999px;padding:4px;margin:6px 0 12px}
+.ap .pick span{flex:1;border-radius:999px;height:36px;font-size:13px;font-weight:600;color:var(--mf);display:flex;align-items:center;justify-content:center}
+.ap .pick span.on{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.12)}
+.ap .chps{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.ap .chp{height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--bor);background:var(--card);font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.ap .chp:hover{background:var(--mut)}
+.ap .chp.on{background:var(--pri);color:var(--pf);border-color:var(--pri)}
+.ap .okr{display:none;color:var(--pri);font-size:13px;font-weight:600;align-items:center;gap:4px}
+.ap .rw.ok .okr{display:inline-flex}
+.ap .rw.ok .go{display:none}
+.ap .dskw{width:100%;overflow:hidden;position:relative}
+.ap .di{width:860px;transform-origin:top left}
+.ap .win{position:relative;display:grid;grid-template-columns:64px 1fr;min-height:800px;border:1px solid var(--bor);border-radius:16px;overflow:hidden}
+.ap .rail{background:color-mix(in oklch,var(--card) 70%,transparent);border-right:1px solid var(--bor);display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 0}
+.ap .rail .lg{width:36px;height:36px;border-radius:50%;background:var(--pri);color:var(--pf);display:flex;align-items:center;justify-content:center;font-weight:700;margin-bottom:14px}
+.ap .rail .ri{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--mf)}
+.ap .rail .ri.on{background:var(--sec);color:var(--pri)}
+.ap .mn{padding:12px 24px 28px}
+.ap .bl{font-size:14px;font-weight:500;color:var(--mf);display:inline-flex;align-items:center;gap:2px}
+.ap .th{display:flex;align-items:flex-end;gap:12px;padding:6px 0 22px}
+.ap .th .t1{flex:1}
+.ap .th .h1{font-size:28px;font-weight:600;letter-spacing:-0.02em;line-height:1.2}
+.ap .th small{font-size:13px;color:var(--mf)}
+.ap .sp{height:44px;width:190px;border-radius:999px;background:var(--card);border:1px solid var(--bor);display:flex;align-items:center;gap:10px;padding:0 16px;font-size:14px;color:var(--mf)}
+.ap .sp kbd{margin-left:auto;font-family:var(--font-mono);font-size:11px;background:var(--mut);border-radius:4px;padding:1px 6px}
+.ap .cl{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:20px;align-items:start}
+.ap .col{display:flex;flex-direction:column;gap:20px}
+.ap .ln.d{padding:20px 24px;position:relative}
+.ap .foot{padding:16px 24px;display:flex;align-items:center;gap:12px}
+.ap .foot kbd{font-family:var(--font-mono);font-size:11px;color:var(--mf);background:var(--mut);border-radius:4px;padding:1px 6px}
+.ap .note{font-size:13px;color:var(--mf);padding:0 4px}
+.ap .pop{display:none;position:absolute;z-index:4;background:var(--card);border:1px solid var(--bor);border-radius:16px;box-shadow:0 10px 24px rgb(0 0 0/.16);overflow:hidden}
+.ap .pop.show{display:block}
+.ap .pop .item{padding:10px 14px;border-top:1px solid var(--bor)}
+.ap .pop .item:first-child{border-top:none}
+.ap .pop .item.hi{background:var(--mut)}
+.ap .pop .item i.ck{color:var(--pri)}
+.ap .win .ov{align-items:center;justify-content:center;padding:20px}
+.ap .dg{background:var(--card);border:1px solid var(--bor);border-radius:16px;box-shadow:0 20px 40px rgb(0 0 0/.25);padding:24px;width:100%;max-width:500px}
+.ap .gp{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ap .hd{font-size:12px;font-weight:600;color:var(--mf);margin:16px 0 0}
+.ap .row2{display:flex;gap:8px;margin-top:16px}
+.ap .row2 .b{flex:1}
+</style>
+
+<div class="ap" id="ap">
+  <div class="ctl">
+    <div class="seg" id="dev"><span role="button" tabindex="0" data-d="mob" class="on">Mobile</span><span role="button" tabindex="0" data-d="dsk">Desktop</span></div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+
+  <div class="stage" id="mobw">
+    <div class="phone halo">
+
+      <div class="scr" data-k="start">
+        <div class="tb"><span role="button" tabindex="0" class="ic" style="color:var(--fg)" aria-label="Retour"><i class="ti ti-chevron-left" style="font-size:22px"></i></span><div class="tt"><span class="h">Nouvelle facture</span><small>Choisissez un point de départ</small></div><span role="button" tabindex="0" class="ic" aria-label="Rechercher"><i class="ti ti-search"></i></span></div>
+        <div class="bd">
+          <span role="button" tabindex="0" class="b p l" data-to="edit"><i class="ti ti-file-plus"></i>Facture vide</span>
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-bookmark"></i></span><div class="bt"><span class="tx">Vos modèles</span><p>Lignes et conditions déjà prêtes.</p></div></div>
+            <div class="item" role="button" tabindex="0" data-to="edit"><div class="tx">Séjour hôtel et transfert<small>2 lignes · 485,00 € HT</small></div><i class="ti ti-chevron-right"></i></div>
+            <div class="item" role="button" tabindex="0" data-to="edit"><div class="tx">Transfert aéroport seul<small>1 ligne · 65,00 € HT</small></div><i class="ti ti-chevron-right"></i></div>
+          </div>
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-copy"></i></span><div class="bt"><span class="tx">Dupliquer une facture</span><p>Reprend client et lignes.</p></div></div>
+            <div class="item" role="button" tabindex="0" data-to="edit"><div class="tx">Hôtel Atlas SARL<small>fact-201026-0012 · 582,00 €</small></div><i class="ti ti-chevron-right"></i></div>
+            <div class="item" role="button" tabindex="0" data-to="edit"><div class="tx">Sarah Martin<small>fact-151026-0011 · 130,00 €</small></div><i class="ti ti-chevron-right"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scr on" data-k="edit">
+        <div class="tb"><span role="button" tabindex="0" class="ic" style="color:var(--fg)" aria-label="Retour"><i class="ti ti-chevron-left" style="font-size:22px"></i></span><div class="tt"><span class="h">Nouvelle facture</span><small>Brouillon · enregistré à 14:32</small></div><span role="button" tabindex="0" class="ic" aria-label="Changer de thème"><i class="ti ti-moon"></i></span><span role="button" tabindex="0" class="ic" aria-label="Rechercher"><i class="ti ti-search"></i></span></div>
+        <div class="bd">
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-user"></i></span><div class="bt"><div class="r"><span class="tx">Client</span><span class="chip">Obligatoire</span></div><p>Pour qui est cette facture.</p></div></div>
+            <div class="item"><span class="av">HA</span><div class="tx">Hôtel Atlas SARL<small>Professionnel</small></div><span role="button" tabindex="0" class="hl" data-to="client">Changer</span></div>
+          </div>
+
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-list-details"></i></span><div class="bt"><div class="r"><span class="tx">Prestations</span><span class="chip">Obligatoire</span></div><p>Une ligne par prestation ou article.</p></div></div>
+            <div class="ln">
+              <div class="lh"><span class="n">Ligne 1</span><span class="tg"><i class="ti ti-book-2"></i>Catalogue</span><span class="sp1"></span><span role="button" tabindex="0" class="ic s" data-to="line" aria-label="Actions de la ligne"><i class="ti ti-dots"></i></span></div>
+              <div class="fx cat"><span class="lab">Désignation</span><input type="text" value="Séjour hôtel, chambre double" /><span class="cb" role="button" tabindex="0" aria-label="Choisir dans le catalogue"><i class="ti ti-book-2"></i></span></div>
+              <div class="g2">
+                <div class="fx stp"><span class="lab">Quantité</span><input class="q1" type="text" value="3" inputmode="decimal" /><span class="sb"><span role="button" tabindex="0" data-st="-1" aria-label="Moins"><i class="ti ti-minus"></i></span><span role="button" tabindex="0" data-st="1" aria-label="Plus"><i class="ti ti-plus"></i></span></span></div>
+                <div class="fx sel" role="button" tabindex="0" data-to="unit"><span class="lab">Unité</span><span class="val unit1">nuit</span><i class="ti ti-chevron-down chv"></i></div>
+                <div class="fx pr"><span class="lab">Prix unitaire HT</span><input class="p1" type="text" value="140,00" inputmode="decimal" /><span class="sfx">€</span></div>
+                <div class="fx res"><span class="lab">Total ligne</span><span class="val t1">420,00 €</span></div>
+              </div>
+              <div class="dbox fx ta" style="display:none;margin-top:10px"><span class="lab">Description</span><textarea>Vue mer, petit-déjeuner inclus. Du 12 au 15 novembre.</textarea></div>
+              <span role="button" tabindex="0" class="hl tgd" style="margin-top:6px"><i class="ti ti-plus"></i><span>Description</span></span>
+            </div>
+            <div class="ln">
+              <div class="lh"><span class="n">Ligne 2</span><span class="tg n">Nouvelle prestation</span><span class="sp1"></span><span role="button" tabindex="0" class="ic s" data-to="line" aria-label="Actions de la ligne"><i class="ti ti-dots"></i></span></div>
+              <div class="fx cat"><span class="lab">Désignation</span><input type="text" value="Transfert privé aéroport → hôtel" /><span class="cb" role="button" tabindex="0" aria-label="Choisir dans le catalogue"><i class="ti ti-book-2"></i></span></div>
+              <div class="g2">
+                <div class="fx stp"><span class="lab">Quantité</span><input type="text" value="1" /><span class="sb"><span role="button" tabindex="0" aria-label="Moins"><i class="ti ti-minus"></i></span><span role="button" tabindex="0" aria-label="Plus"><i class="ti ti-plus"></i></span></span></div>
+                <div class="fx sel" role="button" tabindex="0"><span class="lab">Unité</span><span class="val">trajet</span><i class="ti ti-chevron-down chv"></i></div>
+                <div class="fx pr"><span class="lab">Prix unitaire HT</span><input type="text" value="65,00" /><span class="sfx">€</span></div>
+                <div class="fx res"><span class="lab">Total ligne</span><span class="val">65,00 €</span></div>
+              </div>
+              <span role="button" tabindex="0" class="hl" style="margin-top:6px"><i class="ti ti-plus"></i><span>Description</span></span>
+            </div>
+            <div style="padding:14px 16px"><span role="button" tabindex="0" class="b o l" style="height:44px"><i class="ti ti-plus"></i>Ajouter une ligne</span></div>
+          </div>
+
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-adjustments"></i></span><div class="bt"><div class="r"><span class="tx">Remise, frais et notes</span><span class="chip o">Facultatif</span></div><p class="sm">Aucune remise · échéance à 30 jours</p></div><i class="ti ti-chevron-down" style="color:var(--mf);font-size:18px"></i></div>
+          </div>
+
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-receipt"></i></span><div class="bt"><span class="tx">Récapitulatif</span></div></div>
+            <div class="rec">
+              <div class="tr"><span>Total HT</span><b class="ht">485,00 €</b></div>
+              <div class="tr"><span>TVA 20 %</span><b class="tva">97,00 €</b></div>
+              <div class="tr t"><span>Total TTC</span><b class="ttc">582,00 €</b></div>
+              <div class="tr"><span>Nature de l'opération</span><b>Prestation de services</b></div>
+              <div class="am">2 infos recommandées pour une facture officielle</div>
+            </div>
+          </div>
+        </div>
+        <div class="fl"><div class="l">Total TTC<b class="ttc">582,00 €</b></div><span role="button" tabindex="0" class="b p" style="height:48px;padding:0 28px" data-to="check">Émettre</span></div>
+      </div>
+
+      <div class="scr" data-k="done">
+        <div class="tb"><div class="tt" style="padding-left:12px"><span class="h">Facture émise</span><small>fact-281026-0013</small></div></div>
+        <div class="bd">
+          <div style="text-align:center;padding:12px 0 4px">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--sec);color:var(--pri);display:inline-flex;align-items:center;justify-content:center;font-size:30px"><i class="ti ti-check"></i></div>
+            <div style="font-size:20px;font-weight:600;margin-top:12px">Facture émise</div>
+            <div style="font-size:13px;color:var(--mf);font-variant-numeric:tabular-nums">Hôtel Atlas SARL · 582,00 € TTC</div>
+          </div>
+          <div style="display:flex;gap:8px"><span role="button" tabindex="0" class="b p" style="flex:1;height:48px"><i class="ti ti-brand-whatsapp"></i>WhatsApp</span><span role="button" tabindex="0" class="b o" style="flex:1;height:48px"><i class="ti ti-download"></i>PDF</span></div>
+          <div class="card">
+            <div class="band"><span class="tile"><i class="ti ti-sparkles"></i></span><div class="bt"><span class="tx">Pour la prochaine fois</span><p>Gagnez du temps sur vos prochaines factures.</p></div></div>
+            <div class="item" style="padding:0 18px"><div class="rw" style="border-top:none;width:100%" role="button" tabindex="0" data-ok="1"><span class="tl"><i class="ti ti-bookmark"></i></span><div class="tx">Garder comme modèle<small>Lignes et conditions, sans le client</small></div><i class="ti ti-chevron-right go" style="color:var(--mf)"></i><span class="okr"><i class="ti ti-check"></i>Enregistré</span></div></div>
+            <div class="item" style="padding:0 18px"><div class="rw" style="border-top:none;width:100%" role="button" tabindex="0" data-ok="1"><span class="tl"><i class="ti ti-book-2"></i></span><div class="tx">Ajouter au catalogue<small>Transfert privé aéroport → hôtel · 65,00 €</small></div><i class="ti ti-chevron-right go" style="color:var(--mf)"></i><span class="okr"><i class="ti ti-check"></i>Ajouté</span></div></div>
+          </div>
+          <span role="button" tabindex="0" class="b g l" data-to="edit">Terminer</span>
+        </div>
+      </div>
+
+      <div class="ov" data-k="unit"><div class="sh">
+        <div class="gr"></div><div class="sht">Unité</div><div class="shs">Choisissez une unité ou saisissez la vôtre.</div>
+        <div class="chps">
+          <span class="chp on" role="button" tabindex="0" data-unit="nuit"><i class="ti ti-check"></i>nuit</span>
+          <span class="chp" role="button" tabindex="0" data-unit="heure">heure</span>
+          <span class="chp" role="button" tabindex="0" data-unit="jour">jour</span>
+          <span class="chp" role="button" tabindex="0" data-unit="semaine">semaine</span>
+          <span class="chp" role="button" tabindex="0" data-unit="trajet">trajet</span>
+          <span class="chp" role="button" tabindex="0" data-unit="personne">personne</span>
+          <span class="chp" role="button" tabindex="0" data-unit="forfait">forfait</span>
+          <span class="chp" role="button" tabindex="0" data-unit="pièce">pièce</span>
+        </div>
+        <div class="fx"><span class="lab">Autre unité</span><input type="text" placeholder="demi-journée" /></div>
+        <span role="button" tabindex="0" class="b p l" style="margin-top:14px" data-to="edit">Valider</span>
+      </div></div>
+
+      <div class="ov" data-k="line"><div class="sh">
+        <div class="gr"></div><div class="sht">Ligne 2</div><div class="shs">Transfert privé aéroport → hôtel</div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl"><i class="ti ti-book-2"></i></span><div class="tx">Enregistrer au catalogue<small>65,00 € HT · unité : trajet</small></div></div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl"><i class="ti ti-copy"></i></span><div class="tx">Dupliquer la ligne</div></div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl"><i class="ti ti-arrow-up"></i></span><div class="tx">Monter</div></div>
+        <div class="rw d" role="button" tabindex="0" data-to="edit"><span class="tl"><i class="ti ti-trash"></i></span><div class="tx">Supprimer<small>Annulable pendant quelques secondes</small></div></div>
+      </div></div>
+
+      <div class="ov" data-k="client"><div class="sh">
+        <div class="gr"></div><div class="sht" style="margin-bottom:10px">Client</div>
+        <div class="fx cat" style="border-radius:999px;padding-left:20px"><span class="lab" style="left:20px">Rechercher ou créer</span><input type="text" value="Hôtel Marina" /><span class="cb"><i class="ti ti-search"></i></span></div>
+        <div class="rw" role="button" tabindex="0" style="border-top:none"><span class="tl"><i class="ti ti-user-plus"></i></span><div class="tx" style="color:var(--pri)">Créer « Hôtel Marina »</div></div>
+        <div class="pick" data-pick="1"><span role="button" tabindex="0" data-t="p">Particulier</span><span role="button" tabindex="0" data-t="pro" class="on">Professionnel</span></div>
+        <div data-pro="1" style="margin-bottom:10px"><div class="fx"><span class="lab">SIREN (facultatif)</span><input type="text" placeholder="123 456 789" inputmode="numeric" /></div></div>
+        <div class="fx"><span class="lab">Adresse</span><input type="text" placeholder="12 quai des Docks, 13002 Marseille" /></div>
+        <div class="g2"><div class="fx"><span class="lab">E-mail</span><input type="text" placeholder="contact@marina.fr" /></div><div class="fx"><span class="lab">Téléphone</span><input type="text" placeholder="06 12 34 56 78" /></div></div>
+        <div style="font-size:13px;color:var(--mf);margin:12px 0"><i class="ti ti-users" style="vertical-align:-2px"></i> Ce client sera aussi ajouté à vos clients.</div>
+        <span role="button" tabindex="0" class="b p l" data-to="edit">Ajouter et utiliser</span>
+      </div></div>
+
+      <div class="ov" data-k="check"><div class="sh">
+        <div class="gr"></div><div class="sht">Vérification avant émission</div>
+        <div class="shs">Ces infos figurent normalement sur une facture officielle en France. Une fois émise, la facture ne peut plus être modifiée.</div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl w"><i class="ti ti-alert-triangle"></i></span><div class="tx">SIREN du client<small>Client professionnel</small></div><span class="b o" style="height:34px;font-size:13px;padding:0 14px">Compléter</span></div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl w"><i class="ti ti-alert-triangle"></i></span><div class="tx">Adresse de votre boutique<small>Paramètres, Boutique</small></div><span class="b o" style="height:34px;font-size:13px;padding:0 14px">Compléter</span></div>
+        <div class="row2"><span role="button" tabindex="0" class="b g" data-to="done">Émettre quand même</span><span role="button" tabindex="0" class="b p" data-to="edit">Compléter</span></div>
+      </div></div>
+
+      <div class="bn">
+        <div class="ni"><span class="pl"><i class="ti ti-home"></i></span>Accueil</div>
+        <div class="ni"><span class="pl"><i class="ti ti-users"></i></span>Clients</div>
+        <div class="fab"><span class="c"><i class="ti ti-plus"></i></span>Vendre</div>
+        <div class="ni"><span class="pl"><i class="ti ti-shopping-bag"></i></span>Commandes</div>
+        <div class="ni"><span class="pl"><i class="ti ti-sparkles"></i></span>Services</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dskw" id="dskw" style="display:none">
+   <div class="di">
+    <div class="win halo">
+      <div class="rail"><div class="lg">M</div><div class="ri"><i class="ti ti-home"></i></div><div class="ri"><i class="ti ti-users"></i></div><div class="ri"><i class="ti ti-shopping-bag"></i></div><div class="ri"><i class="ti ti-package"></i></div><div class="ri on"><i class="ti ti-file-text"></i></div><div class="ri"><i class="ti ti-calculator"></i></div></div>
+      <div class="mn">
+        <div class="bl"><i class="ti ti-chevron-left"></i>Factures</div>
+        <div class="th"><div class="t1"><div class="h1">Nouvelle facture</div><small>Brouillon · enregistré automatiquement à 14:32</small></div><span role="button" tabindex="0" class="ic" aria-label="Changer de thème"><i class="ti ti-moon"></i></span><div class="sp"><i class="ti ti-search"></i>Rechercher<kbd>Ctrl K</kbd></div></div>
+        <div class="cl">
+          <div class="col">
+            <div class="card">
+              <div class="band" style="padding:14px 24px"><span class="tile"><i class="ti ti-list-details"></i></span><div class="bt"><div class="r"><span class="tx">Prestations</span><span style="display:flex;gap:14px;align-items:center"><span role="button" tabindex="0" class="hl"><i class="ti ti-plus"></i>Depuis le catalogue</span><span class="chip">Obligatoire</span></span></div><p>Une ligne par prestation ou article facturé.</p></div></div>
+              <div class="ln d">
+                <div class="lh"><span class="n">Ligne 1</span><span class="tg"><i class="ti ti-book-2"></i>Catalogue</span><span class="sp1"></span><span class="lt t1">420,00 €</span><span role="button" tabindex="0" class="ic s" aria-label="Dupliquer"><i class="ti ti-copy"></i></span><span role="button" tabindex="0" class="ic s" aria-label="Actions de la ligne"><i class="ti ti-dots"></i></span></div>
+                <div class="fx cat"><span class="lab">Désignation</span><input type="text" value="Séjour hôtel, chambre double" /><span class="cb" role="button" tabindex="0" aria-label="Choisir dans le catalogue"><i class="ti ti-book-2"></i></span></div>
+                <div class="g3">
+                  <div class="fx stp"><span class="lab">Quantité</span><input class="q1" type="text" value="3" inputmode="decimal" /><span class="sb"><span role="button" tabindex="0" data-st="-1" aria-label="Moins"><i class="ti ti-minus"></i></span><span role="button" tabindex="0" data-st="1" aria-label="Plus"><i class="ti ti-plus"></i></span></span></div>
+                  <div style="position:relative"><div class="fx sel" role="button" tabindex="0" data-to="unit"><span class="lab">Unité</span><span class="val unit1">nuit</span><i class="ti ti-chevron-down chv"></i></div>
+                    <div class="pop" id="unp" style="left:0;top:64px;width:200px">
+                      <div class="item hi" role="button" tabindex="0" data-unit="nuit"><div class="tx">nuit</div><i class="ti ti-check ck"></i></div>
+                      <div class="item" role="button" tabindex="0" data-unit="heure"><div class="tx">heure</div></div>
+                      <div class="item" role="button" tabindex="0" data-unit="jour"><div class="tx">jour</div></div>
+                      <div class="item" role="button" tabindex="0" data-unit="trajet"><div class="tx">trajet</div></div>
+                      <div class="item" role="button" tabindex="0" data-unit="forfait"><div class="tx">forfait</div></div>
+                      <div class="item" role="button" tabindex="0"><i class="ti ti-pencil-plus"></i><div class="tx" style="font-weight:400;color:var(--mf)">Autre unité…</div></div>
+                    </div></div>
+                  <div class="fx pr"><span class="lab">Prix unitaire HT</span><input class="p1" type="text" value="140,00" inputmode="decimal" /><span class="sfx">€</span></div>
+                </div>
+                <div class="fx ta" style="margin-top:12px"><span class="lab">Description</span><textarea>Vue mer, petit-déjeuner inclus. Du 12 au 15 novembre.</textarea></div>
+              </div>
+              <div class="ln d">
+                <div class="lh"><span class="n">Ligne 2</span><span class="tg n">Nouvelle prestation</span><span class="sp1"></span><span class="lt">65,00 €</span><span role="button" tabindex="0" class="ic s" aria-label="Dupliquer"><i class="ti ti-copy"></i></span><span role="button" tabindex="0" class="ic s" aria-label="Actions de la ligne"><i class="ti ti-dots"></i></span></div>
+                <div class="fx cat"><span class="lab">Désignation</span><input type="text" value="Transfert privé aéroport → hôtel" /><span class="cb" role="button" tabindex="0" aria-label="Choisir dans le catalogue"><i class="ti ti-book-2"></i></span></div>
+                <div class="g3">
+                  <div class="fx stp"><span class="lab">Quantité</span><input type="text" value="1" /><span class="sb"><span role="button" tabindex="0" aria-label="Moins"><i class="ti ti-minus"></i></span><span role="button" tabindex="0" aria-label="Plus"><i class="ti ti-plus"></i></span></span></div>
+                  <div class="fx sel" role="button" tabindex="0"><span class="lab">Unité</span><span class="val">trajet</span><i class="ti ti-chevron-down chv"></i></div>
+                  <div class="fx pr"><span class="lab">Prix unitaire HT</span><input type="text" value="65,00" /><span class="sfx">€</span></div>
+                </div>
+                <span role="button" tabindex="0" class="hl" style="margin-top:8px"><i class="ti ti-plus"></i>Description</span>
+              </div>
+              <div class="ln d" id="l3" style="display:none">
+                <div class="lh"><span class="n">Ligne 3</span><span class="sp1"></span><span class="lt">0,00 €</span><span role="button" tabindex="0" class="ic s" aria-label="Actions de la ligne"><i class="ti ti-dots"></i></span></div>
+                <div class="fx cat on"><span class="lab" style="color:var(--pri)">Désignation</span><input type="text" value="Trans" /><span class="cb"><i class="ti ti-book-2"></i></span></div>
+                <div class="pop" id="acp" style="left:24px;right:24px;top:96px">
+                  <div class="item hi"><i class="ti ti-book-2" style="color:var(--pri)"></i><div class="tx">Transfert privé aéroport → hôtel<small>Catalogue · 65,00 € HT / trajet</small></div><kbd style="font-family:var(--font-mono);font-size:11px;background:var(--card);border-radius:4px;padding:1px 6px">Entrée</kbd></div>
+                  <div class="item"><i class="ti ti-history"></i><div class="tx">Transfert gare → hôtel<small>Facture fact-151026-0011 · 45,00 € HT / trajet</small></div></div>
+                  <div class="item"><i class="ti ti-pencil-plus"></i><div class="tx">Utiliser « Trans » tel quel<small>Ligne libre</small></div></div>
+                </div>
+                <div class="g3" style="margin-top:84px">
+                  <div class="fx stp"><span class="lab">Quantité</span><input type="text" value="1" /><span class="sb"><span><i class="ti ti-minus"></i></span><span><i class="ti ti-plus"></i></span></span></div>
+                  <div class="fx sel"><span class="lab">Unité</span><span class="val" style="color:var(--mf)">—</span><i class="ti ti-chevron-down chv"></i></div>
+                  <div class="fx pr"><span class="lab">Prix unitaire HT</span><input type="text" /><span class="sfx">€</span></div>
+                </div>
+              </div>
+              <div class="foot"><span role="button" tabindex="0" class="b o"><i class="ti ti-plus"></i>Ajouter une ligne</span><kbd>Ctrl + Entrée</kbd></div>
+            </div>
+            <div class="card"><div class="band" style="padding:14px 24px"><span class="tile"><i class="ti ti-adjustments"></i></span><div class="bt"><div class="r"><span class="tx">Remise, frais et notes</span><span class="chip o">Facultatif</span></div><p class="sm">Aucune remise · échéance à 30 jours</p></div><i class="ti ti-chevron-down" style="color:var(--mf);font-size:18px"></i></div></div>
+            <div class="note"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pri);margin-right:8px"></span>Brouillon enregistré automatiquement</div>
+          </div>
+
+          <div class="col">
+            <div class="card">
+              <div class="band"><span class="tile"><i class="ti ti-user"></i></span><div class="bt"><div class="r"><span class="tx">Client</span><span class="chip">Obligatoire</span></div></div></div>
+              <div class="item"><span class="av">HA</span><div class="tx">Hôtel Atlas SARL<small>Professionnel</small></div><span role="button" tabindex="0" class="hl" data-to="client">Changer</span></div>
+            </div>
+            <div class="card">
+              <div class="band"><span class="tile"><i class="ti ti-receipt"></i></span><div class="bt"><span class="tx">Récapitulatif</span></div></div>
+              <div class="rec" style="padding:16px 20px">
+                <div class="tr"><span>Total HT</span><b class="ht">485,00 €</b></div>
+                <div class="tr"><span>TVA 20 %</span><b class="tva">97,00 €</b></div>
+                <div style="display:flex;gap:16px"><span role="button" tabindex="0" class="hl"><i class="ti ti-plus"></i>Remise</span><span role="button" tabindex="0" class="hl"><i class="ti ti-plus"></i>Frais de port</span></div>
+                <div class="tr t"><span>Total TTC</span><b class="ttc">582,00 €</b></div>
+                <div class="tr"><span>Nature</span><b>Prestation de services</b></div>
+                <div class="tr"><span>Échéance</span><b>30 jours</b></div>
+                <div class="am">2 infos recommandées</div>
+                <span role="button" tabindex="0" class="b p" style="height:44px;width:100%" data-to="check">Émettre la facture</span>
+                <span role="button" tabindex="0" class="b g" style="width:100%"><i class="ti ti-eye"></i>Aperçu PDF</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ov" data-k="start"><div class="dg">
+        <div style="font-size:18px;font-weight:600">Nouvelle facture</div>
+        <div class="shs" style="margin-bottom:14px">Partez de zéro ou d'une base existante.</div>
+        <span role="button" tabindex="0" class="b p l" data-to="edit"><i class="ti ti-file-plus"></i>Facture vide</span>
+        <div class="gp">
+          <div><div class="hd">Vos modèles</div>
+            <div class="rw" role="button" tabindex="0" data-to="edit" style="border-top:none"><div class="tx">Séjour hôtel et transfert<small>2 lignes · 485,00 € HT</small></div></div>
+            <div class="rw" role="button" tabindex="0" data-to="edit"><div class="tx">Transfert aéroport seul<small>1 ligne · 65,00 € HT</small></div></div></div>
+          <div><div class="hd">Dupliquer une facture</div>
+            <div class="rw" role="button" tabindex="0" data-to="edit" style="border-top:none"><div class="tx">Hôtel Atlas SARL<small>fact-201026-0012 · 582,00 €</small></div></div>
+            <div class="rw" role="button" tabindex="0" data-to="edit"><div class="tx">Sarah Martin<small>fact-151026-0011 · 130,00 €</small></div></div></div>
+        </div>
+      </div></div>
+
+      <div class="ov" data-k="client"><div class="dg" style="max-width:440px">
+        <div style="font-size:18px;font-weight:600;margin-bottom:12px">Client</div>
+        <div class="fx cat" style="border-radius:999px;padding-left:20px"><span class="lab" style="left:20px">Rechercher ou créer</span><input type="text" value="Hôtel Marina" /><span class="cb"><i class="ti ti-search"></i></span></div>
+        <div class="rw" role="button" tabindex="0" style="border-top:none"><span class="tl"><i class="ti ti-user-plus"></i></span><div class="tx" style="color:var(--pri)">Créer « Hôtel Marina »</div></div>
+        <div class="pick" data-pick="1"><span role="button" tabindex="0" data-t="p">Particulier</span><span role="button" tabindex="0" data-t="pro" class="on">Professionnel</span></div>
+        <div data-pro="1" style="margin-bottom:10px"><div class="fx"><span class="lab">SIREN (facultatif)</span><input type="text" placeholder="123 456 789" inputmode="numeric" /></div></div>
+        <div class="fx"><span class="lab">Adresse</span><input type="text" placeholder="12 quai des Docks, 13002 Marseille" /></div>
+        <div class="g2"><div class="fx"><span class="lab">E-mail</span><input type="text" placeholder="contact@marina.fr" /></div><div class="fx"><span class="lab">Téléphone</span><input type="text" placeholder="06 12 34 56 78" /></div></div>
+        <div style="font-size:13px;color:var(--mf);margin:12px 0 0"><i class="ti ti-users" style="vertical-align:-2px"></i> Ce client sera aussi ajouté à vos clients.</div>
+        <div class="row2"><span role="button" tabindex="0" class="b g" data-to="edit">Annuler</span><span role="button" tabindex="0" class="b p" data-to="edit">Ajouter et utiliser</span></div>
+      </div></div>
+
+      <div class="ov" data-k="check"><div class="dg" style="max-width:440px">
+        <div style="font-size:18px;font-weight:600">Vérification avant émission</div>
+        <div class="shs" style="margin-bottom:6px">Ces infos figurent normalement sur une facture officielle en France. Une fois émise, la facture ne peut plus être modifiée.</div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl w"><i class="ti ti-alert-triangle"></i></span><div class="tx">SIREN du client<small>Client professionnel</small></div><span class="b o" style="height:34px;font-size:13px;padding:0 14px">Compléter</span></div>
+        <div class="rw" role="button" tabindex="0" data-to="edit"><span class="tl w"><i class="ti ti-alert-triangle"></i></span><div class="tx">Adresse de votre boutique<small>Paramètres, Boutique</small></div><span class="b o" style="height:34px;font-size:13px;padding:0 14px">Compléter</span></div>
+        <div class="row2"><span role="button" tabindex="0" class="b g" data-to="edit">Émettre quand même</span><span role="button" tabindex="0" class="b p" data-to="edit">Compléter</span></div>
+      </div></div>
+    </div>
+   </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var R=document.getElementById('ap');
+  function all(s){return R.querySelectorAll(s);}
+  var TABS={
+    mob:[['start','Départ'],['edit','Édition'],['unit','Unité'],['line','Menu de ligne'],['client','Nouveau client'],['check','Vérification'],['done','Après émission']],
+    dsk:[['start','Départ'],['edit','Édition'],['unit','Unité'],['auto','Autocomplétion'],['client','Nouveau client'],['check','Vérification']]
+  };
+  var dev='mob',key='edit';
+  function detectDark(){
+    var m=(getComputedStyle(document.body).color||'').match(/[\d.]+/g);
+    if(m&&m.length>=3){R.classList.toggle('dk',(0.299*m[0]+0.587*m[1]+0.114*m[2])>140);}
+  }
+  function fit(){
+    var w=document.getElementById('dskw'),i=w.firstElementChild;
+    if(w.style.display==='none')return;
+    var s=Math.min(1,w.clientWidth/860);
+    i.style.transform='scale('+s+')';
+    w.style.height=Math.round(i.offsetHeight*s)+'px';
+  }
+  function render(){
+    if(!TABS[dev].some(function(t){return t[0]===key;}))key='edit';
+    document.getElementById('mobw').style.display=dev==='mob'?'flex':'none';
+    document.getElementById('dskw').style.display=dev==='dsk'?'block':'none';
+    all('#dev span').forEach(function(b){b.classList.toggle('on',b.dataset.d===dev);});
+    var tabs=document.getElementById('tabs');tabs.innerHTML='';
+    TABS[dev].forEach(function(t){
+      var b=document.createElement('span');b.setAttribute('role','button');b.setAttribute('tabindex','0');b.textContent=t[1];
+      if(t[0]===key)b.className='on';
+      b.addEventListener('click',function(){key=t[0];render();});
+      tabs.appendChild(b);
+    });
+    if(dev==='mob'){
+      var scr=(key==='start'||key==='done')?key:'edit';
+      var ov=(key==='unit'||key==='line'||key==='client'||key==='check')?key:null;
+      all('.phone .scr').forEach(function(e){e.classList.toggle('on',e.dataset.k===scr);});
+      all('.phone .ov').forEach(function(e){e.classList.toggle('show',e.dataset.k===ov);});
+    }else{
+      var o=(key==='start'||key==='client'||key==='check')?key:null;
+      all('.win .ov').forEach(function(e){e.classList.toggle('show',e.dataset.k===o);});
+      document.getElementById('l3').style.display=key==='auto'?'block':'none';
+      document.getElementById('acp').classList.toggle('show',key==='auto');
+      document.getElementById('unp').classList.toggle('show',key==='unit');
+      fit();
+    }
+  }
+  function fmt(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+  function num(v){return parseFloat(String(v).replace(/\s/g,'').replace(',','.'))||0;}
+  function recalc(src){
+    var host=src.closest('.phone')||src.closest('.di');
+    var qi=host.querySelector('.q1'),pi=host.querySelector('.p1');
+    all('.q1').forEach(function(e){e.value=qi.value;});
+    all('.p1').forEach(function(e){e.value=pi.value;});
+    var l=num(qi.value)*num(pi.value),ht=l+65,tva=ht*0.2;
+    all('.t1').forEach(function(e){e.textContent=fmt(l);});
+    all('.ht').forEach(function(e){e.textContent=fmt(ht);});
+    all('.tva').forEach(function(e){e.textContent=fmt(tva);});
+    all('.ttc').forEach(function(e){e.textContent=fmt(ht+tva);});
+  }
+  R.addEventListener('click',function(e){
+    var d=e.target.closest('#dev [data-d]');
+    if(d){dev=d.dataset.d;render();return;}
+    var u=e.target.closest('[data-unit]');
+    if(u){all('.unit1').forEach(function(x){x.textContent=u.dataset.unit;});key='edit';render();return;}
+    var st=e.target.closest('[data-st]');
+    if(st){var host=st.closest('.fx');var inp=host.querySelector('input');inp.value=String(Math.max(0,num(inp.value)+Number(st.dataset.st)));recalc(inp);return;}
+    var t=e.target.closest('[data-to]');
+    if(t){var k=t.dataset.to;if(!TABS[dev].some(function(x){return x[0]===k;}))k='edit';key=k;render();return;}
+    if(e.target.classList&&e.target.classList.contains('ov')){key='edit';render();return;}
+    var ok=e.target.closest('[data-ok]');
+    if(ok){ok.classList.add('ok');return;}
+    var pk=e.target.closest('[data-pick] [data-t]');
+    if(pk){var p=pk.parentNode;p.querySelectorAll('[data-t]').forEach(function(x){x.classList.toggle('on',x===pk);});
+      var pro=p.parentNode.querySelector('[data-pro]');if(pro)pro.style.display=pk.dataset.t==='pro'?'block':'none';return;}
+    var tg=e.target.closest('.tgd');
+    if(tg){var box=tg.parentNode.querySelector('.dbox');var open=box.style.display==='block';box.style.display=open?'none':'block';tg.querySelector('span').textContent=open?'Description':'Masquer la description';}
+  });
+  all('.q1,.p1').forEach(function(e){e.addEventListener('input',function(){recalc(e);});});
+  detectDark();render();
+  if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',detectDark);}
+  if(window.ResizeObserver){new ResizeObserver(function(){fit();}).observe(R);}
+})();
+</script>
+</div>
+</body>
+</html>
