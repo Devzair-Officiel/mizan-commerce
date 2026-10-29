@@ -677,6 +677,21 @@ class SeedDataTest(TestCase):
         self.assertFalse(ZakatProfile.objects.filter(shop=shop).exists())
         self.assertFalse(ZakatCalculation.objects.filter(shop=shop).exists())
 
+    def test_fr_shop_has_complete_and_empty_invoice_drafts(self):
+        from apps.invoices.models import Invoice
+
+        drafts = Invoice.objects.filter(
+            shop=self._shop("La Boutique de Youssef"), status="draft"
+        ).order_by("created_at")
+        complete, empty = drafts
+        self.assertEqual((complete.number, complete.buyer_name), ("", "Karima Bensouda"))  # noqa: E501
+        free = complete.lines.get(position=1)
+        self.assertEqual(free.unit, "heure")
+        self.assertIn("\n", free.details)
+        self.assertGreater(complete.total_ttc, 0)
+        self.assertIsNone(empty.customer)
+        self.assertFalse(empty.lines.exists())
+
 
 @override_settings(AWS_S3_ENDPOINT_URL="", AWS_ACCESS_KEY_ID="")
 class SeedDataSecurityTest(TestCase):
