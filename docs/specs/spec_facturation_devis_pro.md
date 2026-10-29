@@ -259,4 +259,4 @@ Vérification du code faite avant le lot 1 ; décisions du fondateur :
 9. **Organisation** : brouillons, émission et suggestions dans `invoices/drafts.py` ; fonction ≤ 50 lignes, classe ≤ 300 lignes.
 10. **`POST /api/products/from-invoice-line/`** : modules `invoices` et `products`, gating de formule `invoices`, `enforce_product_limit`.
 
-Choix par défaut validés : nature de l'opération par défaut selon `Shop.catalog_kind` (`services` → `services`, `products` → `goods`, `both` → `mixed`), toujours modifiable ; enregistrement automatique déclenché par un minuteur posé dans le gestionnaire de saisie, jamais dans un `useEffect` ; audit Playwright sur la boutique `e2e-invoices@example.com`.
+Choix par défaut validés : nature de l'opération par défaut selon `Shop.catalog_kind` (`services` → `services`, `products` → `goods`, `both` → `mixed`), toujours modifiable ; enregistrement automatique déclenché par un minuteur posé dans le gestionnaire de saisie, jamais dans un `useEffect` ; audit Playwright sur une boutique réservée, `e2e-invoice-editor@example.com` (ses brouillons de départ fausseraient les comptes d'`audit-invoices`, qui a `e2e-invoices@example.com`).
