@@ -642,6 +642,20 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Dette technique connue
 
+- [ ] **PRIORITAIRE, bloquant de la checklist de lancement** — Facture issue d'une
+      commande : `unit_price` de la commande est traité comme HT et la TVA est ajoutée
+      par-dessus (commande de 20 € → facture de 24 €), alors que la synchronisation
+      marque la facture payée à 20 € réglés. Décision produit requise : prix saisis HT
+      ou TTC pour une boutique assujettie ? À traiter avant le lancement, avec une
+      étape 0 (relevé de tous les endroits qui lisent `unit_price`). Relevé au lot 8.2,
+      sous-étape 4b (2026-10-30), non corrigé dans ce lot. Cas de test chiffré :
+      boutique à TVA 20 %, variante à 10,00, commande de 2 → `total_amount` 20,00 ;
+      `issue_invoice_from_order` → `subtotal_ht` 20,00, `tax_amount` 4,00, `total_ttc`
+      24,00 ; `update_payment(order, 20,00)` → facture `paid`, `amount_paid` 20,00 :
+      4,00 jamais réclamés. Reproduit par `_ctx` (qty=2) de
+      `apps/invoices/test_credit_note_payments.py`, notamment
+      `ConcurrentCreditNotePaymentTest` (assertion sur `ctx.order.total_amount`).
+
 - [ ] Avoirs (URS-112) : cas d'un second avoir partiel sur la même ligne d'une facture,
       relevé à la revue de la sous-étape 4a (2026-10-30), à reprendre.
 
@@ -894,6 +908,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
+- [ ] **Bloquant** — Facture issue d'une commande : prix de la commande traités comme HT, TVA ajoutée par-dessus (commande de 20 € → facture de 24 €, marquée payée à 20 €). Décision produit (prix saisis HT ou TTC pour une boutique assujettie) puis correctif avec étape 0, avant le lancement ; cas chiffré dans « Dette technique connue » (2026-10-30).
 - [~] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe — adresse saisie (commit `4472011`) ; concordance avec le registre et Stripe non vérifiable dans le dépôt (2026-10-28)
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
