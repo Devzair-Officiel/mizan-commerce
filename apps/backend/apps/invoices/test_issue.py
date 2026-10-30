@@ -1,6 +1,7 @@
 """Émission d'une facture libre (URS-110) : numéro continu, instantanés figés."""
 
 import threading
+import time
 from datetime import date, timedelta
 from decimal import Decimal
 from unittest import mock
@@ -14,11 +15,13 @@ from rest_framework.test import APIClient
 
 from apps.core.models import AuditLog
 from apps.customers.models import Customer
+from apps.orders.models import OrderItem
+from apps.orders.services import add_item
 from apps.shops.factories import ShopFactory
 
 from . import drafts, services
 from .models import DocumentSequence, Invoice
-from .tests import _make_shop
+from .tests import _make_order_with_items, _make_shop
 
 LINE = {
     'description': 'Accompagnement',
@@ -224,3 +227,98 @@ def test_each_document_kind_has_its_own_continuous_series() -> None:
     ]
     assert services._next_number(other, 'invoice', day) == 'fact-301026-0001'
     assert DocumentSequence.objects.filter(shop=shop).count() == 3
+
+    
+def _wait_until_blocked(pid: int) -> None:
+    """Attend que la session `pid` soit bloquée par le verrou d'une autre."""
+    with connection.cursor() as cursor:
+        for _ in range(400):
+            cursor.execute('SELECT cardinality(pg_blocking_pids(%s))', [pid])
+            if cursor.fetchone()[0]:
+                return
+            time.sleep(0.025)
+    raise AssertionError("L'émission n'a jamais attendu le verrou du document.")
+
+
+class ShopLockTest(TransactionTestCase):
+    """Enregistrement contre émission : aucun interblocage (500 côté utilisateur).
+
+    L'enregistrement verrouille la ligne du document, puis insère des lignes : le
+    contrôle de clé étrangère prend `FOR KEY SHARE` sur la boutique. L'émission
+    verrouille la boutique, puis attend la ligne du document. Ordre forcé sans
+    dépendre du temps : l'enregistrement s'arrête avant d'insérer et ne repart
+    que lorsque l'émission est bloquée par son verrou.
+    """
+
+    serialized_rollback = True
+
+    def _race(self, pause: tuple[object, str], save, issue) -> dict[str, object]:
+        paused, release = threading.Event(), threading.Event()
+        pids: list[int] = []
+        results: dict[str, object] = {}
+        original = getattr(*pause)
+
+        def hold(*args, **kwargs):
+            paused.set()
+            release.wait(timeout=20)
+            return original(*args, **kwargs)
+
+        def run(name: str, action) -> None:
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute('SELECT pg_backend_pid()')
+                    pids.append(cursor.fetchone()[0])
+                results[name] = action()
+            except BaseException as exc:  # noqa: BLE001 — on compare les issues.
+                results[name] = exc
+            finally:
+                connection.close()
+
+        with mock.patch.object(*pause, hold):
+            saver = threading.Thread(target=run, args=('save', save))
+            saver.start()
+            assert paused.wait(timeout=20)
+            issuer = threading.Thread(target=run, args=('issue', issue))
+            issuer.start()
+            for _ in range(400):
+                if len(pids) == 2:
+                    break
+                time.sleep(0.025)
+            _wait_until_blocked(pids[-1])
+            release.set()
+            for thread in (saver, issuer):
+                thread.join(timeout=20)
+        return results
+
+    def test_draft_saved_while_being_issued(self) -> None:
+        _, shop, _, customer = _make_shop('lock-draft@example.com')
+        draft = _draft(shop, customer)
+        saved = {**LINE, 'description': 'Atelier complet', 'quantity': Decimal('3')}
+        results = self._race(
+            (drafts, '_build_lines'),
+            lambda: drafts.update_draft_invoice(
+                draft, {'lines': [saved]}, draft.updated_at
+            ),
+            lambda: drafts.issue_invoice(
+                Invoice.objects.get(pk=draft.pk), None, acknowledged_warnings=[]
+            ),
+        )
+        assert not [r for r in results.values() if isinstance(r, BaseException)]
+        # L'émission attend l'enregistrement et fige la version enregistrée.
+        issued = results['issue']
+        assert issued.number.endswith('-0001')
+        assert list(issued.lines.values_list('description', flat=True)) == [
+            'Atelier complet'
+        ]
+        assert issued.subtotal_ht == Decimal('450.00')
+
+    def test_order_item_added_while_its_invoice_is_issued(self) -> None:
+        user, shop, variant, customer = _make_shop('lock-order@example.com')
+        order = _make_order_with_items(shop, user, variant, customer)
+        results = self._race(
+            (OrderItem.objects, 'create'),
+            lambda: add_item(order, variant, 1, user=user),
+            lambda: services.issue_invoice_from_order(shop=shop, order=order),
+        )
+        assert not [r for r in results.values() if isinstance(r, BaseException)]
+        assert results['issue'].lines.count() == 2

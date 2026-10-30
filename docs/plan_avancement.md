@@ -945,3 +945,16 @@ typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 ## Discipline de mise à jour
 
 Ce fichier doit être modifié **dans le même commit** que la fonctionnalité qu'il décrit, jamais après coup. Un `[x]` coché dans un commit séparé, ou plus tard, est un signal que la discipline a été relâchée.
+
+- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
+      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
+      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
+      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
+      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
+      l'enregistrement de son brouillon (corrigé pour l'émission, 2026-10-30).
+
+- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
+      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
+      possible pendant la préparation : une frappe dans cet intervalle peut partir après
+      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
+      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.

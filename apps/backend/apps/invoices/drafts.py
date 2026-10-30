@@ -281,7 +281,10 @@ def issue_invoice(
     `issue_invoice_from_order`) ; la mise à jour conditionnelle sur `draft` refuse
     une seconde émission, et son échec annule l'incrément du compteur.
     """
-    shop = Shop.objects.select_for_update().get(pk=invoice.shop_id)
+    # NO KEY UPDATE : sérialise les émissions sans bloquer le contrôle de clé
+    # étrangère (FOR KEY SHARE) des insertions de la boutique ; FOR UPDATE
+    # interbloquait avec un enregistrement qui tient la ligne du document.
+    shop = Shop.objects.select_for_update(no_key=True).get(pk=invoice.shop_id)
     # Verrou de la ligne : un enregistrement en cours se termine avant la lecture,
     # l'émission ne fige jamais des lignes ou des totaux périmés.
     invoice = (

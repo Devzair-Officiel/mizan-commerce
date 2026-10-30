@@ -180,7 +180,10 @@ def issue_invoice_from_order(
     `tax_rate` et `payment_terms_days` peuvent être surchargés par appel ; sinon on prend
     les valeurs par défaut de la boutique.
     """  # noqa: E501
-    shop = Shop.objects.select_for_update().get(pk=shop.pk)
+    # NO KEY UPDATE : sérialise les émissions sans bloquer le contrôle de clé
+    # étrangère (FOR KEY SHARE) des insertions de la boutique ; FOR UPDATE
+    # interbloquait avec un enregistrement qui tient la ligne du document.
+    shop = Shop.objects.select_for_update(no_key=True).get(pk=shop.pk)
     order = (
         Order.objects.select_for_update(of=('self',))
         .select_related('customer')
