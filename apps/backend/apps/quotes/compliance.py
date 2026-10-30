@@ -22,7 +22,6 @@ from .models import Quote
 
 
 def _blocking(quote: Quote) -> list[ComplianceIssue]:
-    shop = quote.shop
     issues = []
     if not quote.lines.exists():
         issues.append(ComplianceIssue('no_lines', 'blocking', 'lines'))
@@ -30,10 +29,10 @@ def _blocking(quote: Quote) -> list[ComplianceIssue]:
         issues.append(ComplianceIssue('zero_total', 'blocking', 'lines'))
     if quote.customer_id is None:
         issues.append(ComplianceIssue('no_customer', 'blocking', 'customer'))
-    if not (shop.name.strip() and shop.legal_address.strip()):
-        issues.append(
-            ComplianceIssue('seller_identity', 'blocking', 'invoice_settings')
-        )
+    # Jamais plus strict que la facture : seul le nom est bloquant, l'adresse
+    # est recommandée (durcissement possible après relecture, question n°6).
+    if not quote.shop.name.strip():
+        issues.append(ComplianceIssue('seller_name', 'blocking', 'invoice_settings'))
     return issues
 
 
@@ -41,6 +40,7 @@ def _recommended_fr(quote: Quote) -> list[ComplianceIssue]:
     shop = quote.shop
     applicable = shop.invoice_vat_regime == 'applicable'
     checks = [
+        ('seller_address', 'invoice_settings', not shop.legal_address.strip()),
         (
             'seller_identifier',
             'invoice_settings',

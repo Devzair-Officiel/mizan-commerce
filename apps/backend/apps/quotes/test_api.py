@@ -127,7 +127,7 @@ def test_sent_quote_is_neither_patched_deleted_nor_checked(ctx) -> None:
 @pytest.mark.django_db
 def test_compliance_lists_blocking_then_recommended_points(ctx) -> None:
     Shop.objects.filter(pk=ctx.shop.pk).update(
-        legal_address='', vat_number='', invoice_payment_methods=[]
+        name=' ', legal_address='', vat_number='', invoice_payment_methods=[]
     )
     draft = _create(ctx, customer=None, lines=[])
     response = ctx.api.get(reverse('quote-compliance', args=[draft['id']]))
@@ -135,10 +135,31 @@ def test_compliance_lists_blocking_then_recommended_points(ctx) -> None:
     assert [(i['code'], i['level']) for i in response.data['issues']] == [
         ('no_lines', 'blocking'),
         ('no_customer', 'blocking'),
-        ('seller_identity', 'blocking'),
+        ('seller_name', 'blocking'),
+        ('seller_address', 'recommended'),
         ('vat_number', 'recommended'),
         ('payment_methods', 'recommended'),
     ]
+
+
+@pytest.mark.django_db
+def test_quote_without_address_is_sent_once_acknowledged(ctx) -> None:
+    # Jamais plus strict que la facture : l'adresse est recommandée, pas bloquante.
+    Shop.objects.filter(pk=ctx.shop.pk).update(legal_address='')
+    draft = _create(ctx)
+    response = _send(ctx, draft['id'])
+    assert (response.status_code, response.data['code']) == (409, 'compliance_warnings')
+    assert [i['code'] for i in response.data['issues']] == ['seller_address']
+    response = _send(ctx, draft['id'], ['seller_address'])
+    assert (response.status_code, response.data['status']) == (200, 'sent')
+
+
+@pytest.mark.django_db
+def test_shop_outside_france_without_address_sends_a_quote(ctx) -> None:
+    Shop.objects.filter(pk=ctx.shop.pk).update(country='MA', legal_address='')
+    draft = _create(ctx)
+    response = _send(ctx, draft['id'])
+    assert (response.status_code, response.data['status']) == (200, 'sent')
 
 
 @pytest.mark.django_db
