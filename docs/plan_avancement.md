@@ -642,6 +642,13 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 ### Dette technique connue
 
+- [ ] Avoirs (URS-112) : cas d'un second avoir partiel sur la même ligne d'une facture,
+      relevé à la revue de la sous-étape 4a (2026-10-30), à reprendre.
+
+- [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
+      croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
+      ou une fabrique).
+
 - [ ] Drapeau de blocage de modération sur `PublicPage`, à poser avant la mise en
       ligne de la V3 : une page dépubliée depuis l'admin interne peut aujourd'hui être
       republiée par le commerçant (serializer de mise à jour et `publish_page`). Le

@@ -5,9 +5,11 @@ from types import SimpleNamespace
 
 import pytest
 from django.db import IntegrityError, connection, transaction
-from django.test import TransactionTestCase
+from django.test import Client, TransactionTestCase
+from django.urls import reverse
 from rest_framework.exceptions import NotFound, ValidationError
 
+from apps.accounts.models import User
 from apps.core.testing import race_on_lock
 from apps.orders.models import Order
 from apps.shops.models import Shop
@@ -23,12 +25,12 @@ LINES = [
         'description': 'Atelier',
         'quantity': Decimal('3'),
         'unit_price_ht': Decimal('10.00'),
-    },  # noqa: E501
+    },
     {
         'description': 'Coaching',
         'quantity': Decimal('2'),
         'unit_price_ht': Decimal('25.00'),
-    },  # noqa: E501
+    },
 ]
 TOTALS = (
     'subtotal_ht',
@@ -54,7 +56,7 @@ def _issued(ctx: SimpleNamespace, lines=LINES, **data) -> Invoice:
         'discount_amount': Decimal('8.00'),
         'shipping_amount': Decimal('5.00'),
         **data,
-    }  # noqa: E501
+    }
     draft = drafts.create_draft_invoice(
         ctx.shop, {'customer': ctx.customer.pk, 'lines': lines, **data}
     )
@@ -155,16 +157,43 @@ def test_partial_credit_note_takes_the_discount_pro_rata(ctx) -> None:
         Decimal('1.00'),
         Decimal('0'),
         Decimal('1.80'),
-        Decimal('10.80'),  # noqa: E501
+        Decimal('10.80'),
     )
     assert [line.position for line in note.lines.all()] == [0]
     with_shipping = _credit(
         ctx, invoice, _rows(invoice, None, '1'), include_shipping=True
-    )  # noqa: E501
+    )
     # 25,00 HT : remise 2,50 ; livraison 5,00 ; base 27,50 ; TVA 5,50.
     assert with_shipping.total_ttc == Decimal('33.00')
     assert _credited(invoice) == Decimal('43.80')
     assert note.number[-4:] == '0001' and with_shipping.number[-4:] == '0002'
+
+
+@pytest.mark.django_db
+def test_shipping_is_credited_once_whatever_the_notes(ctx) -> None:
+    """Le reste de livraison se lit sur les avoirs existants, sous le verrou de la
+    facture : un second avoir partiel ne recrédite pas la livraison."""
+    invoice = _issued(ctx)
+    first = _credit(ctx, invoice, _rows(invoice, '1'), include_shipping=True)
+    second = _credit(ctx, invoice, _rows(invoice, '1'), include_shipping=True)
+    assert (first.shipping_amount, second.shipping_amount) == (
+        Decimal('5.00'),
+        Decimal('0'),
+    )
+    with pytest.raises(credit_notes.CreditNoteError) as exc:
+        _credit(ctx, invoice, [], include_shipping=True)
+    assert exc.value.code == 'nothing_to_credit'
+    rest = _credit(ctx, invoice)
+    assert rest.shipping_amount == Decimal('0')
+    assert first.total_ttc + second.total_ttc + rest.total_ttc == invoice.total_ttc
+
+    # Livraison seule, une fois : 5,00 HT, TVA 1,00.
+    other = _issued(ctx)
+    shipping = _credit(ctx, other, [], include_shipping=True)
+    assert (shipping.subtotal_ht, shipping.total_ttc) == (Decimal('0'), Decimal('6.00'))
+    assert not shipping.lines.exists()
+    with pytest.raises(credit_notes.CreditNoteError):
+        _credit(ctx, other, [], include_shipping=True)
 
 
 @pytest.mark.django_db
@@ -175,17 +204,17 @@ def test_three_partials_never_exceed_and_the_last_one_settles_exactly(ctx) -> No
         'description': 'Lot',
         'quantity': Decimal('3'),
         'unit_price_ht': Decimal('3.33'),
-    }  # noqa: E501
+    }
     invoice = _issued(
         ctx, [line], discount_amount=Decimal('1.00'), shipping_amount=Decimal('0')
-    )  # noqa: E501
+    )
     assert invoice.total_ttc == Decimal('10.79')
     notes = [_credit(ctx, invoice, _rows(invoice, '1')) for _ in range(3)]
     assert [n.total_ttc for n in notes] == [
         Decimal('3.60'),
         Decimal('3.60'),
         Decimal('3.59'),
-    ]  # noqa: E501
+    ]
     assert notes[2].discount_amount == Decimal('0.34')
     for field in TOTALS:
         assert sum(getattr(n, field) for n in notes) == getattr(invoice, field), field
@@ -358,6 +387,25 @@ def test_credited_invoice_is_kept_but_the_shop_can_be_deleted(ctx) -> None:
     assert not Invoice.objects.filter(shop_id=ctx.shop.pk).exists()
 
 
+@pytest.mark.django_db
+def test_admin_never_deletes_an_issued_invoice(ctx) -> None:
+    """Sans quoi la contrainte de `credited_invoice` finirait en 500."""
+    invoice = _issued(ctx)
+    _credit(ctx, invoice, _rows(invoice, '1'))
+    client = Client()
+    client.force_login(
+        User.objects.create_superuser(email='root-credit@example.com', password='x')
+    )
+    url = reverse('admin:invoices_invoice_delete', args=[invoice.pk])
+    assert client.get(url).status_code == 403
+    assert client.post(url, {'post': 'yes'}).status_code == 403
+    client.post(
+        reverse('admin:invoices_invoice_changelist'),
+        {'action': 'delete_selected', '_selected_action': [invoice.pk], 'post': 'yes'},
+    )
+    assert Invoice.objects.filter(shop=ctx.shop).count() == 2
+
+
 # Concurrence (vrais threads)
 
 
@@ -374,7 +422,7 @@ class ConcurrentCreditNoteTest(TransactionTestCase):
             lambda: _credit(ctx, invoice, _rows(invoice, *first)),
             lambda: _credit(
                 ctx, Invoice.objects.get(pk=invoice.pk), _rows(invoice, *second)
-            ),  # noqa: E501
+            ),
         )
 
     def test_two_notes_exceeding_the_invoice_only_one_passes(self) -> None:

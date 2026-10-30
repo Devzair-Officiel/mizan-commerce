@@ -163,9 +163,13 @@ class Invoice(BillingDocument):
     # Sur un avoir : facture d'origine et motif. Sur une facture : TTC déjà crédité,
     # augmenté atomiquement par `credit_notes.issue_credit_note`, jamais au-delà
     # du TTC. DO_NOTHING : la contrainte PostgreSQL (différée) refuse de supprimer
-    # seule une facture créditée, et la suppression d'une boutique emporte facture
-    # et avoirs. PROTECT bloquerait cette cascade ; RESTRICT, sur une clé vers
-    # `self`, crée un cycle qui fait renoncer Django à ordonner la suppression.
+    # seule une facture créditée, et la suppression d'une boutique (`seed_data
+    # --reset`, `reset_audit_shop`) emporte facture et avoirs. PROTECT bloquerait
+    # cette cascade (`ProtectedError`). RESTRICT, sur une clé vers `self`, crée une
+    # dépendance Invoice → Invoice : Django renonce alors à ordonner la cascade,
+    # supprime la boutique avant ses produits, et `log_product_delete` (core.signals)
+    # échoue en relisant la boutique déjà supprimée. L'admin ne supprime aucune
+    # facture (lecture seule).
     credited_invoice = models.ForeignKey(
         'self', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='credit_notes',  # noqa: E501
     )
