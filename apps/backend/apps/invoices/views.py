@@ -12,7 +12,7 @@ HasInvoicesModule = HasModulePermission.for_module('invoices')
 HasInvoicesPlan = HasPlanForFeature.for_feature('invoices')
 from apps.orders.models import Order  # noqa: E402
 
-from . import services  # noqa: E402
+from . import listing, services  # noqa: E402
 from .models import Invoice  # noqa: E402
 from .filters import INVOICE_SEARCH_FIELDS, InvoiceOrderingFilter  # noqa: E402
 from .serializers import (  # noqa: E402
@@ -46,7 +46,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
     def get_queryset(self) -> QuerySet:
         shop = get_shop(self.request.user)
         qs = Invoice.objects.filter(shop=shop).prefetch_related('lines')
-        return services.filter_invoices(qs, shop, self.request.query_params)
+        return listing.filter_invoices(qs, shop, self.request.query_params)
 
     def create(self, request, *args, **kwargs):
         shop = get_shop(request.user)
@@ -91,7 +91,7 @@ class InvoiceSummaryView(APIView):
     permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
 
     def get(self, request) -> Response:
-        return Response(services.invoice_summary(get_shop(request.user)))
+        return Response(listing.invoice_summary(get_shop(request.user)))
 
 
 class InvoiceFacetsView(APIView):
@@ -103,7 +103,7 @@ class InvoiceFacetsView(APIView):
         qs = filters.SearchFilter().filter_queryset(
             request, Invoice.objects.filter(shop=shop), self
         )
-        return Response(services.invoice_facets(shop, qs, request.query_params))
+        return Response(listing.invoice_facets(shop, qs, request.query_params))
 
 
 class InvoiceDetailView(generics.RetrieveAPIView):
