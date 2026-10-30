@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useInvoiceCompliance, type ComplianceIssue } from '@/lib/hooks/useInvoiceDrafts';
+import { useDraftCompliance, type ComplianceIssue, type DraftKind } from '@/lib/hooks/useDocumentDrafts';
 import { useInvoiceSettings } from '@/lib/hooks/useInvoiceSettings';
 import type { Invoice } from '@/lib/hooks/useInvoices';
 import type { Shop } from '@/lib/hooks/useShop';
@@ -17,7 +17,7 @@ import { useIssueFlow } from './useIssueFlow';
  * État de l'éditeur : formulaire, enregistrement automatique, totaux estimés (taux du brouillon,
  * sinon celui qu'appliquera le serveur), vérification avant émission et « Compléter ».
  */
-export function useInvoiceEditor(invoice: Invoice | undefined, shop: Shop) {
+export function useInvoiceEditor(kind: DraftKind, invoice: Invoice | undefined, shop: Shop) {
   const t = useTranslations('invoices.editor');
   const router = useRouter();
   const { data: settings } = useInvoiceSettings();
@@ -25,9 +25,10 @@ export function useInvoiceEditor(invoice: Invoice | undefined, shop: Shop) {
   const form = useForm<EditorValues>({ resolver: zodResolver(schema), mode: 'onChange', defaultValues: editorDefaults(invoice, shop) });
   const { reset } = form;
   const onReload = useCallback((saved: Invoice) => reset(editorDefaults(saved, shop)), [reset, shop]);
-  const autosave = useDraftAutosave(form, invoice, onReload);
-  const flow = useIssueFlow(autosave.flush);
-  const { data: compliance } = useInvoiceCompliance(autosave.id);
+  const autosave = useDraftAutosave(kind, form, invoice, onReload);
+  const validate = useCallback(() => form.trigger(undefined, { shouldFocus: true }), [form]);
+  const flow = useIssueFlow(kind, { flush: autosave.flush, validate });
+  const { data: compliance } = useDraftCompliance(kind, autosave.id);
 
   const [lines, discount, shipping, operation, days, customer] = useWatch({
     control: form.control, name: ['lines', 'discount_amount', 'shipping_amount', 'operation_category', 'payment_terms_days', 'customer'],

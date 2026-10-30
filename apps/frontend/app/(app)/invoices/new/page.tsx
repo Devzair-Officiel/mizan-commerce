@@ -12,7 +12,7 @@ export default function NewInvoicePage() {
   const { data: shop } = useShop();
   return <div className="mx-auto w-full max-w-280">
     {shop
-      ? <InvoiceEditor shop={shop} />
+      ? <InvoiceEditor kind="invoice" shop={shop} />
       : <><TopBar title={t('title')} back backLabel={t('back')} onBack={back} hideSearch /><div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" /></>}
   </div>;
 }

@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient, type Query } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type Query, type QueryKey } from '@tanstack/react-query';
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 import type { Invoice, OperationCategory } from './useInvoices';
@@ -41,6 +41,27 @@ export interface LineSuggestion {
   invoice_number: string;
 }
 
+/** Document renvoyé par les endpoints de brouillon, selon son type. */
+export interface DraftDocuments {
+  invoice: Invoice;
+}
+export type DraftKind = keyof DraftDocuments;
+
+interface DraftKindConfig {
+  /** Base des endpoints : `drafts/`, `<id>/`, `<id>/draft/`, `<id>/compliance/`, `<id>/<finalize>/`. */
+  api: string;
+  /** Base des pages : liste, `new`, `<id>/edit` et détail `<id>`. */
+  route: string;
+  /** Action qui termine le brouillon (émission d'une facture). */
+  finalize: string;
+  keys: { all: QueryKey; detail: (id: string) => QueryKey; compliance: (id: string) => QueryKey };
+}
+
+/** Seul endroit où la couche brouillon (éditeur, enregistrement, émission) connaît le type de document. */
+export const DRAFT_KINDS: Record<DraftKind, DraftKindConfig> = {
+  invoice: { api: '/invoices', route: '/invoices', finalize: 'issue', keys: qk.invoices },
+};
+
 const json = (data: unknown) => JSON.stringify(data);
 
 /** Code d'une erreur métier (`draft_conflict`, `not_draft`, `compliance_warnings`…) et points de conformité joints. */
@@ -51,57 +72,63 @@ export function draftError(err: unknown): { code: string | null; issues: Complia
 }
 
 /**
- * Listes et détails, sans la vérification de conformité : le brouillon émis ou supprimé est encore
+ * Listes et détails, sans la vérification de conformité : le brouillon terminé ou supprimé est encore
  * affiché par l'éditeur, la relire répondrait 409 (`not_draft`) ou 404.
  */
-const OUTSIDE_COMPLIANCE = { queryKey: qk.invoices.all, predicate: (q: Query) => q.queryKey[2] !== 'compliance' };
+const outsideCompliance = (kind: DraftKind) => ({
+  queryKey: DRAFT_KINDS[kind].keys.all, predicate: (q: Query) => q.queryKey[2] !== 'compliance',
+});
 
 /** Création (sans identifiant) ou enregistrement concurrentiel (`updated_at` lu). */
-export function useSaveDraftInvoice() {
+export function useSaveDraft<K extends DraftKind>(kind: K) {
   const qc = useQueryClient();
+  const { api, keys } = DRAFT_KINDS[kind];
   return useMutation({
     mutationFn: ({ id, updatedAt, data }: { id?: string; updatedAt?: string; data: DraftPayload }) => id
-      ? apiFetch<Invoice>(`/invoices/${id}/draft/`, { method: 'PATCH', body: json({ ...data, updated_at: updatedAt }) })
-      : apiFetch<Invoice>('/invoices/drafts/', { method: 'POST', body: json(data) }),
-    onSuccess: (invoice) => {
-      qc.setQueryData(qk.invoices.detail(invoice.id), invoice);
-      qc.invalidateQueries({ queryKey: qk.invoices.compliance(invoice.id) });
+      ? apiFetch<DraftDocuments[K]>(`${api}/${id}/draft/`, { method: 'PATCH', body: json({ ...data, updated_at: updatedAt }) })
+      : apiFetch<DraftDocuments[K]>(`${api}/drafts/`, { method: 'POST', body: json(data) }),
+    onSuccess: (document) => {
+      qc.setQueryData(keys.detail(document.id), document);
+      qc.invalidateQueries({ queryKey: keys.compliance(document.id) });
     },
   });
 }
 
-export function useDeleteDraftInvoice() {
+export function useDeleteDraft(kind: DraftKind) {
   const qc = useQueryClient();
+  const { api, keys } = DRAFT_KINDS[kind];
   return useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/invoices/${id}/draft/`, { method: 'DELETE' }),
+    mutationFn: (id: string) => apiFetch<void>(`${api}/${id}/draft/`, { method: 'DELETE' }),
     onSuccess: (_, id) => {
-      qc.removeQueries({ queryKey: qk.invoices.detail(id) });
-      qc.invalidateQueries(OUTSIDE_COMPLIANCE);
+      qc.removeQueries({ queryKey: keys.detail(id) });
+      qc.invalidateQueries(outsideCompliance(kind));
     },
   });
 }
 
-export function complianceQueryOptions(id: string) {
+export function complianceQueryOptions(kind: DraftKind, id: string) {
+  const { api, keys } = DRAFT_KINDS[kind];
   return {
-    queryKey: qk.invoices.compliance(id),
-    queryFn: () => apiFetch<{ issues: ComplianceIssue[] }>(`/invoices/${id}/compliance/`),
+    queryKey: keys.compliance(id),
+    queryFn: () => apiFetch<{ issues: ComplianceIssue[] }>(`${api}/${id}/compliance/`),
     staleTime: 0,
   };
 }
 
-export function useInvoiceCompliance(id: string | undefined) {
-  return useQuery({ ...complianceQueryOptions(id ?? ''), enabled: !!id, placeholderData: keepPreviousData });
+export function useDraftCompliance(kind: DraftKind, id: string | undefined) {
+  return useQuery({ ...complianceQueryOptions(kind, id ?? ''), enabled: !!id, placeholderData: keepPreviousData });
 }
 
 /** Émission : `acknowledged_warnings` = recommandations acceptées en connaissance de cause. */
-export function useIssueDraftInvoice() {
+export function useFinalizeDraft<K extends DraftKind>(kind: K) {
   const qc = useQueryClient();
+  const { api, finalize, keys } = DRAFT_KINDS[kind];
   return useMutation({
     mutationFn: ({ id, acknowledged }: { id: string; acknowledged: string[] }) =>
-      apiFetch<Invoice>(`/invoices/${id}/issue/`, { method: 'POST', body: json({ acknowledged_warnings: acknowledged }) }),
-    onSuccess: (invoice) => {
-      qc.setQueryData(qk.invoices.detail(invoice.id), invoice);
-      qc.invalidateQueries(OUTSIDE_COMPLIANCE);
+      apiFetch<DraftDocuments[K]>(`${api}/${id}/${finalize}/`, { method: 'POST', body: json({ acknowledged_warnings: acknowledged }) }),
+    onSuccess: (document) => {
+      qc.setQueryData(keys.detail(document.id), document);
+      qc.invalidateQueries(outsideCompliance(kind));
     },
   });
 }

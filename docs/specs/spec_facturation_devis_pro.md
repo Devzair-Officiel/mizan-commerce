@@ -281,5 +281,11 @@ Vérification du code faite avant le lot 2 ; décisions du fondateur :
     - devis : mention « devis gratuit », zone « bon pour accord », date de fin de validité ;
     - avoir : numéro et date de la facture d'origine (`presentation.credited_number`, `credited_issued_date`) et motif (`credit_reason`) ; montants (lignes, sous-total, TVA, total TTC) imprimés **négatifs** sous l'intitulé « Avoir », le signe étant appliqué à l'affichage seulement (montants enregistrés positifs) — décision du 2026-10-30, qui remplace « montants imprimés positifs » ; sans échéance, ni règlement, ni relevé de compte.
     - facture créditée : état « Créditée » quand le net dû (TTC − avoirs − règlements) est nul ; aujourd'hui `pdf_blocks.status_key` n'imprime que « non payée » ou « partiellement payée » pour une facture émise (le reste à payer, lui, est déjà net des avoirs, 4b). La facture liste aussi ses « Avoirs émis » (numéro et montant) au-dessus du reste à payer. Fait à la sous-étape 5 : « Créditée » pour une facture entièrement créditée, ou émise et soldée par avoirs et règlements.
+14. **Sous-étape 6 (frontend), liste à couvrir** (2026-10-30) :
+    - a. `confirm()` refuse d'avancer tant que le formulaire contient une ligne invalide (sinon l'émission ou l'envoi part sans elle, `toPayload` l'écartant) ;
+    - b. le reste à créditer par ligne et le reste de livraison créditable viennent du serveur (`credited_quantity` par ligne dans le détail d'une facture), commit backend testé au début de 6e ;
+    - c. `days_remaining` d'un devis calculé dans le fuseau de la boutique ;
+    - d. montants négatifs en `dir="ltr"` avec `tabular-nums`, vérifiés par l'audit en arabe ;
+    - e. dette : `GET …/credit-notes/compliance/` pour afficher les recommandations avant de valider un avoir.
 
 Numérotation : `DocumentSequence(shop, kind, last_number)`, `unique(shop, kind)`, obtenue en transformant `InvoiceSequence` sur place (renommage, `kind='invoice'` par défaut pour les lignes existantes, `OneToOne` → `ForeignKey`) : aucune copie, le prochain numéro de facture ne change pas. Retour arrière : les lignes `kind ≠ 'invoice'` sont supprimées avant le retour au `OneToOne` (compteurs de devis et d'avoirs perdus, acceptable avant la mise en production seulement).

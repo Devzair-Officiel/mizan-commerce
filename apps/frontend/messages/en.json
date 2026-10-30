@@ -3351,6 +3351,7 @@
       "not_found": "Invoice not found.",
       "save_error": "The draft could not be saved. Check your connection.",
       "issue_error": "The invoice could not be issued. Try again.",
+      "issue_invalid": "Fix the highlighted fields before issuing the invoice.",
       "issued": "Invoice {number} issued.",
       "amount_invalid": "Invalid amount (2 decimals at most).",
       "quantity_invalid": "Invalid quantity (3 decimals at most).",

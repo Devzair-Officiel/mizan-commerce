@@ -1,14 +1,16 @@
-/** Éditeur de facture libre : création, enregistrement automatique, reprise, vérification avant émission, suppression. */
+/** Éditeur de facture libre : création, enregistrement automatique, reprise, vérification avant émission, émission sûre (D11), suppression. */
 import { mkdir } from 'node:fs/promises';
 import { BASE, INVOICE_EDITOR_EMAIL, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { allResults, api } from './lib/products.mjs';
+import { focusReached } from './lib/wait.mjs';
 import { nestedInteractive } from './lib/watch.mjs';
 
 const report = createReport();
 const browser = await launch();
 const text = (locale, key, values) => values ? fmt(locale, `invoices.${key}`, values) : msg(locale, `invoices.${key}`);
 const visible = locator => locator.filter({ visible: true });
+const DEBOUNCE_MS = 800;
 const FREE_LINE = { description: 'Retouche sur mesure', details: 'Reprise des épaules\nEssayage inclus', unit: 'heure', quantity: '1.5', unit_price_ht: '40.00' };
 let marc;
 
@@ -104,6 +106,73 @@ async function checkIssue(page, locale, label, draft) {
     && issued.presentation.operation_category === issued.operation_category, `${label} : facture émise, numéro, SIREN et nature figés`);
 }
 
+/** Saisie invalide : « Émettre » mène au champ et n'envoie rien (`toPayload` écarterait la ligne ou son prix). */
+async function checkInvalidLineBlocks(page, locale, label, draft, sent) {
+  const price = page.getByLabel(text(locale, 'editor.line.unit_price'), { exact: true });
+  // Enregistrement automatique de la saisie invalide, puis relecture de la conformité qu'il déclenche.
+  const saved = page.waitForResponse(r => r.request().method() === 'PATCH' && r.url().endsWith(`/invoices/${draft.id}/draft/`))
+    .then(() => page.waitForResponse(r => r.url().endsWith(`/invoices/${draft.id}/compliance/`)));
+  await price.fill('12,345');
+  await issueButton(page, locale).click();
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: text(locale, 'editor.issue_invalid') });
+  await toast.waitFor();
+  report.check(await focusReached(price) && await checkSheet(page, locale).count() === 0
+    && await page.getByRole('alert').filter({ hasText: text(locale, 'editor.amount_invalid') }).isVisible()
+    && !sent.some(r => r.path.endsWith('/issue/')), `${label} : ligne invalide, émission refusée, message et champ signalés`);
+  // Terminés avant de retarder la conformité : seule la préparation de l'émission sera retenue.
+  await saved;
+  return price;
+}
+
+/**
+ * D11 : la frappe juste avant « Émettre » est enregistrée par la préparation ; conformité retardée, champs
+ * et « Émettre » verrouillés ; après l'émission, aucun enregistrement ne part (ni 409 `not_draft`).
+ */
+async function checkIssueSafety(page, locale, label) {
+  const draft = await api(page, 'invoices/drafts/', { method: 'POST', data: { customer: marc.id, payment_terms_days: 30, lines: [FREE_LINE] } });
+  await goto(page, `/invoices/${draft.id}/edit`);
+  const sent = [];
+  const refused = [];
+  const onRequest = r => { if (r.url().includes(`/invoices/${draft.id}/`)) sent.push({ method: r.method(), path: new URL(r.url()).pathname }); };
+  const onResponse = r => { if (r.status() === 409 && r.url().includes('/api/proxy/invoices/')) refused.push(r.url()); };
+  const compliance = `**/api/proxy/invoices/${draft.id}/compliance/`;
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  page.on('request', onRequest);
+  page.on('response', onResponse);
+  try {
+    const price = await checkInvalidLineBlocks(page, locale, label, draft, sent);
+    await page.route(compliance, async route => { await held; await route.continue(); });
+    const reached = page.waitForRequest(r => r.url().endsWith(`/invoices/${draft.id}/compliance/`));
+    await price.fill('45');
+    const typedAt = Date.now();
+    await issueButton(page, locale).click();
+    await reached;
+    const locked = await page.waitForFunction(() => document.querySelector('fieldset')?.disabled, null, { timeout: 2000 }).then(() => true, () => false);
+    report.check(locked && await price.isDisabled() && await issueButton(page, locale).isDisabled(),
+      `${label} : conformité en attente, champs et « Émettre » verrouillés`);
+    release();
+    const sheet = checkSheet(page, locale);
+    await sheet.waitFor();
+    const anyway = sheet.getByRole('button', { name: text(locale, 'editor.check.issue_anyway'), exact: true });
+    await (await anyway.count() ? anyway : sheet.getByRole('button', { name: text(locale, 'editor.check.issue'), exact: true })).click();
+    await page.waitForURL(url => url.pathname === `/invoices/${draft.id}`);
+    // Absence d'envoi : attendre la fin du minuteur qu'aurait posé la dernière frappe.
+    await page.waitForTimeout(Math.max(0, DEBOUNCE_MS + 400 - (Date.now() - typedAt)));
+    await page.waitForLoadState('networkidle');
+    const issued = await api(page, `invoices/${draft.id}/`);
+    const issuedAt = sent.findIndex(r => r.method === 'POST' && r.path.endsWith('/issue/'));
+    report.check(issued.status === 'issued' && issued.lines[0].unit_price_ht === '45.00' && issuedAt >= 0
+      && !sent.slice(issuedAt).some(r => r.method === 'PATCH') && refused.length === 0,
+    `${label} : dernière frappe émise, aucun enregistrement après l'émission${refused.map(u => `\n      409 ${u}`).join('')}`);
+  } finally {
+    release();
+    page.off('request', onRequest);
+    page.off('response', onResponse);
+    await page.unroute(compliance);
+  }
+}
+
 /** Brouillon repris depuis sa page : saisie retrouvée, modification enregistrée seule. */
 async function checkResume(page, locale, label) {
   const draft = await api(page, 'invoices/drafts/', { method: 'POST', data: { customer: marc.id, payment_terms_days: 30, lines: [FREE_LINE] } });
@@ -159,6 +228,7 @@ try {
         await setLocale(locale); setTheme(theme);
         const draft = await checkCreate(page, locale, label);
         await checkIssue(page, locale, label, draft);
+        await checkIssueSafety(page, locale, label);
         await checkResume(page, locale, label);
         await checkBlockingAndDelete(page, locale, label);
       }

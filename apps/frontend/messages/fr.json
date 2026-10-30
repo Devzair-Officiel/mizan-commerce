@@ -3351,6 +3351,7 @@
       "not_found": "Facture introuvable.",
       "save_error": "Le brouillon n'a pas pu être enregistré. Vérifiez votre connexion.",
       "issue_error": "La facture n'a pas pu être émise. Réessayez.",
+      "issue_invalid": "Corrigez les champs signalés avant d'émettre la facture.",
       "issued": "Facture {number} émise.",
       "amount_invalid": "Montant invalide (2 décimales au plus).",
       "quantity_invalid": "Quantité invalide (3 décimales au plus).",

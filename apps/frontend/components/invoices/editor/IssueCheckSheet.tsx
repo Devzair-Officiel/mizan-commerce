@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { AlertTriangle, CircleAlert } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
-import type { ComplianceIssue } from '@/lib/hooks/useInvoiceDrafts';
+import type { ComplianceIssue } from '@/lib/hooks/useDocumentDrafts';
 
 interface IssueCheckSheetProps {
   issues: ComplianceIssue[] | null;

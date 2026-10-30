@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowUp, BookPlus, Copy, Trash2 } from 'lucide-react';
 import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import type { DetailAction } from '@/components/detail/types';
-import { draftError, useCreateProductFromLine } from '@/lib/hooks/useInvoiceDrafts';
+import { draftError, useCreateProductFromLine } from '@/lib/hooks/useDocumentDrafts';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { notify } from '@/lib/notify';
 import { decimal, type EditorLine } from './editorSchema';

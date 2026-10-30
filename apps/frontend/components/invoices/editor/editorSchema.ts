@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { DraftPayload } from '@/lib/hooks/useInvoiceDrafts';
+import type { DraftPayload } from '@/lib/hooks/useDocumentDrafts';
 import type { Invoice, OperationCategory } from '@/lib/hooks/useInvoices';
 import type { CatalogKind } from '@/lib/hooks/useMe';
 
