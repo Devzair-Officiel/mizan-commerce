@@ -680,8 +680,9 @@ class SeedDataTest(TestCase):
     def test_fr_shop_has_complete_and_empty_invoice_drafts(self):
         from apps.invoices.models import Invoice
 
+        # Hors facture issue du devis converti (voir le test des devis).
         drafts = Invoice.objects.filter(
-            shop=self._shop('La Boutique de Youssef'), status='draft'
+            shop=self._shop('La Boutique de Youssef'), status='draft', quote=None
         ).order_by('created_at')
         complete, empty = drafts
         self.assertEqual((complete.number, complete.buyer_name), ('', 'Karima Bensouda'))  # noqa: E501
@@ -691,6 +692,25 @@ class SeedDataTest(TestCase):
         self.assertGreater(complete.total_ttc, 0)
         self.assertIsNone(empty.customer)
         self.assertFalse(empty.lines.exists())
+
+    def test_fr_shop_has_one_quote_per_status(self):
+        from apps.quotes.models import Quote
+
+        quotes = Quote.objects.filter(
+            shop=self._shop('La Boutique de Youssef')
+        ).order_by('created_at')
+        self.assertEqual(
+            [q.status for q in quotes],
+            ['draft', 'draft', 'sent', 'accepted', 'declined', 'expired', 'invoiced'],
+        )
+        complete, empty = quotes[0], quotes[1]
+        self.assertEqual(complete.lines.get(position=1).unit, 'heure')
+        self.assertIsNone(empty.customer)
+        self.assertFalse(empty.lines.exists())
+        expired, invoiced = quotes[5], quotes[6]
+        self.assertLess(expired.valid_until, timezone.localdate())
+        self.assertEqual(invoiced.invoice.status, 'draft')
+        self.assertEqual(invoiced.invoice.buyer_name, 'Karima Bensouda')
 
 
 @override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')

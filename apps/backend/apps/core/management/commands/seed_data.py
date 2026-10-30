@@ -59,6 +59,7 @@ class Command(BaseCommand):
         from ._seed_services import run_seed_services
         from ._seed_e2e import seed_audit_shop
         from ._seed_invoices import seed_invoice_drafts
+        from ._seed_quotes import seed_quotes
         from ._seed_zakat import seed_zakat
 
         def seed_subscription(*, shop, plan_code, status, period_end=None):
@@ -542,6 +543,7 @@ class Command(BaseCommand):
 
         # ── Factures libres (brouillons) ────────────────────────────
         seed_invoice_drafts(shop_fr, karima, 'Retouche ourlet', stdout=self.stdout)
+        seed_quotes(shop_fr, youssef, karima, 'Retouche ourlet', stdout=self.stdout)
 
         # ── Zakat (fiches personnelles) ─────────────────────────────
         seed_zakat(shop_fr, youssef, shop_ma, amira, stdout=self.stdout)

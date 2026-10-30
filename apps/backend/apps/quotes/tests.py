@@ -19,7 +19,7 @@ from apps.invoices.tests import _make_shop
 from apps.shops.models import Shop
 from apps.stock.models import StockMovement
 
-from . import services
+from . import services, tasks
 from .models import Quote, QuoteLine
 
 LINE = {
@@ -336,6 +336,29 @@ def test_expiration_uses_each_shop_timezone(ctx) -> None:
     assert Quote.objects.get(pk=noumea.pk).status == 'expired'
 
 
+@pytest.mark.django_db
+def test_hourly_task_expires_past_quotes_of_every_shop(ctx) -> None:
+    """Tâche Celery, à l'heure réelle : la veille expire, le jour même reste valable,
+    chez chaque boutique."""
+    other = _shop('expire-other@example.com')
+    today = timezone.now().astimezone(ZoneInfo(ctx.shop.timezone)).date()
+    past = _sent_until(ctx, today - timedelta(days=1))
+    last_day = _sent_until(ctx, today)
+    theirs = _sent_until(other, today - timedelta(days=1))
+    theirs_valid = _sent_until(other, today + timedelta(days=3))
+
+    assert tasks.expire_quotes() == 2
+    statuses = dict(Quote.objects.values_list('pk', 'status'))
+    assert [statuses[q.pk] for q in (past, last_day, theirs, theirs_valid)] == [
+        'expired',
+        'sent',
+        'expired',
+        'sent',
+    ]
+    # Idempotent : un second passage ne change rien.
+    assert tasks.expire_quotes() == 0
+
+
 # Multi-tenant
 
 
@@ -441,3 +464,27 @@ class QuoteShopLockTest(TransactionTestCase):
             'Pose complète'
         ]
         assert sent.subtotal_ht == Decimal('425.00')
+
+
+# Fabriques
+
+
+@pytest.mark.django_db
+def test_factories_build_one_quote_per_status() -> None:
+    from .factories import QuoteFactory, QuoteLineFactory
+
+    today = timezone.localdate()
+    quotes = {
+        status: QuoteFactory(**({status: True} if status != 'draft' else {}))
+        for status in ('draft', 'sent', 'accepted', 'declined', 'expired', 'invoiced')
+    }
+    assert {s: q.status for s, q in quotes.items()} == {s: s for s in quotes}
+    assert quotes['draft'].number == '' and quotes['draft'].sent_at is None
+    assert quotes['sent'].valid_until > today > quotes['expired'].valid_until
+    invoiced = quotes['invoiced']
+    assert invoiced.invoice.shop_id == invoiced.shop_id
+    line = QuoteLineFactory(quote=quotes['draft'], quantity=Decimal('3'))
+    assert (line.shop_id, line.line_subtotal_ht) == (
+        quotes['draft'].shop_id,
+        Decimal('150.00'),
+    )

@@ -353,6 +353,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.notes.tasks.run_automatic_reminders',
         'schedule': crontab(minute=0),
     },
+    # Toutes les heures, et non chaque jour : un devis expire le lendemain de
+    # sa date de validité, à minuit dans le fuseau de sa boutique. Idempotent.
+    'quotes-expire-hourly': {
+        'task': 'apps.quotes.tasks.expire_quotes',
+        'schedule': crontab(minute=0),
+    },
 }
 
 # Service IA / OCR (FastAPI séparé — V6). Accessible uniquement en réseau

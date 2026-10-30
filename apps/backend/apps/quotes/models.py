@@ -88,7 +88,7 @@ class Quote(BillingDocument):
         indexes = [
             models.Index(fields=['shop', '-sent_at']),
             models.Index(fields=['shop', 'status']),
-            # Expiration quotidienne : devis envoyés dont la validité est passée.
+            # Expiration horaire : devis envoyés dont la validité est passée.
             models.Index(fields=['status', 'valid_until']),
         ]
         ordering = ['-sent_at', '-created_at']
