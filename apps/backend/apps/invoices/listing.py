@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from decimal import Decimal
 
-from django.db.models import Count, F, Q, QuerySet, Sum
+from django.db.models import Case, Count, F, Q, QuerySet, Sum, When
 
 from apps.orders.services import current_month_bounds
 from apps.shops.models import Shop
@@ -17,6 +17,11 @@ PAYMENTS = {
     'partial': DUE & Q(amount_paid__gt=0),
     'paid': Q(status='paid'),
 }
+# Chiffre d'affaires (D9) : factures émises ou payées, avoirs soustraits.
+REVENUE_STATUSES = (Invoice.STATUS_ISSUED, Invoice.STATUS_PAID)
+SIGNED_TTC = Case(
+    When(kind=Invoice.KIND_CREDIT_NOTE, then=-F('total_ttc')), default=F('total_ttc')
+)
 
 
 def filter_invoices(
@@ -30,9 +35,16 @@ def filter_invoices(
     if period in ('issued_month', 'paid_month'):
         start, end = current_month_bounds(shop)
         if period == 'paid_month':
-            qs = qs.filter(status='paid', paid_at__gte=start, paid_at__lt=end)
+            qs = qs.filter(
+                kind=Invoice.KIND_INVOICE,
+                status='paid',
+                paid_at__gte=start,
+                paid_at__lt=end,
+            )
         else:
-            qs = qs.filter(issued_at__gte=start, issued_at__lt=end)
+            qs = qs.filter(
+                status__in=REVENUE_STATUSES, issued_at__gte=start, issued_at__lt=end
+            )
     return qs
 
 
@@ -60,7 +72,7 @@ def invoice_summary(shop: Shop) -> dict:
     }
     for period in ('issued_month', 'paid_month'):
         values = filter_invoices(qs, shop, {'period': period}).aggregate(
-            count=Count('id'), amount=Sum('total_ttc')
+            count=Count('id'), amount=Sum(SIGNED_TTC)
         )
         result[period] = {
             'count': values['count'],
