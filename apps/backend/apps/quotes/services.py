@@ -200,9 +200,11 @@ def send_quote(quote: Quote, *, language: str | None = None) -> Quote:
     Verrou de la boutique (sérialise la série `devis-…`), puis de la ligne : un
     enregistrement en cours se termine avant la lecture des lignes. La mise à jour
     conditionnelle sur `draft` refuse un second envoi, et son échec annule
-    l'incrément du compteur.
+    l'incrément du compteur. NO KEY UPDATE : un enregistrement qui tient la ligne
+    du devis insère ses lignes (contrôle de clé étrangère, FOR KEY SHARE sur la
+    boutique) sans interbloquer avec l'envoi.
     """
-    shop = Shop.objects.select_for_update().get(pk=quote.shop_id)
+    shop = Shop.objects.select_for_update(no_key=True).get(pk=quote.shop_id)
     quote = (
         Quote.objects.select_for_update(of=('self',))
         .select_related('customer')

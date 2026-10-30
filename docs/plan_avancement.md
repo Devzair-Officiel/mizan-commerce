@@ -795,6 +795,29 @@ Décision du 2026-10-16 : pas de publications automatiques.
       facture puis l'écrit (`invoice.save()`), sans mise à jour conditionnelle ni
       verrou : deux changements simultanés de la commande peuvent s'écraser.
 
+- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
+      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
+      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
+      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
+      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
+      l'enregistrement de son brouillon (corrigé pour l'émission et l'envoi d'un devis, 2026-10-30).
+
+- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
+      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
+      possible pendant la préparation : une frappe dans cet intervalle peut partir après
+      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
+      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.
+
+- [ ] Devis (lot 2) : écart de TVA devis → facture si le régime change entre l'envoi et
+      l'émission. La conversion applique le taux actuel de la boutique, pas celui du devis
+      (test `test_convert_applies_the_shop_current_tax_rate_not_the_quote_one`).
+
+- [ ] Validité du devis par boutique (lot 3) : 30 jours par défaut (1 à 365) pour toutes
+      les boutiques aujourd'hui ; réglage par boutique avec les modèles.
+
+- [ ] Note pour le lot 3 : un devis expiré ne peut pas être accepté ; « Dupliquer » permet
+      de relancer un devis expiré.
+
 ---
 
 ## Mise en production
@@ -945,16 +968,3 @@ typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 ## Discipline de mise à jour
 
 Ce fichier doit être modifié **dans le même commit** que la fonctionnalité qu'il décrit, jamais après coup. Un `[x]` coché dans un commit séparé, ou plus tard, est un signal que la discipline a été relâchée.
-
-- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
-      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
-      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
-      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
-      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
-      l'enregistrement de son brouillon (corrigé pour l'émission, 2026-10-30).
-
-- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
-      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
-      possible pendant la préparation : une frappe dans cet intervalle peut partir après
-      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
-      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.

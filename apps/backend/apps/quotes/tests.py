@@ -14,6 +14,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.invoices import drafts
 from apps.invoices.models import DocumentSequence, Invoice
+from apps.invoices.test_issue import _race_on_lock
 from apps.invoices.tests import _make_shop
 from apps.shops.models import Shop
 from apps.stock.models import StockMovement
@@ -217,6 +218,21 @@ def test_convert_creates_a_linked_invoice_draft(ctx) -> None:
 
 
 @pytest.mark.django_db
+def test_convert_applies_the_shop_current_tax_rate_not_the_quote_one(ctx) -> None:
+    """Comportement documenté du lot 2 : la facture prend le taux de la boutique
+    au moment de la conversion ; le devis garde celui de son envoi."""
+    quote = _accepted(ctx)
+    Shop.objects.filter(pk=ctx.shop.pk).update(default_tax_rate=Decimal('10.00'))
+    invoice = services.convert_quote_to_invoice(quote)
+    quote.refresh_from_db()
+
+    assert (quote.tax_rate, quote.total_ttc) == (Decimal('20.00'), Decimal('1275.00'))
+    assert invoice.tax_rate == Decimal('10.00')
+    assert invoice.subtotal_ht == quote.subtotal_ht
+    assert invoice.total_ttc == Decimal('1168.75')
+
+
+@pytest.mark.django_db
 def test_convert_twice_or_from_another_status_leaves_no_draft(ctx) -> None:
     quote = _accepted(ctx)
     services.convert_quote_to_invoice(quote)
@@ -377,3 +393,34 @@ class ConcurrentQuoteTest(TransactionTestCase):
         errors = [r for r in results if isinstance(r, BaseException)]
         assert [type(e) for e in errors] == [services.QuoteStateError]
         assert _quote_counter(ctx.shop) == 1
+
+
+class QuoteShopLockTest(TransactionTestCase):
+    """Enregistrement d'un brouillon contre son envoi : aucun interblocage.
+
+    Même scénario que `ShopLockTest` (factures) : l'enregistrement tient la ligne
+    du devis et s'arrête avant d'insérer ses lignes ; l'envoi verrouille la
+    boutique puis attend cette ligne ; l'enregistrement ne repart qu'alors.
+    """
+
+    serialized_rollback = True
+
+    def test_draft_saved_while_being_sent(self) -> None:
+        _, shop, _, customer = _make_shop('lock-quote@example.com')
+        draft = _draft(SimpleNamespace(shop=shop, customer=customer))
+        saved = {**LINE, 'description': 'Pose complète', 'quantity': Decimal('10')}
+        results = _race_on_lock(
+            (services, '_build_lines'),
+            lambda: services.update_draft_quote(
+                draft, {'lines': [saved]}, draft.updated_at
+            ),
+            lambda: services.send_quote(Quote.objects.get(pk=draft.pk)),
+        )
+        assert not [r for r in results.values() if isinstance(r, BaseException)]
+        # L'envoi attend l'enregistrement et fige la version enregistrée.
+        sent = results['issue']
+        assert (sent.status, sent.number[-5:]) == ('sent', '-0001')
+        assert list(sent.lines.values_list('description', flat=True)) == [
+            'Pose complète'
+        ]
+        assert sent.subtotal_ht == Decimal('425.00')
