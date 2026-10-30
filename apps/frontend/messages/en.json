@@ -3471,10 +3471,62 @@
       "total_ttc": "Amount",
       "status": "Status"
     },
-    "pdf_title": "Quote {number}",
-    "pdf_body": "Quote details are coming soon. Open its PDF to view or share it.",
-    "open_pdf": "Open PDF",
-    "not_found": "Quote not found."
+    "not_found": "Quote not found.",
+    "detail": {
+      "title": "Quote",
+      "banner": "Quote summary",
+      "sent_on": "Sent on {date}",
+      "amounts": "incl. tax, {ht} excl. tax",
+      "customer_card": "Customer profile",
+      "validity": "{status, select, sent {{days, plural, =0 {Valid until {date}, last day} one {Valid until {date}, # day left} other {Valid until {date}, # days left}}} expired {Was valid until {date}} other {Valid until {date}}}",
+      "lines_title": "{kind, select, products {Items} services {Services} other {Items and services}}",
+      "totals_title": "Totals",
+      "conditions_title": "Terms",
+      "conditions_validity": "Validity",
+      "conditions_validity_value": "{days, plural, one {# day} other {# days}}",
+      "conditions_payment": "Payment terms",
+      "conditions_payment_value": "{terms, select, none {Not specified} receipt {On receipt} other {{days, plural, one {# day} other {# days}}}}",
+      "notes": "Notes"
+    },
+    "tracking": {
+      "title": "Tracking",
+      "step": "{key, select, created {Created} sent {Sent} waiting {Awaiting reply} accepted {Accepted} to_invoice {To invoice} invoiced {Invoiced} declined {Declined} expired {Expired} other {Created}}",
+      "upcoming": "Upcoming",
+      "accepted_by": "Accepted by {name}",
+      "invoice": "Invoice {number}",
+      "invoice_draft": "Draft invoice",
+      "expired_on": "Valid until {date}"
+    },
+    "actions": {
+      "accept": "Mark as accepted",
+      "convert": "Convert to invoice",
+      "view_invoice": "{hasNumber, select, yes {View invoice {number}} other {Resume the invoice}}",
+      "pdf": "Download PDF",
+      "decline": "Decline quote"
+    },
+    "accept": {
+      "title": "Mark the quote as accepted",
+      "body": "Your customer accepted quote {number} ({amount}) outside the app: record their acceptance.",
+      "name": "Name of the person accepting",
+      "name_help": "Optional. It appears in the quote's tracking.",
+      "name_too_long": "{max} characters at most.",
+      "cancel": "Cancel",
+      "submit": "Mark as accepted",
+      "done": "Quote marked as accepted. You can now convert it to an invoice."
+    },
+    "decline": {
+      "title": "Decline this quote?",
+      "body": "Quote {number} will be marked as declined: it can no longer be accepted or invoiced.",
+      "confirm": "Decline quote",
+      "keep": "Keep the quote",
+      "done": "Quote marked as declined."
+    },
+    "convert": {
+      "done": "Invoice created, ready to issue."
+    },
+    "errors": {
+      "message": "{code, select, invalid_status {This quote changed in the meantime: the page now shows its new status.} expired {This quote has expired: it can no longer be accepted.} not_sent {This quote has not been sent yet: resume it in the editor.} draft_conflict {This quote was edited elsewhere. Reload the page.} other {The action did not go through. Try again.}}"
+    }
   },
   "reminders": {
     "title": "Reminders",

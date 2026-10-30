@@ -3471,10 +3471,62 @@
       "total_ttc": "Montant",
       "status": "Statut"
     },
-    "pdf_title": "Devis {number}",
-    "pdf_body": "Le détail du devis arrive bientôt. Ouvrez son PDF pour le consulter ou le transmettre.",
-    "open_pdf": "Ouvrir le PDF",
-    "not_found": "Devis introuvable."
+    "not_found": "Devis introuvable.",
+    "detail": {
+      "title": "Devis",
+      "banner": "Résumé du devis",
+      "sent_on": "Envoyé le {date}",
+      "amounts": "TTC, {ht} HT",
+      "customer_card": "Fiche client",
+      "validity": "{status, select, sent {{days, plural, =0 {Valable jusqu'au {date}, dernier jour} one {Valable jusqu'au {date}, # jour restant} other {Valable jusqu'au {date}, # jours restants}}} expired {Était valable jusqu'au {date}} other {Valable jusqu'au {date}}}",
+      "lines_title": "{kind, select, products {Articles} services {Prestations} other {Articles et prestations}}",
+      "totals_title": "Totaux",
+      "conditions_title": "Conditions",
+      "conditions_validity": "Validité",
+      "conditions_validity_value": "{days, plural, one {# jour} other {# jours}}",
+      "conditions_payment": "Délai de paiement",
+      "conditions_payment_value": "{terms, select, none {Non précisé} receipt {À réception} other {{days, plural, one {# jour} other {# jours}}}}",
+      "notes": "Notes"
+    },
+    "tracking": {
+      "title": "Suivi",
+      "step": "{key, select, created {Créé} sent {Envoyé} waiting {En attente de réponse} accepted {Accepté} to_invoice {À facturer} invoiced {Facturé} declined {Refusé} expired {Expiré} other {Créé}}",
+      "upcoming": "À venir",
+      "accepted_by": "Accord de {name}",
+      "invoice": "Facture {number}",
+      "invoice_draft": "Facture en brouillon",
+      "expired_on": "Valable jusqu'au {date}"
+    },
+    "actions": {
+      "accept": "Marquer accepté",
+      "convert": "Transformer en facture",
+      "view_invoice": "{hasNumber, select, yes {Voir la facture {number}} other {Reprendre la facture}}",
+      "pdf": "Télécharger le PDF",
+      "decline": "Refuser le devis"
+    },
+    "accept": {
+      "title": "Marquer le devis accepté",
+      "body": "Votre client a accepté le devis {number} ({amount}) hors de l'app : enregistrez son accord.",
+      "name": "Nom de la personne qui accepte",
+      "name_help": "Facultatif. Il apparaît dans le suivi du devis.",
+      "name_too_long": "{max} caractères au plus.",
+      "cancel": "Annuler",
+      "submit": "Marquer accepté",
+      "done": "Devis marqué accepté. Vous pouvez le transformer en facture."
+    },
+    "decline": {
+      "title": "Refuser ce devis ?",
+      "body": "Le devis {number} sera marqué refusé : il ne pourra plus être accepté ni facturé.",
+      "confirm": "Refuser le devis",
+      "keep": "Garder le devis",
+      "done": "Devis marqué refusé."
+    },
+    "convert": {
+      "done": "Facture créée, à émettre."
+    },
+    "errors": {
+      "message": "{code, select, invalid_status {Ce devis a changé entre-temps : la page affiche son nouvel état.} expired {Ce devis a expiré : il ne peut plus être accepté.} not_sent {Ce devis n'est pas encore envoyé : reprenez-le dans l'éditeur.} draft_conflict {Ce devis a été modifié ailleurs. Rechargez la page.} other {L'action n'a pas abouti. Réessayez.}}"
+    }
   },
   "reminders": {
     "title": "Rappels",

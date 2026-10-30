@@ -12,5 +12,5 @@ export const QUOTE_STATUS_BADGE: Record<QuoteStatus, string> = {
   invoiced: 'bg-primary/10 text-primary',
 };
 
-/** Un brouillon s'ouvre dans l'éditeur, un devis envoyé sur sa page (provisoire en 6b, voir `quotes/[id]/page.tsx`). */
+/** Un brouillon s'ouvre dans l'éditeur, un devis envoyé sur sa page de détail. */
 export const quoteHref = (q: Pick<Quote, 'id' | 'status'>) => q.status === 'draft' ? `/quotes/${q.id}/edit` : `/quotes/${q.id}`;

@@ -3471,10 +3471,62 @@
       "total_ttc": "المبلغ",
       "status": "الحالة"
     },
-    "pdf_title": "عرض السعر {number}",
-    "pdf_body": "تفاصيل عرض السعر قادمة قريبًا. افتحوا ملف PDF الخاص به لعرضه أو إرساله.",
-    "open_pdf": "فتح ملف PDF",
-    "not_found": "عرض السعر غير موجود."
+    "not_found": "عرض السعر غير موجود.",
+    "detail": {
+      "title": "عرض السعر",
+      "banner": "ملخص عرض السعر",
+      "sent_on": "أُرسل في {date}",
+      "amounts": "شامل الضريبة، {ht} دون ضريبة",
+      "customer_card": "ملف الزبون",
+      "validity": "{status, select, sent {{days, plural, =0 {صالح حتى {date}، اليوم الأخير} one {صالح حتى {date}، يبقى يوم واحد} two {صالح حتى {date}، يبقى يومان} few {صالح حتى {date}، تبقى # أيام} many {صالح حتى {date}، يبقى # يومًا} other {صالح حتى {date}، يبقى # يوم}}} expired {كان صالحًا حتى {date}} other {صالح حتى {date}}}",
+      "lines_title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
+      "totals_title": "الإجماليات",
+      "conditions_title": "الشروط",
+      "conditions_validity": "الصلاحية",
+      "conditions_validity_value": "{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+      "conditions_payment": "أجل الدفع",
+      "conditions_payment_value": "{terms, select, none {غير محدد} receipt {عند الاستلام} other {{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}}}",
+      "notes": "ملاحظات"
+    },
+    "tracking": {
+      "title": "المتابعة",
+      "step": "{key, select, created {أُنشئ} sent {أُرسل} waiting {في انتظار الرد} accepted {مقبول} to_invoice {في انتظار الفوترة} invoiced {مُفوتَر} declined {مرفوض} expired {منتهي الصلاحية} other {أُنشئ}}",
+      "upcoming": "لاحقًا",
+      "accepted_by": "موافقة {name}",
+      "invoice": "الفاتورة {number}",
+      "invoice_draft": "فاتورة في المسودة",
+      "expired_on": "صالح حتى {date}"
+    },
+    "actions": {
+      "accept": "تسجيل القبول",
+      "convert": "تحويل إلى فاتورة",
+      "view_invoice": "{hasNumber, select, yes {عرض الفاتورة {number}} other {متابعة الفاتورة}}",
+      "pdf": "تنزيل PDF",
+      "decline": "رفض عرض السعر"
+    },
+    "accept": {
+      "title": "تسجيل قبول عرض السعر",
+      "body": "قبل زبونكم عرض السعر {number} ({amount}) خارج التطبيق: سجّلوا موافقته.",
+      "name": "اسم الشخص الموافق",
+      "name_help": "اختياري. يظهر في متابعة عرض السعر.",
+      "name_too_long": "{max} حرفًا على الأكثر.",
+      "cancel": "إلغاء",
+      "submit": "تسجيل القبول",
+      "done": "سُجّل قبول عرض السعر. يمكنكم تحويله إلى فاتورة."
+    },
+    "decline": {
+      "title": "رفض عرض السعر هذا؟",
+      "body": "سيُسجَّل عرض السعر {number} كمرفوض: لن يمكن قبوله أو فوترته بعد ذلك.",
+      "confirm": "رفض عرض السعر",
+      "keep": "الإبقاء على عرض السعر",
+      "done": "سُجّل رفض عرض السعر."
+    },
+    "convert": {
+      "done": "أُنشئت الفاتورة، وهي جاهزة للإصدار."
+    },
+    "errors": {
+      "message": "{code, select, invalid_status {تغيّر عرض السعر هذا في الأثناء: تعرض الصفحة حالته الجديدة.} expired {انتهت صلاحية عرض السعر هذا: لم يعد بالإمكان قبوله.} not_sent {لم يُرسَل عرض السعر هذا بعد: تابعوه في المحرر.} draft_conflict {عُدّل عرض السعر هذا في مكان آخر. أعيدوا تحميل الصفحة.} other {لم يكتمل الإجراء. حاولوا مجددًا.}}"
+    }
   },
   "reminders": {
     "title": "التذكيرات",
