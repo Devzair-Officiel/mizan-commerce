@@ -228,7 +228,7 @@ def test_each_document_kind_has_its_own_continuous_series() -> None:
     assert services._next_number(other, 'invoice', day) == 'fact-301026-0001'
     assert DocumentSequence.objects.filter(shop=shop).count() == 3
 
-    
+
 def _wait_until_blocked(pid: int) -> None:
     """Attend que la session `pid` soit bloquée par le verrou d'une autre."""
     with connection.cursor() as cursor:
