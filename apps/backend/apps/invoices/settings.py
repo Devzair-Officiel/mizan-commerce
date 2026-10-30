@@ -70,18 +70,17 @@ def update_invoice_settings(shop: Shop, data: dict) -> Shop:
     return shop
 
 
-def snapshot_presentation(
-    invoice: Invoice,
+def shop_presentation(
     shop: Shop,
     *,
     language: str,
     terms: int,
     branded: bool | None = None,
 ) -> dict:
-    """Instantané de présentation figé à l'émission.
+    """Partie commune aux factures et aux devis : identité, mentions, règlement.
 
     Logo et couleur d'accent relèvent de `invoice_branding` (formule Boutique) :
-    en dessous, la facture sort neutre, les réglages restent enregistrés.
+    en dessous, le document sort neutre, les réglages restent enregistrés.
     `branded` force le choix (maquette de référence, sans boutique en base).
     """
     if branded is None:
@@ -92,12 +91,8 @@ def snapshot_presentation(
     )
     methods = list(shop.invoice_payment_methods)
     transfer = 'transfer' in methods
-    order = invoice.order
     return {
         'version': 1,
-        'issued_date': invoice.issued_at.astimezone(ZoneInfo(shop.timezone))
-        .date()
-        .isoformat(),
         'language': 'en' if language == 'en' else 'fr',
         'color': resolved_color(shop) if branded else '',
         'logo_object_key': shop.logo_object_key if branded else '',
@@ -112,6 +107,24 @@ def snapshot_presentation(
         'payment_methods': methods,
         'iban': shop.invoice_iban if transfer else '',
         'bic': shop.invoice_bic if transfer else '',
+    }
+
+
+def snapshot_presentation(
+    invoice: Invoice,
+    shop: Shop,
+    *,
+    language: str,
+    terms: int,
+    branded: bool | None = None,
+) -> dict:
+    """Instantané de présentation figé à l'émission."""
+    order = invoice.order
+    return {
+        **shop_presentation(shop, language=language, terms=terms, branded=branded),
+        'issued_date': invoice.issued_at.astimezone(ZoneInfo(shop.timezone))
+        .date()
+        .isoformat(),
         'order_number': order.order_number if shop.invoice_show_order and order else '',
         'order_date': order.created_at.astimezone(ZoneInfo(shop.timezone))
         .date()

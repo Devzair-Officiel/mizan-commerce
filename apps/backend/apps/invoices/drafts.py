@@ -22,7 +22,7 @@ from apps.products.models import ProductVariant
 from apps.shops.models import Shop
 
 from .compliance import ComplianceIssue, check_invoice
-from .models import DocumentSequence, Invoice, InvoiceLine
+from .models import BillingDocument, BillingLine, DocumentSequence, Invoice, InvoiceLine
 from .services import (
     _invoice_options,
     _next_number,
@@ -112,7 +112,7 @@ def _customer(shop: Shop, customer_id: Any) -> Customer | None:
     return customer
 
 
-def _set_buyer(invoice: Invoice, customer: Customer | None) -> None:
+def _set_buyer(invoice: BillingDocument, customer: Customer | None) -> None:
     invoice.customer = None
     for field in BUYER_FIELDS:
         setattr(invoice, field, '')
@@ -146,7 +146,7 @@ def _build_lines(
     ]
 
 
-def _refresh_totals(invoice: Invoice, lines: Sequence[InvoiceLine]) -> None:
+def _refresh_totals(invoice: BillingDocument, lines: Sequence[BillingLine]) -> None:
     invoice.tax_rate = _tax_rate(invoice.shop)
     invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = compute_totals(
         list(lines), invoice.tax_rate, invoice.discount_amount, invoice.shipping_amount

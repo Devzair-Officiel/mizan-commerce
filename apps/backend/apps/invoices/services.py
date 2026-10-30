@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -14,7 +14,7 @@ from apps.orders.services import current_month_bounds
 from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
 from apps.shops.models import Shop
 
-from .models import DocumentSequence, Invoice, InvoiceLine
+from .models import BillingDocument, BillingLine, DocumentSequence, Invoice, InvoiceLine
 from .settings import snapshot_presentation
 
 # Une série par type de document, chacune continue (`DocumentSequence`).
@@ -62,7 +62,7 @@ def _next_number(shop: Shop, kind: str, issued_on: date) -> str:
     return f'{DOCUMENT_PREFIXES[kind]}-{date_part}-{sequence.last_number:04d}'
 
 
-def snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
+def snapshot_seller_from_shop(invoice: BillingDocument, shop: Shop) -> None:
     invoice.seller_name = shop.name
     invoice.seller_address = shop.legal_address
     invoice.seller_tax_id = shop.tax_id
@@ -70,7 +70,7 @@ def snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
     invoice.seller_country = shop.country
 
 
-def snapshot_buyer(invoice: Invoice, customer: Customer | None) -> None:
+def snapshot_buyer(invoice: BillingDocument, customer: Customer | None) -> None:
     """Snapshot des coordonnées acheteur depuis le client.
 
     Sans client, les champs restent vides. Le SIREN n'est repris que pour un
@@ -138,7 +138,7 @@ def _build_lines_from_order(invoice: Invoice, order: Order) -> list[InvoiceLine]
 
 
 def compute_totals(
-    lines: list[InvoiceLine],
+    lines: Sequence[BillingLine],
     tax_rate: Decimal,
     discount_amount: Decimal,
     shipping_amount: Decimal,

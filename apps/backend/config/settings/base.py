@@ -45,6 +45,7 @@ LOCAL_APPS = [
     'apps.notes',
     'apps.zakat',
     'apps.invoices',
+    'apps.quotes',
     'apps.comms',
     'apps.public_pages',
     'apps.subscriptions',
