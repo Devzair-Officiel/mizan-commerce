@@ -2,8 +2,6 @@
 suppression, vérification et envoi. Suggestions de lignes : celles des factures
 (`/api/invoices/line-suggestions/`)."""
 
-from dataclasses import asdict
-
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -11,8 +9,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import get_shop
-from apps.invoices.compliance import ComplianceIssue
-from apps.invoices.draft_views import PERMISSIONS, STALE_DRAFT
+from apps.invoices.draft_views import (
+    PERMISSIONS,
+    STALE_DRAFT,
+    compliance_issues,
+    compliance_response,
+)
 from apps.invoices.drafts import ComplianceError, DraftConflictError
 
 from . import services
@@ -41,10 +43,6 @@ def shop_quote(request: Request, pk: object) -> Quote:
     if quote is None:
         raise NotFound('Devis introuvable.')
     return quote
-
-
-def _issues(issues: list[ComplianceIssue]) -> list[dict[str, str]]:
-    return [asdict(issue) for issue in issues]
 
 
 class DraftQuoteCreateView(APIView):
@@ -99,7 +97,7 @@ class QuoteComplianceView(APIView):
         quote = shop_quote(request, pk)
         if quote.status != Quote.STATUS_DRAFT:
             return Response(NOT_DRAFT, status=status.HTTP_409_CONFLICT)
-        return Response({'issues': _issues(check_quote(quote))})
+        return Response({'issues': compliance_issues(check_quote(quote))})
 
 
 class QuoteSendView(APIView):
@@ -123,18 +121,5 @@ class QuoteSendView(APIView):
         except services.QuoteStateError:
             return Response(NOT_DRAFT, status=status.HTTP_409_CONFLICT)
         except ComplianceError as exc:
-            return Response(
-                {
-                    'detail': 'Vérifiez le devis avant de l’envoyer.',
-                    'code': (
-                        'compliance_blocking' if exc.blocking else 'compliance_warnings'
-                    ),
-                    'issues': _issues(exc.issues),
-                },
-                status=(
-                    status.HTTP_400_BAD_REQUEST
-                    if exc.blocking
-                    else status.HTTP_409_CONFLICT
-                ),
-            )
+            return compliance_response(exc, 'Vérifiez le devis avant de l’envoyer.')
         return Response(QuoteSerializer(quote).data)
