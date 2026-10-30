@@ -560,7 +560,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
     - [x] Avoirs total et partiel, `credited_total` atomique
     - [x] PDF devis et avoir
-    - [ ] Frontend des devis : éditeur, détail, actions (URS-111)
+    - [x] Frontend des devis : éditeur, détail, actions (URS-111)
     - [ ] Frontend des avoirs : feuille, détail, liste (URS-112)
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
@@ -863,6 +863,16 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [ ] Note pour le lot 3 : un devis expiré ne peut pas être accepté ; « Dupliquer » permet
       de relancer un devis expiré.
+
+- [ ] Enregistrement automatique des éditeurs de facture et de devis : règle unique pour
+      les champs invalides, « un champ invalide n'est jamais enregistré, il garde sa
+      dernière valeur valide ». À appliquer aux deux éditeurs dans un commit séparé, après
+      la sous-étape 6c du lot 8.2.
+
+- [ ] Squelette des listes desktop (`DataTableSkeleton`, commun à toutes les listes) : pas
+      dans une `LoadingRegion`, donc le chargement n'est pas annoncé (pas d'`aria-busy`)
+      alors qu'il l'est sur mobile. Relevé par l'audit des devis (6c, 2026-10-30), qui le
+      repère par sa classe en attendant.
 
 ---
 

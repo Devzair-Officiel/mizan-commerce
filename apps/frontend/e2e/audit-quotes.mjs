@@ -1,4 +1,8 @@
-/** Devis (6b) : liste, création dans l'éditeur partagé, validité, enregistrement automatique, envoi avec la vérification, apparition « Envoyé ». */
+/**
+ * Devis : liste (vide, chargement, erreur), création dans l'éditeur partagé, validité, enregistrement
+ * automatique, envoi avec la vérification ; détail d'un devis envoyé, PDF, accord avec un nom, conversion
+ * en brouillon de facture, refus confirmé (focus par défaut sur « Garder »). Doubles clics : une requête.
+ */
 import { mkdir } from 'node:fs/promises';
 import { BASE, QUOTES_EMAIL, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
@@ -112,23 +116,164 @@ async function checkSend(page, locale, label, draft, before) {
     `${label} : devis envoyé, numéro ${sent.number}, confirmation affichée`);
   await page.waitForLoadState('networkidle');
   // Desktop : ligne du tableau (le lien n'entoure que le numéro) ; mobile : la ligne est le lien.
+  // La liste peut encore montrer le brouillon le temps de son rafraîchissement : on attend le statut et le total.
   const row = visible(page.locator(page.viewportSize().width >= 1024 ? 'tr' : 'a').filter({ hasText: sent.number }));
-  report.check(await row.count() === 1 && (await row.innerText()).includes(fmt(locale, 'quotes.status', { value: 'sent' }))
-    && await page.getByText(fmt(locale, 'quotes.count', { count: before + 1 }), { exact: true }).isVisible(),
-  `${label} : le devis apparaît « ${fmt(locale, 'quotes.status', { value: 'sent' })} » dans la liste`);
+  const status = fmt(locale, 'quotes.status', { value: 'sent' });
+  const listed = await Promise.all([
+    row.filter({ hasText: status }).first().waitFor({ timeout: 10000 }),
+    page.getByText(fmt(locale, 'quotes.count', { count: before + 1 }), { exact: true }).first().waitFor({ timeout: 10000 }),
+  ]).then(() => true, () => false);
+  report.check(listed && await row.count() === 1, `${label} : le devis apparaît « ${status} » dans la liste`);
   await page.screenshot({ path: `results/quotes-list-${label.replaceAll(' ', '-')}.png`, fullPage: true });
   return { row, sent };
 }
 
-/** Provisoire (6b) : un devis envoyé ouvre une page qui propose son PDF dans un nouvel onglet. */
-async function checkPdfPage(page, locale, label, { row, sent }) {
+const QUOTE_LINE = { description: 'Dépose de cloison', unit: 'forfait', quantity: '1', unit_price_ht: '180.00' };
+const desktop = page => page.viewportSize().width >= 1024;
+const button = (page, name) => visible(page.getByRole('button', { name, exact: true }));
+
+/** Requêtes POST vers un chemin, comptées à partir de l'appel : un double clic n'en envoie qu'une. */
+function countPosts(page, suffix) {
+  let count = 0;
+  const listener = request => { if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith(suffix)) count += 1; };
+  page.on('request', listener);
+  return () => { page.off('request', listener); return count; };
+}
+
+async function toast(page, text) {
+  return page.locator('[data-sonner-toast]').filter({ hasText: text }).first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+}
+
+/** PDF lu à son adresse dans la page (entrée du menu « ⋯ » ou bouton) : 200, `application/pdf`. */
+async function pdfAnswers(page, link) {
+  const pdf = await page.request.get(new URL(await link.getAttribute('href'), BASE).href);
+  return pdf.ok() && pdf.headers()['content-type'] === 'application/pdf';
+}
+
+/** Menu « ⋯ » : menu ancré (desktop) ou feuille (mobile). */
+async function openMenu(page, locale) {
+  await button(page, msg(locale, 'ui.detail.more_actions')).click();
+}
+
+// `ol` : la navigation a aussi un groupe « Suivi ».
+const tracking = (page, locale) => page.locator(`ol[aria-label="${msg(locale, 'quotes.tracking.title')}"]`);
+
+/** Détail d'un devis envoyé : bandeau (jours restants du serveur), suivi en attente, PDF du menu. */
+async function checkDetail(page, locale, label, { row, sent }) {
   await row.click();
   await page.waitForURL(url => url.pathname === `/quotes/${sent.id}`);
-  const link = page.getByRole('link', { name: msg(locale, 'quotes.open_pdf'), exact: true });
+  await page.waitForLoadState('networkidle');
+  const banner = await page.getByRole('region', { name: msg(locale, 'quotes.detail.banner'), exact: true }).innerText();
+  const parts = fmt(locale, 'quotes.detail.validity', { status: 'sent', days: sent.days_remaining, date: '§' }).split('§');
+  report.check(sent.days_remaining === 45 && parts.every(p => banner.includes(p.trim())) && banner.includes(sent.buyer_name),
+    `${label} : bandeau, client et « ${parts.join('…').trim()} » (${sent.days_remaining} jours, calculés par le serveur)`);
+  const steps = await tracking(page, locale).innerText();
+  const current = tracking(page, locale).locator('[aria-current="step"]');
+  report.check(['created', 'sent', 'waiting'].every(key => steps.includes(fmt(locale, 'quotes.tracking.step', { key })))
+    && (await current.innerText()).includes(fmt(locale, 'quotes.tracking.step', { key: 'waiting' })), `${label} : suivi, devis en attente de réponse`);
+  await openMenu(page, locale);
+  const link = visible(page.locator('a').filter({ hasText: msg(locale, 'quotes.actions.pdf') }));
   await link.waitFor();
-  const pdf = await page.request.get(new URL(await link.getAttribute('href'), BASE).href);
-  report.check(await link.getAttribute('target') === '_blank' && pdf.ok() && pdf.headers()['content-type'] === 'application/pdf',
-    `${label} : devis envoyé, PDF proposé dans un nouvel onglet`);
+  report.check(await pdfAnswers(page, link), `${label} : PDF du menu « ⋯ », réponse 200`);
+  await page.keyboard.press('Escape');
+  await link.waitFor({ state: 'hidden' });
+  report.check(await page.evaluate(() => document.scrollingElement.scrollWidth <= innerWidth), `${label} : détail, aucune largeur débordante`);
+  report.check((await nestedInteractive(page)).length === 0, `${label} : détail, aucun élément interactif imbriqué`);
+  await page.screenshot({ path: `results/quotes-detail-${label.replaceAll(' ', '-')}.png`, fullPage: true });
+}
+
+/** « Marquer accepté » : nom trop long refusé, puis accord nommé (double clic : une seule requête). */
+async function checkAccept(page, locale, label, sent) {
+  await button(page, msg(locale, 'quotes.actions.accept')).click();
+  const sheet = page.getByRole('dialog').filter({ hasText: msg(locale, 'quotes.accept.title') });
+  const name = sheet.getByLabel(msg(locale, 'quotes.accept.name'), { exact: true });
+  const submit = sheet.getByRole('button', { name: msg(locale, 'quotes.accept.submit'), exact: true });
+  await name.fill('x'.repeat(201));
+  await submit.click();
+  report.check(await sheet.getByText(fmt(locale, 'quotes.accept.name_too_long', { max: 200 }), { exact: true }).isVisible(), `${label} : nom de plus de 200 caractères refusé`);
+  await name.fill('Karim Alaoui');
+  const posts = countPosts(page, '/status/');
+  await submit.dblclick();
+  await sheet.waitFor({ state: 'detached' });
+  const shown = await toast(page, msg(locale, 'quotes.accept.done'));
+  const quote = await api(page, `quotes/${sent.id}/`);
+  await button(page, msg(locale, 'quotes.actions.convert')).waitFor();
+  report.check(shown && posts() === 1 && quote.status === 'accepted' && quote.accepted_name === 'Karim Alaoui'
+    && (await tracking(page, locale).innerText()).includes(fmt(locale, 'quotes.tracking.accepted_by', { name: 'Karim Alaoui' })),
+  `${label} : devis accepté au nom de Karim Alaoui (une requête), suivi et action « ${msg(locale, 'quotes.actions.convert')} »`);
+}
+
+/** « Transformer en facture » : éditeur du brouillon de facture ouvert, message ; retour : « Reprendre la facture ». */
+async function checkConvert(page, locale, label, sent) {
+  const posts = countPosts(page, '/convert/');
+  await button(page, msg(locale, 'quotes.actions.convert')).dblclick();
+  await page.waitForURL(/\/invoices\/[0-9a-f-]{36}\/edit$/);
+  const shown = await toast(page, msg(locale, 'quotes.convert.done'));
+  await page.waitForLoadState('networkidle');
+  const invoiceId = new URL(page.url()).pathname.split('/')[2];
+  const quote = await api(page, `quotes/${sent.id}/`);
+  const heading = fmt(locale, 'invoices.editor.title', { doc: 'invoice' });
+  report.check(shown && posts() === 1 && quote.status === 'invoiced' && quote.invoice === invoiceId
+    && await page.getByRole('heading', { name: heading, exact: true }).isVisible(),
+  `${label} : devis transformé (une requête), éditeur de la facture ouvert, « ${msg(locale, 'quotes.convert.done')} »`);
+  await goto(page, `/quotes/${sent.id}`);
+  report.check(await button(page, fmt(locale, 'quotes.actions.view_invoice', { hasNumber: 'no' })).count() === 1
+    && (await tracking(page, locale).innerText()).includes(msg(locale, 'quotes.tracking.invoice_draft')),
+  `${label} : devis facturé, « ${fmt(locale, 'quotes.actions.view_invoice', { hasNumber: 'no' })} » tant que la facture est un brouillon`);
+}
+
+/** Devis envoyé par l'API (même client), pour le refus. */
+async function sendByApi(page, customer) {
+  const draft = await api(page, 'quotes/drafts/', { method: 'POST', data: { customer, lines: [QUOTE_LINE] } });
+  const { issues } = await api(page, `quotes/${draft.id}/compliance/`);
+  return api(page, `quotes/${draft.id}/send/`, { method: 'POST', data: { acknowledged_warnings: issues.map(i => i.code) } });
+}
+
+/** « Refuser le devis » : confirmation, focus par défaut sur « Garder le devis » ; refusé, le PDF devient l'action principale. */
+async function checkDecline(page, locale, label, customer) {
+  const sent = await sendByApi(page, customer);
+  await goto(page, `/quotes/${sent.id}`);
+  await openMenu(page, locale);
+  await visible(page.getByRole(desktop(page) ? 'menuitem' : 'button', { name: msg(locale, 'quotes.actions.decline'), exact: true })).click();
+  const dialog = page.getByRole('dialog').filter({ hasText: msg(locale, 'quotes.decline.title') });
+  await dialog.waitFor();
+  const keep = msg(locale, 'quotes.decline.keep');
+  const focused = await page.waitForFunction(k => document.activeElement?.textContent?.trim() === k, keep, { timeout: 3000 }).then(() => true, () => false);
+  report.check(focused, `${label} : refus, focus par défaut sur « ${keep} »`);
+  await dialog.getByRole('button', { name: msg(locale, 'quotes.decline.confirm'), exact: true }).click();
+  await dialog.waitFor({ state: 'hidden' });
+  const shown = await toast(page, msg(locale, 'quotes.decline.done'));
+  const quote = await api(page, `quotes/${sent.id}/`);
+  const pdf = visible(page.getByRole('link', { name: msg(locale, 'quotes.actions.pdf'), exact: true }));
+  report.check(shown && quote.status === 'declined' && await button(page, msg(locale, 'quotes.actions.accept')).count() === 0
+    && await pdf.count() === 1 && await pdfAnswers(page, pdf)
+    && (await tracking(page, locale).innerText()).includes(fmt(locale, 'quotes.tracking.step', { key: 'declined' })),
+  `${label} : devis refusé, aucune action principale, PDF à sa place (réponse 200)`);
+  await page.screenshot({ path: `results/quotes-declined-${label.replaceAll(' ', '-')}.png`, fullPage: true });
+}
+
+const isList = url => new URL(url).pathname === '/api/proxy/quotes/';
+
+/** Liste : vide, en chargement (squelette annoncé), en erreur (message), réponses du serveur simulées. */
+async function checkListStates(page, locale, label) {
+  await page.route(isList, route => route.fulfill({ json: { count: 0, next: null, previous: null, results: [] } }));
+  await goto(page, '/quotes');
+  report.check(await page.getByText(msg(locale, 'quotes.empty_title'), { exact: true }).isVisible(), `${label} : liste vide, état vide canonique`);
+  await page.unroute(isList);
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route(isList, async route => { await gate; await route.continue(); });
+  await page.goto(`${BASE}/quotes`);
+  // Mobile : squelette annoncé (`LoadingRegion`) ; desktop : `DataTableSkeleton` commun aux listes, sans région annoncée.
+  const loading = await page.locator('[aria-busy="true"], .animate-pulse').first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+  report.check(loading, `${label} : liste en chargement, squelette affiché`);
+  release();
+  await page.unroute(isList);
+  await page.route(isList, route => route.fulfill({ status: 500, json: { detail: 'Erreur.' } }));
+  await page.goto(`${BASE}/quotes`);
+  const failed = await page.getByRole('alert').filter({ hasText: msg(locale, 'quotes.load_error') }).waitFor({ timeout: 10000 }).then(() => true, () => false);
+  report.check(failed, `${label} : liste en erreur, « ${msg(locale, 'quotes.load_error')} »`);
+  await page.unroute(isList);
 }
 
 try {
@@ -144,10 +289,17 @@ try {
         await setLocale(locale); setTheme(theme);
         const before = await checkList(page, locale, label);
         const draft = await checkCreate(page, locale, label);
-        await checkPdfPage(page, locale, label, await checkSend(page, locale, label, draft, before));
+        const sent = await checkSend(page, locale, label, draft, before);
+        await checkDetail(page, locale, label, sent);
+        await checkAccept(page, locale, label, sent.sent);
+        await checkConvert(page, locale, label, sent.sent);
+        await checkDecline(page, locale, label, sent.sent.customer);
+        await checkListStates(page, locale, label);
       }
     } finally {
-      report.check(watch.problems.length === 0, `${viewport.name} : console propre${watch.problems.map(p => `\n      ${p}`).join('')}`);
+      // Seules erreurs attendues : les 500 simulés de la liste en erreur (`checkListStates`).
+      const issues = watch.problems.filter(p => !(p.includes('status of 500') && p.includes('/api/proxy/quotes/?page=')));
+      report.check(issues.length === 0, `${viewport.name} : console propre${issues.map(p => `\n      ${p}`).join('')}`);
       await ctx.close();
     }
   }
