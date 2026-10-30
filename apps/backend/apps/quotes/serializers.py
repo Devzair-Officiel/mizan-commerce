@@ -10,6 +10,7 @@ from apps.invoices.serializers import (
 )
 
 from .models import Quote, QuoteLine
+from .services import days_remaining
 
 
 class QuoteLineSerializer(InvoiceLineSerializer):
@@ -18,10 +19,22 @@ class QuoteLineSerializer(InvoiceLineSerializer):
 
 
 class QuoteSerializer(serializers.ModelSerializer):
-    """Lecture seule : brouillon, envoi et statut passent par des endpoints dédiés."""
+    """Lecture seule : brouillon, envoi et statut passent par des endpoints dédiés.
+
+    `shop` et `invoice` sont lus par `days_remaining` et `invoice_number` : le
+    queryset d'une liste les charge par `select_related` (`QUOTE_RELATED`)."""
 
     lines = QuoteLineSerializer(many=True, read_only=True)
     logo_url = serializers.SerializerMethodField()
+    invoice_number = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
+
+    def get_invoice_number(self, quote: Quote) -> str | None:
+        """`None` tant que la facture issue du devis est un brouillon sans numéro."""
+        return (quote.invoice.number or None) if quote.invoice_id else None
+
+    def get_days_remaining(self, quote: Quote) -> int | None:
+        return days_remaining(quote)
 
     def get_logo_url(self, quote: Quote) -> str | None:
         key = quote.presentation.get('logo_object_key')
@@ -33,11 +46,13 @@ class QuoteSerializer(serializers.ModelSerializer):
             'id',
             'customer',
             'invoice',
+            'invoice_number',
             'number',
             'status',
             'operation_category',
             'validity_days',
             'valid_until',
+            'days_remaining',
             'payment_terms_days',
             'sent_at',
             'viewed_at',

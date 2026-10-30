@@ -17,6 +17,8 @@ from .models import Quote
 from .pdf import build_quote_pdf
 from .serializers import QuoteSerializer, QuoteStatusSerializer
 
+# Lus par `QuoteSerializer` : aucune requête par devis dans une liste.
+QUOTE_RELATED = ('shop', 'invoice')
 STATE_CHANGED = {
     'detail': 'Le statut de ce devis ne permet pas cette action : rechargez-le.',
     'code': 'invalid_status',
@@ -32,7 +34,7 @@ class QuoteListView(ShopScopedQuerysetMixin, generics.ListAPIView):
 
     permission_classes = PERMISSIONS
     serializer_class = QuoteSerializer
-    queryset = Quote.objects.prefetch_related('lines')
+    queryset = Quote.objects.select_related(*QUOTE_RELATED).prefetch_related('lines')
 
 
 class QuoteDetailView(ShopScopedQuerysetMixin, generics.RetrieveAPIView):
@@ -40,7 +42,7 @@ class QuoteDetailView(ShopScopedQuerysetMixin, generics.RetrieveAPIView):
 
     permission_classes = PERMISSIONS
     serializer_class = QuoteSerializer
-    queryset = Quote.objects.prefetch_related('lines')
+    queryset = Quote.objects.select_related(*QUOTE_RELATED).prefetch_related('lines')
 
 
 class QuoteStatusView(APIView):

@@ -37,7 +37,7 @@ def shop_quote(request: Request, pk: object) -> Quote:
     """Devis de la boutique du membre courant ; 404 pour toute autre boutique."""
     quote = (
         Quote.objects.filter(pk=pk, shop=get_shop(request.user))
-        .select_related('shop', 'customer')
+        .select_related('shop', 'customer', 'invoice')
         .first()
     )
     if quote is None:

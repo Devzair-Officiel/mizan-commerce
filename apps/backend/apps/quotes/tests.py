@@ -336,6 +336,43 @@ def test_expiration_uses_each_shop_timezone(ctx) -> None:
     assert Quote.objects.get(pk=noumea.pk).status == 'expired'
 
 
+def _stored(quote: Quote) -> Quote:
+    """Relu après la mise à jour de `_sent_until`, avec le fuseau de sa boutique."""
+    return Quote.objects.select_related('shop').get(pk=quote.pk)
+
+
+@pytest.mark.django_db
+def test_days_remaining_turns_at_midnight_in_the_shop_timezone(ctx) -> None:
+    """Nouméa (UTC+11) : 12:59 UTC = 23:59 le 27, 13:00 UTC = minuit le 28 ;
+    Paris est encore le 27 aux deux heures."""
+    other = _shop('remaining-noumea@example.com')
+    Shop.objects.filter(pk=other.shop.pk).update(timezone='Pacific/Noumea')
+    until = datetime(2026, 11, 30).date()
+    paris = _stored(_sent_until(ctx, until))
+    noumea = _stored(_sent_until(other, until))
+    before = datetime(2026, 11, 27, 12, 59, tzinfo=ZoneInfo('UTC'))
+    after = datetime(2026, 11, 27, 13, tzinfo=ZoneInfo('UTC'))
+    assert services.days_remaining(noumea, before) == 3
+    assert services.days_remaining(noumea, after) == 2
+    assert services.days_remaining(paris, before) == 3
+    assert services.days_remaining(paris, after) == 3
+
+
+@pytest.mark.django_db
+def test_days_remaining_is_never_negative_and_only_for_sent_quotes(ctx) -> None:
+    now = datetime(2026, 11, 27, 12, tzinfo=ZoneInfo('UTC'))
+    today = now.date()
+    last_day = _stored(_sent_until(ctx, today))
+    late = _stored(_sent_until(ctx, today - timedelta(days=3)))
+    assert services.days_remaining(last_day, now) == 0
+    # Pas encore expiré par la tâche horaire : 0, pas -3.
+    assert services.days_remaining(late, now) == 0
+    assert services.days_remaining(_draft(ctx), now) is None
+    for status in ('accepted', 'declined', 'expired', 'invoiced'):
+        quote = _stored(_sent_until(ctx, today + timedelta(days=5), status=status))
+        assert services.days_remaining(quote, now) is None, status
+
+
 @pytest.mark.django_db
 def test_hourly_task_expires_past_quotes_of_every_shop(ctx) -> None:
     """Tâche Celery, à l'heure réelle : la veille expire, le jour même reste valable,

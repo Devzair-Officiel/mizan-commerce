@@ -336,6 +336,15 @@ def convert_quote_to_invoice(quote: Quote, user: Any) -> Invoice:
     return invoice
 
 
+def days_remaining(quote: Quote, now: datetime | None = None) -> int | None:
+    """Jours entiers jusqu'à `valid_until` (date de la boutique, dernier jour
+    compris : 0 le jour même), jamais négatif ; `None` hors du statut `sent`."""
+    if quote.status != Quote.STATUS_SENT or quote.valid_until is None:
+        return None
+    today = (now or timezone.now()).astimezone(ZoneInfo(quote.shop.timezone)).date()
+    return max((quote.valid_until - today).days, 0)
+
+
 def expire_quotes(now: datetime | None = None) -> int:
     """Devis envoyés dont la validité est passée → `expired` ; renvoie leur nombre.
 

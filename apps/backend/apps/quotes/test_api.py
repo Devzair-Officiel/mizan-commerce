@@ -1,9 +1,13 @@
 """Endpoints des devis (URS-111) : brouillon, conformité, envoi, statut, conversion."""
 
+from datetime import timedelta
 from types import SimpleNamespace
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -262,6 +266,75 @@ def test_full_flow_never_writes_stock(ctx) -> None:
     _status(ctx, draft['id'], status='accepted')
     ctx.api.post(reverse('quote-convert', args=[draft['id']]))
     assert StockMovement.objects.count() == before
+
+
+# Champs calculés : validité restante, facture issue du devis
+
+
+def _invoiced(ctx: SimpleNamespace) -> dict:
+    draft = _create(ctx)
+    _send(ctx, draft['id'])
+    _status(ctx, draft['id'], status='accepted')
+    ctx.api.post(reverse('quote-convert', args=[draft['id']]))
+    return draft
+
+
+@pytest.mark.django_db
+def test_days_remaining_is_set_for_sent_quotes_only(ctx) -> None:
+    draft = _create(ctx, validity_days=45)
+    assert (draft['days_remaining'], draft['invoice_number']) == (None, None)
+    sent = _send(ctx, draft['id']).data
+    assert sent['days_remaining'] == 45
+    detail = ctx.api.get(reverse('quote-detail', args=[draft['id']])).data
+    assert detail['days_remaining'] == 45
+    accepted = _status(ctx, draft['id'], status='accepted').data
+    assert accepted['days_remaining'] is None
+
+
+@pytest.mark.django_db
+def test_invoice_number_follows_the_invoice_issued_from_the_quote(ctx) -> None:
+    draft = _invoiced(ctx)
+    url = reverse('quote-detail', args=[draft['id']])
+    quote = ctx.api.get(url).data
+    # Facture encore en brouillon : pas de numéro.
+    assert (quote['status'], quote['invoice_number'], quote['days_remaining']) == (
+        'invoiced',
+        None,
+        None,
+    )
+    Invoice.objects.filter(pk=quote['invoice']).update(number='fact-261127-0001')
+    assert ctx.api.get(url).data['invoice_number'] == 'fact-261127-0001'
+
+
+@pytest.mark.django_db
+def test_list_reads_shop_and_invoice_without_a_query_per_quote(ctx) -> None:
+    def list_queries() -> int:
+        with CaptureQueriesContext(connection) as queries:
+            assert ctx.api.get(reverse('quote-list')).status_code == 200
+        return len(queries)
+
+    _invoiced(ctx)
+    _send(ctx, _create(ctx)['id'])
+    once = list_queries()
+    for _ in range(3):
+        _invoiced(ctx)
+        _send(ctx, _create(ctx)['id'])
+    assert list_queries() == once
+    results = ctx.api.get(reverse('quote-list')).data['results']
+    assert len(results) == 8
+    assert {r['status'] for r in results} == {'sent', 'invoiced'}
+
+
+@pytest.mark.django_db
+def test_computed_fields_of_another_shop_stay_hidden(ctx) -> None:
+    draft = _invoiced(ctx)
+    Quote.objects.filter(pk=draft['id']).update(
+        valid_until=timezone.now().date() + timedelta(days=3)
+    )
+    intruder, _, _, _ = _make_shop('quotes-computed@example.com')
+    response = _client(intruder).get(reverse('quote-detail', args=[draft['id']]))
+    assert response.status_code == 404
+    assert 'invoice_number' not in response.data
 
 
 # Boutique et permissions
