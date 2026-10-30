@@ -53,7 +53,7 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self) -> QuerySet:
         shop = get_shop(self.request.user)
-        qs = Invoice.objects.filter(shop=shop).prefetch_related('lines')
+        qs = listing.with_relations(Invoice.objects.filter(shop=shop), shop)
         return listing.filter_invoices(qs, shop, self.request.query_params)
 
     def create(self, request, *args, **kwargs):
@@ -121,7 +121,8 @@ class InvoiceDetailView(generics.RetrieveAPIView):
     serializer_class = InvoiceSerializer
 
     def get_queryset(self):
-        return Invoice.objects.filter(shop=get_shop(self.request.user)).prefetch_related('lines')  # noqa: E501
+        shop = get_shop(self.request.user)
+        return listing.with_relations(Invoice.objects.filter(shop=shop), shop)
 
 
 class InvoiceStatusView(APIView):

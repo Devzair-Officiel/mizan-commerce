@@ -558,7 +558,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
   - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
     - [x] Compteurs par type de document (`DocumentSequence`)
     - [x] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
-    - [ ] Avoirs total et partiel, `credited_total` atomique
+    - [x] Avoirs total et partiel, `credited_total` atomique
     - [ ] PDF devis et avoir
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »

@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 from decimal import Decimal
 
-from django.db.models import Case, Count, F, Q, QuerySet, Sum, When
+from django.db.models import Case, Count, F, Prefetch, Q, QuerySet, Sum, When
 
 from apps.orders.services import current_month_bounds
 from apps.shops.models import Shop
@@ -27,6 +27,13 @@ REVENUE_STATUSES = (Invoice.STATUS_ISSUED, Invoice.STATUS_PAID)
 SIGNED_TTC = Case(
     When(kind=Invoice.KIND_CREDIT_NOTE, then=-F('total_ttc')), default=F('total_ttc')
 )
+
+
+def with_relations(qs: QuerySet, shop: Shop) -> QuerySet:
+    """Lignes et avoirs liés (de cette boutique) préchargés pour le serializer."""
+    return qs.prefetch_related(
+        'lines', Prefetch('credit_notes', queryset=Invoice.objects.filter(shop=shop))
+    )
 
 
 def filter_invoices(

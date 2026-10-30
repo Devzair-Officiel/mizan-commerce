@@ -206,6 +206,11 @@ class Invoice(BillingDocument):
     def __str__(self):
         return f'{self.number} — {self.seller_name}'
 
+    @property
+    def is_fully_credited(self) -> bool:
+        """Même règle que `FULLY_CREDITED`, sur l'objet chargé."""
+        return self.credited_total > 0 and self.credited_total >= self.total_ttc
+
 
 # Facture entièrement créditée : plus rien n'y est dû (« Créditée »). Le TTC nul
 # d'une facture gratuite n'en fait pas une facture créditée.

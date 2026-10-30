@@ -24,6 +24,7 @@ from django.db.models import F, Sum
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
+from apps.core.audit import log_action
 from apps.shops.models import Shop
 
 from .compliance import ComplianceIssue
@@ -264,6 +265,22 @@ def _claim(invoice: Invoice, amount: Decimal, now: datetime) -> None:
         raise CreditNoteError('over_credit')
 
 
+def _audit(invoice: Invoice, note: Invoice, user: Any, accepted: list[str]) -> None:
+    log_action(
+        shop_id=invoice.shop_id,
+        user=user,
+        action='credit_note_issued',
+        model_name='Invoice',
+        obj_id=note.pk,
+        obj_repr=note.number,
+        changes={
+            'credited_invoice': invoice.number,
+            'total_ttc': str(note.total_ttc),
+            'warnings': accepted,
+        },
+    )
+
+
 def _presentation(invoice: Invoice, issued_on: date) -> dict:
     """Présentation de la facture, datée de l'avoir et liée à la facture."""
     return {
@@ -311,11 +328,12 @@ def issue_credit_note(
     `lines=None` : avoir total (tout le reste, livraison comprise). Sinon
     `[{'line': <id de ligne de la facture>, 'quantity': Decimal}]`, livraison
     créditée si `include_shipping`. Tout refus annule la transaction : aucun
-    numéro consommé, aucun montant crédité. `user` : réservé à l'audit.
+    numéro consommé, aucun montant crédité, rien de journalisé. `user` : auteur
+    inscrit au journal d'audit (`credit_note_issued`), dans la même transaction.
     """
     reason = _reason(reason)
     invoice = _lock_invoice(shop, invoice)
-    _verify(invoice, acknowledged_warnings)
+    accepted = _verify(invoice, acknowledged_warnings)
     done = _already_credited(invoice)
     credited, complete = _credited_lines(invoice, lines, done)
     totals = _amounts(
@@ -335,4 +353,5 @@ def issue_credit_note(
     for line in credited:
         line.invoice = note
     InvoiceLine.objects.bulk_create(credited)
+    _audit(invoice, note, user, accepted)
     return note

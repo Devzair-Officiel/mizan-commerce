@@ -58,6 +58,7 @@ class Command(BaseCommand):
         from ._seed_fr import run_seed_fr
         from ._seed_services import run_seed_services
         from ._seed_e2e import seed_audit_shop
+        from ._seed_credit_notes import seed_credit_notes
         from ._seed_invoices import seed_invoice_drafts
         from ._seed_quotes import seed_quotes
         from ._seed_zakat import seed_zakat
@@ -541,9 +542,12 @@ class Command(BaseCommand):
             '  ✓ Loyalty : 2 programmes, 2 cartes (Karima 115pts, Zineb 100pts)'
         )
 
-        # ── Factures libres (brouillons) ────────────────────────────
+        # ── Factures libres (brouillons), devis et avoirs ───────────
         seed_invoice_drafts(shop_fr, karima, 'Retouche ourlet', stdout=self.stdout)
         seed_quotes(shop_fr, youssef, karima, 'Retouche ourlet', stdout=self.stdout)
+        seed_credit_notes(
+            shop_fr, youssef, karima, 'Retouche ourlet', stdout=self.stdout
+        )
 
         # ── Zakat (fiches personnelles) ─────────────────────────────
         seed_zakat(shop_fr, youssef, shop_ma, amira, stdout=self.stdout)

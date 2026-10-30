@@ -712,6 +712,26 @@ class SeedDataTest(TestCase):
         self.assertEqual(invoiced.invoice.status, 'draft')
         self.assertEqual(invoiced.invoice.buyer_name, 'Karima Bensouda')
 
+    def test_fr_shop_has_a_partial_and_a_total_credit_note(self):
+        from apps.invoices.models import Invoice
+
+        notes = Invoice.objects.filter(
+            shop=self._shop('La Boutique de Youssef'), kind='credit_note'
+        ).select_related('credited_invoice').order_by('number')
+        partial, total = notes
+        self.assertEqual(
+            [(n.number[:6], n.status, n.credit_reason) for n in notes],
+            [('avoir-', 'issued', 'Article retourné'), ('avoir-', 'issued', 'Prestation annulée')],  # noqa: E501
+        )
+        self.assertLess(partial.total_ttc, partial.credited_invoice.total_ttc)
+        self.assertEqual(partial.credited_invoice.credited_total, partial.total_ttc)
+        self.assertFalse(partial.credited_invoice.is_fully_credited)
+        self.assertEqual(partial.lines.get().quantity, 1)
+        self.assertTrue(total.credited_invoice.is_fully_credited)
+        self.assertEqual(
+            total.presentation['credited_number'], total.credited_invoice.number
+        )
+
 
 @override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
 class SeedDataSecurityTest(TestCase):

@@ -54,6 +54,8 @@ class AuditLog(models.Model):
         ('quote_accepted', 'Acceptation devis'),
         ('quote_declined', 'Refus devis'),
         ('quote_converted', 'Devis transformé en facture'),
+        # Avoir (URS-112) : facture d'origine et avertissements acceptés inclus.
+        ('credit_note_issued', 'Émission avoir'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
