@@ -57,7 +57,7 @@ Stock                       stock_movements
 Clients                     customers, loyalty_programs, loyalty_cards,
                             loyalty_transactions
 Commandes                   orders, order_items, shipments*
-Facturation                 invoices, invoice_lines, invoice_sequences
+Facturation                 invoices, invoice_lines, document_sequences
 Productivité                notes, reminders, reminder_settings
 Zakat                       zakat_profiles, zakat_calculations,
                             zakat_receivable_followups
@@ -91,7 +91,7 @@ erDiagram
     shops ||--o{ customers : "a"
     shops ||--o{ orders : "enregistre"
     shops ||--o{ invoices : "émet"
-    shops ||--|| invoice_sequences : "compteur factures"
+    shops ||--o{ document_sequences : "compteurs par type"
     shops ||--|| public_pages : "a une vitrine"
 
     products ||--o{ product_variants : "décliné en"
@@ -571,7 +571,7 @@ Informations d'expédition d'une commande (1-1 avec `orders`).
 Émission de factures client à partir d'une commande. Implémenté en Phase MVP (URS-094 à URS-099, plan §Facturation client). Facture libre, sans commande, rédigée en brouillon puis émise (URS-110, `invoices/drafts.py`).
 
 Contexte légal (FR/UE) : une facture émise est **immuable** sur son numéro, ses montants, et ses snapshots vendeur/acheteur. La numérotation doit être **continue et sans trou** par entité émettrice. On modélise ces règles avec :
-- un compteur atomique par boutique (`invoice_sequences`) verrouillé via `SELECT … FOR UPDATE` au moment de l'émission ;
+- un compteur atomique par boutique et par type de document (`document_sequences`) verrouillé via `SELECT … FOR UPDATE` au moment de l'émission ;
 - des snapshots complets des coordonnées vendeur et acheteur (`seller_*`, `buyer_*`) figés dans `invoices` ;
 - des lignes de facture (`invoice_lines`) découplées des `order_items` : la suppression ou la modification d'une commande n'altère jamais la facture.
 
@@ -667,19 +667,22 @@ Ligne de facture — snapshot d'un item de commande au moment de l'émission, ou
 
 ---
 
-### `invoice_sequences`
+### `document_sequences`
 
-Compteur atomique du numéro de facture par boutique. **Continu** (jamais reset, ne se recycle pas), verrouillé via `SELECT … FOR UPDATE` au moment de l'émission pour garantir la continuité de la séquence (exigence légale FR : art. 242 nonies A CGI, EU : Directive TVA).
+Compteur atomique du numéro de document par boutique **et par type** (facture, devis, avoir). **Continu** (jamais reset, ne se recycle pas), verrouillé via `SELECT … FOR UPDATE` au moment de l'émission pour garantir la continuité de chaque série (exigence légale FR : art. 242 nonies A CGI, EU : Directive TVA). Ancienne table `invoice_sequences`, transformée sur place par la migration `invoices.0009` (les compteurs existants deviennent `kind = 'invoice'`, sans changement du prochain numéro).
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL, UNIQUE (OneToOne) | Un compteur par boutique. |
-| last_number | INTEGER | NOT NULL, DEFAULT 0 | Dernier numéro attribué. Incrémenté sous verrou ligne dans `_next_invoice_number`. |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| kind | VARCHAR(12) | NOT NULL, `invoice` \| `quote` \| `credit_note` | Type de document de la série. |
+| last_number | INTEGER | NOT NULL, DEFAULT 0 | Dernier numéro attribué. Incrémenté sous verrou ligne dans `_next_number`. |
 | updated_at | TIMESTAMPTZ | NOT NULL | |
 
+Contrainte : `UNIQUE (shop_id, kind)` (`unique_document_sequence_per_shop_kind`), un compteur par boutique et par type.
+
 **Règles métier** :
-- Format du numéro : `fact-DDMMYY-NNNN` où `DDMMYY` est la date d'émission (marqueur, ne reset **rien**) et `NNNN` le compteur continu par boutique sur 4 chiffres minimum (s'étend au-delà de 9999).
+- Format du numéro : `fact-DDMMYY-NNNN` (devis : `devis-…`, avoirs : `avoir-…`) où `DDMMYY` est la date d'émission (marqueur, ne reset **rien**) et `NNNN` le compteur continu par boutique et par type sur 4 chiffres minimum (s'étend au-delà de 9999).
 - L'ancienne unicité `(shop, year)` avec un compteur reseté par année a été retirée (migration `invoices.0002`) : le compteur est désormais global à la boutique, pour respecter la continuité stricte.
 - L'incrément est **atomique** avec la création de la facture (`@transaction.atomic` sur `issue_invoice_from_order`) : si l'écriture échoue, aucun numéro n'est consommé.
 
@@ -1498,5 +1501,5 @@ Le backend Django définirait `SET LOCAL app.current_shop_id = '...'` au début 
 - [ ] Tous les `created_at` / `updated_at` sont en `TIMESTAMPTZ`.
 - [ ] Index sur `shop_id` partout pour éviter les full scans en multi-tenant.
 - [ ] Une facture émise (`invoices`) ne modifie que `status`, `paid_at`, `cancelled_at`, `amount_paid`, `pdf_object_key` ; tous les autres champs sont figés côté service.
-- [ ] La numérotation des factures (`invoice_sequences.last_number`) n'est incrémentée qu'à l'intérieur d'une transaction avec `SELECT … FOR UPDATE` — jamais reset, jamais recyclée.
+- [ ] La numérotation des documents (`document_sequences.last_number`) n'est incrémentée qu'à l'intérieur d'une transaction avec `SELECT … FOR UPDATE` — jamais reset, jamais recyclée.
 - [ ] Les modifications de stock passent obligatoirement par la création d'un `stock_movements` sur une `variant_id` ; jamais d'écriture directe sur `product_variants.stock_quantity`.

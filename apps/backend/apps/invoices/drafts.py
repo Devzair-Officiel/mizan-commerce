@@ -22,10 +22,10 @@ from apps.products.models import ProductVariant
 from apps.shops.models import Shop
 
 from .compliance import ComplianceIssue, check_invoice
-from .models import Invoice, InvoiceLine
+from .models import DocumentSequence, Invoice, InvoiceLine
 from .services import (
     _invoice_options,
-    _next_invoice_number,
+    _next_number,
     compute_totals,
     display_line_description,
     line_description,
@@ -253,7 +253,7 @@ def _freeze(invoice: Invoice, shop: Shop, language: str | None) -> None:
     _tax, terms, language = _invoice_options(
         shop, None, invoice.payment_terms_days, language
     )
-    invoice.number = _next_invoice_number(shop, issued_on)
+    invoice.number = _next_number(shop, DocumentSequence.KIND_INVOICE, issued_on)
     invoice.issued_at = now
     invoice.due_date = issued_on + timedelta(days=terms)
     invoice.payment_terms_days = terms

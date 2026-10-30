@@ -7,24 +7,40 @@ from apps.orders.models import Order
 from apps.shops.models import Shop
 
 
-class InvoiceSequence(models.Model):
-    """Compteur atomique du n° de facture par boutique — continu, jamais reset.
+class DocumentSequence(models.Model):
+    """Compteur atomique du n° de document par boutique et par type — continu, jamais reset.
 
-    Verrouillé via `select_for_update()` côté service au moment d'émettre une facture
-    pour garantir une numérotation continue et sans trou — exigence légale dans la
-    plupart des juridictions (FR : art. 242 nonies A CGI, EU : Directive TVA).
-    """
+    Une série par type (`fact-…`, `devis-…`, `avoir-…`). Verrouillé via `select_for_update()`
+    côté service au moment d'émettre (ou d'envoyer) un document pour garantir une
+    numérotation continue et sans trou — exigence légale dans la plupart des juridictions
+    (FR : art. 242 nonies A CGI, EU : Directive TVA).
+    """  # noqa: E501
+
+    KIND_INVOICE = 'invoice'
+    KIND_QUOTE = 'quote'
+    KIND_CREDIT_NOTE = 'credit_note'
+    KIND_CHOICES = [
+        (KIND_INVOICE, 'Facture'),
+        (KIND_QUOTE, 'Devis'),
+        (KIND_CREDIT_NOTE, 'Avoir'),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='invoice_sequence')  # noqa: E501
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='document_sequences')  # noqa: E501
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default=KIND_INVOICE)
     last_number = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'invoice_sequences'
+        db_table = 'document_sequences'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['shop', 'kind'], name='unique_document_sequence_per_shop_kind'
+            ),
+        ]
 
     def __str__(self):
-        return f'{self.shop} (last: {self.last_number})'
+        return f'{self.shop} {self.kind} (last: {self.last_number})'
 
 
 class Invoice(models.Model):

@@ -14,10 +14,15 @@ from apps.orders.services import current_month_bounds
 from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
 from apps.shops.models import Shop
 
-from .models import Invoice, InvoiceLine, InvoiceSequence
+from .models import DocumentSequence, Invoice, InvoiceLine
 from .settings import snapshot_presentation
 
-INVOICE_PREFIX = 'fact'
+# Une série par type de document, chacune continue (`DocumentSequence`).
+DOCUMENT_PREFIXES = {
+    DocumentSequence.KIND_INVOICE: 'fact',
+    DocumentSequence.KIND_QUOTE: 'devis',
+    DocumentSequence.KIND_CREDIT_NOTE: 'avoir',
+}
 
 
 class InvoiceAlreadyExistsError(Exception):
@@ -36,25 +41,25 @@ class InvoiceStateError(Exception):
     """Transition impossible depuis le statut actuel (brouillon, facture annulée)."""
 
 
-def _next_invoice_number(shop: Shop, issued_on: date) -> str:
-    """Verrouille (ou crée) le compteur de la boutique, incrémente, retourne le numéro formaté.
+def _next_number(shop: Shop, kind: str, issued_on: date) -> str:
+    """Verrouille (ou crée) le compteur de ce type, incrémente, retourne le numéro formaté.
 
-    Format : `fact-DDMMYY-NNNN` — préfixe fixe, date d'émission (marqueur, ne reset rien),
-    compteur continu par boutique sur 4 chiffres minimum (s'étend naturellement au-delà
-    de 9999).
+    Format : `fact-DDMMYY-NNNN` (`devis-…`, `avoir-…`) — préfixe du type, date d'émission
+    (marqueur, ne reset rien), compteur continu par boutique et par type sur 4 chiffres
+    minimum (s'étend naturellement au-delà de 9999).
 
     À appeler **uniquement dans une transaction** (`@transaction.atomic`) : `select_for_update`
     sans transaction lève `TransactionManagementError`. Le verrou ligne empêche deux
     émissions concurrentes de générer le même numéro — garantie de continuité légale.
     """  # noqa: E501
-    sequence, _created = InvoiceSequence.objects.select_for_update().get_or_create(
-        shop=shop
-    )  # noqa: E501
+    sequence, _created = DocumentSequence.objects.select_for_update().get_or_create(
+        shop=shop, kind=kind
+    )
     sequence.last_number += 1
     sequence.save(update_fields=['last_number', 'updated_at'])
 
     date_part = issued_on.strftime('%d%m%y')
-    return f'{INVOICE_PREFIX}-{date_part}-{sequence.last_number:04d}'
+    return f'{DOCUMENT_PREFIXES[kind]}-{date_part}-{sequence.last_number:04d}'
 
 
 def snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
@@ -169,7 +174,7 @@ def issue_invoice_from_order(
     """Émet une facture définitive à partir d'une commande.
 
     Atomique : la numérotation et l'écriture des lignes se font dans la même transaction
-    que l'incrément du `InvoiceSequence`. Si quoi que ce soit échoue, aucun numéro n'est
+    que l'incrément du `DocumentSequence`. Si quoi que ce soit échoue, aucun numéro n'est
     consommé (rollback) — préserve la continuité de la séquence.
 
     `tax_rate` et `payment_terms_days` peuvent être surchargés par appel ; sinon on prend
@@ -194,7 +199,7 @@ def issue_invoice_from_order(
 
     now = timezone.now()
     issued_on = now.astimezone(ZoneInfo(shop.timezone)).date()
-    number = _next_invoice_number(shop, issued_on)
+    number = _next_number(shop, DocumentSequence.KIND_INVOICE, issued_on)
 
     effective_tax_rate, effective_terms, language = _invoice_options(
         shop,

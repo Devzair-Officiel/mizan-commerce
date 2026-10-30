@@ -1,7 +1,7 @@
 """Émission d'une facture libre (URS-110) : numéro continu, instantanés figés."""
 
 import threading
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest import mock
 from zoneinfo import ZoneInfo
@@ -14,9 +14,10 @@ from rest_framework.test import APIClient
 
 from apps.core.models import AuditLog
 from apps.customers.models import Customer
+from apps.shops.factories import ShopFactory
 
-from . import drafts
-from .models import Invoice, InvoiceSequence
+from . import drafts, services
+from .models import DocumentSequence, Invoice
 from .tests import _make_shop
 
 LINE = {
@@ -35,7 +36,7 @@ def _draft(shop, customer, **data) -> Invoice:
 
 
 def _last_number(shop) -> int:
-    sequence = InvoiceSequence.objects.filter(shop=shop).first()
+    sequence = DocumentSequence.objects.filter(shop=shop, kind='invoice').first()
     return sequence.last_number if sequence else 0
 
 
@@ -205,3 +206,21 @@ class ConcurrentIssueTest(TransactionTestCase):
         results = self._race([_draft(shop, customer), _draft(shop, customer)])
         assert sorted(str(r).rsplit('-', 1)[1] for r in results) == ['0001', '0002']
         assert _last_number(shop) == 2
+
+
+@pytest.mark.django_db
+def test_each_document_kind_has_its_own_continuous_series() -> None:
+    shop, other = ShopFactory(), ShopFactory()
+    day = date(2026, 10, 30)
+    kinds = ('invoice', 'quote', 'invoice', 'credit_note', 'quote', 'invoice')
+    numbers = [services._next_number(shop, kind, day) for kind in kinds]
+    assert numbers == [
+        'fact-301026-0001',
+        'devis-301026-0001',
+        'fact-301026-0002',
+        'avoir-301026-0001',
+        'devis-301026-0002',
+        'fact-301026-0003',
+    ]
+    assert services._next_number(other, 'invoice', day) == 'fact-301026-0001'
+    assert DocumentSequence.objects.filter(shop=shop).count() == 3

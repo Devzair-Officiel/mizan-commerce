@@ -556,7 +556,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
     - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
   - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
-    - [ ] Compteurs par type de document (`DocumentSequence`)
+    - [x] Compteurs par type de document (`DocumentSequence`)
     - [ ] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
     - [ ] Avoirs total et partiel, `credited_total` atomique
     - [ ] PDF devis et avoir

@@ -5,15 +5,16 @@ from django.utils import timezone
 from factory.django import DjangoModelFactory
 
 from apps.shops.factories import ShopFactory
-from .models import Invoice, InvoiceLine, InvoiceSequence
+from .models import DocumentSequence, Invoice, InvoiceLine
 
 
-class InvoiceSequenceFactory(DjangoModelFactory):
+class DocumentSequenceFactory(DjangoModelFactory):
     class Meta:
-        model = InvoiceSequence
-        django_get_or_create = ('shop',)
+        model = DocumentSequence
+        django_get_or_create = ('shop', 'kind')
 
     shop = factory.SubFactory(ShopFactory)
+    kind = DocumentSequence.KIND_INVOICE
     last_number = 0
 
 
