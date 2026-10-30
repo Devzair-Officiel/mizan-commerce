@@ -25,6 +25,14 @@ DRAFT_STATUS_ERROR = {
     'detail': "Un brouillon n'a pas de statut de paiement : émettez la facture.",
     'code': 'draft_not_issued',
 }
+CREDITED_STATUS_ERRORS = {
+    'invoice_credited': (
+        "Cette facture a fait l'objet d'un avoir : elle ne peut plus être annulée."
+    ),
+    'fully_credited': (
+        'Cette facture est entièrement créditée : il ne reste rien à encaisser.'
+    ),
+}
 DRAFT_PDF_ERROR = {
     'detail': "Un brouillon n'a pas encore de PDF : émettez la facture.",
     'code': 'draft_no_pdf',
@@ -145,6 +153,11 @@ class InvoiceStatusView(APIView):
                 services.mark_paid(invoice)
             else:
                 services.cancel_invoice(invoice)
+        except services.InvoiceCreditedError as exc:
+            return Response(
+                {'detail': CREDITED_STATUS_ERRORS[exc.code], 'code': exc.code},
+                status=status.HTTP_409_CONFLICT,
+            )
         except services.InvoiceStateError:
             # Le statut a changé entre la lecture et l'écriture (autre onglet).
             return Response(

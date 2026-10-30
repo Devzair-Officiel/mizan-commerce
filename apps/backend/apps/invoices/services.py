@@ -4,7 +4,7 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -13,7 +13,14 @@ from apps.orders.models import Order
 from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
 from apps.shops.models import Shop
 
-from .models import BillingDocument, BillingLine, DocumentSequence, Invoice, InvoiceLine
+from .models import (
+    FULLY_CREDITED,
+    BillingDocument,
+    BillingLine,
+    DocumentSequence,
+    Invoice,
+    InvoiceLine,
+)
 from .settings import snapshot_presentation
 
 # Une série par type de document, chacune continue (`DocumentSequence`).
@@ -38,6 +45,15 @@ class EmptyOrderError(Exception):
 
 class InvoiceStateError(Exception):
     """Transition impossible depuis le statut actuel (brouillon, facture annulée)."""
+
+
+class InvoiceCreditedError(InvoiceStateError):
+    """Transition refusée par les avoirs : facture créditée (annulation) ou
+    entièrement créditée (paiement)."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 def _next_number(shop: Shop, kind: str, issued_on: date) -> str:
@@ -292,83 +308,59 @@ def _new_invoice(
     return invoice
 
 
-def sync_invoice_from_order(order: Order) -> None:
-    """Aligne le statut de la facture liée sur celui de la commande.
-
-    Règles, par priorité :
-    1. Commande annulée → facture annulée (terminal).
-    2. Commande payée intégralement → facture payée.
-    3. Commande non payée ou partielle → facture émise.
-
-    Une facture déjà annulée reste annulée (état terminal légal). Appelée depuis
-    `orders.services` après tout changement de paiement ou d'annulation.
-    """
-    invoice = getattr(order, 'invoice', None)
-    if invoice is None:
-        return
-    if invoice.status == Invoice.STATUS_CANCELLED:
-        return
-
-    now = timezone.now()
-    order_amount_paid = Decimal(str(order.amount_paid or 0))
-    invoice.amount_paid = order_amount_paid
-
-    if order.status == 'cancelled':
-        invoice.status = Invoice.STATUS_CANCELLED
-        invoice.cancelled_at = now
-        invoice.save(
-            update_fields=['status', 'amount_paid', 'cancelled_at', 'updated_at']
-        )  # noqa: E501
-        return
-
-    if order.payment_status == 'paid':
-        if invoice.status != Invoice.STATUS_PAID:
-            invoice.status = Invoice.STATUS_PAID
-            invoice.paid_at = now
-        invoice.save(update_fields=['status', 'amount_paid', 'paid_at', 'updated_at'])
-        return
-
-    # unpaid / partial → repasser la facture en émise si elle était payée
-    if invoice.status == Invoice.STATUS_PAID:
-        invoice.status = Invoice.STATUS_ISSUED
-        invoice.paid_at = None
-    invoice.save(update_fields=['status', 'amount_paid', 'paid_at', 'updated_at'])
-
-
 def _transition(
-    invoice: Invoice, sources: tuple[str, ...], target: str, values: dict
+    invoice: Invoice,
+    sources: tuple[str, ...],
+    target: str,
+    values: dict,
+    credit_guard: tuple[Q, str] | None = None,
 ) -> Invoice:
     """Change le statut par une mise à jour conditionnelle, sans lecture préalable.
 
     Idempotent : sans effet si la facture est déjà dans le statut visé. Depuis un
     autre statut (brouillon, facture annulée) ou sur un avoir (`issued`,
-    terminal) : `InvoiceStateError`.
+    terminal) : `InvoiceStateError`. `credit_guard` : condition sur les avoirs,
+    vérifiée dans la même écriture ; refusée, `InvoiceCreditedError(code)`.
     """
+    guard, code = credit_guard or (Q(), '')
     updated = Invoice.objects.filter(
-        pk=invoice.pk, kind=Invoice.KIND_INVOICE, status__in=sources
+        guard, pk=invoice.pk, kind=Invoice.KIND_INVOICE, status__in=sources
     ).update(status=target, **values)
     invoice.refresh_from_db()
-    if not updated and invoice.status != target:
-        raise InvoiceStateError()
-    return invoice
+    if updated or invoice.status == target:
+        return invoice
+    if code and invoice.kind == Invoice.KIND_INVOICE and invoice.status in sources:
+        raise InvoiceCreditedError(code)
+    raise InvoiceStateError()
 
 
 def mark_paid(invoice: Invoice) -> Invoice:
-    """Bascule une facture émise en `paid`, avec ou sans commande liée."""
+    """Bascule une facture émise en `paid`, avec ou sans commande liée.
+
+    Règlement enregistré : le net dû (TTC − avoirs). Entièrement créditée, la
+    facture n'a plus rien à payer : `InvoiceCreditedError('fully_credited')`.
+    """
     now = timezone.now()
     return _transition(
         invoice,
         (Invoice.STATUS_ISSUED,),
         Invoice.STATUS_PAID,
-        {'paid_at': now, 'amount_paid': F('total_ttc'), 'updated_at': now},
+        {
+            'paid_at': now,
+            'amount_paid': F('total_ttc') - F('credited_total'),
+            'updated_at': now,
+        },
+        (~FULLY_CREDITED, 'fully_credited'),
     )
 
 
 def cancel_invoice(invoice: Invoice) -> Invoice:
-    """Bascule en `cancelled` — pas d'avoir en v1, juste un drapeau de statut.
+    """Bascule en `cancelled`, drapeau de statut.
 
     Le numéro reste attribué (ne se recycle pas) : exigence légale, la trace doit subsister.
     Un brouillon ne s'annule pas : il se supprime (`drafts.delete_draft_invoice`).
+    Une facture créditée ne s'annule plus : l'avoir l'a déjà corrigée
+    (`InvoiceCreditedError('invoice_credited')`).
     """  # noqa: E501
     now = timezone.now()
     return _transition(
@@ -376,4 +368,5 @@ def cancel_invoice(invoice: Invoice) -> Invoice:
         (Invoice.STATUS_ISSUED, Invoice.STATUS_PAID),
         Invoice.STATUS_CANCELLED,
         {'cancelled_at': now, 'updated_at': now},
+        (Q(credited_total=0), 'invoice_credited'),
     )

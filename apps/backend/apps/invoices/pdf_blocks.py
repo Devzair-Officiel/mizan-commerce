@@ -310,8 +310,12 @@ def _totals_rows(style: InvoiceStyle) -> tuple[list, int]:
 
 def _amount_due(style: InvoiceStyle) -> Table:
     invoice = style.invoice
+    # Net des avoirs ; jamais négatif (règlement supérieur au net dû).
     remaining = (
-        max(Decimal('0'), invoice.total_ttc - invoice.amount_paid)
+        max(
+            Decimal('0'),
+            invoice.total_ttc - invoice.credited_total - invoice.amount_paid,
+        )
         if invoice.status == 'issued'
         else Decimal('0')
     )

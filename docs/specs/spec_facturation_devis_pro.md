@@ -280,5 +280,6 @@ Vérification du code faite avant le lot 2 ; décisions du fondateur :
 13. **Sous-étape 5 (PDF), liste à couvrir** (2026-10-30), chaque point avec un test de rendu :
     - devis : mention « devis gratuit », zone « bon pour accord », date de fin de validité ;
     - avoir : numéro et date de la facture d'origine (`presentation.credited_number`, `credited_issued_date`) et motif (`credit_reason`) ; montants imprimés positifs sous l'intitulé « Avoir », sans échéance ni relevé de compte.
+    - facture créditée : état « Créditée » quand le net dû (TTC − avoirs − règlements) est nul ; aujourd'hui `pdf_blocks.status_key` n'imprime que « non payée » ou « partiellement payée » pour une facture émise (le reste à payer, lui, est déjà net des avoirs, 4b).
 
 Numérotation : `DocumentSequence(shop, kind, last_number)`, `unique(shop, kind)`, obtenue en transformant `InvoiceSequence` sur place (renommage, `kind='invoice'` par défaut pour les lignes existantes, `OneToOne` → `ForeignKey`) : aucune copie, le prochain numéro de facture ne change pas. Retour arrière : les lignes `kind ≠ 'invoice'` sont supprimées avant le retour au `OneToOne` (compteurs de devis et d'avoirs perdus, acceptable avant la mise en production seulement).
