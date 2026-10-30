@@ -786,6 +786,15 @@ Décision du 2026-10-16 : pas de publications automatiques.
       avec l'en-tête Retry-After. Un utilisateur multi-onglets peut atteindre 10
       refresh/min et voir une panne.
 
+- [ ] L'annulation d'une commande crée-t-elle un avoir ? Aujourd'hui, elle annule la
+      facture liée (`sync_invoice_from_order`) ; si la facture a déjà un avoir, elle
+      reste inchangée (cas journalisé, spec facturation §12 D4). Décision produit et
+      comptable à prendre, hors lot 8.2.
+
+- [ ] `sync_invoice_from_order` (`apps/backend/apps/invoices/services.py`) lit la
+      facture puis l'écrit (`invoice.save()`), sans mise à jour conditionnelle ni
+      verrou : deux changements simultanés de la commande peuvent s'écraser.
+
 ---
 
 ## Mise en production
