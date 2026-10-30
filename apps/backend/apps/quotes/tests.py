@@ -31,10 +31,17 @@ LINE = {
 }
 
 
+def _shop(email: str) -> SimpleNamespace:
+    """Boutique de test complète : aucune recommandation à l'envoi."""
+    user, shop, variant, customer = _make_shop(email)
+    shop.invoice_payment_methods = ['transfer']
+    shop.save(update_fields=['invoice_payment_methods'])
+    return SimpleNamespace(user=user, shop=shop, variant=variant, customer=customer)
+
+
 @pytest.fixture
 def ctx() -> SimpleNamespace:
-    user, shop, variant, customer = _make_shop('quotes@example.com')
-    return SimpleNamespace(user=user, shop=shop, variant=variant, customer=customer)
+    return _shop('quotes@example.com')
 
 
 def _draft(ctx: SimpleNamespace, **data) -> Quote:
@@ -43,8 +50,24 @@ def _draft(ctx: SimpleNamespace, **data) -> Quote:
     return services.create_draft_quote(ctx.shop, data)
 
 
+def _send(quote: Quote) -> Quote:
+    return services.send_quote(quote, None, acknowledged_warnings=[])
+
+
+def _accept(quote: Quote, accepted_name: str = '') -> Quote:
+    return services.mark_accepted_manually(quote, None, accepted_name)
+
+
+def _decline(quote: Quote) -> Quote:
+    return services.mark_declined(quote, None)
+
+
+def _convert(quote: Quote) -> Invoice:
+    return services.convert_quote_to_invoice(quote, None)
+
+
 def _accepted(ctx: SimpleNamespace, **data) -> Quote:
-    return services.mark_accepted_manually(services.send_quote(_draft(ctx, **data)))
+    return _accept(_send(_draft(ctx, **data)))
 
 
 def _quote_counter(shop: Shop) -> int:
@@ -113,8 +136,8 @@ def test_delete_draft_removes_its_lines(ctx) -> None:
 
 @pytest.mark.django_db
 def test_send_numbers_quotes_in_their_own_continuous_series(ctx) -> None:
-    first = services.send_quote(_draft(ctx))
-    second = services.send_quote(_draft(ctx))
+    first = _send(_draft(ctx))
+    second = _send(_draft(ctx))
     invoice = drafts.issue_invoice(
         drafts.create_draft_invoice(
             ctx.shop, {'customer': ctx.customer.pk, 'lines': [LINE]}
@@ -135,7 +158,7 @@ def test_snapshots_and_validity_are_frozen_at_send_not_at_creation(ctx) -> None:
     ctx.customer.save()
     Shop.objects.filter(pk=ctx.shop.pk).update(legal_address='5 rue Neuve')
 
-    quote = services.send_quote(quote)
+    quote = _send(quote)
     sent_on = timezone.localdate(quote.sent_at, ZoneInfo(ctx.shop.timezone))
     assert quote.status == 'sent'
     assert quote.buyer_name == 'Jean Martin'
@@ -153,13 +176,13 @@ def test_snapshots_and_validity_are_frozen_at_send_not_at_creation(ctx) -> None:
 @pytest.mark.django_db
 def test_sent_quote_is_immutable(ctx) -> None:
     """Hypothèse du lot : envoyé, le devis est figé ; une révision est une copie."""
-    quote = services.send_quote(_draft(ctx))
+    quote = _send(_draft(ctx))
     with pytest.raises(services.QuoteStateError):
         services.update_draft_quote(quote, {'notes': 'Retouche'}, quote.updated_at)
     with pytest.raises(services.QuoteStateError):
         services.delete_draft_quote(quote)
     with pytest.raises(services.QuoteStateError):
-        services.send_quote(quote)
+        _send(quote)
     assert _quote_counter(ctx.shop) == 1
     assert Quote.objects.get(pk=quote.pk).notes == ''
 
@@ -171,24 +194,24 @@ def test_sent_quote_is_immutable(ctx) -> None:
 def test_accept_and_decline_only_from_sent(ctx) -> None:
     draft = _draft(ctx)
     with pytest.raises(services.QuoteStateError):
-        services.mark_accepted_manually(draft)
+        _accept(draft)
     with pytest.raises(services.QuoteStateError):
-        services.mark_declined(draft)
+        _decline(draft)
 
-    accepted = services.mark_accepted_manually(
-        services.send_quote(draft), '  Jean Dupont  '
+    accepted = _accept(
+        _send(draft), '  Jean Dupont  '
     )
     assert (accepted.status, accepted.accepted_name) == ('accepted', 'Jean Dupont')
     assert accepted.accepted_at is not None
     # Idempotent dans le statut visé ; refusé depuis un autre statut.
-    assert services.mark_accepted_manually(accepted).accepted_name == 'Jean Dupont'
+    assert _accept(accepted).accepted_name == 'Jean Dupont'
     with pytest.raises(services.QuoteStateError):
-        services.mark_declined(accepted)
+        _decline(accepted)
 
-    declined = services.mark_declined(services.send_quote(_draft(ctx)))
+    declined = _decline(_send(_draft(ctx)))
     assert declined.status == 'declined' and declined.declined_at is not None
     with pytest.raises(services.QuoteStateError):
-        services.mark_accepted_manually(declined)
+        _accept(declined)
 
 
 # Conversion en facture brouillon
@@ -199,7 +222,7 @@ def test_convert_creates_a_linked_invoice_draft(ctx) -> None:
     quote = _accepted(
         ctx, discount_amount=Decimal('62.50'), shipping_amount=Decimal('15.00')
     )
-    invoice = services.convert_quote_to_invoice(quote)
+    invoice = _convert(quote)
     quote.refresh_from_db()
 
     assert (quote.status, quote.invoice_id) == ('invoiced', invoice.pk)
@@ -223,7 +246,7 @@ def test_convert_applies_the_shop_current_tax_rate_not_the_quote_one(ctx) -> Non
     au moment de la conversion ; le devis garde celui de son envoi."""
     quote = _accepted(ctx)
     Shop.objects.filter(pk=ctx.shop.pk).update(default_tax_rate=Decimal('10.00'))
-    invoice = services.convert_quote_to_invoice(quote)
+    invoice = _convert(quote)
     quote.refresh_from_db()
 
     assert (quote.tax_rate, quote.total_ttc) == (Decimal('20.00'), Decimal('1275.00'))
@@ -235,27 +258,27 @@ def test_convert_applies_the_shop_current_tax_rate_not_the_quote_one(ctx) -> Non
 @pytest.mark.django_db
 def test_convert_twice_or_from_another_status_leaves_no_draft(ctx) -> None:
     quote = _accepted(ctx)
-    services.convert_quote_to_invoice(quote)
-    sent = services.send_quote(_draft(ctx))
+    _convert(quote)
+    sent = _send(_draft(ctx))
     for target in (quote, sent, _draft(ctx)):
         with pytest.raises(services.QuoteStateError):
-            services.convert_quote_to_invoice(target)
+            _convert(target)
     assert Invoice.objects.filter(shop=ctx.shop).count() == 1
 
 
 @pytest.mark.django_db
 def test_deleting_the_invoice_draft_reopens_the_quote(ctx) -> None:
     quote = _accepted(ctx)
-    invoice = services.convert_quote_to_invoice(quote)
+    invoice = _convert(quote)
     drafts.delete_draft_invoice(invoice, ctx.user)
     quote.refresh_from_db()
     assert (quote.status, quote.invoice_id) == ('accepted', None)
-    assert services.convert_quote_to_invoice(quote).quote == quote
+    assert _convert(quote).quote == quote
 
 
 @pytest.mark.django_db
 def test_deleting_a_shop_removes_its_converted_quotes(ctx) -> None:
-    services.convert_quote_to_invoice(_accepted(ctx))
+    _convert(_accepted(ctx))
     Shop.objects.get(pk=ctx.shop.pk).delete()
     assert not Quote.objects.exists()
     assert not Invoice.objects.exists()
@@ -266,7 +289,7 @@ def test_a_quote_never_touches_stock(ctx) -> None:
     movements = StockMovement.objects.count()
     variant_line = {**LINE, 'description': ctx.variant.product.name}
     quote = _accepted(ctx, lines=[variant_line])
-    services.convert_quote_to_invoice(quote)
+    _convert(quote)
     ctx.variant.refresh_from_db()
     assert StockMovement.objects.count() == movements
     assert ctx.variant.stock_quantity == 100
@@ -276,7 +299,7 @@ def test_a_quote_never_touches_stock(ctx) -> None:
 
 
 def _sent_until(ctx: SimpleNamespace, valid_until, status: str = 'sent') -> Quote:
-    quote = services.send_quote(_draft(ctx))
+    quote = _send(_draft(ctx))
     Quote.objects.filter(pk=quote.pk).update(valid_until=valid_until, status=status)
     return quote
 
@@ -295,16 +318,15 @@ def test_expire_quotes_only_touches_sent_quotes_past_validity(ctx) -> None:
     assert statuses[last_day.pk] == 'sent'
     assert statuses[accepted.pk] == 'accepted'
     with pytest.raises(services.QuoteStateError):
-        services.mark_accepted_manually(past)
+        _accept(past)
 
 
 @pytest.mark.django_db
 def test_expiration_uses_each_shop_timezone(ctx) -> None:
     """27 nov. 14:00 UTC : déjà le 28 à Nouméa (1 h), encore le 27 à Paris."""
-    _, other_shop, _, other_customer = _make_shop('noumea@example.com')
-    Shop.objects.filter(pk=other_shop.pk).update(timezone='Pacific/Noumea')
-    other_shop.refresh_from_db()
-    other = SimpleNamespace(shop=other_shop, customer=other_customer)
+    other = _shop('noumea@example.com')
+    Shop.objects.filter(pk=other.shop.pk).update(timezone='Pacific/Noumea')
+    other.shop.refresh_from_db()
     day = datetime(2026, 11, 27).date()
     paris = _sent_until(ctx, day)
     noumea = _sent_until(other, day)
@@ -330,14 +352,14 @@ def test_customer_of_another_shop_is_refused(ctx) -> None:
 
 @pytest.mark.django_db
 def test_each_shop_has_its_own_quote_series(ctx) -> None:
-    _, other_shop, _, other_customer = _make_shop('series-quote@example.com')
-    other = SimpleNamespace(shop=other_shop, customer=other_customer)
-    mine = services.send_quote(_draft(ctx))
-    theirs = services.send_quote(_draft(other))
+    other = _shop('series-quote@example.com')
+    other_shop = other.shop
+    mine = _send(_draft(ctx))
+    theirs = _send(_draft(other))
     assert mine.number.endswith('-0001') and theirs.number.endswith('-0001')
     assert theirs.lines.get().shop == other_shop
     assert (
-        services.convert_quote_to_invoice(services.mark_accepted_manually(theirs)).shop
+        _convert(_accept(theirs)).shop
         == other_shop
     )
 
@@ -367,15 +389,11 @@ class ConcurrentQuoteTest(TransactionTestCase):
             thread.join(timeout=20)
         return results
 
-    def _ctx(self, email: str) -> SimpleNamespace:
-        _, shop, _, customer = _make_shop(email)
-        return SimpleNamespace(shop=shop, customer=customer)
-
     def test_same_quote_converted_twice_at_once(self) -> None:
-        ctx = self._ctx('race-convert@example.com')
+        ctx = _shop('race-convert@example.com')
         quote = _accepted(ctx)
         results = self._race(
-            services.convert_quote_to_invoice, [quote, Quote.objects.get(pk=quote.pk)]
+            _convert, [quote, Quote.objects.get(pk=quote.pk)]
         )
         errors = [r for r in results if isinstance(r, BaseException)]
         assert len(results) == 2
@@ -385,10 +403,10 @@ class ConcurrentQuoteTest(TransactionTestCase):
         assert Quote.objects.get(pk=quote.pk).invoice_id == invoices.get().pk
 
     def test_same_draft_sent_twice_at_once(self) -> None:
-        ctx = self._ctx('race-send@example.com')
+        ctx = _shop('race-send@example.com')
         draft = _draft(ctx)
         results = self._race(
-            services.send_quote, [draft, Quote.objects.get(pk=draft.pk)]
+            _send, [draft, Quote.objects.get(pk=draft.pk)]
         )
         errors = [r for r in results if isinstance(r, BaseException)]
         assert [type(e) for e in errors] == [services.QuoteStateError]
@@ -406,15 +424,14 @@ class QuoteShopLockTest(TransactionTestCase):
     serialized_rollback = True
 
     def test_draft_saved_while_being_sent(self) -> None:
-        _, shop, _, customer = _make_shop('lock-quote@example.com')
-        draft = _draft(SimpleNamespace(shop=shop, customer=customer))
+        draft = _draft(_shop('lock-quote@example.com'))
         saved = {**LINE, 'description': 'Pose complète', 'quantity': Decimal('10')}
         results = _race_on_lock(
             (services, '_build_lines'),
             lambda: services.update_draft_quote(
                 draft, {'lines': [saved]}, draft.updated_at
             ),
-            lambda: services.send_quote(Quote.objects.get(pk=draft.pk)),
+            lambda: _send(Quote.objects.get(pk=draft.pk)),
         )
         assert not [r for r in results.values() if isinstance(r, BaseException)]
         # L'envoi attend l'enregistrement et fige la version enregistrée.

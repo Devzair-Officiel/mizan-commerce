@@ -8,7 +8,7 @@ toujours par `filter(...).update(...)` : 0 ligne mise à jour = transition refus
 Un devis ne touche jamais au stock.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.audit import log_action
 from apps.invoices.drafts import (
     BUYER_FIELDS,
     OPERATION_BY_CATALOG,
@@ -36,6 +37,7 @@ from apps.invoices.services import (
 from apps.invoices.settings import shop_presentation
 from apps.shops.models import Shop
 
+from .compliance import verify_quote
 from .models import Quote, QuoteLine
 
 CENT = Decimal('0.01')
@@ -194,8 +196,17 @@ def _freeze(quote: Quote, shop: Shop, language: str | None) -> None:
 
 
 @transaction.atomic
-def send_quote(quote: Quote, *, language: str | None = None) -> Quote:
+def send_quote(
+    quote: Quote,
+    user: Any,
+    *,
+    acknowledged_warnings: Collection[str],
+    language: str | None = None,
+) -> Quote:
     """Envoie un brouillon : sans trou de numérotation, même en cas de double clic.
+
+    Refus (`ComplianceError`) s'il reste un point bloquant ou une recommandation
+    non acceptée ; les recommandations acceptées sont tracées dans l'audit.
 
     Verrou de la boutique (sérialise la série `devis-…`), puis de la ligne : un
     enregistrement en cours se termine avant la lecture des lignes. La mise à jour
@@ -214,6 +225,7 @@ def send_quote(quote: Quote, *, language: str | None = None) -> Quote:
         raise QuoteStateError()
     quote.shop = shop
     _refresh_totals(quote, quote.lines.all())
+    accepted = verify_quote(quote, acknowledged_warnings)
     _freeze(quote, shop, language)
     updated = Quote.objects.filter(pk=quote.pk, status=Quote.STATUS_DRAFT).update(
         status=Quote.STATUS_SENT,
@@ -222,33 +234,53 @@ def send_quote(quote: Quote, *, language: str | None = None) -> Quote:
     )
     if not updated:
         raise QuoteStateError()
+    _log(quote, user, 'quote_sent', total_ttc=str(quote.total_ttc), warnings=accepted)
     quote.refresh_from_db()
     return quote
 
 
-def _transition(
-    quote: Quote, sources: tuple[str, ...], target: str, values: Mapping[str, Any]
-) -> Quote:
-    """Change le statut par une mise à jour conditionnelle, sans lecture préalable.
+def _log(quote: Quote, user: Any, action: str, **changes: Any) -> None:
+    log_action(
+        shop_id=quote.shop_id,
+        user=user,
+        action=action,
+        model_name='Quote',
+        obj_id=quote.pk,
+        obj_repr=quote.number,
+        changes=changes,
+    )
 
-    Idempotent : sans effet si le devis est déjà dans le statut visé. Depuis un
-    autre statut : `QuoteStateError`.
+
+@transaction.atomic
+def _transition(
+    quote: Quote,
+    user: Any,
+    target: str,
+    values: Mapping[str, Any],
+) -> Quote:
+    """Change le statut d'un devis envoyé par une mise à jour conditionnelle,
+    sans lecture préalable, et la journalise dans la même transaction.
+
+    Idempotent : sans effet ni journal si le devis est déjà dans le statut visé.
+    Depuis un autre statut : `QuoteStateError`.
     """
     updated = Quote.objects.filter(
-        pk=quote.pk, shop_id=quote.shop_id, status__in=sources
+        pk=quote.pk, shop_id=quote.shop_id, status=Quote.STATUS_SENT
     ).update(status=target, **values)
     quote.refresh_from_db()
     if not updated and quote.status != target:
         raise QuoteStateError()
+    if updated:
+        _log(quote, user, f'quote_{target}')
     return quote
 
 
-def mark_accepted_manually(quote: Quote, accepted_name: str = '') -> Quote:
+def mark_accepted_manually(quote: Quote, user: Any, accepted_name: str = '') -> Quote:
     """Accord reçu hors de la page client (téléphone, signature papier)."""
     now = timezone.now()
     return _transition(
         quote,
-        (Quote.STATUS_SENT,),
+        user,
         Quote.STATUS_ACCEPTED,
         {
             'accepted_at': now,
@@ -258,13 +290,10 @@ def mark_accepted_manually(quote: Quote, accepted_name: str = '') -> Quote:
     )
 
 
-def mark_declined(quote: Quote) -> Quote:
+def mark_declined(quote: Quote, user: Any) -> Quote:
     now = timezone.now()
     return _transition(
-        quote,
-        (Quote.STATUS_SENT,),
-        Quote.STATUS_DECLINED,
-        {'declined_at': now, 'updated_at': now},
+        quote, user, Quote.STATUS_DECLINED, {'declined_at': now, 'updated_at': now}
     )
 
 
@@ -285,7 +314,7 @@ def _invoice_data(quote: Quote) -> dict[str, Any]:
 
 
 @transaction.atomic
-def convert_quote_to_invoice(quote: Quote) -> Invoice:
+def convert_quote_to_invoice(quote: Quote, user: Any) -> Invoice:
     """Crée la facture en brouillon d'un devis accepté ; l'émission suit le flux normal.
 
     Le brouillon est créé, puis la transition le rattache au devis par une mise à
@@ -303,6 +332,7 @@ def convert_quote_to_invoice(quote: Quote) -> Invoice:
     ).update(status=Quote.STATUS_INVOICED, invoice=invoice, updated_at=timezone.now())
     if not converted:
         raise QuoteStateError()
+    _log(quote, user, 'quote_converted', invoice_id=str(invoice.pk))
     return invoice
 
 
