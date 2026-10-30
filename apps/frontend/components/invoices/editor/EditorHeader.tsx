@@ -23,7 +23,7 @@ interface EditorHeaderProps {
   flush: () => Promise<string | null>;
 }
 
-/** En-tête : « Nouvelle facture », état de l'enregistrement automatique, « ⋯ » avec la suppression du brouillon. */
+/** En-tête : « Nouvelle facture » ou « Nouveau devis », état de l'enregistrement automatique, « ⋯ » avec la suppression du brouillon. */
 export function EditorHeader({ kind, id, status, savedAt, flush }: EditorHeaderProps) {
   const t = useTranslations('invoices.editor');
   const router = useRouter();
@@ -53,7 +53,7 @@ export function EditorHeader({ kind, id, status, savedAt, flush }: EditorHeaderP
   const danger = { key: 'delete', icon: Trash2, label: t('delete'), onSelect: () => setConfirming(true), destructive: true };
   const menu = id ? <DetailActionsMenu actions={{ items: [], danger }} variant={isDesktop ? 'menu' : 'sheet'} /> : undefined;
   return <>
-    <TopBar title={t('title')} subtitle={subtitle} back backLabel={t('back')} onBack={back} hideSearch action={menu} />
+    <TopBar title={t('title', { doc: kind })} subtitle={subtitle} back backLabel={t('back', { doc: kind })} onBack={back} hideSearch action={menu} />
     <ConfirmDialog open={confirming} onOpenChange={(open) => { if (!open && !isPending) setConfirming(false); }}
       title={t('delete_title')} description={t('delete_body')} confirmLabel={t('delete')} cancelLabel={t('keep')}
       variant="destructive" onConfirm={confirmDelete} />

@@ -8,7 +8,8 @@ import { nestedInteractive } from './lib/watch.mjs';
 
 const report = createReport();
 const browser = await launch();
-const text = (locale, key, values) => values ? fmt(locale, `invoices.${key}`, values) : msg(locale, `invoices.${key}`);
+/** Messages de l'éditeur partagé : branche facture des `{doc, select, …}` (sans effet sur les autres clés). */
+const text = (locale, key, values) => fmt(locale, `invoices.${key}`, { doc: 'invoice', ...values });
 const visible = locator => locator.filter({ visible: true });
 const DEBOUNCE_MS = 800;
 const FREE_LINE = { description: 'Retouche sur mesure', details: 'Reprise des épaules\nEssayage inclus', unit: 'heure', quantity: '1.5', unit_price_ht: '40.00' };
@@ -106,7 +107,10 @@ async function checkIssue(page, locale, label, draft) {
     && issued.presentation.operation_category === issued.operation_category, `${label} : facture émise, numéro, SIREN et nature figés`);
 }
 
-/** Saisie invalide : « Émettre » mène au champ et n'envoie rien (`toPayload` écarterait la ligne ou son prix). */
+/**
+ * Saisie invalide : « Émettre » mène au champ et n'émet rien. Le brouillon, lui, est enregistré avec
+ * un prix à 0 (`toPayload`) : c'est l'émission qui est bloquée, pas l'enregistrement (dette du plan).
+ */
 async function checkInvalidLineBlocks(page, locale, label, draft, sent) {
   const price = page.getByLabel(text(locale, 'editor.line.unit_price'), { exact: true });
   // Enregistrement automatique de la saisie invalide, puis relecture de la conformité qu'il déclenche.
@@ -157,7 +161,11 @@ async function checkIssueSafety(page, locale, label) {
     const anyway = sheet.getByRole('button', { name: text(locale, 'editor.check.issue_anyway'), exact: true });
     await (await anyway.count() ? anyway : sheet.getByRole('button', { name: text(locale, 'editor.check.issue'), exact: true })).click();
     await page.waitForURL(url => url.pathname === `/invoices/${draft.id}`);
-    // Absence d'envoi : attendre la fin du minuteur qu'aurait posé la dernière frappe.
+    // Pause fixe, voulue : on prouve qu'AUCUN enregistrement ne part après l'émission, et une absence
+    // ne s'attend pas (ne pas la remplacer par waitForResponse / waitForRequest, qui attendraient une
+    // requête qui ne doit jamais venir). Durée calculée : délai de l'enregistrement automatique
+    // (DEBOUNCE_MS, 800 ms, comme useDraftAutosave) + 400 ms de marge, moins le temps déjà écoulé depuis
+    // la dernière frappe ; au-delà, le minuteur qu'elle aurait posé a forcément expiré.
     await page.waitForTimeout(Math.max(0, DEBOUNCE_MS + 400 - (Date.now() - typedAt)));
     await page.waitForLoadState('networkidle');
     const issued = await api(page, `invoices/${draft.id}/`);

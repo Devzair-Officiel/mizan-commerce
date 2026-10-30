@@ -62,7 +62,7 @@ AUDIT_MATRIX=full docker compose run --rm e2e            # les 8 configurations 
 # Garde-fou mémoire des phases lourdes (voir « Vérifications ») — journal : ~/.local/state/mizan-commerce/mem.log
 infra/scripts/mem-check.sh                               # état : 0 rien à signaler, 1 pression mémoire, 2 phase lourde déjà en cours
 MEM_LABEL="audit sales" infra/scripts/mem-check.sh run docker compose run --rm e2e npm run audit -- sales  # lance si l'état est 0, relève la mémoire, pics en fin
-docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@, e2e-invoices@, e2e-invoice-editor@example.com)
+docker compose exec backend python manage.py reset_audit_shop  # Dev uniquement : supprime et recrée les boutiques d'audit (e2e@, e2e2@, e2e3@, e2e-invoices@, e2e-invoice-editor@, e2e-quotes@example.com)
 ```
 
 ## Code rules — Backend (Python / Django)

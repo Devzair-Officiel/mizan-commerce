@@ -4,13 +4,13 @@ import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import { FileText } from 'lucide-react';
 import { TopBar } from '@/components/layout/TopBar';
-import { ListCreateButton } from '@/components/list/ListCreateButton';
 import { useInvoices, useInvoicesInfinite } from '@/lib/hooks/useInvoices';
 import { useShop } from '@/lib/hooks/useShop';
 import { useIsDesktop } from '@/lib/hooks/useMediaQuery';
 import { InvoicesStatCards } from '@/components/invoices/list/InvoicesStatCards';
 import { InvoicesToolbar } from '@/components/invoices/list/InvoicesToolbar';
 import { InvoicesFiltersMobile } from '@/components/invoices/list/InvoicesFiltersMobile';
+import { InvoicesHeaderActions } from '@/components/invoices/list/InvoicesHeaderActions';
 import { InvoicesDesktopView } from '@/components/invoices/list/InvoicesDesktopView';
 import { InvoicesMobileList } from '@/components/invoices/list/InvoicesMobileList';
 import { useInvoicesPageState } from '@/components/invoices/list/useInvoicesPageState';
@@ -28,7 +28,7 @@ function InvoicesContent() {
   const total = data?.count ?? 0;
   return <>
     <TopBar title={t('title')} subtitle={data ? t('count', { count: total }) : undefined} hideSearch
-      action={<ListCreateButton href="/invoices/new" label={t('create')} />} />
+      action={<InvoicesHeaderActions />} />
     <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
       <InvoicesStatCards state={state} currency={shop?.currency ?? 'EUR'} />
       {desktop === true && <InvoicesToolbar state={state} />}

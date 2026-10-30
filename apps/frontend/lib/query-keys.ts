@@ -237,6 +237,15 @@ export const qk = {
     compliance: (id: string) => ['invoices', id, 'compliance'] as const,
     lineSuggestions: (q: string) => ['invoices', 'line-suggestions', q] as const,
   },
+  quotes: {
+    all: ['quotes'] as const,
+    /** Liste paginée (desktop), sans filtre : `page` seulement. */
+    list: (page: number) => ['quotes', 'list', page] as const,
+    infinite: ['quotes', 'infinite'] as const,
+    detail: (id: string) => ['quotes', id] as const,
+    /** Vérification avant envoi d'un brouillon : relue après chaque enregistrement. */
+    compliance: (id: string) => ['quotes', id, 'compliance'] as const,
+  },
 
   me: {
     all: ['me'] as const,

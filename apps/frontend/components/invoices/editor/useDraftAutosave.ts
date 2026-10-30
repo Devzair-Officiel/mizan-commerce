@@ -84,7 +84,7 @@ function usePersist(kind: DraftKind, form: UseFormReturn<EditorValues>, { ref, u
     s.dirty = false;
     update('saving');
     try {
-      const document = await save({ id: s.id, updatedAt: s.updatedAt, data: toPayload(form.getValues()) });
+      const document = await save({ id: s.id, updatedAt: s.updatedAt, data: toPayload(form.getValues(), kind) });
       // Seulement si l'éditeur est encore affiché (l'enregistrement peut finir après un retour).
       if (!s.id && window.location.pathname === `${route}/new`) window.history.replaceState(null, '', `${route}/${document.id}/edit`);
       saved(document);
@@ -104,7 +104,7 @@ function usePersist(kind: DraftKind, form: UseFormReturn<EditorValues>, { ref, u
       }
       return null;
     }
-  }, [form, ref, route, router, save, saved, t, update]);
+  }, [form, kind, ref, route, router, save, saved, t, update]);
 }
 
 /** Après un conflit : relit le brouillon enregistré et repart de lui (la saisie locale est abandonnée). */

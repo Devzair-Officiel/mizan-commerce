@@ -658,6 +658,29 @@ Décision du 2026-10-16 : pas de publications automatiques.
       `apps/invoices/test_credit_note_payments.py`, notamment
       `ConcurrentCreditNotePaymentTest` (assertion sur `ctx.order.total_amount`).
 
+- [ ] **PRIORITAIRE** — Éditeur de facture et de devis : l'enregistrement automatique du
+      brouillon (`toPayload`, `components/invoices/editor/editorSchema.ts`) enregistre une
+      saisie invalide sans la signaler, et pas de la même façon selon le champ. `lines`
+      remplace toutes les lignes du brouillon ; pour chaque champ invalide, il enregistre :
+      - **quantité** vide, illisible (lettres, signe, plus de 3 décimales ou de 9 chiffres)
+        ou nulle : la ligne entière n'est pas envoyée, donc sa version déjà enregistrée est
+        **supprimée** côté serveur (« 12, » est lu 12, sans perte) ;
+      - **désignation** vide ou faite d'espaces : idem, ligne non envoyée et supprimée ;
+      - **prix unitaire** vide ou illisible (« 12,345 », « abc », « -5 ») : la ligne part
+        avec `unit_price_ht` « 0 », le prix enregistré est **écrasé par 0** ;
+      - remise et frais de port illisibles : 0 ; délai de paiement illisible : `null`
+        (aucune échéance) ; validité du devis illisible : non envoyée (la précédente
+        reste) ; détails et unité : rognés, sans contrôle côté client hors `maxLength`.
+      Effet visible : au rechargement (ou après un conflit) la ligne a disparu ou affiche
+      un prix de 0,00. L'émission et l'envoi sont protégés depuis 6a (`confirm()` valide
+      et réenregistre, aucun document terminé ne part ainsi) : seul le brouillon est
+      touché. Incohérence relevée après 6a (2026-10-30) : les commentaires disaient
+      « ligne invalide non enregistrée » alors qu'un prix invalide est enregistré à 0 ;
+      formulations corrigées en 6b (docstring de `toPayload`, `useIssueFlow`, audit de
+      l'éditeur, spec §12 n° 14a), **comportement inchangé**. Correctif à décider (ne pas
+      enregistrer un champ tant qu'il est invalide, en gardant sa dernière valeur valide),
+      hors 6b.
+
 - [ ] Avoirs (URS-112) : cas d'un second avoir partiel sur la même ligne d'une facture,
       relevé à la revue de la sous-étape 4a (2026-10-30), à reprendre.
 

@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient, type Query, ty
 import { ApiError, apiFetch } from '@/lib/api-client';
 import { qk } from '@/lib/query-keys';
 import type { Invoice, OperationCategory } from './useInvoices';
+import type { Quote } from './useQuotes';
 
 /** Ligne envoyée au brouillon : montants en chaînes décimales (« 40.50 »). */
 export interface DraftLinePayload {
@@ -21,6 +22,8 @@ export interface DraftPayload {
   shipping_amount: string;
   notes: string;
   lines: DraftLinePayload[];
+  /** Devis seulement : durée de validité (1 à 365 jours). */
+  validity_days?: number;
 }
 
 /** Point de la vérification avant émission ; `target` : ce qu'il faut compléter. */
@@ -44,22 +47,28 @@ export interface LineSuggestion {
 /** Document renvoyé par les endpoints de brouillon, selon son type. */
 export interface DraftDocuments {
   invoice: Invoice;
+  quote: Quote;
 }
 export type DraftKind = keyof DraftDocuments;
+/** Brouillon de l'un ou l'autre type : l'éditeur n'en lit que les champs communs. */
+export type DraftDocument = DraftDocuments[DraftKind];
 
 interface DraftKindConfig {
   /** Base des endpoints : `drafts/`, `<id>/`, `<id>/draft/`, `<id>/compliance/`, `<id>/<finalize>/`. */
   api: string;
   /** Base des pages : liste, `new`, `<id>/edit` et détail `<id>`. */
   route: string;
-  /** Action qui termine le brouillon (émission d'une facture). */
+  /** Action qui termine le brouillon : émission d'une facture, envoi d'un devis. */
   finalize: string;
+  /** Page ouverte une fois le brouillon terminé : détail de la facture, liste des devis. */
+  done: (id: string) => string;
   keys: { all: QueryKey; detail: (id: string) => QueryKey; compliance: (id: string) => QueryKey };
 }
 
 /** Seul endroit où la couche brouillon (éditeur, enregistrement, émission) connaît le type de document. */
 export const DRAFT_KINDS: Record<DraftKind, DraftKindConfig> = {
-  invoice: { api: '/invoices', route: '/invoices', finalize: 'issue', keys: qk.invoices },
+  invoice: { api: '/invoices', route: '/invoices', finalize: 'issue', done: (id) => `/invoices/${id}`, keys: qk.invoices },
+  quote: { api: '/quotes', route: '/quotes', finalize: 'send', done: () => '/quotes', keys: qk.quotes },
 };
 
 const json = (data: unknown) => JSON.stringify(data);
@@ -119,7 +128,7 @@ export function useDraftCompliance(kind: DraftKind, id: string | undefined) {
   return useQuery({ ...complianceQueryOptions(kind, id ?? ''), enabled: !!id, placeholderData: keepPreviousData });
 }
 
-/** Émission : `acknowledged_warnings` = recommandations acceptées en connaissance de cause. */
+/** Émission ou envoi : `acknowledged_warnings` = recommandations acceptées en connaissance de cause. */
 export function useFinalizeDraft<K extends DraftKind>(kind: K) {
   const qc = useQueryClient();
   const { api, finalize, keys } = DRAFT_KINDS[kind];

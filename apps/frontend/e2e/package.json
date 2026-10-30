@@ -30,6 +30,7 @@
     "audit:exports-stock": "node audit-exports-stock.mjs",
     "audit:invoices": "node audit-invoices.mjs",
     "audit:invoice-editor": "node audit-invoice-editor.mjs",
+    "audit:quotes": "node audit-quotes.mjs",
     "audit:scroll-lock": "node audit-scroll-lock.mjs",
     "audit:header-bands": "node audit-header-bands.mjs",
     "audit:show-more": "node audit-show-more.mjs",

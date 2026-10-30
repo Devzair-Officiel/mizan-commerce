@@ -850,8 +850,8 @@ class ResetAuditShopTest(TestCase):
         )
         self.assertEqual(
             sorted(owners.values_list('name', flat=True)),
-            ['Boutique Audit', 'Boutique Audit 2', 'Boutique Audit Factures',
-             'Boutique Audit Éditeur'],
+            ['Boutique Audit', 'Boutique Audit 2', 'Boutique Audit Devis',
+             'Boutique Audit Factures', 'Boutique Audit Éditeur'],
         )
         invoices = Shop.objects.get(name='Boutique Audit Factures')
         self.assertEqual(
@@ -865,6 +865,13 @@ class ResetAuditShopTest(TestCase):
             sorted((i.status, i.lines.count()) for i in editor.invoices.all()),
             [('draft', 0), ('draft', 2)],
         )
+        # Boutique d'audit-quotes : aucun devis au départ.
+        quotes = Shop.objects.get(name='Boutique Audit Devis')
+        self.assertEqual(
+            set(quotes.members.values_list('user__email', flat=True)),
+            {'e2e-quotes@example.com', 'e2e-quotes-staff@example.com'},
+        )
+        self.assertFalse(quotes.quotes.exists())
         shop = Shop.objects.get(name='Boutique Audit 2')
         self.assertEqual(
             set(shop.members.values_list('user__email', flat=True)),

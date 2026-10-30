@@ -25,12 +25,14 @@ from ._seed_invoices import seed_invoice_drafts
 # (apps/frontend/e2e/run-audits.mjs) travaillent chacun sur leurs propres données.
 # S'y ajoutent deux boutiques réservées, hors emplacements : celle d'audit-invoices,
 # qui compte ses factures au plus près (celles d'invoice-settings et d'order-numbers
-# ne doivent pas s'y mêler), et celle d'audit-invoice-editor, dont les brouillons
-# de départ ne doivent pas entrer dans ce compte.
+# ne doivent pas s'y mêler), celle d'audit-invoice-editor, dont les brouillons
+# de départ ne doivent pas entrer dans ce compte, et celle d'audit-quotes, qui part
+# sans aucun devis.
 INVOICES_AUDIT = 'invoices'
 INVOICE_EDITOR_AUDIT = 'invoice-editor'
-RESERVED_AUDITS = (INVOICES_AUDIT, INVOICE_EDITOR_AUDIT)
-AUDIT_EMAIL_RE = r'^e2e([0-9]*|-invoices|-invoice-editor)@example\.com$'
+QUOTES_AUDIT = 'quotes'
+RESERVED_AUDITS = (INVOICES_AUDIT, INVOICE_EDITOR_AUDIT, QUOTES_AUDIT)
+AUDIT_EMAIL_RE = r'^e2e([0-9]*|-invoices|-invoice-editor|-quotes)@example\.com$'
 
 
 def audit_emails(slot: int | str) -> tuple[str, str]:
@@ -39,7 +41,8 @@ def audit_emails(slot: int | str) -> tuple[str, str]:
     1 → e2e@example.com / e2e-staff@example.com,
     2 → e2e2@example.com / e2e2-staff@example.com…,
     'invoices' → e2e-invoices@example.com / e2e-invoices-staff@example.com,
-    'invoice-editor' → e2e-invoice-editor@example.com / e2e-invoice-editor-staff@….
+    'invoice-editor' → e2e-invoice-editor@example.com / e2e-invoice-editor-staff@…,
+    'quotes' → e2e-quotes@example.com / e2e-quotes-staff@example.com.
     """
     if isinstance(slot, str):
         prefix = f'e2e-{slot}'
@@ -53,6 +56,8 @@ def _shop_name(slot: int | str) -> str:
         return 'Boutique Audit Factures'
     if slot == INVOICE_EDITOR_AUDIT:
         return 'Boutique Audit Éditeur'
+    if slot == QUOTES_AUDIT:
+        return 'Boutique Audit Devis'
     return 'Boutique Audit' if slot == 1 else f'Boutique Audit {slot}'
 
 # Client avec une commande impayée : l'audit y teste « Relancer » (WhatsApp).

@@ -3277,7 +3277,8 @@
       "sort_label": "Trié par {field}, {dir, select, asc {ordre croissant} other {ordre décroissant}}",
       "no_number": "Sans numéro",
       "drafts_group": "Brouillons",
-      "create": "Nouvelle facture"
+      "create": "Nouvelle facture",
+      "quotes_link": "Devis"
     },
     "detail": {
       "title": "Facture",
@@ -3335,8 +3336,8 @@
       "balance": "Solde total du compte"
     },
     "editor": {
-      "title": "Nouvelle facture",
-      "back": "Factures",
+      "title": "{doc, select, invoice {Nouvelle facture} quote {Nouveau devis} other {Nouvelle facture}}",
+      "back": "{doc, select, invoice {Factures} quote {Devis} other {Factures}}",
       "save_status": "Brouillon · {value, select, saving {enregistrement…} error {non enregistré} conflict {modifié ailleurs} saved {{auto, select, yes {enregistré automatiquement à {time}} other {enregistré à {time}}}} other {pas encore enregistré}}",
       "deleted": "Brouillon supprimé.",
       "delete_error": "Impossible de supprimer le brouillon. Réessayez.",
@@ -3346,13 +3347,13 @@
       "keep": "Conserver",
       "conflict": "Ce brouillon a été modifié ailleurs (autre onglet ou appareil). Rechargez-le pour continuer : vos dernières saisies ici ne seront pas gardées.",
       "reload": "Recharger",
-      "not_draft": "Cette facture est émise : elle ne peut plus être modifiée.",
-      "open_invoice": "Voir la facture",
-      "not_found": "Facture introuvable.",
+      "not_draft": "{doc, select, invoice {Cette facture est émise : elle ne peut plus être modifiée.} quote {Ce devis est envoyé : il ne peut plus être modifié.} other {Cette facture est émise : elle ne peut plus être modifiée.}}",
+      "open_document": "{doc, select, invoice {Voir la facture} quote {Voir le devis} other {Voir la facture}}",
+      "not_found": "{doc, select, invoice {Facture introuvable.} quote {Devis introuvable.} other {Facture introuvable.}}",
       "save_error": "Le brouillon n'a pas pu être enregistré. Vérifiez votre connexion.",
-      "issue_error": "La facture n'a pas pu être émise. Réessayez.",
-      "issue_invalid": "Corrigez les champs signalés avant d'émettre la facture.",
-      "issued": "Facture {number} émise.",
+      "issue_error": "{doc, select, invoice {La facture n'a pas pu être émise. Réessayez.} quote {Le devis n'a pas pu être envoyé. Réessayez.} other {La facture n'a pas pu être émise. Réessayez.}}",
+      "issue_invalid": "{doc, select, invoice {Corrigez les champs signalés avant d'émettre la facture.} quote {Corrigez les champs signalés avant d'envoyer le devis.} other {Corrigez les champs signalés avant d'émettre la facture.}}",
+      "issued": "{doc, select, invoice {Facture {number} émise.} quote {Devis {number} marqué comme envoyé. Transmettez son PDF à votre client.} other {Facture {number} émise.}}",
       "amount_invalid": "Montant invalide (2 décimales au plus).",
       "quantity_invalid": "Quantité invalide (3 décimales au plus).",
       "days_invalid": "Délai entre 0 et 365 jours.",
@@ -3360,22 +3361,25 @@
         "title": "Récapitulatif",
         "terms": "Échéance",
         "terms_value": "{terms, select, none {Aucune} receipt {À réception} other {{days, plural, one {# jour} other {# jours}}}}",
-        "recommended": "{count, plural, one {# info recommandée (pour une facture officielle)} other {# infos recommandées (pour une facture officielle)}}",
-        "issue": "Émettre la facture",
-        "estimate": "Montants estimés : les totaux définitifs sont calculés à l'émission.",
-        "total": "Total TTC"
+        "recommended": "{doc, select, invoice {{count, plural, one {# info recommandée (pour une facture officielle)} other {# infos recommandées (pour une facture officielle)}}} quote {{count, plural, one {# info recommandée (pour un devis complet)} other {# infos recommandées (pour un devis complet)}}} other {{count, plural, one {# info recommandée (pour une facture officielle)} other {# infos recommandées (pour une facture officielle)}}}}",
+        "issue": "{doc, select, invoice {Émettre la facture} quote {Envoyer le devis} other {Émettre la facture}}",
+        "estimate": "{doc, select, invoice {Montants estimés : les totaux définitifs sont calculés à l'émission.} quote {Montants estimés : les totaux définitifs sont calculés à l'envoi.} other {Montants estimés : les totaux définitifs sont calculés à l'émission.}}",
+        "total": "Total TTC",
+        "validity": "Validité",
+        "validity_value": "{days, plural, one {# jour} other {# jours}}"
       },
       "extras": {
         "title": "Remise, conditions et notes",
-        "description": "Remise, frais de port, nature de l'opération, échéance et notes imprimées.",
-        "summary": "{hasDiscount, select, yes {Remise de {discount}} other {Aucune remise}} · {terms, select, none {sans échéance} receipt {paiement à réception} other {échéance à {days, plural, one {# jour} other {# jours}}}}",
+        "description": "{doc, select, invoice {Remise, frais de port, nature de l'opération, échéance et notes imprimées.} quote {Remise, frais de port, nature de l'opération, validité, échéance et notes imprimées.} other {Remise, frais de port, nature de l'opération, échéance et notes imprimées.}}",
+        "summary": "{doc, select, invoice {{hasDiscount, select, yes {Remise de {discount}} other {Aucune remise}} · {terms, select, none {sans échéance} receipt {paiement à réception} other {échéance à {days, plural, one {# jour} other {# jours}}}}} quote {{hasDiscount, select, yes {Remise de {discount}} other {Aucune remise}} · valable {validity, plural, one {# jour} other {# jours}} · {terms, select, none {sans échéance} receipt {paiement à réception} other {échéance à {days, plural, one {# jour} other {# jours}}}}} other {{hasDiscount, select, yes {Remise de {discount}} other {Aucune remise}} · {terms, select, none {sans échéance} receipt {paiement à réception} other {échéance à {days, plural, one {# jour} other {# jours}}}}}}",
         "discount": "Remise HT",
         "shipping": "Frais de port HT",
         "operation": "Nature de l'opération",
         "operation_option": "{value, select, goods {Livraison de biens} services {Prestation de services} other {Biens et services}}",
         "terms": "Délai de paiement",
         "days_suffix": "jours",
-        "notes": "Notes (imprimées sur la facture)"
+        "notes": "{doc, select, invoice {Notes (imprimées sur la facture)} quote {Notes (imprimées sur le devis)} other {Notes (imprimées sur la facture)}}",
+        "validity": "Validité du devis"
       },
       "customer": {
         "title": "Client",
@@ -3426,25 +3430,51 @@
       },
       "unit": {
         "title": "Unité",
-        "description": "Imprimée telle quelle sur la facture.",
+        "description": "Imprimée telle quelle à côté de la quantité.",
         "presets": "Unités courantes",
         "preset": "{value, select, night {nuit} hour {heure} day {jour} week {semaine} trip {trajet} person {personne} flat {forfait} other {pièce}}",
         "custom": "Autre unité",
         "confirm": "Valider"
       },
       "check": {
-        "title": "Vérification avant émission",
-        "intro_blocking": "Complétez ces points pour émettre la facture.",
-        "intro_recommended": "Ces infos figurent normalement sur une facture officielle en France. Une fois émise, la facture ne peut plus être modifiée.",
-        "intro_ready": "Tout est prêt. Une fois émise, la facture reçoit son numéro et ne peut plus être modifiée.",
+        "title": "{doc, select, invoice {Vérification avant émission} quote {Vérification avant envoi} other {Vérification avant émission}}",
+        "intro_blocking": "{doc, select, invoice {Complétez ces points pour émettre la facture.} quote {Complétez ces points pour envoyer le devis.} other {Complétez ces points pour émettre la facture.}}",
+        "intro_recommended": "{doc, select, invoice {Ces infos figurent normalement sur une facture officielle en France. Une fois émise, la facture ne peut plus être modifiée.} quote {Ces infos figurent normalement sur un devis en France. Une fois envoyé, le devis ne peut plus être modifié.} other {Ces infos figurent normalement sur une facture officielle en France. Une fois émise, la facture ne peut plus être modifiée.}}",
+        "intro_ready": "{doc, select, invoice {Tout est prêt. Une fois émise, la facture reçoit son numéro et ne peut plus être modifiée.} quote {Tout est prêt. Une fois envoyé, le devis reçoit son numéro et ne peut plus être modifié.} other {Tout est prêt. Une fois émise, la facture reçoit son numéro et ne peut plus être modifiée.}}",
         "cancel": "Annuler",
-        "issue_anyway": "Émettre quand même",
+        "issue_anyway": "{doc, select, invoice {Émettre quand même} quote {Envoyer quand même} other {Émettre quand même}}",
         "complete": "Compléter",
-        "issue": "Émettre",
-        "issue_title": "{code, select, no_lines {Aucune ligne} zero_total {Total nul} no_customer {Aucun client} seller_address {Adresse de votre boutique} seller_identifier {SIRET de votre boutique} vat_number {Numéro de TVA} customer_siren {SIREN du client} late_penalties {Pénalités de retard} other {Point à vérifier}}",
-        "issue_hint": "{code, select, no_lines {Ajoutez au moins une ligne} zero_total {Le total doit être positif} no_customer {Choisissez ou créez un client} customer_siren {Client professionnel} late_penalties {Mentions légales, Paramètres, Factures} other {Paramètres, Factures}}"
-      }
+        "issue": "{doc, select, invoice {Émettre} quote {Envoyer} other {Émettre}}",
+        "issue_title": "{code, select, no_lines {Aucune ligne} zero_total {Total nul} no_customer {Aucun client} seller_address {Adresse de votre boutique} seller_identifier {SIRET de votre boutique} vat_number {Numéro de TVA} customer_siren {SIREN du client} late_penalties {Pénalités de retard} seller_name {Nom de votre boutique} zero_tax_rate {Taux de TVA à 0 %} payment_methods {Moyens de paiement acceptés} other {Point à vérifier}}",
+        "issue_hint": "{code, select, no_lines {Ajoutez au moins une ligne} zero_total {Le total doit être positif} no_customer {Choisissez ou créez un client} customer_siren {Client professionnel} late_penalties {Mentions légales, Paramètres, Factures} seller_name {Paramètres, Identité} other {Paramètres, Factures}}"
+      },
+      "validity_invalid": "Validité entre 1 et 365 jours."
     }
+  },
+  "quotes": {
+    "title": "Devis",
+    "count": "{count, plural, one {# devis} other {# devis}}",
+    "create": "Nouveau devis",
+    "empty_title": "Aucun devis",
+    "empty_body": "Chiffrez une prestation ou une commande avant de la facturer.",
+    "load_error": "Impossible de charger les devis. Réessayez.",
+    "load_more": "Charger plus",
+    "no_number": "Sans numéro",
+    "no_customer": "Sans client",
+    "status": "{value, select, draft {Brouillon} sent {Envoyé} accepted {Accepté} declined {Refusé} expired {Expiré} invoiced {Facturé} other {Brouillon}}",
+    "valid_until": "Valable jusqu'au {date}",
+    "columns": {
+      "number": "Numéro",
+      "buyer_name": "Client",
+      "sent_at": "Envoyé le",
+      "valid_until": "Valable jusqu'au",
+      "total_ttc": "Montant",
+      "status": "Statut"
+    },
+    "pdf_title": "Devis {number}",
+    "pdf_body": "Le détail du devis arrive bientôt. Ouvrez son PDF pour le consulter ou le transmettre.",
+    "open_pdf": "Ouvrir le PDF",
+    "not_found": "Devis introuvable."
   },
   "reminders": {
     "title": "Rappels",

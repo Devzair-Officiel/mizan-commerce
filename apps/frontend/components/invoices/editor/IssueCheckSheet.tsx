@@ -4,9 +4,10 @@ import { useTranslations } from 'next-intl';
 import { AlertTriangle, CircleAlert } from 'lucide-react';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/button';
-import type { ComplianceIssue } from '@/lib/hooks/useDocumentDrafts';
+import type { ComplianceIssue, DraftKind } from '@/lib/hooks/useDocumentDrafts';
 
 interface IssueCheckSheetProps {
+  kind: DraftKind;
   issues: ComplianceIssue[] | null;
   issuing: boolean;
   onClose: () => void;
@@ -16,11 +17,11 @@ interface IssueCheckSheetProps {
 }
 
 /**
- * Vérification avant émission. Sans point : confirmer. Recommandations seules : « Émettre quand
- * même » ou compléter. Un point bloquant : compléter seulement. Le texte n'affirme jamais une
+ * Vérification avant émission (facture) ou envoi (devis). Sans point : confirmer. Recommandations
+ * seules : « Émettre » ou « Envoyer quand même », ou compléter. Un point bloquant : compléter seulement. Le texte n'affirme jamais une
  * conformité légale.
  */
-export function IssueCheckSheet({ issues, issuing, onClose, onIssue, onComplete }: IssueCheckSheetProps) {
+export function IssueCheckSheet({ kind, issues, issuing, onClose, onIssue, onComplete }: IssueCheckSheetProps) {
   const t = useTranslations('invoices.editor.check');
   const list = issues ?? [];
   const blocking = list.some((i) => i.level === 'blocking');
@@ -28,12 +29,12 @@ export function IssueCheckSheet({ issues, issuing, onClose, onIssue, onComplete 
   const intro = blocking ? 'intro_blocking' : list.length ? 'intro_recommended' : 'intro_ready';
   const footer = <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
     {!first && <Button type="button" variant="outline" className="h-11 rounded-full" onClick={onClose}>{t('cancel')}</Button>}
-    {first && !blocking && <Button type="button" variant="outline" className="h-11 rounded-full" disabled={issuing} onClick={onIssue}>{t('issue_anyway')}</Button>}
+    {first && !blocking && <Button type="button" variant="outline" className="h-11 rounded-full" disabled={issuing} onClick={onIssue}>{t('issue_anyway', { doc: kind })}</Button>}
     {first
       ? <Button type="button" className="h-11 rounded-full" onClick={() => onComplete(first)}>{t('complete')}</Button>
-      : <Button type="button" className="h-11 rounded-full" disabled={issuing} onClick={onIssue}>{t('issue')}</Button>}
+      : <Button type="button" className="h-11 rounded-full" disabled={issuing} onClick={onIssue}>{t('issue', { doc: kind })}</Button>}
   </div>;
-  return <BottomSheet open={issues !== null} onClose={onClose} title={t('title')} description={t(intro)} footer={footer}>
+  return <BottomSheet open={issues !== null} onClose={onClose} title={t('title', { doc: kind })} description={t(intro, { doc: kind })} footer={footer}>
     {first && <ul className="flex flex-col divide-y divide-border">
       {list.map((issue) => <li key={issue.code} className="flex items-center gap-3 py-3">
         <span className={`grid size-9 shrink-0 place-items-center rounded-full ${issue.level === 'blocking' ? 'bg-red-500/10 text-red-700 dark:text-red-400' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400'}`}>

@@ -13,6 +13,6 @@ export default function NewInvoicePage() {
   return <div className="mx-auto w-full max-w-280">
     {shop
       ? <InvoiceEditor kind="invoice" shop={shop} />
-      : <><TopBar title={t('title')} back backLabel={t('back')} onBack={back} hideSearch /><div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" /></>}
+      : <><TopBar title={t('title', { doc: 'invoice' })} back backLabel={t('back', { doc: 'invoice' })} onBack={back} hideSearch /><div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" /></>}
   </div>;
 }

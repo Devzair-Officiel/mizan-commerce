@@ -16,10 +16,10 @@ export default function EditInvoicePage() {
   const { data: shop } = useShop();
   return <div className="mx-auto w-full max-w-280">
     {invoice && shop
-      ? <DraftGate key={invoice.id} kind="invoice" invoice={invoice} shop={shop} />
-      : <><TopBar title={t('title')} back backLabel={t('back')} onBack={back} hideSearch />
+      ? <DraftGate key={invoice.id} kind="invoice" draft={invoice} shop={shop} />
+      : <><TopBar title={t('title', { doc: 'invoice' })} back backLabel={t('back', { doc: 'invoice' })} onBack={back} hideSearch />
         {isLoading || !shop
           ? <div className="mx-4 h-96 animate-pulse rounded-2xl bg-muted" />
-          : <p role="alert" className="p-4 text-sm text-destructive">{t('not_found')}</p>}</>}
+          : <p role="alert" className="p-4 text-sm text-destructive">{t('not_found', { doc: 'invoice' })}</p>}</>}
   </div>;
 }
