@@ -37,7 +37,7 @@ updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 
 - **Multi-tenant strict** : toute table métier porte `shop_id` (sauf `users`, `partner_profiles`, `subscription_plans`, `audit_logs`, `subscriptions`).
 - **Soft delete** : on **ne supprime jamais** un produit, un client, un projet, ni une commande. On utilise `is_active = false` ou un statut `cancelled` / `archived`. Seule exception : un article ou un format qui n'a jamais servi (aucune ligne de commande, aucun mouvement autre que son stock initial) peut être supprimé, avec son mouvement de stock initial (URS-103).
-- **Historique protégé** : la suppression d'un objet métier n'efface jamais un historique en cascade. Les FK d'historique sans instantané sont en `ON DELETE RESTRICT` (`stock_movements.variant_id`, `orders.customer_id`, `order_items.order_id`, `invoice_lines.invoice_id`, `notes.customer_id` / `order_id`, `ocr_results.uploaded_document_id`, `loyalty_cards.customer_id`, `loyalty_transactions.card_id`) ; celles dont l'historique garde un instantané sont en `SET_NULL` (`order_items.variant_id`, `invoices.order_id` / `customer_id`, `prepared_messages.customer_id`, `reminders.*`, `stock_movements.ocr_result_id`). `RESTRICT` plutôt que `PROTECT` : la suppression de toute la boutique (cascade depuis `shops`) reste possible.
+- **Historique protégé** : la suppression d'un objet métier n'efface jamais un historique en cascade. Les FK d'historique sans instantané sont en `ON DELETE RESTRICT` (`stock_movements.variant_id`, `orders.customer_id`, `order_items.order_id`, `invoice_lines.invoice_id`, `quote_lines.quote_id`, `notes.customer_id` / `order_id`, `ocr_results.uploaded_document_id`, `loyalty_cards.customer_id`, `loyalty_transactions.card_id`) ; celles dont l'historique garde un instantané sont en `SET_NULL` (`order_items.variant_id`, `invoices.order_id` / `customer_id`, `quotes.customer_id`, `prepared_messages.customer_id`, `reminders.*`, `stock_movements.ocr_result_id`). `RESTRICT` plutôt que `PROTECT` : la suppression de toute la boutique (cascade depuis `shops`) reste possible.
 - **Stock** : le stock est porté par la **variante** (`product_variants`), pas par le produit. La quantité d'une variante n'est **jamais réécrite** directement : elle se déduit (et se cache dans `product_variants.stock_quantity`) à partir de la somme des `stock_movements` de cette variante.
 - **Argent** : tous les montants sont dans la devise de la boutique (`shops.currency`). Pas de multi-devise par boutique en V1.
 - **Facturation** : une facture émise est **immuable** (montants, numéro, snapshots). Seul le `status` peut évoluer (`issued` → `paid`/`cancelled`). Contrainte légale ; toute correction se ferait par avoir (non couvert V1).
@@ -57,7 +57,8 @@ Stock                       stock_movements
 Clients                     customers, loyalty_programs, loyalty_cards,
                             loyalty_transactions
 Commandes                   orders, order_items, shipments*
-Facturation                 invoices, invoice_lines, invoice_sequences
+Facturation                 invoices, invoice_lines, document_sequences,
+                            quotes, quote_lines
 Productivité                notes, reminders, reminder_settings
 Zakat                       zakat_profiles, zakat_calculations,
                             zakat_receivable_followups
@@ -91,7 +92,7 @@ erDiagram
     shops ||--o{ customers : "a"
     shops ||--o{ orders : "enregistre"
     shops ||--o{ invoices : "émet"
-    shops ||--|| invoice_sequences : "compteur factures"
+    shops ||--o{ document_sequences : "compteurs par type"
     shops ||--|| public_pages : "a une vitrine"
 
     products ||--o{ product_variants : "décliné en"
@@ -112,6 +113,9 @@ erDiagram
     orders ||--o{ prepared_messages : "génère"
 
     invoices ||--o{ invoice_lines : "détaille"
+    shops ||--o{ quotes : "propose"
+    quotes ||--o{ quote_lines : "détaille"
+    quotes |o--o| invoices : "converti en"
 
     public_pages ||--o{ public_page_sections : "structure"
     public_pages ||--o{ public_product_visibilities : "expose"
@@ -571,7 +575,7 @@ Informations d'expédition d'une commande (1-1 avec `orders`).
 Émission de factures client à partir d'une commande. Implémenté en Phase MVP (URS-094 à URS-099, plan §Facturation client). Facture libre, sans commande, rédigée en brouillon puis émise (URS-110, `invoices/drafts.py`).
 
 Contexte légal (FR/UE) : une facture émise est **immuable** sur son numéro, ses montants, et ses snapshots vendeur/acheteur. La numérotation doit être **continue et sans trou** par entité émettrice. On modélise ces règles avec :
-- un compteur atomique par boutique (`invoice_sequences`) verrouillé via `SELECT … FOR UPDATE` au moment de l'émission ;
+- un compteur atomique par boutique et par type de document (`document_sequences`) verrouillé via `SELECT … FOR UPDATE` au moment de l'émission ;
 - des snapshots complets des coordonnées vendeur et acheteur (`seller_*`, `buyer_*`) figés dans `invoices` ;
 - des lignes de facture (`invoice_lines`) découplées des `order_items` : la suppression ou la modification d'une commande n'altère jamais la facture.
 
@@ -667,21 +671,76 @@ Ligne de facture — snapshot d'un item de commande au moment de l'émission, ou
 
 ---
 
-### `invoice_sequences`
+### `document_sequences`
 
-Compteur atomique du numéro de facture par boutique. **Continu** (jamais reset, ne se recycle pas), verrouillé via `SELECT … FOR UPDATE` au moment de l'émission pour garantir la continuité de la séquence (exigence légale FR : art. 242 nonies A CGI, EU : Directive TVA).
+Compteur atomique du numéro de document par boutique **et par type** (facture, devis, avoir). **Continu** (jamais reset, ne se recycle pas), verrouillé via `SELECT … FOR UPDATE` au moment de l'émission pour garantir la continuité de chaque série (exigence légale FR : art. 242 nonies A CGI, EU : Directive TVA). Ancienne table `invoice_sequences`, transformée sur place par la migration `invoices.0009` (les compteurs existants deviennent `kind = 'invoice'`, sans changement du prochain numéro).
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
 | id | UUID | PK | |
-| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL, UNIQUE (OneToOne) | Un compteur par boutique. |
-| last_number | INTEGER | NOT NULL, DEFAULT 0 | Dernier numéro attribué. Incrémenté sous verrou ligne dans `_next_invoice_number`. |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| kind | VARCHAR(12) | NOT NULL, `invoice` \| `quote` \| `credit_note` | Type de document de la série. |
+| last_number | INTEGER | NOT NULL, DEFAULT 0 | Dernier numéro attribué. Incrémenté sous verrou ligne dans `_next_number`. |
 | updated_at | TIMESTAMPTZ | NOT NULL | |
 
+Contrainte : `UNIQUE (shop_id, kind)` (`unique_document_sequence_per_shop_kind`), un compteur par boutique et par type.
+
 **Règles métier** :
-- Format du numéro : `fact-DDMMYY-NNNN` où `DDMMYY` est la date d'émission (marqueur, ne reset **rien**) et `NNNN` le compteur continu par boutique sur 4 chiffres minimum (s'étend au-delà de 9999).
+- Format du numéro : `fact-DDMMYY-NNNN` (devis : `devis-…`, avoirs : `avoir-…`) où `DDMMYY` est la date d'émission (marqueur, ne reset **rien**) et `NNNN` le compteur continu par boutique et par type sur 4 chiffres minimum (s'étend au-delà de 9999).
 - L'ancienne unicité `(shop, year)` avec un compteur reseté par année a été retirée (migration `invoices.0002`) : le compteur est désormais global à la boutique, pour respecter la continuité stricte.
 - L'incrément est **atomique** avec la création de la facture (`@transaction.atomic` sur `issue_invoice_from_order`) : si l'écriture échoue, aucun numéro n'est consommé.
+
+---
+
+### `quotes`
+
+Devis (URS-111, app `quotes`). Mêmes champs vendeur, acheteur, montants, `presentation`, `notes`, `currency` et `pdf_object_key` que `invoices` (modèle abstrait commun `BillingDocument`) ; ne sont listés ici que les champs propres au devis.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | |
+| customer_id | UUID | FK → customers.id, SET_NULL | Client du devis (coordonnées snapshottées à l'envoi) |
+| invoice_id | UUID | FK → invoices.id, UNIQUE (OneToOne), NULL | Facture issue du devis ; seul lien entre les deux (`invoice.quote` par le lien inverse). Suppression du brouillon de facture : le devis redevient `accepted`, sans facture (`on_delete` `reopen_quote`). |
+| number | VARCHAR(40) | DEFAULT `''` | `devis-DDMMYY-NNNN`, attribué à l'envoi ; vide pour un brouillon |
+| status | VARCHAR(12) | NOT NULL, DEFAULT `'draft'` | `draft`, `sent`, `accepted`, `declined`, `expired`, `invoiced` |
+| validity_days | SMALLINT | NOT NULL, DEFAULT 30, 1–365 | Durée de validité choisie sur le brouillon |
+| valid_until | DATE | NULL | Jour local d'envoi + `validity_days` ; NULL pour un brouillon |
+| payment_terms_days | SMALLINT | NULL | Délai de paiement proposé ; figé à l'envoi (délai de la boutique par défaut) |
+| sent_at | TIMESTAMPTZ | NULL | Envoi (sert au marqueur `DDMMYY` du numéro) |
+| viewed_at | TIMESTAMPTZ | NULL | Première consultation de la page client |
+| accepted_at | TIMESTAMPTZ | NULL | Accord du client |
+| accepted_name | VARCHAR(200) | DEFAULT `''` | Nom de la personne qui a donné son accord |
+| declined_at | TIMESTAMPTZ | NULL | Refus du client |
+
+`presentation` d'un devis : la partie commune aux factures (`shop_presentation` : langue, couleur, logo, activité, contacts, `siret`, régime et n° de TVA, règlement, IBAN/BIC), plus `sent_date`, `valid_until`, `validity_days`, `operation_category`.
+
+**Contrainte** : `UNIQUE (shop_id, number) WHERE number <> ''` (`unique_quote_number_per_shop`).
+**Index** : `(shop_id, -sent_at)`, `(shop_id, status)`, `(status, valid_until)` (expiration quotidienne).
+**Ordering** : `-sent_at, -created_at`.
+
+**Règles métier** (`quotes/services.py`) :
+- **Brouillon** : modifiable (concurrence optimiste sur `updated_at`) et supprimable, comme un brouillon de facture.
+- **Envoi** : verrou de la boutique, numéro de la série `quote`, instantanés vendeur/acheteur, `presentation` et `valid_until` figés, puis `draft → sent` par mise à jour conditionnelle. Envoyé, le devis est **immuable** (lignes, montants, instantanés) ; seul le statut évolue, une révision est une copie en brouillon.
+- **Transitions** par `filter(pk, status__in=…).update(…)` : `sent → accepted` (`accepted_at`, `accepted_name`), `sent → declined`, `sent → expired` (tâche quotidienne, `valid_until` antérieur au jour local de la boutique), `accepted → invoiced`.
+- **Conversion** : crée une facture en brouillon (lignes, client et conditions du devis) puis la rattache par `filter(pk, shop, status='accepted', invoice__isnull=True).update(status='invoiced', invoice=…)`, dans la même transaction : 0 ligne = erreur, le brouillon est annulé avec elle.
+- Un devis ne touche jamais au stock.
+
+---
+
+### `quote_lines`
+
+Ligne de devis : mêmes champs que `invoice_lines` (modèle abstrait commun `BillingLine`), montants HT.
+
+| Champ | Type | Contraintes | Description |
+|---|---|---|---|
+| id | UUID | PK | |
+| shop_id | UUID | FK → shops.id, CASCADE, NOT NULL | Redondant pour sécurité |
+| quote_id | UUID | FK → quotes.id, RESTRICT, NOT NULL | |
+| product_name, variant_name, description, details, unit, position, quantity, unit_price_ht, line_subtotal_ht, created_at | | | Comme `invoice_lines` |
+
+**Index** : `(quote_id)`.
+**Ordering** : `position, created_at`.
 
 ---
 
@@ -1498,5 +1557,5 @@ Le backend Django définirait `SET LOCAL app.current_shop_id = '...'` au début 
 - [ ] Tous les `created_at` / `updated_at` sont en `TIMESTAMPTZ`.
 - [ ] Index sur `shop_id` partout pour éviter les full scans en multi-tenant.
 - [ ] Une facture émise (`invoices`) ne modifie que `status`, `paid_at`, `cancelled_at`, `amount_paid`, `pdf_object_key` ; tous les autres champs sont figés côté service.
-- [ ] La numérotation des factures (`invoice_sequences.last_number`) n'est incrémentée qu'à l'intérieur d'une transaction avec `SELECT … FOR UPDATE` — jamais reset, jamais recyclée.
+- [ ] La numérotation des documents (`document_sequences.last_number`) n'est incrémentée qu'à l'intérieur d'une transaction avec `SELECT … FOR UPDATE` — jamais reset, jamais recyclée.
 - [ ] Les modifications de stock passent obligatoirement par la création d'un `stock_movements` sur une `variant_id` ; jamais d'écriture directe sur `product_variants.stock_quantity`.

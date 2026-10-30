@@ -70,18 +70,17 @@ def update_invoice_settings(shop: Shop, data: dict) -> Shop:
     return shop
 
 
-def snapshot_presentation(
-    invoice: Invoice,
+def shop_presentation(
     shop: Shop,
     *,
     language: str,
     terms: int,
     branded: bool | None = None,
 ) -> dict:
-    """Instantané de présentation figé à l'émission.
+    """Partie commune aux factures et aux devis : identité, mentions, règlement.
 
     Logo et couleur d'accent relèvent de `invoice_branding` (formule Boutique) :
-    en dessous, la facture sort neutre, les réglages restent enregistrés.
+    en dessous, le document sort neutre, les réglages restent enregistrés.
     `branded` force le choix (maquette de référence, sans boutique en base).
     """
     if branded is None:
@@ -92,12 +91,8 @@ def snapshot_presentation(
     )
     methods = list(shop.invoice_payment_methods)
     transfer = 'transfer' in methods
-    order = invoice.order
     return {
         'version': 1,
-        'issued_date': invoice.issued_at.astimezone(ZoneInfo(shop.timezone))
-        .date()
-        .isoformat(),
         'language': 'en' if language == 'en' else 'fr',
         'color': resolved_color(shop) if branded else '',
         'logo_object_key': shop.logo_object_key if branded else '',
@@ -112,6 +107,24 @@ def snapshot_presentation(
         'payment_methods': methods,
         'iban': shop.invoice_iban if transfer else '',
         'bic': shop.invoice_bic if transfer else '',
+    }
+
+
+def snapshot_presentation(
+    invoice: Invoice,
+    shop: Shop,
+    *,
+    language: str,
+    terms: int,
+    branded: bool | None = None,
+) -> dict:
+    """Instantané de présentation figé à l'émission."""
+    order = invoice.order
+    return {
+        **shop_presentation(shop, language=language, terms=terms, branded=branded),
+        'issued_date': invoice.issued_at.astimezone(ZoneInfo(shop.timezone))
+        .date()
+        .isoformat(),
         'order_number': order.order_number if shop.invoice_show_order and order else '',
         'order_date': order.created_at.astimezone(ZoneInfo(shop.timezone))
         .date()
@@ -128,8 +141,10 @@ def snapshot_presentation(
 def account_summary(invoice: Invoice) -> dict:
     """Dettes antérieures nettes et règlements de la présente facture.
 
-    Les paiements des autres factures sont déjà déduits de previous_balance.
-    Sans client identifié, ne jamais agréger les ventes anonymes de la boutique.
+    Les paiements et les avoirs des autres factures sont déjà déduits de
+    previous_balance ; un avoir n'est jamais une dette, et un trop-perçu ne
+    réduit pas le solde. Sans client identifié, ne jamais agréger les ventes
+    anonymes de la boutique.
     """
     previous = []
     if invoice.customer_id:
@@ -137,12 +152,16 @@ def account_summary(invoice: Invoice) -> dict:
             Invoice.objects.filter(
                 shop_id=invoice.shop_id,
                 customer_id=invoice.customer_id,
+                kind=Invoice.KIND_INVOICE,
                 issued_at__lt=invoice.issued_at,
                 status=Invoice.STATUS_ISSUED,
                 total_ttc__gt=0,
             ).exclude(pk=invoice.pk)
         )
-    unpaid = [(i, max(Decimal('0'), i.total_ttc - i.amount_paid)) for i in previous]
+    unpaid = [
+        (i, max(Decimal('0'), i.total_ttc - i.credited_total - i.amount_paid))
+        for i in previous
+    ]
     balance = sum((amount for _, amount in unpaid), Decimal('0'))
     received = min(max(invoice.amount_paid, Decimal('0')), invoice.total_ttc)
     return {

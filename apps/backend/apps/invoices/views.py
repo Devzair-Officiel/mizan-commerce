@@ -12,7 +12,7 @@ HasInvoicesModule = HasModulePermission.for_module('invoices')
 HasInvoicesPlan = HasPlanForFeature.for_feature('invoices')
 from apps.orders.models import Order  # noqa: E402
 
-from . import services  # noqa: E402
+from . import listing, services  # noqa: E402
 from .models import Invoice  # noqa: E402
 from .filters import INVOICE_SEARCH_FIELDS, InvoiceOrderingFilter  # noqa: E402
 from .serializers import (  # noqa: E402
@@ -24,6 +24,14 @@ from .serializers import (  # noqa: E402
 DRAFT_STATUS_ERROR = {
     'detail': "Un brouillon n'a pas de statut de paiement : émettez la facture.",
     'code': 'draft_not_issued',
+}
+CREDITED_STATUS_ERRORS = {
+    'invoice_credited': (
+        "Cette facture a fait l'objet d'un avoir : elle ne peut plus être annulée."
+    ),
+    'fully_credited': (
+        'Cette facture est entièrement créditée : il ne reste rien à encaisser.'
+    ),
 }
 DRAFT_PDF_ERROR = {
     'detail': "Un brouillon n'a pas encore de PDF : émettez la facture.",
@@ -45,8 +53,8 @@ class InvoiceListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self) -> QuerySet:
         shop = get_shop(self.request.user)
-        qs = Invoice.objects.filter(shop=shop).prefetch_related('lines')
-        return services.filter_invoices(qs, shop, self.request.query_params)
+        qs = listing.with_relations(Invoice.objects.filter(shop=shop), shop)
+        return listing.filter_invoices(qs, shop, self.request.query_params)
 
     def create(self, request, *args, **kwargs):
         shop = get_shop(request.user)
@@ -91,7 +99,7 @@ class InvoiceSummaryView(APIView):
     permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
 
     def get(self, request) -> Response:
-        return Response(services.invoice_summary(get_shop(request.user)))
+        return Response(listing.invoice_summary(get_shop(request.user)))
 
 
 class InvoiceFacetsView(APIView):
@@ -103,7 +111,7 @@ class InvoiceFacetsView(APIView):
         qs = filters.SearchFilter().filter_queryset(
             request, Invoice.objects.filter(shop=shop), self
         )
-        return Response(services.invoice_facets(shop, qs, request.query_params))
+        return Response(listing.invoice_facets(shop, qs, request.query_params))
 
 
 class InvoiceDetailView(generics.RetrieveAPIView):
@@ -113,7 +121,8 @@ class InvoiceDetailView(generics.RetrieveAPIView):
     serializer_class = InvoiceSerializer
 
     def get_queryset(self):
-        return Invoice.objects.filter(shop=get_shop(self.request.user)).prefetch_related('lines')  # noqa: E501
+        shop = get_shop(self.request.user)
+        return listing.with_relations(Invoice.objects.filter(shop=shop), shop)
 
 
 class InvoiceStatusView(APIView):
@@ -145,6 +154,11 @@ class InvoiceStatusView(APIView):
                 services.mark_paid(invoice)
             else:
                 services.cancel_invoice(invoice)
+        except services.InvoiceCreditedError as exc:
+            return Response(
+                {'detail': CREDITED_STATUS_ERRORS[exc.code], 'code': exc.code},
+                status=status.HTTP_409_CONFLICT,
+            )
         except services.InvoiceStateError:
             # Le statut a changé entre la lecture et l'écriture (autre onglet).
             return Response(
@@ -167,9 +181,10 @@ class InvoicePdfView(APIView):
     def get(self, request, pk):
         shop = get_shop(request.user)
         try:
-            invoice = Invoice.objects.select_related('shop').prefetch_related('lines').get(  # noqa: E501
-                pk=pk, shop=shop,
-            )
+            # Avoirs émis préchargés, de cette boutique seulement.
+            invoice = listing.with_relations(
+                Invoice.objects.select_related('shop'), shop,
+            ).get(pk=pk, shop=shop)
         except Invoice.DoesNotExist:
             return Response({'detail': 'Facture introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
         if invoice.status == Invoice.STATUS_DRAFT:
@@ -184,7 +199,12 @@ class InvoicePdfView(APIView):
             )
 
         pdf_bytes = build_invoice_pdf(invoice)
-        filename = f'facture-{invoice.number}.pdf'
+        # Le numéro d'un avoir (`avoir-…`) en dit déjà la nature.
+        filename = (
+            f'{invoice.number}.pdf'
+            if invoice.kind == Invoice.KIND_CREDIT_NOTE
+            else f'facture-{invoice.number}.pdf'
+        )
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response

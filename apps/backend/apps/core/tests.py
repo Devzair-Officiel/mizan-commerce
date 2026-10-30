@@ -680,8 +680,9 @@ class SeedDataTest(TestCase):
     def test_fr_shop_has_complete_and_empty_invoice_drafts(self):
         from apps.invoices.models import Invoice
 
+        # Hors facture issue du devis converti (voir le test des devis).
         drafts = Invoice.objects.filter(
-            shop=self._shop('La Boutique de Youssef'), status='draft'
+            shop=self._shop('La Boutique de Youssef'), status='draft', quote=None
         ).order_by('created_at')
         complete, empty = drafts
         self.assertEqual((complete.number, complete.buyer_name), ('', 'Karima Bensouda'))  # noqa: E501
@@ -691,6 +692,45 @@ class SeedDataTest(TestCase):
         self.assertGreater(complete.total_ttc, 0)
         self.assertIsNone(empty.customer)
         self.assertFalse(empty.lines.exists())
+
+    def test_fr_shop_has_one_quote_per_status(self):
+        from apps.quotes.models import Quote
+
+        quotes = Quote.objects.filter(
+            shop=self._shop('La Boutique de Youssef')
+        ).order_by('created_at')
+        self.assertEqual(
+            [q.status for q in quotes],
+            ['draft', 'draft', 'sent', 'accepted', 'declined', 'expired', 'invoiced'],
+        )
+        complete, empty = quotes[0], quotes[1]
+        self.assertEqual(complete.lines.get(position=1).unit, 'heure')
+        self.assertIsNone(empty.customer)
+        self.assertFalse(empty.lines.exists())
+        expired, invoiced = quotes[5], quotes[6]
+        self.assertLess(expired.valid_until, timezone.localdate())
+        self.assertEqual(invoiced.invoice.status, 'draft')
+        self.assertEqual(invoiced.invoice.buyer_name, 'Karima Bensouda')
+
+    def test_fr_shop_has_a_partial_and_a_total_credit_note(self):
+        from apps.invoices.models import Invoice
+
+        notes = Invoice.objects.filter(
+            shop=self._shop('La Boutique de Youssef'), kind='credit_note'
+        ).select_related('credited_invoice').order_by('number')
+        partial, total = notes
+        self.assertEqual(
+            [(n.number[:6], n.status, n.credit_reason) for n in notes],
+            [('avoir-', 'issued', 'Article retourné'), ('avoir-', 'issued', 'Prestation annulée')],  # noqa: E501
+        )
+        self.assertLess(partial.total_ttc, partial.credited_invoice.total_ttc)
+        self.assertEqual(partial.credited_invoice.credited_total, partial.total_ttc)
+        self.assertFalse(partial.credited_invoice.is_fully_credited)
+        self.assertEqual(partial.lines.get().quantity, 1)
+        self.assertTrue(total.credited_invoice.is_fully_credited)
+        self.assertEqual(
+            total.presentation['credited_number'], total.credited_invoice.number
+        )
 
 
 @override_settings(AWS_S3_ENDPOINT_URL='', AWS_ACCESS_KEY_ID='')
@@ -810,8 +850,8 @@ class ResetAuditShopTest(TestCase):
         )
         self.assertEqual(
             sorted(owners.values_list('name', flat=True)),
-            ['Boutique Audit', 'Boutique Audit 2', 'Boutique Audit Factures',
-             'Boutique Audit Éditeur'],
+            ['Boutique Audit', 'Boutique Audit 2', 'Boutique Audit Devis',
+             'Boutique Audit Factures', 'Boutique Audit Éditeur'],
         )
         invoices = Shop.objects.get(name='Boutique Audit Factures')
         self.assertEqual(
@@ -825,6 +865,13 @@ class ResetAuditShopTest(TestCase):
             sorted((i.status, i.lines.count()) for i in editor.invoices.all()),
             [('draft', 0), ('draft', 2)],
         )
+        # Boutique d'audit-quotes : aucun devis au départ.
+        quotes = Shop.objects.get(name='Boutique Audit Devis')
+        self.assertEqual(
+            set(quotes.members.values_list('user__email', flat=True)),
+            {'e2e-quotes@example.com', 'e2e-quotes-staff@example.com'},
+        )
+        self.assertFalse(quotes.quotes.exists())
         shop = Shop.objects.get(name='Boutique Audit 2')
         self.assertEqual(
             set(shop.members.values_list('user__email', flat=True)),

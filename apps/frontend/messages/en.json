@@ -3277,7 +3277,8 @@
       "sort_label": "Sorted by {field}, {dir, select, asc {ascending} other {descending}}",
       "no_number": "No number",
       "drafts_group": "Drafts",
-      "create": "New invoice"
+      "create": "New invoice",
+      "quotes_link": "Quotes"
     },
     "detail": {
       "title": "Invoice",
@@ -3335,8 +3336,8 @@
       "balance": "Total account balance"
     },
     "editor": {
-      "title": "New invoice",
-      "back": "Invoices",
+      "title": "{doc, select, invoice {New invoice} quote {New quote} other {New invoice}}",
+      "back": "{doc, select, invoice {Invoices} quote {Quotes} other {Invoices}}",
       "save_status": "Draft · {value, select, saving {saving…} error {not saved} conflict {changed elsewhere} saved {{auto, select, yes {saved automatically at {time}} other {saved at {time}}}} other {not saved yet}}",
       "deleted": "Draft deleted.",
       "delete_error": "The draft could not be deleted. Try again.",
@@ -3346,12 +3347,13 @@
       "keep": "Keep",
       "conflict": "This draft was changed elsewhere (another tab or device). Reload it to continue: your latest edits here will not be kept.",
       "reload": "Reload",
-      "not_draft": "This invoice has been issued: it can no longer be edited.",
-      "open_invoice": "View invoice",
-      "not_found": "Invoice not found.",
+      "not_draft": "{doc, select, invoice {This invoice has been issued: it can no longer be edited.} quote {This quote has been sent: it can no longer be edited.} other {This invoice has been issued: it can no longer be edited.}}",
+      "open_document": "{doc, select, invoice {View invoice} quote {View quote} other {View invoice}}",
+      "not_found": "{doc, select, invoice {Invoice not found.} quote {Quote not found.} other {Invoice not found.}}",
       "save_error": "The draft could not be saved. Check your connection.",
-      "issue_error": "The invoice could not be issued. Try again.",
-      "issued": "Invoice {number} issued.",
+      "issue_error": "{doc, select, invoice {The invoice could not be issued. Try again.} quote {The quote could not be sent. Try again.} other {The invoice could not be issued. Try again.}}",
+      "issue_invalid": "{doc, select, invoice {Fix the highlighted fields before issuing the invoice.} quote {Fix the highlighted fields before sending the quote.} other {Fix the highlighted fields before issuing the invoice.}}",
+      "issued": "{doc, select, invoice {Invoice {number} issued.} quote {Quote {number} marked as sent. Share its PDF with your customer.} other {Invoice {number} issued.}}",
       "amount_invalid": "Invalid amount (2 decimals at most).",
       "quantity_invalid": "Invalid quantity (3 decimals at most).",
       "days_invalid": "Between 0 and 365 days.",
@@ -3359,22 +3361,25 @@
         "title": "Summary",
         "terms": "Due",
         "terms_value": "{terms, select, none {None} receipt {On receipt} other {{days, plural, one {# day} other {# days}}}}",
-        "recommended": "{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}",
-        "issue": "Issue invoice",
-        "estimate": "Estimated amounts: final totals are calculated when the invoice is issued.",
-        "total": "Total incl. tax"
+        "recommended": "{doc, select, invoice {{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}} quote {{count, plural, one {# recommended detail (for a complete quote)} other {# recommended details (for a complete quote)}}} other {{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}}}",
+        "issue": "{doc, select, invoice {Issue invoice} quote {Send quote} other {Issue invoice}}",
+        "estimate": "{doc, select, invoice {Estimated amounts: final totals are calculated when the invoice is issued.} quote {Estimated amounts: final totals are calculated when the quote is sent.} other {Estimated amounts: final totals are calculated when the invoice is issued.}}",
+        "total": "Total incl. tax",
+        "validity": "Valid for",
+        "validity_value": "{days, plural, one {# day} other {# days}}"
       },
       "extras": {
         "title": "Discount, terms and notes",
-        "description": "Discount, shipping, type of transaction, due date and printed notes.",
-        "summary": "{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}",
+        "description": "{doc, select, invoice {Discount, shipping, type of transaction, due date and printed notes.} quote {Discount, shipping, type of transaction, validity, due date and printed notes.} other {Discount, shipping, type of transaction, due date and printed notes.}}",
+        "summary": "{doc, select, invoice {{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}} quote {{hasDiscount, select, yes {{discount} discount} other {No discount}} · valid for {validity, plural, one {# day} other {# days}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}} other {{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}}}",
         "discount": "Discount excl. tax",
         "shipping": "Shipping excl. tax",
         "operation": "Type of transaction",
         "operation_option": "{value, select, goods {Sale of goods} services {Provision of services} other {Goods and services}}",
         "terms": "Payment terms",
         "days_suffix": "days",
-        "notes": "Notes (printed on the invoice)"
+        "notes": "{doc, select, invoice {Notes (printed on the invoice)} quote {Notes (printed on the quote)} other {Notes (printed on the invoice)}}",
+        "validity": "Quote validity"
       },
       "customer": {
         "title": "Customer",
@@ -3425,25 +3430,51 @@
       },
       "unit": {
         "title": "Unit",
-        "description": "Printed as is on the invoice.",
+        "description": "Printed as is next to the quantity.",
         "presets": "Common units",
         "preset": "{value, select, night {night} hour {hour} day {day} week {week} trip {trip} person {person} flat {flat rate} other {piece}}",
         "custom": "Other unit",
         "confirm": "Confirm"
       },
       "check": {
-        "title": "Check before issuing",
-        "intro_blocking": "Complete these points to issue the invoice.",
-        "intro_recommended": "These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.",
-        "intro_ready": "All set. Once issued, the invoice gets its number and can no longer be edited.",
+        "title": "{doc, select, invoice {Check before issuing} quote {Check before sending} other {Check before issuing}}",
+        "intro_blocking": "{doc, select, invoice {Complete these points to issue the invoice.} quote {Complete these points to send the quote.} other {Complete these points to issue the invoice.}}",
+        "intro_recommended": "{doc, select, invoice {These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.} quote {These details normally appear on a quote in France. Once sent, the quote can no longer be edited.} other {These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.}}",
+        "intro_ready": "{doc, select, invoice {All set. Once issued, the invoice gets its number and can no longer be edited.} quote {All set. Once sent, the quote gets its number and can no longer be edited.} other {All set. Once issued, the invoice gets its number and can no longer be edited.}}",
         "cancel": "Cancel",
-        "issue_anyway": "Issue anyway",
+        "issue_anyway": "{doc, select, invoice {Issue anyway} quote {Send anyway} other {Issue anyway}}",
         "complete": "Complete",
-        "issue": "Issue",
-        "issue_title": "{code, select, no_lines {No lines} zero_total {Zero total} no_customer {No customer} seller_address {Your shop address} seller_identifier {Your shop SIRET} vat_number {VAT number} customer_siren {Customer SIREN} late_penalties {Late payment penalties} other {Point to check}}",
-        "issue_hint": "{code, select, no_lines {Add at least one line} zero_total {The total must be positive} no_customer {Choose or create a customer} customer_siren {Business customer} late_penalties {Legal notices, Settings, Invoices} other {Settings, Invoices}}"
-      }
+        "issue": "{doc, select, invoice {Issue} quote {Send} other {Issue}}",
+        "issue_title": "{code, select, no_lines {No lines} zero_total {Zero total} no_customer {No customer} seller_address {Your shop address} seller_identifier {Your shop SIRET} vat_number {VAT number} customer_siren {Customer SIREN} late_penalties {Late payment penalties} seller_name {Your shop name} zero_tax_rate {0% VAT rate} payment_methods {Accepted payment methods} other {Point to check}}",
+        "issue_hint": "{code, select, no_lines {Add at least one line} zero_total {The total must be positive} no_customer {Choose or create a customer} customer_siren {Business customer} late_penalties {Legal notices, Settings, Invoices} seller_name {Settings, Identity} other {Settings, Invoices}}"
+      },
+      "validity_invalid": "Between 1 and 365 days."
     }
+  },
+  "quotes": {
+    "title": "Quotes",
+    "count": "{count, plural, one {# quote} other {# quotes}}",
+    "create": "New quote",
+    "empty_title": "No quotes",
+    "empty_body": "Price a service or an order before invoicing it.",
+    "load_error": "The quotes could not be loaded. Try again.",
+    "load_more": "Load more",
+    "no_number": "No number",
+    "no_customer": "No customer",
+    "status": "{value, select, draft {Draft} sent {Sent} accepted {Accepted} declined {Declined} expired {Expired} invoiced {Invoiced} other {Draft}}",
+    "valid_until": "Valid until {date}",
+    "columns": {
+      "number": "Number",
+      "buyer_name": "Customer",
+      "sent_at": "Sent on",
+      "valid_until": "Valid until",
+      "total_ttc": "Amount",
+      "status": "Status"
+    },
+    "pdf_title": "Quote {number}",
+    "pdf_body": "Quote details are coming soon. Open its PDF to view or share it.",
+    "open_pdf": "Open PDF",
+    "not_found": "Quote not found."
   },
   "reminders": {
     "title": "Reminders",

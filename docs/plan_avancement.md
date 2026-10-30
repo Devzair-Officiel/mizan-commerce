@@ -556,10 +556,12 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
     - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
   - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
-    - [ ] Compteurs par type de document (`DocumentSequence`)
-    - [ ] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
-    - [ ] Avoirs total et partiel, `credited_total` atomique
-    - [ ] PDF devis et avoir
+    - [x] Compteurs par type de document (`DocumentSequence`)
+    - [x] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
+    - [x] Avoirs total et partiel, `credited_total` atomique
+    - [x] PDF devis et avoir
+    - [ ] Frontend des devis : éditeur, détail, actions (URS-111)
+    - [ ] Frontend des avoirs : feuille, détail, liste (URS-112)
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
   - [ ] 8.4a Lien en ligne et acceptation du devis (Boutique, URS-114)
@@ -641,6 +643,50 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging (non attesté au 28/10/2026)
 
 ### Dette technique connue
+
+- [ ] **PRIORITAIRE, bloquant de la checklist de lancement** — Facture issue d'une
+      commande : `unit_price` de la commande est traité comme HT et la TVA est ajoutée
+      par-dessus (commande de 20 € → facture de 24 €), alors que la synchronisation
+      marque la facture payée à 20 € réglés. Décision produit requise : prix saisis HT
+      ou TTC pour une boutique assujettie ? À traiter avant le lancement, avec une
+      étape 0 (relevé de tous les endroits qui lisent `unit_price`). Relevé au lot 8.2,
+      sous-étape 4b (2026-10-30), non corrigé dans ce lot. Cas de test chiffré :
+      boutique à TVA 20 %, variante à 10,00, commande de 2 → `total_amount` 20,00 ;
+      `issue_invoice_from_order` → `subtotal_ht` 20,00, `tax_amount` 4,00, `total_ttc`
+      24,00 ; `update_payment(order, 20,00)` → facture `paid`, `amount_paid` 20,00 :
+      4,00 jamais réclamés. Reproduit par `_ctx` (qty=2) de
+      `apps/invoices/test_credit_note_payments.py`, notamment
+      `ConcurrentCreditNotePaymentTest` (assertion sur `ctx.order.total_amount`).
+
+- [ ] **PRIORITAIRE** — Éditeur de facture et de devis : l'enregistrement automatique du
+      brouillon (`toPayload`, `components/invoices/editor/editorSchema.ts`) enregistre une
+      saisie invalide sans la signaler, et pas de la même façon selon le champ. `lines`
+      remplace toutes les lignes du brouillon ; pour chaque champ invalide, il enregistre :
+      - **quantité** vide, illisible (lettres, signe, plus de 3 décimales ou de 9 chiffres)
+        ou nulle : la ligne entière n'est pas envoyée, donc sa version déjà enregistrée est
+        **supprimée** côté serveur (« 12, » est lu 12, sans perte) ;
+      - **désignation** vide ou faite d'espaces : idem, ligne non envoyée et supprimée ;
+      - **prix unitaire** vide ou illisible (« 12,345 », « abc », « -5 ») : la ligne part
+        avec `unit_price_ht` « 0 », le prix enregistré est **écrasé par 0** ;
+      - remise et frais de port illisibles : 0 ; délai de paiement illisible : `null`
+        (aucune échéance) ; validité du devis illisible : non envoyée (la précédente
+        reste) ; détails et unité : rognés, sans contrôle côté client hors `maxLength`.
+      Effet visible : au rechargement (ou après un conflit) la ligne a disparu ou affiche
+      un prix de 0,00. L'émission et l'envoi sont protégés depuis 6a (`confirm()` valide
+      et réenregistre, aucun document terminé ne part ainsi) : seul le brouillon est
+      touché. Incohérence relevée après 6a (2026-10-30) : les commentaires disaient
+      « ligne invalide non enregistrée » alors qu'un prix invalide est enregistré à 0 ;
+      formulations corrigées en 6b (docstring de `toPayload`, `useIssueFlow`, audit de
+      l'éditeur, spec §12 n° 14a), **comportement inchangé**. Correctif à décider (ne pas
+      enregistrer un champ tant qu'il est invalide, en gardant sa dernière valeur valide),
+      hors 6b.
+
+- [ ] Avoirs (URS-112) : cas d'un second avoir partiel sur la même ligne d'une facture,
+      relevé à la revue de la sous-étape 4a (2026-10-30), à reprendre.
+
+- [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
+      croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
+      ou une fabrique).
 
 - [ ] Drapeau de blocage de modération sur `PublicPage`, à poser avant la mise en
       ligne de la V3 : une page dépubliée depuis l'admin interne peut aujourd'hui être
@@ -786,6 +832,38 @@ Décision du 2026-10-16 : pas de publications automatiques.
       avec l'en-tête Retry-After. Un utilisateur multi-onglets peut atteindre 10
       refresh/min et voir une panne.
 
+- [ ] L'annulation d'une commande crée-t-elle un avoir ? Aujourd'hui, elle annule la
+      facture liée (`sync_invoice_from_order`) ; si la facture a déjà un avoir, elle
+      reste inchangée (cas journalisé, spec facturation §12 D4). Décision produit et
+      comptable à prendre, hors lot 8.2.
+
+- [ ] `sync_invoice_from_order` (`apps/backend/apps/invoices/services.py`) lit la
+      facture puis l'écrit (`invoice.save()`), sans mise à jour conditionnelle ni
+      verrou : deux changements simultanés de la commande peuvent s'écraser.
+
+- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
+      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
+      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
+      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
+      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
+      l'enregistrement de son brouillon (corrigé pour l'émission et l'envoi d'un devis, 2026-10-30).
+
+- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
+      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
+      possible pendant la préparation : une frappe dans cet intervalle peut partir après
+      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
+      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.
+
+- [ ] Devis (lot 2) : écart de TVA devis → facture si le régime change entre l'envoi et
+      l'émission. La conversion applique le taux actuel de la boutique, pas celui du devis
+      (test `test_convert_applies_the_shop_current_tax_rate_not_the_quote_one`).
+
+- [ ] Validité du devis par boutique (lot 3) : 30 jours par défaut (1 à 365) pour toutes
+      les boutiques aujourd'hui ; réglage par boutique avec les modèles.
+
+- [ ] Note pour le lot 3 : un devis expiré ne peut pas être accepté ; « Dupliquer » permet
+      de relancer un devis expiré.
+
 ---
 
 ## Mise en production
@@ -855,6 +933,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
+- [ ] **Bloquant** — Facture issue d'une commande : prix de la commande traités comme HT, TVA ajoutée par-dessus (commande de 20 € → facture de 24 €, marquée payée à 20 €). Décision produit (prix saisis HT ou TTC pour une boutique assujettie) puis correctif avec étape 0, avant le lancement ; cas chiffré dans « Dette technique connue » (2026-10-30).
 - [~] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe — adresse saisie (commit `4472011`) ; concordance avec le registre et Stripe non vérifiable dans le dépôt (2026-10-28)
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
@@ -936,16 +1015,3 @@ typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 ## Discipline de mise à jour
 
 Ce fichier doit être modifié **dans le même commit** que la fonctionnalité qu'il décrit, jamais après coup. Un `[x]` coché dans un commit séparé, ou plus tard, est un signal que la discipline a été relâchée.
-
-- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
-      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
-      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
-      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
-      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
-      l'enregistrement de son brouillon (corrigé pour l'émission, 2026-10-30).
-
-- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
-      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
-      possible pendant la préparation : une frappe dans cet intervalle peut partir après
-      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
-      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.

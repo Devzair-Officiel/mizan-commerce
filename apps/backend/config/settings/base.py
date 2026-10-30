@@ -45,6 +45,7 @@ LOCAL_APPS = [
     'apps.notes',
     'apps.zakat',
     'apps.invoices',
+    'apps.quotes',
     'apps.comms',
     'apps.public_pages',
     'apps.subscriptions',
@@ -350,6 +351,12 @@ CELERY_BEAT_SCHEDULE = {
     # Toutes les heures : chaque boutique est traitée à son heure locale.
     'notes-automatic-reminders-hourly': {
         'task': 'apps.notes.tasks.run_automatic_reminders',
+        'schedule': crontab(minute=0),
+    },
+    # Toutes les heures, et non chaque jour : un devis expire le lendemain de
+    # sa date de validité, à minuit dans le fuseau de sa boutique. Idempotent.
+    'quotes-expire-hourly': {
+        'task': 'apps.quotes.tasks.expire_quotes',
         'schedule': crontab(minute=0),
     },
 }

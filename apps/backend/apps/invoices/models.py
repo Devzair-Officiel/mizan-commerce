@@ -7,50 +7,50 @@ from apps.orders.models import Order
 from apps.shops.models import Shop
 
 
-class InvoiceSequence(models.Model):
-    """Compteur atomique du n° de facture par boutique — continu, jamais reset.
+class DocumentSequence(models.Model):
+    """Compteur atomique du n° de document par boutique et par type — continu, jamais reset.
 
-    Verrouillé via `select_for_update()` côté service au moment d'émettre une facture
-    pour garantir une numérotation continue et sans trou — exigence légale dans la
-    plupart des juridictions (FR : art. 242 nonies A CGI, EU : Directive TVA).
-    """
+    Une série par type (`fact-…`, `devis-…`, `avoir-…`). Verrouillé via `select_for_update()`
+    côté service au moment d'émettre (ou d'envoyer) un document pour garantir une
+    numérotation continue et sans trou — exigence légale dans la plupart des juridictions
+    (FR : art. 242 nonies A CGI, EU : Directive TVA).
+    """  # noqa: E501
+
+    KIND_INVOICE = 'invoice'
+    KIND_QUOTE = 'quote'
+    KIND_CREDIT_NOTE = 'credit_note'
+    KIND_CHOICES = [
+        (KIND_INVOICE, 'Facture'),
+        (KIND_QUOTE, 'Devis'),
+        (KIND_CREDIT_NOTE, 'Avoir'),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.OneToOneField(Shop, on_delete=models.CASCADE, related_name='invoice_sequence')  # noqa: E501
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='document_sequences')  # noqa: E501
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default=KIND_INVOICE)
     last_number = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'invoice_sequences'
+        db_table = 'document_sequences'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['shop', 'kind'], name='unique_document_sequence_per_shop_kind'
+            ),
+        ]
 
     def __str__(self):
-        return f'{self.shop} (last: {self.last_number})'
+        return f'{self.shop} {self.kind} (last: {self.last_number})'
 
 
-class Invoice(models.Model):
-    """Facture client, émise depuis une commande ou rédigée librement (URS-110).
+class BillingDocument(models.Model):
+    """Champs communs aux documents de facturation (facture, avoir, devis).
 
-    Un brouillon (`draft`) n'a ni numéro, ni date d'émission, ni échéance : il se
-    modifie et se supprime (`invoices.drafts`). Une fois émise, la facture est immuable
-    sur ses montants et son numéro (exigence légale). On accepte uniquement un changement
-    de statut (`issued` → `paid`/`cancelled`). Toutes les infos vendeur/acheteur sont
-    **snapshottées** à l'émission : si le commerçant change son adresse ou si le client
-    est renommé, l'historique de facturation reste figé.
-    """  # noqa: E501
+    Snapshots vendeur et acheteur, totaux, présentation et notes. `shop`, `customer`,
+    numéro, statut et contraintes restent dans chaque modèle concret (noms de relation
+    et de contrainte propres à chacun).
+    """
 
-    STATUS_DRAFT = 'draft'
-    STATUS_ISSUED = 'issued'
-    STATUS_PAID = 'paid'
-    STATUS_CANCELLED = 'cancelled'
-    STATUS_CHOICES = [
-        (STATUS_DRAFT, 'Brouillon'),
-        (STATUS_ISSUED, 'Émise'),
-        (STATUS_PAID, 'Payée'),
-        (STATUS_CANCELLED, 'Annulée'),
-    ]
-    # Préparé pour les avoirs (lot 2) : seules les factures existent au lot 1.
-    KIND_INVOICE = 'invoice'
-    KIND_CHOICES = [(KIND_INVOICE, 'Facture')]
     OPERATION_CHOICES = [
         ('goods', 'Livraison de biens'),
         ('services', 'Prestation de services'),
@@ -58,31 +58,9 @@ class Invoice(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoices')
-    # `SET_NULL` sur Order : la suppression d'une commande ne doit pas effacer la facture émise.  # noqa: E501
-    order = models.OneToOneField(
-        Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoice',
-    )
-    customer = models.ForeignKey(
-        Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices',  # noqa: E501
-    )
-
-    # Numéro humain stable, ex: "fact-040626-0001" — préfixe fixe, date d'émission,
-    # compteur continu par boutique (jamais reset). Vide tant que brouillon.
-    number = models.CharField(max_length=40, blank=True)
-    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ISSUED)  # noqa: E501
-    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default=KIND_INVOICE)
     operation_category = models.CharField(
         max_length=8, choices=OPERATION_CHOICES, default='services',
     )
-
-    # Nuls tant que brouillon : fixés à l'émission.
-    issued_at = models.DateTimeField(null=True, blank=True)
-    due_date = models.DateField(null=True, blank=True)
-    # Délai choisi sur le brouillon ; `due_date` = date d'émission + ce délai.
-    payment_terms_days = models.PositiveSmallIntegerField(null=True, blank=True)
-    paid_at = models.DateTimeField(null=True, blank=True)
-    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     # ── Snapshot vendeur ───────────────────────────────────────────────────
     seller_name = models.CharField(max_length=120)
@@ -116,9 +94,6 @@ class Invoice(models.Model):
     shipping_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     tax_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total_ttc = models.DecimalField(max_digits=14, decimal_places=2, default=0)
-    # Montant réellement reçu — synchronisé depuis Order.amount_paid pour permettre
-    # l'affichage "partiellement payée" sans dépendre de la commande au runtime.
-    amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     notes = models.TextField(blank=True)
     pdf_object_key = models.CharField(max_length=500, blank=True)
@@ -127,8 +102,93 @@ class Invoice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        abstract = True
+
+
+class Invoice(BillingDocument):
+    """Facture client, émise depuis une commande ou rédigée librement (URS-110).
+
+    Un brouillon (`draft`) n'a ni numéro, ni date d'émission, ni échéance : il se
+    modifie et se supprime (`invoices.drafts`). Une fois émise, la facture est immuable
+    sur ses montants et son numéro (exigence légale). On accepte uniquement un changement
+    de statut (`issued` → `paid`/`cancelled`). Toutes les infos vendeur/acheteur sont
+    **snapshottées** à l'émission : si le commerçant change son adresse ou si le client
+    est renommé, l'historique de facturation reste figé.
+    """  # noqa: E501
+
+    STATUS_DRAFT = 'draft'
+    STATUS_ISSUED = 'issued'
+    STATUS_PAID = 'paid'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, 'Brouillon'),
+        (STATUS_ISSUED, 'Émise'),
+        (STATUS_PAID, 'Payée'),
+        (STATUS_CANCELLED, 'Annulée'),
+    ]
+    # Avoir (URS-112) : document émis à part entière, montants positifs, signe
+    # négatif à l'affichage et dans les agrégats ; `issued` est terminal.
+    KIND_INVOICE = 'invoice'
+    KIND_CREDIT_NOTE = 'credit_note'
+    KIND_CHOICES = [(KIND_INVOICE, 'Facture'), (KIND_CREDIT_NOTE, 'Avoir')]
+
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoices')
+    # `SET_NULL` sur Order : la suppression d'une commande ne doit pas effacer la facture émise.  # noqa: E501
+    order = models.OneToOneField(
+        Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoice',
+    )
+    customer = models.ForeignKey(
+        Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices',  # noqa: E501
+    )
+
+    # Numéro humain stable, ex: "fact-040626-0001" — préfixe fixe, date d'émission,
+    # compteur continu par boutique (jamais reset). Vide tant que brouillon.
+    number = models.CharField(max_length=40, blank=True)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default=STATUS_ISSUED)  # noqa: E501
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default=KIND_INVOICE)
+
+    # Nuls tant que brouillon : fixés à l'émission.
+    issued_at = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    # Délai choisi sur le brouillon ; `due_date` = date d'émission + ce délai.
+    payment_terms_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    # Montant réellement reçu — synchronisé depuis Order.amount_paid pour permettre
+    # l'affichage "partiellement payée" sans dépendre de la commande au runtime.
+    amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    # ── Avoir ──────────────────────────────────────────────────────────────
+    # Sur un avoir : facture d'origine et motif. Sur une facture : TTC déjà crédité,
+    # augmenté atomiquement par `credit_notes.issue_credit_note`, jamais au-delà
+    # du TTC. DO_NOTHING : la contrainte PostgreSQL (différée) refuse de supprimer
+    # seule une facture créditée, et la suppression d'une boutique (`seed_data
+    # --reset`, `reset_audit_shop`) emporte facture et avoirs. PROTECT bloquerait
+    # cette cascade (`ProtectedError`). RESTRICT, sur une clé vers `self`, crée une
+    # dépendance Invoice → Invoice : Django renonce alors à ordonner la cascade,
+    # supprime la boutique avant ses produits, et `log_product_delete` (core.signals)
+    # échoue en relisant la boutique déjà supprimée. L'admin ne supprime aucune
+    # facture (lecture seule).
+    credited_invoice = models.ForeignKey(
+        'self', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='credit_notes',  # noqa: E501
+    )
+    credit_reason = models.TextField(blank=True)
+    credited_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
         db_table = 'invoices'
         constraints = [
+            # Un brouillon peut avoir un total négatif (remise > lignes) : la borne
+            # haute ne s'applique qu'à un montant crédité non nul.
+            models.CheckConstraint(
+                condition=models.Q(credited_total__gte=0)
+                & (
+                    models.Q(credited_total=0)
+                    | models.Q(credited_total__lte=models.F('total_ttc'))
+                ),
+                name='invoice_credited_total_within_total',
+            ),
             # Le numéro doit être strictement unique au sein d'une boutique ; les
             # brouillons, sans numéro, n'y entrent pas.
             models.UniqueConstraint(
@@ -146,17 +206,24 @@ class Invoice(models.Model):
     def __str__(self):
         return f'{self.number} — {self.seller_name}'
 
+    @property
+    def is_fully_credited(self) -> bool:
+        """Même règle que `FULLY_CREDITED`, sur l'objet chargé."""
+        return self.credited_total > 0 and self.credited_total >= self.total_ttc
 
-class InvoiceLine(models.Model):
-    """Ligne de facture — snapshot d'un item de commande, ou ligne libre d'un brouillon.
 
-    Découplée du `OrderItem` : si la commande est modifiée ou supprimée, les lignes
-    restent inchangées. Tous les montants en € HT.
-    """
+# Facture entièrement créditée : plus rien n'y est dû (« Créditée »). Le TTC nul
+# d'une facture gratuite n'en fait pas une facture créditée.
+FULLY_CREDITED = models.Q(
+    credited_total__gt=0, credited_total__gte=models.F('total_ttc')
+)
+
+
+class BillingLine(models.Model):
+    """Champs communs aux lignes de document ; `shop` et le lien vers le document
+    restent dans chaque modèle concret."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoice_lines')  # noqa: E501
-    invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='lines')  # noqa: E501
 
     description = models.CharField(max_length=300)
     # Ligne libre : description multiligne, unité saisie (« nuit », « trajet »).
@@ -170,6 +237,20 @@ class InvoiceLine(models.Model):
     line_subtotal_ht = models.DecimalField(max_digits=14, decimal_places=2)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+
+class InvoiceLine(BillingLine):
+    """Ligne de facture — snapshot d'un item de commande, ou ligne libre d'un brouillon.
+
+    Découplée du `OrderItem` : si la commande est modifiée ou supprimée, les lignes
+    restent inchangées. Tous les montants en € HT.
+    """
+
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoice_lines')  # noqa: E501
+    invoice = models.ForeignKey(Invoice, on_delete=models.RESTRICT, related_name='lines')  # noqa: E501
 
     class Meta:
         db_table = 'invoice_lines'

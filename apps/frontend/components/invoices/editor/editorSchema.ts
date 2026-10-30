@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { DraftPayload } from '@/lib/hooks/useInvoiceDrafts';
-import type { Invoice, OperationCategory } from '@/lib/hooks/useInvoices';
+import type { DraftDocument, DraftKind, DraftPayload } from '@/lib/hooks/useDocumentDrafts';
+import type { OperationCategory } from '@/lib/hooks/useInvoices';
 import type { CatalogKind } from '@/lib/hooks/useMe';
 
 /** Saisie décimale (virgule ou point) : 9 chiffres avant, `places` après, comme les champs du modèle. */
@@ -11,12 +11,20 @@ const MONEY = decimalPattern(2);
 /** Longueurs maximales : posées en `maxLength` sur les champs, comme le serializer du brouillon. */
 export const MAX_LENGTH = { description: 300, details: 2000, unit: 30, notes: 2000 } as const;
 
-export function editorSchema(t: (key: 'amount_invalid' | 'quantity_invalid' | 'days_invalid') => string) {
+/** Validité d'un devis : 1 à 365 jours, 30 par défaut (`Quote.DEFAULT_VALIDITY_DAYS`). */
+const DEFAULT_VALIDITY_DAYS = 30;
+const validDays = (v: string) => /^\d{1,3}$/.test(v) && Number(v) >= 1 && Number(v) <= 365;
+
+type SchemaKey = 'amount_invalid' | 'quantity_invalid' | 'days_invalid' | 'validity_invalid';
+
+/** `validity_days` n'est contrôlé que pour un devis : la facture n'a pas ce champ (toujours « 30 », jamais envoyé). */
+export function editorSchema(t: (key: SchemaKey) => string, kind: DraftKind) {
   const money = z.string().trim().refine((v) => v === '' || MONEY.test(v), t('amount_invalid'));
   return z.object({
     customer: z.string(),
     operation_category: z.enum(['goods', 'services', 'mixed']),
     payment_terms_days: z.string().trim().refine((v) => v === '' || (/^\d{1,3}$/.test(v) && Number(v) <= 365), t('days_invalid')),
+    validity_days: z.string().trim().refine((v) => kind !== 'quote' || validDays(v), t('validity_invalid')),
     discount_amount: money,
     shipping_amount: money,
     notes: z.string(),
@@ -39,19 +47,20 @@ export const EMPTY_LINE: EditorLine = { description: '', details: '', unit: '', 
 const OPERATION_BY_CATALOG: Record<CatalogKind, OperationCategory> = { products: 'goods', services: 'services', both: 'mixed' };
 
 /** Valeurs du formulaire : depuis le brouillon enregistré, sinon celles qu'aura un nouveau brouillon. */
-export function editorDefaults(invoice: Invoice | undefined, shop: { catalog_kind: CatalogKind; default_payment_terms_days: number } | undefined): EditorValues {
-  if (!invoice) return {
+export function editorDefaults(draft: DraftDocument | undefined, shop: { catalog_kind: CatalogKind; default_payment_terms_days: number } | undefined): EditorValues {
+  if (!draft) return {
     customer: '', operation_category: OPERATION_BY_CATALOG[shop?.catalog_kind ?? 'services'],
-    payment_terms_days: shop ? String(shop.default_payment_terms_days) : '', discount_amount: '', shipping_amount: '', notes: '',
-    lines: [EMPTY_LINE],
+    payment_terms_days: shop ? String(shop.default_payment_terms_days) : '', validity_days: String(DEFAULT_VALIDITY_DAYS),
+    discount_amount: '', shipping_amount: '', notes: '', lines: [EMPTY_LINE],
   };
   const zero = (v: string) => (Number(v) ? v : '');
   return {
-    customer: invoice.customer ?? '', operation_category: invoice.operation_category,
-    payment_terms_days: invoice.payment_terms_days === null ? '' : String(invoice.payment_terms_days),
-    discount_amount: zero(invoice.discount_amount), shipping_amount: zero(invoice.shipping_amount), notes: invoice.notes,
-    lines: invoice.lines.length
-      ? invoice.lines.map((l) => ({ description: l.description, details: l.details, unit: l.unit, quantity: String(Number(l.quantity)), unit_price_ht: l.unit_price_ht }))
+    customer: draft.customer ?? '', operation_category: draft.operation_category,
+    payment_terms_days: draft.payment_terms_days === null ? '' : String(draft.payment_terms_days),
+    validity_days: String('validity_days' in draft ? draft.validity_days : DEFAULT_VALIDITY_DAYS),
+    discount_amount: zero(draft.discount_amount), shipping_amount: zero(draft.shipping_amount), notes: draft.notes,
+    lines: draft.lines.length
+      ? draft.lines.map((l) => ({ description: l.description, details: l.details, unit: l.unit, quantity: String(Number(l.quantity)), unit_price_ht: l.unit_price_ht }))
       : [EMPTY_LINE],
   };
 }
@@ -63,12 +72,18 @@ export function decimal(value: string, places: 2 | 3): string | null {
 }
 
 /**
- * Brouillon envoyé au serveur : seules les lignes nommées, de quantité positive, partent ; un prix
- * vide vaut 0. Les montants restent des chaînes (Decimal côté serveur, jamais de float).
+ * Brouillon envoyé au serveur, qui remplace toutes ses lignes. Une ligne sans désignation, ou de
+ * quantité vide, nulle ou illisible, ne part pas : sa version déjà enregistrée est supprimée. Une
+ * ligne qui part avec un prix vide ou illisible l'enregistre à 0 ; remise et frais illisibles valent
+ * 0, un délai illisible n'en enregistre aucun, une validité illisible garde la précédente (dette
+ * notée au plan : l'émission, elle, est bloquée par la validation). Les montants restent des chaînes
+ * (Decimal côté serveur, jamais de float).
  */
-export function toPayload(v: EditorValues): DraftPayload {
+export function toPayload(v: EditorValues, kind: DraftKind): DraftPayload {
   const days = v.payment_terms_days.trim();
+  const validity = v.validity_days.trim();
   return {
+    ...(kind === 'quote' && validDays(validity) && { validity_days: Number(validity) }),
     customer: v.customer || null,
     operation_category: v.operation_category,
     payment_terms_days: /^\d{1,3}$/.test(days) && Number(days) <= 365 ? Number(days) : null,
