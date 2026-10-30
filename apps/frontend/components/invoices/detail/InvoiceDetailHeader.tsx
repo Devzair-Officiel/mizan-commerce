@@ -9,7 +9,7 @@ import { OrderNumber } from '@/components/orders/OrderNumber';
 import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import type { DetailMenuActions } from '@/components/detail/types';
 import { InvoiceStatusBadge } from '../shared/InvoiceStatusBadge';
-import { InvoicePdfButton } from './InvoicePdfButton';
+import { PdfButton } from '@/components/detail/PdfButton';
 
 export function InvoiceDetailHeader({ invoice, menu }: { invoice: Invoice; menu: DetailMenuActions }) {
   const t = useTranslations('invoices');
@@ -27,6 +27,6 @@ export function InvoiceDetailHeader({ invoice, menu }: { invoice: Invoice; menu:
       </div>
       {invoice.issued_at && <p className="mt-1.5 text-sm text-muted-foreground">{t('detail.issued_on', { date: date(invoice.issued_at, { dateStyle: 'long', timeStyle: 'short' }) })}</p>}
     </div>
-    <div className="flex items-center gap-2"><DetailActionsMenu actions={menu} variant="menu" /><InvoicePdfButton id={invoice.id} /></div>
+    <div className="flex items-center gap-2"><DetailActionsMenu actions={menu} variant="menu" /><PdfButton href={`/api/proxy/invoices/${invoice.id}/pdf/`} label={t('detail.download_pdf')} /></div>
   </header>;
 }

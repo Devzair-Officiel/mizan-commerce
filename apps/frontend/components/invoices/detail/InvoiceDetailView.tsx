@@ -12,7 +12,9 @@ import { formatInvoicePhone } from '@/lib/invoiceFormatting';
 import type { Invoice } from '@/lib/hooks/useInvoices';
 import { InvoiceStatusBadge } from '../shared/InvoiceStatusBadge';
 import { InvoiceDetailHeader } from './InvoiceDetailHeader';
-import { InvoicePdfButton } from './InvoicePdfButton';
+import { PdfButton } from '@/components/detail/PdfButton';
+import { InvoicePaymentBadge } from '../shared/InvoicePaymentBadge';
+import { InvoicePaymentRows } from './InvoicePaymentRows';
 import { InvoiceSellerCard } from './InvoiceSellerCard';
 import { InvoiceAccountCard } from './InvoiceAccountCard';
 import { InvoiceOrderCard } from './InvoiceOrderCard';
@@ -24,6 +26,7 @@ import type { InvoiceDetailState } from './useInvoiceDetailState';
 
 export function InvoiceDetailView({ invoice: i, state }: { invoice: Invoice; state: InvoiceDetailState }) {
   const t = useTranslations('invoices.detail');
+  const tTotals = useTranslations('invoices.totals');
   const paid = state.confirm === 'paid';
   return <>
     <div className="contents lg:hidden"><TopBar back hideSearch title={isolateNumber(i.number)} action={<DetailActionsMenu actions={state.menu} variant="sheet" />} /></div>
@@ -32,8 +35,10 @@ export function InvoiceDetailView({ invoice: i, state }: { invoice: Invoice; sta
       <div className="self-start lg:hidden"><InvoiceStatusBadge status={i.status} /></div>
       <div className={DETAIL_GRID}>
         <div className={DETAIL_COLUMN}>
-          <DetailSlot order="max-lg:order-2"><LinesList invoice={i} /></DetailSlot>
-          <DetailSlot order="max-lg:order-3"><TotalsCard invoice={i} /></DetailSlot>
+          <DetailSlot order="max-lg:order-2"><LinesList document={i} title={t('lines_title')} /></DetailSlot>
+          <DetailSlot order="max-lg:order-3"><TotalsCard document={i} title={tTotals('title')} rightSlot={<InvoicePaymentBadge invoice={i} />}>
+            <InvoicePaymentRows invoice={i} />
+          </TotalsCard></DetailSlot>
           <DetailSlot order="max-lg:order-4"><InvoiceAccountCard invoice={i} /></DetailSlot>
           <DetailSlot order="max-lg:order-8">{i.notes && <SectionCard title={t('notes')}><p className="px-5 py-4 text-sm whitespace-pre-wrap">{i.notes}</p></SectionCard>}</DetailSlot>
           <DetailSlot order="max-lg:order-9">{i.seller_legal_mentions && <SectionCard title={t('legal_mentions')}><p className="px-5 py-4 text-xs text-muted-foreground whitespace-pre-wrap">{i.seller_legal_mentions}</p></SectionCard>}</DetailSlot>
@@ -48,7 +53,7 @@ export function InvoiceDetailView({ invoice: i, state }: { invoice: Invoice; sta
         </div>
       </div>
     </div>
-    <FloatingActionBar variant="button"><InvoicePdfButton id={i.id} className="h-12 w-full shadow-lg" /></FloatingActionBar>
+    <FloatingActionBar variant="button"><PdfButton href={`/api/proxy/invoices/${i.id}/pdf/`} label={t('download_pdf')} className="h-12 w-full shadow-lg" /></FloatingActionBar>
     <ConfirmDialog open={state.confirm !== null} onOpenChange={open => { if (!open && !state.pending) state.setConfirm(null); }}
       title={t(paid ? 'confirm_paid_title' : 'confirm_cancel_title')} description={t(paid ? 'confirm_paid_body' : 'confirm_cancel_body')}
       confirmLabel={t('confirm')} cancelLabel={t('keep_invoice')} variant={paid ? 'default' : 'destructive'} onConfirm={state.submit} />
