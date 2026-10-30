@@ -126,9 +126,11 @@ class Invoice(BillingDocument):
         (STATUS_PAID, 'Payée'),
         (STATUS_CANCELLED, 'Annulée'),
     ]
-    # Préparé pour les avoirs (lot 2) : seules les factures existent au lot 1.
+    # Avoir (URS-112) : document émis à part entière, montants positifs, signe
+    # négatif à l'affichage et dans les agrégats ; `issued` est terminal.
     KIND_INVOICE = 'invoice'
-    KIND_CHOICES = [(KIND_INVOICE, 'Facture')]
+    KIND_CREDIT_NOTE = 'credit_note'
+    KIND_CHOICES = [(KIND_INVOICE, 'Facture'), (KIND_CREDIT_NOTE, 'Avoir')]
 
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='invoices')
     # `SET_NULL` sur Order : la suppression d'une commande ne doit pas effacer la facture émise.  # noqa: E501
@@ -157,9 +159,32 @@ class Invoice(BillingDocument):
     # l'affichage "partiellement payée" sans dépendre de la commande au runtime.
     amount_paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
+    # ── Avoir ──────────────────────────────────────────────────────────────
+    # Sur un avoir : facture d'origine et motif. Sur une facture : TTC déjà crédité,
+    # augmenté atomiquement par `credit_notes.issue_credit_note`, jamais au-delà
+    # du TTC. DO_NOTHING : la contrainte PostgreSQL (différée) refuse de supprimer
+    # seule une facture créditée, et la suppression d'une boutique emporte facture
+    # et avoirs. PROTECT bloquerait cette cascade ; RESTRICT, sur une clé vers
+    # `self`, crée un cycle qui fait renoncer Django à ordonner la suppression.
+    credited_invoice = models.ForeignKey(
+        'self', on_delete=models.DO_NOTHING, null=True, blank=True, related_name='credit_notes',  # noqa: E501
+    )
+    credit_reason = models.TextField(blank=True)
+    credited_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
     class Meta:
         db_table = 'invoices'
         constraints = [
+            # Un brouillon peut avoir un total négatif (remise > lignes) : la borne
+            # haute ne s'applique qu'à un montant crédité non nul.
+            models.CheckConstraint(
+                condition=models.Q(credited_total__gte=0)
+                & (
+                    models.Q(credited_total=0)
+                    | models.Q(credited_total__lte=models.F('total_ttc'))
+                ),
+                name='invoice_credited_total_within_total',
+            ),
             # Le numéro doit être strictement unique au sein d'une boutique ; les
             # brouillons, sans numéro, n'y entrent pas.
             models.UniqueConstraint(

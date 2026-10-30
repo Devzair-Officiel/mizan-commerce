@@ -1,7 +1,6 @@
 """Émission d'une facture libre (URS-110) : numéro continu, instantanés figés."""
 
 import threading
-import time
 from datetime import date, timedelta
 from decimal import Decimal
 from unittest import mock
@@ -14,6 +13,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.core.models import AuditLog
+from apps.core.testing import race_on_lock
 from apps.customers.models import Customer
 from apps.orders.models import OrderItem
 from apps.orders.services import add_item
@@ -229,58 +229,6 @@ def test_each_document_kind_has_its_own_continuous_series() -> None:
     assert DocumentSequence.objects.filter(shop=shop).count() == 3
 
 
-def _wait_until_blocked(pid: int) -> None:
-    """Attend que la session `pid` soit bloquée par le verrou d'une autre."""
-    with connection.cursor() as cursor:
-        for _ in range(400):
-            cursor.execute('SELECT cardinality(pg_blocking_pids(%s))', [pid])
-            if cursor.fetchone()[0]:
-                return
-            time.sleep(0.025)
-    raise AssertionError("L'émission n'a jamais attendu le verrou du document.")
-
-
-def _race_on_lock(pause: tuple[object, str], save, issue) -> dict[str, object]:
-    """`save` s'arrête sur `pause` (verrou du document tenu) ; `issue` part, et
-    `save` ne repart que lorsque `issue` est bloqué par ce verrou."""
-    paused, release = threading.Event(), threading.Event()
-    pids: list[int] = []
-    results: dict[str, object] = {}
-    original = getattr(*pause)
-
-    def hold(*args, **kwargs):
-        paused.set()
-        release.wait(timeout=20)
-        return original(*args, **kwargs)
-
-    def run(name: str, action) -> None:
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT pg_backend_pid()')
-                pids.append(cursor.fetchone()[0])
-            results[name] = action()
-        except BaseException as exc:  # noqa: BLE001 — on compare les issues.
-            results[name] = exc
-        finally:
-            connection.close()
-
-    with mock.patch.object(*pause, hold):
-        saver = threading.Thread(target=run, args=('save', save))
-        saver.start()
-        assert paused.wait(timeout=20)
-        issuer = threading.Thread(target=run, args=('issue', issue))
-        issuer.start()
-        for _ in range(400):
-            if len(pids) == 2:
-                break
-            time.sleep(0.025)
-        _wait_until_blocked(pids[-1])
-        release.set()
-        for thread in (saver, issuer):
-            thread.join(timeout=20)
-    return results
-
-
 class ShopLockTest(TransactionTestCase):
     """Enregistrement contre émission : aucun interblocage (500 côté utilisateur).
 
@@ -297,7 +245,7 @@ class ShopLockTest(TransactionTestCase):
         _, shop, _, customer = _make_shop('lock-draft@example.com')
         draft = _draft(shop, customer)
         saved = {**LINE, 'description': 'Atelier complet', 'quantity': Decimal('3')}
-        results = _race_on_lock(
+        results = race_on_lock(
             (drafts, '_build_lines'),
             lambda: drafts.update_draft_invoice(
                 draft, {'lines': [saved]}, draft.updated_at
@@ -318,7 +266,7 @@ class ShopLockTest(TransactionTestCase):
     def test_order_item_added_while_its_invoice_is_issued(self) -> None:
         user, shop, variant, customer = _make_shop('lock-order@example.com')
         order = _make_order_with_items(shop, user, variant, customer)
-        results = _race_on_lock(
+        results = race_on_lock(
             (OrderItem.objects, 'create'),
             lambda: add_item(order, variant, 1, user=user),
             lambda: services.issue_invoice_from_order(shop=shop, order=order),

@@ -342,11 +342,12 @@ def _transition(
     """Change le statut par une mise à jour conditionnelle, sans lecture préalable.
 
     Idempotent : sans effet si la facture est déjà dans le statut visé. Depuis un
-    autre statut (brouillon, facture annulée) : `InvoiceStateError`.
+    autre statut (brouillon, facture annulée) ou sur un avoir (`issued`,
+    terminal) : `InvoiceStateError`.
     """
-    updated = Invoice.objects.filter(pk=invoice.pk, status__in=sources).update(
-        status=target, **values
-    )
+    updated = Invoice.objects.filter(
+        pk=invoice.pk, kind=Invoice.KIND_INVOICE, status__in=sources
+    ).update(status=target, **values)
     invoice.refresh_from_db()
     if not updated and invoice.status != target:
         raise InvoiceStateError()

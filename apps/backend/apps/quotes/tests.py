@@ -12,9 +12,9 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.core.testing import race_on_lock
 from apps.invoices import drafts
 from apps.invoices.models import DocumentSequence, Invoice
-from apps.invoices.test_issue import _race_on_lock
 from apps.invoices.tests import _make_shop
 from apps.shops.models import Shop
 from apps.stock.models import StockMovement
@@ -449,7 +449,7 @@ class QuoteShopLockTest(TransactionTestCase):
     def test_draft_saved_while_being_sent(self) -> None:
         draft = _draft(_shop('lock-quote@example.com'))
         saved = {**LINE, 'description': 'Pose complète', 'quantity': Decimal('10')}
-        results = _race_on_lock(
+        results = race_on_lock(
             (services, '_build_lines'),
             lambda: services.update_draft_quote(
                 draft, {'lines': [saved]}, draft.updated_at
