@@ -350,6 +350,7 @@ def _previous_line_suggestions(
     lines = (
         InvoiceLine.objects.filter(
             shop=shop,
+            invoice__kind=Invoice.KIND_INVOICE,
             invoice__status__in=(Invoice.STATUS_ISSUED, Invoice.STATUS_PAID),
             description__icontains=query,
         )

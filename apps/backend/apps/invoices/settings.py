@@ -141,8 +141,10 @@ def snapshot_presentation(
 def account_summary(invoice: Invoice) -> dict:
     """Dettes antérieures nettes et règlements de la présente facture.
 
-    Les paiements des autres factures sont déjà déduits de previous_balance.
-    Sans client identifié, ne jamais agréger les ventes anonymes de la boutique.
+    Les paiements et les avoirs des autres factures sont déjà déduits de
+    previous_balance ; un avoir n'est jamais une dette, et un trop-perçu ne
+    réduit pas le solde. Sans client identifié, ne jamais agréger les ventes
+    anonymes de la boutique.
     """
     previous = []
     if invoice.customer_id:
@@ -150,12 +152,16 @@ def account_summary(invoice: Invoice) -> dict:
             Invoice.objects.filter(
                 shop_id=invoice.shop_id,
                 customer_id=invoice.customer_id,
+                kind=Invoice.KIND_INVOICE,
                 issued_at__lt=invoice.issued_at,
                 status=Invoice.STATUS_ISSUED,
                 total_ttc__gt=0,
             ).exclude(pk=invoice.pk)
         )
-    unpaid = [(i, max(Decimal('0'), i.total_ttc - i.amount_paid)) for i in previous]
+    unpaid = [
+        (i, max(Decimal('0'), i.total_ttc - i.credited_total - i.amount_paid))
+        for i in previous
+    ]
     balance = sum((amount for _, amount in unpaid), Decimal('0'))
     received = min(max(invoice.amount_paid, Decimal('0')), invoice.total_ttc)
     return {

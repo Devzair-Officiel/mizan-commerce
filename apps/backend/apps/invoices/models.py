@@ -207,6 +207,13 @@ class Invoice(BillingDocument):
         return f'{self.number} — {self.seller_name}'
 
 
+# Facture entièrement créditée : plus rien n'y est dû (« Créditée »). Le TTC nul
+# d'une facture gratuite n'en fait pas une facture créditée.
+FULLY_CREDITED = models.Q(
+    credited_total__gt=0, credited_total__gte=models.F('total_ttc')
+)
+
+
 class BillingLine(models.Model):
     """Champs communs aux lignes de document ; `shop` et le lien vers le document
     restent dans chaque modèle concret."""
