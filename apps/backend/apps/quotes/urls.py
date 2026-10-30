@@ -6,7 +6,13 @@ from .draft_views import (
     QuoteComplianceView,
     QuoteSendView,
 )
-from .views import QuoteConvertView, QuoteDetailView, QuoteListView, QuoteStatusView
+from .views import (
+    QuoteConvertView,
+    QuoteDetailView,
+    QuoteListView,
+    QuotePdfView,
+    QuoteStatusView,
+)
 
 urlpatterns = [
     path('', QuoteListView.as_view(), name='quote-list'),
@@ -19,4 +25,5 @@ urlpatterns = [
     path('<uuid:pk>/send/', QuoteSendView.as_view(), name='quote-send'),
     path('<uuid:pk>/status/', QuoteStatusView.as_view(), name='quote-status'),
     path('<uuid:pk>/convert/', QuoteConvertView.as_view(), name='quote-convert'),
+    path('<uuid:pk>/pdf/', QuotePdfView.as_view(), name='quote-pdf'),
 ]

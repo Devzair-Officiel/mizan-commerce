@@ -181,9 +181,10 @@ class InvoicePdfView(APIView):
     def get(self, request, pk):
         shop = get_shop(request.user)
         try:
-            invoice = Invoice.objects.select_related('shop').prefetch_related('lines').get(  # noqa: E501
-                pk=pk, shop=shop,
-            )
+            # Avoirs émis préchargés, de cette boutique seulement.
+            invoice = listing.with_relations(
+                Invoice.objects.select_related('shop'), shop,
+            ).get(pk=pk, shop=shop)
         except Invoice.DoesNotExist:
             return Response({'detail': 'Facture introuvable.'}, status=status.HTTP_404_NOT_FOUND)  # noqa: E501
         if invoice.status == Invoice.STATUS_DRAFT:
@@ -198,7 +199,12 @@ class InvoicePdfView(APIView):
             )
 
         pdf_bytes = build_invoice_pdf(invoice)
-        filename = f'facture-{invoice.number}.pdf'
+        # Le numéro d'un avoir (`avoir-…`) en dit déjà la nature.
+        filename = (
+            f'{invoice.number}.pdf'
+            if invoice.kind == Invoice.KIND_CREDIT_NOTE
+            else f'facture-{invoice.number}.pdf'
+        )
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response

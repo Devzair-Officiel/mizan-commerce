@@ -9,6 +9,8 @@ from reportlab.platypus import Image, KeepTogether, Spacer, Table
 
 from apps.core.storage import download_bytes, is_storage_configured
 from apps.products.constants import is_default_variant
+from .models import Invoice
+from .pdf_totals import remaining
 from .pdf_style import (
     BORDER,
     MUTED,
@@ -32,7 +34,13 @@ from .formatting import (
 
 def status_key(style: InvoiceStyle) -> str:
     invoice = style.invoice
+    # Entièrement créditée, ou soldée par avoirs et règlements : l'état remplace
+    # celui du paiement (spec §12 D6 et n° 13).
+    if invoice.is_fully_credited:
+        return 'credited'
     if invoice.status == 'issued':
+        if invoice.credited_total and not remaining(invoice):
+            return 'credited'
         return 'partial' if 0 < invoice.amount_paid < invoice.total_ttc else 'unpaid'
     return invoice.status
 
@@ -93,47 +101,84 @@ def brand_block(
     return table([[mark_box, '', lines]], [39, 9, 196])
 
 
-def header(style: InvoiceStyle) -> Table:
+def format_date(value: str) -> str:
+    return date.fromisoformat(value).strftime('%d/%m/%Y')
+
+
+def invoice_dates(style: InvoiceStyle) -> str:
+    """Émission et échéance ; un avoir n'a que sa date d'émission."""
     invoice = style.invoice
-    issued = style.snapshot.get('issued_date', invoice.issued_at.date().isoformat())
-    issued = date.fromisoformat(issued).strftime('%d/%m/%Y')
-    dates = (
+    issued = format_date(
+        style.snapshot.get('issued_date', invoice.issued_at.date().isoformat())
+    )
+    if invoice.due_date is None:
+        return f'{style.text("issued_m")} {issued}'
+    return (
         f'{style.text("issued")} {issued} · '
         f'{style.text("due")} {invoice.due_date:%d/%m/%Y}'
     )
-    state = status_key(style)
+
+
+def header(style: InvoiceStyle) -> Table:
+    """En-tête d'une facture (état du paiement) ou d'un avoir (sans état)."""
+    if style.invoice.kind == Invoice.KIND_CREDIT_NOTE:
+        return header_block(
+            style, title='credit_note', dates=invoice_dates(style), state=None
+        )
+    return header_block(
+        style, title='invoice', dates=invoice_dates(style), state=status_key(style)
+    )
+
+
+# Fond et texte du badge d'état, en couleur ; neutre pour tout autre état.
+BADGE_COLORS = {
+    'paid': ('#e3f1e3', '#2f7a3e'),
+    'accepted': ('#e3f1e3', '#2f7a3e'),
+    'invoiced': ('#e3f1e3', '#2f7a3e'),
+    'partial': ('#fdf1dc', '#8a5a00'),
+    'cancelled': ('#fbe7e4', '#b91c1c'),
+    'declined': ('#fbe7e4', '#b91c1c'),
+}
+NEUTRAL_BADGE = ('#f4f4f2', '#6b716d')
+
+
+def _badge(style: InvoiceStyle, state: str) -> Table:
     label = style.text(state).upper()
     if not style.snapshot.get('color'):
         badge_bg, badge_fg = colors.HexColor('#ededeb'), colors.HexColor('#404440')
     else:
-        badge_bg, badge_fg = {
-            'paid': ('#e3f1e3', '#2f7a3e'),
-            'partial': ('#fdf1dc', '#8a5a00'),
-            'unpaid': ('#f4f4f2', '#6b716d'),
-            'cancelled': ('#fbe7e4', '#b91c1c'),
-        }[state]
+        badge_bg, badge_fg = BADGE_COLORS.get(state, NEUTRAL_BADGE)
         badge_bg, badge_fg = colors.HexColor(badge_bg), colors.HexColor(badge_fg)
+    badge_width = stringWidth(label, 'Invoice-Bold', 8.25) + 15
     badge = table(
         [[style.paragraph(label, size=8.25, color=badge_fg, bold=True, align=1)]],
-        [stringWidth(label, 'Invoice-Bold', 8.25) + 15],
+        [badge_width],
         padding=3,
         cornerRadii=[9, 9, 9, 9],
         commands=[('BACKGROUND', (0, 0), (-1, -1), badge_bg)],
     )
-    badge_width = stringWidth(label, 'Invoice-Bold', 8.25) + 15
-    badge = table([['', badge]], [WIDTH - 244 - badge_width, badge_width])
+    return table([['', badge]], [WIDTH - 244 - badge_width, badge_width])
+
+
+def header_block(
+    style: InvoiceStyle, *, title: str, dates: str, state: str | None
+) -> Table:
+    """Marque à gauche ; titre, numéro, dates et badge d'état (aucun sans
+    `state`) à droite : factures, avoirs, devis."""
     right = [
         style.paragraph(
-            style.text('invoice'), size=22.5, color=style.accent, bold=True, align=2
+            style.text(title), size=22.5, color=style.accent, bold=True, align=2
         ),
         Spacer(1, 9),
         style.paragraph(
-            f'{style.text("number")} <b>{xml(invoice.number)}</b>', size=9.75, align=2
+            f'{style.text("number")} <b>{xml(style.invoice.number)}</b>',
+            size=9.75,
+            align=2,
         ),
         style.paragraph(xml(dates), size=8.5, color=MUTED, align=2),
-        Spacer(1, 6),
-        badge,
     ]
+    if state:
+        right += [Spacer(1, 6), _badge(style, state)]
     return table([[brand(style), right]], [244, WIDTH - 244])
 
 
@@ -148,7 +193,7 @@ def _party_content(
     ]
 
 
-def parties(style: InvoiceStyle) -> Table:
+def parties(style: InvoiceStyle, *, buyer_title: str = 'buyer') -> Table:
     invoice = style.invoice
     seller_values = [invoice.seller_address]
     if style.snapshot.get('siret'):
@@ -171,7 +216,7 @@ def parties(style: InvoiceStyle) -> Table:
     seller = _party_content(style, 'seller', invoice.seller_name, seller_values)
     buyer = _party_content(
         style,
-        'buyer',
+        buyer_title,
         invoice.buyer_name,
         [
             invoice.buyer_address,
@@ -232,7 +277,7 @@ def lines_table(style: InvoiceStyle) -> Table:
                 style.paragraph(xml(text) or '&nbsp;', size=9, color=MUTED)
                 for text in line.details.split('\n')
             ]
-        price = style.money(line.unit_price_ht)
+        price = style.money(style.sign * line.unit_price_ht)
         rows.append(
             [
                 cell,
@@ -241,7 +286,9 @@ def lines_table(style: InvoiceStyle) -> Table:
                     xml(f'{price} / {line.unit}' if line.unit else price), align=2
                 ),
                 style.paragraph(
-                    xml(style.money(line.line_subtotal_ht)), bold=True, align=2
+                    xml(style.money(style.sign * line.line_subtotal_ht)),
+                    bold=True,
+                    align=2,
                 ),
             ]
         )
@@ -260,91 +307,6 @@ def lines_table(style: InvoiceStyle) -> Table:
             ('LINEBELOW', (0, 1), (-1, -1), 0.3, BORDER),
         ],
     )
-
-
-def _totals_rows(style: InvoiceStyle) -> tuple[list, int]:
-    invoice = style.invoice
-    amounts = [(style.text('subtotal'), invoice.subtotal_ht)]
-    if invoice.discount_amount:
-        amounts.append((style.text('discount'), -invoice.discount_amount))
-    if invoice.shipping_amount:
-        amounts.append((style.text('shipping'), invoice.shipping_amount))
-    amounts.append((style.text('total'), invoice.total_ttc))
-    cells = [
-        [
-            style.paragraph(xml(label), bold=i == len(amounts) - 1, line_height=1.35),
-            style.paragraph(
-                xml(style.money(value)),
-                bold=i == len(amounts) - 1,
-                align=2,
-                line_height=1.35,
-            ),
-        ]
-        for i, (label, value) in enumerate(amounts)
-    ]
-    applicable = (
-        bool(invoice.tax_rate) or style.snapshot.get('vat_regime') == 'applicable'
-    )
-    tax = style.money(invoice.tax_amount) if applicable else style.text('no_vat')
-    label = style.text('vat') + (
-        f' {invoice.tax_rate.normalize():f} %' if applicable else ''
-    )
-    green = colors.HexColor('#2f7a4a') if style.snapshot.get('color') else MUTED
-    cells += [
-        [
-            style.paragraph(xml(label), color=MUTED, line_height=1.35),
-            style.paragraph(xml(tax), align=2, line_height=1.35),
-        ],
-        [
-            style.paragraph(style.text('received'), color=green, line_height=1.35),
-            style.paragraph(
-                xml(style.money(-invoice.amount_paid)),
-                color=green,
-                align=2,
-                line_height=1.35,
-            ),
-        ],
-    ]
-    return cells, len(amounts) - 1
-
-
-def _amount_due(style: InvoiceStyle) -> Table:
-    invoice = style.invoice
-    # Net des avoirs ; jamais négatif (règlement supérieur au net dû).
-    remaining = (
-        max(
-            Decimal('0'),
-            invoice.total_ttc - invoice.credited_total - invoice.amount_paid,
-        )
-        if invoice.status == 'issued'
-        else Decimal('0')
-    )
-    label = style.paragraph(
-        xml(style.text('remaining').upper()), size=9, bold=True, color=colors.white
-    )
-    amount = style.paragraph(
-        xml(style.money(remaining)), size=15, bold=True, color=colors.white, align=2
-    )
-    return table(
-        [[label, amount]],
-        [119, 106],
-        padding=10.5,
-        cornerRadii=[7.5] * 4,
-        commands=[('BACKGROUND', (0, 0), (-1, -1), style.accent)],
-    )
-
-
-def totals(style: InvoiceStyle) -> KeepTogether:
-    cells, total_row = _totals_rows(style)
-    amounts = table(
-        cells,
-        [125, 100],
-        padding=4.5,
-        commands=[('LINEABOVE', (0, total_row), (-1, total_row), 0.6, BORDER)],
-    )
-    block = table([[[amounts, Spacer(1, 7.5), _amount_due(style)]]], [225])
-    block.hAlign = 'RIGHT'
-    return KeepTogether([Spacer(1, 10.5), block])
 
 
 def summary(style: InvoiceStyle) -> list:
@@ -387,8 +349,18 @@ def summary(style: InvoiceStyle) -> list:
     ]
 
 
+def legal_mentions(style: InvoiceStyle) -> list:
+    legal = style.invoice.seller_legal_mentions
+    if style.snapshot.get('vat_regime') == 'exempt':
+        legal = style.text('exempt') + '\n' + legal
+    return [
+        style.heading('mentions'),
+        Spacer(1, 6),
+        style.paragraph(xml(legal), size=9, color=MUTED),
+    ]
+
+
 def payment_and_mentions(style: InvoiceStyle) -> list:
-    invoice = style.invoice
     days = style.snapshot.get('payment_terms_days')
     conditions = (
         style.text('receipt')
@@ -415,14 +387,7 @@ def payment_and_mentions(style: InvoiceStyle) -> list:
                     xml('BIC ' + style.snapshot['bic']), size=9, color=MUTED
                 )
             )
-    legal = invoice.seller_legal_mentions
-    if style.snapshot.get('vat_regime') == 'exempt':
-        legal = style.text('exempt') + '\n' + legal
-    mentions = [
-        style.heading('mentions'),
-        Spacer(1, 6),
-        style.paragraph(xml(legal), size=9, color=MUTED),
-    ]
+    mentions = legal_mentions(style)
     width = (WIDTH - 12) / 2
     return [
         KeepTogether(

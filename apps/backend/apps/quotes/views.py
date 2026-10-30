@@ -1,6 +1,7 @@
 """Endpoints des devis envoyés (URS-111) : liste, détail, réponse du client,
-conversion en facture. Pas de PDF avant la sous-étape 5."""
+conversion en facture, PDF."""
 
+from django.http import HttpResponse
 from rest_framework import generics, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,11 +14,16 @@ from apps.invoices.serializers import InvoiceSerializer
 from . import services
 from .draft_views import shop_quote
 from .models import Quote
+from .pdf import build_quote_pdf
 from .serializers import QuoteSerializer, QuoteStatusSerializer
 
 STATE_CHANGED = {
     'detail': 'Le statut de ce devis ne permet pas cette action : rechargez-le.',
     'code': 'invalid_status',
+}
+NOT_SENT = {
+    'detail': "Un brouillon de devis n'a pas de PDF : envoyez d'abord le devis.",
+    'code': 'not_sent',
 }
 
 
@@ -72,3 +78,17 @@ class QuoteConvertView(APIView):
         except services.QuoteStateError:
             return Response(STATE_CHANGED, status=status.HTTP_409_CONFLICT)
         return Response(InvoiceSerializer(invoice).data, status=status.HTTP_201_CREATED)
+
+
+class QuotePdfView(APIView):
+    """GET — PDF d'un devis envoyé, quel que soit son état depuis l'envoi."""
+
+    permission_classes = PERMISSIONS
+
+    def get(self, request: Request, pk: object) -> HttpResponse | Response:
+        quote = shop_quote(request, pk)
+        if quote.status == Quote.STATUS_DRAFT:
+            return Response(NOT_SENT, status=status.HTTP_409_CONFLICT)
+        response = HttpResponse(build_quote_pdf(quote), content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{quote.number}.pdf"'
+        return response

@@ -12,7 +12,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Paragraph, Table, TableStyle
 
-from .models import Invoice
+from .models import BillingDocument, Invoice
 from .pdf_labels import LABELS
 
 WIDTH = 523.2756  # A4 moins deux marges de 48 px à 96 dpi.
@@ -110,9 +110,19 @@ class PdfStyle:
 
 
 class InvoiceStyle(PdfStyle):
-    def __init__(self, invoice: Invoice) -> None:
+    """Style d'une facture, d'un avoir ou d'un devis (`invoice`, mêmes champs).
+
+    `sign` : −1 pour un avoir, dont les montants s'impriment négatifs ; les
+    montants enregistrés restent positifs.
+    """
+
+    def __init__(self, invoice: BillingDocument) -> None:
         self.invoice = invoice
         self.snapshot = invoice.presentation
+        credit = (
+            isinstance(invoice, Invoice) and invoice.kind == Invoice.KIND_CREDIT_NOTE
+        )
+        self.sign = Decimal('-1') if credit else Decimal('1')
         language = 'en' if self.snapshot.get('language') == 'en' else 'fr'
         color = self.snapshot.get('color')
         accent = colors.HexColor(color) if color else ACCENT
