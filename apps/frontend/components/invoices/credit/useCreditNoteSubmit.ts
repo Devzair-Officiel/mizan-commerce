@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,16 +26,27 @@ function useOnce() {
 }
 
 /**
- * Création de l'avoir. La clé d'idempotence naît avec la feuille : un envoi rejoué après une
- * erreur réseau renvoie l'avoir déjà créé au lieu d'en créer un second. `pending` reste vrai
- * après le succès, jusqu'à la redirection vers l'avoir.
+ * Clé d'idempotence de la requête : gardée tant que l'envoi est rejoué à l'identique, renouvelée
+ * dès que la saisie change après un échec (la clé d'une requête refusée ne vaut pas pour une autre).
+ */
+function useIdempotencyKey() {
+  const last = useRef<{ request: string; key: string } | null>(null);
+  return useCallback((request: string) => {
+    if (last.current?.request !== request) last.current = { request, key: crypto.randomUUID() };
+    return last.current.key;
+  }, []);
+}
+
+/**
+ * Création de l'avoir. Un envoi rejoué à l'identique après une erreur réseau renvoie l'avoir déjà
+ * créé au lieu d'en créer un second. `pending` reste vrai après le succès, jusqu'à la redirection.
  */
 export function useCreditNoteSubmit(invoice: Invoice, { form, inputOf }: CreditNoteForm, issues: ComplianceIssue[], onClose: () => void) {
   const t = useTranslations('invoices.credit');
   const router = useRouter();
   const qc = useQueryClient();
   const create = useCreateCreditNote(invoice);
-  const [key] = useState(() => crypto.randomUUID());
+  const keyFor = useIdempotencyKey();
   const once = useOnce();
 
   const fail = (err: unknown) => {
@@ -59,7 +70,7 @@ export function useCreditNoteSubmit(invoice: Invoice, { form, inputOf }: CreditN
     }
     const payload = { ...input, reason: values.reason.trim(), acknowledged_warnings: values.accepted ? issues.map((i) => i.code) : [] };
     try {
-      const note = await create.mutateAsync({ payload, key });
+      const note = await create.mutateAsync({ payload, key: keyFor(JSON.stringify(payload)) });
       notify.success(t('done'));
       router.push(`/invoices/${note.id}`);
     } catch (err) {

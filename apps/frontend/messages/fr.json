@@ -3341,7 +3341,7 @@
       "warnings_title": "Points à vérifier sur la facture",
       "warnings_body": "L’avoir reprend les informations de la facture, lacunes comprises.",
       "warnings_accept": "J’ai pris connaissance de ces points et je crée l’avoir quand même.",
-      "cancel": "Annuler",
+      "close": "Fermer",
       "submit": "Créer l’avoir",
       "submitting": "Création de l’avoir…",
       "done": "Avoir créé",

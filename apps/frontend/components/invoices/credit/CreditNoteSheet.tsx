@@ -47,7 +47,7 @@ export function CreditNoteSheet({ invoice: current, onClose }: { invoice: Invoic
   const close = () => { if (!pending) onClose(); };
 
   const footer = <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-    <Button type="button" variant="outline" className="h-11 rounded-full" disabled={pending} onClick={close}>{t('cancel')}</Button>
+    <Button type="button" variant="outline" className="h-11 rounded-full" disabled={pending} onClick={close}>{t('close')}</Button>
     <Button type="submit" form={formId} className="h-11 rounded-full" disabled={pending || !ready}>{t(pending ? 'submitting' : 'submit')}</Button>
   </div>;
   return <BottomSheet open onClose={close} title={t('title')} description={t('description', { number: invoice.number })} footer={footer}>

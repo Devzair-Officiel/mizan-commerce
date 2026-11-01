@@ -310,8 +310,9 @@ async function checkPartialCredit(page, locale, label) {
   const { sheet, submit } = await openCreditSheet(page, locale);
   const posts = creditPosts(page);
   report.check(await sheet.getByText(text(locale, 'credit.unchanged'), { exact: true }).count() === 1
+    && await sheet.getByRole('button', { name: text(locale, 'credit.close'), exact: true }).filter({ hasText: text(locale, 'credit.close') }).count() === 1
     && await rowAmount(page, text(locale, 'totals.total'), '[role="dialog"]') === -Number(invoice.total_ttc),
-  `${label} : feuille ouverte, mention stock et commande, aperçu du total`);
+  `${label} : feuille ouverte (bouton Fermer), mention stock et commande, aperçu du total`);
   await submit.click();
   report.check(await sheet.getByText(text(locale, 'credit.reason_required'), { exact: true }).count() === 1 && posts.keys.length === 0,
     `${label} : motif obligatoire, rien d'envoyé`);
@@ -363,6 +364,35 @@ async function checkCreditReplay(page, invoice, label) {
     && (await api(page, `invoices/${invoice.id}/`)).credit_notes.length === 2, `${label} : même clé rejouée par le proxy, même avoir`);
 }
 
+/** Échec simulé (503) : un rejeu à l'identique garde la clé d'idempotence, une saisie modifiée en reçoit une nouvelle. */
+async function checkKeyAfterFailure(page, locale, sheet, submit, label) {
+  const creation = url => /\/credit-notes\/?$/.test(url.pathname);
+  let failing = true;
+  await page.route(creation, route => failing && route.request().method() === 'POST'
+    ? route.fulfill({ status: 503, json: { detail: 'Service indisponible.' } }) : route.continue());
+  const posts = creditPosts(page);
+  const failed = async () => {
+    await Promise.all([page.waitForResponse(r => r.status() === 503 && creation(new URL(r.url()))), submit.click()]);
+    await ready(page, submit);
+  };
+  await failed();
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: text(locale, 'credit.error', { code: 'other' }) }).first();
+  report.check(await toast.waitFor().then(() => true, () => false) && await sheet.isVisible(), `${label} : échec d'envoi signalé, feuille ouverte`);
+  await failed();
+  failing = false;
+  await sheet.getByRole('textbox', { name: text(locale, 'credit.reason'), exact: true }).fill('Commande annulée par la cliente');
+  // Next redirige l'URL à barre finale (308) : la création répond sur …/credit-notes.
+  await Promise.all([page.waitForResponse(r => r.status() === 201 && creation(new URL(r.url()))), submit.click()]);
+  posts.stop();
+  await page.unroute(creation);
+  const [first, replay, changed] = posts.keys;
+  report.check(posts.keys.length === 3 && first && replay === first && changed && changed !== first,
+    `${label} : rejeu à l'identique avec la même clé, saisie modifiée avec une nouvelle clé`);
+}
+
+// 503 simulé par checkKeyAfterFailure : l'erreur réseau qu'en affiche la console est attendue.
+const expectedNoise = problem => problem.includes('status of 503') && /\/api\/proxy\/invoices\/[\w-]+\/credit-notes\/\)/.test(problem);
+
 /** Total : tout le reste, sans recommandation ; la facture soldée ne propose plus l'avoir. */
 async function checkTotalCredit(page, locale, label) {
   const invoice = await creditableInvoice(page);
@@ -372,7 +402,7 @@ async function checkTotalCredit(page, locale, label) {
     && await sheet.getByText(text(locale, 'credit.warnings_title'), { exact: true }).count() === 0,
   `${label} : mode total, tout le TTC, aucune recommandation`);
   await sheet.getByRole('textbox', { name: text(locale, 'credit.reason'), exact: true }).fill('Commande annulée par le client');
-  await submit.click();
+  await checkKeyAfterFailure(page, locale, sheet, submit, label);
   await page.waitForURL(url => /^\/invoices\/[\w-]+$/.test(url.pathname) && !url.pathname.endsWith(invoice.id));
   const after = await api(page, `invoices/${invoice.id}/`);
   report.check(after.fully_credited && after.credit_notes.length === 1 && after.credit_notes[0].total_ttc === invoice.total_ttc,
@@ -414,7 +444,8 @@ try {
       }
     } finally {
       if (initial) await api(page, 'shop/invoice-settings/', { method: 'PATCH', data: initial });
-      report.check(watch.problems.length === 0, `${viewport.name} : console propre${watch.problems.map(p => `\n      ${p}`).join('')}`);
+      const problems = watch.problems.filter(p => !expectedNoise(p));
+      report.check(problems.length === 0, `${viewport.name} : console propre${problems.map(p => `\n      ${p}`).join('')}`);
       await ctx.close();
     }
   }

@@ -3341,7 +3341,7 @@
       "warnings_title": "Points to check on the invoice",
       "warnings_body": "The credit note reuses the invoice details, gaps included.",
       "warnings_accept": "I have read these points and want to create the credit note anyway.",
-      "cancel": "Cancel",
+      "close": "Close",
       "submit": "Create credit note",
       "submitting": "Creating credit note…",
       "done": "Credit note created",
