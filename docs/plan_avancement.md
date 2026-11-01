@@ -874,6 +874,14 @@ Décision du 2026-10-16 : pas de publications automatiques.
       alors qu'il l'est sur mobile. Relevé par l'audit des devis (6c, 2026-10-30), qui le
       repère par sa classe en attendant.
 
+- [ ] Exposer `amount_due` (net dû = TTC − avoirs − règlements, jamais négatif) par le
+      serveur : la règle existe aujourd'hui en trois endroits (backend, PDF
+      `pdf_totals.remaining`, `components/invoices/detail/payment.ts`). Relevé en 6d
+      (2026-11-01).
+
+- [ ] Libellé « Créditée » à aligner en fr, en et ar sur un seul sens (« Soldée par avoir »
+      proposé), à soumettre au comptable (question n°6). Relevé en 6d (2026-11-01).
+
 ---
 
 ## Mise en production
