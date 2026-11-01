@@ -18,6 +18,7 @@ import { InvoiceSellerCard } from './InvoiceSellerCard';
 import { InvoiceAccountCard } from './InvoiceAccountCard';
 import { InvoiceOrderCard } from './InvoiceOrderCard';
 import { InvoiceCreditNotesCard } from './InvoiceCreditNotesCard';
+import { CreditNoteSheet } from '../credit/CreditNoteSheet';
 import { InvoiceDetailDialogs } from './InvoiceDetailDialogs';
 import { InvoiceDocumentPreview } from './InvoiceDocumentPreview';
 import { LinesList } from './LinesList';
@@ -58,5 +59,6 @@ export function InvoiceDetailView({ invoice: i, state }: { invoice: Invoice; sta
     </div>
     <FloatingActionBar variant="button"><PdfButton href={`/api/proxy/invoices/${i.id}/pdf/`} label={t('download_pdf')} className="h-12 w-full shadow-lg" /></FloatingActionBar>
     <InvoiceDetailDialogs state={state} />
+    {state.crediting && <CreditNoteSheet invoice={i} onClose={() => state.setCrediting(false)} />}
   </>;
 }
