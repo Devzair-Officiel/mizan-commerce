@@ -3,6 +3,8 @@ import { apiFetch } from '@/lib/api-client';
 import { qk, type InvoicesListFilters } from '@/lib/query-keys';
 
 export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
+/** Facture, ou avoir (URS-112) : montants enregistrés positifs, affichés négatifs. */
+export type InvoiceKind = 'invoice' | 'credit_note';
 /** Nature de l'opération, imprimée sur la facture (URS-110). */
 export type OperationCategory = 'goods' | 'services' | 'mixed';
 
@@ -32,7 +34,7 @@ export interface Invoice {
   customer: string | null;
   /** Vide pour un brouillon. */
   number: string;
-  kind: 'invoice';
+  kind: InvoiceKind;
   status: InvoiceStatus;
   operation_category: OperationCategory;
   payment_terms_days: number | null;
@@ -62,6 +64,17 @@ export interface Invoice {
   tax_amount: string;
   total_ttc: string;
   amount_paid: string;
+  /** Facture : TTC déjà crédité par ses avoirs. */
+  credited_total: string;
+  /** Facture : avoirs ≥ TTC, plus rien n'y est dû (même règle que le serveur). */
+  fully_credited: boolean;
+  /** Facture : avoirs émis, de cette boutique. */
+  credit_notes: { id: string; number: string; total_ttc: string }[];
+  /** Avoir : facture d'origine (id, numéro et date d'émission figés), motif. */
+  credited_invoice: string | null;
+  credited_number: string;
+  credited_issued_date: string;
+  credit_reason: string;
   logo_url?: string | null;
   presentation?: {
     siret?: string;
@@ -130,6 +143,7 @@ export interface InvoicesSummary {
 export interface InvoicesFacets {
   status: Record<'all' | InvoiceStatus, number>;
   payment: Record<'all' | 'due' | 'unpaid' | 'partial' | 'paid', number>;
+  kind: Record<'all' | InvoiceKind, number>;
 }
 
 export function useInvoicesSummary() {

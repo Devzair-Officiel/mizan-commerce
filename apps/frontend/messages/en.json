@@ -3238,7 +3238,7 @@
     "password_description": "Choose a password with at least 8 characters."
   },
   "invoices": {
-    "payment": "{state, select, paid {Paid} partial {Partial — {amount}} cancelled {Cancelled} other {Unpaid}}",
+    "payment": "{state, select, paid {Paid} partial {Partial — {amount}} cancelled {Cancelled} credited {Credited} other {Unpaid}}",
     "due": "Due: {date}",
     "list": {
       "title": "Invoices",
@@ -3311,7 +3311,13 @@
       "keep_invoice": "Keep invoice",
       "draft_title": "Draft invoice",
       "draft_body": "This invoice has not been issued yet: resume it in the editor.",
-      "resume_draft": "Resume draft"
+      "resume_draft": "Resume draft",
+      "credit_notes": "Credit notes issued",
+      "credited": "Credit notes",
+      "credit_of": "Original invoice",
+      "origin_date": "Issue date",
+      "reason": "Reason",
+      "credit_totals": "Totals"
     },
     "totals": {
       "subtotal": "Subtotal (excl. tax)",
@@ -3449,7 +3455,8 @@
         "issue_hint": "{code, select, no_lines {Add at least one line} zero_total {The total must be positive} no_customer {Choose or create a customer} customer_siren {Business customer} late_penalties {Legal notices, Settings, Invoices} seller_name {Settings, Identity} other {Settings, Invoices}}"
       },
       "validity_invalid": "Between 1 and 365 days."
-    }
+    },
+    "kind": "{kind, select, credit_note {Credit note} other {Invoice}}"
   },
   "quotes": {
     "title": "Quotes",

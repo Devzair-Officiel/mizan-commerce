@@ -3238,7 +3238,7 @@
     "password_description": "Choisissez un mot de passe d’au moins 8 caractères."
   },
   "invoices": {
-    "payment": "{state, select, paid {Payée} partial {Partiel — {amount}} cancelled {Annulée} other {Non payée}}",
+    "payment": "{state, select, paid {Payée} partial {Partiel — {amount}} cancelled {Annulée} credited {Créditée} other {Non payée}}",
     "due": "Échéance : {date}",
     "list": {
       "title": "Factures",
@@ -3311,7 +3311,13 @@
       "keep_invoice": "Conserver la facture",
       "draft_title": "Brouillon de facture",
       "draft_body": "Cette facture n'est pas encore émise : reprenez-la dans l'éditeur.",
-      "resume_draft": "Reprendre le brouillon"
+      "resume_draft": "Reprendre le brouillon",
+      "credit_notes": "Avoirs émis",
+      "credited": "Avoirs",
+      "credit_of": "Facture d'origine",
+      "origin_date": "Date d'émission",
+      "reason": "Motif",
+      "credit_totals": "Totaux"
     },
     "totals": {
       "subtotal": "Sous-total HT",
@@ -3449,7 +3455,8 @@
         "issue_hint": "{code, select, no_lines {Ajoutez au moins une ligne} zero_total {Le total doit être positif} no_customer {Choisissez ou créez un client} customer_siren {Client professionnel} late_penalties {Mentions légales, Paramètres, Factures} seller_name {Paramètres, Identité} other {Paramètres, Factures}}"
       },
       "validity_invalid": "Validité entre 1 et 365 jours."
-    }
+    },
+    "kind": "{kind, select, credit_note {Avoir} other {Facture}}"
   },
   "quotes": {
     "title": "Devis",

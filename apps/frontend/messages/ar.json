@@ -3238,7 +3238,7 @@
     "password_description": "اختاروا كلمة مرور من 8 أحرف على الأقل."
   },
   "invoices": {
-    "payment": "{state, select, paid {مدفوعة} partial {مدفوعة جزئيًا — {amount}} cancelled {ملغاة} other {غير مدفوعة}}",
+    "payment": "{state, select, paid {مدفوعة} partial {مدفوعة جزئيًا — {amount}} cancelled {ملغاة} credited {مُسوّاة بإشعار دائن} other {غير مدفوعة}}",
     "due": "الاستحقاق: {date}",
     "list": {
       "title": "الفواتير",
@@ -3311,7 +3311,13 @@
       "keep_invoice": "الاحتفاظ بالفاتورة",
       "draft_title": "مسودة فاتورة",
       "draft_body": "لم تصدر هذه الفاتورة بعد: تابعها في المحرر.",
-      "resume_draft": "متابعة المسودة"
+      "resume_draft": "متابعة المسودة",
+      "credit_notes": "الإشعارات الدائنة الصادرة",
+      "credited": "إشعارات دائنة",
+      "credit_of": "الفاتورة الأصلية",
+      "origin_date": "تاريخ الإصدار",
+      "reason": "السبب",
+      "credit_totals": "الإجماليات"
     },
     "totals": {
       "subtotal": "المجموع الفرعي دون ضريبة",
@@ -3449,7 +3455,8 @@
         "issue_hint": "{code, select, no_lines {أضف بندًا واحدًا على الأقل} zero_total {يجب أن يكون الإجمالي موجبًا} no_customer {اختر زبونًا أو أنشئه} customer_siren {زبون مهني} late_penalties {الإشعارات القانونية، الإعدادات، الفواتير} seller_name {الإعدادات، الهوية} other {الإعدادات، الفواتير}}"
       },
       "validity_invalid": "صلاحية بين 1 و365 يومًا."
-    }
+    },
+    "kind": "{kind, select, credit_note {إشعار دائن} other {فاتورة}}"
   },
   "quotes": {
     "title": "عروض الأسعار",
