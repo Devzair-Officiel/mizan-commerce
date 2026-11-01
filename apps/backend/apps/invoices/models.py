@@ -175,6 +175,9 @@ class Invoice(BillingDocument):
     )
     credit_reason = models.TextField(blank=True)
     credited_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    # Avoir : clé d'idempotence de la requête qui l'a créé (en-tête Idempotency-Key).
+    # Un second POST avec la même clé renvoie cet avoir, sans nouveau numéro.
+    idempotency_key = models.UUIDField(null=True, blank=True, editable=False)
 
     class Meta:
         db_table = 'invoices'
@@ -195,6 +198,11 @@ class Invoice(BillingDocument):
                 fields=['shop', 'number'],
                 condition=~models.Q(number=''),
                 name='unique_invoice_number_per_shop',
+            ),
+            models.UniqueConstraint(
+                fields=['shop', 'idempotency_key'],
+                condition=models.Q(idempotency_key__isnull=False),
+                name='unique_invoice_idempotency_key_per_shop',
             ),
         ]
         indexes = [

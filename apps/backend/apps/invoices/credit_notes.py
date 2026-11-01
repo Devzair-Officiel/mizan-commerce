@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from django.db import transaction
@@ -66,7 +67,8 @@ LINE_FIELDS = (
 class CreditNoteError(Exception):
     """Avoir refusé (réponse 409) ; `code` en donne la cause :
     `invoice_draft`, `invoice_cancelled`, `credit_note_of_credit_note`,
-    `over_credit` (au-delà du reste à créditer), `nothing_to_credit`."""
+    `over_credit` (au-delà du reste à créditer), `nothing_to_credit`,
+    `idempotency_key_reused` (clé déjà employée pour l'avoir d'une autre facture)."""
 
     def __init__(self, code: str) -> None:
         self.code = code
@@ -327,8 +329,26 @@ def _presentation(invoice: Invoice, issued_on: date) -> dict:
     }
 
 
+def _replayed(invoice: Invoice, key: UUID | None) -> Invoice | None:
+    """Avoir déjà créé avec cette clé. Lu sous le verrou de la boutique : une
+    requête simultanée avec la même clé attend, puis le trouve."""
+    if key is None:
+        return None
+    note = Invoice.objects.filter(
+        shop_id=invoice.shop_id, kind=Invoice.KIND_CREDIT_NOTE, idempotency_key=key
+    ).first()
+    if note is not None and note.credited_invoice_id != invoice.pk:
+        raise CreditNoteError('idempotency_key_reused')
+    return note
+
+
 def _new_credit_note(
-    invoice: Invoice, number: str, now: datetime, reason: str, totals: dict
+    invoice: Invoice,
+    number: str,
+    now: datetime,
+    reason: str,
+    totals: dict,
+    key: UUID | None,
 ) -> Invoice:
     issued_on = now.astimezone(ZoneInfo(invoice.shop.timezone)).date()
     return Invoice.objects.create(
@@ -337,6 +357,7 @@ def _new_credit_note(
         status=Invoice.STATUS_ISSUED,
         credited_invoice=invoice,
         credit_reason=reason,
+        idempotency_key=key,
         number=number,
         issued_at=now,
         presentation=_presentation(invoice, issued_on),
@@ -355,6 +376,7 @@ def issue_credit_note(
     *,
     acknowledged_warnings: Collection[str],
     include_shipping: bool = False,
+    idempotency_key: UUID | None = None,
 ) -> Invoice:
     """Émet un avoir sur une facture émise ou payée de `shop`.
 
@@ -363,9 +385,13 @@ def issue_credit_note(
     créditée si `include_shipping`. Tout refus annule la transaction : aucun
     numéro consommé, aucun montant crédité, rien de journalisé. `user` : auteur
     inscrit au journal d'audit (`credit_note_issued`), dans la même transaction.
+    `idempotency_key` : une clé déjà employée renvoie l'avoir qu'elle a créé, sans
+    nouveau numéro ni nouvel audit.
     """
     reason = _reason(reason)
     invoice = _lock_invoice(shop, invoice)
+    if replayed := _replayed(invoice, idempotency_key):
+        return replayed
     accepted = _verify(invoice, acknowledged_warnings)
     done = _already_credited(invoice)
     credited, complete = _credited_lines(invoice, lines, done)
@@ -382,7 +408,7 @@ def issue_credit_note(
     _claim(invoice, totals['total_ttc'], now)
     issued_on = now.astimezone(ZoneInfo(invoice.shop.timezone)).date()
     number = _next_number(invoice.shop, DocumentSequence.KIND_CREDIT_NOTE, issued_on)
-    note = _new_credit_note(invoice, number, now, reason, totals)
+    note = _new_credit_note(invoice, number, now, reason, totals, idempotency_key)
     for line in credited:
         line.invoice = note
     InvoiceLine.objects.bulk_create(credited)

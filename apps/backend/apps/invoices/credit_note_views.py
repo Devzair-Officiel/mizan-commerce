@@ -1,5 +1,7 @@
 """Avoirs d'une facture (URS-112) : liste et émission."""
 
+from uuid import UUID
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,13 +21,28 @@ CREDIT_NOTE_ERRORS = {
         'Cet avoir dépasse ce qui reste à créditer sur la facture : rechargez-la.'
     ),
     'nothing_to_credit': 'Cet avoir ne crédite aucun montant.',
+    'idempotency_key_reused': (
+        'Cette clé a déjà servi à un avoir d’une autre facture : rechargez la page.'
+    ),
 }
+INVALID_KEY = {
+    'detail': 'En-tête Idempotency-Key invalide : UUID attendu.',
+    'code': 'invalid_idempotency_key',
+}
+
+
+def idempotency_key(request: Request) -> UUID | None:
+    """En-tête `Idempotency-Key` (UUID), facultatif ; `ValueError` s'il est invalide."""
+    value = request.headers.get('Idempotency-Key', '').strip()
+    return UUID(value) if value else None
 
 
 class InvoiceCreditNotesView(APIView):
     """GET — avoirs de la facture. POST — émet un avoir, total ou partiel.
 
-    Ni le stock ni la commande liée ne changent (`credit_notes`).
+    Ni le stock ni la commande liée ne changent (`credit_notes`). En-tête
+    `Idempotency-Key` (UUID) : un second POST avec la même clé renvoie l'avoir
+    déjà créé, même réponse (201), sans nouveau numéro ni nouvel audit.
     """
 
     permission_classes = PERMISSIONS
@@ -41,6 +58,10 @@ class InvoiceCreditNotesView(APIView):
 
     def post(self, request: Request, pk: object) -> Response:
         invoice = shop_invoice(request, pk)
+        try:
+            key = idempotency_key(request)
+        except ValueError:
+            return Response(INVALID_KEY, status=status.HTTP_400_BAD_REQUEST)
         payload = CreditNoteIssueSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         data = payload.validated_data
@@ -54,6 +75,7 @@ class InvoiceCreditNotesView(APIView):
                 request.user,
                 acknowledged_warnings=data.get('acknowledged_warnings', []),
                 include_shipping=data['include_shipping'],
+                idempotency_key=key,
             )
         except credit_notes.CreditNoteError as exc:
             return Response(
