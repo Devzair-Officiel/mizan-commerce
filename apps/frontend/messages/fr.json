@@ -1921,9 +1921,11 @@
           "description": "Pour le commerçant qui gère seul sa boutique.",
           "f1": "Catalogue, ventes et clients illimités",
           "f2": "Factures PDF",
-          "f3": "Messages WhatsApp préparés",
-          "f4": "Relance automatique des impayés",
-          "f5": "{text_scans} lectures avancées d'emballage par mois"
+          "f3": "Devis numérotés en PDF",
+          "f4": "Avoirs",
+          "f5": "Messages WhatsApp préparés",
+          "f6": "Relance automatique des impayés",
+          "f7": "{text_scans} lectures avancées d'emballage par mois"
         },
         "boutique": {
           "name": "Boutique",

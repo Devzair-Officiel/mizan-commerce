@@ -48,7 +48,7 @@ const TEAM = 3;
 const AI_READS = { trial: { count: 50, limit: 60 }, free: { count: 10, limit: 10 }, paid: { count: 3, limit: 30 } };
 /** Plafonds mensuels de la grille (migration `subscriptions/0007`, `seed_plans`) et nombre de lignes `fN` (la dernière : lectures). */
 const TEXT_SCANS = { free: 10, solo: 30, boutique: 60, commerce_plus: 130 };
-const FEATURE_LINES = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
+const FEATURE_LINES = { free: 6, solo: 7, boutique: 7, commerce_plus: 5 };
 
 /** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non ; gardée dans `state.current`. */
 function situation(subscription, state) {

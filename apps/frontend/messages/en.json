@@ -1921,9 +1921,11 @@
           "description": "For shopkeepers who run their shop alone.",
           "f1": "Unlimited catalogue, sales and customers",
           "f2": "PDF invoices",
-          "f3": "Ready-made WhatsApp messages",
-          "f4": "Automatic unpaid follow-ups",
-          "f5": "{text_scans} advanced package reads per month"
+          "f3": "Numbered PDF quotes",
+          "f4": "Credit notes",
+          "f5": "Ready-made WhatsApp messages",
+          "f6": "Automatic unpaid follow-ups",
+          "f7": "{text_scans} advanced package reads per month"
         },
         "boutique": {
           "name": "Boutique",

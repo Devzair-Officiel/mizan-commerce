@@ -7,8 +7,8 @@
  * À étendre à chaque fonction livrée, voir docs/plan_avancement.md.
  *
  * `zakat_history` n'y est pas : l'historique de la zakat n'est restreint à aucune formule.
- * `invoices`, `whatsapp` et `auto_reminders` (Solo) ne se perdent pas d'une formule payante à
- * l'autre : sans libellé, ils ne s'affichent pas.
+ * `invoices`, `quotes`, `credit_notes`, `whatsapp` et `auto_reminders` (Solo) ne se perdent pas
+ * d'une formule payante à l'autre : sans libellé, ils ne s'affichent pas.
  */
 export const SHIPPED_FEATURES: ReadonlySet<string> = new Set([
   'multi_user',
@@ -18,6 +18,8 @@ export const SHIPPED_FEATURES: ReadonlySet<string> = new Set([
   'exports',
   'ocr',
   'invoices',
+  'quotes',
+  'credit_notes',
   'whatsapp',
   'auto_reminders',
 ]);
