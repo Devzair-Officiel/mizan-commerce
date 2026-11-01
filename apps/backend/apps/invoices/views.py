@@ -16,6 +16,7 @@ from . import listing, services  # noqa: E402
 from .models import Invoice  # noqa: E402
 from .filters import INVOICE_SEARCH_FIELDS, InvoiceOrderingFilter  # noqa: E402
 from .serializers import (  # noqa: E402
+    InvoiceDetailSerializer,
     InvoiceIssueSerializer,
     InvoiceSerializer,
     InvoiceStatusUpdateSerializer,
@@ -118,7 +119,7 @@ class InvoiceDetailView(generics.RetrieveAPIView):
     """GET — détail d'une facture (lecture seule). Pas de DELETE : exigence légale."""
 
     permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
-    serializer_class = InvoiceSerializer
+    serializer_class = InvoiceDetailSerializer
 
     def get_queryset(self):
         shop = get_shop(self.request.user)

@@ -20,7 +20,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from django.db import transaction
-from django.db.models import F, Sum
+from django.db.models import F, QuerySet, Sum
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
@@ -139,23 +139,56 @@ def _verify(invoice: Invoice, acknowledged: Collection[str]) -> list[str]:
     return [issue.code for issue in issues]
 
 
-def _already_credited(invoice: Invoice) -> _Credited:
-    """Lu sous le verrou de la facture : aucun autre avoir ne s'y ajoute."""
-    notes = Invoice.objects.filter(
+def _notes_of(invoice: Invoice) -> QuerySet:
+    """Avoirs de la facture, de sa boutique seulement."""
+    return Invoice.objects.filter(
         shop_id=invoice.shop_id,
         kind=Invoice.KIND_CREDIT_NOTE,
         credited_invoice=invoice,
     )
-    sums = notes.aggregate(**{field: Sum(field) for field in TOTAL_FIELDS})
-    rows = (
-        InvoiceLine.objects.filter(shop_id=invoice.shop_id, invoice__in=notes)
+
+
+def _credited_rows(invoice: Invoice) -> QuerySet:
+    """Quantité et sous-total HT déjà crédités, par rang de ligne d'origine
+    (une ligne d'avoir reprend le rang de la ligne qu'elle crédite)."""
+    return (
+        InvoiceLine.objects.filter(
+            shop_id=invoice.shop_id, invoice__in=_notes_of(invoice)
+        )
         .values('position')
         .annotate(quantity=Sum('quantity'), subtotal=Sum('line_subtotal_ht'))
     )
+
+
+def _already_credited(invoice: Invoice) -> _Credited:
+    """Lu sous le verrou de la facture : aucun autre avoir ne s'y ajoute."""
+    sums = _notes_of(invoice).aggregate(
+        **{field: Sum(field) for field in TOTAL_FIELDS}
+    )
     return _Credited(
         totals={field: sums[field] or ZERO for field in TOTAL_FIELDS},
-        lines={row['position']: (row['quantity'], row['subtotal']) for row in rows},
+        lines={
+            row['position']: (row['quantity'], row['subtotal'])
+            for row in _credited_rows(invoice)
+        },
     )
+
+
+def credited_quantities(invoice: Invoice) -> dict[int, Decimal]:
+    """Quantité déjà créditée par rang de ligne de la facture, en une requête
+    (détail de la facture : bornes de la feuille « Créer un avoir »)."""
+    if invoice.kind != Invoice.KIND_INVOICE:
+        return {}
+    return {row['position']: row['quantity'] for row in _credited_rows(invoice)}
+
+
+def shipping_creditable(invoice: Invoice) -> Decimal:
+    """Reste de livraison créditable. Lit les avoirs préchargés
+    (`listing.with_relations`, filtrés par boutique) : aucune requête de plus."""
+    if invoice.kind != Invoice.KIND_INVOICE:
+        return ZERO
+    credited = sum((note.shipping_amount for note in invoice.credit_notes.all()), ZERO)
+    return max(invoice.shipping_amount - credited, ZERO)
 
 
 def _requested(

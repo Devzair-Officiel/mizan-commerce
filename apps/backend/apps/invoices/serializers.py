@@ -3,10 +3,14 @@ from decimal import Decimal
 from rest_framework import serializers
 from apps.core.storage import get_signed_url, is_storage_configured
 
+from . import credit_notes
 from .models import Invoice, InvoiceLine
 from .services import display_line_description
 
 MAX_DRAFT_LINES = 200
+# Formats des champs du modèle (quantité à 3 décimales, montants à 2).
+QUANTITY = serializers.DecimalField(max_digits=12, decimal_places=3)
+MONEY = serializers.DecimalField(max_digits=14, decimal_places=2)
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):
@@ -86,6 +90,34 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         )
         read_only_fields = fields
+
+
+class InvoiceDetailSerializer(InvoiceSerializer):
+    """Détail d'une facture : en plus, ce qui reste créditable (feuille « Créer un
+    avoir »). Par ligne, `credited_quantity` ; pour la facture, `shipping_creditable`.
+    Calculé par `credit_notes`, jamais déduit côté client des lignes d'avoir."""
+
+    lines = serializers.SerializerMethodField()
+    shipping_creditable = serializers.SerializerMethodField()
+
+    class Meta(InvoiceSerializer.Meta):
+        fields = (*InvoiceSerializer.Meta.fields, 'shipping_creditable')
+        read_only_fields = fields
+
+    def get_lines(self, invoice: Invoice) -> list[dict]:
+        credited = credit_notes.credited_quantities(invoice)
+        return [
+            {
+                **InvoiceLineSerializer(line).data,
+                'credited_quantity': QUANTITY.to_representation(
+                    credited.get(line.position, Decimal('0'))
+                ),
+            }
+            for line in invoice.lines.all()
+        ]
+
+    def get_shipping_creditable(self, invoice: Invoice) -> str:
+        return MONEY.to_representation(credit_notes.shipping_creditable(invoice))
 
 
 class InvoiceIssueSerializer(serializers.Serializer):

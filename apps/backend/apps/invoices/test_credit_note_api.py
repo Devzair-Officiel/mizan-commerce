@@ -5,7 +5,9 @@ from types import SimpleNamespace
 from unittest import mock
 
 import pytest
+from django.db import connection
 from django.test import TransactionTestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework.test import APIClient
 
@@ -18,7 +20,7 @@ from apps.stock.models import StockMovement
 
 from . import credit_notes, drafts, services
 from .factories import InvoiceFactory
-from .models import FULLY_CREDITED, Invoice
+from .models import FULLY_CREDITED, Invoice, InvoiceLine
 from .test_credit_notes import LINES, _issued
 from .tests import _make_order_with_items, _make_shop
 
@@ -396,3 +398,73 @@ class ConcurrentCreditNoteApiTest(TransactionTestCase):
         assert refreshed.credited_total == Decimal(first.data['total_ttc'])
         assert refreshed.credited_total <= refreshed.total_ttc
         assert Invoice.objects.filter(kind='credit_note').count() == 1
+
+
+# Reste créditable au détail de la facture
+
+
+def _creditable(api: APIClient, invoice: Invoice) -> tuple[list[str], str]:
+    data = api.get(reverse('invoice-detail', args=[invoice.pk])).data
+    return [line['credited_quantity'] for line in data['lines']], data[
+        'shipping_creditable'
+    ]
+
+
+@pytest.mark.django_db
+def test_detail_exposes_what_several_credit_notes_already_credited(ctx) -> None:
+    invoice = _issued(ctx)
+    assert _creditable(ctx.api, invoice) == (['0.000', '0.000'], '5.00')
+    _post(ctx.api, invoice, lines=_rows(invoice, '1'))
+    _post(ctx.api, invoice, lines=_rows(invoice, '1', '2'), include_shipping=True)
+    assert _creditable(ctx.api, invoice) == (['2.000', '2.000'], '0.00')
+    # Ni la liste ni un avoir ne portent ces champs de la feuille.
+    row = ctx.api.get(reverse('invoice-list')).data['results'][0]
+    assert 'shipping_creditable' not in row
+    assert 'credited_quantity' not in row['lines'][0]
+    note = Invoice.objects.filter(kind='credit_note').first()
+    assert _creditable(ctx.api, note) == (['0.000', '0.000'], '0.00')
+
+
+@pytest.mark.django_db
+def test_detail_ignores_credit_notes_of_another_shop(ctx) -> None:
+    invoice = _issued(ctx)
+    _post(ctx.api, invoice, lines=_rows(invoice, '1'))
+    # Avoir d'une autre boutique rattaché à tort à cette facture : jamais compté.
+    other = _ctx('credit-api-creditable@example.com')
+    rogue = InvoiceFactory(
+        partial_credit=True,
+        shop=other.shop,
+        credited_invoice=invoice,
+        shipping_amount=Decimal('5.00'),
+    )
+    InvoiceLine.objects.create(
+        shop=other.shop,
+        invoice=rogue,
+        position=invoice.lines.first().position,
+        description='Intrus',
+        quantity=Decimal('2'),
+        unit_price_ht=Decimal('10.00'),
+        line_subtotal_ht=Decimal('20.00'),
+    )
+    assert _creditable(ctx.api, invoice) == (['1.000', '0.000'], '5.00')
+    detail = reverse('invoice-detail', args=[invoice.pk])
+    assert other.api.get(detail).status_code == 404
+
+
+@pytest.mark.django_db
+def test_detail_query_count_does_not_grow_with_credit_notes(ctx) -> None:
+    def count(invoice: Invoice) -> tuple[int, int]:
+        with CaptureQueriesContext(connection) as queries:
+            response = ctx.api.get(reverse('invoice-detail', args=[invoice.pk]))
+            assert response.status_code == 200
+        grouped = [q for q in queries if 'GROUP BY' in q['sql']]
+        return len(queries), len(grouped)
+
+    one, three = _issued(ctx), _issued(ctx)
+    _post(ctx.api, one, lines=_rows(one, '1'))
+    for quantities in (('1',), ('1', '1'), (None, '1')):
+        _post(ctx.api, three, lines=_rows(three, *quantities))
+    total, grouped = count(three)
+    # Quantités déjà créditées : une seule requête groupée, quel que soit le
+    # nombre d'avoirs ; livraison lue sur les avoirs préchargés.
+    assert (total, grouped) == (count(one)[0], 1)
