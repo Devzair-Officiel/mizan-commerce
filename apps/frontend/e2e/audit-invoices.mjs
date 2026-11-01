@@ -1,4 +1,4 @@
-/** Factures au gabarit : liste serveur, filtres, pagination, détail figé, actions et création d'un avoir. */
+/** Factures au gabarit : liste serveur, filtres (dont Type), pagination, détail figé, actions et création d'un avoir. */
 import { mkdir, readFile } from 'node:fs/promises';
 import { isDeepStrictEqual } from 'node:util';
 import { BASE, INVOICES_EMAIL, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
@@ -143,6 +143,75 @@ async function checkSearch(page, locale, label) {
   report.check((await api(page, 'invoices/?search=Karima%20Audit')).count === 24, `${label} : recherche sur le nom complet du client`);
 }
 
+/** Pose le filtre Type (menu sur desktop, feuille validée sur mobile) ; renvoie le texte de l'option, nombre compris. */
+async function applyKind(page, locale, kind) {
+  const name = text(locale, 'list.kind_filter', { value: kind });
+  let option;
+  if (page.viewportSize().width < 1024) {
+    // « Filtres », suivi du nombre de filtres actifs quand il y en a.
+    await page.getByRole('button', { name: new RegExp(`^${msg(locale, 'ui.list.filters')}`) }).click();
+    const sheet = page.getByRole('dialog');
+    const choice = sheet.getByRole('radio', { name: new RegExp(`^${name}`) }).locator('xpath=..');
+    option = flat(await choice.innerText());
+    await choice.click();
+    await sheet.getByRole('button', { name: new RegExp(text(locale, 'list.show_results', { count: 1 }).replace('1', '\\d+')) }).click();
+  } else {
+    await page.getByRole('button', { name: new RegExp(`^${text(locale, 'list.kind_title')}`) }).click();
+    const choice = page.getByRole('menuitemradio').filter({ hasText: name });
+    option = flat(await choice.innerText());
+    await choice.click();
+  }
+  await page.waitForURL(url => url.searchParams.get('kind') === kind);
+  await page.waitForLoadState('networkidle');
+  return option;
+}
+
+/** Filtre Type : avoirs (badge, montant négatif, sans paiement), factures sans avoir, URL conservée, retour à Tous. */
+async function checkKindFilter(page, locale, label) {
+  await goto(page, '/invoices');
+  const facets = (await api(page, 'invoices/facets/')).kind;
+  const rows = page.viewportSize().width < 1024 ? ROWS : 'tbody tr';
+  const badge = text(locale, 'kind', { kind: 'credit_note' });
+  const shows = n => page.waitForFunction(([sel, want]) => document.querySelectorAll(sel).length === want, [rows, Math.min(n, 20)]);
+  const badges = () => page.locator(rows).evaluateAll(els => els.map(el => [...el.querySelectorAll('span.rounded-full')].map(b => b.textContent.trim()).filter(Boolean)));
+  const option = await applyKind(page, locale, 'credit_note');
+  await shows(facets.credit_note);
+  report.check(facets.credit_note >= 2 && option.includes(String(facets.credit_note))
+    && await visible(page.getByText(fmt(locale, 'invoices.list.kind_count', { kind: 'credit_note', count: facets.credit_note }), { exact: true })).count() === 1,
+  `${label} : filtre Avoirs, autant de lignes que la facette (${facets.credit_note})`);
+  report.check((await badges()).every(found => isDeepStrictEqual(found, [badge])), `${label} : badge Avoir, aucun badge de paiement ni de statut`);
+  const [note] = (await api(page, 'invoices/?kind=credit_note')).results;
+  report.check(parseAmount(await page.locator(rows).first().locator('span[dir="ltr"]').innerText()) === -Number(note.total_ttc)
+    && await negativesReadLeftToRight(page), `${label} : montant négatif en LTR, signe à gauche, chiffres tabulaires`);
+  await page.screenshot({ path: `results/invoices-list-credit-notes-${label.replaceAll(' ', '-')}.png`, fullPage: true });
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await shows(facets.credit_note);
+  report.check(new URL(page.url()).searchParams.get('kind') === 'credit_note' && (await badges()).every(found => found.includes(badge)),
+    `${label} : filtre Avoirs conservé dans l'URL au rechargement`);
+  await applyKind(page, locale, 'invoice');
+  await shows(facets.invoice);
+  report.check((await badges()).every(found => !found.includes(badge)), `${label} : filtre Factures, aucun avoir`);
+  await page.getByRole('button', { name: fmt(locale, 'ui.list.remove_filter', { name: text(locale, 'list.kind_title') }), exact: true }).click();
+  await page.waitForURL(url => !url.searchParams.has('kind'));
+  await shows(facets.all);
+  report.check(facets.all === facets.invoice + facets.credit_note, `${label} : retour à Tous, factures et avoirs`);
+}
+
+/** États vides du filtre : « Aucun avoir » (liste simulée vide), « Aucun avoir ne correspond » (aucun avoir brouillon). */
+async function checkKindEmpty(page, locale, label) {
+  const list = url => /\/api\/proxy\/invoices\/?$/.test(url.pathname) && url.searchParams.get('kind') === 'credit_note';
+  await page.route(list, route => route.fulfill({ json: { count: 0, next: null, previous: null, results: [] } }));
+  await goto(page, '/invoices?kind=credit_note');
+  const shown = key => visible(page.getByText(fmt(locale, `invoices.list.${key}`, { kind: 'credit_note' }), { exact: true })).count();
+  report.check(await shown('kind_empty_title') === 1 && await shown('kind_empty_body') === 1, `${label} : aucun avoir, titre et sous-titre propres au type`);
+  await page.unroute(list);
+  await goto(page, '/invoices?kind=credit_note&status=draft');
+  report.check(await shown('empty_filtered') === 1 && await page.locator(ROWS).count() === 0, `${label} : avoirs filtrés sans résultat, « Aucun avoir ne correspond »`);
+  await visible(page.getByRole('button', { name: text(locale, 'list.clear_filters'), exact: true })).last().click();
+  await page.waitForURL(url => !url.searchParams.has('kind') && !url.searchParams.has('status'));
+}
+
 async function checkDetail(page, locale, label) {
   const invoice = fixtures[0];
   await goto(page, `/invoices/${invoice.id}`);
@@ -182,11 +251,15 @@ async function creditFixtures(page) {
   return { partial, full };
 }
 
-/** Montant d'une ligne libellé / valeur (`DetailRow`), lu dans la locale : chiffres latins, < 1 000. */
-async function rowAmount(page, label, root = 'main') {
-  const value = await visible(page.locator(`${root} dl > div`).filter({ has: page.locator('dt').getByText(label, { exact: true }) }).locator('dd')).first().innerText();
+/** Montant affiché, lu dans la locale : chiffres latins, < 1 000. */
+function parseAmount(value) {
   const raw = value.replace(/[^\d.,\-−]/g, '').replace('−', '-');
   return Number(raw.includes('.') ? raw.replace(/,/g, '') : raw.replace(',', '.'));
+}
+
+/** Montant d'une ligne libellé / valeur (`DetailRow`). */
+async function rowAmount(page, label, root = 'main') {
+  return parseAmount(await visible(page.locator(`${root} dl > div`).filter({ has: page.locator('dt').getByText(label, { exact: true }) }).locator('dd')).first().innerText());
 }
 
 /** Montants négatifs : en LTR, chiffres tabulaires, signe dessiné à gauche du premier chiffre (même en RTL). */
@@ -434,6 +507,8 @@ try {
         await goto(page, '/invoices');
         if (viewport.mobile) await checkMobile(page, locale, label); else await checkDesktop(page, locale, label);
         await checkSearch(page, locale, label);
+        await checkKindFilter(page, locale, label);
+        await checkKindEmpty(page, locale, label);
         await page.screenshot({ path: `results/invoices-list-${label.replaceAll(' ', '-')}.png`, fullPage: true });
         await checkDetail(page, locale, label);
         await checkCreditedInvoices(page, locale, label);

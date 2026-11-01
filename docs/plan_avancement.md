@@ -561,7 +561,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] Avoirs total et partiel, `credited_total` atomique
     - [x] PDF devis et avoir
     - [x] Frontend des devis : éditeur, détail, actions (URS-111)
-    - [ ] Frontend des avoirs : feuille, détail, liste (URS-112)
+    - [x] Frontend des avoirs : feuille, détail, liste (URS-112)
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
   - [ ] 8.4a Lien en ligne et acceptation du devis (Boutique, URS-114)

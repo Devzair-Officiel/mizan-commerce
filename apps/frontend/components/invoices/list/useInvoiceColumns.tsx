@@ -7,6 +7,8 @@ import type { DataTableColumn } from '@/components/list/dataTableTypes';
 import { OrderNumber } from '@/components/orders/OrderNumber';
 import { InvoiceStatusBadge } from '../shared/InvoiceStatusBadge';
 import { InvoicePaymentBadge } from '../shared/InvoicePaymentBadge';
+import { CreditNoteBadge } from '../shared/CreditNoteBadge';
+import { NegativeAmount } from '../shared/NegativeAmount';
 
 export function useInvoiceColumns(): DataTableColumn<Invoice>[] {
   const t = useTranslations('invoices.list');
@@ -23,9 +25,11 @@ export function useInvoiceColumns(): DataTableColumn<Invoice>[] {
     { key: 'due_date', header: t('columns.due_date'), sortable: true, firstDirection: 'desc',
       cell: i => <span className="whitespace-nowrap text-[0.8125rem] text-muted-foreground">{i.due_date ? calendarDate(i.due_date, { dateStyle: 'medium', timeZone: 'UTC' }) : '—'}</span> },
     { key: 'total_ttc', header: t('columns.total_ttc'), sortable: true, align: 'end', firstDirection: 'desc',
-      cell: i => <span className="whitespace-nowrap text-sm font-semibold tabular-nums">{money(i.total_ttc, i.currency)}</span> },
+      // Avoir : signe affiché seulement, le tri par montant reste sur le TTC positif du serveur.
+      cell: i => i.kind === 'credit_note' ? <NegativeAmount value={i.total_ttc} currency={i.currency} className="whitespace-nowrap text-sm font-semibold" />
+        : <span className="whitespace-nowrap text-sm font-semibold tabular-nums">{money(i.total_ttc, i.currency)}</span> },
     { key: 'status', header: t('columns.status'), sortable: true,
-      cell: i => <InvoiceStatusBadge status={i.status} /> },
-    { key: 'payment', header: t('payment_title'), cell: i => <InvoicePaymentBadge invoice={i} /> },
+      cell: i => i.kind === 'credit_note' ? <CreditNoteBadge /> : <InvoiceStatusBadge status={i.status} /> },
+    { key: 'payment', header: t('payment_title'), cell: i => i.kind === 'credit_note' ? null : <InvoicePaymentBadge invoice={i} /> },
   ];
 }

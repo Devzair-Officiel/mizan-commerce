@@ -104,6 +104,7 @@ export interface ReminderFilters {
 export interface InvoicesListFilters {
   status?: 'draft' | 'issued' | 'paid' | 'cancelled';
   payment?: 'due' | 'unpaid' | 'partial' | 'paid';
+  kind?: 'invoice' | 'credit_note';
   period?: 'issued_month' | 'paid_month';
   search?: string;
   ordering?: string;
