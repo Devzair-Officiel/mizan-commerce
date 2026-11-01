@@ -562,6 +562,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] PDF devis et avoir
     - [x] Frontend des devis : éditeur, détail, actions (URS-111)
     - [x] Frontend des avoirs : feuille, détail, liste (URS-112)
+    - [x] Gating `quotes` et `credit_notes` dès Solo, écriture seule (`HasPlanForFeature.for_feature(…, writes_only=True)`, migration abonnements `0015`) : en Découverte, devis consultables, création et gestes d'écriture sur la carte Solo ; lignes `plans.solo.f3`/`f4` ; audit `subscription`
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
   - [ ] 8.4a Lien en ligne et acceptation du devis (Boutique, URS-114)
@@ -612,7 +613,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [x] Modèles `Subscription`, `SubscriptionPlan` + seed des ~~3~~ 4 plans (Découverte, Solo, Boutique, Commerce+ : migration `0004_rename_plans`, 2026-10-28)
 - [x] Essai 14j Boutique (ex-Boutique+) à l'inscription (URS-100) + tâche Celery d'expiration
-- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr
+- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr ; quotes et credit_notes en écriture seule (lot 8.2)
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
@@ -697,6 +698,15 @@ Décision du 2026-10-16 : pas de publications automatiques.
       (`order_sync._cancel`) et `PATCH …/status/` refuse l'annulation (409
       `use_credit_note`). Le supprimer ou en faire le chemin unique de la synchro, hors
       du lot 8.2. Relevé en 6f (2026-11-01).
+
+- [ ] Factures et avoirs après une descente en Découverte (fin d'essai, résiliation) :
+      les endpoints de factures restent gatés `invoices` en lecture comme en écriture
+      (403), donc les factures émises et leurs avoirs ne se consultent plus ; seul
+      `GET …/credit-notes/` est libre (gating `credit_notes` en écriture seule), sans
+      détail ni PDF accessibles. `/invoices` et son détail affichent alors une erreur
+      générique de chargement, et « Voir la facture » d'un devis facturé y mène.
+      Décider d'une lecture libre des factures (comme les devis) ou d'une carte de mise
+      à niveau à la place de l'erreur. Relevé en 7 (2026-11-01).
 
 - [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
       croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
