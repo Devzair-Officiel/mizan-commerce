@@ -326,6 +326,33 @@ def test_list_reads_shop_and_invoice_without_a_query_per_quote(ctx) -> None:
 
 
 @pytest.mark.django_db
+def test_past_validity_is_refused_like_an_expired_quote(ctx) -> None:
+    """Échu mais pas encore expiré par la tâche horaire : 409 `invalid_status`."""
+    draft = _create(ctx)
+    _send(ctx, draft['id'])
+    Quote.objects.filter(pk=draft['id']).update(
+        valid_until=timezone.now().date() - timedelta(days=2)
+    )
+    response = _status(ctx, draft['id'], status='accepted', accepted_name='J. Dupont')
+    assert (response.status_code, response.data['code']) == (409, 'invalid_status')
+    stored = Quote.objects.get(pk=draft['id'])
+    assert (stored.status, stored.accepted_name) == ('sent', '')
+    assert _actions(ctx.shop) == ['quote_sent']
+
+
+@pytest.mark.django_db
+def test_acceptance_of_another_shop_quote_is_not_found(ctx) -> None:
+    draft = _create(ctx)
+    _send(ctx, draft['id'])
+    intruder, _, _, _ = _make_shop('quotes-accept-intruder@example.com')
+    response = _client(intruder).post(
+        reverse('quote-status', args=[draft['id']]), {'status': 'accepted'}
+    )
+    assert response.status_code == 404
+    assert Quote.objects.get(pk=draft['id']).status == 'sent'
+
+
+@pytest.mark.django_db
 def test_computed_fields_of_another_shop_stay_hidden(ctx) -> None:
     draft = _invoiced(ctx)
     Quote.objects.filter(pk=draft['id']).update(

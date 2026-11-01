@@ -12,6 +12,7 @@ from django.test import TransactionTestCase
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.core.models import AuditLog
 from apps.core.testing import race_on_lock
 from apps.invoices import drafts
 from apps.invoices.models import DocumentSequence, Invoice
@@ -371,6 +372,55 @@ def test_days_remaining_is_never_negative_and_only_for_sent_quotes(ctx) -> None:
     for status in ('accepted', 'declined', 'expired', 'invoiced'):
         quote = _stored(_sent_until(ctx, today + timedelta(days=5), status=status))
         assert services.days_remaining(quote, now) is None, status
+
+
+@pytest.mark.django_db
+def test_acceptance_is_refused_after_midnight_of_the_last_day_in_the_shop_timezone(
+    ctx,
+) -> None:
+    """Dernier jour le 27 à Nouméa (UTC+11) : 12:59 UTC = 23:59 le 27, accepté ;
+    13:00 UTC = minuit le 28, refusé alors que la tâche horaire n'est pas passée.
+    Paris, encore le 27 aux deux heures, accepte."""
+    other = _shop('accept-noumea@example.com')
+    Shop.objects.filter(pk=other.shop.pk).update(timezone='Pacific/Noumea')
+    day = datetime(2026, 11, 27).date()
+    before = datetime(2026, 11, 27, 12, 59, tzinfo=ZoneInfo('UTC'))
+    after = datetime(2026, 11, 27, 13, tzinfo=ZoneInfo('UTC'))
+
+    in_time = _stored(_sent_until(other, day))
+    accepted = services.mark_accepted_manually(in_time, None, 'Client', now=before)
+    assert (accepted.status, accepted.accepted_at) == ('accepted', before)
+
+    late = _stored(_sent_until(other, day))
+    with pytest.raises(services.QuoteStateError):
+        services.mark_accepted_manually(late, None, 'Client', now=after)
+    stored = Quote.objects.get(pk=late.pk)
+    assert (stored.status, stored.accepted_at, stored.accepted_name) == (
+        'sent',
+        None,
+        '',
+    )
+
+    paris = _stored(_sent_until(ctx, day))
+    assert services.mark_accepted_manually(paris, None, now=after).status == 'accepted'
+    assert _actions_count(other.shop, 'quote_accepted') == 1
+
+
+@pytest.mark.django_db
+def test_valid_quote_is_accepted_and_stays_idempotent(ctx) -> None:
+    now = datetime(2026, 11, 27, 12, tzinfo=ZoneInfo('UTC'))
+    quote = _stored(_sent_until(ctx, now.date() + timedelta(days=10)))
+    accepted = services.mark_accepted_manually(quote, None, 'Jean', now=now)
+    assert accepted.status == 'accepted'
+    # Déjà accepté : sans effet, même une fois la validité dépassée.
+    later = now + timedelta(days=30)
+    again = services.mark_accepted_manually(quote, None, 'Autre', now=later)
+    assert (again.status, again.accepted_name) == ('accepted', 'Jean')
+    assert _actions_count(ctx.shop, 'quote_accepted') == 1
+
+
+def _actions_count(shop: Shop, action: str) -> int:
+    return AuditLog.objects.filter(shop_id=shop.pk, action=action).count()
 
 
 @pytest.mark.django_db

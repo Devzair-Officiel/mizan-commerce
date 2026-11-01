@@ -257,15 +257,20 @@ def _transition(
     user: Any,
     target: str,
     values: Mapping[str, Any],
+    conditions: Mapping[str, Any] | None = None,
 ) -> Quote:
     """Change le statut d'un devis envoyé par une mise à jour conditionnelle,
     sans lecture préalable, et la journalise dans la même transaction.
 
+    `conditions` s'ajoute au filtre de la même mise à jour (validité de l'accord).
     Idempotent : sans effet ni journal si le devis est déjà dans le statut visé.
-    Depuis un autre statut : `QuoteStateError`.
+    Depuis un autre statut, ou si `conditions` n'est pas remplie : `QuoteStateError`.
     """
     updated = Quote.objects.filter(
-        pk=quote.pk, shop_id=quote.shop_id, status=Quote.STATUS_SENT
+        pk=quote.pk,
+        shop_id=quote.shop_id,
+        status=Quote.STATUS_SENT,
+        **(conditions or {}),
     ).update(status=target, **values)
     quote.refresh_from_db()
     if not updated and quote.status != target:
@@ -275,9 +280,17 @@ def _transition(
     return quote
 
 
-def mark_accepted_manually(quote: Quote, user: Any, accepted_name: str = '') -> Quote:
-    """Accord reçu hors de la page client (téléphone, signature papier)."""
-    now = timezone.now()
+def mark_accepted_manually(
+    quote: Quote, user: Any, accepted_name: str = '', now: datetime | None = None
+) -> Quote:
+    """Accord reçu hors de la page client (téléphone, signature papier).
+
+    Refusé si `valid_until` est dépassé dans le fuseau de la boutique, même avant
+    le passage de la tâche horaire d'expiration : la date est une condition de la
+    même mise à jour, sans lecture préalable du devis.
+    """
+    now = now or timezone.now()
+    today = now.astimezone(ZoneInfo(quote.shop.timezone)).date()
     return _transition(
         quote,
         user,
@@ -287,6 +300,7 @@ def mark_accepted_manually(quote: Quote, user: Any, accepted_name: str = '') -> 
             'accepted_name': accepted_name.strip()[:200],
             'updated_at': now,
         },
+        conditions={'valid_until__gte': today},
     )
 
 
