@@ -692,6 +692,12 @@ Décision du 2026-10-16 : pas de publications automatiques.
       mais le serveur doit refuser (409) une clé réutilisée avec un autre contenu, en
       stockant l'empreinte avec `idempotency_key`. Relevé en 6e (2026-11-01).
 
+- [ ] Factures : `services.cancel_invoice` n'est plus appelé que par des tests ; la
+      synchro des commandes annule la facture par son propre `update` conditionnel
+      (`order_sync._cancel`) et `PATCH …/status/` refuse l'annulation (409
+      `use_credit_note`). Le supprimer ou en faire le chemin unique de la synchro, hors
+      du lot 8.2. Relevé en 6f (2026-11-01).
+
 - [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
       croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
       ou une fabrique).
