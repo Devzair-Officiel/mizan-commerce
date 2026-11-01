@@ -219,3 +219,20 @@ class CreditNoteIssueSerializer(serializers.Serializer):
                 {'lines': 'Un avoir total reprend toute la facture : aucune ligne à choisir.'}  # noqa: E501
             )
         return data
+
+
+class CreditNotePreviewSerializer(CreditNoteIssueSerializer):
+    """Entrées de l'aperçu d'un avoir : celles de l'émission, motif facultatif
+    (l'aperçu suit la saisie, le motif est exigé à l'émission seulement)."""
+
+    reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
+
+
+class CreditNoteTotalsSerializer(serializers.Serializer):
+    """Totaux d'un avoir en aperçu, au format des montants de la facture."""
+
+    subtotal_ht = serializers.DecimalField(max_digits=14, decimal_places=2)
+    discount_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    shipping_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    tax_amount = serializers.DecimalField(max_digits=14, decimal_places=2)
+    total_ttc = serializers.DecimalField(max_digits=14, decimal_places=2)

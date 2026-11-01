@@ -84,11 +84,31 @@ class _Credited:
     lines: dict[int, tuple[Decimal, Decimal]]
 
 
+@dataclass(frozen=True)
+class CreditNotePreview:
+    """Aperçu d'un avoir : totaux (`None` si refusé), recommandations de
+    conformité et refus prévisibles (codes de `CreditNoteError`)."""
+
+    totals: dict[str, Decimal] | None
+    issues: list[ComplianceIssue]
+    refusals: list[str]
+
+
 def _reason(reason: str) -> str:
     reason = reason.strip()
     if not reason:
         raise ValidationError({'reason': 'Indiquez le motif de l’avoir.'})
     return reason
+
+
+def _check_creditable(invoice: Invoice) -> None:
+    """Seule une facture émise ou payée se crédite."""
+    if invoice.kind == Invoice.KIND_CREDIT_NOTE:
+        raise CreditNoteError('credit_note_of_credit_note')
+    if invoice.status == Invoice.STATUS_DRAFT:
+        raise CreditNoteError('invoice_draft')
+    if invoice.status == Invoice.STATUS_CANCELLED:
+        raise CreditNoteError('invoice_cancelled')
 
 
 def _lock_invoice(shop: Shop, invoice: Invoice) -> Invoice:
@@ -105,12 +125,7 @@ def _lock_invoice(shop: Shop, invoice: Invoice) -> Invoice:
     )
     if locked is None:
         raise NotFound('Facture introuvable.')
-    if locked.kind == Invoice.KIND_CREDIT_NOTE:
-        raise CreditNoteError('credit_note_of_credit_note')
-    if locked.status == Invoice.STATUS_DRAFT:
-        raise CreditNoteError('invoice_draft')
-    if locked.status == Invoice.STATUS_CANCELLED:
-        raise CreditNoteError('invoice_cancelled')
+    _check_creditable(locked)
     locked.shop = shop
     return locked
 
@@ -287,6 +302,49 @@ def _amounts(
     }
 
 
+def compute_credit_note(
+    invoice: Invoice,
+    lines: Sequence[Mapping[str, Any]] | None,
+    *,
+    include_shipping: bool,
+) -> tuple[list[InvoiceLine], dict[str, Decimal]]:
+    """Lignes (sans document) et totaux de l'avoir, d'après ce que les avoirs
+    précédents ont crédité : calcul commun à l'émission (sous verrou) et à
+    l'aperçu (sans verrou). `CreditNoteError` : `over_credit`, `nothing_to_credit`."""
+    done = _already_credited(invoice)
+    credited, complete = _credited_lines(invoice, lines, done)
+    totals = _amounts(
+        invoice,
+        credited,
+        done,
+        complete=complete,
+        include_shipping=lines is None or include_shipping,
+    )
+    if totals['total_ttc'] <= 0:
+        raise CreditNoteError('nothing_to_credit')
+    return credited, totals
+
+
+def preview_credit_note(
+    invoice: Invoice,
+    lines: Sequence[Mapping[str, Any]] | None,
+    *,
+    include_shipping: bool = False,
+) -> CreditNotePreview:
+    """Aperçu sans verrou, sans numéro, sans audit ni écriture : même calcul que
+    `issue_credit_note`, sur l'état lu à l'instant (l'émission revérifie tout
+    sous verrou). `invoice` : déjà filtrée par boutique."""
+    issues = check_credit_note(invoice)
+    try:
+        _check_creditable(invoice)
+        _, totals = compute_credit_note(
+            invoice, lines, include_shipping=include_shipping
+        )
+    except CreditNoteError as exc:
+        return CreditNotePreview(None, issues, [exc.code])
+    return CreditNotePreview(totals, issues, [])
+
+
 def _claim(invoice: Invoice, amount: Decimal, now: datetime) -> None:
     """Plafond atomique : on ne crédite jamais plus que le TTC de la facture."""
     updated = Invoice.objects.filter(
@@ -393,17 +451,9 @@ def issue_credit_note(
     if replayed := _replayed(invoice, idempotency_key):
         return replayed
     accepted = _verify(invoice, acknowledged_warnings)
-    done = _already_credited(invoice)
-    credited, complete = _credited_lines(invoice, lines, done)
-    totals = _amounts(
-        invoice,
-        credited,
-        done,
-        complete=complete,
-        include_shipping=lines is None or include_shipping,
+    credited, totals = compute_credit_note(
+        invoice, lines, include_shipping=include_shipping
     )
-    if totals['total_ttc'] <= 0:
-        raise CreditNoteError('nothing_to_credit')
     now = timezone.now()
     _claim(invoice, totals['total_ttc'], now)
     issued_on = now.astimezone(ZoneInfo(invoice.shop.timezone)).date()

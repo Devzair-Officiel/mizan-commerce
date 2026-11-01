@@ -1,4 +1,4 @@
-"""Avoirs d'une facture (URS-112) : liste et émission."""
+"""Avoirs d'une facture (URS-112) : liste, aperçu et émission."""
 
 from uuid import UUID
 
@@ -8,10 +8,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import credit_notes
-from .draft_views import PERMISSIONS, compliance_response, shop_invoice
+from .draft_views import (
+    PERMISSIONS,
+    compliance_issues,
+    compliance_response,
+    shop_invoice,
+)
 from .drafts import ComplianceError
 from .models import Invoice
-from .serializers import CreditNoteIssueSerializer, InvoiceSerializer
+from .serializers import (
+    CreditNoteIssueSerializer,
+    CreditNotePreviewSerializer,
+    CreditNoteTotalsSerializer,
+    InvoiceSerializer,
+)
 
 CREDIT_NOTE_ERRORS = {
     'invoice_draft': "Un brouillon n'a pas d'avoir : émettez d'abord la facture.",
@@ -35,6 +45,13 @@ def idempotency_key(request: Request) -> UUID | None:
     """En-tête `Idempotency-Key` (UUID), facultatif ; `ValueError` s'il est invalide."""
     value = request.headers.get('Idempotency-Key', '').strip()
     return UUID(value) if value else None
+
+
+def requested_lines(data: dict) -> list | None:
+    """Lignes à créditer : `None` pour un avoir total (tout le reste)."""
+    if data['mode'] == CreditNoteIssueSerializer.MODE_TOTAL:
+        return None
+    return data.get('lines', [])
 
 
 class InvoiceCreditNotesView(APIView):
@@ -65,12 +82,11 @@ class InvoiceCreditNotesView(APIView):
         payload = CreditNoteIssueSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         data = payload.validated_data
-        partial = data['mode'] == CreditNoteIssueSerializer.MODE_PARTIAL
         try:
             note = credit_notes.issue_credit_note(
                 invoice.shop,
                 invoice,
-                data.get('lines', []) if partial else None,
+                requested_lines(data),
                 data['reason'],
                 request.user,
                 acknowledged_warnings=data.get('acknowledged_warnings', []),
@@ -85,3 +101,31 @@ class InvoiceCreditNotesView(APIView):
         except ComplianceError as exc:
             return compliance_response(exc, 'Vérifiez la facture avant de la créditer.')
         return Response(InvoiceSerializer(note).data, status=status.HTTP_201_CREATED)
+
+
+class InvoiceCreditNotePreviewView(APIView):
+    """POST — aperçu d'un avoir, mêmes entrées que l'émission : totaux calculés
+    par la même fonction, recommandations de conformité et refus prévisibles.
+    Sans verrou, sans numéro, sans audit, sans écriture ; 200 même si refusé
+    (`refusals`), 400 si la saisie est invalide (comme l'émission)."""
+
+    permission_classes = PERMISSIONS
+
+    def post(self, request: Request, pk: object) -> Response:
+        invoice = shop_invoice(request, pk)
+        payload = CreditNotePreviewSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+        preview = credit_notes.preview_credit_note(
+            invoice, requested_lines(data), include_shipping=data['include_shipping']
+        )
+        totals = preview.totals
+        return Response(
+            {
+                'totals': None
+                if totals is None
+                else CreditNoteTotalsSerializer(totals).data,
+                'issues': compliance_issues(preview.issues),
+                'refusals': preview.refusals,
+            }
+        )
