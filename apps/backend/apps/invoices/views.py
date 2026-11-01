@@ -27,12 +27,13 @@ DRAFT_STATUS_ERROR = {
     'code': 'draft_not_issued',
 }
 CREDITED_STATUS_ERRORS = {
-    'invoice_credited': (
-        "Cette facture a fait l'objet d'un avoir : elle ne peut plus être annulée."
-    ),
     'fully_credited': (
         'Cette facture est entièrement créditée : il ne reste rien à encaisser.'
     ),
+}
+USE_CREDIT_NOTE_ERROR = {
+    'detail': "Une facture émise ne s'annule pas : créez un avoir.",
+    'code': 'use_credit_note',
 }
 DRAFT_PDF_ERROR = {
     'detail': "Un brouillon n'a pas encore de PDF : émettez la facture.",
@@ -127,7 +128,12 @@ class InvoiceDetailView(generics.RetrieveAPIView):
 
 
 class InvoiceStatusView(APIView):
-    """PATCH — change le statut (`paid` ou `cancelled`). Pas de retour arrière vers `issued`."""  # noqa: E501
+    """PATCH — marque une facture émise comme payée ; pas de retour vers `issued`.
+
+    `cancelled` est refusé (409 `use_credit_note`) : une facture émise se corrige
+    par un avoir. L'annulation d'une commande annule toujours sa facture
+    (`order_sync._cancel`).
+    """
 
     permission_classes = (IsAuthenticated, HasInvoicesPlan, HasInvoicesModule)
 
@@ -148,13 +154,11 @@ class InvoiceStatusView(APIView):
 
         serializer = InvoiceStatusUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        new_status = serializer.validated_data['status']
+        if serializer.validated_data['status'] == Invoice.STATUS_CANCELLED:
+            return Response(USE_CREDIT_NOTE_ERROR, status=status.HTTP_409_CONFLICT)
 
         try:
-            if new_status == Invoice.STATUS_PAID:
-                services.mark_paid(invoice)
-            else:
-                services.cancel_invoice(invoice)
+            services.mark_paid(invoice)
         except services.InvoiceCreditedError as exc:
             return Response(
                 {'detail': CREDITED_STATUS_ERRORS[exc.code], 'code': exc.code},

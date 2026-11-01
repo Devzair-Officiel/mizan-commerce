@@ -132,7 +132,7 @@ class InvoiceIssueSerializer(serializers.Serializer):
 
 
 class InvoiceStatusUpdateSerializer(serializers.Serializer):
-    """PATCH — accepte uniquement les transitions vers `paid` ou `cancelled`."""
+    """PATCH — `paid` ; `cancelled` reste un choix pour que la vue le refuse en 409."""
 
     status = serializers.ChoiceField(choices=[Invoice.STATUS_PAID, Invoice.STATUS_CANCELLED])  # noqa: E501
 

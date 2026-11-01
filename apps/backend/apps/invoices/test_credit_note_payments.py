@@ -73,7 +73,7 @@ def test_credited_invoice_cannot_be_cancelled(ctx) -> None:
     assert raised.value.code == 'invoice_credited'
     response = _patch_status(ctx, 'cancelled')
     assert response.status_code == 409
-    assert response.data['code'] == 'invoice_credited'
+    assert response.data['code'] == 'use_credit_note'
     invoice = _fresh(ctx)
     assert (invoice.status, invoice.cancelled_at) == ('issued', None)
 

@@ -496,6 +496,22 @@ class InvoiceAPITest(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_patch_status_refuses_cancellation_issued_or_paid(self):
+        order = _make_order_with_items(self.shop, self.user, self.variant)
+        issued = services.issue_invoice_from_order(shop=self.shop, order=order)
+        other = _make_order_with_items(self.shop, self.user, self.variant)
+        paid = services.mark_paid(services.issue_invoice_from_order(shop=self.shop, order=other))  # noqa: E501
+        for invoice, expected in ((issued, 'issued'), (paid, 'paid')):
+            response = self.client.patch(
+                reverse('invoice-status', kwargs={'pk': invoice.pk}),
+                {'status': 'cancelled'},
+                format='json',
+            )
+            self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+            self.assertEqual(response.data['code'], 'use_credit_note')
+            invoice.refresh_from_db()
+            self.assertEqual((invoice.status, invoice.cancelled_at), (expected, None))
+
     def test_patch_status_rejects_invalid_value(self):
         order = _make_order_with_items(self.shop, self.user, self.variant)
         invoice = services.issue_invoice_from_order(shop=self.shop, order=order)
