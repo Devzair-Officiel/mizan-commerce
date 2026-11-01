@@ -10,6 +10,7 @@ import { TotalsCard } from '@/components/invoices/detail/TotalsCard';
 import { isolateNumber } from '@/components/orders/OrderNumber';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
 import { useCatalogKind } from '@/lib/hooks/useCatalogKind';
 import type { Quote } from '@/lib/hooks/useQuotes';
 import { QuoteStatusBadge } from '../QuoteStatusBadge';
@@ -50,5 +51,6 @@ export function QuoteDetailView({ quote: q, state }: { quote: Quote; state: Quot
     <ConfirmDialog open={state.sheet === 'decline'} onOpenChange={open => { if (!open && !state.pending) state.setSheet(null); }}
       title={t('decline.title')} description={t('decline.body', { number: q.number })}
       confirmLabel={t('decline.confirm')} cancelLabel={t('decline.keep')} variant="destructive" onConfirm={state.decline} />
+    {state.locked && <UpgradeSheet open onClose={state.unlock} feature="quotes" title={t(`actions.${state.locked}`)} />}
   </>;
 }

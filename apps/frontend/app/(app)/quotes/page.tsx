@@ -23,7 +23,7 @@ export default function QuotesPage() {
   const total = data?.count ?? 0;
   return <>
     <TopBar title={t('title')} subtitle={data ? t('count', { count: total }) : undefined} hideSearch
-      action={<ListCreateButton href="/quotes/new" label={t('create')} />} />
+      action={<ListCreateButton href="/quotes/new" label={t('create')} feature="quotes" />} />
     <div className="flex flex-col gap-4 p-4 pb-28 lg:gap-5 lg:pt-0">
       {error && <p role="alert" className="text-sm text-destructive">{t('load_error')}</p>}
       {!loading && !error && !total && <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-8 text-center">

@@ -4,10 +4,24 @@ import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { draftError } from '@/lib/hooks/useDocumentDrafts';
+import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { useConvertQuote, useQuote, useUpdateQuoteStatus, type Quote } from '@/lib/hooks/useQuotes';
 import { notify } from '@/lib/notify';
 
 export type QuoteSheet = 'accept' | 'decline' | null;
+/** Gestes d'écriture d'un devis, réservés à Solo et au-delà. */
+export type QuoteGesture = 'accept' | 'decline' | 'convert';
+
+/**
+ * Hors formule (boutique retombée en Découverte), le geste ouvre la carte de mise à niveau à sa place :
+ * le devis reste consultable, le serveur refuserait l'écriture.
+ */
+function useQuoteLock() {
+  const { can } = usePlanGating();
+  const [locked, setLocked] = useState<QuoteGesture | null>(null);
+  const guard = (gesture: QuoteGesture, run: () => void) => { if (can('quotes')) run(); else setLocked(gesture); };
+  return { locked, unlock: () => setLocked(null), guard };
+}
 
 /** Un geste à la fois : un double clic ne relance pas la requête en cours. */
 function useOnce() {
@@ -45,6 +59,7 @@ export function useQuoteDetailState(id: string) {
   const [sheet, setSheet] = useState<QuoteSheet>(null);
   const once = useOnce();
   const failure = useQuoteFailure(query.refetch);
+  const lock = useQuoteLock();
 
   /** Signale l'échec ; le devis a changé : la feuille se ferme sur l'état relu (`null`), sinon le message. */
   const fail = async (err: unknown): Promise<string | null> => {
@@ -71,7 +86,7 @@ export function useQuoteDetailState(id: string) {
       if (message) throw new Error(message);
     }
   });
-  const toInvoice = () => once(async () => {
+  const convertNow = () => once(async () => {
     try {
       const invoice = await convert.mutateAsync();
       notify.success(t('convert.done'));
@@ -79,8 +94,14 @@ export function useQuoteDetailState(id: string) {
     } catch (err) { await fail(err); }
   });
 
+  const open = (next: Exclude<QuoteSheet, null>) => lock.guard(next, () => setSheet(next));
+  const toInvoice = () => lock.guard('convert', () => void convertNow());
+
   // Conversion réussie : le bouton reste désactivé jusqu'à l'ouverture de l'éditeur de facture.
   const pending = update.isPending || convert.isPending || convert.isSuccess;
-  return { quote: query.data, isLoading: query.isLoading, sheet, setSheet, pending, accept, decline, toInvoice };
+  return {
+    quote: query.data, isLoading: query.isLoading, sheet, setSheet, open, pending, accept, decline, toInvoice,
+    locked: lock.locked, unlock: lock.unlock,
+  };
 }
 export type QuoteDetailState = ReturnType<typeof useQuoteDetailState>;

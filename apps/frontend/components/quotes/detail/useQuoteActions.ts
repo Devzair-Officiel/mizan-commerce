@@ -18,10 +18,10 @@ export function useQuotePrimaryAction(quote: Quote, state: QuoteDetailState): De
   const t = useTranslations('quotes.actions');
   const router = useRouter();
   if (quote.status === 'sent') {
-    return { key: 'accept', icon: CheckCircle2, label: t('accept'), disabled: state.pending, onSelect: () => state.setSheet('accept') };
+    return { key: 'accept', icon: CheckCircle2, label: t('accept'), disabled: state.pending, onSelect: () => state.open('accept') };
   }
   if (quote.status === 'accepted') {
-    return { key: 'convert', icon: Receipt, label: t('convert'), disabled: state.pending, onSelect: () => void state.toInvoice() };
+    return { key: 'convert', icon: Receipt, label: t('convert'), disabled: state.pending, onSelect: state.toInvoice };
   }
   if (quote.status === 'invoiced' && quote.invoice) {
     const number = quote.invoice_number;
@@ -39,7 +39,7 @@ export function useQuoteMenuActions(quote: Quote, state: QuoteDetailState, prima
   const menu: DetailMenuActions = { items: [], danger: null };
   if (primary) menu.items.push({ key: 'pdf', icon: FileDown, label: t('pdf'), href: quotePdfHref(quote) });
   if (quote.status === 'sent') menu.danger = {
-    key: 'decline', icon: XCircle, label: t('decline'), destructive: true, disabled: state.pending, onSelect: () => state.setSheet('decline'),
+    key: 'decline', icon: XCircle, label: t('decline'), destructive: true, disabled: state.pending, onSelect: () => state.open('decline'),
   };
   return menu;
 }

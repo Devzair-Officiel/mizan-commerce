@@ -6,6 +6,8 @@ import { FloatingActionBar } from '@/components/layout/FloatingActionBar';
 import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import { DETAIL_COLUMN, DETAIL_GRID, DetailSlot } from '@/components/detail/DetailSlot';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { UpgradeSheet } from '@/components/subscription/UpgradeSheet';
+import { usePlanGating } from '@/lib/hooks/usePlanGating';
 import { isolateNumber } from '@/components/orders/OrderNumber';
 import { formatInvoicePhone } from '@/lib/invoiceFormatting';
 import type { Invoice } from '@/lib/hooks/useInvoices';
@@ -30,6 +32,8 @@ import { useInvoiceMenu } from './useInvoiceMenu';
 export function InvoiceDetailView({ invoice: i, state }: { invoice: Invoice; state: InvoiceDetailState }) {
   const t = useTranslations('invoices.detail');
   const tTotals = useTranslations('invoices.totals');
+  const tCredit = useTranslations('invoices.credit');
+  const creditAllowed = usePlanGating().can('credit_notes');
   const menu = useInvoiceMenu(i, state);
   return <>
     <div className="contents lg:hidden"><TopBar back hideSearch title={isolateNumber(i.number)} action={<DetailActionsMenu actions={menu} variant="sheet" />} /></div>
@@ -59,6 +63,7 @@ export function InvoiceDetailView({ invoice: i, state }: { invoice: Invoice; sta
     </div>
     <FloatingActionBar variant="button"><PdfButton href={`/api/proxy/invoices/${i.id}/pdf/`} label={t('download_pdf')} className="h-12 w-full shadow-lg" /></FloatingActionBar>
     <InvoiceDetailDialogs state={state} />
-    {state.crediting && <CreditNoteSheet invoice={i} onClose={() => state.setCrediting(false)} />}
+    {state.crediting && creditAllowed && <CreditNoteSheet invoice={i} onClose={() => state.setCrediting(false)} />}
+    <UpgradeSheet open={state.crediting && !creditAllowed} onClose={() => state.setCrediting(false)} feature="credit_notes" title={tCredit('open')} />
   </>;
 }
