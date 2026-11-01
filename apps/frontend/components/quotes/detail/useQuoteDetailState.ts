@@ -19,12 +19,18 @@ function useOnce() {
   }, []);
 }
 
-/** Erreur traduite ; un 409 relit le devis, et un devis expiré entre-temps a son propre message. */
+/**
+ * Erreur traduite ; un 409 relit le devis. Expiré, ou encore « envoyé » (validité dépassée,
+ * pas encore expiré par la tâche horaire) : le message de l'expiration.
+ */
 function useQuoteFailure(refetch: () => Promise<{ data?: Quote }>) {
   const t = useTranslations('quotes.errors');
   return useCallback(async (err: unknown) => {
     let { code } = draftError(err);
-    if (code === 'invalid_status' && (await refetch()).data?.status === 'expired') code = 'expired';
+    if (code === 'invalid_status') {
+      const status = (await refetch()).data?.status;
+      if (status === 'expired' || status === 'sent') code = 'expired';
+    }
     return { changed: code === 'invalid_status' || code === 'expired', message: t('message', { code: code ?? 'other' }) };
   }, [refetch, t]);
 }
