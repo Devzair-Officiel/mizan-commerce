@@ -26,6 +26,8 @@ export interface InvoiceLine {
   quantity: string;
   unit_price_ht: string;
   line_subtotal_ht: string;
+  /** Détail d'une facture : quantité déjà créditée par ses avoirs. */
+  credited_quantity?: string;
 }
 
 export interface Invoice {
@@ -68,6 +70,8 @@ export interface Invoice {
   credited_total: string;
   /** Facture : avoirs ≥ TTC, plus rien n'y est dû (même règle que le serveur). */
   fully_credited: boolean;
+  /** Détail d'une facture : livraison qui reste à créditer. */
+  shipping_creditable?: string;
   /** Facture : avoirs émis, de cette boutique. */
   credit_notes: { id: string; number: string; total_ttc: string }[];
   /** Avoir : facture d'origine (id, numéro et date d'émission figés), motif. */

@@ -235,6 +235,8 @@ export const qk = {
     detail: (id: string) => ['invoices', id] as const,
     /** Vérification avant émission d'un brouillon : relue après chaque enregistrement. */
     compliance: (id: string) => ['invoices', id, 'compliance'] as const,
+    /** Aperçu d'un avoir : entrées sérialisées (mode, lignes, livraison). */
+    creditPreview: (id: string, input: string) => ['invoices', id, 'credit-preview', input] as const,
     lineSuggestions: (q: string) => ['invoices', 'line-suggestions', q] as const,
   },
   quotes: {
