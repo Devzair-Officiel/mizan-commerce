@@ -8,11 +8,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import ShopScopedQuerysetMixin
-from apps.invoices.draft_views import PERMISSIONS
 from apps.invoices.serializers import InvoiceSerializer
 
 from . import services
-from .draft_views import shop_quote
+from .draft_views import PERMISSIONS, shop_quote
 from .models import Quote
 from .pdf import build_quote_pdf
 from .serializers import QuoteSerializer, QuoteStatusSerializer

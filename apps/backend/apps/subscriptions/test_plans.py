@@ -142,6 +142,18 @@ class PlanCatalogTest(TestCase):
         )
         self.assertNotIn('stripe_price_id_yearly', response.data[0])
 
+    def test_plans_endpoint_exposes_quotes_and_credit_notes_from_solo(self) -> None:
+        user, _ = make_shop('plans-docs@example.com', FREE)
+        client = APIClient()
+        client.force_authenticate(user=user)
+        response = client.get('/api/subscriptions/plans/')
+        for plan in response.data:
+            with self.subTest(plan=plan['code']):
+                self.assertEqual(
+                    {'quotes', 'credit_notes'} <= set(plan['features_json']),
+                    plan['code'] != FREE,
+                )
+
     def test_plans_endpoint_requires_authentication(self) -> None:
         response = APIClient().get('/api/subscriptions/plans/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -154,6 +166,9 @@ FEATURE_PROBES: dict[str, tuple[str, str]] = {
     'orders': ('get', '/api/orders/'),
     'zakat': ('get', '/api/zakat/sources/'),
     'invoices': ('get', '/api/invoices/'),
+    # Devis et avoirs : lecture libre, seule l'écriture est gatée.
+    'quotes': ('post', '/api/quotes/drafts/'),
+    'credit_notes': ('post', f'/api/invoices/{uuid.uuid4()}/credit-notes/preview/'),
     'whatsapp': ('get', '/api/messages/settings/'),
     'exports': ('get', f'/api/customers/{uuid.uuid4()}/activity/export/summary/'),
     'ocr': ('post', '/api/ocr/invoices/'),
@@ -207,6 +222,8 @@ class PlanGatingMatrixTest(TestCase):
                 'orders': FREE,
                 'zakat': FREE,
                 'invoices': SOLO,
+                'quotes': SOLO,
+                'credit_notes': SOLO,
                 'whatsapp': SOLO,
                 'exports': BOUTIQUE,
                 'ocr': BOUTIQUE,

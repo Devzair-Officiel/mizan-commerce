@@ -3,13 +3,15 @@
 from uuid import UUID
 
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.subscriptions.permissions import HasPlanForFeature
+
 from . import credit_notes
 from .draft_views import (
-    PERMISSIONS,
     compliance_issues,
     compliance_response,
     shop_invoice,
@@ -22,6 +24,12 @@ from .serializers import (
     CreditNoteTotalsSerializer,
     InvoiceSerializer,
 )
+from .views import HasInvoicesModule
+
+# Lecture libre (avoirs d'une facture consultables en Découverte), émission et
+# aperçu dès Solo. Le détail et le PDF d'un avoir restent ceux des factures.
+HasCreditNotesPlan = HasPlanForFeature.for_feature('credit_notes', writes_only=True)
+PERMISSIONS = (IsAuthenticated, HasCreditNotesPlan, HasInvoicesModule)
 
 CREDIT_NOTE_ERRORS = {
     'invoice_draft': "Un brouillon n'a pas d'avoir : émettez d'abord la facture.",

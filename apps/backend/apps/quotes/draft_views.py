@@ -4,18 +4,20 @@ suppression, vérification et envoi. Suggestions de lignes : celles des factures
 
 from rest_framework import status
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import get_shop
 from apps.invoices.draft_views import (
-    PERMISSIONS,
     STALE_DRAFT,
     compliance_issues,
     compliance_response,
 )
 from apps.invoices.drafts import ComplianceError, DraftConflictError
+from apps.invoices.views import HasInvoicesModule
+from apps.subscriptions.permissions import HasPlanForFeature
 
 from . import services
 from .compliance import check_quote
@@ -26,6 +28,10 @@ from .serializers import (
     QuoteSendSerializer,
     QuoteSerializer,
 )
+
+# Lecture libre (devis existants consultables en Découverte), écriture dès Solo.
+HasQuotesPlan = HasPlanForFeature.for_feature('quotes', writes_only=True)
+PERMISSIONS = (IsAuthenticated, HasQuotesPlan, HasInvoicesModule)
 
 NOT_DRAFT = {
     'detail': 'Ce devis est envoyé : il ne se modifie ni ne se supprime.',
