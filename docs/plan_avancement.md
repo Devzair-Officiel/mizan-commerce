@@ -684,6 +684,14 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [ ] Avoirs (URS-112) : cas d'un second avoir partiel sur la même ligne d'une facture,
       relevé à la revue de la sous-étape 4a (2026-10-30), à reprendre.
 
+- [ ] Avoirs (URS-112), idempotence : comparer l'empreinte de la requête côté serveur.
+      Aujourd'hui, une clé `Idempotency-Key` déjà connue sur la même facture renvoie l'avoir
+      créé sans vérifier que la requête rejouée est la même (mode, lignes, livraison, motif) ;
+      seule une autre facture est refusée (`idempotency_key_reused`). Le client
+      renouvelle la clé dès que la saisie change après une erreur (`useCreditNoteSubmit`),
+      mais le serveur doit refuser (409) une clé réutilisée avec un autre contenu, en
+      stockant l'empreinte avec `idempotency_key`. Relevé en 6e (2026-11-01).
+
 - [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
       croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
       ou une fabrique).
