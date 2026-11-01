@@ -9,8 +9,10 @@ import { OrderNumber } from '@/components/orders/OrderNumber';
 import { DetailActionsMenu } from '@/components/detail/DetailActionsMenu';
 import type { DetailMenuActions } from '@/components/detail/types';
 import { InvoiceStatusBadge } from '../shared/InvoiceStatusBadge';
+import { CreditNoteBadge } from '../shared/CreditNoteBadge';
 import { PdfButton } from '@/components/detail/PdfButton';
 
+/** En-tête desktop d'une facture ou d'un avoir : retour, titre et badge, émission ; « ⋯ » puis le PDF. */
 export function InvoiceDetailHeader({ invoice, menu }: { invoice: Invoice; menu: DetailMenuActions }) {
   const t = useTranslations('invoices');
   const router = useRouter();
@@ -22,8 +24,8 @@ export function InvoiceDetailHeader({ invoice, menu }: { invoice: Invoice; menu:
         <ChevronLeft size={16} className="rtl:rotate-180" aria-hidden />{t('list.title')}
       </button>
       <div className="mt-1.5 flex flex-wrap items-center gap-3">
-        <h1 className="text-[28px] font-semibold leading-snug tracking-tight">{t('detail.title')} <OrderNumber>{invoice.number}</OrderNumber></h1>
-        <InvoiceStatusBadge status={invoice.status} />
+        <h1 className="text-[28px] font-semibold leading-snug tracking-tight">{t('kind', { kind: invoice.kind })} <OrderNumber>{invoice.number}</OrderNumber></h1>
+        {invoice.kind === 'credit_note' ? <CreditNoteBadge /> : <InvoiceStatusBadge status={invoice.status} />}
       </div>
       {invoice.issued_at && <p className="mt-1.5 text-sm text-muted-foreground">{t('detail.issued_on', { date: date(invoice.issued_at, { dateStyle: 'long', timeStyle: 'short' }) })}</p>}
     </div>
