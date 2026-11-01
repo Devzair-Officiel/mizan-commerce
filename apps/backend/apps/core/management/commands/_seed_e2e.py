@@ -19,6 +19,7 @@ from apps.shops.models import Shop
 from apps.stock.services import create_movement
 from apps.subscriptions.models import Subscription, SubscriptionPlan
 
+from ._seed_credit_notes import seed_credit_notes
 from ._seed_invoices import seed_invoice_drafts
 
 # Comptes des boutiques d'audit : un par emplacement, les audits lancés en parallèle
@@ -178,4 +179,11 @@ def seed_audit_shop(*, slot: int | str = 1, stdout=None) -> Shop:
     if slot == INVOICE_EDITOR_AUDIT:
         marc = shop.customers.get(name='Marc Dupuis')
         seed_invoice_drafts(shop, marc, 'Retouche ourlet', stdout=stdout)
+    if slot == INVOICES_AUDIT:
+        # Détail d'audit-invoices : avoir partiel (Marc), facture « Créditée » (Nadia).
+        marc = shop.customers.get(name='Marc Dupuis')
+        seed_credit_notes(
+            shop, e2e, marc, 'Retouche ourlet',
+            other_name=E2E_FOLLOWUP_CUSTOMER, stdout=stdout,
+        )
     return shop

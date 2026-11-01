@@ -4,9 +4,11 @@
   article retourné ;
 - facture de Hamza (ligne libre) : avoir total, prestation annulée (« Créditée »).
 
+La boutique d'audit-invoices reçoit les mêmes, pour ses propres clients.
+
 Tout passe par `invoices.drafts` et `invoices.credit_notes` (numéros `fact-…` et
-`avoir-…`, instantanés, audit). Importé par seed_data.py. Ne pas exécuter
-directement.
+`avoir-…`, instantanés, audit). Importé par seed_data.py et _seed_e2e.py. Ne pas
+exécuter directement.
 """
 
 from apps.customers.models import Customer
@@ -34,9 +36,16 @@ def _credit(shop, user, invoice: Invoice, lines: list[dict] | None, reason: str)
 
 
 def seed_credit_notes(
-    shop, user, customer, catalog_product: str, *, stdout=None
+    shop,
+    user,
+    customer,
+    catalog_product: str,
+    *,
+    other_name: str = 'Hamza Tazi',
+    stdout=None,
 ) -> None:
-    """Avoir partiel puis avoir total sur deux factures émises. Idempotent."""
+    """Avoir partiel (facture de `customer`) puis avoir total (facture du client
+    `other_name`) sur deux factures émises. Idempotent."""
     if Invoice.objects.filter(shop=shop, kind=Invoice.KIND_CREDIT_NOTE).exists():
         return
     returned = _issued(
@@ -46,7 +55,7 @@ def seed_credit_notes(
     _credit(
         shop, user, returned, [{'line': catalog.pk, 'quantity': 1}], 'Article retourné'
     )
-    other = Customer.objects.get(shop=shop, name='Hamza Tazi')
+    other = Customer.objects.get(shop=shop, name=other_name)
     cancelled = _issued(shop, user, other, [FREE_LINE])
     _credit(shop, user, cancelled, None, 'Prestation annulée')
     if stdout:

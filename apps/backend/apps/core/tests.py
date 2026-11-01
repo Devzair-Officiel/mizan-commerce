@@ -858,7 +858,19 @@ class ResetAuditShopTest(TestCase):
             set(invoices.members.values_list('user__email', flat=True)),
             {'e2e-invoices@example.com', 'e2e-invoices-staff@example.com'},
         )
-        self.assertFalse(invoices.invoices.exists())
+        # Détail d'audit-invoices : un avoir partiel et un avoir total, rien d'autre.
+        self.assertEqual(
+            sorted(
+                (i.kind, i.status, i.buyer_name, i.is_fully_credited)
+                for i in invoices.invoices.all()
+            ),
+            [
+                ('credit_note', 'issued', 'Marc Dupuis', False),
+                ('credit_note', 'issued', 'Nadia Relance', False),
+                ('invoice', 'issued', 'Marc Dupuis', False),
+                ('invoice', 'issued', 'Nadia Relance', True),
+            ],
+        )
         # Brouillons de départ de l'éditeur : dans sa boutique seulement.
         editor = Shop.objects.get(name='Boutique Audit Éditeur')
         self.assertEqual(
