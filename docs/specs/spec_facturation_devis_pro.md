@@ -69,7 +69,7 @@ Découverte : inchangée (pas de facture).
 
 Règles communes (déjà dans `plan_avancement.md`) : toute fonctionnalité réservée à une formule livre **dans le même lot** sa clé de gating côté serveur, sa ligne `plans.*.fN` en fr/en/ar et sa vérification dans l'audit `subscription`.
 
-Comportement à la rétrogradation : les documents existants restent lisibles ; la création des fonctions gatées est refusée. Les modèles en excès restent consultables, la création d'un nouveau est refusée.
+Comportement à la rétrogradation : les documents existants restent lisibles ; la création des fonctions gatées est refusée. Livré pour les devis (lot 2) ; pas encore pour les factures et leurs avoirs, gatés `invoices` en lecture (§12, compléments du lot 2). Les modèles en excès restent consultables, la création d'un nouveau est refusée.
 
 ## 4. Règles transverses (à respecter dans tous les lots)
 
@@ -142,7 +142,7 @@ Rappel de `CLAUDE.md` et des règles non négociables :
 - Nouvelle app `apps/backend/apps/quotes/` : `Quote`, `QuoteLine` (mêmes champs de ligne que `InvoiceLine`), statuts `draft`, `sent`, `accepted`, `declined`, `expired`, `invoiced` ; champs `valid_until`, `sent_at`, `viewed_at`, `accepted_at`, `accepted_name`, `declined_at`, `invoice` (`OneToOne` nullable vers la facture créée, `related_name='quote'` : seul lien entre devis et facture, §12 D8). Numéro attribué à l'envoi.
 - Services `quotes/services.py` : création et mise à jour de brouillon (mêmes garanties que le lot 1), `send_quote` (numéro + `valid_until`), `mark_accepted_manually`, `mark_declined`, `convert_quote_to_invoice` (voir ci-dessous), `expire_quotes`.
 - **Conversion** : crée une **facture en brouillon** liée (`Quote.invoice` ; `invoice.quote` par le lien inverse, aucun champ sur `Invoice`) avec les lignes, le client et les conditions du devis, puis ouvre l'éditeur ; l'émission suit le flux normal. Transition atomique : `Quote.objects.filter(pk, shop, status='accepted', invoice__isnull=True).update(...)`, 0 ligne = 409 (pas de double facture).
-- Tâche Celery Beat quotidienne `expire_quotes` : `filter(status='sent', valid_until__lt=today).update(status='expired')`.
+- Tâche Celery Beat `expire_quotes` (horaire, §12) : `filter(status='sent', valid_until__lt=today).update(status='expired')`.
 - **Avoirs** (dans l'app `invoices`) : `Invoice.kind = 'credit_note'`, `credited_invoice` (FK nullable), `credit_reason` ; montants stockés **positifs**, signe négatif appliqué à l'affichage et dans les agrégats (vérifié à l'étape 0 du lot 2 : `invoice_summary`, `PAYMENTS` et facettes ne filtrent pas sur `kind`, règles en §12). `Invoice.credited_total` (Decimal) mis à jour de façon atomique : `filter(pk, credited_total + montant <= total_ttc).update(credited_total=F('credited_total') + montant)`, 0 ligne = erreur (on ne crédite jamais plus que la facture). Service `issue_credit_note(invoice, lines, reason)` (avoir total ou partiel, remise au prorata : §12 D5) ; numéro `avoir-…`.
 - `cancel_invoice` : conservé sans changement pour les factures sans avoir (la synchronisation « commande annulée → facture annulée » en dépend) ; l'interface ne propose plus « Annuler » pour une facture émise, mais « Créer un avoir » (§10, question 1 ; §12 D4).
 - PDF : titre « DEVIS » (validité, zone « Bon pour accord, date, signature », conditions), titre « AVOIR » (référence de la facture d'origine, motif). Mêmes blocs, mêmes options de design (`invoice_branding` en Boutique).
@@ -286,6 +286,15 @@ Vérification du code faite avant le lot 2 ; décisions du fondateur :
     - b. le reste à créditer par ligne et le reste de livraison créditable viennent du serveur (`credited_quantity` par ligne dans le détail d'une facture), commit backend testé au début de 6e ;
     - c. `days_remaining` d'un devis calculé dans le fuseau de la boutique ;
     - d. montants négatifs en `dir="ltr"` avec `tabular-nums`, vérifiés par l'audit en arabe ;
-    - e. dette : `GET …/credit-notes/compliance/` pour afficher les recommandations avant de valider un avoir.
+    - e. dette : `GET …/credit-notes/compliance/` pour afficher les recommandations avant de valider un avoir. Remplacé en 6e par l'aperçu (ci-dessous), qui renvoie les recommandations.
+
+Compléments tranchés en cours de lot (2026-10-31 au 2026-11-03) :
+
+- **Idempotence des avoirs (6e)** : en-tête `Idempotency-Key` (UUID) sur `POST …/credit-notes/`, stocké dans `invoices.idempotency_key` (`UNIQUE (shop, idempotency_key)`, migration `invoices.0011`) ; une requête rejouée renvoie le même avoir (201), sans nouveau numéro ni audit ; une clé déjà servie à une autre facture : 409 `idempotency_key_reused`. Le client renouvelle la clé quand la saisie change ; l'empreinte côté serveur reste une dette du plan.
+- **Aperçu d'un avoir (6e)** : `POST …/credit-notes/preview/`, mêmes entrées que l'émission, totaux de la même fonction, recommandations et refus prévisibles, sans verrou, numéro, audit ni écriture.
+- **Annulation (6f, complète D4)** : `PATCH …/status/` refuse `cancelled` sur une facture émise (409 `use_credit_note`), l'interface propose « Créer un avoir ». La synchro des commandes annule par sa propre mise à jour conditionnelle (`order_sync._cancel`, factures sans avoir seulement) ; `services.cancel_invoice` n'a plus d'appelant hors tests (dette du plan).
+- **Expiration des devis** : tâche horaire (`quotes-expire-hourly`), et non quotidienne, pour qu'un devis expire à minuit dans le fuseau de sa boutique ; l'accord manuel est refusé dès la date dépassée, avant le passage de la tâche.
+- **Gating (7)** : `quotes` et `credit_notes` dès Solo, en écriture seule (`HasPlanForFeature.for_feature(…, writes_only=True)`, migration abonnements `0015`) : en Découverte, liste, détail et PDF des devis restent lisibles, `GET …/credit-notes/` aussi ; création, enregistrement, suppression, envoi, accord, refus, conversion, émission et aperçu d'avoir : 403. Les factures restent gatées `invoices` en lecture comme en écriture : leurs avoirs ne se consultent donc plus après une descente en Découverte (bloquant de la checklist de lancement, PR séparée).
+- **Modèles WhatsApp « devis » et « relance de devis » (D7)** : reportés, non livrés dans ce lot.
 
 Numérotation : `DocumentSequence(shop, kind, last_number)`, `unique(shop, kind)`, obtenue en transformant `InvoiceSequence` sur place (renommage, `kind='invoice'` par défaut pour les lignes existantes, `OneToOne` → `ForeignKey`) : aucune copie, le prochain numéro de facture ne change pas. Retour arrière : les lignes `kind ≠ 'invoice'` sont supprimées avant le retour au `OneToOne` (compteurs de devis et d'avoirs perdus, acceptable avant la mise en production seulement).

@@ -40,7 +40,7 @@ updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 - **Historique protégé** : la suppression d'un objet métier n'efface jamais un historique en cascade. Les FK d'historique sans instantané sont en `ON DELETE RESTRICT` (`stock_movements.variant_id`, `orders.customer_id`, `order_items.order_id`, `invoice_lines.invoice_id`, `quote_lines.quote_id`, `notes.customer_id` / `order_id`, `ocr_results.uploaded_document_id`, `loyalty_cards.customer_id`, `loyalty_transactions.card_id`) ; celles dont l'historique garde un instantané sont en `SET_NULL` (`order_items.variant_id`, `invoices.order_id` / `customer_id`, `quotes.customer_id`, `prepared_messages.customer_id`, `reminders.*`, `stock_movements.ocr_result_id`). `RESTRICT` plutôt que `PROTECT` : la suppression de toute la boutique (cascade depuis `shops`) reste possible.
 - **Stock** : le stock est porté par la **variante** (`product_variants`), pas par le produit. La quantité d'une variante n'est **jamais réécrite** directement : elle se déduit (et se cache dans `product_variants.stock_quantity`) à partir de la somme des `stock_movements` de cette variante.
 - **Argent** : tous les montants sont dans la devise de la boutique (`shops.currency`). Pas de multi-devise par boutique en V1.
-- **Facturation** : une facture émise est **immuable** (montants, numéro, snapshots). Seul le `status` peut évoluer (`issued` → `paid`/`cancelled`). Contrainte légale ; toute correction se ferait par avoir (non couvert V1).
+- **Facturation** : une facture émise est **immuable** (montants, numéro, snapshots). Seul le `status` peut évoluer (`issued` → `paid`/`cancelled`), avec les montants suivis `amount_paid` et `credited_total`. Contrainte légale ; toute correction passe par un avoir (`invoices.kind = 'credit_note'`, URS-112).
 - **Index** : `shop_id` doit être indexé sur toutes les tables multi-tenant. Idéalement avec un index composite `(shop_id, created_at DESC)` pour les listes paginées.
 
 ---
@@ -113,6 +113,7 @@ erDiagram
     orders ||--o{ prepared_messages : "génère"
 
     invoices ||--o{ invoice_lines : "détaille"
+    invoices ||--o{ invoices : "créditée par (avoirs)"
     shops ||--o{ quotes : "propose"
     quotes ||--o{ quote_lines : "détaille"
     quotes |o--o| invoices : "converti en"
@@ -583,7 +584,7 @@ Champs Shop nécessaires (existants dans le modèle `Shop`) : `legal_address`, `
 
 ### `invoices`
 
-Facture émise depuis une commande, ou facture libre (`order_id` NULL) rédigée en brouillon. Une commande a **au plus une** facture (`OneToOneField`).
+Facture émise depuis une commande, ou facture libre (`order_id` NULL) rédigée en brouillon ; avoir (`kind = 'credit_note'`, URS-112), émis directement depuis une facture. Une commande a **au plus une** facture (`OneToOneField`).
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
@@ -592,7 +593,7 @@ Facture émise depuis une commande, ou facture libre (`order_id` NULL) rédigée
 | order_id | UUID | FK → orders.id, SET_NULL, UNIQUE (OneToOne) | Commande source ; la suppression de la commande n'efface pas la facture. |
 | customer_id | UUID | FK → customers.id, SET_NULL | Client au moment de l'émission (informatif ; les coordonnées sont snapshottées ci-dessous). |
 | number | VARCHAR(40) | DEFAULT `''` | Numéro humain stable — format `fact-DDMMYY-NNNN`. Vide pour un brouillon. |
-| kind | VARCHAR(12) | NOT NULL, DEFAULT `'invoice'` | `invoice` (devis et avoirs : lot 8.2) |
+| kind | VARCHAR(12) | NOT NULL, DEFAULT `'invoice'` | `invoice`, `credit_note` (avoir, migration `invoices.0010`) ; les devis ont leur table (`quotes`) |
 | status | VARCHAR(12) | NOT NULL, DEFAULT `'issued'` | `draft`, `issued`, `paid`, `cancelled`. Après émission, seul champ modifiable. |
 | operation_category | VARCHAR(8) | NOT NULL, DEFAULT `'services'` | Nature de l'opération : `goods`, `services`, `mixed` ; proposée selon `shop.catalog_kind` |
 | issued_at | TIMESTAMPTZ | NULL | Date/heure d'émission (sert au marqueur `DDMMYY` du numéro). NULL pour un brouillon. |
@@ -621,7 +622,11 @@ Facture émise depuis une commande, ou facture libre (`order_id` NULL) rédigée
 | shipping_amount | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Snapshot `order.shipping_amount` |
 | tax_amount | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | `(subtotal_ht − discount + shipping) × tax_rate / 100` |
 | total_ttc | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Base imposable + `tax_amount` |
-| amount_paid | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Synchronisé depuis `order.amount_paid` pour l'affichage « partiellement payée » sans dépendre de la commande. |
+| amount_paid | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Synchronisé depuis `order.amount_paid` pour l'affichage « partiellement payée » sans dépendre de la commande ; plafonné au net dû (`total_ttc − credited_total`). |
+| credited_invoice_id | UUID | FK → invoices.id, DO_NOTHING (contrainte différée), NULL | Avoir : facture d'origine. NULL pour une facture. `DO_NOTHING` : PostgreSQL refuse de supprimer seule une facture créditée, la suppression de la boutique emporte facture et avoirs (`invoices.0010`). |
+| credit_reason | TEXT | DEFAULT `''` | Avoir : motif saisi, imprimé sur le PDF. |
+| credited_total | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Facture : TTC déjà crédité par ses avoirs, augmenté atomiquement, jamais au-delà de `total_ttc` (`invoices.0010`). |
+| idempotency_key | UUID | NULL | Avoir : clé de la requête qui l'a créé (en-tête `Idempotency-Key`) ; un second POST avec la même clé renvoie le même avoir (`invoices.0011`). |
 | notes | TEXT | DEFAULT `''` | Note libre (mentions supplémentaires) |
 | pdf_object_key | VARCHAR(500) | DEFAULT `''` | Fichier PDF généré (ReportLab), stocké en bucket privé |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
@@ -631,14 +636,19 @@ Facture émise depuis une commande, ou facture libre (`order_id` NULL) rédigée
 
 `account_summary` contient `previous_invoices` (numéro, dû net), `previous_balance`, `payments_received`, `current_invoice`, `total_balance`, tous les montants en chaînes décimales. Sont retenues seulement les autres factures du même client et de la même boutique, émises strictement avant, non annulées et non soldées. Le solde précédent est déjà net de leurs règlements ; `payments_received` désigne les règlements de la présente facture à l’émission, déduits une seule fois. `total_balance = previous_balance + current_invoice − payments_received`. Sans client identifié : solde précédent nul. Ce récapitulatif reste figé même après paiement des anciennes factures.
 
-**Contrainte** : `UNIQUE (shop_id, number) WHERE number <> ''` — le numéro est strictement unique dans la boutique ; les brouillons, sans numéro, n'y entrent pas.
+**Contraintes** :
+- `UNIQUE (shop_id, number) WHERE number <> ''` — le numéro est strictement unique dans la boutique ; les brouillons, sans numéro, n'y entrent pas ;
+- `UNIQUE (shop_id, idempotency_key) WHERE idempotency_key IS NOT NULL` (`unique_invoice_idempotency_key_per_shop`) ;
+- `CHECK (credited_total >= 0 AND (credited_total = 0 OR credited_total <= total_ttc))` (`invoice_credited_total_within_total`) : un brouillon peut avoir un total négatif, la borne haute ne vaut que pour un montant crédité.
 **Index** : `(shop_id, -issued_at)`, `(shop_id, status)`.
 **Ordering** : `-issued_at, -created_at`.
 
 **Règles métier** :
 - **Immutabilité** : une fois émise, seul `status` (et les timestamps liés `paid_at`/`cancelled_at`) évolue. Les montants, snapshots et numéro sont figés côté service (`save(update_fields=…)` restreint aux champs autorisés).
 - **Base imposable (règle FR/UE)** : `base = subtotal_ht − discount + shipping` ; les frais de port sont accessoires à la vente et intégrés à la base ; les remises la diminuent.
-- **Synchronisation Order → Invoice** : `orders.services.update_payment` et `transition_status('cancelled')` appellent `invoices.services.sync_invoice_from_order`. Règle : commande annulée → facture annulée (terminal) ; commande payée → facture payée ; commande partiel/unpaid → facture émise. Une facture déjà `cancelled` reste `cancelled` (état terminal légal).
+- **Synchronisation Order → Invoice** : `orders.services.update_payment` et `transition_status('cancelled')` appellent `invoices.order_sync.sync_invoice_from_order`, en mises à jour conditionnelles sans lecture préalable. Règle : commande annulée → facture annulée (terminal), sauf facture créditée, laissée telle quelle et journalisée (l'annulation de la commande aboutit toujours) ; commande payée → facture payée, ou émise si entièrement créditée ; commande partiel/unpaid → facture émise. `amount_paid` est plafonné au net dû par `Least(order.amount_paid, total_ttc − credited_total)`. Une facture déjà `cancelled` reste `cancelled` (état terminal légal).
+- **Annulation** : `PATCH …/status/` refuse l'annulation d'une facture émise (409 `use_credit_note`) ; la correction passe par un avoir.
+- **Avoirs (URS-112, `invoices/credit_notes.py`)** : `POST /api/invoices/<id>/credit-notes/` crée l'avoir directement émis (`issued`, terminal : jamais payé ni annulé), total ou partiel (remise au prorata, livraison au choix), numéro de la série `credit_note` (`avoir-…`), montants enregistrés positifs (signe appliqué à l'affichage et dans les agrégats). Verrous boutique → facture, plafond atomique `filter(credited_total <= total_ttc − montant).update(credited_total = credited_total + montant)`, 0 ligne = 409 `over_credit`. Refusé sur un brouillon, une facture annulée ou un avoir. `…/credit-notes/preview/` calcule les mêmes totaux sans rien écrire. Un avoir ne touche jamais au stock ni à la commande liée. Journalisé (`credit_note_issued`).
 - **Marquer comme payée** : l'UI cache le bouton si la facture est liée à une commande (la synchro fait foi) ; conservé pour les factures orphelines (`order = NULL` après suppression de la commande).
 - **PDF** : régénérable à la demande depuis les données figées — le PDF n'est donc jamais la source de vérité, seulement une projection.
 - **Brouillon (URS-110)** : sans numéro, date ni échéance ; modifiable (`PATCH /api/invoices/<id>/draft/`, refusé en 409 si `updated_at` envoyé n'est plus celui en base) et supprimable. Pas de PDF ni de statut de paiement (409). Exclu des indicateurs ; en tête de la liste par défaut, le dernier modifié d'abord.
@@ -694,7 +704,7 @@ Contrainte : `UNIQUE (shop_id, kind)` (`unique_document_sequence_per_shop_kind`)
 
 ### `quotes`
 
-Devis (URS-111, app `quotes`). Mêmes champs vendeur, acheteur, montants, `presentation`, `notes`, `currency` et `pdf_object_key` que `invoices` (modèle abstrait commun `BillingDocument`) ; ne sont listés ici que les champs propres au devis.
+Devis (URS-111, app `quotes`, migration `quotes.0001`). Mêmes champs vendeur, acheteur, montants, `presentation`, `notes`, `currency` et `pdf_object_key` que `invoices` (modèle abstrait commun `BillingDocument`) ; ne sont listés ici que les champs propres au devis.
 
 | Champ | Type | Contraintes | Description |
 |---|---|---|---|
@@ -716,13 +726,13 @@ Devis (URS-111, app `quotes`). Mêmes champs vendeur, acheteur, montants, `prese
 `presentation` d'un devis : la partie commune aux factures (`shop_presentation` : langue, couleur, logo, activité, contacts, `siret`, régime et n° de TVA, règlement, IBAN/BIC), plus `sent_date`, `valid_until`, `validity_days`, `operation_category`.
 
 **Contrainte** : `UNIQUE (shop_id, number) WHERE number <> ''` (`unique_quote_number_per_shop`).
-**Index** : `(shop_id, -sent_at)`, `(shop_id, status)`, `(status, valid_until)` (expiration quotidienne).
+**Index** : `(shop_id, -sent_at)`, `(shop_id, status)`, `(status, valid_until)` (expiration).
 **Ordering** : `-sent_at, -created_at`.
 
 **Règles métier** (`quotes/services.py`) :
 - **Brouillon** : modifiable (concurrence optimiste sur `updated_at`) et supprimable, comme un brouillon de facture.
 - **Envoi** : verrou de la boutique, numéro de la série `quote`, instantanés vendeur/acheteur, `presentation` et `valid_until` figés, puis `draft → sent` par mise à jour conditionnelle. Envoyé, le devis est **immuable** (lignes, montants, instantanés) ; seul le statut évolue, une révision est une copie en brouillon.
-- **Transitions** par `filter(pk, status__in=…).update(…)` : `sent → accepted` (`accepted_at`, `accepted_name`), `sent → declined`, `sent → expired` (tâche quotidienne, `valid_until` antérieur au jour local de la boutique), `accepted → invoiced`.
+- **Transitions** par `filter(pk, status__in=…).update(…)` : `sent → accepted` (`accepted_at`, `accepted_name`), `sent → declined`, `sent → expired` (tâche horaire `quotes-expire-hourly`, `valid_until` antérieur au jour local de la boutique), `accepted → invoiced`.
 - **Conversion** : crée une facture en brouillon (lignes, client et conditions du devis) puis la rattache par `filter(pk, shop, status='accepted', invoice__isnull=True).update(status='invoiced', invoice=…)`, dans la même transaction : 0 ligne = erreur, le brouillon est annulé avec elle.
 - Un devis ne touche jamais au stock.
 
@@ -1541,7 +1551,6 @@ Le backend Django définirait `SET LOCAL app.current_shop_id = '...'` au début 
 - **Notifications push** : table `push_devices` (token APNs / FCM).
 - **Avis clients** sur la page publique : table `public_reviews`.
 - **TVA par ligne** de facture : v1 = taux uniforme par facture (`invoices.tax_rate`) ; passer à un `tax_rate` par `invoice_line` si un commerçant vend des lots à taux mixtes.
-- **Avoirs (credit notes)** : émettre un document lié à une facture existante pour corriger sans altérer le numéro/montants d'origine.
 
 ---
 

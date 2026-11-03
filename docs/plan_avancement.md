@@ -563,6 +563,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] Frontend des devis : éditeur, détail, actions (URS-111)
     - [x] Frontend des avoirs : feuille, détail, liste (URS-112)
     - [x] Gating `quotes` et `credit_notes` dès Solo, écriture seule (`HasPlanForFeature.for_feature(…, writes_only=True)`, migration abonnements `0015`) : en Découverte, devis consultables, création et gestes d'écriture sur la carte Solo ; lignes `plans.solo.f3`/`f4` ; audit `subscription`
+    - [ ] Modèles WhatsApp « devis » et « relance de devis » (`comms`, spec §12 D7, reportable) : non livrés dans le lot 8.2, reportés
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
   - [ ] 8.4a Lien en ligne et acceptation du devis (Boutique, URS-114)
