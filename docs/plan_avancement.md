@@ -708,6 +708,10 @@ Décision du 2026-10-16 : pas de publications automatiques.
       Décider d'une lecture libre des factures (comme les devis) ou d'une carte de mise
       à niveau à la place de l'erreur. Relevé en 7 (2026-11-01).
 
+- [ ] Devis : `useQuoteDetailState` (`components/quotes/detail/`) fait 54 lignes, au-delà
+      des ~50 ; la garde de formule est déjà extraite (`useQuoteLock`). À découper au
+      prochain changement du détail d'un devis. Relevé en 7 (2026-11-01).
+
 - [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
       croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
       ou une fabrique).
@@ -976,6 +980,8 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
 - [ ] **Bloquant** — Facture issue d'une commande : prix de la commande traités comme HT, TVA ajoutée par-dessus (commande de 20 € → facture de 24 €, marquée payée à 20 €). Décision produit (prix saisis HT ou TTC pour une boutique assujettie) puis correctif avec étape 0, avant le lancement ; cas chiffré dans « Dette technique connue » (2026-10-30).
+- [ ] **Bloquant** — Factures et avoirs consultables après une descente en Découverte : lecture libre (`writes_only=True` sur le gating `invoices`, comme les devis) et bannière de lecture seule ; PR séparée après la fusion du lot 8.2 (dette « Factures et avoirs après une descente en Découverte », 2026-11-03).
+- [ ] **Bloquant** — Devis et avoirs à ajouter à la landing (`components/marketing/Pricing.tsx`) après la relecture professionnelle des mentions (question n°6) et la validation en staging (2026-11-03).
 - [~] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe — adresse saisie (commit `4472011`) ; concordance avec le registre et Stripe non vérifiable dans le dépôt (2026-10-28)
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
