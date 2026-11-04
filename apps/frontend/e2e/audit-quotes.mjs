@@ -65,8 +65,7 @@ async function chooseNewCustomer(page, locale, name) {
 async function checkCreate(page, locale, label) {
   await visible(page.getByRole('link', { name: msg(locale, 'quotes.create'), exact: true })).click();
   await page.waitForURL(url => url.pathname === '/quotes/new');
-  await page.waitForLoadState('networkidle');
-  report.check(await page.getByRole('heading', { name: editor(locale, 'title'), exact: true }).isVisible(), `${label} : titre « ${editor(locale, 'title')} »`);
+  report.check(await appears(page.getByRole('heading', { name: editor(locale, 'title'), exact: true })), `${label} : titre « ${editor(locale, 'title')} »`);
   await chooseNewCustomer(page, locale, `Client devis ${label}`);
   const description = page.getByRole('combobox', { name: editor(locale, 'line.description'), exact: true });
   await description.fill('Pose de parquet');
@@ -131,6 +130,11 @@ async function checkSend(page, locale, label, draft, before) {
 const QUOTE_LINE = { description: 'Dépose de cloison', unit: 'forfait', quantity: '1', unit_price_ht: '180.00' };
 const desktop = page => page.viewportSize().width >= 1024;
 const button = (page, name) => visible(page.getByRole('button', { name, exact: true }));
+/** Élément attendu (attente automatique) : après une navigation côté client, `networkidle` est déjà atteint et n'attend rien. */
+const appears = locator => locator.waitFor({ timeout: 10000 }).then(() => true, () => false);
+/** Facture lue par son éditeur (`GET /api/proxy/invoices/<id>`). */
+const isInvoiceRead = response => response.request().method() === 'GET'
+  && /^\/api\/proxy\/invoices\/[0-9a-f-]{36}\/?$/.test(new URL(response.url()).pathname);
 
 /** Requêtes POST vers un chemin, comptées à partir de l'appel : un double clic n'en envoie qu'une. */
 function countPosts(page, suffix) {
@@ -162,8 +166,9 @@ const tracking = (page, locale) => page.locator(`ol[aria-label="${msg(locale, 'q
 async function checkDetail(page, locale, label, { row, sent }) {
   await row.click();
   await page.waitForURL(url => url.pathname === `/quotes/${sent.id}`);
-  await page.waitForLoadState('networkidle');
-  const banner = await page.getByRole('region', { name: msg(locale, 'quotes.detail.banner'), exact: true }).innerText();
+  const region = page.getByRole('region', { name: msg(locale, 'quotes.detail.banner'), exact: true });
+  await region.waitFor();
+  const banner = await region.innerText();
   const parts = fmt(locale, 'quotes.detail.validity', { status: 'sent', days: sent.days_remaining, date: '§' }).split('§');
   report.check(sent.days_remaining === 45 && parts.every(p => banner.includes(p.trim())) && banner.includes(sent.buyer_name),
     `${label} : bandeau, client et « ${parts.join('…').trim()} » (${sent.days_remaining} jours, calculés par le serveur)`);
@@ -190,7 +195,7 @@ async function checkAccept(page, locale, label, sent) {
   const submit = sheet.getByRole('button', { name: msg(locale, 'quotes.accept.submit'), exact: true });
   await name.fill('x'.repeat(201));
   await submit.click();
-  report.check(await sheet.getByText(fmt(locale, 'quotes.accept.name_too_long', { max: 200 }), { exact: true }).isVisible(), `${label} : nom de plus de 200 caractères refusé`);
+  report.check(await appears(sheet.getByText(fmt(locale, 'quotes.accept.name_too_long', { max: 200 }), { exact: true })), `${label} : nom de plus de 200 caractères refusé`);
   await name.fill('Karim Alaoui');
   const posts = countPosts(page, '/status/');
   await submit.dblclick();
@@ -206,15 +211,18 @@ async function checkAccept(page, locale, label, sent) {
 /** « Transformer en facture » : éditeur du brouillon de facture ouvert, message ; retour : « Reprendre la facture ». */
 async function checkConvert(page, locale, label, sent) {
   const posts = countPosts(page, '/convert/');
+  // Écoutée avant le clic : la facture chargée par l'éditeur, sans quoi la vérification tombe sur son squelette.
+  const loaded = page.waitForResponse(isInvoiceRead).catch(() => null);
   await button(page, msg(locale, 'quotes.actions.convert')).dblclick();
   await page.waitForURL(/\/invoices\/[0-9a-f-]{36}\/edit$/);
   const shown = await toast(page, msg(locale, 'quotes.convert.done'));
-  await page.waitForLoadState('networkidle');
   const invoiceId = new URL(page.url()).pathname.split('/')[2];
-  const quote = await api(page, `quotes/${sent.id}/`);
+  const read = await loaded;
   const heading = fmt(locale, 'invoices.editor.title', { doc: 'invoice' });
+  const opened = await appears(page.getByRole('heading', { name: heading, exact: true }));
+  const quote = await api(page, `quotes/${sent.id}/`);
   report.check(shown && posts() === 1 && quote.status === 'invoiced' && quote.invoice === invoiceId
-    && await page.getByRole('heading', { name: heading, exact: true }).isVisible(),
+    && read?.ok() && read.url().includes(invoiceId) && opened,
   `${label} : devis transformé (une requête), éditeur de la facture ouvert, « ${msg(locale, 'quotes.convert.done')} »`);
   await goto(page, `/quotes/${sent.id}`);
   report.check(await button(page, fmt(locale, 'quotes.actions.view_invoice', { hasNumber: 'no' })).count() === 1
@@ -245,7 +253,9 @@ async function checkDecline(page, locale, label, customer) {
   const shown = await toast(page, msg(locale, 'quotes.decline.done'));
   const quote = await api(page, `quotes/${sent.id}/`);
   const pdf = visible(page.getByRole('link', { name: msg(locale, 'quotes.actions.pdf'), exact: true }));
-  report.check(shown && quote.status === 'declined' && await button(page, msg(locale, 'quotes.actions.accept')).count() === 0
+  // Le PDF ne remplace l'action principale qu'une fois le devis relu : on l'attend avant de compter.
+  const replaced = await appears(pdf);
+  report.check(shown && quote.status === 'declined' && replaced && await button(page, msg(locale, 'quotes.actions.accept')).count() === 0
     && await pdf.count() === 1 && await pdfAnswers(page, pdf)
     && (await tracking(page, locale).innerText()).includes(fmt(locale, 'quotes.tracking.step', { key: 'declined' })),
   `${label} : devis refusé, aucune action principale, PDF à sa place (réponse 200)`);
