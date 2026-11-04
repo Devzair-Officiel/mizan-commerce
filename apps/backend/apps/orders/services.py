@@ -293,7 +293,7 @@ def transition_status(order: Order, new_status: str, user) -> Order:
 
     # Lors d'une annulation, propager à la facture liée si elle existe.
     if new_status == 'cancelled':
-        from apps.invoices.services import sync_invoice_from_order
+        from apps.invoices.order_sync import sync_invoice_from_order
         sync_invoice_from_order(order)
 
     log_action(
@@ -381,7 +381,7 @@ def update_payment(order: Order, amount_paid: Decimal, user=None) -> Order:
         order.save(update_fields=['amount_paid', 'payment_status', 'updated_at'])
 
     # Propager le statut de paiement à la facture liée (si elle existe et n'est pas annulée).  # noqa: E501
-    from apps.invoices.services import sync_invoice_from_order
+    from apps.invoices.order_sync import sync_invoice_from_order
     sync_invoice_from_order(order)
 
     log_action(

@@ -49,6 +49,13 @@ class AuditLog(models.Model):
         # Facture libre (URS-110) : avertissements acceptés à l'émission inclus.
         ('invoice_issued', 'Émission facture'),
         ('invoice_draft_deleted', 'Suppression brouillon de facture'),
+        # Devis (URS-111) : avertissements acceptés à l'envoi inclus.
+        ('quote_sent', 'Envoi devis'),
+        ('quote_accepted', 'Acceptation devis'),
+        ('quote_declined', 'Refus devis'),
+        ('quote_converted', 'Devis transformé en facture'),
+        # Avoir (URS-112) : facture d'origine et avertissements acceptés inclus.
+        ('credit_note_issued', 'Émission avoir'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

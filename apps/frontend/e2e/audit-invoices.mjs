@@ -1,4 +1,4 @@
-/** Factures au gabarit : liste serveur, filtres, pagination, détail figé et actions. */
+/** Factures au gabarit : liste serveur, filtres (dont Type), pagination, détail figé, actions et création d'un avoir. */
 import { mkdir, readFile } from 'node:fs/promises';
 import { isDeepStrictEqual } from 'node:util';
 import { BASE, INVOICES_EMAIL, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
@@ -15,7 +15,9 @@ const flat = value => value.replace(/\s+/g, ' ').trim();
 /** Liens des factures listées (le bouton « Nouvelle facture » mène aussi sous /invoices/). */
 const ROWS = 'main a[href^="/invoices/"]:not([href="/invoices/new"])';
 let fixtures;
+let credits;
 let initial;
+let creditCustomer;
 
 function listPageResponse(response, page) {
   const url = new URL(response.url());
@@ -74,9 +76,11 @@ async function checkDesktop(page, locale, label) {
     page.getByRole('button', { name: fmt(locale, 'ui.list.pagination_page', { page: 2 }), exact: true }).click(),
   ]);
   await page.waitForURL(/page=2/);
-  const expected = (await response.json()).results.length;
-  await page.waitForFunction(count => document.querySelectorAll('tbody tr').length === count, expected);
-  report.check(expected === 4, `${label} : pagination serveur, seconde page`);
+  const { results, count } = await response.json();
+  const expected = results.length;
+  await page.waitForFunction(rows => document.querySelectorAll('tbody tr').length === rows, expected);
+  // 24 factures de l'audit, 2 factures et 2 avoirs semés par reset_audit_shop, puis ceux de checkCreditSheet.
+  report.check(count >= 28 && expected === Math.min(count - 20, 20), `${label} : pagination serveur, seconde page`);
   await page.getByRole('columnheader', { name: text(locale, 'list.columns.total_ttc') }).getByRole('button').click();
   await page.waitForURL(url => url.searchParams.get('ordering') === '-total_ttc' && !url.searchParams.has('page'));
   await page.waitForLoadState('networkidle');
@@ -99,9 +103,10 @@ async function checkMobile(page, locale, label) {
     page.waitForResponse(r => listPageResponse(r, 2)),
     page.getByRole('button', { name: text(locale, 'list.load_more'), exact: true }).click(),
   ]);
-  const added = (await response.json()).results.length;
-  await page.waitForFunction(([rows, count]) => document.querySelectorAll(rows).length === count, [ROWS, before + added]);
-  report.check(added === 4, `${label} : Charger plus récupère la page suivante`);
+  const { results, count } = await response.json();
+  const added = results.length;
+  await page.waitForFunction(([rows, total]) => document.querySelectorAll(rows).length === total, [ROWS, before + added]);
+  report.check(count >= 28 && added === Math.min(count - 20, 20), `${label} : Charger plus récupère la page suivante`);
   await page.getByRole('button', { name: msg(locale, 'ui.list.filters'), exact: true }).click();
   const sheet = page.getByRole('dialog');
   const original = page.url();
@@ -138,6 +143,75 @@ async function checkSearch(page, locale, label) {
   report.check((await api(page, 'invoices/?search=Karima%20Audit')).count === 24, `${label} : recherche sur le nom complet du client`);
 }
 
+/** Pose le filtre Type (menu sur desktop, feuille validée sur mobile) ; renvoie le texte de l'option, nombre compris. */
+async function applyKind(page, locale, kind) {
+  const name = text(locale, 'list.kind_filter', { value: kind });
+  let option;
+  if (page.viewportSize().width < 1024) {
+    // « Filtres », suivi du nombre de filtres actifs quand il y en a.
+    await page.getByRole('button', { name: new RegExp(`^${msg(locale, 'ui.list.filters')}`) }).click();
+    const sheet = page.getByRole('dialog');
+    const choice = sheet.getByRole('radio', { name: new RegExp(`^${name}`) }).locator('xpath=..');
+    option = flat(await choice.innerText());
+    await choice.click();
+    await sheet.getByRole('button', { name: new RegExp(text(locale, 'list.show_results', { count: 1 }).replace('1', '\\d+')) }).click();
+  } else {
+    await page.getByRole('button', { name: new RegExp(`^${text(locale, 'list.kind_title')}`) }).click();
+    const choice = page.getByRole('menuitemradio').filter({ hasText: name });
+    option = flat(await choice.innerText());
+    await choice.click();
+  }
+  await page.waitForURL(url => url.searchParams.get('kind') === kind);
+  await page.waitForLoadState('networkidle');
+  return option;
+}
+
+/** Filtre Type : avoirs (badge, montant négatif, sans paiement), factures sans avoir, URL conservée, retour à Tous. */
+async function checkKindFilter(page, locale, label) {
+  await goto(page, '/invoices');
+  const facets = (await api(page, 'invoices/facets/')).kind;
+  const rows = page.viewportSize().width < 1024 ? ROWS : 'tbody tr';
+  const badge = text(locale, 'kind', { kind: 'credit_note' });
+  const shows = n => page.waitForFunction(([sel, want]) => document.querySelectorAll(sel).length === want, [rows, Math.min(n, 20)]);
+  const badges = () => page.locator(rows).evaluateAll(els => els.map(el => [...el.querySelectorAll('span.rounded-full')].map(b => b.textContent.trim()).filter(Boolean)));
+  const option = await applyKind(page, locale, 'credit_note');
+  await shows(facets.credit_note);
+  report.check(facets.credit_note >= 2 && option.includes(String(facets.credit_note))
+    && await visible(page.getByText(fmt(locale, 'invoices.list.kind_count', { kind: 'credit_note', count: facets.credit_note }), { exact: true })).count() === 1,
+  `${label} : filtre Avoirs, autant de lignes que la facette (${facets.credit_note})`);
+  report.check((await badges()).every(found => isDeepStrictEqual(found, [badge])), `${label} : badge Avoir, aucun badge de paiement ni de statut`);
+  const [note] = (await api(page, 'invoices/?kind=credit_note')).results;
+  report.check(parseAmount(await page.locator(rows).first().locator('span[dir="ltr"]').innerText()) === -Number(note.total_ttc)
+    && await negativesReadLeftToRight(page), `${label} : montant négatif en LTR, signe à gauche, chiffres tabulaires`);
+  await page.screenshot({ path: `results/invoices-list-credit-notes-${label.replaceAll(' ', '-')}.png`, fullPage: true });
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await shows(facets.credit_note);
+  report.check(new URL(page.url()).searchParams.get('kind') === 'credit_note' && (await badges()).every(found => found.includes(badge)),
+    `${label} : filtre Avoirs conservé dans l'URL au rechargement`);
+  await applyKind(page, locale, 'invoice');
+  await shows(facets.invoice);
+  report.check((await badges()).every(found => !found.includes(badge)), `${label} : filtre Factures, aucun avoir`);
+  await page.getByRole('button', { name: fmt(locale, 'ui.list.remove_filter', { name: text(locale, 'list.kind_title') }), exact: true }).click();
+  await page.waitForURL(url => !url.searchParams.has('kind'));
+  await shows(facets.all);
+  report.check(facets.all === facets.invoice + facets.credit_note, `${label} : retour à Tous, factures et avoirs`);
+}
+
+/** États vides du filtre : « Aucun avoir » (liste simulée vide), « Aucun avoir ne correspond » (aucun avoir brouillon). */
+async function checkKindEmpty(page, locale, label) {
+  const list = url => /\/api\/proxy\/invoices\/?$/.test(url.pathname) && url.searchParams.get('kind') === 'credit_note';
+  await page.route(list, route => route.fulfill({ json: { count: 0, next: null, previous: null, results: [] } }));
+  await goto(page, '/invoices?kind=credit_note');
+  const shown = key => visible(page.getByText(fmt(locale, `invoices.list.${key}`, { kind: 'credit_note' }), { exact: true })).count();
+  report.check(await shown('kind_empty_title') === 1 && await shown('kind_empty_body') === 1, `${label} : aucun avoir, titre et sous-titre propres au type`);
+  await page.unroute(list);
+  await goto(page, '/invoices?kind=credit_note&status=draft');
+  report.check(await shown('empty_filtered') === 1 && await page.locator(ROWS).count() === 0, `${label} : avoirs filtrés sans résultat, « Aucun avoir ne correspond »`);
+  await visible(page.getByRole('button', { name: text(locale, 'list.clear_filters'), exact: true })).last().click();
+  await page.waitForURL(url => !url.searchParams.has('kind') && !url.searchParams.has('status'));
+}
+
 async function checkDetail(page, locale, label) {
   const invoice = fixtures[0];
   await goto(page, `/invoices/${invoice.id}`);
@@ -167,30 +241,253 @@ async function checkDetail(page, locale, label) {
   await page.screenshot({ path: `results/invoices-detail-${label.replaceAll(' ', '-')}.png`, fullPage: true });
 }
 
-async function checkCancellation(page, locale, label) {
-  const invoice = fixtures.find(i => i.id !== fixtures[0].id && i.status === 'issued');
+/** Avoirs semés par reset_audit_shop : partiel (facture encore due) et total (« Créditée »). */
+async function creditFixtures(page) {
+  const notes = (await api(page, 'invoices/?kind=credit_note')).results;
+  const pairs = await Promise.all(notes.map(async note => ({ note, origin: await api(page, `invoices/${note.credited_invoice}/`) })));
+  const partial = pairs.find(p => !p.origin.fully_credited);
+  const full = pairs.find(p => p.origin.fully_credited);
+  if (pairs.length !== 2 || !partial || !full) throw new Error('Avoirs d’audit absents : relancer reset_audit_shop');
+  return { partial, full };
+}
+
+/** Montant affiché, lu dans la locale : chiffres latins, < 1 000. */
+function parseAmount(value) {
+  const raw = value.replace(/[^\d.,\-−]/g, '').replace('−', '-');
+  return Number(raw.includes('.') ? raw.replace(/,/g, '') : raw.replace(',', '.'));
+}
+
+/** Montant d'une ligne libellé / valeur (`DetailRow`). */
+async function rowAmount(page, label, root = 'main') {
+  return parseAmount(await visible(page.locator(`${root} dl > div`).filter({ has: page.locator('dt').getByText(label, { exact: true }) }).locator('dd')).first().innerText());
+}
+
+/** Montants négatifs : en LTR, chiffres tabulaires, signe dessiné à gauche du premier chiffre (même en RTL). */
+async function negativesReadLeftToRight(page) {
+  return visible(page.locator('main span[dir="ltr"]')).evaluateAll(spans => spans.length > 0 && spans.every(span => {
+    const text = span.textContent; const sign = text.search(/[-−]/); const digit = text.search(/\d/);
+    if (sign < 0 || digit < 0 || span.childNodes.length !== 1) return false;
+    const box = i => { const r = document.createRange(); r.setStart(span.firstChild, i); r.setEnd(span.firstChild, i + 1); return r.getBoundingClientRect(); };
+    return getComputedStyle(span).direction === 'ltr' && getComputedStyle(span).fontVariantNumeric.includes('tabular-nums') && box(sign).right <= box(digit).left + 0.5;
+  }));
+}
+
+/** Libellés du menu Plus d'actions (refermé ensuite) ; aucun quand le menu n'a rien à proposer. */
+async function menuEntries(page, locale) {
   const mobile = page.viewportSize().width < 1024;
+  await page.getByRole('heading', { name: text(locale, 'detail.lines_title'), exact: true }).first().waitFor();
+  const trigger = visible(page.getByRole('button', { name: msg(locale, 'ui.detail.more_actions'), exact: true }));
+  if (await trigger.count() === 0) return [];
+  await trigger.click();
+  const popup = mobile ? page.getByRole('dialog', { name: msg(locale, 'ui.detail.actions_title') }) : page.getByRole('menu');
+  const entries = popup.getByRole(mobile ? 'button' : 'menuitem').filter({ hasNotText: msg(locale, 'ui.close') });
+  await entries.first().waitFor();
+  const names = (await entries.allInnerTexts()).map(flat).filter(name => name && name !== msg(locale, 'ui.close'));
+  await page.keyboard.press('Escape');
+  await popup.waitFor({ state: 'detached' });
+  return names;
+}
+
+async function checkCreditedInvoices(page, locale, label) {
+  const { partial, full } = credits;
+  await goto(page, `/invoices/${partial.origin.id}`);
+  const card = page.getByRole('heading', { name: text(locale, 'detail.credit_notes'), exact: true }).locator('xpath=../..');
+  const link = card.locator(`a[href="/invoices/${partial.note.id}"]`);
+  report.check(await link.count() === 1 && (await link.innerText()).includes(partial.note.number),
+    `${label} : carte Avoirs émis, numéro et lien vers l'avoir`);
+  const credited = Number(partial.origin.credited_total);
+  const net = Number(partial.origin.total_ttc) - credited - Number(partial.origin.amount_paid);
+  report.check(credited > 0 && await rowAmount(page, text(locale, 'detail.credited')) === -credited
+    && Math.abs(await rowAmount(page, text(locale, 'totals.remaining')) - net) < 0.005 && net > 0,
+  `${label} : ligne Avoirs négative et reste à payer net des avoirs`);
+  report.check(await negativesReadLeftToRight(page), `${label} : montants négatifs en LTR, signe à gauche`);
+  const entries = await menuEntries(page, locale);
+  report.check(entries.includes(text(locale, 'detail.mark_paid')) && entries.includes(text(locale, 'credit.open')),
+    `${label} : facture encore due, paiement manuel et avoir proposés`);
+  await page.screenshot({ path: `results/invoices-credited-partial-${label.replaceAll(' ', '-')}.png`, fullPage: true });
+
+  await goto(page, `/invoices/${full.origin.id}`);
+  report.check(await visible(page.getByText(text(locale, 'payment', { state: 'credited' }), { exact: true })).count() === 1
+    && await rowAmount(page, text(locale, 'totals.remaining')) === 0, `${label} : badge Créditée et reste à payer nul`);
+  const left = await menuEntries(page, locale);
+  report.check(!left.includes(text(locale, 'detail.mark_paid')) && !left.includes(text(locale, 'credit.open')),
+    `${label} : facture entièrement créditée, ni paiement manuel ni « Créer un avoir »`);
+}
+
+async function checkCreditNote(page, locale, label) {
+  const { partial: { note, origin } } = credits;
+  await goto(page, `/invoices/${note.id}`);
+  const content = flat(await page.locator('main').innerText());
+  const card = page.getByRole('heading', { name: text(locale, 'detail.credit_of'), exact: true }).locator('xpath=../..');
+  report.check(await visible(page.getByText(text(locale, 'kind', { kind: 'credit_note' }), { exact: true })).count() === 1,
+    `${label} : badge Avoir`);
+  report.check(await card.locator(`a[href="/invoices/${origin.id}"]`).count() === 1
+    && (await card.innerText()).includes(origin.number) && content.includes(note.credit_reason),
+  `${label} : facture d'origine (numéro, lien) et motif`);
+  report.check(await rowAmount(page, text(locale, 'totals.total')) === -Number(note.total_ttc)
+    && await negativesReadLeftToRight(page), `${label} : totaux négatifs, signe à gauche en LTR`);
+  report.check(!content.includes(text(locale, 'totals.paid')) && !content.includes(text(locale, 'totals.remaining'))
+    && await page.getByRole('heading', { name: text(locale, 'account.title'), exact: true }).count() === 0
+    && await page.getByRole('button', { name: msg(locale, 'ui.detail.more_actions'), exact: true }).count() === 0,
+  `${label} : ni paiement, ni relevé de compte, ni menu d'état`);
+  report.check(await visible(page.locator(`a[href="/api/proxy/invoices/${note.id}/pdf/"]`)).count() === 1, `${label} : PDF de l'avoir proposé`);
+  await page.screenshot({ path: `results/invoices-credit-note-${label.replaceAll(' ', '-')}.png`, fullPage: true });
+}
+
+/** Facture fraîche liée à une commande (deux lignes, livraison) ; sans adresse vendeur : une recommandation. */
+async function creditableInvoice(page, { withoutAddress = false } = {}) {
+  creditCustomer ??= await api(page, 'customers/', { method: 'POST', data: { name: 'Recette Avoirs', first_name: 'Samir', phone: '+33698765432' } });
+  // Réglages posés à chaque fois : ceux d'origine reviennent à la fin de chaque fenêtre (sans adresse ni SIRET).
+  const seller = { legal_address: 'Adresse actuelle différente', siret: '12345678900012' };
+  await api(page, 'shop/invoice-settings/', { method: 'PATCH', data: withoutAddress ? { ...seller, legal_address: '' } : seller });
+  try {
+    const order = await api(page, 'orders/', { method: 'POST', data: { customer: creditCustomer.id, shipping_amount: '6', items: [
+      { product_name: 'Bougie recette', quantity: 3, unit_price: '12' }, { product_name: 'Savon recette', quantity: 2, unit_price: '5' },
+    ] } });
+    return await api(page, 'invoices/', { method: 'POST', data: { order_id: order.id } });
+  } finally {
+    if (withoutAddress) await api(page, 'shop/invoice-settings/', { method: 'PATCH', data: seller });
+  }
+}
+
+/** Ouvre « Créer un avoir » depuis le menu ; la feuille attend son premier aperçu (bouton actif). */
+async function openCreditSheet(page, locale) {
+  const mobile = page.viewportSize().width < 1024;
+  await visible(page.getByRole('button', { name: msg(locale, 'ui.detail.more_actions'), exact: true })).click();
+  await page.getByRole(mobile ? 'button' : 'menuitem', { name: text(locale, 'credit.open'), exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: text(locale, 'credit.title') });
+  const submit = sheet.getByRole('button', { name: text(locale, 'credit.submit'), exact: true });
+  await ready(page, submit);
+  return { sheet, submit };
+}
+
+async function ready(page, button) {
+  await page.waitForFunction(el => !el.disabled, await button.elementHandle());
+}
+
+/** Écoute des créations d'avoir (POST …/credit-notes/), clé d'idempotence comprise. */
+function creditPosts(page) {
+  const keys = [];
+  const listen = r => { if (r.method() === 'POST' && /\/credit-notes\/$/.test(new URL(r.url()).pathname)) keys.push(r.headers()['idempotency-key']); };
+  page.on('request', listen);
+  return { keys, stop: () => page.off('request', listen) };
+}
+
+/** Partiel : motif obligatoire, quantité bornée, aperçu serveur, recommandation à accepter, double clic. */
+async function checkPartialCredit(page, locale, label) {
+  const invoice = await creditableInvoice(page, { withoutAddress: true });
+  const order = await api(page, `orders/${invoice.order}/`);
   await goto(page, `/invoices/${invoice.id}`);
-  await visible(page.getByRole('button', { name: msg(locale, 'ui.detail.more_actions'), exact: true })).click();
-  report.check(await page.getByRole(mobile ? 'button' : 'menuitem', { name: text(locale, 'detail.mark_paid'), exact: true }).count() === 0,
-    `${label} : paiement manuel masqué pour une facture liée à une commande`);
-  const entry = mobile ? page.getByRole('button', { name: text(locale, 'detail.cancel_invoice'), exact: true }) : page.getByRole('menuitem', { name: text(locale, 'detail.cancel_invoice'), exact: true });
-  await entry.click();
-  const dialog = page.getByRole('dialog');
-  const keep = dialog.getByRole('button', { name: text(locale, 'detail.keep_invoice'), exact: true });
-  report.check(await keep.evaluate(el => el === document.activeElement), `${label} : confirmation destructive, focus sur Conserver`);
-  await keep.click();
-  report.check((await api(page, `invoices/${invoice.id}/`)).status === 'issued', `${label} : fermer la confirmation conserve la facture`);
-  await visible(page.getByRole('button', { name: msg(locale, 'ui.detail.more_actions'), exact: true })).click();
-  await entry.click();
-  await Promise.all([
-    page.waitForResponse(r => r.url().includes(`/invoices/${invoice.id}/`) && r.request().method() === 'GET'),
-    dialog.getByRole('button', { name: text(locale, 'detail.confirm'), exact: true }).click(),
+  report.check(isDeepStrictEqual(await menuEntries(page, locale), [text(locale, 'credit.open'), text(locale, 'detail.linked_order')]),
+    `${label} : « Créer un avoir » à la place d'« Annuler », paiement manuel masqué (facture liée à une commande)`);
+  const { sheet, submit } = await openCreditSheet(page, locale);
+  const posts = creditPosts(page);
+  report.check(await sheet.getByText(text(locale, 'credit.unchanged'), { exact: true }).count() === 1
+    && await sheet.getByRole('button', { name: text(locale, 'credit.close'), exact: true }).filter({ hasText: text(locale, 'credit.close') }).count() === 1
+    && await rowAmount(page, text(locale, 'totals.total'), '[role="dialog"]') === -Number(invoice.total_ttc),
+  `${label} : feuille ouverte (bouton Fermer), mention stock et commande, aperçu du total`);
+  await submit.click();
+  report.check(await sheet.getByText(text(locale, 'credit.reason_required'), { exact: true }).count() === 1 && posts.keys.length === 0,
+    `${label} : motif obligatoire, rien d'envoyé`);
+  await sheet.getByRole('radio', { name: text(locale, 'credit.mode_partial') }).locator('xpath=..').click();
+  const bougie = sheet.getByRole('textbox', { name: text(locale, 'credit.quantity_label', { name: 'Bougie recette' }) });
+  await bougie.fill('4');
+  report.check(await sheet.getByText(text(locale, 'credit.quantity_invalid', { max: 3 }), { exact: true }).count() === 1 && await submit.isDisabled(),
+    `${label} : quantité au-delà du reste refusée`);
+  const [preview] = await Promise.all([
+    page.waitForResponse(r => r.status() === 200 && r.url().includes('/credit-notes/preview') && r.request().postDataJSON()?.include_shipping === true),
+    bougie.fill('2').then(() => sheet.getByRole('checkbox', { name: new RegExp(text(locale, 'credit.shipping')) }).check()),
   ]);
-  const cancelled = await api(page, `invoices/${invoice.id}/`);
-  report.check(cancelled.status === 'cancelled' && cancelled.number === invoice.number && cancelled.total_ttc === invoice.total_ttc,
-    `${label} : annulation confirmée, numéro et montants conservés`);
-  invoice.status = 'cancelled';
+  const { totals } = await preview.json();
+  await ready(page, submit);
+  report.check(await rowAmount(page, text(locale, 'totals.total'), '[role="dialog"]') === -Number(totals.total_ttc)
+    && Number(totals.shipping_amount) === 6, `${label} : mode partiel, montant de l'aperçu serveur`);
+  await sheet.getByRole('textbox', { name: text(locale, 'credit.reason'), exact: true }).fill('Retour de deux bougies');
+  report.check(await sheet.getByText(fmt(locale, 'invoices.editor.check.issue_title', { code: 'seller_address' }), { exact: true }).count() === 1,
+    `${label} : recommandation affichée avant validation`);
+  await submit.click();
+  report.check(await sheet.getByText(text(locale, 'credit.error', { code: 'compliance_warnings' }), { exact: true }).count() === 1 && posts.keys.length === 0,
+    `${label} : recommandations à accepter avant l'envoi`);
+  await sheet.getByRole('checkbox', { name: text(locale, 'credit.warnings_accept') }).check();
+  await page.screenshot({ path: `results/invoices-credit-sheet-${label.replaceAll(' ', '-')}.png` });
+  await submit.dblclick();
+  await page.waitForURL(url => /^\/invoices\/[\w-]+$/.test(url.pathname) && !url.pathname.endsWith(invoice.id));
+  posts.stop();
+  const note = await api(page, `invoices/${new URL(page.url()).pathname.split('/').pop()}/`);
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: text(locale, 'credit.done') }).first();
+  report.check(await toast.waitFor().then(() => true, () => false) && note.kind === 'credit_note' && note.credited_invoice === invoice.id,
+    `${label} : avoir créé, redirection vers son détail et message « Avoir créé »`);
+  report.check(posts.keys.length === 1 && (await api(page, `invoices/${invoice.id}/`)).credit_notes.length === 1
+    && note.total_ttc === totals.total_ttc && note.credit_reason === 'Retour de deux bougies',
+  `${label} : double clic, un seul avoir, montant de l'aperçu`);
+  report.check((await api(page, `orders/${invoice.order}/`)).total_amount === order.total_amount, `${label} : commande inchangée`);
+  return invoice;
+}
+
+/** Le proxy relaie Idempotency-Key : deux envois de la même clé renvoient le même avoir. */
+async function checkCreditReplay(page, invoice, label) {
+  const line = (await api(page, `invoices/${invoice.id}/`)).lines.find(l => l.description === 'Savon recette');
+  const send = key => page.request.post(`${BASE}/api/proxy/invoices/${invoice.id}/credit-notes/`, {
+    headers: { 'Idempotency-Key': key },
+    data: { mode: 'partial', lines: [{ line: line.id, quantity: '1' }], reason: 'Savon abîmé', acknowledged_warnings: ['seller_address'] },
+  });
+  const key = crypto.randomUUID();
+  const [first, again] = [await send(key), await send(key)];
+  report.check(first.status() === 201 && again.status() === 201 && (await first.json()).id === (await again.json()).id
+    && (await api(page, `invoices/${invoice.id}/`)).credit_notes.length === 2, `${label} : même clé rejouée par le proxy, même avoir`);
+}
+
+/** Échec simulé (503) : un rejeu à l'identique garde la clé d'idempotence, une saisie modifiée en reçoit une nouvelle. */
+async function checkKeyAfterFailure(page, locale, sheet, submit, label) {
+  const creation = url => /\/credit-notes\/?$/.test(url.pathname);
+  let failing = true;
+  await page.route(creation, route => failing && route.request().method() === 'POST'
+    ? route.fulfill({ status: 503, json: { detail: 'Service indisponible.' } }) : route.continue());
+  const posts = creditPosts(page);
+  const failed = async () => {
+    await Promise.all([page.waitForResponse(r => r.status() === 503 && creation(new URL(r.url()))), submit.click()]);
+    await ready(page, submit);
+  };
+  await failed();
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: text(locale, 'credit.error', { code: 'other' }) }).first();
+  report.check(await toast.waitFor().then(() => true, () => false) && await sheet.isVisible(), `${label} : échec d'envoi signalé, feuille ouverte`);
+  await failed();
+  failing = false;
+  await sheet.getByRole('textbox', { name: text(locale, 'credit.reason'), exact: true }).fill('Commande annulée par la cliente');
+  // Next redirige l'URL à barre finale (308) : la création répond sur …/credit-notes.
+  await Promise.all([page.waitForResponse(r => r.status() === 201 && creation(new URL(r.url()))), submit.click()]);
+  posts.stop();
+  await page.unroute(creation);
+  const [first, replay, changed] = posts.keys;
+  report.check(posts.keys.length === 3 && first && replay === first && changed && changed !== first,
+    `${label} : rejeu à l'identique avec la même clé, saisie modifiée avec une nouvelle clé`);
+}
+
+// 503 simulé par checkKeyAfterFailure : l'erreur réseau qu'en affiche la console est attendue.
+const expectedNoise = problem => problem.includes('status of 503') && /\/api\/proxy\/invoices\/[\w-]+\/credit-notes\/\)/.test(problem);
+
+/** Total : tout le reste, sans recommandation ; la facture soldée ne propose plus l'avoir. */
+async function checkTotalCredit(page, locale, label) {
+  const invoice = await creditableInvoice(page);
+  await goto(page, `/invoices/${invoice.id}`);
+  const { sheet, submit } = await openCreditSheet(page, locale);
+  report.check(await rowAmount(page, text(locale, 'totals.total'), '[role="dialog"]') === -Number(invoice.total_ttc)
+    && await sheet.getByText(text(locale, 'credit.warnings_title'), { exact: true }).count() === 0,
+  `${label} : mode total, tout le TTC, aucune recommandation`);
+  await sheet.getByRole('textbox', { name: text(locale, 'credit.reason'), exact: true }).fill('Commande annulée par le client');
+  await checkKeyAfterFailure(page, locale, sheet, submit, label);
+  await page.waitForURL(url => /^\/invoices\/[\w-]+$/.test(url.pathname) && !url.pathname.endsWith(invoice.id));
+  const after = await api(page, `invoices/${invoice.id}/`);
+  report.check(after.fully_credited && after.credit_notes.length === 1 && after.credit_notes[0].total_ttc === invoice.total_ttc,
+    `${label} : avoir total créé, facture entièrement créditée`);
+  await goto(page, `/invoices/${invoice.id}`);
+  report.check(!(await menuEntries(page, locale)).includes(text(locale, 'credit.open')), `${label} : facture entièrement créditée sans « Créer un avoir »`);
+}
+
+async function checkCreditSheet(page, locale, label) {
+  const invoice = await checkPartialCredit(page, locale, label);
+  await checkCreditReplay(page, invoice, label);
+  await checkTotalCredit(page, locale, label);
 }
 
 try {
@@ -199,6 +496,7 @@ try {
     const { page, ctx, watch, setLocale, setTheme } = await openSession(browser, viewport, { email: INVOICES_EMAIL });
     try {
       fixtures ??= await setup(page);
+      credits ??= await creditFixtures(page);
       for (const locale of ['fr', 'ar']) for (const theme of ['light', 'dark']) {
         if (!inMatrix(viewport, locale, theme)) continue;
         const label = `${viewport.name} ${locale} ${theme}`;
@@ -209,15 +507,20 @@ try {
         await goto(page, '/invoices');
         if (viewport.mobile) await checkMobile(page, locale, label); else await checkDesktop(page, locale, label);
         await checkSearch(page, locale, label);
+        await checkKindFilter(page, locale, label);
+        await checkKindEmpty(page, locale, label);
         await page.screenshot({ path: `results/invoices-list-${label.replaceAll(' ', '-')}.png`, fullPage: true });
         await checkDetail(page, locale, label);
-        await checkCancellation(page, locale, label);
+        await checkCreditedInvoices(page, locale, label);
+        await checkCreditNote(page, locale, label);
+        await checkCreditSheet(page, locale, label);
         report.check(await page.evaluate(() => document.scrollingElement.scrollWidth <= innerWidth), `${label} : aucune largeur débordante`);
         report.check((await nestedInteractive(page)).length === 0, `${label} : aucun élément interactif imbriqué`);
       }
     } finally {
       if (initial) await api(page, 'shop/invoice-settings/', { method: 'PATCH', data: initial });
-      report.check(watch.problems.length === 0, `${viewport.name} : console propre${watch.problems.map(p => `\n      ${p}`).join('')}`);
+      const problems = watch.problems.filter(p => !expectedNoise(p));
+      report.check(problems.length === 0, `${viewport.name} : console propre${problems.map(p => `\n      ${p}`).join('')}`);
       await ctx.close();
     }
   }

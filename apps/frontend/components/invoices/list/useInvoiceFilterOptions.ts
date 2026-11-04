@@ -19,6 +19,9 @@ export function useInvoiceFilterOptions(facets?: InvoicesFacets) {
     value, label: t('payment_filter', { value }), badgeClassName: value === 'all' ? undefined : PAYMENT_BADGE[value],
     count: facets?.payment[value],
   }));
+  const kindOptions: FilterOption<InvoiceSelection['kind']>[] = (['', 'invoice', 'credit_note'] as const).map(value => ({
+    value, label: t('kind_filter', { value: value || 'all' }), count: facets?.kind[value || 'all'],
+  }));
   const periodOptions: FilterOption<InvoiceSelection['period']>[] = (['', 'issued_month', 'paid_month'] as const).map(value => ({
     value, label: value ? t(`stats.${value}`) : t('all_periods'),
   }));
@@ -30,5 +33,5 @@ export function useInvoiceFilterOptions(facets?: InvoicesFacets) {
     const key = SORT_FIELDS.find(f => f === field) ?? 'issued_at';
     return t('sort_label', { field: t(`columns.${key}`), dir: direction });
   };
-  return { statusOptions, paymentOptions, periodOptions, sortOptions, sortLabel };
+  return { statusOptions, paymentOptions, kindOptions, periodOptions, sortOptions, sortLabel };
 }

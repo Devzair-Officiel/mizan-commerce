@@ -1,5 +1,9 @@
 from django.urls import path
 
+from .credit_note_views import (
+    InvoiceCreditNotePreviewView,
+    InvoiceCreditNotesView,
+)
 from .draft_views import (
     DraftInvoiceCreateView,
     DraftInvoiceView,
@@ -36,4 +40,14 @@ urlpatterns = [
         name='invoice-compliance',
     ),
     path('<uuid:pk>/issue/', InvoiceIssueDraftView.as_view(), name='invoice-issue'),
+    path(
+        '<uuid:pk>/credit-notes/',
+        InvoiceCreditNotesView.as_view(),
+        name='invoice-credit-notes',
+    ),
+    path(
+        '<uuid:pk>/credit-notes/preview/',
+        InvoiceCreditNotePreviewView.as_view(),
+        name='invoice-credit-note-preview',
+    ),
 ]

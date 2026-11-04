@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ChevronDown, Copy, Plus } from 'lucide-react';
 import { FloatingInput, FloatingTextarea } from '@/components/ui/floating-fields';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
-import type { LineSuggestion } from '@/lib/hooks/useInvoiceDrafts';
+import type { LineSuggestion } from '@/lib/hooks/useDocumentDrafts';
 import { lineCents, MAX_LENGTH, type EditorLine as Line, type EditorValues } from './editorSchema';
 import { LineDescriptionField } from './LineDescriptionField';
 import { LineMenu, type LineActions } from './LineMenu';

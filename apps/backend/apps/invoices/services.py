@@ -1,23 +1,34 @@
-from collections.abc import Mapping
+from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 from django.db import transaction
-from django.db.models import Count, F, Q, QuerySet, Sum
+from django.db.models import F, Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.customers.models import Customer
 from apps.orders.models import Order
-from apps.orders.services import current_month_bounds
 from apps.products.constants import DEFAULT_VARIANT_NAME, is_default_variant
 from apps.shops.models import Shop
 
-from .models import Invoice, InvoiceLine, InvoiceSequence
+from .models import (
+    FULLY_CREDITED,
+    BillingDocument,
+    BillingLine,
+    DocumentSequence,
+    Invoice,
+    InvoiceLine,
+)
 from .settings import snapshot_presentation
 
-INVOICE_PREFIX = 'fact'
+# Une série par type de document, chacune continue (`DocumentSequence`).
+DOCUMENT_PREFIXES = {
+    DocumentSequence.KIND_INVOICE: 'fact',
+    DocumentSequence.KIND_QUOTE: 'devis',
+    DocumentSequence.KIND_CREDIT_NOTE: 'avoir',
+}
 
 
 class InvoiceAlreadyExistsError(Exception):
@@ -36,28 +47,37 @@ class InvoiceStateError(Exception):
     """Transition impossible depuis le statut actuel (brouillon, facture annulée)."""
 
 
-def _next_invoice_number(shop: Shop, issued_on: date) -> str:
-    """Verrouille (ou crée) le compteur de la boutique, incrémente, retourne le numéro formaté.
+class InvoiceCreditedError(InvoiceStateError):
+    """Transition refusée par les avoirs : facture créditée (annulation) ou
+    entièrement créditée (paiement)."""
 
-    Format : `fact-DDMMYY-NNNN` — préfixe fixe, date d'émission (marqueur, ne reset rien),
-    compteur continu par boutique sur 4 chiffres minimum (s'étend naturellement au-delà
-    de 9999).
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+def _next_number(shop: Shop, kind: str, issued_on: date) -> str:
+    """Verrouille (ou crée) le compteur de ce type, incrémente, retourne le numéro formaté.
+
+    Format : `fact-DDMMYY-NNNN` (`devis-…`, `avoir-…`) — préfixe du type, date d'émission
+    (marqueur, ne reset rien), compteur continu par boutique et par type sur 4 chiffres
+    minimum (s'étend naturellement au-delà de 9999).
 
     À appeler **uniquement dans une transaction** (`@transaction.atomic`) : `select_for_update`
     sans transaction lève `TransactionManagementError`. Le verrou ligne empêche deux
     émissions concurrentes de générer le même numéro — garantie de continuité légale.
     """  # noqa: E501
-    sequence, _created = InvoiceSequence.objects.select_for_update().get_or_create(
-        shop=shop
-    )  # noqa: E501
+    sequence, _created = DocumentSequence.objects.select_for_update().get_or_create(
+        shop=shop, kind=kind
+    )
     sequence.last_number += 1
     sequence.save(update_fields=['last_number', 'updated_at'])
 
     date_part = issued_on.strftime('%d%m%y')
-    return f'{INVOICE_PREFIX}-{date_part}-{sequence.last_number:04d}'
+    return f'{DOCUMENT_PREFIXES[kind]}-{date_part}-{sequence.last_number:04d}'
 
 
-def snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
+def snapshot_seller_from_shop(invoice: BillingDocument, shop: Shop) -> None:
     invoice.seller_name = shop.name
     invoice.seller_address = shop.legal_address
     invoice.seller_tax_id = shop.tax_id
@@ -65,7 +85,7 @@ def snapshot_seller_from_shop(invoice: Invoice, shop: Shop) -> None:
     invoice.seller_country = shop.country
 
 
-def snapshot_buyer(invoice: Invoice, customer: Customer | None) -> None:
+def snapshot_buyer(invoice: BillingDocument, customer: Customer | None) -> None:
     """Snapshot des coordonnées acheteur depuis le client.
 
     Sans client, les champs restent vides. Le SIREN n'est repris que pour un
@@ -133,7 +153,7 @@ def _build_lines_from_order(invoice: Invoice, order: Order) -> list[InvoiceLine]
 
 
 def compute_totals(
-    lines: list[InvoiceLine],
+    lines: Sequence[BillingLine],
     tax_rate: Decimal,
     discount_amount: Decimal,
     shipping_amount: Decimal,
@@ -169,7 +189,7 @@ def issue_invoice_from_order(
     """Émet une facture définitive à partir d'une commande.
 
     Atomique : la numérotation et l'écriture des lignes se font dans la même transaction
-    que l'incrément du `InvoiceSequence`. Si quoi que ce soit échoue, aucun numéro n'est
+    que l'incrément du `DocumentSequence`. Si quoi que ce soit échoue, aucun numéro n'est
     consommé (rollback) — préserve la continuité de la séquence.
 
     `tax_rate` et `payment_terms_days` peuvent être surchargés par appel ; sinon on prend
@@ -197,7 +217,7 @@ def issue_invoice_from_order(
 
     now = timezone.now()
     issued_on = now.astimezone(ZoneInfo(shop.timezone)).date()
-    number = _next_invoice_number(shop, issued_on)
+    number = _next_number(shop, DocumentSequence.KIND_INVOICE, issued_on)
 
     effective_tax_rate, effective_terms, language = _invoice_options(
         shop,
@@ -288,82 +308,59 @@ def _new_invoice(
     return invoice
 
 
-def sync_invoice_from_order(order: Order) -> None:
-    """Aligne le statut de la facture liée sur celui de la commande.
-
-    Règles, par priorité :
-    1. Commande annulée → facture annulée (terminal).
-    2. Commande payée intégralement → facture payée.
-    3. Commande non payée ou partielle → facture émise.
-
-    Une facture déjà annulée reste annulée (état terminal légal). Appelée depuis
-    `orders.services` après tout changement de paiement ou d'annulation.
-    """
-    invoice = getattr(order, 'invoice', None)
-    if invoice is None:
-        return
-    if invoice.status == Invoice.STATUS_CANCELLED:
-        return
-
-    now = timezone.now()
-    order_amount_paid = Decimal(str(order.amount_paid or 0))
-    invoice.amount_paid = order_amount_paid
-
-    if order.status == 'cancelled':
-        invoice.status = Invoice.STATUS_CANCELLED
-        invoice.cancelled_at = now
-        invoice.save(
-            update_fields=['status', 'amount_paid', 'cancelled_at', 'updated_at']
-        )  # noqa: E501
-        return
-
-    if order.payment_status == 'paid':
-        if invoice.status != Invoice.STATUS_PAID:
-            invoice.status = Invoice.STATUS_PAID
-            invoice.paid_at = now
-        invoice.save(update_fields=['status', 'amount_paid', 'paid_at', 'updated_at'])
-        return
-
-    # unpaid / partial → repasser la facture en émise si elle était payée
-    if invoice.status == Invoice.STATUS_PAID:
-        invoice.status = Invoice.STATUS_ISSUED
-        invoice.paid_at = None
-    invoice.save(update_fields=['status', 'amount_paid', 'paid_at', 'updated_at'])
-
-
 def _transition(
-    invoice: Invoice, sources: tuple[str, ...], target: str, values: dict
+    invoice: Invoice,
+    sources: tuple[str, ...],
+    target: str,
+    values: dict,
+    credit_guard: tuple[Q, str] | None = None,
 ) -> Invoice:
     """Change le statut par une mise à jour conditionnelle, sans lecture préalable.
 
     Idempotent : sans effet si la facture est déjà dans le statut visé. Depuis un
-    autre statut (brouillon, facture annulée) : `InvoiceStateError`.
+    autre statut (brouillon, facture annulée) ou sur un avoir (`issued`,
+    terminal) : `InvoiceStateError`. `credit_guard` : condition sur les avoirs,
+    vérifiée dans la même écriture ; refusée, `InvoiceCreditedError(code)`.
     """
-    updated = Invoice.objects.filter(pk=invoice.pk, status__in=sources).update(
-        status=target, **values
-    )
+    guard, code = credit_guard or (Q(), '')
+    updated = Invoice.objects.filter(
+        guard, pk=invoice.pk, kind=Invoice.KIND_INVOICE, status__in=sources
+    ).update(status=target, **values)
     invoice.refresh_from_db()
-    if not updated and invoice.status != target:
-        raise InvoiceStateError()
-    return invoice
+    if updated or invoice.status == target:
+        return invoice
+    if code and invoice.kind == Invoice.KIND_INVOICE and invoice.status in sources:
+        raise InvoiceCreditedError(code)
+    raise InvoiceStateError()
 
 
 def mark_paid(invoice: Invoice) -> Invoice:
-    """Bascule une facture émise en `paid`, avec ou sans commande liée."""
+    """Bascule une facture émise en `paid`, avec ou sans commande liée.
+
+    Règlement enregistré : le net dû (TTC − avoirs). Entièrement créditée, la
+    facture n'a plus rien à payer : `InvoiceCreditedError('fully_credited')`.
+    """
     now = timezone.now()
     return _transition(
         invoice,
         (Invoice.STATUS_ISSUED,),
         Invoice.STATUS_PAID,
-        {'paid_at': now, 'amount_paid': F('total_ttc'), 'updated_at': now},
+        {
+            'paid_at': now,
+            'amount_paid': F('total_ttc') - F('credited_total'),
+            'updated_at': now,
+        },
+        (~FULLY_CREDITED, 'fully_credited'),
     )
 
 
 def cancel_invoice(invoice: Invoice) -> Invoice:
-    """Bascule en `cancelled` — pas d'avoir en v1, juste un drapeau de statut.
+    """Bascule en `cancelled`, drapeau de statut.
 
     Le numéro reste attribué (ne se recycle pas) : exigence légale, la trace doit subsister.
     Un brouillon ne s'annule pas : il se supprime (`drafts.delete_draft_invoice`).
+    Une facture créditée ne s'annule plus : l'avoir l'a déjà corrigée
+    (`InvoiceCreditedError('invoice_credited')`).
     """  # noqa: E501
     now = timezone.now()
     return _transition(
@@ -371,64 +368,5 @@ def cancel_invoice(invoice: Invoice) -> Invoice:
         (Invoice.STATUS_ISSUED, Invoice.STATUS_PAID),
         Invoice.STATUS_CANCELLED,
         {'cancelled_at': now, 'updated_at': now},
+        (Q(credited_total=0), 'invoice_credited'),
     )
-
-
-# Liste, indicateurs et facettes (URS-097 / URS-099).
-DUE = Q(status='issued', total_ttc__gt=F('amount_paid'))
-PAYMENTS = {
-    'due': DUE,
-    'unpaid': Q(status='issued', amount_paid=0),
-    'partial': DUE & Q(amount_paid__gt=0),
-    'paid': Q(status='paid'),
-}
-
-
-def filter_invoices(
-    qs: QuerySet, shop: Shop, params: Mapping[str, str], *, skip: str = ''
-) -> QuerySet:
-    if skip != 'status' and params.get('status'):
-        qs = qs.filter(status=params['status'])
-    if skip != 'payment' and params.get('payment') in PAYMENTS:
-        qs = qs.filter(PAYMENTS[params['payment']])
-    period = params.get('period')
-    if period in ('issued_month', 'paid_month'):
-        start, end = current_month_bounds(shop)
-        if period == 'paid_month':
-            qs = qs.filter(status='paid', paid_at__gte=start, paid_at__lt=end)
-        else:
-            qs = qs.filter(issued_at__gte=start, issued_at__lt=end)
-    return qs
-
-
-def invoice_facets(shop: Shop, qs: QuerySet, params: Mapping[str, str]) -> dict:
-    """Chaque menu compte la recherche et tous les filtres sauf le sien."""
-    statuses = filter_invoices(qs, shop, params, skip='status').aggregate(
-        all=Count('id'),
-        **{s: Count('id', filter=Q(status=s)) for s, _ in Invoice.STATUS_CHOICES},
-    )
-    payments = filter_invoices(qs, shop, params, skip='payment').aggregate(
-        all=Count('id'),
-        **{name: Count('id', filter=condition) for name, condition in PAYMENTS.items()},
-    )
-    return {'status': statuses, 'payment': payments}
-
-
-def invoice_summary(shop: Shop) -> dict:
-    """Mêmes ensembles que les filtres des trois indicateurs cliquables."""
-    qs = Invoice.objects.filter(shop=shop)
-    due = qs.filter(DUE).aggregate(
-        count=Count('id'), amount=Sum(F('total_ttc') - F('amount_paid'))
-    )
-    result = {
-        'due': {'count': due['count'], 'amount': str(due['amount'] or Decimal('0'))}
-    }
-    for period in ('issued_month', 'paid_month'):
-        values = filter_invoices(qs, shop, {'period': period}).aggregate(
-            count=Count('id'), amount=Sum('total_ttc')
-        )
-        result[period] = {
-            'count': values['count'],
-            'amount': str(values['amount'] or Decimal('0')),
-        }
-    return result
