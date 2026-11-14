@@ -713,6 +713,23 @@ Décision du 2026-10-16 : pas de publications automatiques.
       des ~50 ; la garde de formule est déjà extraite (`useQuoteLock`). À découper au
       prochain changement du détail d'un devis. Relevé en 7 (2026-11-01).
 
+- [ ] Audit `reminder-form`, préexistant au lot 8.2 : échec isolé (1 sur 18 passages de
+      configuration), non reproduit en 4 relances seules. Cause probable : URL lue
+      (`page.url()`) avant la fin de la navigation vers `/reminders`, déduite des
+      journaux, sans capture ; le rappel était créé (201). Correction : `waitForURL`
+      avant de vérifier. Relevé en 8 (2026-11-03).
+
+- [ ] Audit `sidebar`, préexistant au lot 8.2 (✗ en 1440 ar clair dans la matrice du
+      2026-11-03) : « flyout au clavier » lit `document.activeElement` aussitôt après la
+      flèche vers le bas. Attendre que le focus soit sur un `menuitem`
+      (`waitForFunction`) avant de vérifier. Relevé en 8 (2026-11-04).
+
+- [ ] Audits non diagnostiquables après coup : une vérification en échec n'enregistre ni
+      capture ni URL, et `results/<audit>.log` est écrasé au passage suivant. Seul
+      `checkConvert` d'`audit-quotes` le fait (`results/quotes-failed-…`, 3bae1ef) ;
+      l'étendre à `report.check` (`lib/session.mjs`) pour tous les audits. Relevé en 8
+      (2026-11-04).
+
 - [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
       croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
       ou une fabrique).
