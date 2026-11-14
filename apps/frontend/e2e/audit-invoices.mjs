@@ -11,6 +11,8 @@ const report = createReport();
 const browser = await launch();
 const text = (locale, key, values) => values ? fmt(locale, `invoices.${key}`, values) : msg(locale, `invoices.${key}`);
 const visible = locator => locator.filter({ visible: true });
+/** Message attendu après une action (attente automatique, élément unique) : la validation du formulaire n'est pas synchrone. */
+const appears = locator => locator.waitFor({ timeout: 5000 }).then(() => true, () => false);
 const flat = value => value.replace(/\s+/g, ' ').trim();
 /** Liens des factures listées (le bouton « Nouvelle facture » mène aussi sous /invoices/). */
 const ROWS = 'main a[href^="/invoices/"]:not([href="/invoices/new"])';
@@ -387,12 +389,12 @@ async function checkPartialCredit(page, locale, label) {
     && await rowAmount(page, text(locale, 'totals.total'), '[role="dialog"]') === -Number(invoice.total_ttc),
   `${label} : feuille ouverte (bouton Fermer), mention stock et commande, aperçu du total`);
   await submit.click();
-  report.check(await sheet.getByText(text(locale, 'credit.reason_required'), { exact: true }).count() === 1 && posts.keys.length === 0,
+  report.check(await appears(sheet.getByText(text(locale, 'credit.reason_required'), { exact: true })) && posts.keys.length === 0,
     `${label} : motif obligatoire, rien d'envoyé`);
   await sheet.getByRole('radio', { name: text(locale, 'credit.mode_partial') }).locator('xpath=..').click();
   const bougie = sheet.getByRole('textbox', { name: text(locale, 'credit.quantity_label', { name: 'Bougie recette' }) });
   await bougie.fill('4');
-  report.check(await sheet.getByText(text(locale, 'credit.quantity_invalid', { max: 3 }), { exact: true }).count() === 1 && await submit.isDisabled(),
+  report.check(await appears(sheet.getByText(text(locale, 'credit.quantity_invalid', { max: 3 }), { exact: true })) && await submit.isDisabled(),
     `${label} : quantité au-delà du reste refusée`);
   const [preview] = await Promise.all([
     page.waitForResponse(r => r.status() === 200 && r.url().includes('/credit-notes/preview') && r.request().postDataJSON()?.include_shipping === true),
@@ -403,10 +405,10 @@ async function checkPartialCredit(page, locale, label) {
   report.check(await rowAmount(page, text(locale, 'totals.total'), '[role="dialog"]') === -Number(totals.total_ttc)
     && Number(totals.shipping_amount) === 6, `${label} : mode partiel, montant de l'aperçu serveur`);
   await sheet.getByRole('textbox', { name: text(locale, 'credit.reason'), exact: true }).fill('Retour de deux bougies');
-  report.check(await sheet.getByText(fmt(locale, 'invoices.editor.check.issue_title', { code: 'seller_address' }), { exact: true }).count() === 1,
+  report.check(await appears(sheet.getByText(fmt(locale, 'invoices.editor.check.issue_title', { code: 'seller_address' }), { exact: true })),
     `${label} : recommandation affichée avant validation`);
   await submit.click();
-  report.check(await sheet.getByText(text(locale, 'credit.error', { code: 'compliance_warnings' }), { exact: true }).count() === 1 && posts.keys.length === 0,
+  report.check(await appears(sheet.getByText(text(locale, 'credit.error', { code: 'compliance_warnings' }), { exact: true })) && posts.keys.length === 0,
     `${label} : recommandations à accepter avant l'envoi`);
   await sheet.getByRole('checkbox', { name: text(locale, 'credit.warnings_accept') }).check();
   await page.screenshot({ path: `results/invoices-credit-sheet-${label.replaceAll(' ', '-')}.png` });
