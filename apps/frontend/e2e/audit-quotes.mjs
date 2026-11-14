@@ -3,7 +3,7 @@
  * automatique, envoi avec la vérification ; détail d'un devis envoyé, PDF, accord avec un nom, conversion
  * en brouillon de facture, refus confirmé (focus par défaut sur « Garder »). Doubles clics : une requête.
  */
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { BASE, QUOTES_EMAIL, VIEWPORTS, createReport, inMatrix, launch, openSession } from './lib/session.mjs';
 import { fmt, msg } from './lib/messages.mjs';
 import { api } from './lib/products.mjs';
@@ -135,6 +135,8 @@ const appears = locator => locator.waitFor({ timeout: 10000 }).then(() => true, 
 /** Facture lue par son éditeur (`GET /api/proxy/invoices/<id>`). */
 const isInvoiceRead = response => response.request().method() === 'GET'
   && /^\/api\/proxy\/invoices\/[0-9a-f-]{36}\/?$/.test(new URL(response.url()).pathname);
+/** Réponse finale : Next.js répond d'abord 308 pour retirer la barre oblique finale de l'adresse. */
+const isFinal = response => response.status() < 300 || response.status() >= 400;
 
 /** Requêtes POST vers un chemin, comptées à partir de l'appel : un double clic n'en envoie qu'une. */
 function countPosts(page, suffix) {
@@ -208,22 +210,61 @@ async function checkAccept(page, locale, label, sent) {
   `${label} : devis accepté au nom de Karim Alaoui (une requête), suivi et action « ${msg(locale, 'quotes.actions.convert')} »`);
 }
 
-/** « Transformer en facture » : éditeur du brouillon de facture ouvert, message ; retour : « Reprendre la facture ». */
-async function checkConvert(page, locale, label, sent) {
+/** Réponses GET de la facture vues par la page (code, URL exacte), à partir de l'appel. */
+function recordInvoiceReads(page) {
+  const seen = [];
+  const listener = response => { if (isInvoiceRead(response)) seen.push(`${response.status()} ${response.url()}`); };
+  page.on('response', listener);
+  return () => { page.off('response', listener); return seen; };
+}
+
+/** Une vérification, sa valeur observée ; en échec, capture et URL dans `results/` (diagnostic sans relance). */
+async function checkSeen(page, label, slug, ok, text, observed) {
+  report.check(ok, `${label} : ${text} — observé : ${observed}`);
+  if (ok) return;
+  const base = `results/quotes-failed-${label.replaceAll(' ', '-')}-${slug}`;
+  await page.screenshot({ path: `${base}.png`, fullPage: true });
+  await writeFile(`${base}.url.txt`, `${page.url()}\n`);
+}
+
+/** Clic sur « Transformer en facture » (double clic) et ce que la page en montre, relevé sans rien conclure. */
+async function observeConvert(page, locale, sent) {
   const posts = countPosts(page, '/convert/');
-  // Écoutée avant le clic : la facture chargée par l'éditeur, sans quoi la vérification tombe sur son squelette.
-  const loaded = page.waitForResponse(isInvoiceRead).catch(() => null);
+  const reads = recordInvoiceReads(page);
+  // Écoutées avant le clic : la réponse de la conversion et la lecture de la facture par l'éditeur, après redirection.
+  const converted = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname.includes('/convert') && isFinal(r)).catch(() => null);
+  const loaded = page.waitForResponse(r => isInvoiceRead(r) && isFinal(r)).catch(() => null);
   await button(page, msg(locale, 'quotes.actions.convert')).dblclick();
-  await page.waitForURL(/\/invoices\/[0-9a-f-]{36}\/edit$/);
-  const shown = await toast(page, msg(locale, 'quotes.convert.done'));
-  const invoiceId = new URL(page.url()).pathname.split('/')[2];
-  const read = await loaded;
-  const heading = fmt(locale, 'invoices.editor.title', { doc: 'invoice' });
-  const opened = await appears(page.getByRole('heading', { name: heading, exact: true }));
-  const quote = await api(page, `quotes/${sent.id}/`);
-  report.check(shown && posts() === 1 && quote.status === 'invoiced' && quote.invoice === invoiceId
-    && read?.ok() && read.url().includes(invoiceId) && opened,
-  `${label} : devis transformé (une requête), éditeur de la facture ouvert, « ${msg(locale, 'quotes.convert.done')} »`);
+  await page.waitForURL(/\/invoices\/[0-9a-f-]{36}\/edit$/, { timeout: 10000 }).catch(() => {});
+  const done = msg(locale, 'quotes.convert.done');
+  const toastBox = page.locator('[data-sonner-toast]').filter({ hasText: done }).first();
+  const shown = await appears(toastBox);
+  const headingText = fmt(locale, 'invoices.editor.title', { doc: 'invoice' });
+  const heading = page.getByRole('heading', { name: headingText, exact: true });
+  const opened = await appears(heading.first());
+  const [post, read] = await Promise.all([converted, loaded]);
+  return {
+    done, shown, toastText: shown ? await toastBox.innerText() : null, headingText, opened,
+    headings: await heading.allInnerTexts(), visibleHeadings: await visible(heading).count(),
+    post, read, path: new URL(page.url()).pathname, quote: await api(page, `quotes/${sent.id}/`), posts: posts(), reads: reads(),
+  };
+}
+
+/** « Transformer en facture » : une assertion par fait observé ; retour : « Reprendre la facture ». */
+async function checkConvert(page, locale, label, sent) {
+  const o = await observeConvert(page, locale, sent);
+  const invoiceId = o.path.split('/')[2];
+  const seen = (slug, ok, text, observed) => checkSeen(page, label, slug, ok, text, observed);
+  await seen('post', o.posts === 1 && o.post?.status() === 201, 'conversion : une seule requête POST, réponse 201',
+    `${o.posts} requête(s), ${o.post ? `${o.post.status()} ${o.post.url()}` : 'aucune réponse'}`);
+  await seen('url', /^\/invoices\/[0-9a-f-]{36}\/edit$/.test(o.path), 'conversion : URL de l\'éditeur de la facture', o.path);
+  await seen('heading', o.opened && o.headings.length === 1, `conversion : titre « ${o.headingText} », un seul élément`,
+    `${o.headings.length} élément(s) dont ${o.visibleHeadings} visible(s) : ${o.headings.map(t => `« ${t} »`).join(', ') || 'aucun'}`);
+  await seen('read', !!o.read?.ok() && o.read.url().includes(invoiceId), 'conversion : facture lue par l\'éditeur (GET, 2xx)',
+    `finale : ${o.read ? `${o.read.status()} ${o.read.url()}` : 'aucune'} ; toutes : ${o.reads.join(', ') || 'aucune'}`);
+  await seen('toast', o.shown && o.toastText.includes(o.done), `conversion : message « ${o.done} »`, o.shown ? `« ${o.toastText} »` : 'absent');
+  await seen('quote', o.quote.status === 'invoiced' && o.quote.invoice === invoiceId, 'conversion : devis facturé, relié à la facture ouverte',
+    `statut ${o.quote.status}, facture ${o.quote.invoice}, facture de l'URL ${invoiceId}`);
   await goto(page, `/quotes/${sent.id}`);
   report.check(await button(page, fmt(locale, 'quotes.actions.view_invoice', { hasNumber: 'no' })).count() === 1
     && (await tracking(page, locale).innerText()).includes(msg(locale, 'quotes.tracking.invoice_draft')),
