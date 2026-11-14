@@ -1,8 +1,7 @@
 """Émission d'une facture libre (URS-110) : numéro continu, instantanés figés."""
 
 import threading
-import time
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest import mock
 from zoneinfo import ZoneInfo
@@ -14,12 +13,14 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.core.models import AuditLog
+from apps.core.testing import race_on_lock
 from apps.customers.models import Customer
 from apps.orders.models import OrderItem
 from apps.orders.services import add_item
+from apps.shops.factories import ShopFactory
 
 from . import drafts, services
-from .models import Invoice, InvoiceSequence
+from .models import DocumentSequence, Invoice
 from .tests import _make_order_with_items, _make_shop
 
 LINE = {
@@ -38,7 +39,7 @@ def _draft(shop, customer, **data) -> Invoice:
 
 
 def _last_number(shop) -> int:
-    sequence = InvoiceSequence.objects.filter(shop=shop).first()
+    sequence = DocumentSequence.objects.filter(shop=shop, kind='invoice').first()
     return sequence.last_number if sequence else 0
 
 
@@ -210,15 +211,22 @@ class ConcurrentIssueTest(TransactionTestCase):
         assert _last_number(shop) == 2
 
 
-def _wait_until_blocked(pid: int) -> None:
-    """Attend que la session `pid` soit bloquée par le verrou d'une autre."""
-    with connection.cursor() as cursor:
-        for _ in range(400):
-            cursor.execute('SELECT cardinality(pg_blocking_pids(%s))', [pid])
-            if cursor.fetchone()[0]:
-                return
-            time.sleep(0.025)
-    raise AssertionError("L'émission n'a jamais attendu le verrou du document.")
+@pytest.mark.django_db
+def test_each_document_kind_has_its_own_continuous_series() -> None:
+    shop, other = ShopFactory(), ShopFactory()
+    day = date(2026, 10, 30)
+    kinds = ('invoice', 'quote', 'invoice', 'credit_note', 'quote', 'invoice')
+    numbers = [services._next_number(shop, kind, day) for kind in kinds]
+    assert numbers == [
+        'fact-301026-0001',
+        'devis-301026-0001',
+        'fact-301026-0002',
+        'avoir-301026-0001',
+        'devis-301026-0002',
+        'fact-301026-0003',
+    ]
+    assert services._next_number(other, 'invoice', day) == 'fact-301026-0001'
+    assert DocumentSequence.objects.filter(shop=shop).count() == 3
 
 
 class ShopLockTest(TransactionTestCase):
@@ -233,49 +241,11 @@ class ShopLockTest(TransactionTestCase):
 
     serialized_rollback = True
 
-    def _race(self, pause: tuple[object, str], save, issue) -> dict[str, object]:
-        paused, release = threading.Event(), threading.Event()
-        pids: list[int] = []
-        results: dict[str, object] = {}
-        original = getattr(*pause)
-
-        def hold(*args, **kwargs):
-            paused.set()
-            release.wait(timeout=20)
-            return original(*args, **kwargs)
-
-        def run(name: str, action) -> None:
-            try:
-                with connection.cursor() as cursor:
-                    cursor.execute('SELECT pg_backend_pid()')
-                    pids.append(cursor.fetchone()[0])
-                results[name] = action()
-            except BaseException as exc:  # noqa: BLE001 — on compare les issues.
-                results[name] = exc
-            finally:
-                connection.close()
-
-        with mock.patch.object(*pause, hold):
-            saver = threading.Thread(target=run, args=('save', save))
-            saver.start()
-            assert paused.wait(timeout=20)
-            issuer = threading.Thread(target=run, args=('issue', issue))
-            issuer.start()
-            for _ in range(400):
-                if len(pids) == 2:
-                    break
-                time.sleep(0.025)
-            _wait_until_blocked(pids[-1])
-            release.set()
-            for thread in (saver, issuer):
-                thread.join(timeout=20)
-        return results
-
     def test_draft_saved_while_being_issued(self) -> None:
         _, shop, _, customer = _make_shop('lock-draft@example.com')
         draft = _draft(shop, customer)
         saved = {**LINE, 'description': 'Atelier complet', 'quantity': Decimal('3')}
-        results = self._race(
+        results = race_on_lock(
             (drafts, '_build_lines'),
             lambda: drafts.update_draft_invoice(
                 draft, {'lines': [saved]}, draft.updated_at
@@ -296,7 +266,7 @@ class ShopLockTest(TransactionTestCase):
     def test_order_item_added_while_its_invoice_is_issued(self) -> None:
         user, shop, variant, customer = _make_shop('lock-order@example.com')
         order = _make_order_with_items(shop, user, variant, customer)
-        results = self._race(
+        results = race_on_lock(
             (OrderItem.objects, 'create'),
             lambda: add_item(order, variant, 1, user=user),
             lambda: services.issue_invoice_from_order(shop=shop, order=order),

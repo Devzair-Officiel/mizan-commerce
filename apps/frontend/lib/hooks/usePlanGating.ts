@@ -24,6 +24,8 @@ const FEATURE_MIN_PLAN = {
   orders: 'free',
   zakat: 'free',
   invoices: 'solo',
+  quotes: 'solo',
+  credit_notes: 'solo',
   whatsapp: 'solo',
   zakat_history: 'solo',
   auto_reminders: 'solo',

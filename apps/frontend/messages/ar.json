@@ -1788,7 +1788,7 @@
     },
     "upgrade": {
       "title": "{feature, select, products {{kind, select, products {منتجات غير محدودة مع باقة Solo} services {خدمات غير محدودة مع باقة Solo} other {منتجات وخدمات غير محدودة مع باقة Solo}}} orders_this_month {مبيعات غير محدودة مع باقة Solo} customers {عملاء غير محدودين مع باقة Solo} members {أعضاء أكثر مع باقة {plan, select, commerce_plus {Commerce+} other {Boutique}}} ai_reads {قراءات متقدمة أكثر مع باقة {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}} other {متاح مع باقة {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}}}}",
-      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} whatsapp {جهّزوا رسائل واتساب بلمسة واحدة، بأسلوب متجركم ونصوصه.} exports {نزّلوا نشاط عملائكم في ملف CSV يُفتح في جدول بيانات.} invoices {أصدروا فواتير مرقّمة وأرسلوها إلى عملائكم بصيغة PDF.} invoice_branding {أضيفوا شعاركم ولون متجركم على كل فاتورة.} products {{kind, select, products {أضيفوا ما تشاؤون من المنتجات دون أرشفة أي منها.} services {اعرضوا ما تشاؤون من الخدمات دون أرشفة أي منها.} other {وسّعوا كتالوجكم بلا حدود ودون أرشفة أي عنصر.}}} orders_this_month {سجّلوا كل مبيعات الشهر دون سقف.} customers {تابعوا جميع عملائكم دون حدّ لعدد البطاقات.} members {{plan, select, commerce_plus {ادعوا فريقكم بالكامل دون حدّ لعدد الأعضاء.} other {اعملوا كفريق: حتى 4 أعضاء، لكلّ منهم دوره.}}} ai_reads {اقرؤوا عبوات أكثر كل شهر: العلامة والتسمية والحجم تُملأ لكم.} other {انتقلوا إلى الباقة الأعلى لتوفير الوقت كل يوم.}}",
+      "text": "{feature, select, multi_user {ادعُ موظفيك واختر ما يمكن لكل واحد منهم القيام به.} public_pages {انشر صفحة لمتجرك تضم كتالوجك ووسائل الاتصال بك.} ocr {التقط صورة لفاتورة المورّد: تُستخرج المنتجات والكميات تلقائيًا.} whatsapp {جهّزوا رسائل واتساب بلمسة واحدة، بأسلوب متجركم ونصوصه.} exports {نزّلوا نشاط عملائكم في ملف CSV يُفتح في جدول بيانات.} invoices {أصدروا فواتير مرقّمة وأرسلوها إلى عملائكم بصيغة PDF.} invoice_branding {أضيفوا شعاركم ولون متجركم على كل فاتورة.} quotes {أرسلوا عروض أسعار مرقّمة بصيغة PDF، ثم حوّلوها إلى فواتير بعد قبولها.} credit_notes {صحّحوا فاتورة صادرة بإشعار دائن، كليًا أو جزئيًا، دون تعديلها.} products {{kind, select, products {أضيفوا ما تشاؤون من المنتجات دون أرشفة أي منها.} services {اعرضوا ما تشاؤون من الخدمات دون أرشفة أي منها.} other {وسّعوا كتالوجكم بلا حدود ودون أرشفة أي عنصر.}}} orders_this_month {سجّلوا كل مبيعات الشهر دون سقف.} customers {تابعوا جميع عملائكم دون حدّ لعدد البطاقات.} members {{plan, select, commerce_plus {ادعوا فريقكم بالكامل دون حدّ لعدد الأعضاء.} other {اعملوا كفريق: حتى 4 أعضاء، لكلّ منهم دوره.}}} ai_reads {اقرؤوا عبوات أكثر كل شهر: العلامة والتسمية والحجم تُملأ لكم.} other {انتقلوا إلى الباقة الأعلى لتوفير الوقت كل يوم.}}",
       "cta": "عرض الباقات"
     },
     "usage": {
@@ -1921,9 +1921,11 @@
           "description": "للتاجر الذي يدير متجره بمفرده.",
           "f1": "كتالوج ومبيعات وعملاء بلا حدود",
           "f2": "فواتير PDF",
-          "f3": "رسائل واتساب جاهزة",
-          "f4": "متابعة تلقائية للمبالغ غير المدفوعة",
-          "f5": "{text_scans} قراءة متقدمة للعبوات شهريًا"
+          "f3": "عروض أسعار مرقّمة بصيغة PDF",
+          "f4": "إشعارات دائنة",
+          "f5": "رسائل واتساب جاهزة",
+          "f6": "متابعة تلقائية للمبالغ غير المدفوعة",
+          "f7": "{text_scans} قراءة متقدمة للعبوات شهريًا"
         },
         "boutique": {
           "name": "Boutique",
@@ -3238,7 +3240,7 @@
     "password_description": "اختاروا كلمة مرور من 8 أحرف على الأقل."
   },
   "invoices": {
-    "payment": "{state, select, paid {مدفوعة} partial {مدفوعة جزئيًا — {amount}} cancelled {ملغاة} other {غير مدفوعة}}",
+    "payment": "{state, select, paid {مدفوعة} partial {مدفوعة جزئيًا — {amount}} cancelled {ملغاة} credited {مُسوّاة بإشعار دائن} other {غير مدفوعة}}",
     "due": "الاستحقاق: {date}",
     "list": {
       "title": "الفواتير",
@@ -3263,9 +3265,14 @@
       "apply": "تطبيق",
       "show_results": "عرض {count} فواتير",
       "load_more": "تحميل المزيد",
-      "empty_filtered": "لا توجد فواتير مطابقة",
+      "empty_filtered": "{kind, select, credit_note {لا توجد إشعارات دائنة مطابقة} other {لا توجد فواتير مطابقة}}",
       "load_error": "تعذر تحميل الفواتير. يرجى المحاولة مجددًا.",
       "payment_filter": "{value, select, due {للتحصيل} unpaid {غير مدفوعة} partial {مدفوعة جزئيًا} paid {مدفوعة} other {الكل}}",
+      "kind_title": "النوع",
+      "kind_filter": "{value, select, invoice {الفواتير} credit_note {الإشعارات الدائنة} other {الكل}}",
+      "kind_count": "{kind, select, credit_note {{count, plural, one {# إشعار دائن} other {# إشعارات دائنة}}} other {{count, plural, one {# فاتورة} other {# فواتير}}}}",
+      "kind_empty_title": "{kind, select, credit_note {لا توجد إشعارات دائنة} other {لا توجد فواتير}}",
+      "kind_empty_body": "{kind, select, credit_note {يُنشأ الإشعار الدائن من فاتورة صادرة أو مدفوعة، عبر «إنشاء إشعار دائن».} other {أنشئ فاتورة حرة، أو أصدرها من طلب.}}",
       "columns": {
         "number": "الرقم",
         "buyer_name": "العميل",
@@ -3277,7 +3284,8 @@
       "sort_label": "مرتبة حسب {field}، {dir, select, asc {تصاعديًا} other {تنازليًا}}",
       "no_number": "بدون رقم",
       "drafts_group": "المسودات",
-      "create": "فاتورة جديدة"
+      "create": "فاتورة جديدة",
+      "quotes_link": "عروض الأسعار"
     },
     "detail": {
       "title": "فاتورة",
@@ -3293,12 +3301,9 @@
       "customer_card": "ملف العميل",
       "mark_paid": "تعليم كمدفوعة",
       "driven_by_order": "حالة الدفع تتبع الطلب المرتبط.",
-      "cancel_invoice": "إلغاء الفاتورة",
       "confirm_paid_title": "تعليم كمدفوعة؟",
       "confirm_paid_body": "ستُسجَّل هذه الفاتورة كمدفوعة بالكامل.",
       "confirm": "تأكيد",
-      "confirm_cancel_title": "إلغاء هذه الفاتورة؟",
-      "confirm_cancel_body": "يبقى الرقم محجوزًا ويُحتفظ بالسجل.",
       "seller_logo": "شعار البائع",
       "order_title": "الطلب المرتبط",
       "open_order": "فتح",
@@ -3310,7 +3315,44 @@
       "keep_invoice": "الاحتفاظ بالفاتورة",
       "draft_title": "مسودة فاتورة",
       "draft_body": "لم تصدر هذه الفاتورة بعد: تابعها في المحرر.",
-      "resume_draft": "متابعة المسودة"
+      "resume_draft": "متابعة المسودة",
+      "credit_notes": "الإشعارات الدائنة الصادرة",
+      "credited": "إشعارات دائنة",
+      "credit_of": "الفاتورة الأصلية",
+      "origin_date": "تاريخ الإصدار",
+      "reason": "السبب",
+      "credit_totals": "الإجماليات"
+    },
+    "credit": {
+      "open": "إنشاء إشعار دائن",
+      "title": "إنشاء إشعار دائن",
+      "description": "الفاتورة {number}",
+      "mode": "ما يشمله الإشعار الدائن",
+      "mode_total": "الفاتورة كاملة",
+      "mode_partial": "جزء منها",
+      "mode_total_help": "يشمل الإشعار الدائن كل ما لم يُسوَّ بعد، بما في ذلك مصاريف الشحن.",
+      "lines": "الكميات المراد تسويتها",
+      "line_left": "حتى {left} من {quantity}",
+      "line_done": "سُوّيت بالكامل من قبل",
+      "quantity_label": "الكمية المراد تسويتها: {name}",
+      "quantity_invalid": "أدخلوا كمية بين 0 و{max}.",
+      "shipping": "تسوية مصاريف الشحن",
+      "reason": "السبب",
+      "reason_help": "يُطبع على الإشعار الدائن، {max} حرفًا على الأكثر.",
+      "reason_required": "أدخلوا سبب الإشعار الدائن.",
+      "reason_too_long": "يجب ألّا يتجاوز السبب {max} حرفًا.",
+      "unchanged": "لا يتغيّر المخزون ولا الطلب: الإشعار الدائن يصحّح الفاتورة فقط.",
+      "preview": "مبلغ الإشعار الدائن",
+      "preview_error": "تعذّر حساب الإشعار الدائن. حاولوا مجددًا.",
+      "retry": "إعادة المحاولة",
+      "warnings_title": "نقاط يجب التحقق منها في الفاتورة",
+      "warnings_body": "يعتمد الإشعار الدائن معلومات الفاتورة، بما فيها النواقص.",
+      "warnings_accept": "اطّلعتُ على هذه النقاط وأرغب في إنشاء الإشعار الدائن رغم ذلك.",
+      "close": "إغلاق",
+      "submit": "إنشاء الإشعار الدائن",
+      "submitting": "جارٍ إنشاء الإشعار الدائن…",
+      "done": "تم إنشاء الإشعار الدائن",
+      "error": "{code, select, over_credit {يتجاوز هذا الإشعار الدائن ما تبقّى للتسوية: تغيّرت الفاتورة، تحقّقوا منها.} nothing_to_credit {لا يسوّي هذا الإشعار الدائن أي مبلغ: اختاروا كمية واحدة على الأقل أو مصاريف الشحن.} invoice_draft {لا تُسوّى المسودة: أصدروا الفاتورة أولًا.} invoice_cancelled {لا تُسوّى فاتورة ملغاة.} credit_note_of_credit_note {لا يُسوّى إشعار دائن.} compliance_warnings {وافقوا على نقاط التحقق قبل إنشاء الإشعار الدائن.} other {تعذّر إنشاء الإشعار الدائن. حاولوا مجددًا.}}"
     },
     "totals": {
       "subtotal": "المجموع الفرعي دون ضريبة",
@@ -3335,8 +3377,8 @@
       "balance": "إجمالي رصيد الحساب"
     },
     "editor": {
-      "title": "فاتورة جديدة",
-      "back": "الفواتير",
+      "title": "{doc, select, invoice {فاتورة جديدة} quote {عرض سعر جديد} other {فاتورة جديدة}}",
+      "back": "{doc, select, invoice {الفواتير} quote {عروض الأسعار} other {الفواتير}}",
       "save_status": "مسودة · {value, select, saving {جارٍ الحفظ…} error {لم تُحفظ} conflict {عُدّلت في مكان آخر} saved {{auto, select, yes {حُفظت تلقائيًا في {time}} other {حُفظت في {time}}}} other {لم تُحفظ بعد}}",
       "deleted": "حُذفت المسودة.",
       "delete_error": "تعذر حذف المسودة. حاول مجددًا.",
@@ -3346,12 +3388,13 @@
       "keep": "الإبقاء",
       "conflict": "عُدّلت هذه المسودة في مكان آخر (تبويب أو جهاز آخر). أعد تحميلها للمتابعة: لن تُحفظ آخر تعديلاتك هنا.",
       "reload": "إعادة التحميل",
-      "not_draft": "صدرت هذه الفاتورة: لم يعد بالإمكان تعديلها.",
-      "open_invoice": "عرض الفاتورة",
-      "not_found": "الفاتورة غير موجودة.",
+      "not_draft": "{doc, select, invoice {صدرت هذه الفاتورة: لم يعد بالإمكان تعديلها.} quote {أُرسل عرض السعر هذا: لم يعد بالإمكان تعديله.} other {صدرت هذه الفاتورة: لم يعد بالإمكان تعديلها.}}",
+      "open_document": "{doc, select, invoice {عرض الفاتورة} quote {فتح عرض السعر} other {عرض الفاتورة}}",
+      "not_found": "{doc, select, invoice {الفاتورة غير موجودة.} quote {عرض السعر غير موجود.} other {الفاتورة غير موجودة.}}",
       "save_error": "تعذر حفظ المسودة. تحقق من اتصالك.",
-      "issue_error": "تعذر إصدار الفاتورة. حاول مجددًا.",
-      "issued": "صدرت الفاتورة {number}.",
+      "issue_error": "{doc, select, invoice {تعذر إصدار الفاتورة. حاول مجددًا.} quote {تعذر إرسال عرض السعر. حاول مجددًا.} other {تعذر إصدار الفاتورة. حاول مجددًا.}}",
+      "issue_invalid": "{doc, select, invoice {صحّحوا الحقول المُشار إليها قبل إصدار الفاتورة.} quote {صحّحوا الحقول المُشار إليها قبل إرسال عرض السعر.} other {صحّحوا الحقول المُشار إليها قبل إصدار الفاتورة.}}",
+      "issued": "{doc, select, invoice {صدرت الفاتورة {number}.} quote {سُجّل عرض السعر {number} كمُرسَل. أرسلوا ملف PDF الخاص به إلى زبونكم.} other {صدرت الفاتورة {number}.}}",
       "amount_invalid": "مبلغ غير صالح (منزلتان عشريتان على الأكثر).",
       "quantity_invalid": "كمية غير صالحة (3 منازل عشرية على الأكثر).",
       "days_invalid": "مدة بين 0 و365 يومًا.",
@@ -3359,22 +3402,25 @@
         "title": "الملخص",
         "terms": "الاستحقاق",
         "terms_value": "{terms, select, none {بدون} receipt {عند الاستلام} other {{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}}}",
-        "recommended": "{count, plural, one {معلومة موصى بها (لفاتورة رسمية)} two {معلومتان موصى بهما (لفاتورة رسمية)} few {# معلومات موصى بها (لفاتورة رسمية)} other {# معلومة موصى بها (لفاتورة رسمية)}}",
-        "issue": "إصدار الفاتورة",
-        "estimate": "مبالغ تقديرية: تُحسب الإجماليات النهائية عند الإصدار.",
-        "total": "الإجمالي شامل الضريبة"
+        "recommended": "{doc, select, invoice {{count, plural, one {معلومة موصى بها (لفاتورة رسمية)} two {معلومتان موصى بهما (لفاتورة رسمية)} few {# معلومات موصى بها (لفاتورة رسمية)} other {# معلومة موصى بها (لفاتورة رسمية)}}} quote {{count, plural, one {معلومة موصى بها (لعرض سعر كامل)} two {معلومتان موصى بهما (لعرض سعر كامل)} few {# معلومات موصى بها (لعرض سعر كامل)} other {# معلومة موصى بها (لعرض سعر كامل)}}} other {{count, plural, one {معلومة موصى بها (لفاتورة رسمية)} two {معلومتان موصى بهما (لفاتورة رسمية)} few {# معلومات موصى بها (لفاتورة رسمية)} other {# معلومة موصى بها (لفاتورة رسمية)}}}}",
+        "issue": "{doc, select, invoice {إصدار الفاتورة} quote {إرسال عرض السعر} other {إصدار الفاتورة}}",
+        "estimate": "{doc, select, invoice {مبالغ تقديرية: تُحسب الإجماليات النهائية عند الإصدار.} quote {مبالغ تقديرية: تُحسب الإجماليات النهائية عند الإرسال.} other {مبالغ تقديرية: تُحسب الإجماليات النهائية عند الإصدار.}}",
+        "total": "الإجمالي شامل الضريبة",
+        "validity": "الصلاحية",
+        "validity_value": "{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}"
       },
       "extras": {
         "title": "الخصم والشروط والملاحظات",
-        "description": "الخصم ومصاريف الشحن وطبيعة العملية والاستحقاق والملاحظات المطبوعة.",
-        "summary": "{hasDiscount, select, yes {خصم {discount}} other {بدون خصم}} · {terms, select, none {بدون استحقاق} receipt {الدفع عند الاستلام} other {الاستحقاق بعد {days, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}}}",
+        "description": "{doc, select, invoice {الخصم ومصاريف الشحن وطبيعة العملية والاستحقاق والملاحظات المطبوعة.} quote {الخصم ومصاريف الشحن وطبيعة العملية والصلاحية والاستحقاق والملاحظات المطبوعة.} other {الخصم ومصاريف الشحن وطبيعة العملية والاستحقاق والملاحظات المطبوعة.}}",
+        "summary": "{doc, select, invoice {{hasDiscount, select, yes {خصم {discount}} other {بدون خصم}} · {terms, select, none {بدون استحقاق} receipt {الدفع عند الاستلام} other {الاستحقاق بعد {days, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}}}} quote {{hasDiscount, select, yes {خصم {discount}} other {بدون خصم}} · صالح لمدة {validity, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}} · {terms, select, none {بدون استحقاق} receipt {الدفع عند الاستلام} other {الاستحقاق بعد {days, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}}}} other {{hasDiscount, select, yes {خصم {discount}} other {بدون خصم}} · {terms, select, none {بدون استحقاق} receipt {الدفع عند الاستلام} other {الاستحقاق بعد {days, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}}}}}",
         "discount": "الخصم دون ضريبة",
         "shipping": "مصاريف الشحن دون ضريبة",
         "operation": "طبيعة العملية",
         "operation_option": "{value, select, goods {بيع سلع} services {تقديم خدمات} other {سلع وخدمات}}",
         "terms": "مهلة الدفع",
         "days_suffix": "يوم",
-        "notes": "ملاحظات (تُطبع على الفاتورة)"
+        "notes": "{doc, select, invoice {ملاحظات (تُطبع على الفاتورة)} quote {ملاحظات (تُطبع على عرض السعر)} other {ملاحظات (تُطبع على الفاتورة)}}",
+        "validity": "صلاحية عرض السعر"
       },
       "customer": {
         "title": "الزبون",
@@ -3425,24 +3471,103 @@
       },
       "unit": {
         "title": "الوحدة",
-        "description": "تُطبع كما هي على الفاتورة.",
+        "description": "تُطبع كما هي بجانب الكمية.",
         "presets": "وحدات شائعة",
         "preset": "{value, select, night {ليلة} hour {ساعة} day {يوم} week {أسبوع} trip {رحلة} person {شخص} flat {مبلغ جزافي} other {قطعة}}",
         "custom": "وحدة أخرى",
         "confirm": "تأكيد"
       },
       "check": {
-        "title": "التحقق قبل الإصدار",
-        "intro_blocking": "أكمل هذه النقاط لإصدار الفاتورة.",
-        "intro_recommended": "تظهر هذه المعلومات عادةً على الفاتورة الرسمية في فرنسا. بعد الإصدار، لا يمكن تعديل الفاتورة.",
-        "intro_ready": "كل شيء جاهز. بعد الإصدار، تحصل الفاتورة على رقمها ولا يمكن تعديلها.",
+        "title": "{doc, select, invoice {التحقق قبل الإصدار} quote {التحقق قبل الإرسال} other {التحقق قبل الإصدار}}",
+        "intro_blocking": "{doc, select, invoice {أكمل هذه النقاط لإصدار الفاتورة.} quote {أكمل هذه النقاط لإرسال عرض السعر.} other {أكمل هذه النقاط لإصدار الفاتورة.}}",
+        "intro_recommended": "{doc, select, invoice {تظهر هذه المعلومات عادةً على الفاتورة الرسمية في فرنسا. بعد الإصدار، لا يمكن تعديل الفاتورة.} quote {تظهر هذه المعلومات عادةً على عرض السعر في فرنسا. بعد الإرسال، لا يمكن تعديل عرض السعر.} other {تظهر هذه المعلومات عادةً على الفاتورة الرسمية في فرنسا. بعد الإصدار، لا يمكن تعديل الفاتورة.}}",
+        "intro_ready": "{doc, select, invoice {كل شيء جاهز. بعد الإصدار، تحصل الفاتورة على رقمها ولا يمكن تعديلها.} quote {كل شيء جاهز. بعد الإرسال، يحصل عرض السعر على رقمه ولا يمكن تعديله.} other {كل شيء جاهز. بعد الإصدار، تحصل الفاتورة على رقمها ولا يمكن تعديلها.}}",
         "cancel": "إلغاء",
-        "issue_anyway": "الإصدار رغم ذلك",
+        "issue_anyway": "{doc, select, invoice {الإصدار رغم ذلك} quote {الإرسال رغم ذلك} other {الإصدار رغم ذلك}}",
         "complete": "إكمال",
-        "issue": "إصدار",
-        "issue_title": "{code, select, no_lines {لا توجد بنود} zero_total {الإجمالي صفر} no_customer {لا يوجد زبون} seller_address {عنوان متجرك} seller_identifier {رقم SIRET لمتجرك} vat_number {رقم ض.ق.م} customer_siren {رقم SIREN للزبون} late_penalties {غرامات التأخير} other {نقطة للتحقق}}",
-        "issue_hint": "{code, select, no_lines {أضف بندًا واحدًا على الأقل} zero_total {يجب أن يكون الإجمالي موجبًا} no_customer {اختر زبونًا أو أنشئه} customer_siren {زبون مهني} late_penalties {الإشعارات القانونية، الإعدادات، الفواتير} other {الإعدادات، الفواتير}}"
-      }
+        "issue": "{doc, select, invoice {إصدار} quote {إرسال} other {إصدار}}",
+        "issue_title": "{code, select, no_lines {لا توجد بنود} zero_total {الإجمالي صفر} no_customer {لا يوجد زبون} seller_address {عنوان متجرك} seller_identifier {رقم SIRET لمتجرك} vat_number {رقم ض.ق.م} customer_siren {رقم SIREN للزبون} late_penalties {غرامات التأخير} seller_name {اسم متجرك} zero_tax_rate {نسبة ض.ق.م 0 %} payment_methods {وسائل الدفع المقبولة} other {نقطة للتحقق}}",
+        "issue_hint": "{code, select, no_lines {أضف بندًا واحدًا على الأقل} zero_total {يجب أن يكون الإجمالي موجبًا} no_customer {اختر زبونًا أو أنشئه} customer_siren {زبون مهني} late_penalties {الإشعارات القانونية، الإعدادات، الفواتير} seller_name {الإعدادات، الهوية} other {الإعدادات، الفواتير}}"
+      },
+      "validity_invalid": "صلاحية بين 1 و365 يومًا."
+    },
+    "kind": "{kind, select, credit_note {إشعار دائن} other {فاتورة}}"
+  },
+  "quotes": {
+    "title": "عروض الأسعار",
+    "count": "{count, plural, zero {لا عروض أسعار} one {عرض سعر واحد} two {عرضا سعر} few {# عروض أسعار} many {# عرض سعر} other {# عرض سعر}}",
+    "create": "عرض سعر جديد",
+    "empty_title": "لا توجد عروض أسعار",
+    "empty_body": "قدّموا سعر خدمة أو طلب قبل فوترته.",
+    "load_error": "تعذر تحميل عروض الأسعار. حاول مجددًا.",
+    "load_more": "تحميل المزيد",
+    "no_number": "بدون رقم",
+    "no_customer": "بدون زبون",
+    "status": "{value, select, draft {مسودة} sent {مُرسَل} accepted {مقبول} declined {مرفوض} expired {منتهي الصلاحية} invoiced {مُفوتَر} other {مسودة}}",
+    "valid_until": "صالح حتى {date}",
+    "columns": {
+      "number": "الرقم",
+      "buyer_name": "الزبون",
+      "sent_at": "تاريخ الإرسال",
+      "valid_until": "صالح حتى",
+      "total_ttc": "المبلغ",
+      "status": "الحالة"
+    },
+    "not_found": "عرض السعر غير موجود.",
+    "detail": {
+      "title": "عرض السعر",
+      "banner": "ملخص عرض السعر",
+      "sent_on": "أُرسل في {date}",
+      "amounts": "شامل الضريبة، {ht} دون ضريبة",
+      "customer_card": "ملف الزبون",
+      "validity": "{status, select, sent {{days, plural, =0 {صالح حتى {date}، اليوم الأخير} one {صالح حتى {date}، يبقى يوم واحد} two {صالح حتى {date}، يبقى يومان} few {صالح حتى {date}، تبقى # أيام} many {صالح حتى {date}، يبقى # يومًا} other {صالح حتى {date}، يبقى # يوم}}} expired {كان صالحًا حتى {date}} other {صالح حتى {date}}}",
+      "lines_title": "{kind, select, products {المنتجات} services {الخدمات} other {المنتجات والخدمات}}",
+      "totals_title": "الإجماليات",
+      "conditions_title": "الشروط",
+      "conditions_validity": "الصلاحية",
+      "conditions_validity_value": "{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+      "conditions_payment": "أجل الدفع",
+      "conditions_payment_value": "{terms, select, none {غير محدد} receipt {عند الاستلام} other {{days, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}}}",
+      "notes": "ملاحظات"
+    },
+    "tracking": {
+      "title": "المتابعة",
+      "step": "{key, select, created {أُنشئ} sent {أُرسل} waiting {في انتظار الرد} accepted {مقبول} to_invoice {في انتظار الفوترة} invoiced {مُفوتَر} declined {مرفوض} expired {منتهي الصلاحية} other {أُنشئ}}",
+      "upcoming": "لاحقًا",
+      "accepted_by": "موافقة {name}",
+      "invoice": "الفاتورة {number}",
+      "invoice_draft": "فاتورة في المسودة",
+      "expired_on": "صالح حتى {date}"
+    },
+    "actions": {
+      "accept": "تسجيل القبول",
+      "convert": "تحويل إلى فاتورة",
+      "view_invoice": "{hasNumber, select, yes {عرض الفاتورة {number}} other {متابعة الفاتورة}}",
+      "pdf": "تنزيل PDF",
+      "decline": "رفض عرض السعر"
+    },
+    "accept": {
+      "title": "تسجيل قبول عرض السعر",
+      "body": "قبل زبونكم عرض السعر {number} ({amount}) خارج التطبيق: سجّلوا موافقته.",
+      "name": "اسم الشخص الموافق",
+      "name_help": "اختياري. يظهر في متابعة عرض السعر.",
+      "name_too_long": "{max} حرفًا على الأكثر.",
+      "cancel": "إلغاء",
+      "submit": "تسجيل القبول",
+      "done": "سُجّل قبول عرض السعر. يمكنكم تحويله إلى فاتورة."
+    },
+    "decline": {
+      "title": "رفض عرض السعر هذا؟",
+      "body": "سيُسجَّل عرض السعر {number} كمرفوض: لن يمكن قبوله أو فوترته بعد ذلك.",
+      "confirm": "رفض عرض السعر",
+      "keep": "الإبقاء على عرض السعر",
+      "done": "سُجّل رفض عرض السعر."
+    },
+    "convert": {
+      "done": "أُنشئت الفاتورة، وهي جاهزة للإصدار."
+    },
+    "errors": {
+      "message": "{code, select, invalid_status {تغيّر عرض السعر هذا في الأثناء: تعرض الصفحة حالته الجديدة.} expired {انتهت صلاحية عرض السعر هذا: لم يعد بالإمكان قبوله.} not_sent {لم يُرسَل عرض السعر هذا بعد: تابعوه في المحرر.} draft_conflict {عُدّل عرض السعر هذا في مكان آخر. أعيدوا تحميل الصفحة.} other {لم يكتمل الإجراء. حاولوا مجددًا.}}"
     }
   },
   "reminders": {

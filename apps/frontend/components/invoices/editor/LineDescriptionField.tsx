@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { BookOpen, History, PencilLine } from 'lucide-react';
 import { FloatingInput } from '@/components/ui/floating-fields';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
-import { useLineSuggestions, type LineSuggestion } from '@/lib/hooks/useInvoiceDrafts';
+import { useLineSuggestions, type LineSuggestion } from '@/lib/hooks/useDocumentDrafts';
 import { MAX_LENGTH } from './editorSchema';
 
 interface LineDescriptionFieldProps {

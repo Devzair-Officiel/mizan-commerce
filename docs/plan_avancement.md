@@ -556,10 +556,14 @@ Décision du 2026-10-16 : pas de publications automatiques.
     - [x] PDF : descriptions multilignes, unité, nature de l'opération, SIREN du client
     - [ ] Backlog : mentions vendeur absentes de `Shop` (forme juridique, capital, RCS, TVA sur les débits, pénalités de retard)
   - [ ] 8.2 Devis et avoirs (URS-111, URS-112)
-    - [ ] Compteurs par type de document (`DocumentSequence`)
-    - [ ] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
-    - [ ] Avoirs total et partiel, `credited_total` atomique
-    - [ ] PDF devis et avoir
+    - [x] Compteurs par type de document (`DocumentSequence`)
+    - [x] App `quotes` : statuts, envoi, expiration, conversion en facture (brouillon)
+    - [x] Avoirs total et partiel, `credited_total` atomique
+    - [x] PDF devis et avoir
+    - [x] Frontend des devis : éditeur, détail, actions (URS-111)
+    - [x] Frontend des avoirs : feuille, détail, liste (URS-112)
+    - [x] Gating `quotes` et `credit_notes` dès Solo, écriture seule (`HasPlanForFeature.for_feature(…, writes_only=True)`, migration abonnements `0015`) : en Découverte, devis consultables, création et gestes d'écriture sur la carte Solo ; lignes `plans.solo.f3`/`f4` ; audit `subscription`
+    - [ ] Modèles WhatsApp « devis » et « relance de devis » (`comms`, spec §12 D7, reportable) : non livrés dans le lot 8.2, reportés
   - [ ] 8.3 Hub Documents, dupliquer, modèles, paiements partiels (URS-113)
     - [ ] Aperçu PDF d'un brouillon marqué « BROUILLON »
   - [ ] 8.4a Lien en ligne et acceptation du devis (Boutique, URS-114)
@@ -610,7 +614,7 @@ Décision du 2026-10-16 : pas de publications automatiques.
 
 - [x] Modèles `Subscription`, `SubscriptionPlan` + seed des ~~3~~ 4 plans (Découverte, Solo, Boutique, Commerce+ : migration `0004_rename_plans`, 2026-10-28)
 - [x] Essai 14j Boutique (ex-Boutique+) à l'inscription (URS-100) + tâche Celery d'expiration
-- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr
+- [x] Gating `HasPlanForFeature` câblé sur orders / invoices / zakat / whatsapp / public_pages / multi_user (ajout et modification d'un membre) / ocr ; quotes et credit_notes en écriture seule (lot 8.2)
 - [x] Limites offre gratuite (nb produits, nb commandes/mois)
 - [x] Endpoints `GET /current/` + `POST /change/` (résiliation → free)
 - [x] Frontend : bandeau d'essai, page Settings → Abonnement, gating UI menus
@@ -641,6 +645,94 @@ Décision du 2026-10-16 : pas de publications automatiques.
 - [~] Plan de rollback documenté — `deploy/rollback.sh` + docs/exploitation/deploiement.md, à éprouver en staging (non attesté au 28/10/2026)
 
 ### Dette technique connue
+
+- [ ] **PRIORITAIRE, bloquant de la checklist de lancement** — Facture issue d'une
+      commande : `unit_price` de la commande est traité comme HT et la TVA est ajoutée
+      par-dessus (commande de 20 € → facture de 24 €), alors que la synchronisation
+      marque la facture payée à 20 € réglés. Décision produit requise : prix saisis HT
+      ou TTC pour une boutique assujettie ? À traiter avant le lancement, avec une
+      étape 0 (relevé de tous les endroits qui lisent `unit_price`). Relevé au lot 8.2,
+      sous-étape 4b (2026-10-30), non corrigé dans ce lot. Cas de test chiffré :
+      boutique à TVA 20 %, variante à 10,00, commande de 2 → `total_amount` 20,00 ;
+      `issue_invoice_from_order` → `subtotal_ht` 20,00, `tax_amount` 4,00, `total_ttc`
+      24,00 ; `update_payment(order, 20,00)` → facture `paid`, `amount_paid` 20,00 :
+      4,00 jamais réclamés. Reproduit par `_ctx` (qty=2) de
+      `apps/invoices/test_credit_note_payments.py`, notamment
+      `ConcurrentCreditNotePaymentTest` (assertion sur `ctx.order.total_amount`).
+
+- [ ] **PRIORITAIRE** — Éditeur de facture et de devis : l'enregistrement automatique du
+      brouillon (`toPayload`, `components/invoices/editor/editorSchema.ts`) enregistre une
+      saisie invalide sans la signaler, et pas de la même façon selon le champ. `lines`
+      remplace toutes les lignes du brouillon ; pour chaque champ invalide, il enregistre :
+      - **quantité** vide, illisible (lettres, signe, plus de 3 décimales ou de 9 chiffres)
+        ou nulle : la ligne entière n'est pas envoyée, donc sa version déjà enregistrée est
+        **supprimée** côté serveur (« 12, » est lu 12, sans perte) ;
+      - **désignation** vide ou faite d'espaces : idem, ligne non envoyée et supprimée ;
+      - **prix unitaire** vide ou illisible (« 12,345 », « abc », « -5 ») : la ligne part
+        avec `unit_price_ht` « 0 », le prix enregistré est **écrasé par 0** ;
+      - remise et frais de port illisibles : 0 ; délai de paiement illisible : `null`
+        (aucune échéance) ; validité du devis illisible : non envoyée (la précédente
+        reste) ; détails et unité : rognés, sans contrôle côté client hors `maxLength`.
+      Effet visible : au rechargement (ou après un conflit) la ligne a disparu ou affiche
+      un prix de 0,00. L'émission et l'envoi sont protégés depuis 6a (`confirm()` valide
+      et réenregistre, aucun document terminé ne part ainsi) : seul le brouillon est
+      touché. Incohérence relevée après 6a (2026-10-30) : les commentaires disaient
+      « ligne invalide non enregistrée » alors qu'un prix invalide est enregistré à 0 ;
+      formulations corrigées en 6b (docstring de `toPayload`, `useIssueFlow`, audit de
+      l'éditeur, spec §12 n° 14a), **comportement inchangé**. Correctif à décider (ne pas
+      enregistrer un champ tant qu'il est invalide, en gardant sa dernière valeur valide),
+      hors 6b.
+
+- [ ] Avoirs (URS-112) : cas d'un second avoir partiel sur la même ligne d'une facture,
+      relevé à la revue de la sous-étape 4a (2026-10-30), à reprendre.
+
+- [ ] Avoirs (URS-112), idempotence : comparer l'empreinte de la requête côté serveur.
+      Aujourd'hui, une clé `Idempotency-Key` déjà connue sur la même facture renvoie l'avoir
+      créé sans vérifier que la requête rejouée est la même (mode, lignes, livraison, motif) ;
+      seule une autre facture est refusée (`idempotency_key_reused`). Le client
+      renouvelle la clé dès que la saisie change après une erreur (`useCreditNoteSubmit`),
+      mais le serveur doit refuser (409) une clé réutilisée avec un autre contenu, en
+      stockant l'empreinte avec `idempotency_key`. Relevé en 6e (2026-11-01).
+
+- [ ] Factures : `services.cancel_invoice` n'est plus appelé que par des tests ; la
+      synchro des commandes annule la facture par son propre `update` conditionnel
+      (`order_sync._cancel`) et `PATCH …/status/` refuse l'annulation (409
+      `use_credit_note`). Le supprimer ou en faire le chemin unique de la synchro, hors
+      du lot 8.2. Relevé en 6f (2026-11-01).
+
+- [ ] Factures et avoirs après une descente en Découverte (fin d'essai, résiliation) :
+      les endpoints de factures restent gatés `invoices` en lecture comme en écriture
+      (403), donc les factures émises et leurs avoirs ne se consultent plus ; seul
+      `GET …/credit-notes/` est libre (gating `credit_notes` en écriture seule), sans
+      détail ni PDF accessibles. `/invoices` et son détail affichent alors une erreur
+      générique de chargement, et « Voir la facture » d'un devis facturé y mène.
+      Décider d'une lecture libre des factures (comme les devis) ou d'une carte de mise
+      à niveau à la place de l'erreur. Relevé en 7 (2026-11-01).
+
+- [ ] Devis : `useQuoteDetailState` (`components/quotes/detail/`) fait 54 lignes, au-delà
+      des ~50 ; la garde de formule est déjà extraite (`useQuoteLock`). À découper au
+      prochain changement du détail d'un devis. Relevé en 7 (2026-11-01).
+
+- [ ] Audit `reminder-form`, préexistant au lot 8.2 : échec isolé (1 sur 18 passages de
+      configuration), non reproduit en 4 relances seules. Cause probable : URL lue
+      (`page.url()`) avant la fin de la navigation vers `/reminders`, déduite des
+      journaux, sans capture ; le rappel était créé (201). Correction : `waitForURL`
+      avant de vérifier. Relevé en 8 (2026-11-03).
+
+- [ ] Audit `sidebar`, préexistant au lot 8.2 (✗ en 1440 ar clair dans la matrice du
+      2026-11-03) : « flyout au clavier » lit `document.activeElement` aussitôt après la
+      flèche vers le bas. Attendre que le focus soit sur un `menuitem`
+      (`waitForFunction`) avant de vérifier. Relevé en 8 (2026-11-04).
+
+- [ ] Audits non diagnostiquables après coup : une vérification en échec n'enregistre ni
+      capture ni URL, et `results/<audit>.log` est écrasé au passage suivant. Seul
+      `checkConvert` d'`audit-quotes` le fait (`results/quotes-failed-…`, 3bae1ef) ;
+      l'étendre à `report.check` (`lib/session.mjs`) pour tous les audits. Relevé en 8
+      (2026-11-04).
+
+- [ ] Tests de `quotes` : `_make_shop` importé depuis `apps/invoices/tests.py` (import
+      croisé entre apps) ; le déplacer dans une aide partagée (`apps/core/testing.py`
+      ou une fabrique).
 
 - [ ] Drapeau de blocage de modération sur `PublicPage`, à poser avant la mise en
       ligne de la V3 : une page dépubliée depuis l'admin interne peut aujourd'hui être
@@ -786,6 +878,56 @@ Décision du 2026-10-16 : pas de publications automatiques.
       avec l'en-tête Retry-After. Un utilisateur multi-onglets peut atteindre 10
       refresh/min et voir une panne.
 
+- [ ] L'annulation d'une commande crée-t-elle un avoir ? Aujourd'hui, elle annule la
+      facture liée (`sync_invoice_from_order`) ; si la facture a déjà un avoir, elle
+      reste inchangée (cas journalisé, spec facturation §12 D4). Décision produit et
+      comptable à prendre, hors lot 8.2.
+
+- [ ] `sync_invoice_from_order` (`apps/backend/apps/invoices/services.py`) lit la
+      facture puis l'écrit (`invoice.save()`), sans mise à jour conditionnelle ni
+      verrou : deux changements simultanés de la commande peuvent s'écraser.
+
+- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
+      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
+      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
+      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
+      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
+      l'enregistrement de son brouillon (corrigé pour l'émission et l'envoi d'un devis, 2026-10-30).
+
+- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
+      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
+      possible pendant la préparation : une frappe dans cet intervalle peut partir après
+      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
+      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.
+
+- [ ] Devis (lot 2) : écart de TVA devis → facture si le régime change entre l'envoi et
+      l'émission. La conversion applique le taux actuel de la boutique, pas celui du devis
+      (test `test_convert_applies_the_shop_current_tax_rate_not_the_quote_one`).
+
+- [ ] Validité du devis par boutique (lot 3) : 30 jours par défaut (1 à 365) pour toutes
+      les boutiques aujourd'hui ; réglage par boutique avec les modèles.
+
+- [ ] Note pour le lot 3 : un devis expiré ne peut pas être accepté ; « Dupliquer » permet
+      de relancer un devis expiré.
+
+- [ ] Enregistrement automatique des éditeurs de facture et de devis : règle unique pour
+      les champs invalides, « un champ invalide n'est jamais enregistré, il garde sa
+      dernière valeur valide ». À appliquer aux deux éditeurs dans un commit séparé, après
+      la sous-étape 6c du lot 8.2.
+
+- [ ] Squelette des listes desktop (`DataTableSkeleton`, commun à toutes les listes) : pas
+      dans une `LoadingRegion`, donc le chargement n'est pas annoncé (pas d'`aria-busy`)
+      alors qu'il l'est sur mobile. Relevé par l'audit des devis (6c, 2026-10-30), qui le
+      repère par sa classe en attendant.
+
+- [ ] Exposer `amount_due` (net dû = TTC − avoirs − règlements, jamais négatif) par le
+      serveur : la règle existe aujourd'hui en trois endroits (backend, PDF
+      `pdf_totals.remaining`, `components/invoices/detail/payment.ts`). Relevé en 6d
+      (2026-11-01).
+
+- [ ] Libellé « Créditée » à aligner en fr, en et ar sur un seul sens (« Soldée par avoir »
+      proposé), à soumettre au comptable (question n°6). Relevé en 6d (2026-11-01).
+
 ---
 
 ## Mise en production
@@ -855,6 +997,9 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 - [ ] Exports (Boutique) — promis dans Pricing ; activité client CSV présente (`apps/backend/apps/customers/views.py`) ; commandes en CSV, PDF et WhatsApp livrées (lot 1, `apps/backend/apps/exports/`) ; stock en CSV, PDF et WhatsApp livré (lot 2) ; relevé de compte d'un client en PDF et WhatsApp livré (lot 3) ; reste la recette.
 - [ ] Partenariats halal (V5) : retirés de la landing, à remettre quand le module est livré.
 - [ ] **Bloquant** — Réviser la politique de confidentialité (texte lu sur l'emballage, traitement d'images, envoi au fournisseur IA) AVANT d'activer le scan IA en production, pour chacun de ses deux niveaux : (1) texte seul, `VISION_PROVIDER` hors de `none` — le texte lu part au fournisseur, jamais l'image ; (2) image en secours, `PRODUCT_SCAN_IMAGE_FALLBACK=true` — la photo de face part aussi.
+- [ ] **Bloquant** — Facture issue d'une commande : prix de la commande traités comme HT, TVA ajoutée par-dessus (commande de 20 € → facture de 24 €, marquée payée à 20 €). Décision produit (prix saisis HT ou TTC pour une boutique assujettie) puis correctif avec étape 0, avant le lancement ; cas chiffré dans « Dette technique connue » (2026-10-30).
+- [ ] **Bloquant** — Factures et avoirs consultables après une descente en Découverte : lecture libre (`writes_only=True` sur le gating `invoices`, comme les devis) et bannière de lecture seule ; PR séparée après la fusion du lot 8.2 (dette « Factures et avoirs après une descente en Découverte », 2026-11-03).
+- [ ] **Bloquant** — Devis et avoirs à ajouter à la landing (`components/marketing/Pricing.tsx`) après la relecture professionnelle des mentions (question n°6) et la validation en staging (2026-11-03).
 - [~] Adresse du siège saisie dans lib/legal.ts, identique à celle du registre et de Stripe — adresse saisie (commit `4472011`) ; concordance avec le registre et Stripe non vérifiable dans le dépôt (2026-10-28)
 - [x] Textes publics de la zakat à aligner sur la refonte : FAQ (« dettes immédiatement exigibles » tranche une divergence), section Halal, tableau de vérification 7d (clé zakat.disclaimer disparue).
 
@@ -867,6 +1012,7 @@ d'une clé dans `FEATURE_MIN_PLAN` ou de code partiel ne suffit pas.
 | Stock, notes, rappels et calcul de la zakat dès Découverte | `apps/backend/apps/subscriptions/permissions.py`, modules V1 cochés ci-dessus. |
 | Essai Boutique de 14 jours pour les nouveaux comptes, sans carte, puis retour automatique sur Découverte ; résiliation immédiate, données intactes | `start_trial_or_default`, `expire_trial`, `downgrade_to_free` dans `apps/backend/apps/subscriptions/services.py`, tâche `expire_trials`, `Shop.effective_plan` ; seul l'abonnement est modifié, aucun objet métier supprimé. |
 | Factures PDF numérotées, WhatsApp préparé et relance automatique des impayés en Solo | `apps/backend/apps/invoices/services.py`, `apps/backend/apps/invoices/pdf.py`, `apps/backend/apps/comms/`, `apps/backend/apps/notes/services.py` (`auto_reminders`) ; V1/V2 et lots 4/6. La relance crée un rappel interne ; WhatsApp reste envoyé manuellement. |
+| Devis numérotés en PDF et avoirs en Solo (page Abonnement, `plans.solo.f3` et `f4` en fr/en/ar ; pas sur la landing). Rien n'est promis sur l'acceptation en ligne (lot 8.4a) ni sur l'envoi du devis par WhatsApp | `apps/backend/apps/quotes/services.py` et `apps/backend/apps/quotes/pdf.py` (numérotation `DocumentSequence`, envoi, conversion en facture), `apps/backend/apps/invoices/credit_notes.py` et `apps/backend/apps/invoices/pdf.py` (avoir total ou partiel) ; clés `quotes` et `credit_notes` de `FEATURE_MIN_PLAN` (Solo, écriture seule), migration abonnements `0015_gate_quotes_and_credit_notes`, `seed_plans` ; tests `apps/quotes/test_gating.py`, `apps/invoices/test_credit_note_gating.py` ; lot 8.2. |
 | Boutique : tout Solo, vous + 3 membres, factures avec logo/couleur ; Commerce+ : tout Boutique, équipe illimitée | Migrations des plans, `enforce_member_limit`, vues Équipe et facturation ; lots 6/7b/7c. Les autres bénéfices annoncés sont soumis aux cases de lancement ci-dessus. |
 | Utilisation dans le navigateur ; données séparées par boutique | Routes Next.js existantes, filtrage `get_shop` des vues métier et tests multi-tenant ; V1 Sécurité & droits. Aucune promesse de chiffrement, d'export intégral ou de suppression à la demande dans la FAQ. |
 | Français, anglais et arabe avec lecture droite-à-gauche | `apps/frontend/i18n/locales.ts`, catalogues fr/en/ar, direction de `apps/frontend/app/layout.tsx`. |
@@ -936,16 +1082,3 @@ typecheck, text, deps, i18n, tokens et build. Validation staging non effectuée.
 ## Discipline de mise à jour
 
 Ce fichier doit être modifié **dans le même commit** que la fonctionnalité qu'il décrit, jamais après coup. Un `[x]` coché dans un commit séparé, ou plus tard, est un signal que la discipline a été relâchée.
-
-- [ ] Autres verrous `FOR UPDATE` sur la boutique, à passer en `select_for_update(no_key=True)`
-      un par un, chacun avec son test de concurrence (vrais threads, déterministe) :
-      `subscriptions/limits.py:41`, `shops/services.py:46` et `:109`, `invoices/settings.py:61`.
-      `FOR UPDATE` bloque le contrôle de clé étrangère (`FOR KEY SHARE`) de toute insertion
-      qui référence la boutique ; l'émission d'une facture interbloquait ainsi avec
-      l'enregistrement de son brouillon (corrigé pour l'émission, 2026-10-30).
-
-- [ ] Éditeur de facture : « Émettre » attend l'enregistrement en cours (`flush()` enchaîné
-      dans `useIssueFlow.start`), mais `confirm` ne relance pas `flush()` et la saisie reste
-      possible pendant la préparation : une frappe dans cet intervalle peut partir après
-      l'émission (refusée en `not_draft`, la facture émise ne la contient pas). Relancer
-      `flush()` dans `confirm` ou verrouiller la saisie pendant la préparation — 2026-10-30.

@@ -12,10 +12,12 @@ interface SegmentedFieldProps {
   columns: string;
   /** Sous le contrôle : description de l'option choisie, note. */
   children?: ReactNode;
+  /** Options de 44 px (choix principal d'une feuille, au doigt) au lieu de 36 px. */
+  tall?: boolean;
 }
 
 /** Contrôle segmenté (radios natifs, au clavier par les flèches), comme la période de l'export d'activité. */
-export function SegmentedField({ label, options, register, columns, children }: SegmentedFieldProps) {
+export function SegmentedField({ label, options, register, columns, children, tall }: SegmentedFieldProps) {
   const labelId = useId();
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
@@ -23,7 +25,7 @@ export function SegmentedField({ label, options, register, columns, children }: 
       <div role="radiogroup" aria-labelledby={labelId} className={`grid ${columns} gap-1 rounded-[0.875rem] bg-muted p-1`}>
         {options.map((option) => (
           <label key={option.value}
-            className="flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[0.625rem] px-1.5 py-1 text-center text-[0.8125rem] leading-tight font-medium text-muted-foreground transition-colors hover:text-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-3 has-focus-visible:ring-primary/30 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-disabled:hover:text-muted-foreground">
+            className={`flex ${tall ? 'min-h-11' : 'min-h-9'} cursor-pointer items-center justify-center gap-1.5 rounded-[0.625rem] px-1.5 py-1 text-center text-[0.8125rem] leading-tight font-medium text-muted-foreground transition-colors hover:text-foreground has-checked:bg-card has-checked:font-semibold has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-3 has-focus-visible:ring-primary/30 has-disabled:cursor-not-allowed has-disabled:opacity-50 has-disabled:hover:text-muted-foreground`}>
             <input type="radio" value={option.value} {...register} disabled={option.disabled} className="sr-only" />
             {option.label}
           </label>
