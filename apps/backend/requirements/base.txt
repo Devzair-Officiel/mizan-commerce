@@ -41,7 +41,7 @@ Babel==2.18.0
 hijridate==2.6.0
 
 # Sécurité — rate-limit & blocage des tentatives de login
-django-axes==7.1.0
+django-axes==8.3.1
 
 # Client HTTP moderne (multipart pour le service IA — voir apps/ocr/ai_client.py).
 # `urllib.request` reste utilisé pour les sondes GET simples ; httpx s'ajoute
