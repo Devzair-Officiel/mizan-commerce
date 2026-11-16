@@ -1,5 +1,5 @@
 -r base.txt
 
 # Serveur WSGI & statiques en prod
-gunicorn==23.0.0
+gunicorn==27.0.1
 whitenoise==6.12.0
