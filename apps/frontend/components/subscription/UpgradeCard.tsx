@@ -11,7 +11,8 @@ import { useSubscription, type PlanCode, type UsageKey } from '@/lib/hooks/useSu
 
 /** Fonctions d'une formule supérieure. */
 export type LockedFeature =
-  | 'multi_user' | 'public_pages' | 'ocr' | 'whatsapp' | 'exports' | 'invoices' | 'invoice_branding';
+  | 'multi_user' | 'public_pages' | 'ocr' | 'whatsapp' | 'exports' | 'invoices' | 'quotes' | 'credit_notes'
+  | 'invoice_branding';
 /** Fonction verrouillée, compteur arrivé à la limite de la formule, ou lectures avancées du mois épuisées. */
 export type UpgradeFeature = LockedFeature | UsageKey | 'ai_reads';
 

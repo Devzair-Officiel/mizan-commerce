@@ -32,7 +32,8 @@ STALE_DRAFT = {
 }
 
 
-def _shop_invoice(request, pk) -> Invoice:
+def shop_invoice(request, pk) -> Invoice:
+    """Facture de la boutique du membre courant ; 404 pour toute autre boutique."""
     invoice = (
         Invoice.objects.filter(pk=pk, shop=get_shop(request.user))
         .select_related('shop', 'customer')
@@ -43,8 +44,23 @@ def _shop_invoice(request, pk) -> Invoice:
     return invoice
 
 
-def _issues(issues: list[ComplianceIssue]) -> list[dict[str, str]]:
+def compliance_issues(issues: list[ComplianceIssue]) -> list[dict[str, str]]:
     return [asdict(issue) for issue in issues]
+
+
+def compliance_response(exc: drafts.ComplianceError, detail: str) -> Response:
+    """Refus de conformité d'un document (facture, devis, avoir) : 400 si un point
+    bloque, 409 si des recommandations restent à accepter."""
+    return Response(
+        {
+            'detail': detail,
+            'code': 'compliance_blocking' if exc.blocking else 'compliance_warnings',
+            'issues': compliance_issues(exc.issues),
+        },
+        status=(
+            status.HTTP_400_BAD_REQUEST if exc.blocking else status.HTTP_409_CONFLICT
+        ),
+    )
 
 
 class DraftInvoiceCreateView(APIView):
@@ -67,7 +83,7 @@ class DraftInvoiceView(APIView):
     permission_classes = PERMISSIONS
 
     def patch(self, request, pk) -> Response:
-        invoice = _shop_invoice(request, pk)
+        invoice = shop_invoice(request, pk)
         # Champs tous facultatifs (PATCH partiel), sauf `updated_at`.
         payload = DraftInvoiceUpdateSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
@@ -82,7 +98,7 @@ class DraftInvoiceView(APIView):
         return Response(InvoiceSerializer(invoice).data)
 
     def delete(self, request, pk) -> Response:
-        invoice = _shop_invoice(request, pk)
+        invoice = shop_invoice(request, pk)
         try:
             drafts.delete_draft_invoice(invoice, request.user)
         except drafts.NotDraftError:
@@ -96,10 +112,10 @@ class InvoiceComplianceView(APIView):
     permission_classes = PERMISSIONS
 
     def get(self, request, pk) -> Response:
-        invoice = _shop_invoice(request, pk)
+        invoice = shop_invoice(request, pk)
         if invoice.status != Invoice.STATUS_DRAFT:
             return Response(NOT_DRAFT, status=status.HTTP_409_CONFLICT)
-        return Response({'issues': _issues(check_invoice(invoice))})
+        return Response({'issues': compliance_issues(check_invoice(invoice))})
 
 
 class InvoiceIssueDraftView(APIView):
@@ -108,7 +124,7 @@ class InvoiceIssueDraftView(APIView):
     permission_classes = PERMISSIONS
 
     def post(self, request, pk) -> Response:
-        invoice = _shop_invoice(request, pk)
+        invoice = shop_invoice(request, pk)
         payload = InvoiceIssueDraftSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         try:
@@ -123,20 +139,7 @@ class InvoiceIssueDraftView(APIView):
         except drafts.NotDraftError:
             return Response(NOT_DRAFT, status=status.HTTP_409_CONFLICT)
         except drafts.ComplianceError as exc:
-            return Response(
-                {
-                    'detail': 'Vérifiez la facture avant de l’émettre.',
-                    'code': (
-                        'compliance_blocking' if exc.blocking else 'compliance_warnings'
-                    ),
-                    'issues': _issues(exc.issues),
-                },
-                status=(
-                    status.HTTP_400_BAD_REQUEST
-                    if exc.blocking
-                    else status.HTTP_409_CONFLICT
-                ),
-            )
+            return compliance_response(exc, 'Vérifiez la facture avant de l’émettre.')
         return Response(InvoiceSerializer(invoice).data)
 
 

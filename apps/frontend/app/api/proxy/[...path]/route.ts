@@ -31,6 +31,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     const ct = req.headers.get('content-type');
     if (ct) headers['Content-Type'] = ct;
   }
+  // Clé d'idempotence (création d'un avoir) : seul en-tête du client relayé tel quel, validé par le backend.
+  const idempotencyKey = req.headers.get('idempotency-key');
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
   let body: BodyInit | undefined;
   if (!['GET', 'HEAD'].includes(req.method)) {

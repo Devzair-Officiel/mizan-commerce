@@ -4,7 +4,8 @@ Remet les boutiques des audits Playwright dans leur état de départ.
 Supprime les boutiques dont un compte d'audit (e2e@example.com, e2e2@…) est
 propriétaire (cascade), puis recrée une boutique par emplacement (`--slots`,
 audits lancés en parallèle) comme seed_data, plus celles réservées à audit-invoices
-(e2e-invoices@example.com) et à audit-invoice-editor (e2e-invoice-editor@…).
+(e2e-invoices@example.com), à audit-invoice-editor (e2e-invoice-editor@…) et à
+audit-quotes (e2e-quotes@…).
 Aucune autre boutique n'est touchée.
 Lancée automatiquement avant `docker compose run --rm e2e` (service e2e-reset).
 

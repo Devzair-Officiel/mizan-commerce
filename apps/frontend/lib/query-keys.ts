@@ -104,6 +104,7 @@ export interface ReminderFilters {
 export interface InvoicesListFilters {
   status?: 'draft' | 'issued' | 'paid' | 'cancelled';
   payment?: 'due' | 'unpaid' | 'partial' | 'paid';
+  kind?: 'invoice' | 'credit_note';
   period?: 'issued_month' | 'paid_month';
   search?: string;
   ordering?: string;
@@ -235,7 +236,18 @@ export const qk = {
     detail: (id: string) => ['invoices', id] as const,
     /** Vérification avant émission d'un brouillon : relue après chaque enregistrement. */
     compliance: (id: string) => ['invoices', id, 'compliance'] as const,
+    /** Aperçu d'un avoir : entrées sérialisées (mode, lignes, livraison). */
+    creditPreview: (id: string, input: string) => ['invoices', id, 'credit-preview', input] as const,
     lineSuggestions: (q: string) => ['invoices', 'line-suggestions', q] as const,
+  },
+  quotes: {
+    all: ['quotes'] as const,
+    /** Liste paginée (desktop), sans filtre : `page` seulement. */
+    list: (page: number) => ['quotes', 'list', page] as const,
+    infinite: ['quotes', 'infinite'] as const,
+    detail: (id: string) => ['quotes', id] as const,
+    /** Vérification avant envoi d'un brouillon : relue après chaque enregistrement. */
+    compliance: (id: string) => ['quotes', id, 'compliance'] as const,
   },
 
   me: {

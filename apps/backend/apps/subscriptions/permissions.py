@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from apps.core.permissions import get_shop
 
@@ -43,6 +43,8 @@ FEATURE_MIN_PLAN: dict[str, str] = {
     'product_scan': SubscriptionPlan.CODE_FREE,
     # Solo
     'invoices': SubscriptionPlan.CODE_SOLO,
+    'quotes': SubscriptionPlan.CODE_SOLO,
+    'credit_notes': SubscriptionPlan.CODE_SOLO,
     'whatsapp': SubscriptionPlan.CODE_SOLO,
     'zakat_history': SubscriptionPlan.CODE_SOLO,
     'auto_reminders': SubscriptionPlan.CODE_SOLO,
@@ -93,14 +95,21 @@ class HasPlanForFeature(BasePermission):
 
     Combinable avec `HasModulePermission` pour gater à la fois la formule et
     le rôle interne.
+
+    `writes_only=True` laisse la lecture (GET, HEAD, OPTIONS) à toutes les
+    formules : les documents déjà créés restent consultables après une descente
+    de formule, seule l'écriture est refusée.
     """
 
     feature: str = ''
+    writes_only: bool = False
     message = 'Cette fonctionnalité nécessite une formule supérieure.'
 
     def has_permission(self, request, view) -> bool:
         if not request.user or not request.user.is_authenticated:
             return False
+        if self.writes_only and request.method in SAFE_METHODS:
+            return True
         try:
             shop = get_shop(request.user)
         except PermissionDenied:
@@ -108,9 +117,11 @@ class HasPlanForFeature(BasePermission):
         return shop_has_feature(shop, self.feature)
 
     @classmethod
-    def for_feature(cls, feature: str) -> type['HasPlanForFeature']:
+    def for_feature(
+        cls, feature: str, *, writes_only: bool = False
+    ) -> type['HasPlanForFeature']:
         return type(
             f'HasPlanForFeature_{feature}',
             (cls,),
-            {'feature': feature},
+            {'feature': feature, 'writes_only': writes_only},
         )

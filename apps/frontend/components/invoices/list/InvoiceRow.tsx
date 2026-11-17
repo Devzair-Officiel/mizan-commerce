@@ -7,9 +7,13 @@ import { useFormatMoney, useFormatDate } from '@/lib/hooks/useFormat';
 import { OrderNumber } from '@/components/orders/OrderNumber';
 import { InvoiceStatusBadge } from '../shared/InvoiceStatusBadge';
 import { InvoicePaymentBadge } from '../shared/InvoicePaymentBadge';
+import { CreditNoteBadge } from '../shared/CreditNoteBadge';
+import { NegativeAmount } from '../shared/NegativeAmount';
 import { invoiceHref } from '../shared/status';
 
+/** Ligne de la liste mobile ; un avoir porte son badge et un montant négatif, sans paiement. */
 export function InvoiceRow({ invoice: i }: { invoice: Invoice }) {
+  const credit = i.kind === 'credit_note';
   const t = useTranslations('invoices');
   const money = useFormatMoney();
   const date = useFormatDate();
@@ -17,9 +21,11 @@ export function InvoiceRow({ invoice: i }: { invoice: Invoice }) {
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0"><p className="text-sm font-semibold break-words">{i.number ? <OrderNumber>{i.number}</OrderNumber> : t('list.no_number')}</p>
         <p className="mt-1 truncate text-xs text-muted-foreground">{i.buyer_name || t('list.no_customer')}</p></div>
-      <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">{money(i.total_ttc, i.currency)}</span>
+      {credit ? <NegativeAmount value={i.total_ttc} currency={i.currency} className="shrink-0 whitespace-nowrap text-sm font-semibold" />
+        : <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums">{money(i.total_ttc, i.currency)}</span>}
     </div>
-    <div className="flex flex-wrap items-center justify-between gap-2"><InvoiceStatusBadge status={i.status} /><InvoicePaymentBadge invoice={i} /></div>
+    {credit ? <div className="flex"><CreditNoteBadge /></div>
+      : <div className="flex flex-wrap items-center justify-between gap-2"><InvoiceStatusBadge status={i.status} /><InvoicePaymentBadge invoice={i} /></div>}
     {i.due_date && <p className="text-xs text-muted-foreground">{t('due', { date: date(i.due_date, { dateStyle: 'medium', timeZone: 'UTC' }) })}</p>}
   </Link>;
 }

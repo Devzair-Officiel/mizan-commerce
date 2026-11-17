@@ -10,7 +10,7 @@ import { planPrice, type BillingPeriod } from '@/lib/plan-pricing';
 import { cn } from '@/lib/utils';
 
 /** Nombre de lignes `f1…fN` sous `settings.subscription.plans.{code}` ; la dernière : les lectures avancées du mois. */
-const FEATURE_LINES: Record<PlanCode, number> = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
+const FEATURE_LINES: Record<PlanCode, number> = { free: 6, solo: 7, boutique: 7, commerce_plus: 5 };
 
 /** Où en est la boutique avec cette formule : elle l'a, elle l'essaie, elle l'a sur l'autre période, ou non. */
 export type PlanCardState = 'current' | 'trial' | 'switch' | 'other';

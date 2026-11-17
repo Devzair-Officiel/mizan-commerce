@@ -28,6 +28,9 @@
  * expiré), 402 (portail, « Réessayer »), change_not_supported, bandeau du changement programmé et son annulation.
  * Bandeaux globaux (lib/banners.mjs) : impayé (propriétaire, admin, employé, absent de la page Abonnement), fin d'essai
  * à 20 h (masquable pour la session).
+ * Devis et avoirs selon la formule (lib/documents-plan.mjs) : en Découverte, devis consultables, « Nouveau devis »,
+ * l'éditeur et « Marquer accepté » ouvrent la carte Solo, aucune écriture ; en Solo et en essai, éditeur, feuille
+ * d'accord et feuille d'avoir.
  * La formule est réécrite dans la réponse `/subscriptions/current/` (comme audit-usage) et les POST de
  * facturation sont simulés : rien n'est résilié, aucun appel à Stripe.
  */
@@ -38,6 +41,7 @@ import { auditBilling, billing, checkCheckout, routeBilling } from './lib/billin
 import { auditPaidActivity } from './lib/activity.mjs';
 import { auditPlanChange, routePlanChange } from './lib/plan-change.mjs';
 import { auditBanners, routeRole } from './lib/banners.mjs';
+import { auditDocumentsPlan, documentsForPlan } from './lib/documents-plan.mjs';
 
 const report = createReport();
 const CONFIGS = [['1440', 'fr', 'light'], ['360', 'ar', 'dark']];
@@ -48,7 +52,7 @@ const TEAM = 3;
 const AI_READS = { trial: { count: 50, limit: 60 }, free: { count: 10, limit: 10 }, paid: { count: 3, limit: 30 } };
 /** Plafonds mensuels de la grille (migration `subscriptions/0007`, `seed_plans`) et nombre de lignes `fN` (la dernière : lectures). */
 const TEXT_SCANS = { free: 10, solo: 30, boutique: 60, commerce_plus: 130 };
-const FEATURE_LINES = { free: 6, solo: 5, boutique: 7, commerce_plus: 5 };
+const FEATURE_LINES = { free: 6, solo: 7, boutique: 7, commerce_plus: 5 };
 
 /** Réponse `/subscriptions/current/` de la situation `state.mode`, lectures avancées allumées ou non ; gardée dans `state.current`. */
 function situation(subscription, state) {
@@ -319,6 +323,7 @@ try {
         report.check(false, `${label} : interrompu — ${error.message.split('\n')[0]}`);
       }
     }
+    await auditDocumentsPlan(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, await documentsForPlan(page));
     await auditBilling(page, report, locale, `${name}px ${locale} ${theme}`, state, watch);
     await auditPaidActivity(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);
     await auditPlanChange(page, report, locale, `${name}px ${locale} ${theme}`, state, watch, viewport.mobile);

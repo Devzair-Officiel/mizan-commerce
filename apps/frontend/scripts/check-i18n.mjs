@@ -11,6 +11,9 @@
  *      les variables ICU de premier niveau de la clé FR correspondante.
  *   4. fr.json vouvoie : aucune valeur ne contient tu / ton / ta / tes / toi / t'
  *      (exceptions explicites dans TUTOIEMENT_EXCEPTIONS).
+ *   5. Un message qui dépend du type de document ({doc, select, …}) n'est que ce
+ *      select, avec les branches invoice, quote et other : chaque branche est une
+ *      phrase entière (articles et accords propres au type), jamais un fragment.
  */
 
 import { readFileSync, readdirSync, statSync } from 'fs';
@@ -198,10 +201,42 @@ for (const [key, value] of Object.entries(flat['fr'])) {
   }
 }
 
+// ── Check 5 : messages par type de document ({doc, select, …}) ──────────────
+
+const DOC_BRANCHES = ['invoice', 'quote', 'other'];
+
+/** Branches de premier niveau d'un select (`nom {texte}`), ou `null` s'il reste du texte autour. */
+function docBranches(value) {
+  const body = value.trim();
+  const head = body.match(/^\{\s*doc\s*,\s*select\s*,/);
+  if (!head || !body.endsWith('}')) return null;
+  const names = [];
+  let depth = 0;
+  let name = '';
+  for (let i = head[0].length; i < body.length - 1; i++) {
+    const c = body[i];
+    if (c === '{') { if (depth === 0) names.push(name.trim()); depth++; name = ''; }
+    else if (c === '}') { depth--; if (depth < 0) return null; }
+    else if (depth === 0) name += c;
+  }
+  return depth === 0 && !name.trim() ? names : null;
+}
+
+for (const lang of LANGS) {
+  for (const [key, value] of Object.entries(flat[lang])) {
+    if (!/\{\s*doc\s*,\s*select\s*,/.test(value)) continue;
+    const names = docBranches(value);
+    if (!names || names.length !== DOC_BRANCHES.length || DOC_BRANCHES.some((b) => !names.includes(b))) {
+      console.error(`\n[DOC] ${lang} ${key} — le message doit être un seul {doc, select, invoice {…} quote {…} other {…}} : ${value}`);
+      hasError = true;
+    }
+  }
+}
+
 // ── Result ────────────────────────────────────────────────────────────────────
 
 if (!hasError) {
-  console.log(`✓ i18n OK — ${allKeys.size} clés, ${LANGS.length} langues, variables ICU cohérentes, call sites vérifiés, vouvoiement`);
+  console.log(`✓ i18n OK — ${allKeys.size} clés, ${LANGS.length} langues, variables ICU cohérentes, call sites vérifiés, vouvoiement, messages par type de document`);
 } else {
   process.exit(1);
 }

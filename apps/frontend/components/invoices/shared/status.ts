@@ -9,6 +9,7 @@ export const STATUS_BADGE: Record<InvoiceStatus, string> = {
 export const PAYMENT_BADGE: Record<string, string> = {
   due: STATUS_BADGE.issued, unpaid: STATUS_BADGE.issued, partial: STATUS_BADGE.issued,
   paid: STATUS_BADGE.paid, cancelled: STATUS_BADGE.cancelled,
+  credited: 'bg-secondary text-secondary-foreground',
 };
 
 /** Un brouillon s'ouvre dans l'éditeur, une facture émise sur sa page détail. */

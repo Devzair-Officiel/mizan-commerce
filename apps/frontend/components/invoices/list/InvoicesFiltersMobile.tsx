@@ -11,9 +11,10 @@ export function InvoicesFiltersMobile({ state }: { state: InvoicesPageState }) {
   const t = useTranslations('invoices.list');
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(state.selection);
-  const { statusOptions, paymentOptions, periodOptions, sortLabel } = useInvoiceFilterOptions();
+  const { statusOptions, paymentOptions, kindOptions, periodOptions, sortLabel } = useInvoiceFilterOptions();
   const activeFilters: ActiveFilter[] = [];
   if (state.selection.status) activeFilters.push({ name: t('status_title'), option: statusOptions.find(o => o.value === state.selection.status)!, onRemove: () => state.set({ status: '' }) });
+  if (state.selection.kind) activeFilters.push({ name: t('kind_title'), option: kindOptions.find(o => o.value === state.selection.kind)!, onRemove: () => state.set({ kind: '' }) });
   if (state.selection.payment !== 'all') activeFilters.push({ name: t('payment_title'), option: paymentOptions.find(o => o.value === state.selection.payment)!, onRemove: () => state.set({ payment: 'all' }) });
   if (state.selection.period) activeFilters.push({ name: t('period_title'), option: periodOptions.find(o => o.value === state.selection.period)!, onRemove: () => state.set({ period: '' }) });
   return <>

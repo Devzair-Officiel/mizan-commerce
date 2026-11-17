@@ -58,7 +58,7 @@ DOMAINS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
         'Facturation',
         (
             ('invoices.Invoice', 'Factures'),
-            ('invoices.InvoiceSequence', 'Séquences de numérotation'),
+            ('invoices.DocumentSequence', 'Séquences de numérotation'),
         ),
     ),
     (

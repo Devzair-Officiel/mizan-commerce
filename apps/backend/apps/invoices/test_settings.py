@@ -18,7 +18,7 @@ from apps.shops.services import delete_shop_logo, upload_shop_logo
 from apps.subscriptions.models import SubscriptionPlan
 from apps.subscriptions.test_utils import attach_subscription
 from .colors import accessible_color, inspect_logo, white_contrast
-from .models import Invoice, InvoiceSequence
+from .models import DocumentSequence, Invoice
 from .pdf import build_invoice_pdf
 from .services import issue_invoice_from_order
 from .settings import example_invoice, update_invoice_settings
@@ -254,13 +254,13 @@ def test_settings_require_membership_and_authentication() -> None:
 def test_example_is_read_only_and_uses_saved_settings(client, context) -> None:
     _, shop, _, _ = context
     count = Invoice.objects.filter(shop=shop).count()
-    seq = InvoiceSequence.objects.filter(shop=shop).first()
+    seq = DocumentSequence.objects.filter(shop=shop).first()
     response = client.get(reverse('invoice-example'))
     assert response.status_code == 200
     assert response['Content-Type'] == 'application/pdf'
     assert response.content.startswith(b'%PDF-')
     assert Invoice.objects.filter(shop=shop).count() == count
-    assert InvoiceSequence.objects.filter(shop=shop).first() == seq
+    assert DocumentSequence.objects.filter(shop=shop).first() == seq
     assert example_invoice(shop, 'ar').presentation['language'] == 'fr'
     assert example_invoice(shop, 'en').presentation['language'] == 'en'
 

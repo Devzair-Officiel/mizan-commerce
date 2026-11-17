@@ -12,6 +12,8 @@ Usage type dans un setUp :
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.utils import timezone
 
 from .models import Subscription, SubscriptionPlan
@@ -32,4 +34,13 @@ def attach_subscription(shop, plan_code: str = SubscriptionPlan.CODE_SOLO) -> Su
             'current_period_end': None,
         },
     )
+    return sub
+
+
+def attach_trial(shop) -> Subscription:
+    """Attache un essai Boutique en cours (14 jours restants) au shop."""
+    sub = attach_subscription(shop, plan_code=SubscriptionPlan.CODE_BOUTIQUE)
+    sub.status = Subscription.STATUS_TRIALING
+    sub.current_period_end = timezone.now() + timedelta(days=14)
+    sub.save(update_fields=['status', 'current_period_end'])
     return sub

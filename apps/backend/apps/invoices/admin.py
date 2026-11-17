@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from apps.core.admin_site import ReadOnlyAdminMixin
 
-from .models import Invoice, InvoiceLine, InvoiceSequence
+from .models import DocumentSequence, Invoice, InvoiceLine
 
 
 class InvoiceLineInline(ReadOnlyAdminMixin, admin.TabularInline):
@@ -107,8 +107,8 @@ class InvoiceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     inlines = [InvoiceLineInline]
 
 
-@admin.register(InvoiceSequence)
-class InvoiceSequenceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    list_display = ('shop', 'last_number', 'updated_at')
-    list_filter = ('shop',)
+@admin.register(DocumentSequence)
+class DocumentSequenceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    list_display = ('shop', 'kind', 'last_number', 'updated_at')
+    list_filter = ('kind', 'shop')
     readonly_fields = ('updated_at',)

@@ -6,16 +6,20 @@ import { AlertTriangle, Receipt } from 'lucide-react';
 import { FormSection } from '@/components/form/FormSection';
 import { Button } from '@/components/ui/button';
 import { useFormatMoney } from '@/lib/hooks/useFormat';
+import type { DraftKind } from '@/lib/hooks/useDocumentDrafts';
 import type { OperationCategory } from '@/lib/hooks/useInvoices';
 import { paymentTerms, type estimateTotals } from './editorSchema';
 
 interface EditorSummaryCardProps {
+  kind: DraftKind;
   totals: ReturnType<typeof estimateTotals>;
   taxRate: string;
   currency: string;
   operation: OperationCategory;
   /** Délai de paiement saisi (jours), vide : aucune échéance. */
   days: string;
+  /** Validité saisie (jours), affichée pour un devis. */
+  validity: string;
   /** Recommandations de la vérification pour le brouillon enregistré. */
   recommended: number;
   busy: boolean;
@@ -31,9 +35,10 @@ function Row({ label, children, strong }: { label: string; children: ReactNode; 
 
 /**
  * Récapitulatif (desktop, colonne latérale) : totaux estimés (le serveur fait foi), nature de
- * l'opération, échéance, recommandations restantes et bouton « Émettre la facture ».
+ * l'opération, validité (devis), échéance, recommandations restantes et bouton « Émettre la facture »
+ * ou « Envoyer le devis ».
  */
-export function EditorSummaryCard({ totals, taxRate, currency, operation, days, recommended, busy, onIssue }: EditorSummaryCardProps) {
+export function EditorSummaryCard({ kind, totals, taxRate, currency, operation, days, validity, recommended, busy, onIssue }: EditorSummaryCardProps) {
   const t = useTranslations('invoices.editor.summary');
   const tt = useTranslations('invoices.totals');
   const te = useTranslations('invoices.editor.extras');
@@ -48,12 +53,13 @@ export function EditorSummaryCard({ totals, taxRate, currency, operation, days, 
       <Row label={vat ? tt('tax_rate', { rate: Number(taxRate) }) : tt('tax')}>{vat ? m(totals.tax) : tt('not_applicable')}</Row>
       <Row label={tt('total')} strong>{m(totals.total)}</Row>
       <Row label={te('operation')}>{te('operation_option', { value: operation })}</Row>
+      {kind === 'quote' && <Row label={t('validity')}>{t('validity_value', { days: Number(validity) })}</Row>}
       <Row label={t('terms')}>{t('terms_value', paymentTerms(days))}</Row>
     </dl>
     {recommended > 0 && <p className="flex items-center gap-2 text-[0.8125rem] text-amber-700 dark:text-amber-400">
-      <AlertTriangle size={16} className="shrink-0" aria-hidden />{t('recommended', { count: recommended })}
+      <AlertTriangle size={16} className="shrink-0" aria-hidden />{t('recommended', { doc: kind, count: recommended })}
     </p>}
-    <Button type="button" className="h-11 w-full rounded-full" disabled={busy} onClick={onIssue}>{t('issue')}</Button>
-    <p className="text-xs text-muted-foreground">{t('estimate')}</p>
+    <Button type="button" className="h-11 w-full rounded-full" disabled={busy} onClick={onIssue}>{t('issue', { doc: kind })}</Button>
+    <p className="text-xs text-muted-foreground">{t('estimate', { doc: kind })}</p>
   </FormSection></div>;
 }

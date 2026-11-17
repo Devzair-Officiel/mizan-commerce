@@ -13,6 +13,8 @@ interface QuantityStepperProps extends Omit<InputHTMLAttributes<HTMLInputElement
   size?: 'md' | 'sm';
   /** Plancher du bouton Moins : 1 (quantité reçue ou sortie), 0 (quantité comptée). */
   min?: number;
+  /** Plafond du bouton Plus (reste à créditer d'une ligne) ; aucun par défaut. */
+  max?: number;
 }
 
 /** Quantité saisie (« 2,5 ») en nombre, `NaN` si elle est illisible. */
@@ -22,12 +24,12 @@ export function parseQuantity(value: string): number {
 
 /**
  * Champ de quantité avec boutons Moins et Plus (pas de 1). La saisie reste
- * libre pour le vrac (« 2,5 ») ; Moins s'arrête à `min` (1 par défaut).
+ * libre pour le vrac (« 2,5 ») ; Moins s'arrête à `min` (1 par défaut), Plus à `max`.
  */
-export function QuantityStepper({ ref, value, onChange, size = 'md', min = 1, className, ...input }: QuantityStepperProps) {
+export function QuantityStepper({ ref, value, onChange, size = 'md', min = 1, max = Infinity, className, ...input }: QuantityStepperProps) {
   const t = useTranslations('stock.common');
   const n = parseQuantity(value);
-  const step = (delta: number) => onChange(String(Math.max(min, (Number.isFinite(n) ? Math.round(n) : 0) + delta)));
+  const step = (delta: number) => onChange(String(Math.min(max, Math.max(min, (Number.isFinite(n) ? Math.round(n) : 0) + delta))));
   const button = cn(
     'grid shrink-0 place-items-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
     size === 'md' ? 'size-11' : 'size-9.5 rounded-full',
@@ -44,7 +46,7 @@ export function QuantityStepper({ ref, value, onChange, size = 'md', min = 1, cl
       <input {...input} ref={ref} value={value} onChange={(e) => onChange(e.target.value)} inputMode="decimal" autoComplete="off"
         className={cn('h-full w-full min-w-0 bg-transparent text-center font-bold tabular-nums text-foreground outline-none',
           size === 'md' ? 'text-base' : 'text-sm')} />
-      <button type="button" onClick={() => step(1)} aria-label={t('increase')} className={button}>
+      <button type="button" onClick={() => step(1)} disabled={n >= max} aria-label={t('increase')} className={button}>
         <Plus size={16} aria-hidden />
       </button>
     </div>

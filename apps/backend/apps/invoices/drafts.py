@@ -22,10 +22,10 @@ from apps.products.models import ProductVariant
 from apps.shops.models import Shop
 
 from .compliance import ComplianceIssue, check_invoice
-from .models import Invoice, InvoiceLine
+from .models import BillingDocument, BillingLine, DocumentSequence, Invoice, InvoiceLine
 from .services import (
     _invoice_options,
-    _next_invoice_number,
+    _next_number,
     compute_totals,
     display_line_description,
     line_description,
@@ -112,7 +112,7 @@ def _customer(shop: Shop, customer_id: Any) -> Customer | None:
     return customer
 
 
-def _set_buyer(invoice: Invoice, customer: Customer | None) -> None:
+def _set_buyer(invoice: BillingDocument, customer: Customer | None) -> None:
     invoice.customer = None
     for field in BUYER_FIELDS:
         setattr(invoice, field, '')
@@ -146,7 +146,7 @@ def _build_lines(
     ]
 
 
-def _refresh_totals(invoice: Invoice, lines: Sequence[InvoiceLine]) -> None:
+def _refresh_totals(invoice: BillingDocument, lines: Sequence[BillingLine]) -> None:
     invoice.tax_rate = _tax_rate(invoice.shop)
     invoice.subtotal_ht, invoice.tax_amount, invoice.total_ttc = compute_totals(
         list(lines), invoice.tax_rate, invoice.discount_amount, invoice.shipping_amount
@@ -253,7 +253,7 @@ def _freeze(invoice: Invoice, shop: Shop, language: str | None) -> None:
     _tax, terms, language = _invoice_options(
         shop, None, invoice.payment_terms_days, language
     )
-    invoice.number = _next_invoice_number(shop, issued_on)
+    invoice.number = _next_number(shop, DocumentSequence.KIND_INVOICE, issued_on)
     invoice.issued_at = now
     invoice.due_date = issued_on + timedelta(days=terms)
     invoice.payment_terms_days = terms
@@ -350,6 +350,7 @@ def _previous_line_suggestions(
     lines = (
         InvoiceLine.objects.filter(
             shop=shop,
+            invoice__kind=Invoice.KIND_INVOICE,
             invoice__status__in=(Invoice.STATUS_ISSUED, Invoice.STATUS_PAID),
             description__icontains=query,
         )

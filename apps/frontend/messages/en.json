@@ -1788,7 +1788,7 @@
     },
     "upgrade": {
       "title": "{feature, select, products {{kind, select, products {Unlimited items with the Solo plan} services {Unlimited services with the Solo plan} other {Unlimited items and services with the Solo plan}}} orders_this_month {Unlimited sales with the Solo plan} customers {Unlimited customers with the Solo plan} members {More members with the {plan, select, commerce_plus {Commerce+} other {Boutique}} plan} ai_reads {More advanced reads with the {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}} plan} other {Available with the {plan, select, solo {Solo} commerce_plus {Commerce+} other {Boutique}} plan}}",
-      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} invoices {Issue numbered invoices and send them to your customers as PDFs.} invoice_branding {Add your logo and your shop's colour to every invoice.} products {{kind, select, products {Add as many items as you like, without archiving anything.} services {Offer as many services as you like, without archiving anything.} other {Grow your catalogue without limits, without archiving anything.}}} orders_this_month {Record every sale of the month, with no cap.} customers {Keep track of all your customers, with no limit on records.} members {{plan, select, commerce_plus {Invite your whole team, with no member limit.} other {Work as a team: up to 4 members, each with their own role.}}} ai_reads {Read more packages every month: brand, product name and size filled in for you.} other {Upgrade your plan to save time every day.}}",
+      "text": "{feature, select, multi_user {Invite your staff and choose what each person can do.} public_pages {Publish a page for your shop, with your catalogue and contact details.} ocr {Take a photo of a supplier invoice: items and quantities are filled in for you.} whatsapp {Prepare your WhatsApp messages in one tap, in your shop's tone and words.} exports {Download your customers' activity as a CSV file, ready for a spreadsheet.} invoices {Issue numbered invoices and send them to your customers as PDFs.} invoice_branding {Add your logo and your shop's colour to every invoice.} quotes {Send numbered quotes as PDFs, then turn them into invoices once accepted.} credit_notes {Correct an issued invoice with a credit note, in full or in part, without changing it.} products {{kind, select, products {Add as many items as you like, without archiving anything.} services {Offer as many services as you like, without archiving anything.} other {Grow your catalogue without limits, without archiving anything.}}} orders_this_month {Record every sale of the month, with no cap.} customers {Keep track of all your customers, with no limit on records.} members {{plan, select, commerce_plus {Invite your whole team, with no member limit.} other {Work as a team: up to 4 members, each with their own role.}}} ai_reads {Read more packages every month: brand, product name and size filled in for you.} other {Upgrade your plan to save time every day.}}",
       "cta": "See plans"
     },
     "usage": {
@@ -1921,9 +1921,11 @@
           "description": "For shopkeepers who run their shop alone.",
           "f1": "Unlimited catalogue, sales and customers",
           "f2": "PDF invoices",
-          "f3": "Ready-made WhatsApp messages",
-          "f4": "Automatic unpaid follow-ups",
-          "f5": "{text_scans} advanced package reads per month"
+          "f3": "Numbered PDF quotes",
+          "f4": "Credit notes",
+          "f5": "Ready-made WhatsApp messages",
+          "f6": "Automatic unpaid follow-ups",
+          "f7": "{text_scans} advanced package reads per month"
         },
         "boutique": {
           "name": "Boutique",
@@ -3238,7 +3240,7 @@
     "password_description": "Choose a password with at least 8 characters."
   },
   "invoices": {
-    "payment": "{state, select, paid {Paid} partial {Partial — {amount}} cancelled {Cancelled} other {Unpaid}}",
+    "payment": "{state, select, paid {Paid} partial {Partial — {amount}} cancelled {Cancelled} credited {Credited} other {Unpaid}}",
     "due": "Due: {date}",
     "list": {
       "title": "Invoices",
@@ -3263,9 +3265,14 @@
       "apply": "Apply",
       "show_results": "Show {count} invoices",
       "load_more": "Load more",
-      "empty_filtered": "No matching invoices",
+      "empty_filtered": "{kind, select, credit_note {No matching credit notes} other {No matching invoices}}",
       "load_error": "Unable to load invoices. Try again.",
       "payment_filter": "{value, select, due {To collect} unpaid {Unpaid} partial {Partial} paid {Paid} other {All}}",
+      "kind_title": "Type",
+      "kind_filter": "{value, select, invoice {Invoices} credit_note {Credit notes} other {All}}",
+      "kind_count": "{kind, select, credit_note {{count, plural, one {# credit note} other {# credit notes}}} other {{count, plural, one {# invoice} other {# invoices}}}}",
+      "kind_empty_title": "{kind, select, credit_note {No credit notes} other {No invoices}}",
+      "kind_empty_body": "{kind, select, credit_note {A credit note is created from an issued or paid invoice, with “Create a credit note”.} other {Create a standalone invoice, or issue one from an order.}}",
       "columns": {
         "number": "Number",
         "buyer_name": "Customer",
@@ -3277,7 +3284,8 @@
       "sort_label": "Sorted by {field}, {dir, select, asc {ascending} other {descending}}",
       "no_number": "No number",
       "drafts_group": "Drafts",
-      "create": "New invoice"
+      "create": "New invoice",
+      "quotes_link": "Quotes"
     },
     "detail": {
       "title": "Invoice",
@@ -3293,12 +3301,9 @@
       "customer_card": "Customer profile",
       "mark_paid": "Mark as paid",
       "driven_by_order": "The payment status follows the linked order.",
-      "cancel_invoice": "Cancel invoice",
       "confirm_paid_title": "Mark as paid?",
       "confirm_paid_body": "This invoice will be recorded as fully paid.",
       "confirm": "Confirm",
-      "confirm_cancel_title": "Cancel this invoice?",
-      "confirm_cancel_body": "The number stays reserved and the record is kept.",
       "seller_logo": "Seller logo",
       "order_title": "Linked order",
       "open_order": "Open",
@@ -3310,7 +3315,44 @@
       "keep_invoice": "Keep invoice",
       "draft_title": "Draft invoice",
       "draft_body": "This invoice has not been issued yet: resume it in the editor.",
-      "resume_draft": "Resume draft"
+      "resume_draft": "Resume draft",
+      "credit_notes": "Credit notes issued",
+      "credited": "Credit notes",
+      "credit_of": "Original invoice",
+      "origin_date": "Issue date",
+      "reason": "Reason",
+      "credit_totals": "Totals"
+    },
+    "credit": {
+      "open": "Create a credit note",
+      "title": "Create a credit note",
+      "description": "Invoice {number}",
+      "mode": "What the credit note covers",
+      "mode_total": "The whole invoice",
+      "mode_partial": "Part of it",
+      "mode_total_help": "The credit note covers everything not yet credited, shipping included.",
+      "lines": "Quantities to credit",
+      "line_left": "Up to {left} of {quantity}",
+      "line_done": "Already fully credited",
+      "quantity_label": "Quantity to credit: {name}",
+      "quantity_invalid": "Enter a quantity between 0 and {max}.",
+      "shipping": "Credit the shipping",
+      "reason": "Reason",
+      "reason_help": "Printed on the credit note, {max} characters at most.",
+      "reason_required": "Enter the reason for the credit note.",
+      "reason_too_long": "The reason must not exceed {max} characters.",
+      "unchanged": "Neither stock nor the order changes: the credit note only corrects the invoice.",
+      "preview": "Credit note amount",
+      "preview_error": "The credit note could not be calculated. Please try again.",
+      "retry": "Try again",
+      "warnings_title": "Points to check on the invoice",
+      "warnings_body": "The credit note reuses the invoice details, gaps included.",
+      "warnings_accept": "I have read these points and want to create the credit note anyway.",
+      "close": "Close",
+      "submit": "Create credit note",
+      "submitting": "Creating credit note…",
+      "done": "Credit note created",
+      "error": "{code, select, over_credit {This credit note exceeds what is left to credit: the invoice has changed, please check it.} nothing_to_credit {This credit note credits no amount: choose at least one quantity or the shipping.} invoice_draft {A draft cannot be credited: issue the invoice first.} invoice_cancelled {A cancelled invoice cannot be credited.} credit_note_of_credit_note {A credit note cannot be credited.} compliance_warnings {Accept the points to check before creating the credit note.} other {The credit note could not be created. Please try again.}}"
     },
     "totals": {
       "subtotal": "Subtotal (excl. tax)",
@@ -3335,8 +3377,8 @@
       "balance": "Total account balance"
     },
     "editor": {
-      "title": "New invoice",
-      "back": "Invoices",
+      "title": "{doc, select, invoice {New invoice} quote {New quote} other {New invoice}}",
+      "back": "{doc, select, invoice {Invoices} quote {Quotes} other {Invoices}}",
       "save_status": "Draft · {value, select, saving {saving…} error {not saved} conflict {changed elsewhere} saved {{auto, select, yes {saved automatically at {time}} other {saved at {time}}}} other {not saved yet}}",
       "deleted": "Draft deleted.",
       "delete_error": "The draft could not be deleted. Try again.",
@@ -3346,12 +3388,13 @@
       "keep": "Keep",
       "conflict": "This draft was changed elsewhere (another tab or device). Reload it to continue: your latest edits here will not be kept.",
       "reload": "Reload",
-      "not_draft": "This invoice has been issued: it can no longer be edited.",
-      "open_invoice": "View invoice",
-      "not_found": "Invoice not found.",
+      "not_draft": "{doc, select, invoice {This invoice has been issued: it can no longer be edited.} quote {This quote has been sent: it can no longer be edited.} other {This invoice has been issued: it can no longer be edited.}}",
+      "open_document": "{doc, select, invoice {View invoice} quote {View quote} other {View invoice}}",
+      "not_found": "{doc, select, invoice {Invoice not found.} quote {Quote not found.} other {Invoice not found.}}",
       "save_error": "The draft could not be saved. Check your connection.",
-      "issue_error": "The invoice could not be issued. Try again.",
-      "issued": "Invoice {number} issued.",
+      "issue_error": "{doc, select, invoice {The invoice could not be issued. Try again.} quote {The quote could not be sent. Try again.} other {The invoice could not be issued. Try again.}}",
+      "issue_invalid": "{doc, select, invoice {Fix the highlighted fields before issuing the invoice.} quote {Fix the highlighted fields before sending the quote.} other {Fix the highlighted fields before issuing the invoice.}}",
+      "issued": "{doc, select, invoice {Invoice {number} issued.} quote {Quote {number} marked as sent. Share its PDF with your customer.} other {Invoice {number} issued.}}",
       "amount_invalid": "Invalid amount (2 decimals at most).",
       "quantity_invalid": "Invalid quantity (3 decimals at most).",
       "days_invalid": "Between 0 and 365 days.",
@@ -3359,22 +3402,25 @@
         "title": "Summary",
         "terms": "Due",
         "terms_value": "{terms, select, none {None} receipt {On receipt} other {{days, plural, one {# day} other {# days}}}}",
-        "recommended": "{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}",
-        "issue": "Issue invoice",
-        "estimate": "Estimated amounts: final totals are calculated when the invoice is issued.",
-        "total": "Total incl. tax"
+        "recommended": "{doc, select, invoice {{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}} quote {{count, plural, one {# recommended detail (for a complete quote)} other {# recommended details (for a complete quote)}}} other {{count, plural, one {# recommended detail (for an official invoice)} other {# recommended details (for an official invoice)}}}}",
+        "issue": "{doc, select, invoice {Issue invoice} quote {Send quote} other {Issue invoice}}",
+        "estimate": "{doc, select, invoice {Estimated amounts: final totals are calculated when the invoice is issued.} quote {Estimated amounts: final totals are calculated when the quote is sent.} other {Estimated amounts: final totals are calculated when the invoice is issued.}}",
+        "total": "Total incl. tax",
+        "validity": "Valid for",
+        "validity_value": "{days, plural, one {# day} other {# days}}"
       },
       "extras": {
         "title": "Discount, terms and notes",
-        "description": "Discount, shipping, type of transaction, due date and printed notes.",
-        "summary": "{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}",
+        "description": "{doc, select, invoice {Discount, shipping, type of transaction, due date and printed notes.} quote {Discount, shipping, type of transaction, validity, due date and printed notes.} other {Discount, shipping, type of transaction, due date and printed notes.}}",
+        "summary": "{doc, select, invoice {{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}} quote {{hasDiscount, select, yes {{discount} discount} other {No discount}} · valid for {validity, plural, one {# day} other {# days}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}} other {{hasDiscount, select, yes {{discount} discount} other {No discount}} · {terms, select, none {no due date} receipt {due on receipt} other {due in {days, plural, one {# day} other {# days}}}}}}",
         "discount": "Discount excl. tax",
         "shipping": "Shipping excl. tax",
         "operation": "Type of transaction",
         "operation_option": "{value, select, goods {Sale of goods} services {Provision of services} other {Goods and services}}",
         "terms": "Payment terms",
         "days_suffix": "days",
-        "notes": "Notes (printed on the invoice)"
+        "notes": "{doc, select, invoice {Notes (printed on the invoice)} quote {Notes (printed on the quote)} other {Notes (printed on the invoice)}}",
+        "validity": "Quote validity"
       },
       "customer": {
         "title": "Customer",
@@ -3425,24 +3471,103 @@
       },
       "unit": {
         "title": "Unit",
-        "description": "Printed as is on the invoice.",
+        "description": "Printed as is next to the quantity.",
         "presets": "Common units",
         "preset": "{value, select, night {night} hour {hour} day {day} week {week} trip {trip} person {person} flat {flat rate} other {piece}}",
         "custom": "Other unit",
         "confirm": "Confirm"
       },
       "check": {
-        "title": "Check before issuing",
-        "intro_blocking": "Complete these points to issue the invoice.",
-        "intro_recommended": "These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.",
-        "intro_ready": "All set. Once issued, the invoice gets its number and can no longer be edited.",
+        "title": "{doc, select, invoice {Check before issuing} quote {Check before sending} other {Check before issuing}}",
+        "intro_blocking": "{doc, select, invoice {Complete these points to issue the invoice.} quote {Complete these points to send the quote.} other {Complete these points to issue the invoice.}}",
+        "intro_recommended": "{doc, select, invoice {These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.} quote {These details normally appear on a quote in France. Once sent, the quote can no longer be edited.} other {These details normally appear on an official invoice in France. Once issued, the invoice can no longer be edited.}}",
+        "intro_ready": "{doc, select, invoice {All set. Once issued, the invoice gets its number and can no longer be edited.} quote {All set. Once sent, the quote gets its number and can no longer be edited.} other {All set. Once issued, the invoice gets its number and can no longer be edited.}}",
         "cancel": "Cancel",
-        "issue_anyway": "Issue anyway",
+        "issue_anyway": "{doc, select, invoice {Issue anyway} quote {Send anyway} other {Issue anyway}}",
         "complete": "Complete",
-        "issue": "Issue",
-        "issue_title": "{code, select, no_lines {No lines} zero_total {Zero total} no_customer {No customer} seller_address {Your shop address} seller_identifier {Your shop SIRET} vat_number {VAT number} customer_siren {Customer SIREN} late_penalties {Late payment penalties} other {Point to check}}",
-        "issue_hint": "{code, select, no_lines {Add at least one line} zero_total {The total must be positive} no_customer {Choose or create a customer} customer_siren {Business customer} late_penalties {Legal notices, Settings, Invoices} other {Settings, Invoices}}"
-      }
+        "issue": "{doc, select, invoice {Issue} quote {Send} other {Issue}}",
+        "issue_title": "{code, select, no_lines {No lines} zero_total {Zero total} no_customer {No customer} seller_address {Your shop address} seller_identifier {Your shop SIRET} vat_number {VAT number} customer_siren {Customer SIREN} late_penalties {Late payment penalties} seller_name {Your shop name} zero_tax_rate {0% VAT rate} payment_methods {Accepted payment methods} other {Point to check}}",
+        "issue_hint": "{code, select, no_lines {Add at least one line} zero_total {The total must be positive} no_customer {Choose or create a customer} customer_siren {Business customer} late_penalties {Legal notices, Settings, Invoices} seller_name {Settings, Identity} other {Settings, Invoices}}"
+      },
+      "validity_invalid": "Between 1 and 365 days."
+    },
+    "kind": "{kind, select, credit_note {Credit note} other {Invoice}}"
+  },
+  "quotes": {
+    "title": "Quotes",
+    "count": "{count, plural, one {# quote} other {# quotes}}",
+    "create": "New quote",
+    "empty_title": "No quotes",
+    "empty_body": "Price a service or an order before invoicing it.",
+    "load_error": "The quotes could not be loaded. Try again.",
+    "load_more": "Load more",
+    "no_number": "No number",
+    "no_customer": "No customer",
+    "status": "{value, select, draft {Draft} sent {Sent} accepted {Accepted} declined {Declined} expired {Expired} invoiced {Invoiced} other {Draft}}",
+    "valid_until": "Valid until {date}",
+    "columns": {
+      "number": "Number",
+      "buyer_name": "Customer",
+      "sent_at": "Sent on",
+      "valid_until": "Valid until",
+      "total_ttc": "Amount",
+      "status": "Status"
+    },
+    "not_found": "Quote not found.",
+    "detail": {
+      "title": "Quote",
+      "banner": "Quote summary",
+      "sent_on": "Sent on {date}",
+      "amounts": "incl. tax, {ht} excl. tax",
+      "customer_card": "Customer profile",
+      "validity": "{status, select, sent {{days, plural, =0 {Valid until {date}, last day} one {Valid until {date}, # day left} other {Valid until {date}, # days left}}} expired {Was valid until {date}} other {Valid until {date}}}",
+      "lines_title": "{kind, select, products {Items} services {Services} other {Items and services}}",
+      "totals_title": "Totals",
+      "conditions_title": "Terms",
+      "conditions_validity": "Validity",
+      "conditions_validity_value": "{days, plural, one {# day} other {# days}}",
+      "conditions_payment": "Payment terms",
+      "conditions_payment_value": "{terms, select, none {Not specified} receipt {On receipt} other {{days, plural, one {# day} other {# days}}}}",
+      "notes": "Notes"
+    },
+    "tracking": {
+      "title": "Tracking",
+      "step": "{key, select, created {Created} sent {Sent} waiting {Awaiting reply} accepted {Accepted} to_invoice {To invoice} invoiced {Invoiced} declined {Declined} expired {Expired} other {Created}}",
+      "upcoming": "Upcoming",
+      "accepted_by": "Accepted by {name}",
+      "invoice": "Invoice {number}",
+      "invoice_draft": "Draft invoice",
+      "expired_on": "Valid until {date}"
+    },
+    "actions": {
+      "accept": "Mark as accepted",
+      "convert": "Convert to invoice",
+      "view_invoice": "{hasNumber, select, yes {View invoice {number}} other {Resume the invoice}}",
+      "pdf": "Download PDF",
+      "decline": "Decline quote"
+    },
+    "accept": {
+      "title": "Mark the quote as accepted",
+      "body": "Your customer accepted quote {number} ({amount}) outside the app: record their acceptance.",
+      "name": "Name of the person accepting",
+      "name_help": "Optional. It appears in the quote's tracking.",
+      "name_too_long": "{max} characters at most.",
+      "cancel": "Cancel",
+      "submit": "Mark as accepted",
+      "done": "Quote marked as accepted. You can now convert it to an invoice."
+    },
+    "decline": {
+      "title": "Decline this quote?",
+      "body": "Quote {number} will be marked as declined: it can no longer be accepted or invoiced.",
+      "confirm": "Decline quote",
+      "keep": "Keep the quote",
+      "done": "Quote marked as declined."
+    },
+    "convert": {
+      "done": "Invoice created, ready to issue."
+    },
+    "errors": {
+      "message": "{code, select, invalid_status {This quote changed in the meantime: the page now shows its new status.} expired {This quote has expired: it can no longer be accepted.} not_sent {This quote has not been sent yet: resume it in the editor.} draft_conflict {This quote was edited elsewhere. Reload the page.} other {The action did not go through. Try again.}}"
     }
   },
   "reminders": {

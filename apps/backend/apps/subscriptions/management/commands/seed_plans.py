@@ -20,7 +20,9 @@ from django.core.management.base import BaseCommand
 from apps.subscriptions.models import SubscriptionPlan
 
 _FREE = ['products', 'stock', 'notes', 'reminders', 'orders', 'zakat', 'product_scan']
-_SOLO = _FREE + ['invoices', 'whatsapp', 'zakat_history', 'auto_reminders']
+_SOLO = _FREE + [
+    'invoices', 'quotes', 'credit_notes', 'whatsapp', 'zakat_history', 'auto_reminders',
+]
 _BOUTIQUE = _SOLO + [
     'multi_user', 'roles_permissions', 'invoice_branding', 'daily_digest',
     'exports', 'public_pages', 'loyalty', 'ocr', 'visual_inventory', 'qr_codes',
